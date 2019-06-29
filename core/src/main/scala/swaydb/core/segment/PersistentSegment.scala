@@ -30,7 +30,7 @@ import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.segment.format.a.block.HashIndex
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.core.segment.format.a.{SegmentCompression, SegmentReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
@@ -117,16 +117,13 @@ private[segment] case class PersistentSegment(file: DBFile,
     */
   def put(newKeyValues: Slice[KeyValue.ReadOnly],
           minSegmentSize: Long,
-          bloomFilterFalsePositiveRate: Double,
-          resetPrefixCompressionEvery: Int,
-          minimumNumberOfKeyForHashIndex: Int,
-          allocateSpace: HashIndexMeter => Int,
-          compressDuplicateValues: Boolean,
           removeDeletes: Boolean,
           createdInLevel: Int,
-          maxProbe: Int,
-          enableBinarySearchIndex: Boolean,
-          buildFullBinarySearchIndex: Boolean,
+          valuesConfig: Values.Config,
+          sortedIndexConfig: SortedIndex.Config,
+          binarySearchIndexConfig: BinarySearchIndex.Config,
+          hashIndexConfig: HashIndex.Config,
+          bloomFilterConfig: BloomFilter.Config,
           segmentCompression: SegmentCompression,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
@@ -136,16 +133,13 @@ private[segment] case class PersistentSegment(file: DBFile,
           newKeyValues = newKeyValues,
           oldKeyValues = currentKeyValues,
           minSegmentSize = minSegmentSize,
-          maxProbe = maxProbe,
-          enableBinarySearchIndex = enableBinarySearchIndex,
-          buildFullBinarySearchIndex = buildFullBinarySearchIndex,
           isLastLevel = removeDeletes,
           forInMemory = false,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          allocateSpace = allocateSpace,
-          compressDuplicateValues = compressDuplicateValues
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig
         ) flatMap {
           splits =>
             splits.mapIO(
@@ -155,7 +149,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                     segmentCompression = segmentCompression,
                     createdInLevel = createdInLevel,
-                    maxProbe = maxProbe,
+                    maxProbe = hashIndexConfig.maxProbe,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
                     keyValues = keyValues
@@ -175,16 +169,13 @@ private[segment] case class PersistentSegment(file: DBFile,
     }
 
   def refresh(minSegmentSize: Long,
-              bloomFilterFalsePositiveRate: Double,
-              resetPrefixCompressionEvery: Int,
-              minimumNumberOfKeyForHashIndex: Int,
-              allocateSpace: HashIndexMeter => Int,
-              compressDuplicateValues: Boolean,
               removeDeletes: Boolean,
               createdInLevel: Int,
-              maxProbe: Int,
-              enableBinarySearchIndex: Boolean,
-              buildFullBinarySearchIndex: Boolean,
+              valuesConfig: Values.Config,
+              sortedIndexConfig: SortedIndex.Config,
+              binarySearchIndexConfig: BinarySearchIndex.Config,
+              hashIndexConfig: HashIndex.Config,
+              bloomFilterConfig: BloomFilter.Config,
               segmentCompression: SegmentCompression,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
@@ -195,14 +186,11 @@ private[segment] case class PersistentSegment(file: DBFile,
           minSegmentSize = minSegmentSize,
           isLastLevel = removeDeletes,
           forInMemory = false,
-          maxProbe = maxProbe,
-          enableBinarySearchIndex = enableBinarySearchIndex,
-          buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          allocateSpace = allocateSpace,
-          compressDuplicateValues = compressDuplicateValues
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig
         ) flatMap {
           splits =>
             splits.mapIO(
@@ -212,7 +200,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                     createdInLevel = createdInLevel,
                     segmentCompression = segmentCompression,
-                    maxProbe = maxProbe,
+                    maxProbe = hashIndexConfig.maxProbe,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
                     keyValues = keyValues

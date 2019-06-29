@@ -36,6 +36,12 @@ import scala.annotation.tailrec
 private[core] object SortedIndex {
 
   object Config {
+    val disabled =
+      Config(
+        cacheOnRead = false,
+        prefixCompressionResetCount = 0
+      )
+
     def apply(config: swaydb.data.config.SortedIndex): Config =
       config match {
         case config: swaydb.data.config.SortedIndex.Enable =>
@@ -47,6 +53,14 @@ private[core] object SortedIndex {
         cacheOnRead = config.cacheOnRead,
         prefixCompressionResetCount = config.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0)
       )
+
+    def enablePrefixCompression(config: Config,
+                                previous: Option[KeyValue.WriteOnly]): Boolean =
+      config.prefixCompressionResetCount > 0 &&
+        previous.exists {
+          previous =>
+            (previous.stats.chainPosition + 1) % config.prefixCompressionResetCount == 0
+        }
   }
 
   case class Config(cacheOnRead: Boolean,

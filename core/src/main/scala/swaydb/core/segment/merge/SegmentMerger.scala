@@ -20,20 +20,20 @@
 package swaydb.core.segment.merge
 
 import com.typesafe.scalalogging.LazyLogging
-
-import scala.annotation.tailrec
-import scala.collection.mutable.ListBuffer
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.merge.{FixedMerger, ValueMerger}
 import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.segment.format.a.block._
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.config.HashIndex.HashIndexMeter
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+
+import scala.annotation.tailrec
+import scala.collection.mutable.ListBuffer
 
 private[core] object SegmentMerger extends LazyLogging {
   implicit val keyValueLimiter = KeyValueLimiter.none
@@ -46,23 +46,25 @@ private[core] object SegmentMerger extends LazyLogging {
   @tailrec
   def completeMerge(segments: ListBuffer[ListBuffer[KeyValue.WriteOnly]],
                     minSegmentSize: Long,
-                    maxProbe: Int,
-                    enableBinarySearchIndex: Boolean,
-                    buildFullBinarySearchIndex: Boolean,
                     forMemory: Boolean,
-                    bloomFilterFalsePositiveRate: Double,
-                    resetPrefixCompressionEvery: Int,
-                    minimumNumberOfKeyForHashIndex: Int,
-                    allocateSpace: HashIndexMeter => Int,
-                    groupLastSegment: Boolean = true)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
+                    groupLastSegment: Boolean)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
     //if there are any small Segments, merge them into previous Segment.
     val noSmallSegments =
       if (segments.length >= 2 && ((forMemory && segments.last.lastOption.map(_.stats.memorySegmentSize).getOrElse(0) < minSegmentSize) || segments.last.lastOption.map(_.stats.segmentSize).getOrElse(0) < minSegmentSize)) {
         val newSegments = segments dropRight 1
         val newSegmentsLast = newSegments.last
+        val newSegmentsLastKeyValue = newSegmentsLast.last
         segments.last foreach {
           keyValue =>
-            newSegmentsLast += keyValue.updateStats(bloomFilterFalsePositiveRate, newSegmentsLast.lastOption)
+            newSegmentsLast +=
+              keyValue.updatePrevious(
+                valuesConfig = newSegmentsLastKeyValue.valuesConfig,
+                sortedIndexConfig = newSegmentsLastKeyValue.sortedIndexConfig,
+                binarySearchIndexConfig = newSegmentsLastKeyValue.binarySearchIndexConfig,
+                hashIndexConfig = newSegmentsLastKeyValue.hashIndexConfig,
+                bloomFilterConfig = newSegmentsLastKeyValue.bloomFilterConfig,
+                previous = newSegmentsLast.lastOption
+              )
         }
         newSegments
       } else {
@@ -85,14 +87,7 @@ private[core] object SegmentMerger extends LazyLogging {
                 completeMerge(
                   segments = noSmallSegments,
                   minSegmentSize = minSegmentSize,
-                  maxProbe = maxProbe,
-                  enableBinarySearchIndex = enableBinarySearchIndex,
-                  buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                   forMemory = forMemory,
-                  bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                  resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                  minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-                  allocateSpace = allocateSpace,
                   groupLastSegment = false
                 )
 
@@ -114,15 +109,12 @@ private[core] object SegmentMerger extends LazyLogging {
             minSegmentSize: Long,
             isLastLevel: Boolean,
             forInMemory: Boolean,
-            maxProbe: Int,
-            enableBinarySearchIndex: Boolean,
-            buildFullBinarySearchIndex: Boolean,
-            bloomFilterFalsePositiveRate: Double,
-            resetPrefixCompressionEvery: Int,
-            minimumNumberOfKeyForHashIndex: Int,
-            allocateSpace: HashIndexMeter => Int,
-            compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                              groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[KeyValue.WriteOnly]]] = {
+            valuesConfig: Values.Config,
+            sortedIndexConfig: SortedIndex.Config,
+            binarySearchIndexConfig: BinarySearchIndex.Config,
+            hashIndexConfig: HashIndex.Config,
+            bloomFilterConfig: BloomFilter.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[KeyValue.WriteOnly]]] = {
     val splits = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer())
     keyValues foreachIO {
       keyValue =>
@@ -130,16 +122,13 @@ private[core] object SegmentMerger extends LazyLogging {
           keyValueToAdd = keyValue,
           splits = splits,
           minSegmentSize = minSegmentSize,
-          maxProbe = maxProbe,
-          enableBinarySearchIndex = enableBinarySearchIndex,
-          buildFullBinarySearchIndex = buildFullBinarySearchIndex,
           forInMemory = forInMemory,
           isLastLevel = isLastLevel,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          allocateSpace = allocateSpace,
-          compressDuplicateValues = compressDuplicateValues
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig
 
         )
     } match {
@@ -147,14 +136,8 @@ private[core] object SegmentMerger extends LazyLogging {
         completeMerge(
           segments = splits,
           minSegmentSize = minSegmentSize,
-          maxProbe = maxProbe,
-          enableBinarySearchIndex = enableBinarySearchIndex,
-          buildFullBinarySearchIndex = buildFullBinarySearchIndex,
           forMemory = forInMemory,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          allocateSpace = allocateSpace
+          groupLastSegment = true
         )
 
       case Some(IO.Failure(failure)) =>
@@ -175,16 +158,13 @@ private[core] object SegmentMerger extends LazyLogging {
       newKeyValues = newKeyValues,
       oldKeyValues = oldKeyValues,
       minSegmentSize = Int.MaxValue,
-      maxProbe = -1,
-      buildFullBinarySearchIndex = false,
       isLastLevel = false,
       forInMemory = true,
-      enableBinarySearchIndex = false,
-      bloomFilterFalsePositiveRate = 0.01,
-      resetPrefixCompressionEvery = 100,
-      minimumNumberOfKeyForHashIndex = 50,
-      allocateSpace = _ => 0,
-      compressDuplicateValues = false
+      valuesConfig = Values.Config.disabled,
+      sortedIndexConfig = SortedIndex.Config.disabled,
+      binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
+      hashIndexConfig = HashIndex.Config.disabled,
+      bloomFilterConfig = BloomFilter.Config.disabled
     )(keyOrder, timeOrder, functionStore, None)
       .get
       .flatten
@@ -198,16 +178,13 @@ private[core] object SegmentMerger extends LazyLogging {
       newKeyValues = Slice(newKeyValue),
       oldKeyValues = Slice(oldKeyValue),
       minSegmentSize = Int.MaxValue,
-      maxProbe = -1,
-      enableBinarySearchIndex = false,
-      buildFullBinarySearchIndex = false,
       isLastLevel = false,
       forInMemory = true,
-      bloomFilterFalsePositiveRate = 0.01,
-      resetPrefixCompressionEvery = 100,
-      minimumNumberOfKeyForHashIndex = 50,
-      allocateSpace = _ => 0,
-      compressDuplicateValues = false
+      valuesConfig = Values.Config.disabled,
+      sortedIndexConfig = SortedIndex.Config.disabled,
+      binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
+      hashIndexConfig = HashIndex.Config.disabled,
+      bloomFilterConfig = BloomFilter.Config.disabled
     )(keyOrder, timeOrder, functionStore, None)
       .get
       .flatten
@@ -216,19 +193,16 @@ private[core] object SegmentMerger extends LazyLogging {
   def merge(newKeyValues: Slice[KeyValue.ReadOnly],
             oldKeyValues: Slice[KeyValue.ReadOnly],
             minSegmentSize: Long,
-            maxProbe: Int,
-            enableBinarySearchIndex: Boolean,
-            buildFullBinarySearchIndex: Boolean,
             isLastLevel: Boolean,
             forInMemory: Boolean,
-            bloomFilterFalsePositiveRate: Double,
-            resetPrefixCompressionEvery: Int,
-            minimumNumberOfKeyForHashIndex: Int,
-            allocateSpace: HashIndexMeter => Int,
-            compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                              timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore,
-                                              groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[KeyValue.WriteOnly]]] =
+            valuesConfig: Values.Config,
+            sortedIndexConfig: SortedIndex.Config,
+            binarySearchIndexConfig: BinarySearchIndex.Config,
+            hashIndexConfig: HashIndex.Config,
+            bloomFilterConfig: BloomFilter.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   functionStore: FunctionStore,
+                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[KeyValue.WriteOnly]]] =
     merge(
       newKeyValues = MergeList(newKeyValues),
       oldKeyValues = MergeList(oldKeyValues),
@@ -236,27 +210,18 @@ private[core] object SegmentMerger extends LazyLogging {
       minSegmentSize = minSegmentSize,
       isLastLevel = isLastLevel,
       forInMemory = forInMemory,
-      maxProbe = maxProbe,
-      enableBinarySearchIndex = enableBinarySearchIndex,
-      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-      allocateSpace = allocateSpace,
-      compressDuplicateValues = compressDuplicateValues
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig
     ) flatMap {
       splits =>
         completeMerge(
           segments = splits,
           minSegmentSize = minSegmentSize,
-          maxProbe = maxProbe,
-          enableBinarySearchIndex = enableBinarySearchIndex,
-          buildFullBinarySearchIndex = buildFullBinarySearchIndex,
           forMemory = forInMemory,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          allocateSpace = allocateSpace
+          groupLastSegment = true
         )
     }
 
@@ -266,17 +231,14 @@ private[core] object SegmentMerger extends LazyLogging {
                     minSegmentSize: Long,
                     isLastLevel: Boolean,
                     forInMemory: Boolean,
-                    maxProbe: Int,
-                    enableBinarySearchIndex: Boolean,
-                    buildFullBinarySearchIndex: Boolean,
-                    bloomFilterFalsePositiveRate: Double,
-                    resetPrefixCompressionEvery: Int,
-                    minimumNumberOfKeyForHashIndex: Int,
-                    allocateSpace: HashIndexMeter => Int,
-                    compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                      timeOrder: TimeOrder[Slice[Byte]],
-                                                      functionStore: FunctionStore,
-                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
+                    valuesConfig: Values.Config,
+                    sortedIndexConfig: SortedIndex.Config,
+                    binarySearchIndexConfig: BinarySearchIndex.Config,
+                    hashIndexConfig: HashIndex.Config,
+                    bloomFilterConfig: BloomFilter.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                           timeOrder: TimeOrder[Slice[Byte]],
+                                                           functionStore: FunctionStore,
+                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
 
     import keyOrder._
 
@@ -285,16 +247,13 @@ private[core] object SegmentMerger extends LazyLogging {
         keyValueToAdd = nextKeyValue,
         splits = splits,
         minSegmentSize = minSegmentSize,
-        maxProbe = maxProbe,
-        enableBinarySearchIndex = enableBinarySearchIndex,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         forInMemory = forInMemory,
         isLastLevel = isLastLevel,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-        allocateSpace = allocateSpace,
-        compressDuplicateValues = compressDuplicateValues
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig
       )
 
     @tailrec

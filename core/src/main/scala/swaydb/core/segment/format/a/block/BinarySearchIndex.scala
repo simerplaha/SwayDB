@@ -25,7 +25,6 @@ import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
-import swaydb.data.config.BinarySearchIndex
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -34,6 +33,14 @@ import scala.annotation.tailrec
 object BinarySearchIndex {
 
   object Config {
+    val disabled =
+      Config(
+        enabled = false,
+        minimumNumberOfKeys = 0,
+        fullIndex = false,
+        cacheOnRead = false
+      )
+
     def apply(config: swaydb.data.config.BinarySearchIndex): Config =
       config match {
         case swaydb.data.config.BinarySearchIndex.Disable =>
@@ -72,12 +79,20 @@ object BinarySearchIndex {
     def apply(largestValue: Int,
               uniqueValuesCount: Int,
               isFullIndex: Boolean,
+              minimumNumberOfKeys: Int,
               compressions: Seq[CompressionInternal]): State =
       State(
         largestValue = largestValue,
         uniqueValuesCount = uniqueValuesCount,
         isFullIndex = isFullIndex,
-        bytes = Slice.create[Byte](optimalBytesRequired(largestValue, uniqueValuesCount)),
+        bytes =
+          Slice.create[Byte](
+            optimalBytesRequired(
+              largestValue = largestValue,
+              valuesCount = uniqueValuesCount,
+              minimNumberOfKeysForBinarySearchIndex = minimumNumberOfKeys
+            )
+          ),
         compressions = compressions
       )
 
@@ -134,7 +149,8 @@ object BinarySearchIndex {
         BinarySearchIndex.State(
           largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
           uniqueValuesCount = keyValues.last.stats.segmentUniqueKeysCount,
-          isFullIndex = keyValues.last.buildFullBinarySearchIndex,
+          isFullIndex = keyValues.last.binarySearchIndexConfig.fullIndex,
+          minimumNumberOfKeys = keyValues.last.binarySearchIndexConfig.minimumNumberOfKeys,
           compressions = compressions
         )
       )
@@ -151,11 +167,15 @@ object BinarySearchIndex {
   }
 
   def optimalBytesRequired(largestValue: Int,
-                           valuesCount: Int): Int =
-    optimalHeaderSize(
-      largestValue = largestValue,
-      valuesCount = valuesCount
-    ) + (bytesToAllocatePerValue(largestValue) * valuesCount)
+                           valuesCount: Int,
+                           minimNumberOfKeysForBinarySearchIndex: Int): Int =
+    if (valuesCount < minimNumberOfKeysForBinarySearchIndex)
+      0
+    else
+      optimalHeaderSize(
+        largestValue = largestValue,
+        valuesCount = valuesCount
+      ) + (bytesToAllocatePerValue(largestValue) * valuesCount)
 
   def optimalHeaderSize(largestValue: Int,
                         valuesCount: Int): Int = {

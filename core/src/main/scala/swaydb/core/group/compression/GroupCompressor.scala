@@ -22,8 +22,8 @@ package swaydb.core.group.compression
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
-import swaydb.core.segment.format.a.{SegmentCompression, SegmentWriter}
-import swaydb.data.config.HashIndex.HashIndexMeter
+import swaydb.core.group.compression.data.GroupingStrategy
+import swaydb.core.segment.format.a.SegmentWriter
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey}
 
@@ -38,15 +38,8 @@ private[core] object GroupCompressor extends LazyLogging {
     GroupKeyCompressor.compress(keyValues.headOption, keyValues.last)
 
   def compress(keyValues: Slice[KeyValue.WriteOnly],
-               segmentCompression: SegmentCompression,
-               falsePositiveRate: Double,
-               resetPrefixCompressionEvery: Int,
-               minimumNumberOfKeyForHashIndex: Int,
-               allocateSpace: HashIndexMeter => Int,
                previous: Option[KeyValue.WriteOnly],
-               maxProbe: Int,
-               enableBinarySearchIndex: Boolean,
-               buildFullBinarySearchIndex: Boolean): IO[Option[Transient.Group]] =
+               groupingStrategy: GroupingStrategy): IO[Option[Transient.Group]] =
     if (keyValues.isEmpty) {
       logger.error(s"Ignoring compression. Cannot compress on empty key-values")
       IO.none
@@ -59,9 +52,9 @@ private[core] object GroupCompressor extends LazyLogging {
       logger.debug(s"Compressing ${keyValues.size} key-values with previous key-value as ${previous.map(_.getClass.getSimpleName)}.")
       SegmentWriter.write(
         keyValues = keyValues,
-        segmentCompression = segmentCompression,
+        segmentCompression = groupingStrategy.segmentCompression,
         createdInLevel = 0,
-        maxProbe = maxProbe
+        maxProbe = groupingStrategy.hashIndexConfig.maxProbe
       ) flatMap {
         result =>
           IO {
@@ -75,12 +68,11 @@ private[core] object GroupCompressor extends LazyLogging {
                 deadline = result.nearestDeadline,
                 keyValues = keyValues,
                 previous = previous,
-                falsePositiveRate = falsePositiveRate,
-                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                enableBinarySearchIndex = enableBinarySearchIndex,
-                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                allocateSpace = allocateSpace
+                valuesConfig = groupingStrategy.valuesConfig,
+                sortedIndexConfig = groupingStrategy.sortedIndexConfig,
+                binarySearchIndexConfig = groupingStrategy.binarySearchIndexConfig,
+                hashIndexConfig = groupingStrategy.hashIndexConfig,
+                bloomFilterConfig = groupingStrategy.bloomFilterConfig
               )
             )
           }

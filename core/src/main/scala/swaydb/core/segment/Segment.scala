@@ -32,7 +32,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
 import swaydb.core.segment.format.a.{SegmentCompression, SegmentFooter, SegmentWriter}
-import swaydb.core.segment.format.a.block.{BloomFilter, SortedIndex}
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.{FiniteDurationUtil, IDGenerator}
@@ -343,19 +343,16 @@ private[core] object Segment extends LazyLogging {
                     mmapSegmentsOnWrite: Boolean,
                     removeDeletes: Boolean,
                     minSegmentSize: Long,
-                    maxProbe: Int,
-                    bloomFilterFalsePositiveRate: Double,
-                    enableBinarySearchIndex: Boolean,
-                    buildFullBinarySearchIndex: Boolean,
-                    resetPrefixCompressionEvery: Int,
-                    minimumNumberOfKeyForHashIndex: Int,
-                    allocateSpace: HashIndexMeter => Int,
-                    compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                      timeOrder: TimeOrder[Slice[Byte]],
-                                                      functionStore: FunctionStore,
-                                                      keyValueLimiter: KeyValueLimiter,
-                                                      fileOpenLimiter: FileLimiter,
-                                                      compression: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
+                    valuesConfig: Values.Config,
+                    sortedIndexConfig: SortedIndex.Config,
+                    binarySearchIndexConfig: BinarySearchIndex.Config,
+                    hashIndexConfig: HashIndex.Config,
+                    bloomFilterConfig: BloomFilter.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                           timeOrder: TimeOrder[Slice[Byte]],
+                                                           functionStore: FunctionStore,
+                                                           keyValueLimiter: KeyValueLimiter,
+                                                           fileOpenLimiter: FileLimiter,
+                                                           compression: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     segment match {
       case segment: PersistentSegment =>
         val nextPath = fetchNextPath
@@ -392,14 +389,11 @@ private[core] object Segment extends LazyLogging {
           mmapSegmentsOnWrite = mmapSegmentsOnWrite,
           removeDeletes = removeDeletes,
           minSegmentSize = minSegmentSize,
-          maxProbe = maxProbe,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          enableBinarySearchIndex = enableBinarySearchIndex,
-          buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          allocateSpace = allocateSpace,
-          compressDuplicateValues = compressDuplicateValues
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig
         )
     }
 
@@ -411,32 +405,26 @@ private[core] object Segment extends LazyLogging {
                     mmapSegmentsOnWrite: Boolean,
                     removeDeletes: Boolean,
                     minSegmentSize: Long,
-                    maxProbe: Int,
-                    bloomFilterFalsePositiveRate: Double,
-                    enableBinarySearchIndex: Boolean,
-                    buildFullBinarySearchIndex: Boolean,
-                    resetPrefixCompressionEvery: Int,
-                    minimumNumberOfKeyForHashIndex: Int,
-                    allocateSpace: HashIndexMeter => Int,
-                    compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                      timeOrder: TimeOrder[Slice[Byte]],
-                                                      functionStore: FunctionStore,
-                                                      keyValueLimiter: KeyValueLimiter,
-                                                      fileOpenLimiter: FileLimiter,
-                                                      compression: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
+                    valuesConfig: Values.Config,
+                    sortedIndexConfig: SortedIndex.Config,
+                    binarySearchIndexConfig: BinarySearchIndex.Config,
+                    hashIndexConfig: HashIndex.Config,
+                    bloomFilterConfig: BloomFilter.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                           timeOrder: TimeOrder[Slice[Byte]],
+                                                           functionStore: FunctionStore,
+                                                           keyValueLimiter: KeyValueLimiter,
+                                                           fileOpenLimiter: FileLimiter,
+                                                           compression: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
       minSegmentSize = minSegmentSize,
       isLastLevel = removeDeletes,
       forInMemory = false,
-      maxProbe = maxProbe,
-      enableBinarySearchIndex = enableBinarySearchIndex,
-      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-      allocateSpace = allocateSpace,
-      compressDuplicateValues = compressDuplicateValues
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig
     ) flatMap {
       splits =>
         splits.mapIO(
@@ -446,7 +434,7 @@ private[core] object Segment extends LazyLogging {
                 path = fetchNextPath,
                 createdInLevel = createdInLevel,
                 segmentCompression = segmentCompression,
-                maxProbe = maxProbe,
+                maxProbe = hashIndexConfig.maxProbe,
                 mmapReads = mmapSegmentsOnRead,
                 mmapWrites = mmapSegmentsOnWrite,
                 keyValues = keyValues
@@ -469,19 +457,16 @@ private[core] object Segment extends LazyLogging {
                    fetchNextPath: => Path,
                    removeDeletes: Boolean,
                    minSegmentSize: Long,
-                   maxProbe: Int,
-                   enableBinarySearchIndex: Boolean,
-                   buildFullBinarySearchIndex: Boolean,
-                   bloomFilterFalsePositiveRate: Double,
-                   resetPrefixCompressionEvery: Int,
-                   minimumNumberOfKeyForHashIndex: Int,
-                   allocateSpace: HashIndexMeter => Int,
-                   compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                     functionStore: FunctionStore,
-                                                     fileLimiter: FileLimiter,
-                                                     groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                     keyValueLimiter: KeyValueLimiter): IO[Slice[Segment]] =
+                   valuesConfig: Values.Config,
+                   sortedIndexConfig: SortedIndex.Config,
+                   binarySearchIndexConfig: BinarySearchIndex.Config,
+                   hashIndexConfig: HashIndex.Config,
+                   bloomFilterConfig: BloomFilter.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                          functionStore: FunctionStore,
+                                                          fileLimiter: FileLimiter,
+                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                          keyValueLimiter: KeyValueLimiter): IO[Slice[Segment]] =
     segment.getAll() flatMap {
       keyValues =>
         copyToMemory(
@@ -490,14 +475,11 @@ private[core] object Segment extends LazyLogging {
           removeDeletes = removeDeletes,
           createdInLevel = createdInLevel,
           minSegmentSize = minSegmentSize,
-          maxProbe = maxProbe,
-          enableBinarySearchIndex = enableBinarySearchIndex,
-          buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          allocateSpace = allocateSpace,
-          compressDuplicateValues = compressDuplicateValues
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig
         )
     }
 
@@ -506,32 +488,26 @@ private[core] object Segment extends LazyLogging {
                    removeDeletes: Boolean,
                    minSegmentSize: Long,
                    createdInLevel: Long,
-                   maxProbe: Int,
-                   enableBinarySearchIndex: Boolean,
-                   buildFullBinarySearchIndex: Boolean,
-                   bloomFilterFalsePositiveRate: Double,
-                   resetPrefixCompressionEvery: Int,
-                   minimumNumberOfKeyForHashIndex: Int,
-                   allocateSpace: HashIndexMeter => Int,
-                   compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                     functionStore: FunctionStore,
-                                                     fileLimiter: FileLimiter,
-                                                     groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                     keyValueLimiter: KeyValueLimiter): IO[Slice[Segment]] =
+                   valuesConfig: Values.Config,
+                   sortedIndexConfig: SortedIndex.Config,
+                   binarySearchIndexConfig: BinarySearchIndex.Config,
+                   hashIndexConfig: HashIndex.Config,
+                   bloomFilterConfig: BloomFilter.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                          functionStore: FunctionStore,
+                                                          fileLimiter: FileLimiter,
+                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                          keyValueLimiter: KeyValueLimiter): IO[Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
       minSegmentSize = minSegmentSize,
       isLastLevel = removeDeletes,
       forInMemory = true,
-      maxProbe = maxProbe,
-      enableBinarySearchIndex = enableBinarySearchIndex,
-      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-      allocateSpace = allocateSpace,
-      compressDuplicateValues = compressDuplicateValues
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig
     ) flatMap { //recovery not required. On failure, uncommitted Segments will be GC'd as nothing holds references to them.
       keyValues =>
         keyValues mapIO {
@@ -1010,31 +986,25 @@ private[core] trait Segment extends FileLimiterItem {
 
   def put(newKeyValues: Slice[KeyValue.ReadOnly],
           minSegmentSize: Long,
-          bloomFilterFalsePositiveRate: Double,
-          resetPrefixCompressionEvery: Int,
-          minimumNumberOfKeyForHashIndex: Int,
-          allocateSpace: HashIndexMeter => Int,
-          compressDuplicateValues: Boolean,
           removeDeletes: Boolean,
           createdInLevel: Int,
-          maxProbe: Int,
-          enableBinarySearchIndex: Boolean,
-          buildFullBinarySearchIndex: Boolean,
+          valuesConfig: Values.Config,
+          sortedIndexConfig: SortedIndex.Config,
+          binarySearchIndexConfig: BinarySearchIndex.Config,
+          hashIndexConfig: HashIndex.Config,
+          bloomFilterConfig: BloomFilter.Config,
           segmentCompression: SegmentCompression,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 
   def refresh(minSegmentSize: Long,
-              bloomFilterFalsePositiveRate: Double,
-              resetPrefixCompressionEvery: Int,
-              minimumNumberOfKeyForHashIndex: Int,
-              allocateSpace: HashIndexMeter => Int,
-              compressDuplicateValues: Boolean,
               removeDeletes: Boolean,
               createdInLevel: Int,
-              maxProbe: Int,
-              enableBinarySearchIndex: Boolean,
-              buildFullBinarySearchIndex: Boolean,
+              valuesConfig: Values.Config,
+              sortedIndexConfig: SortedIndex.Config,
+              binarySearchIndexConfig: BinarySearchIndex.Config,
+              hashIndexConfig: HashIndex.Config,
+              bloomFilterConfig: BloomFilter.Config,
               segmentCompression: SegmentCompression,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]

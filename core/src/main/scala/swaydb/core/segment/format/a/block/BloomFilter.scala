@@ -33,6 +33,13 @@ import swaydb.data.util.ByteSizeOf
 object BloomFilter extends LazyLogging {
 
   object Config {
+    val disabled =
+      Config(
+        falsePositiveRate = 0.0,
+        minimumNumberOfKeys = Int.MaxValue,
+        cacheOnRead = false
+      )
+
     def apply(config: swaydb.data.config.BloomFilter): Config =
       config match {
         case swaydb.data.config.BloomFilter.Disable =>
@@ -170,7 +177,7 @@ object BloomFilter extends LazyLogging {
     keyValues.isEmpty ||
       keyValues.last.stats.segmentHasRemoveRange ||
       keyValues.last.stats.segmentBloomFilterSize <= 1 ||
-      keyValues.last.falsePositiveRate <= 0.0
+      keyValues.last.bloomFilterConfig.falsePositiveRate <= 0.0
 
   def shouldCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =
     !shouldNotCreateBloomFilter(keyValues)
@@ -180,7 +187,7 @@ object BloomFilter extends LazyLogging {
     if (shouldCreateBloomFilter(keyValues))
       init(
         numberOfKeys = keyValues.last.stats.segmentUniqueKeysCount,
-        falsePositiveRate = keyValues.last.falsePositiveRate,
+        falsePositiveRate = keyValues.last.bloomFilterConfig.falsePositiveRate,
         compressions = compressions
       )
     else

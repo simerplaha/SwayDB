@@ -30,25 +30,27 @@ import swaydb.data.slice.{Reader, Slice}
 object Values {
 
   object Config {
+
+    val disabled =
+      Values.Config(
+        compressDuplicateValues = false,
+        compressDuplicateRangeValues = false,
+        duplicateValueSearchCount = 0,
+        cacheOnRead = false
+      )
+
     def apply(config: swaydb.data.config.Values): Config =
-      config match {
-        case swaydb.data.config.Values.Discard =>
-          Config(
-            stored = false,
-            compressDuplicateValues = false,
-            cacheOnRead = false
-          )
-        case stored: swaydb.data.config.Values.Stored =>
-          Config(
-            stored = true,
-            compressDuplicateValues = stored.compressDuplicateValues,
-            cacheOnRead = stored.cacheOnRead
-          )
-      }
+      Config(
+        compressDuplicateValues = config.compressDuplicateValues,
+        compressDuplicateRangeValues = config.compressDuplicateRangeValues,
+        duplicateValueSearchCount = config.duplicateValueSearchCount,
+        cacheOnRead = config.cacheOnRead
+      )
   }
 
-  case class Config(stored: Boolean,
-                    compressDuplicateValues: Boolean,
+  case class Config(compressDuplicateValues: Boolean,
+                    compressDuplicateRangeValues: Boolean,
+                    duplicateValueSearchCount: Int,
                     cacheOnRead: Boolean)
 
   def valueNotFound: IO.Failure[Nothing] =

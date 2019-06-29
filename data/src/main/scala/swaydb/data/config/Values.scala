@@ -21,16 +21,11 @@ package swaydb.data.config
 
 import swaydb.data.api.grouping.Compression
 
-sealed trait Values {
-  def toOption =
-    this match {
-      case Values.Discard => None
-      case stored: Values.Stored => Some(stored)
-    }
-}
-object Values {
-  case object Discard extends Values
-  case class Stored(compressDuplicateValues: Boolean,
-                    cacheOnRead: Boolean,
-                    compression: Seq[Compression]) extends Values
+case class Values(compressDuplicateValues: Boolean,
+                  compressDuplicateRangeValues: Boolean,
+                  duplicateValueSearchCount: Int,
+                  cacheOnRead: Boolean,
+                  compression: Seq[Compression]) {
+  def toOption: Option[Values] =
+    Some(this)
 }

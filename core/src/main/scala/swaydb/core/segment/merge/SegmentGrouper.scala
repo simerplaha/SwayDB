@@ -27,6 +27,7 @@ import swaydb.core.data.Transient.Group
 import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, GroupingStrategy, KeyValueGroupingStrategyInternal}
 import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.config.HashIndex.HashIndexMeter
@@ -116,7 +117,15 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 //                  IO.Failure(exception)
                 //                } else {
                 IO {
-                  keyValuesToGroup add keyValue.updateStats(groupingStrategy.bloomFilterConfig.falsePositiveRate, keyValuesToGroup.lastOption)
+                  keyValuesToGroup add
+                    keyValue.updatePrevious(
+                      valuesConfig = groupingStrategy.valuesConfig,
+                      sortedIndexConfig = groupingStrategy.sortedIndexConfig,
+                      binarySearchIndexConfig = groupingStrategy.binarySearchIndexConfig,
+                      hashIndexConfig = groupingStrategy.hashIndexConfig,
+                      bloomFilterConfig = groupingStrategy.bloomFilterConfig,
+                      previous = keyValuesToGroup.lastOption
+                    )
                   (count + 1, lastGroup)
                 }
               //                }
@@ -236,17 +245,14 @@ private[merge] object SegmentGrouper extends LazyLogging {
   def addKeyValues(keyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
                    splits: ListBuffer[ListBuffer[KeyValue.WriteOnly]],
                    minSegmentSize: Long,
-                   maxProbe: Int,
-                   enableBinarySearchIndex: Boolean,
-                   buildFullBinarySearchIndex: Boolean,
                    forInMemory: Boolean,
                    isLastLevel: Boolean,
-                   bloomFilterFalsePositiveRate: Double,
-                   resetPrefixCompressionEvery: Int,
-                   minimumNumberOfKeyForHashIndex: Int,
-                   allocateSpace: HashIndexMeter => Int,
-                   compressDuplicateValues: Boolean)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                     keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] =
+                   valuesConfig: Values.Config,
+                   sortedIndexConfig: SortedIndex.Config,
+                   binarySearchIndexConfig: BinarySearchIndex.Config,
+                   hashIndexConfig: HashIndex.Config,
+                   bloomFilterConfig: BloomFilter.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                          keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] =
     keyValues.headOption match {
       case Some(keyValue) =>
         keyValue match {
@@ -257,16 +263,13 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   keyValues = MergeList[Memory.Range, KeyValue.ReadOnly](groupKeyValues) append keyValues.dropHead(),
                   splits = splits,
                   minSegmentSize = minSegmentSize,
-                  maxProbe = maxProbe,
-                  enableBinarySearchIndex = enableBinarySearchIndex,
-                  buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                   forInMemory = forInMemory,
                   isLastLevel = isLastLevel,
-                  bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                  resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                  minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-                  allocateSpace = allocateSpace,
-                  compressDuplicateValues = compressDuplicateValues
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig
                 )
               case IO.Failure(exception) =>
                 IO.Failure(exception)
@@ -277,32 +280,26 @@ private[merge] object SegmentGrouper extends LazyLogging {
               keyValueToAdd = keyValue,
               splits = splits,
               minSegmentSize = minSegmentSize,
-              maxProbe = maxProbe,
-              enableBinarySearchIndex = enableBinarySearchIndex,
-              buildFullBinarySearchIndex = buildFullBinarySearchIndex,
               forInMemory = forInMemory,
               isLastLevel = isLastLevel,
-              bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-              resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-              minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-              allocateSpace = allocateSpace,
-              compressDuplicateValues = compressDuplicateValues
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig
             ) match {
               case IO.Success(_) =>
                 addKeyValues(
                   keyValues = keyValues.dropHead(),
                   splits = splits,
                   minSegmentSize = minSegmentSize,
-                  maxProbe = maxProbe,
-                  enableBinarySearchIndex = enableBinarySearchIndex,
-                  buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                   forInMemory = forInMemory,
                   isLastLevel = isLastLevel,
-                  bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                  resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                  minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-                  allocateSpace = allocateSpace,
-                  compressDuplicateValues = compressDuplicateValues
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig
                 )
               case IO.Failure(exception) =>
                 IO.Failure(exception)
@@ -315,17 +312,14 @@ private[merge] object SegmentGrouper extends LazyLogging {
   def addKeyValue(keyValueToAdd: KeyValue.ReadOnly,
                   splits: ListBuffer[ListBuffer[KeyValue.WriteOnly]],
                   minSegmentSize: Long,
-                  maxProbe: Int,
-                  enableBinarySearchIndex: Boolean,
-                  buildFullBinarySearchIndex: Boolean,
                   forInMemory: Boolean,
                   isLastLevel: Boolean,
-                  bloomFilterFalsePositiveRate: Double,
-                  resetPrefixCompressionEvery: Int,
-                  minimumNumberOfKeyForHashIndex: Int,
-                  allocateSpace: HashIndexMeter => Int,
-                  compressDuplicateValues: Boolean)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                    keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] = {
+                  valuesConfig: Values.Config,
+                  sortedIndexConfig: SortedIndex.Config,
+                  binarySearchIndexConfig: BinarySearchIndex.Config,
+                  hashIndexConfig: HashIndex.Config,
+                  bloomFilterConfig: BloomFilter.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                         keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] = {
 
     def doAdd(keyValueToAdd: Option[KeyValue.WriteOnly] => KeyValue.WriteOnly): IO[Unit] = {
 
@@ -412,14 +406,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     value = value,
                     deadline = deadline,
                     time = time,
-                    _,
-                    falsePositiveRate = bloomFilterFalsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    compressDuplicateValues = compressDuplicateValues,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                    allocateSpace = allocateSpace
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    _
                   )
                 )
 
@@ -435,14 +427,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         value = value,
                         deadline = put.deadline,
                         time = put.time,
-                        _,
-                        falsePositiveRate = bloomFilterFalsePositiveRate,
-                        enableBinarySearchIndex = enableBinarySearchIndex,
-                        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                        compressDuplicateValues = compressDuplicateValues,
-                        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                        minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                        allocateSpace = allocateSpace
+                        valuesConfig = valuesConfig,
+                        sortedIndexConfig = sortedIndexConfig,
+                        binarySearchIndexConfig = binarySearchIndexConfig,
+                        hashIndexConfig = hashIndexConfig,
+                        bloomFilterConfig = bloomFilterConfig,
+                        _
                       )
                     )
                 }
@@ -456,13 +446,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     key = keyValueToAdd.key,
                     deadline = remove.deadline,
                     time = remove.time,
-                    _,
-                    falsePositiveRate = bloomFilterFalsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                    allocateSpace = allocateSpace
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    _
                   )
                 )
 
@@ -475,13 +464,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     key = keyValueToAdd.key,
                     deadline = remove.deadline,
                     time = remove.time,
-                    _,
-                    falsePositiveRate = bloomFilterFalsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                    allocateSpace = allocateSpace
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    _
                   )
                 )
 
@@ -495,14 +483,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     value = value,
                     deadline = deadline,
                     time = time,
-                    _,
-                    falsePositiveRate = bloomFilterFalsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    compressDuplicateValues = compressDuplicateValues,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                    allocateSpace = allocateSpace
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    _
                   )
                 )
 
@@ -518,14 +504,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         value = value,
                         deadline = update.deadline,
                         time = update.time,
-                        _,
-                        falsePositiveRate = bloomFilterFalsePositiveRate,
-                        enableBinarySearchIndex = enableBinarySearchIndex,
-                        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                        compressDuplicateValues = compressDuplicateValues,
-                        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                        minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                        allocateSpace = allocateSpace
+                        valuesConfig = valuesConfig,
+                        sortedIndexConfig = sortedIndexConfig,
+                        binarySearchIndexConfig = binarySearchIndexConfig,
+                        hashIndexConfig = hashIndexConfig,
+                        bloomFilterConfig = bloomFilterConfig,
+                        _
                       )
                     )
                 }
@@ -540,14 +524,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     function = function,
                     deadline = None,
                     time = time,
-                    _,
-                    falsePositiveRate = bloomFilterFalsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    compressDuplicateValues = compressDuplicateValues,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                    allocateSpace = allocateSpace
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    _
                   )
                 )
 
@@ -563,14 +545,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         function = functionId,
                         deadline = None,
                         time = function.time,
-                        _,
-                        falsePositiveRate = bloomFilterFalsePositiveRate,
-                        enableBinarySearchIndex = enableBinarySearchIndex,
-                        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                        compressDuplicateValues = compressDuplicateValues,
-                        minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                        allocateSpace = allocateSpace
+                        valuesConfig = valuesConfig,
+                        sortedIndexConfig = sortedIndexConfig,
+                        binarySearchIndexConfig = binarySearchIndexConfig,
+                        hashIndexConfig = hashIndexConfig,
+                        bloomFilterConfig = bloomFilterConfig,
+                        _
                       )
                     )
                 }
@@ -583,14 +563,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   Transient.PendingApply(
                     key = key,
                     applies = applies,
-                    _,
-                    falsePositiveRate = bloomFilterFalsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    compressDuplicateValues = compressDuplicateValues,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                    allocateSpace = allocateSpace
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    _
                   )
                 )
 
@@ -604,14 +582,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
                       Transient.PendingApply(
                         key = pendingApply.key,
                         applies = applies,
-                        _,
-                        falsePositiveRate = bloomFilterFalsePositiveRate,
-                        enableBinarySearchIndex = enableBinarySearchIndex,
-                        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                        compressDuplicateValues = compressDuplicateValues,
-                        minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                        allocateSpace = allocateSpace
+                        valuesConfig = valuesConfig,
+                        sortedIndexConfig = sortedIndexConfig,
+                        binarySearchIndexConfig = binarySearchIndexConfig,
+                        hashIndexConfig = hashIndexConfig,
+                        bloomFilterConfig = bloomFilterConfig,
+                        _
                       )
                     )
                 }
@@ -632,14 +608,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
                               value = fromValue,
                               deadline = deadline,
                               time = time,
-                              _,
-                              falsePositiveRate = bloomFilterFalsePositiveRate,
-                              enableBinarySearchIndex = enableBinarySearchIndex,
-                              buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                              resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                              compressDuplicateValues = compressDuplicateValues,
-                              minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                              allocateSpace = allocateSpace
+                              valuesConfig = valuesConfig,
+                              sortedIndexConfig = sortedIndexConfig,
+                              binarySearchIndexConfig = binarySearchIndexConfig,
+                              hashIndexConfig = hashIndexConfig,
+                              bloomFilterConfig = bloomFilterConfig,
+                              _
                             )
                           )
                         else
@@ -663,12 +637,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     toKey = range.toKey,
                     fromValue = fromValue,
                     rangeValue = rangeValue,
-                    falsePositiveRate = bloomFilterFalsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                    allocateSpace = allocateSpace,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
                     _
                   )
                 )
@@ -681,16 +654,13 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 keyValues = MergeList(keyValues),
                 splits = splits,
                 minSegmentSize = minSegmentSize,
-                maxProbe = maxProbe,
-                enableBinarySearchIndex = enableBinarySearchIndex,
-                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                 forInMemory = forInMemory,
                 isLastLevel = isLastLevel,
-                bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-                allocateSpace = allocateSpace,
-                compressDuplicateValues = compressDuplicateValues
+                valuesConfig = valuesConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                bloomFilterConfig = bloomFilterConfig
               )
           }
       }

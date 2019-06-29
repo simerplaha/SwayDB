@@ -90,7 +90,16 @@ object TestData {
       val slice = Slice.create[KeyValue.WriteOnly](keyValues.size)
       keyValues foreach {
         keyValue =>
-          slice.add(keyValue.updateStats(TestData.falsePositiveRate, previous = slice.lastOption))
+          slice.add(
+            keyValue.updatePrevious(
+              valuesConfig = keyValues.last.valuesConfig,
+              sortedIndexConfig = keyValues.last.sortedIndexConfig,
+              binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+              hashIndexConfig = keyValues.last.hashIndexConfig,
+              bloomFilterConfig = keyValues.last.bloomFilterConfig,
+              previous = slice.lastOption
+            )
+          )
       }
       slice
     }
@@ -146,58 +155,60 @@ object TestData {
       else if (!level.isEmpty)
         level.putKeyValues(keyValues.toMemory, level.segmentsInLevel(), None)
       else if (level.inMemory)
-        Segment.copyToMemory(
-          keyValues = keyValues,
-          fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
-          removeDeletes = false,
-          minSegmentSize = 1000.mb,
-          createdInLevel = level.levelNumber,
-          maxProbe = level.hashIndexConfig.maxProbe,
-          enableBinarySearchIndex = level.binarySearchIndexConfig.enabled,
-          buildFullBinarySearchIndex = level.binarySearchIndexConfig.fullIndex,
-          bloomFilterFalsePositiveRate = level.bloomFilterConfig.falsePositiveRate,
-          resetPrefixCompressionEvery = level.sortedIndexConfig.prefixCompressionResetCount,
-          minimumNumberOfKeyForHashIndex = level.hashIndexConfig.minimumNumberOfKeys,
-          allocateSpace = level.hashIndexConfig.allocateSpace,
-          compressDuplicateValues = level.valuesConfig.compressDuplicateValues
-        ) flatMap {
-          segments =>
-            segments should have size 1
-            segments mapIO {
-              segment =>
-                level.putKeyValues(keyValues.toMemory, Seq(segment), None)
-            } map {
-              _ => ()
-            }
-        }
+      //        Segment.copyToMemory(
+      //          keyValues = keyValues,
+      //          fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
+      //          removeDeletes = false,
+      //          minSegmentSize = 1000.mb,
+      //          createdInLevel = level.levelNumber,
+      //          maxProbe = level.hashIndexConfig.maxProbe,
+      //          enableBinarySearchIndex = level.binarySearchIndexConfig.enabled,
+      //          buildFullBinarySearchIndex = level.binarySearchIndexConfig.fullIndex,
+      //          bloomFilterFalsePositiveRate = level.bloomFilterConfig.falsePositiveRate,
+      //          resetPrefixCompressionEvery = level.sortedIndexConfig.prefixCompressionResetCount,
+      //          minimumNumberOfKeyForHashIndex = level.hashIndexConfig.minimumNumberOfKeys,
+      //          allocateSpace = level.hashIndexConfig.allocateSpace,
+      //          compressDuplicateValues = level.valuesConfig.compressDuplicateValues
+      //        ) flatMap {
+      //          segments =>
+      //            segments should have size 1
+      //            segments mapIO {
+      //              segment =>
+      //                level.putKeyValues(keyValues.toMemory, Seq(segment), None)
+      //            } map {
+      //              _ => ()
+      //            }
+      //        }
+        ???
       else
-        Segment.copyToPersist(
-          keyValues = keyValues.toTransient(),
-          createdInLevel = level.levelNumber,
-          fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
-          mmapSegmentsOnRead = randomBoolean(),
-          mmapSegmentsOnWrite = randomBoolean(),
-          removeDeletes = false,
-          minSegmentSize = 1000.mb,
-          segmentCompression = level.segmentCompression,
-          maxProbe = level.hashIndexConfig.maxProbe,
-          enableBinarySearchIndex = level.binarySearchIndexConfig.enabled,
-          buildFullBinarySearchIndex = level.binarySearchIndexConfig.fullIndex,
-          bloomFilterFalsePositiveRate = level.bloomFilterConfig.falsePositiveRate,
-          resetPrefixCompressionEvery = level.sortedIndexConfig.prefixCompressionResetCount,
-          minimumNumberOfKeyForHashIndex = level.hashIndexConfig.minimumNumberOfKeys,
-          allocateSpace = level.hashIndexConfig.allocateSpace,
-          compressDuplicateValues = level.valuesConfig.compressDuplicateValues
-        ) flatMap {
-          segments =>
-            segments should have size 1
-            segments mapIO {
-              segment =>
-                level.putKeyValues(keyValues.toMemory, Seq(segment), None)
-            } map {
-              _ => ()
-            }
-        }
+      //        Segment.copyToPersist(
+      //          keyValues = keyValues.toTransient(),
+      //          createdInLevel = level.levelNumber,
+      //          fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
+      //          mmapSegmentsOnRead = randomBoolean(),
+      //          mmapSegmentsOnWrite = randomBoolean(),
+      //          removeDeletes = false,
+      //          minSegmentSize = 1000.mb,
+      //          segmentCompression = level.segmentCompression,
+      //          maxProbe = level.hashIndexConfig.maxProbe,
+      //          enableBinarySearchIndex = level.binarySearchIndexConfig.enabled,
+      //          buildFullBinarySearchIndex = level.binarySearchIndexConfig.fullIndex,
+      //          bloomFilterFalsePositiveRate = level.bloomFilterConfig.falsePositiveRate,
+      //          resetPrefixCompressionEvery = level.sortedIndexConfig.prefixCompressionResetCount,
+      //          minimumNumberOfKeyForHashIndex = level.hashIndexConfig.minimumNumberOfKeys,
+      //          allocateSpace = level.hashIndexConfig.allocateSpace,
+      //          compressDuplicateValues = level.valuesConfig.compressDuplicateValues
+      //        ) flatMap {
+      //          segments =>
+      //            segments should have size 1
+      //            segments mapIO {
+      //              segment =>
+      //                level.putKeyValues(keyValues.toMemory, Seq(segment), None)
+      //            } map {
+      //              _ => ()
+      //            }
+      //        }
+        ???
 
     def reopen: Level =
       reopen()
@@ -356,25 +367,25 @@ object TestData {
       keyValue match {
         case fixed: KeyValue.WriteOnly.Fixed =>
           fixed match {
-            case Transient.Remove(key, deadline, time, previous, falsePositiveRate, _, _, _, _, _) =>
+            case Transient.Remove(key, deadline, time, previous, _, _, _, _, _) =>
               Memory.Remove(key, deadline, time)
 
-            case Transient.Update(key, value, deadline, time, _, _, _, _, _, _, _, _) =>
+            case Transient.Update(key, value, deadline, time, _, _, _, _, _, _) =>
               Memory.Update(key, value, deadline, time)
 
-            case Transient.Put(key, value, deadline, time, _, _, _, _, _, _, _, _) =>
+            case Transient.Put(key, value, deadline, time, _, _, _, _, _, _) =>
               Memory.Put(key, value, deadline, time)
 
-            case Transient.Function(key, function, deadline, time, _, _, _, _, _, _, _, _) =>
+            case Transient.Function(key, function, deadline, time, _, _, _, _, _, _) =>
               Memory.Function(key, function, time)
 
-            case Transient.PendingApply(key, applies, _, _, _, _, _, _, _, _) =>
+            case Transient.PendingApply(key, applies, _, _, _, _, _, _) =>
               Memory.PendingApply(key, applies)
           }
 
         case range: KeyValue.WriteOnly.Range =>
           range match {
-            case Transient.Range(fromKey, toKey, fullKey, fromValue, rangeValue, _, _, _, _, _, _, _, _) =>
+            case Transient.Range(fromKey, toKey, fullKey, fromValue, rangeValue, _, _, _, _, _, _, _) =>
               Memory.Range(fromKey, toKey, fromValue, rangeValue)
           }
       }
@@ -383,7 +394,7 @@ object TestData {
       keyValue match {
         case group: KeyValue.WriteOnly.Group =>
           group match {
-            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, _, _, _, _, _, _, _, _) =>
+            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, _, _, _, _, _, _, _) =>
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
@@ -398,7 +409,7 @@ object TestData {
       keyValue match {
         case group: KeyValue.WriteOnly.Group =>
           group match {
-            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, _, _, _, _, _, _, _, _) =>
+            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, _, _, _, _, _, _, _) =>
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
@@ -484,253 +495,254 @@ object TestData {
                     resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex: Int = TestData.minimumNumberOfKeysForHashIndex,
                     allocateSpace: HashIndexMeter => Int = TestData.allocateSpace): Transient = {
-      keyValue match {
-        case memory: Memory =>
-          memory match {
-            case fixed: Memory.Fixed =>
-              fixed match {
-                case Memory.Put(key, value, deadline, time) =>
-                  Transient.Put(
-                    key = key,
-                    value = value,
-                    deadline = deadline,
-                    time = time,
-                    previous = previous,
-                    falsePositiveRate = falsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    compressDuplicateValues = compressDuplicateValues,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-                    allocateSpace = allocateSpace
-                  )
-
-                case Memory.Update(key, value, deadline, time) =>
-                  Transient.Update(
-                    key = key,
-                    value = value,
-                    deadline = deadline,
-                    time = time,
-                    previous = previous,
-                    falsePositiveRate = falsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    compressDuplicateValues = compressDuplicateValues,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-                    allocateSpace = allocateSpace
-                  )
-
-                case Memory.Remove(key, deadline, time) =>
-                  Transient.Remove(
-                    key = key,
-                    deadline = deadline,
-                    time = time,
-                    previous = previous,
-                    falsePositiveRate = falsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-                    allocateSpace = allocateSpace
-                  )
-
-                case Memory.Function(key, function, time) =>
-                  Transient.Function(
-                    key = key,
-                    function = function,
-                    deadline = None,
-                    time = time,
-                    previous = previous,
-                    falsePositiveRate = falsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    compressDuplicateValues = compressDuplicateValues,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-                    allocateSpace = allocateSpace
-                  )
-
-                case Memory.PendingApply(key, applies) =>
-                  Transient.PendingApply(
-                    key = key,
-                    applies = applies,
-                    previous = previous,
-                    falsePositiveRate = falsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    compressDuplicateValues = compressDuplicateValues,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-                    allocateSpace = allocateSpace
-                  )
-              }
-            case Memory.Range(fromKey, toKey, fromValue, rangeValue) =>
-              Transient.Range[Value.FromValue, Value.RangeValue](
-                fromKey = fromKey,
-                toKey = toKey,
-                fromValue = fromValue,
-                rangeValue = rangeValue,
-                falsePositiveRate = falsePositiveRate,
-                enableBinarySearchIndex = enableBinarySearchIndex,
-                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-                allocateSpace = allocateSpace,
-                previous = previous
-              )
-
-            case group: Memory.Group =>
-              //              Transient.Group(
-              //                keyValues =
-              //                  group.segment.getAll().assertGet
-              //                    .toTransient(
-              //                      maxProbeForGroup = maxProbeForGroup,
-              //                      falsePositiveRate = falsePositiveRate,
-              //                      enableBinarySearchIndex = enableBinarySearchIndex,
-              //                      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-              //                      compressDuplicateValues = compressDuplicateValues,
-              //                      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-              //                      minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-              //                      allocateSpace = allocateSpace
-              //                    ),
-              //                segmentCompression = randomSegmentCompression(),
-              //                falsePositiveRate = falsePositiveRate,
-              //                enableBinarySearchIndex = enableBinarySearchIndex,
-              //                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-              //                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-              //                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-              //                allocateSpace = allocateSpace,
-              //                previous = previous,
-              //                maxProbe = maxProbeForGroup
-              //              ).assertGet
-              ???
-          }
-
-        case persistent: Persistent =>
-          persistent match {
-            case persistent: Persistent.Fixed =>
-              persistent match {
-                case put @ Persistent.Put(key, deadline, valueReader, time, _, _, _, _, _, _) =>
-                  Transient.Put(
-                    key = key,
-                    value = put.getOrFetchValue.assertGetOpt,
-                    deadline = deadline,
-                    time = time,
-                    previous = previous,
-                    falsePositiveRate = falsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    compressDuplicateValues = compressDuplicateValues,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-                    allocateSpace = allocateSpace
-                  )
-
-                case put @ Persistent.Update(key, deadline, valueReader, time, _, _, _, _, _, _) =>
-                  Transient.Update(
-                    key = key,
-                    value = put.getOrFetchValue.assertGetOpt,
-                    deadline = deadline,
-                    time = time,
-                    previous = previous,
-                    falsePositiveRate = falsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    compressDuplicateValues = compressDuplicateValues,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-                    allocateSpace = allocateSpace
-                  )
-
-                case function @ Persistent.Function(key, lazyFunctionReader, time, _, _, _, _, _, _) =>
-                  Transient.Function(
-                    key = key,
-                    function = lazyFunctionReader.getOrFetchFunction.assertGet,
-                    deadline = None,
-                    time = time,
-                    previous = previous,
-                    falsePositiveRate = falsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    compressDuplicateValues = compressDuplicateValues,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-                    allocateSpace = allocateSpace
-                  )
-
-                case pendingApply: Persistent.PendingApply =>
-                  Transient.PendingApply(
-                    key = pendingApply.key,
-                    applies = pendingApply.getOrFetchApplies.assertGet,
-                    previous = previous,
-                    falsePositiveRate = falsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    compressDuplicateValues = compressDuplicateValues,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-                    allocateSpace = allocateSpace
-                  )
-
-                case Persistent.Remove(_key, deadline, time, _, _, _, _) =>
-                  Transient.Remove(
-                    key = _key,
-                    deadline = deadline,
-                    time = time,
-                    previous = previous,
-                    falsePositiveRate = falsePositiveRate,
-                    enableBinarySearchIndex = enableBinarySearchIndex,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-                    allocateSpace = allocateSpace
-                  )
-              }
-
-            case range @ Persistent.Range(_fromKey, _toKey, _, _, _, _, _, _, _) =>
-              val (fromValue, rangeValue) = range.fetchFromAndRangeValue.assertGet
-              Transient.Range(
-                fromKey = _fromKey,
-                toKey = _toKey,
-                fromValue = fromValue,
-                rangeValue = rangeValue,
-                falsePositiveRate = falsePositiveRate,
-                enableBinarySearchIndex = enableBinarySearchIndex,
-                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-                allocateSpace = allocateSpace,
-                previous = previous
-              )
-
-            case group: Persistent.Group =>
-              val allKeyValues = group.segment.getAll().assertGet.toTransient(
-                maxProbeForGroup = maxProbeForGroup,
-                falsePositiveRate = falsePositiveRate,
-                enableBinarySearchIndex = enableBinarySearchIndex,
-                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                compressDuplicateValues = compressDuplicateValues,
-                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-                allocateSpace = allocateSpace
-              )
-
-              //              Transient.Group(
-              //                keyValues = allKeyValues,
-              //                segmentCompression = randomSegmentCompression(),
-              //                falsePositiveRate = falsePositiveRate,
-              //                enableBinarySearchIndex = enableBinarySearchIndex,
-              //                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-              //                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-              //                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-              //                allocateSpace = allocateSpace,
-              //                previous = previous,
-              //                maxProbe = maxProbeForGroup
-              //              ).assertGet
-              ???
-          }
-      }
+      //      keyValue match {
+      //        case memory: Memory =>
+      //          memory match {
+      //            case fixed: Memory.Fixed =>
+      //              fixed match {
+      //                case Memory.Put(key, value, deadline, time) =>
+      //                  Transient.Put(
+      //                    key = key,
+      //                    value = value,
+      //                    deadline = deadline,
+      //                    time = time,
+      //                    previous = previous,
+      //                    falsePositiveRate = falsePositiveRate,
+      //                    enableBinarySearchIndex = enableBinarySearchIndex,
+      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //                    compressDuplicateValues = compressDuplicateValues,
+      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //                    allocateSpace = allocateSpace
+      //                  )
+      //
+      //                case Memory.Update(key, value, deadline, time) =>
+      //                  Transient.Update(
+      //                    key = key,
+      //                    value = value,
+      //                    deadline = deadline,
+      //                    time = time,
+      //                    previous = previous,
+      //                    falsePositiveRate = falsePositiveRate,
+      //                    enableBinarySearchIndex = enableBinarySearchIndex,
+      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //                    compressDuplicateValues = compressDuplicateValues,
+      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //                    allocateSpace = allocateSpace
+      //                  )
+      //
+      //                case Memory.Remove(key, deadline, time) =>
+      //                  Transient.Remove(
+      //                    key = key,
+      //                    deadline = deadline,
+      //                    time = time,
+      //                    previous = previous,
+      //                    falsePositiveRate = falsePositiveRate,
+      //                    enableBinarySearchIndex = enableBinarySearchIndex,
+      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //                    allocateSpace = allocateSpace
+      //                  )
+      //
+      //                case Memory.Function(key, function, time) =>
+      //                  Transient.Function(
+      //                    key = key,
+      //                    function = function,
+      //                    deadline = None,
+      //                    time = time,
+      //                    previous = previous,
+      //                    falsePositiveRate = falsePositiveRate,
+      //                    enableBinarySearchIndex = enableBinarySearchIndex,
+      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //                    compressDuplicateValues = compressDuplicateValues,
+      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //                    allocateSpace = allocateSpace
+      //                  )
+      //
+      //                case Memory.PendingApply(key, applies) =>
+      //                  Transient.PendingApply(
+      //                    key = key,
+      //                    applies = applies,
+      //                    previous = previous,
+      //                    falsePositiveRate = falsePositiveRate,
+      //                    enableBinarySearchIndex = enableBinarySearchIndex,
+      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //                    compressDuplicateValues = compressDuplicateValues,
+      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //                    allocateSpace = allocateSpace
+      //                  )
+      //              }
+      //            case Memory.Range(fromKey, toKey, fromValue, rangeValue) =>
+      //              Transient.Range[Value.FromValue, Value.RangeValue](
+      //                fromKey = fromKey,
+      //                toKey = toKey,
+      //                fromValue = fromValue,
+      //                rangeValue = rangeValue,
+      //                falsePositiveRate = falsePositiveRate,
+      //                enableBinarySearchIndex = enableBinarySearchIndex,
+      //                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //                allocateSpace = allocateSpace,
+      //                previous = previous
+      //              )
+      //
+      //            case group: Memory.Group =>
+      //              //              Transient.Group(
+      //              //                keyValues =
+      //              //                  group.segment.getAll().assertGet
+      //              //                    .toTransient(
+      //              //                      maxProbeForGroup = maxProbeForGroup,
+      //              //                      falsePositiveRate = falsePositiveRate,
+      //              //                      enableBinarySearchIndex = enableBinarySearchIndex,
+      //              //                      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //              //                      compressDuplicateValues = compressDuplicateValues,
+      //              //                      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //              //                      minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //              //                      allocateSpace = allocateSpace
+      //              //                    ),
+      //              //                segmentCompression = randomSegmentCompression(),
+      //              //                falsePositiveRate = falsePositiveRate,
+      //              //                enableBinarySearchIndex = enableBinarySearchIndex,
+      //              //                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //              //                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //              //                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //              //                allocateSpace = allocateSpace,
+      //              //                previous = previous,
+      //              //                maxProbe = maxProbeForGroup
+      //              //              ).assertGet
+      //              ???
+      //          }
+      //
+      //        case persistent: Persistent =>
+      //          persistent match {
+      //            case persistent: Persistent.Fixed =>
+      //              persistent match {
+      //                case put @ Persistent.Put(key, deadline, valueReader, time, _, _, _, _, _, _) =>
+      //                  Transient.Put(
+      //                    key = key,
+      //                    value = put.getOrFetchValue.assertGetOpt,
+      //                    deadline = deadline,
+      //                    time = time,
+      //                    previous = previous,
+      //                    falsePositiveRate = falsePositiveRate,
+      //                    enableBinarySearchIndex = enableBinarySearchIndex,
+      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //                    compressDuplicateValues = compressDuplicateValues,
+      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //                    allocateSpace = allocateSpace
+      //                  )
+      //
+      //                case put @ Persistent.Update(key, deadline, valueReader, time, _, _, _, _, _, _) =>
+      //                  Transient.Update(
+      //                    key = key,
+      //                    value = put.getOrFetchValue.assertGetOpt,
+      //                    deadline = deadline,
+      //                    time = time,
+      //                    previous = previous,
+      //                    falsePositiveRate = falsePositiveRate,
+      //                    enableBinarySearchIndex = enableBinarySearchIndex,
+      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //                    compressDuplicateValues = compressDuplicateValues,
+      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //                    allocateSpace = allocateSpace
+      //                  )
+      //
+      //                case function @ Persistent.Function(key, lazyFunctionReader, time, _, _, _, _, _, _) =>
+      //                  Transient.Function(
+      //                    key = key,
+      //                    function = lazyFunctionReader.getOrFetchFunction.assertGet,
+      //                    deadline = None,
+      //                    time = time,
+      //                    previous = previous,
+      //                    falsePositiveRate = falsePositiveRate,
+      //                    enableBinarySearchIndex = enableBinarySearchIndex,
+      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //                    compressDuplicateValues = compressDuplicateValues,
+      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //                    allocateSpace = allocateSpace
+      //                  )
+      //
+      //                case pendingApply: Persistent.PendingApply =>
+      //                  Transient.PendingApply(
+      //                    key = pendingApply.key,
+      //                    applies = pendingApply.getOrFetchApplies.assertGet,
+      //                    previous = previous,
+      //                    falsePositiveRate = falsePositiveRate,
+      //                    enableBinarySearchIndex = enableBinarySearchIndex,
+      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //                    compressDuplicateValues = compressDuplicateValues,
+      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //                    allocateSpace = allocateSpace
+      //                  )
+      //
+      //                case Persistent.Remove(_key, deadline, time, _, _, _, _) =>
+      //                  Transient.Remove(
+      //                    key = _key,
+      //                    deadline = deadline,
+      //                    time = time,
+      //                    previous = previous,
+      //                    falsePositiveRate = falsePositiveRate,
+      //                    enableBinarySearchIndex = enableBinarySearchIndex,
+      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //                    allocateSpace = allocateSpace
+      //                  )
+      //              }
+      //
+      //            case range @ Persistent.Range(_fromKey, _toKey, _, _, _, _, _, _, _) =>
+      //              val (fromValue, rangeValue) = range.fetchFromAndRangeValue.assertGet
+      //              Transient.Range(
+      //                fromKey = _fromKey,
+      //                toKey = _toKey,
+      //                fromValue = fromValue,
+      //                rangeValue = rangeValue,
+      //                falsePositiveRate = falsePositiveRate,
+      //                enableBinarySearchIndex = enableBinarySearchIndex,
+      //                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //                allocateSpace = allocateSpace,
+      //                previous = previous
+      //              )
+      //
+      //            case group: Persistent.Group =>
+      //              val allKeyValues = group.segment.getAll().assertGet.toTransient(
+      //                maxProbeForGroup = maxProbeForGroup,
+      //                falsePositiveRate = falsePositiveRate,
+      //                enableBinarySearchIndex = enableBinarySearchIndex,
+      //                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //                compressDuplicateValues = compressDuplicateValues,
+      //                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //                allocateSpace = allocateSpace
+      //              )
+      //
+      //              //              Transient.Group(
+      //              //                keyValues = allKeyValues,
+      //              //                segmentCompression = randomSegmentCompression(),
+      //              //                falsePositiveRate = falsePositiveRate,
+      //              //                enableBinarySearchIndex = enableBinarySearchIndex,
+      //              //                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      //              //                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      //              //                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+      //              //                allocateSpace = allocateSpace,
+      //              //                previous = previous,
+      //              //                maxProbe = maxProbeForGroup
+      //              //              ).assertGet
+      //              ???
+      //          }
+      //      }
+      ???
     }
 
     def toMemoryGroup =
@@ -1182,19 +1194,20 @@ object TestData {
                               includeRanges: Boolean = true,
                               includeGroups: Boolean = true): KeyValue.WriteOnly =
     if (toKey.isDefined && includeRanges && randomBoolean())
-      Transient.Range(
-        fromKey = key,
-        toKey = toKey.get,
-        fromValue = fromValue,
-        rangeValue = rangeValue,
-        falsePositiveRate = falsePositiveRate,
-        enableBinarySearchIndex = enableBinarySearchIndex,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        allocateSpace = allocateSpace,
-        previous = previous
-      )
+    //      Transient.Range(
+    //        fromKey = key,
+    //        toKey = toKey.get,
+    //        fromValue = fromValue,
+    //        rangeValue = rangeValue,
+    //        falsePositiveRate = falsePositiveRate,
+    //        enableBinarySearchIndex = enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+    //        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+    //        allocateSpace = allocateSpace,
+    //        previous = previous
+    //      )
+      ???
     else if (includeGroups && randomBoolean())
       randomGroup(
         keyValues =
@@ -1264,84 +1277,85 @@ object TestData {
                                    includeFunctions: Boolean = true,
                                    includeRemoves: Boolean = true,
                                    includePuts: Boolean = true): KeyValue.WriteOnly.Fixed =
-    if (includePuts && randomBoolean())
-      Transient.Put(
-        key = key,
-        value = value,
-        deadline = deadline,
-        time = time,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
-        enableBinarySearchIndex = enableBinarySearchIndex,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        allocateSpace = allocateSpace
-      )
-    else if (includeRemoves && randomBoolean())
-      Transient.Remove(
-        key = key,
-        deadline = deadline,
-        time = time,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        enableBinarySearchIndex = enableBinarySearchIndex,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        allocateSpace = allocateSpace
-      )
-    else if (includeFunctions && randomBoolean())
-      Transient.Function(
-        key = key,
-        function = randomFunctionId(functionOutput),
-        deadline = deadline,
-        time = time,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
-        enableBinarySearchIndex = enableBinarySearchIndex,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        allocateSpace = allocateSpace
-      )
-    else if (includePendingApply && randomBoolean())
-      Transient.PendingApply(
-        key = key,
-        applies = randomApplies(
-          max = 10,
-          value = value,
-          deadline = deadline,
-          addRemoves = includeRemoves,
-          functionOutput = functionOutput,
-          includeFunctions = includeFunctions
-        ),
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        enableBinarySearchIndex = enableBinarySearchIndex,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-        compressDuplicateValues = compressDuplicateValues,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        allocateSpace = allocateSpace
-      )
-    else
-      Transient.Update(
-        key = key,
-        value = value,
-        deadline = deadline,
-        time = time,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        enableBinarySearchIndex = enableBinarySearchIndex,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-        compressDuplicateValues = compressDuplicateValues,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        allocateSpace = allocateSpace
-      )
+  //    if (includePuts && randomBoolean())
+  //      Transient.Put(
+  //        key = key,
+  //        value = value,
+  //        deadline = deadline,
+  //        time = time,
+  //        previous = previous,
+  //        falsePositiveRate = falsePositiveRate,
+  //        compressDuplicateValues = compressDuplicateValues,
+  //        enableBinarySearchIndex = enableBinarySearchIndex,
+  //        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+  //        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+  //        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+  //        allocateSpace = allocateSpace
+  //      )
+  //    else if (includeRemoves && randomBoolean())
+  //      Transient.Remove(
+  //        key = key,
+  //        deadline = deadline,
+  //        time = time,
+  //        previous = previous,
+  //        falsePositiveRate = falsePositiveRate,
+  //        enableBinarySearchIndex = enableBinarySearchIndex,
+  //        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+  //        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+  //        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+  //        allocateSpace = allocateSpace
+  //      )
+  //    else if (includeFunctions && randomBoolean())
+  //      Transient.Function(
+  //        key = key,
+  //        function = randomFunctionId(functionOutput),
+  //        deadline = deadline,
+  //        time = time,
+  //        previous = previous,
+  //        falsePositiveRate = falsePositiveRate,
+  //        compressDuplicateValues = compressDuplicateValues,
+  //        enableBinarySearchIndex = enableBinarySearchIndex,
+  //        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+  //        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+  //        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+  //        allocateSpace = allocateSpace
+  //      )
+  //    else if (includePendingApply && randomBoolean())
+  //      Transient.PendingApply(
+  //        key = key,
+  //        applies = randomApplies(
+  //          max = 10,
+  //          value = value,
+  //          deadline = deadline,
+  //          addRemoves = includeRemoves,
+  //          functionOutput = functionOutput,
+  //          includeFunctions = includeFunctions
+  //        ),
+  //        previous = previous,
+  //        falsePositiveRate = falsePositiveRate,
+  //        enableBinarySearchIndex = enableBinarySearchIndex,
+  //        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+  //        compressDuplicateValues = compressDuplicateValues,
+  //        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+  //        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+  //        allocateSpace = allocateSpace
+  //      )
+  //    else
+  //      Transient.Update(
+  //        key = key,
+  //        value = value,
+  //        deadline = deadline,
+  //        time = time,
+  //        previous = previous,
+  //        falsePositiveRate = falsePositiveRate,
+  //        enableBinarySearchIndex = enableBinarySearchIndex,
+  //        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+  //        compressDuplicateValues = compressDuplicateValues,
+  //        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+  //        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+  //        allocateSpace = allocateSpace
+  //      )
+    ???
 
   def randomFixedKeyValue(key: Slice[Byte],
                           value: Option[Slice[Byte]] = randomStringOption,
@@ -2028,101 +2042,107 @@ object TestData {
       * @return
       */
     def remove(key: Slice[Byte])(implicit testTimer: TestTimer): Transient.Remove =
-      Transient.Remove(
-        key = key,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        allocateSpace = TestData.allocateSpace,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        time = testTimer.next,
-        previous = None,
-        deadline = None
-      )
+    //      Transient.Remove(
+    //        key = key,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        time = testTimer.next,
+    //        previous = None,
+    //        deadline = None
+    //      )
+      ???
 
     def remove(key: Slice[Byte],
                removeAfter: FiniteDuration,
                falsePositiveRate: Double)(implicit testTimer: TestTimer): Transient.Remove =
-      Transient.Remove(
-        key = key,
-        falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        allocateSpace = TestData.allocateSpace,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        previous = None,
-        deadline = Some(removeAfter.fromNow),
-        time = testTimer.next
-      )
+    //      Transient.Remove(
+    //        key = key,
+    //        falsePositiveRate = falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        previous = None,
+    //        deadline = Some(removeAfter.fromNow),
+    //        time = testTimer.next
+    //      )
+      ???
 
     def remove(key: Slice[Byte],
                falsePositiveRate: Double)(implicit testTimer: TestTimer): Transient.Remove =
-      Transient.Remove(
-        key = key,
-        falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        allocateSpace = TestData.allocateSpace,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        previous = None,
-        deadline = None,
-        time = testTimer.next
-      )
+    //      Transient.Remove(
+    //        key = key,
+    //        falsePositiveRate = falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        previous = None,
+    //        deadline = None,
+    //        time = testTimer.next
+    //      )
+      ???
 
     def remove(key: Slice[Byte],
                falsePositiveRate: Double,
                previous: Option[KeyValue.WriteOnly])(implicit testTimer: TestTimer): Transient.Remove =
-      Transient.Remove(
-        key = key,
-        deadline = None,
-        time = testTimer.next,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
-        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
-        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace)
-      )
+    //      Transient.Remove(
+    //        key = key,
+    //        deadline = None,
+    //        time = testTimer.next,
+    //        previous = previous,
+    //        falsePositiveRate = falsePositiveRate,
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace)
+    //      )
+      ???
 
     def remove(key: Slice[Byte],
                falsePositiveRate: Double,
                previous: Option[KeyValue.WriteOnly],
                deadline: Option[Deadline])(implicit testTimer: TestTimer): Transient.Remove =
-      Transient.Remove(
-        key = key,
-        deadline = deadline,
-        time = testTimer.next,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
-        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
-        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace)
-      )
+    //      Transient.Remove(
+    //        key = key,
+    //        deadline = deadline,
+    //        time = testTimer.next,
+    //        previous = previous,
+    //        falsePositiveRate = falsePositiveRate,
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace)
+    //      )
+      ???
 
     def put(key: Slice[Byte],
             value: Option[Slice[Byte]],
             falsePositiveRate: Double,
             previous: Option[KeyValue.WriteOnly])(implicit testTimer: TestTimer): Transient.Put =
-      Transient.Put(
-        key = key,
-        value = value,
-        deadline = None,
-        time = testTimer.next,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        compressDuplicateValues = true,
-        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
-        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
-        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace)
-      )
+    //      Transient.Put(
+    //        key = key,
+    //        value = value,
+    //        deadline = None,
+    //        time = testTimer.next,
+    //        previous = previous,
+    //        falsePositiveRate = falsePositiveRate,
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        compressDuplicateValues = true,
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace)
+    //      )
+      ???
 
     def put(key: Slice[Byte],
             value: Option[Slice[Byte]],
@@ -2130,201 +2150,212 @@ object TestData {
             previous: Option[KeyValue.WriteOnly],
             deadline: Option[Deadline],
             compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Put =
-      Transient.Put(
-        key = key,
-        value = value,
-        deadline = deadline,
-        time = testTimer.next,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        compressDuplicateValues = compressDuplicateValues,
-        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
-        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
-        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace)
-      )
+    //      Transient.Put(
+    //        key = key,
+    //        value = value,
+    //        deadline = deadline,
+    //        time = testTimer.next,
+    //        previous = previous,
+    //        falsePositiveRate = falsePositiveRate,
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        compressDuplicateValues = compressDuplicateValues,
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace)
+    //      )
+      ???
 
     def put(key: Slice[Byte])(implicit testTimer: TestTimer): Transient.Put =
-      Transient.Put(
-        key = key,
-        value = None,
-        deadline = None,
-        previous = None,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        allocateSpace = TestData.allocateSpace,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        time = testTimer.next,
-        compressDuplicateValues = true
-      )
+    //      Transient.Put(
+    //        key = key,
+    //        value = None,
+    //        deadline = None,
+    //        previous = None,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        time = testTimer.next,
+    //        compressDuplicateValues = true
+    //      )
+      ???
 
     def put(key: Slice[Byte],
             value: Slice[Byte],
             compressDuplicateValues: Boolean = true)(implicit testTimer: TestTimer): Transient.Put =
-      Transient.Put(
-        key = key,
-        value = Some(value),
-        deadline = None,
-        previous = None,
-        time = testTimer.next,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        allocateSpace = TestData.allocateSpace,
-        compressDuplicateValues = compressDuplicateValues
-      )
+    //      Transient.Put(
+    //        key = key,
+    //        value = Some(value),
+    //        deadline = None,
+    //        previous = None,
+    //        time = testTimer.next,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        compressDuplicateValues = compressDuplicateValues
+    //      )
+      ???
 
     def put(key: Slice[Byte],
             value: Slice[Byte],
             removeAfter: FiniteDuration)(implicit testTimer: TestTimer): Transient.Put =
-      Transient.Put(
-        key = key,
-        value = Some(value),
-        deadline = Some(removeAfter.fromNow),
-        previous = None,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        allocateSpace = TestData.allocateSpace,
-        time = testTimer.next,
-        compressDuplicateValues = true
-      )
+    //      Transient.Put(
+    //        key = key,
+    //        value = Some(value),
+    //        deadline = Some(removeAfter.fromNow),
+    //        previous = None,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        time = testTimer.next,
+    //        compressDuplicateValues = true
+    //      )
+      ???
 
     def put(key: Slice[Byte],
             value: Slice[Byte],
             deadline: Deadline)(implicit testTimer: TestTimer): Transient.Put =
-      Transient.Put(
-        key = key,
-        value = Some(value),
-        deadline = Some(deadline),
-        previous = None,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        allocateSpace = TestData.allocateSpace,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        time = testTimer.next,
-        compressDuplicateValues = true
-      )
+    //      Transient.Put(
+    //        key = key,
+    //        value = Some(value),
+    //        deadline = Some(deadline),
+    //        previous = None,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        time = testTimer.next,
+    //        compressDuplicateValues = true
+    //      )
+      ???
 
     def put(key: Slice[Byte],
             removeAfter: FiniteDuration)(implicit testTimer: TestTimer): Transient.Put =
-      Transient.Put(
-        key = key,
-        value = None,
-        deadline = Some(removeAfter.fromNow),
-        previous = None,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        allocateSpace = TestData.allocateSpace,
-        time = testTimer.next,
-        compressDuplicateValues = true
-      )
+    //      Transient.Put(
+    //        key = key,
+    //        value = None,
+    //        deadline = Some(removeAfter.fromNow),
+    //        previous = None,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        time = testTimer.next,
+    //        compressDuplicateValues = true
+    //      )
+      ???
 
     def put(key: Slice[Byte],
             value: Slice[Byte],
             removeAfter: Option[FiniteDuration])(implicit testTimer: TestTimer): Transient.Put =
-      Transient.Put(
-        key = key,
-        value = Some(value),
-        deadline = removeAfter.map(_.fromNow),
-        previous = None,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        allocateSpace = TestData.allocateSpace,
-        time = testTimer.next,
-        compressDuplicateValues = true
-      )
+    //      Transient.Put(
+    //        key = key,
+    //        value = Some(value),
+    //        deadline = removeAfter.map(_.fromNow),
+    //        previous = None,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        time = testTimer.next,
+    //        compressDuplicateValues = true
+    //      )
+      ???
 
     def put(key: Slice[Byte],
             value: Slice[Byte],
             falsePositiveRate: Double)(implicit testTimer: TestTimer): Transient.Put =
-      Transient.Put(
-        key = key,
-        value = Some(value),
-        deadline = None,
-        previous = None,
-        falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        allocateSpace = TestData.allocateSpace,
-        time = testTimer.next,
-        compressDuplicateValues = true
-      )
+    //      Transient.Put(
+    //        key = key,
+    //        value = Some(value),
+    //        deadline = None,
+    //        previous = None,
+    //        falsePositiveRate = falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        time = testTimer.next,
+    //        compressDuplicateValues = true
+    //      )
+      ???
 
     def put(key: Slice[Byte],
             previous: Option[KeyValue.WriteOnly],
             deadline: Option[Deadline],
             compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Put =
-      Transient.Put(
-        key = key,
-        value = None,
-        deadline = deadline,
-        previous = previous,
-        falsePositiveRate = previous.map(_.falsePositiveRate).getOrElse(TestData.falsePositiveRate),
-        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
-        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
-        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace),
-        time = testTimer.next,
-        compressDuplicateValues = compressDuplicateValues
-      )
+    //      Transient.Put(
+    //        key = key,
+    //        value = None,
+    //        deadline = deadline,
+    //        previous = previous,
+    //        falsePositiveRate = previous.map(_.falsePositiveRate).getOrElse(TestData.falsePositiveRate),
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace),
+    //        time = testTimer.next,
+    //        compressDuplicateValues = compressDuplicateValues
+    //      )
+      ???
 
     def put(key: Slice[Byte],
             value: Slice[Byte],
             falsePositiveRate: Double,
             previous: Option[KeyValue.WriteOnly],
             compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Put =
-      Transient.Put(
-        key = key,
-        value = Some(value),
-        deadline = None,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
-        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
-        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace),
-        time = testTimer.next,
-        compressDuplicateValues = compressDuplicateValues
-      )
+    //      Transient.Put(
+    //        key = key,
+    //        value = Some(value),
+    //        deadline = None,
+    //        previous = previous,
+    //        falsePositiveRate = falsePositiveRate,
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace),
+    //        time = testTimer.next,
+    //        compressDuplicateValues = compressDuplicateValues
+    //      )
+      ???
 
     def update(key: Slice[Byte],
                value: Option[Slice[Byte]],
                falsePositiveRate: Double,
                previous: Option[KeyValue.WriteOnly])(implicit testTimer: TestTimer): Transient.Update =
-      Transient.Update(
-        key = key,
-        value = value,
-        deadline = None,
-        time = testTimer.next,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
-        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
-        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace),
-        compressDuplicateValues = true
-      )
+    //      Transient.Update(
+    //        key = key,
+    //        value = value,
+    //        deadline = None,
+    //        time = testTimer.next,
+    //        previous = previous,
+    //        falsePositiveRate = falsePositiveRate,
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace),
+    //        compressDuplicateValues = true
+    //      )
+      ???
 
     def update(key: Slice[Byte],
                value: Option[Slice[Byte]],
@@ -2332,182 +2363,190 @@ object TestData {
                previous: Option[KeyValue.WriteOnly],
                deadline: Option[Deadline],
                compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Update =
-      Transient.Update(
-        key = key,
-        value = value,
-        deadline = deadline,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
-        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
-        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
-        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace),
-        time = testTimer.next,
-        compressDuplicateValues = compressDuplicateValues
-      )
+    //      Transient.Update(
+    //        key = key,
+    //        value = value,
+    //        deadline = deadline,
+    //        previous = previous,
+    //        falsePositiveRate = falsePositiveRate,
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace),
+    //        time = testTimer.next,
+    //        compressDuplicateValues = compressDuplicateValues
+    //      )
+      ???
 
     def update(key: Slice[Byte])(implicit testTimer: TestTimer): Transient.Update =
-      Transient.Update(
-        key = key,
-        value = None,
-        deadline = None,
-        previous = None,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        allocateSpace = TestData.allocateSpace,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        time = testTimer.next,
-        compressDuplicateValues = true
-      )
+    //      Transient.Update(
+    //        key = key,
+    //        value = None,
+    //        deadline = None,
+    //        previous = None,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        time = testTimer.next,
+    //        compressDuplicateValues = true
+    //      )
+      ???
 
     def update(key: Slice[Byte],
                value: Slice[Byte],
                compressDuplicateValues: Boolean = true)(implicit testTimer: TestTimer): Transient.Update =
-      Transient.Update(
-        key = key,
-        value = Some(value),
-        deadline = None,
-        previous = None,
-        time = testTimer.next,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        allocateSpace = TestData.allocateSpace,
-        compressDuplicateValues = compressDuplicateValues
-      )
+    //      Transient.Update(
+    //        key = key,
+    //        value = Some(value),
+    //        deadline = None,
+    //        previous = None,
+    //        time = testTimer.next,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        compressDuplicateValues = compressDuplicateValues
+    //      )
+      ???
 
     def update(key: Slice[Byte],
                value: Slice[Byte],
                removeAfter: FiniteDuration)(implicit testTimer: TestTimer): Transient.Update =
-      Transient.Update(
-        key = key,
-        value = Some(value),
-        deadline = Some(removeAfter.fromNow),
-        previous = None,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        allocateSpace = TestData.allocateSpace,
-        time = testTimer.next,
-        compressDuplicateValues = true
-      )
+    //      Transient.Update(
+    //        key = key,
+    //        value = Some(value),
+    //        deadline = Some(removeAfter.fromNow),
+    //        previous = None,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        time = testTimer.next,
+    //        compressDuplicateValues = true
+    //      )
+      ???
 
     def update(key: Slice[Byte],
                value: Slice[Byte],
                deadline: Deadline)(implicit testTimer: TestTimer): Transient.Update =
-      Transient.Update(
-        key = key,
-        value = Some(value),
-        deadline = Some(deadline),
-        previous = None,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        allocateSpace = TestData.allocateSpace,
-        time = testTimer.next,
-        compressDuplicateValues = true
-      )
+    //      Transient.Update(
+    //        key = key,
+    //        value = Some(value),
+    //        deadline = Some(deadline),
+    //        previous = None,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        time = testTimer.next,
+    //        compressDuplicateValues = true
+    //      )
+      ???
 
     def update(key: Slice[Byte],
                removeAfter: FiniteDuration)(implicit testTimer: TestTimer): Transient.Update =
-      Transient.Update(
-        key = key,
-        value = None,
-        deadline = Some(removeAfter.fromNow),
-        previous = None,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        allocateSpace = TestData.allocateSpace,
-        time = testTimer.next,
-        compressDuplicateValues = true
-      )
+    //      Transient.Update(
+    //        key = key,
+    //        value = None,
+    //        deadline = Some(removeAfter.fromNow),
+    //        previous = None,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        time = testTimer.next,
+    //        compressDuplicateValues = true
+    //      )
+      ???
 
     def update(key: Slice[Byte],
                value: Slice[Byte],
                removeAfter: Option[FiniteDuration])(implicit testTimer: TestTimer): Transient.Update =
-      Transient.Update(
-        key = key,
-        value = Some(value),
-        deadline = removeAfter.map(_.fromNow),
-        previous = None,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        allocateSpace = TestData.allocateSpace,
-        time = testTimer.next,
-        compressDuplicateValues = true
-      )
+    //      Transient.Update(
+    //        key = key,
+    //        value = Some(value),
+    //        deadline = removeAfter.map(_.fromNow),
+    //        previous = None,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        time = testTimer.next,
+    //        compressDuplicateValues = true
+    //      )
+      ???
 
     def update(key: Slice[Byte],
                value: Slice[Byte],
                falsePositiveRate: Double)(implicit testTimer: TestTimer): Transient.Update =
-      Transient.Update(
-        key = key,
-        value = Some(value),
-        deadline = None,
-        previous = None,
-        falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        allocateSpace = TestData.allocateSpace,
-        time = testTimer.next,
-        compressDuplicateValues = true
-      )
+    //      Transient.Update(
+    //        key = key,
+    //        value = Some(value),
+    //        deadline = None,
+    //        previous = None,
+    //        falsePositiveRate = falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        time = testTimer.next,
+    //        compressDuplicateValues = true
+    //      )
+      ???
 
-    def update(key: Slice[Byte],
-               previous: Option[KeyValue.WriteOnly],
-               deadline: Option[Deadline],
-               compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Update =
-      Transient.Update(
-        key = key,
-        value = None,
-        deadline = deadline,
-        previous = previous,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        allocateSpace = TestData.allocateSpace,
-        time = testTimer.next,
-        compressDuplicateValues = compressDuplicateValues
-      )
-
-    def update(key: Slice[Byte],
-               value: Slice[Byte],
-               falsePositiveRate: Double,
-               previous: Option[KeyValue.WriteOnly],
-               compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Update =
-      Transient.Update(
-        key = key,
-        value = Some(value),
-        deadline = None,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        allocateSpace = TestData.allocateSpace,
-        time = testTimer.next,
-        compressDuplicateValues = compressDuplicateValues
-      )
+    //    def update(key: Slice[Byte],
+    //               previous: Option[KeyValue.WriteOnly],
+    //               deadline: Option[Deadline],
+    //               compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Update =
+    //      Transient.Update(
+    //        key = key,
+    //        value = None,
+    //        deadline = deadline,
+    //        previous = previous,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        time = testTimer.next,
+    //        compressDuplicateValues = compressDuplicateValues
+    //      )
+    //
+    //    def update(key: Slice[Byte],
+    //               value: Slice[Byte],
+    //               falsePositiveRate: Double,
+    //               previous: Option[KeyValue.WriteOnly],
+    //               compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Update =
+    //      Transient.Update(
+    //        key = key,
+    //        value = Some(value),
+    //        deadline = None,
+    //        previous = previous,
+    //        falsePositiveRate = falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        time = testTimer.next,
+    //        compressDuplicateValues = compressDuplicateValues
+    //      )
   }
 
   implicit class ValueUpdateTypeImplicits(remove: Value.type) {
@@ -2577,19 +2616,20 @@ object TestData {
                                                             toKey: Slice[Byte],
                                                             fromValue: Option[F],
                                                             rangeValue: R)(implicit rangeValueSerializer: RangeValueSerializer[Option[F], R]): Range =
-      Range(
-        fromKey = fromKey,
-        toKey = toKey,
-        fromValue = fromValue,
-        rangeValue = rangeValue,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        allocateSpace = TestData.allocateSpace,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        previous = None
-      )
+    //      Range(
+    //        fromKey = fromKey,
+    //        toKey = toKey,
+    //        fromValue = fromValue,
+    //        rangeValue = rangeValue,
+    //        falsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        previous = None
+    //      )
+      ???
   }
 
   def collectUsedDeadlines(keyValues: Slice[KeyValue.WriteOnly], usedDeadlines: List[Deadline]): List[Deadline] =

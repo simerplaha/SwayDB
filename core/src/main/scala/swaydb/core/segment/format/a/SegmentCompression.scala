@@ -22,6 +22,16 @@ package swaydb.core.segment.format.a
 import swaydb.compression.CompressionInternal
 
 object SegmentCompression {
+
+  def empty =
+    SegmentCompression(
+      values = Seq.empty,
+      sortedIndex = Seq.empty,
+      hashIndex = Seq.empty,
+      binarySearchIndex = Seq.empty,
+      bloomFilter = Seq.empty
+    )
+
   def apply(bloomFilter: swaydb.data.config.BloomFilter,
             hashIndex: swaydb.data.config.HashIndex,
             binarySearchIndex: swaydb.data.config.BinarySearchIndex,

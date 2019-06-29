@@ -61,7 +61,6 @@ object DefaultMemoryConfig {
       )
       .addMemoryLevel1(
         segmentSize = segmentSize,
-        storeValues = true,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
         bloomFilter =

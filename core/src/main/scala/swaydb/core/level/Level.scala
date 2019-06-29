@@ -697,18 +697,15 @@ private[core] case class Level(dirs: Seq[Dir],
     if (inMemory)
       Segment.copyToMemory(
         keyValues = keyValues,
-        createdInLevel = levelNumber,
         fetchNextPath = targetSegmentPath,
-        minSegmentSize = segmentSize,
         removeDeletes = removeDeletedRecords,
-        maxProbe = hashIndexConfig.maxProbe,
-        enableBinarySearchIndex = binarySearchIndexConfig.enabled,
-        buildFullBinarySearchIndex = binarySearchIndexConfig.fullIndex,
-        bloomFilterFalsePositiveRate = bloomFilterConfig.falsePositiveRate,
-        resetPrefixCompressionEvery = sortedIndexConfig.prefixCompressionResetCount,
-        minimumNumberOfKeyForHashIndex = hashIndexConfig.minimumNumberOfKeys,
-        allocateSpace = hashIndexConfig.allocateSpace,
-        compressDuplicateValues = valuesConfig.compressDuplicateValues
+        minSegmentSize = segmentSize,
+        createdInLevel = levelNumber,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig
       )
     else
       Segment.copyToPersist(
@@ -720,14 +717,11 @@ private[core] case class Level(dirs: Seq[Dir],
         mmapSegmentsOnWrite = mmapSegmentsOnWrite,
         removeDeletes = removeDeletedRecords,
         minSegmentSize = segmentSize,
-        maxProbe = hashIndexConfig.maxProbe,
-        enableBinarySearchIndex = binarySearchIndexConfig.enabled,
-        buildFullBinarySearchIndex = binarySearchIndexConfig.fullIndex,
-        bloomFilterFalsePositiveRate = bloomFilterConfig.falsePositiveRate,
-        resetPrefixCompressionEvery = sortedIndexConfig.prefixCompressionResetCount,
-        minimumNumberOfKeyForHashIndex = hashIndexConfig.minimumNumberOfKeys,
-        allocateSpace = hashIndexConfig.allocateSpace,
-        compressDuplicateValues = valuesConfig.compressDuplicateValues
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig
       )
   }
 
@@ -791,14 +785,11 @@ private[core] case class Level(dirs: Seq[Dir],
               fetchNextPath = targetSegmentPath,
               removeDeletes = removeDeletedRecords,
               minSegmentSize = segmentSize,
-              maxProbe = hashIndexConfig.maxProbe,
-              enableBinarySearchIndex = binarySearchIndexConfig.enabled,
-              buildFullBinarySearchIndex = binarySearchIndexConfig.fullIndex,
-              bloomFilterFalsePositiveRate = bloomFilterConfig.falsePositiveRate,
-              resetPrefixCompressionEvery = sortedIndexConfig.prefixCompressionResetCount,
-              minimumNumberOfKeyForHashIndex = hashIndexConfig.minimumNumberOfKeys,
-              allocateSpace = hashIndexConfig.allocateSpace,
-              compressDuplicateValues = valuesConfig.compressDuplicateValues
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig
             )
           else
             Segment.copyToPersist(
@@ -810,14 +801,11 @@ private[core] case class Level(dirs: Seq[Dir],
               mmapSegmentsOnWrite = mmapSegmentsOnWrite,
               removeDeletes = removeDeletedRecords,
               minSegmentSize = segmentSize,
-              maxProbe = hashIndexConfig.maxProbe,
-              enableBinarySearchIndex = binarySearchIndexConfig.enabled,
-              buildFullBinarySearchIndex = binarySearchIndexConfig.fullIndex,
-              bloomFilterFalsePositiveRate = bloomFilterConfig.falsePositiveRate,
-              resetPrefixCompressionEvery = sortedIndexConfig.prefixCompressionResetCount,
-              minimumNumberOfKeyForHashIndex = hashIndexConfig.minimumNumberOfKeys,
-              allocateSpace = hashIndexConfig.allocateSpace,
-              compressDuplicateValues = valuesConfig.compressDuplicateValues
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig
             )
         },
       recover =
@@ -844,16 +832,13 @@ private[core] case class Level(dirs: Seq[Dir],
         ensureRelease(minKey) {
           segment.refresh(
             minSegmentSize = segmentSize,
-            bloomFilterFalsePositiveRate = bloomFilterConfig.falsePositiveRate,
-            resetPrefixCompressionEvery = sortedIndexConfig.prefixCompressionResetCount,
-            minimumNumberOfKeyForHashIndex = hashIndexConfig.minimumNumberOfKeys,
-            allocateSpace = hashIndexConfig.allocateSpace,
-            compressDuplicateValues = valuesConfig.compressDuplicateValues,
             removeDeletes = removeDeletedRecords,
             createdInLevel = levelNumber,
-            maxProbe = hashIndexConfig.maxProbe,
-            enableBinarySearchIndex = binarySearchIndexConfig.enabled,
-            buildFullBinarySearchIndex = binarySearchIndexConfig.fullIndex,
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig,
             segmentCompression = segmentCompression,
             targetPaths = paths
           ) flatMap {
@@ -1067,16 +1052,13 @@ private[core] case class Level(dirs: Seq[Dir],
           targetSegment.put(
             newKeyValues = assignedKeyValues,
             minSegmentSize = segmentSize,
-            bloomFilterFalsePositiveRate = bloomFilterConfig.falsePositiveRate,
-            resetPrefixCompressionEvery = sortedIndexConfig.prefixCompressionResetCount,
-            minimumNumberOfKeyForHashIndex = hashIndexConfig.minimumNumberOfKeys,
-            allocateSpace = hashIndexConfig.allocateSpace,
-            compressDuplicateValues = valuesConfig.compressDuplicateValues,
             removeDeletes = removeDeletedRecords,
             createdInLevel = levelNumber,
-            maxProbe = hashIndexConfig.maxProbe,
-            enableBinarySearchIndex = binarySearchIndexConfig.enabled,
-            buildFullBinarySearchIndex = binarySearchIndexConfig.fullIndex,
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig,
             segmentCompression = segmentCompression,
             targetPaths = paths.addPriorityPath(targetSegment.path.getParent)
           ) map {

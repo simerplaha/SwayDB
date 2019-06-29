@@ -116,11 +116,14 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        values = Values.Stored(
-          compressDuplicateValues = compressDuplicateValues,
-          cacheOnRead = false,
-          compression = Seq.empty
-        ),
+        values =
+          Values(
+            compressDuplicateValues = compressDuplicateValues,
+            compressDuplicateRangeValues = true,
+            duplicateValueSearchCount = 2,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -169,11 +172,14 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        values = Values.Stored(
-          compressDuplicateValues = compressDuplicateValues,
-          cacheOnRead = false,
-          compression = Seq.empty
-        ),
+        values =
+          Values(
+            compressDuplicateValues = compressDuplicateValues,
+            compressDuplicateRangeValues = true,
+            duplicateValueSearchCount = 2,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
         groupingStrategy = groupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
@@ -222,11 +228,14 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        values = Values.Stored(
-          compressDuplicateValues = compressDuplicateValues,
-          cacheOnRead = false,
-          compression = Seq.empty
-        ),
+        values =
+          Values(
+            compressDuplicateValues = compressDuplicateValues,
+            compressDuplicateRangeValues = true,
+            duplicateValueSearchCount = 2,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -275,11 +284,14 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        values = Values.Stored(
-          compressDuplicateValues = compressDuplicateValues,
-          cacheOnRead = false,
-          compression = Seq.empty
-        ),
+        values =
+          Values(
+            compressDuplicateValues = compressDuplicateValues,
+            compressDuplicateRangeValues = true,
+            duplicateValueSearchCount = 2,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -328,11 +340,14 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        values = Values.Stored(
-          compressDuplicateValues = compressDuplicateValues,
-          cacheOnRead = false,
-          compression = Seq.empty
-        ),
+        values =
+          Values(
+            compressDuplicateValues = compressDuplicateValues,
+            compressDuplicateRangeValues = true,
+            duplicateValueSearchCount = 2,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -384,8 +399,10 @@ object DefaultPersistentConfig {
             compression = Seq.empty
           ),
         values =
-          Values.Stored(
+          Values(
             compressDuplicateValues = compressDuplicateValues,
+            compressDuplicateRangeValues = true,
+            duplicateValueSearchCount = 2,
             cacheOnRead = false,
             compression = Seq.empty
           ),

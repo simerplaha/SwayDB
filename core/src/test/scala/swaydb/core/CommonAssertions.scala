@@ -395,32 +395,33 @@ object CommonAssertions {
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Iterable[Iterable[KeyValue.WriteOnly]] = {
-    val result =
-      SegmentMerger.merge(
-        newKeyValues = newKeyValues,
-        oldKeyValues = oldKeyValues,
-        minSegmentSize = 10.mb,
-        maxProbe = TestData.maxProbe,
-        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-        isLastLevel = isLastLevel,
-        forInMemory = false,
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        allocateSpace = TestData.allocateSpace,
-        compressDuplicateValues = randomBoolean()
-      ).assertGet
-
-    if (expected.size == 0) {
-      result shouldBe empty
-    } else {
-      result should have size 1
-      val ungrouped = unzipGroups(result.head)
-      ungrouped should have size expected.size
-      ungrouped.toList should contain inOrderElementsOf expected
-    }
-    result
+    //    val result =
+    //      SegmentMerger.merge(
+    //        newKeyValues = newKeyValues,
+    //        oldKeyValues = oldKeyValues,
+    //        minSegmentSize = 10.mb,
+    //        maxProbe = TestData.maxProbe,
+    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+    //        isLastLevel = isLastLevel,
+    //        forInMemory = false,
+    //        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+    //        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+    //        allocateSpace = TestData.allocateSpace,
+    //        compressDuplicateValues = randomBoolean()
+    //      ).assertGet
+    //
+    //    if (expected.size == 0) {
+    //      result shouldBe empty
+    //    } else {
+    //      result should have size 1
+    //      val ungrouped = unzipGroups(result.head)
+    //      ungrouped should have size expected.size
+    //      ungrouped.toList should contain inOrderElementsOf expected
+    //    }
+    //    result
+    ???
   }
 
   def assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse,

@@ -72,7 +72,6 @@ object DefaultEventuallyPersistentConfig {
         segmentSize = memoryLevelSegmentSize,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        storeValues = true,
         bloomFilter = BloomFilter.Enable(bloomFilterFalsePositiveRate, 10, false, Seq.empty),
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
@@ -124,11 +123,14 @@ object DefaultEventuallyPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        values = Values.Stored(
-          compressDuplicateValues = compressDuplicateValues,
-          cacheOnRead = false,
-          compression = Seq.empty
-        ),
+        values =
+          Values(
+            compressDuplicateValues = compressDuplicateValues,
+            compressDuplicateRangeValues = true,
+            duplicateValueSearchCount = 2,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
         groupingStrategy = groupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         throttle =

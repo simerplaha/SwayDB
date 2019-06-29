@@ -20,9 +20,8 @@
 package swaydb.core.data
 
 import swaydb.core.segment.format.a.SegmentWriter
-import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
+import swaydb.core.segment.format.a.block._
 import swaydb.core.util.Bytes
-import swaydb.data.config.HashIndex.HashIndexMeter
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -32,18 +31,16 @@ private[core] object Stats {
 
   def apply(indexEntry: Slice[Byte],
             value: Slice[Slice[Byte]],
-            falsePositiveRate: Double,
             isRemoveRange: Boolean,
             isRange: Boolean,
             isGroup: Boolean,
             isPut: Boolean,
+            isPrefixCompressed: Boolean,
             numberOfRanges: Int,
             thisKeyValuesUniqueKeys: Int,
-            isPrefixCompressed: Boolean,
-            minimumNumberOfKeysForHashIndex: Int,
-            allocateSpace: HashIndexMeter => Int,
-            enableBinarySearchIndex: Boolean,
-            buildFullBinarySearchIndex: Boolean,
+            bloomFilter: BloomFilter.Config,
+            hashIndex: HashIndex.Config,
+            binarySearch: BinarySearchIndex.Config,
             previous: Option[KeyValue.WriteOnly],
             deadline: Option[Deadline]): Stats = {
 
@@ -119,30 +116,31 @@ private[core] object Stats {
         previousStats.map(_.segmentUniqueAccessIndexKeyCounts + 1) getOrElse 1
 
     val segmentHashIndexSize =
-      if (segmentUniqueKeysCount < minimumNumberOfKeysForHashIndex)
+      if (segmentUniqueKeysCount < hashIndex.minimumNumberOfKeys)
         0
       else
         HashIndex.optimalBytesRequired(
           keyCounts = segmentUniqueKeysCount,
           largestValue = thisKeyValuesAccessIndexOffset,
-          allocateSpace = allocateSpace
+          allocateSpace = hashIndex.allocateSpace
         )
 
     //binary search indexes are only created for non-prefix compressed or reset point keys.
     //size calculation should only account for those entries because duplicates are not allowed.
     def binarySearchIndexEntriesCount() =
-      if (buildFullBinarySearchIndex)
+      if (binarySearch.fullIndex)
         segmentUniqueAccessIndexKeyCounts
       else
         segmentTotalNumberOfRanges
 
     val segmentBinarySearchIndexSize =
-      if (enableBinarySearchIndex)
+      if (binarySearch.enabled)
         previousStats map {
           previousStats =>
             if (previousStats.thisKeyValuesAccessIndexOffset != thisKeyValuesAccessIndexOffset)
               BinarySearchIndex.optimalBytesRequired(
                 largestValue = thisKeyValuesAccessIndexOffset,
+                minimNumberOfKeysForBinarySearchIndex = binarySearch.minimumNumberOfKeys,
                 valuesCount = binarySearchIndexEntriesCount()
               )
             else
@@ -150,6 +148,7 @@ private[core] object Stats {
         } getOrElse {
           BinarySearchIndex.optimalBytesRequired(
             largestValue = thisKeyValuesAccessIndexOffset,
+            minimNumberOfKeysForBinarySearchIndex = binarySearch.minimumNumberOfKeys,
             valuesCount = binarySearchIndexEntriesCount()
           )
         }
@@ -189,12 +188,12 @@ private[core] object Stats {
           Values.headerSize
 
     val segmentBloomFilterSize =
-      if (falsePositiveRate <= 0.0 || (hasRemoveRange && !enableBinarySearchIndex))
+      if (bloomFilter.falsePositiveRate <= 0.0 || (hasRemoveRange && !binarySearch.enabled))
         0
       else
         BloomFilter.optimalSize(
           numberOfKeys = segmentUniqueKeysCount,
-          falsePositiveRate = falsePositiveRate
+          falsePositiveRate = bloomFilter.falsePositiveRate
         )
 
     val segmentSizeWithoutFooter: Int =

@@ -32,7 +32,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.SegmentCompression
-import swaydb.core.segment.format.a.block.BloomFilter
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
 import swaydb.data.IO._
@@ -95,16 +95,13 @@ private[segment] case class MemorySegment(path: Path,
 
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],
                    minSegmentSize: Long,
-                   bloomFilterFalsePositiveRate: Double,
-                   resetPrefixCompressionEvery: Int,
-                   minimumNumberOfKeyForHashIndex: Int,
-                   allocateSpace: HashIndexMeter => Int,
-                   compressDuplicateValues: Boolean,
                    removeDeletes: Boolean,
                    createdInLevel: Int,
-                   maxProbe: Int,
-                   enableBinarySearchIndex: Boolean,
-                   buildFullBinarySearchIndex: Boolean,
+                   valuesConfig: Values.Config,
+                   sortedIndexConfig: SortedIndex.Config,
+                   binarySearchIndexConfig: BinarySearchIndex.Config,
+                   hashIndexConfig: HashIndex.Config,
+                   bloomFilterConfig: BloomFilter.Config,
                    segmentCompression: SegmentCompression,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
@@ -117,16 +114,13 @@ private[segment] case class MemorySegment(path: Path,
             newKeyValues = newKeyValues,
             oldKeyValues = currentKeyValues,
             minSegmentSize = minSegmentSize,
-            maxProbe = maxProbe,
-            buildFullBinarySearchIndex = buildFullBinarySearchIndex,
             isLastLevel = removeDeletes,
             forInMemory = true,
-            enableBinarySearchIndex = enableBinarySearchIndex,
-            bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-            allocateSpace = allocateSpace,
-            compressDuplicateValues = compressDuplicateValues
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig
           ) flatMap {
             splits =>
               splits.mapIO[Segment](
@@ -152,16 +146,13 @@ private[segment] case class MemorySegment(path: Path,
       }
 
   override def refresh(minSegmentSize: Long,
-                       bloomFilterFalsePositiveRate: Double,
-                       resetPrefixCompressionEvery: Int,
-                       minimumNumberOfKeyForHashIndex: Int,
-                       allocateSpace: HashIndexMeter => Int,
-                       compressDuplicateValues: Boolean,
                        removeDeletes: Boolean,
                        createdInLevel: Int,
-                       maxProbe: Int,
-                       enableBinarySearchIndex: Boolean,
-                       buildFullBinarySearchIndex: Boolean,
+                       valuesConfig: Values.Config,
+                       sortedIndexConfig: SortedIndex.Config,
+                       binarySearchIndexConfig: BinarySearchIndex.Config,
+                       hashIndexConfig: HashIndex.Config,
+                       bloomFilterConfig: BloomFilter.Config,
                        segmentCompression: SegmentCompression,
                        targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
@@ -175,14 +166,11 @@ private[segment] case class MemorySegment(path: Path,
             minSegmentSize = minSegmentSize,
             isLastLevel = removeDeletes,
             forInMemory = true,
-            maxProbe = maxProbe,
-            enableBinarySearchIndex = enableBinarySearchIndex,
-            buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-            bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-            allocateSpace = allocateSpace,
-            compressDuplicateValues = compressDuplicateValues
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig
           ) flatMap {
             splits =>
               splits.mapIO[Segment](

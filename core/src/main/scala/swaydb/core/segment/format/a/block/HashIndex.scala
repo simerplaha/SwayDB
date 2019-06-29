@@ -41,6 +41,14 @@ import scala.util.Try
 private[core] object HashIndex extends LazyLogging {
 
   object Config {
+    val disabled =
+      Config(
+        maxProbe = -1,
+        minimumNumberOfKeys = Int.MaxValue,
+        allocateSpace = _ => Int.MinValue,
+        cacheOnRead = false
+      )
+
     def apply(config: swaydb.data.config.HashIndex): Config =
       config match {
         case swaydb.data.config.HashIndex.Disable =>

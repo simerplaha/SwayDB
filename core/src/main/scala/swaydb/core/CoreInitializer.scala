@@ -162,29 +162,18 @@ private[core] object CoreInitializer extends LazyLogging {
             hashIndexConfig = block.HashIndex.Config(config = HashIndex.Disable),
             binarySearchIndexConfig = block.BinarySearchIndex.Config(config = BinarySearchIndex.Disable),
             sortedIndexConfig = block.SortedIndex.Config(cacheOnRead = false, prefixCompressionResetCount = 0),
-            valuesConfig = block.Values.Config(stored = config.storeValues, compressDuplicateValues = false, cacheOnRead = false),
-            segmentCompression =
-              SegmentCompression(
-                bloomFilter = config.bloomFilter,
-                hashIndex = HashIndex.Disable,
-                binarySearchIndex = BinarySearchIndex.Disable,
-                sortedIndex =
-                  SortedIndex.Enable(
-                    cacheOnRead = false,
-                    prefixCompression = PrefixCompression.Disable,
-                    compression = Seq.empty
-                  ),
-                values =
-                  Values.Stored(
-                    compressDuplicateValues = false,
-                    cacheOnRead = false,
-                    compression = Seq.empty
-                  )
+            valuesConfig =
+              block.Values.Config(
+                compressDuplicateValues = false,
+                compressDuplicateRangeValues = false,
+                duplicateValueSearchCount = 0,
+                cacheOnRead = false
               ),
+            segmentCompression = SegmentCompression.empty,
             levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
+            appendixStorage = AppendixStorage.Memory,
             nextLevel = nextLevel,
             pushForward = config.copyForward,
-            appendixStorage = AppendixStorage.Memory,
             throttle = config.throttle,
             deleteSegmentsEventually = config.deleteSegmentsEventually
           )
