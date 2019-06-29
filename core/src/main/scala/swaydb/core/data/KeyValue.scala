@@ -612,6 +612,7 @@ private[core] object Transient {
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
     override val stats =
       Stats(
+        keySize = key.written,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -679,6 +680,7 @@ private[core] object Transient {
 
     val stats =
       Stats(
+        keySize = key.written,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -744,6 +746,7 @@ private[core] object Transient {
 
     val stats =
       Stats(
+        keySize = key.written,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -810,6 +813,7 @@ private[core] object Transient {
 
     val stats =
       Stats(
+        keySize = key.written,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -897,6 +901,7 @@ private[core] object Transient {
 
     val stats =
       Stats(
+        keySize = key.written,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -1014,6 +1019,7 @@ private[core] object Transient {
 
     val stats =
       Stats(
+        keySize = fromKey.written + toKey.written,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -1103,6 +1109,7 @@ private[core] object Transient {
 
     val stats =
       Stats(
+        keySize = minKey.written + maxKey.maxKey.written,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,

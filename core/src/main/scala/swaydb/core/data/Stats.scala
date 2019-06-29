@@ -29,7 +29,8 @@ import scala.concurrent.duration.Deadline
 
 private[core] object Stats {
 
-  def apply(indexEntry: Slice[Byte],
+  def apply(keySize: Int,
+            indexEntry: Slice[Byte],
             value: Slice[Slice[Byte]],
             isRemoveRange: Boolean,
             isRange: Boolean,
@@ -241,7 +242,7 @@ private[core] object Stats {
         segmentFooterSize
 
     val segmentUncompressedKeysSize: Int =
-      previousStats.map(_.segmentUncompressedKeysSize).getOrElse(0) + indexEntry.size
+      previousStats.map(_.segmentUncompressedKeysSize).getOrElse(0) + keySize
 
     new Stats(
       valueSize = valueLength,
