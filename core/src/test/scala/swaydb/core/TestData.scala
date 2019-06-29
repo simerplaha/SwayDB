@@ -178,6 +178,7 @@ object TestData {
           mmapSegmentsOnWrite = randomBoolean(),
           removeDeletes = false,
           minSegmentSize = 1000.mb,
+          segmentCompression = level.segmentCompression,
           maxProbe = level.maxProbe,
           bloomFilterFalsePositiveRate = level.bloomFilterFalsePositiveRate,
           enableBinarySearchIndex = level.enableBinarySearchIndex,

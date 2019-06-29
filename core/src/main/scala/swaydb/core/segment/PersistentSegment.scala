@@ -31,7 +31,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block.HashIndex
-import swaydb.core.segment.format.a.SegmentReader
+import swaydb.core.segment.format.a.{SegmentCompression, SegmentReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
 import swaydb.data.IO._
@@ -126,6 +126,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           maxProbe: Int,
           enableBinarySearchIndex: Boolean,
           buildFullBinarySearchIndex: Boolean,
+          segmentCompression: SegmentCompression,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
@@ -151,6 +152,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                 keyValues =>
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                    segmentCompression = segmentCompression,
                     createdInLevel = createdInLevel,
                     maxProbe = maxProbe,
                     mmapReads = mmapReads,
@@ -182,6 +184,7 @@ private[segment] case class PersistentSegment(file: DBFile,
               maxProbe: Int,
               enableBinarySearchIndex: Boolean,
               buildFullBinarySearchIndex: Boolean,
+              segmentCompression: SegmentCompression,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
@@ -207,6 +210,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                     createdInLevel = createdInLevel,
+                    segmentCompression = segmentCompression,
                     maxProbe = maxProbe,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,

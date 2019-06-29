@@ -41,6 +41,7 @@ import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
+import swaydb.core.segment.format.a.SegmentCompression
 import swaydb.core.util.IDGenerator
 import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -245,11 +246,12 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
   object TestSegment {
     def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
-              path: Path = testSegmentFile)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                            keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                            fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
-                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                            groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
+              path: Path = testSegmentFile,
+              segmentCompression: SegmentCompression = randomSegmentCompression())(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                   keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                                                   fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+                                                                                   timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
       if (levelStorage.memory)
         Segment.memory(
           path = path,
@@ -261,6 +263,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
           path = path,
           createdInLevel = 0,
           maxProbe = maxProbe,
+          segmentCompression = segmentCompression,
           mmapReads = levelStorage.mmapSegmentsOnRead,
           mmapWrites = levelStorage.mmapSegmentsOnWrite,
           keyValues = keyValues

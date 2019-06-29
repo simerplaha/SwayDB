@@ -78,6 +78,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
           segment.put(
             newKeyValues = Slice(mergePut.toMemory),
             minSegmentSize = 10.mb,
+            segmentCompression = randomSegmentCompression(),
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
@@ -116,6 +117,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
           newGroupedSegment.put(
             newKeyValues = removeKeyValues.toMemory,
             minSegmentSize = 10.mb,
+            segmentCompression = randomSegmentCompression(),
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,

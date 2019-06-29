@@ -31,6 +31,7 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.segment.format.a.SegmentCompression
 import swaydb.core.segment.format.a.block.BloomFilter
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
@@ -103,6 +104,7 @@ private[segment] case class MemorySegment(path: Path,
                    maxProbe: Int,
                    enableBinarySearchIndex: Boolean,
                    buildFullBinarySearchIndex: Boolean,
+                   segmentCompression: SegmentCompression,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     if (deleted)
@@ -159,6 +161,7 @@ private[segment] case class MemorySegment(path: Path,
                        maxProbe: Int,
                        enableBinarySearchIndex: Boolean,
                        buildFullBinarySearchIndex: Boolean,
+                       segmentCompression: SegmentCompression,
                        targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     if (deleted)

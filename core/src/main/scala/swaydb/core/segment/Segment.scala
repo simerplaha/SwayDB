@@ -31,7 +31,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
-import swaydb.core.segment.format.a.{SegmentFooter, SegmentWriter}
+import swaydb.core.segment.format.a.{SegmentCompression, SegmentFooter, SegmentWriter}
 import swaydb.core.segment.format.a.block.{BloomFilter, SortedIndex}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
@@ -264,17 +264,17 @@ private[core] object Segment extends LazyLogging {
                  maxProbe: Int,
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
+                 segmentCompression: SegmentCompression,
                  keyValues: Iterable[KeyValue.WriteOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                           functionStore: FunctionStore,
                                                           keyValueLimiter: KeyValueLimiter,
-                                                          fileOpenLimiter: FileLimiter,
-                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Segment] =
+                                                          fileOpenLimiter: FileLimiter): IO[Segment] =
     SegmentWriter.write(
       keyValues = keyValues,
       createdInLevel = createdInLevel,
       maxProbe = maxProbe,
-      segmentCompression = ???
+      segmentCompression = segmentCompression
     ) flatMap {
       result =>
         if (result.isEmpty) {
@@ -335,6 +335,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def copyToPersist(segment: Segment,
+                    segmentCompression: SegmentCompression,
                     createdInLevel: Int,
                     fetchNextPath: => Path,
                     mmapSegmentsOnRead: Boolean,
@@ -383,6 +384,7 @@ private[core] object Segment extends LazyLogging {
       case memory: MemorySegment =>
         copyToPersist(
           keyValues = Slice(memory.cache.values().asScala.toArray),
+          segmentCompression = segmentCompression,
           createdInLevel = createdInLevel,
           fetchNextPath = fetchNextPath,
           mmapSegmentsOnRead = mmapSegmentsOnRead,
@@ -401,6 +403,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def copyToPersist(keyValues: Slice[KeyValue.ReadOnly],
+                    segmentCompression: SegmentCompression,
                     createdInLevel: Int,
                     fetchNextPath: => Path,
                     mmapSegmentsOnRead: Boolean,
@@ -441,6 +444,7 @@ private[core] object Segment extends LazyLogging {
               Segment.persistent(
                 path = fetchNextPath,
                 createdInLevel = createdInLevel,
+                segmentCompression = segmentCompression,
                 maxProbe = maxProbe,
                 mmapReads = mmapSegmentsOnRead,
                 mmapWrites = mmapSegmentsOnWrite,
@@ -550,8 +554,7 @@ private[core] object Segment extends LazyLogging {
                                          timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: FunctionStore,
                                          keyValueLimiter: KeyValueLimiter,
-                                         fileOpenLimiter: FileLimiter,
-                                         compression: Option[KeyValueGroupingStrategyInternal]): IO[Segment] = {
+                                         fileOpenLimiter: FileLimiter): IO[Segment] = {
 
     val fileIO =
       if (mmapReads)
@@ -1016,6 +1019,7 @@ private[core] trait Segment extends FileLimiterItem {
           maxProbe: Int,
           enableBinarySearchIndex: Boolean,
           buildFullBinarySearchIndex: Boolean,
+          segmentCompression: SegmentCompression,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 
@@ -1030,6 +1034,7 @@ private[core] trait Segment extends FileLimiterItem {
               maxProbe: Int,
               enableBinarySearchIndex: Boolean,
               buildFullBinarySearchIndex: Boolean,
+              segmentCompression: SegmentCompression,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 
