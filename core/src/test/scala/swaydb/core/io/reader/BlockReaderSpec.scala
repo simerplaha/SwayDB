@@ -114,6 +114,21 @@ class BlockReaderSpec extends WordSpec with Matchers {
 
       assertReader(bodyBytes, reader)
     }
+
+    "nested blocks" in {
+      val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
+      val block = Values(Values.Offset(0, bodyBytes.size), 0, None)
+      val reader = BlockReader(Reader(bodyBytes), block)
+      assertReader(bodyBytes, reader)
+
+      val innerBlock = Values(Values.Offset(5, 5), 0, None)
+      val innerBlockReader = BlockReader(reader, innerBlock)
+      assertReader(bodyBytes.drop(5).unslice(), innerBlockReader)
+
+      val innerBlock2 = Values(Values.Offset(3, 2), 0, None)
+      val innerBlockReader2 = BlockReader(innerBlockReader, innerBlock2)
+      assertReader(bodyBytes.drop(8).unslice(), innerBlockReader2)
+    }
   }
 
   "reading bytes outside the block" should {
