@@ -40,4 +40,3 @@ object HashIndex {
     def requiredSpace: Int
   }
 }
-

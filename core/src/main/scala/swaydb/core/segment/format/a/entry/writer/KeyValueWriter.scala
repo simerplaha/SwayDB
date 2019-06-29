@@ -55,6 +55,7 @@ private[core] object KeyValueWriter {
   def write[T <: KeyValue.WriteOnly](current: T,
                                      currentTime: Time,
                                      compressDuplicateValues: Boolean,
+                                     duplicateValueSearchCount: Int,
                                      enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.Result =
     current.previous flatMap {
       previous =>
@@ -64,6 +65,7 @@ private[core] object KeyValueWriter {
             previous = previous,
             currentTime = currentTime,
             compressDuplicateValues = compressDuplicateValues,
+            duplicateValueSearchCount = duplicateValueSearchCount,
             enablePrefixCompression = enablePrefixCompression
           )
         else
@@ -73,6 +75,7 @@ private[core] object KeyValueWriter {
         current = current,
         currentTime = currentTime,
         compressDuplicateValues = compressDuplicateValues,
+        duplicateValueSearchCount = duplicateValueSearchCount,
         enablePrefixCompression = enablePrefixCompression
       )
     }
@@ -80,6 +83,7 @@ private[core] object KeyValueWriter {
   private def writeCompressed[T <: KeyValue.WriteOnly](current: T,
                                                        previous: KeyValue.WriteOnly,
                                                        currentTime: Time,
+                                                       duplicateValueSearchCount: Int,
                                                        compressDuplicateValues: Boolean,
                                                        enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
     compress(key = current.fullKey, previous = previous, minimumCommonBytes = 2) map {
@@ -91,6 +95,7 @@ private[core] object KeyValueWriter {
             compressDuplicateValues = compressDuplicateValues,
             entryId = BaseEntryIdFormatA.format.start,
             enablePrefixCompression = enablePrefixCompression,
+            duplicateValueSearchCount = duplicateValueSearchCount,
             isKeyCompressed = true,
             hasPrefixCompressed = true,
             plusSize = sizeOf(commonBytes) + remainingBytes.size //write the size of keys compressed and also the uncompressed Bytes
@@ -106,6 +111,7 @@ private[core] object KeyValueWriter {
 
   private def writeUncompressed[T <: KeyValue.WriteOnly](current: T,
                                                          currentTime: Time,
+                                                         duplicateValueSearchCount: Int,
                                                          compressDuplicateValues: Boolean,
                                                          enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) = {
     //no common prefixes or no previous write without compression
@@ -116,6 +122,7 @@ private[core] object KeyValueWriter {
         compressDuplicateValues = compressDuplicateValues,
         entryId = BaseEntryIdFormatA.format.start,
         enablePrefixCompression = enablePrefixCompression,
+        duplicateValueSearchCount = duplicateValueSearchCount,
         isKeyCompressed = false,
         hasPrefixCompressed = false,
         plusSize = current.fullKey.size //write key bytes.

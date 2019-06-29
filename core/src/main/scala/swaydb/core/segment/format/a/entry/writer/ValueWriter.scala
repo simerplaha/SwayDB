@@ -45,6 +45,7 @@ private[writer] object ValueWriter {
                compressDuplicateValues: Boolean,
                entryId: BaseEntryId.Time,
                plusSize: Int,
+               duplicateValueSearchCount: Int,
                isKeyUncompressed: Boolean,
                hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.Result =
     current match {
@@ -197,7 +198,6 @@ private[writer] object ValueWriter {
                             enablePrefixCompression: Boolean,
                             isKeyUncompressed: Boolean,
                             hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[KeyValueWriter.Result] =
-  //todo if prefix compression is disable then write offsets with
   //eliminate exact values only. Value size should also be the same.
     Bytes.compressExact(
       previous = previousValue,
