@@ -23,7 +23,7 @@ import swaydb.compression.CompressionInternal
 
 object SegmentCompression {
 
-  def empty =
+  def disabled =
     SegmentCompression(
       values = Seq.empty,
       sortedIndex = Seq.empty,

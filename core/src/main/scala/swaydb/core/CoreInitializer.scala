@@ -158,18 +158,12 @@ private[core] object CoreInitializer extends LazyLogging {
           implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
           Level(
             segmentSize = config.segmentSize,
-            bloomFilterConfig = block.BloomFilter.Config(config = config.bloomFilter),
-            hashIndexConfig = block.HashIndex.Config(config = HashIndex.Disable),
-            binarySearchIndexConfig = block.BinarySearchIndex.Config(config = BinarySearchIndex.Disable),
-            sortedIndexConfig = block.SortedIndex.Config(cacheOnRead = false, prefixCompressionResetCount = 0),
-            valuesConfig =
-              block.Values.Config(
-                compressDuplicateValues = false,
-                compressDuplicateRangeValues = false,
-                duplicateValueSearchCount = 0,
-                cacheOnRead = false
-              ),
-            segmentCompression = SegmentCompression.empty,
+            bloomFilterConfig = block.BloomFilter.Config.disabled,
+            hashIndexConfig = block.HashIndex.Config.disabled,
+            binarySearchIndexConfig = block.BinarySearchIndex.Config.disabled,
+            sortedIndexConfig = block.SortedIndex.Config.disabled,
+            valuesConfig = block.Values.Config.disabled,
+            segmentCompression = SegmentCompression.disabled,
             levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
             appendixStorage = AppendixStorage.Memory,
             nextLevel = nextLevel,
@@ -185,7 +179,7 @@ private[core] object CoreInitializer extends LazyLogging {
             bloomFilterConfig = block.BloomFilter.Config(config = config.bloomFilter),
             hashIndexConfig = block.HashIndex.Config(config = config.hashIndex),
             binarySearchIndexConfig = block.BinarySearchIndex.Config(config = config.binarySearchIndex),
-            sortedIndexConfig = block.SortedIndex.Config(config.sortedIndex.toOption.get),
+            sortedIndexConfig = block.SortedIndex.Config(config.sortedIndex),
             valuesConfig = block.Values.Config(config.values),
             segmentCompression =
               SegmentCompression(
@@ -202,9 +196,9 @@ private[core] object CoreInitializer extends LazyLogging {
                 dir = config.dir.resolve(id.toString),
                 otherDirs = config.otherDirs.map(dir => dir.copy(path = dir.path.resolve(id.toString)))
               ),
+            appendixStorage = AppendixStorage.Persistent(config.mmapAppendix, config.appendixFlushCheckpointSize),
             nextLevel = nextLevel,
             pushForward = config.copyForward,
-            appendixStorage = AppendixStorage.Persistent(config.mmapAppendix, config.appendixFlushCheckpointSize),
             throttle = config.throttle,
             deleteSegmentsEventually = config.deleteSegmentsEventually
           )

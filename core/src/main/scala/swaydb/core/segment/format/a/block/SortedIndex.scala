@@ -39,7 +39,8 @@ private[core] object SortedIndex {
     val disabled =
       Config(
         cacheOnRead = false,
-        prefixCompressionResetCount = 0
+        prefixCompressionResetCount = 0,
+        hasCompression = false
       )
 
     def apply(config: swaydb.data.config.SortedIndex): Config =
@@ -51,7 +52,8 @@ private[core] object SortedIndex {
     def apply(config: swaydb.data.config.SortedIndex.Enable): Config =
       Config(
         cacheOnRead = config.cacheOnRead,
-        prefixCompressionResetCount = config.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0)
+        prefixCompressionResetCount = config.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0),
+        hasCompression = config.compression.nonEmpty
       )
 
     def enablePrefixCompression(config: Config,
@@ -64,7 +66,8 @@ private[core] object SortedIndex {
   }
 
   case class Config(cacheOnRead: Boolean,
-                    prefixCompressionResetCount: Int)
+                    prefixCompressionResetCount: Int,
+                    hasCompression: Boolean)
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 

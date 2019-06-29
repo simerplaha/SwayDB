@@ -36,7 +36,8 @@ object Values {
         compressDuplicateValues = false,
         compressDuplicateRangeValues = false,
         duplicateValueSearchCount = 0,
-        cacheOnRead = false
+        cacheOnRead = false,
+        hasCompression = false
       )
 
     def apply(config: swaydb.data.config.Values): Config =
@@ -44,14 +45,16 @@ object Values {
         compressDuplicateValues = config.compressDuplicateValues,
         compressDuplicateRangeValues = config.compressDuplicateRangeValues,
         duplicateValueSearchCount = config.duplicateValueSearchCount,
-        cacheOnRead = config.cacheOnRead
+        cacheOnRead = config.cacheOnRead,
+        hasCompression = config.compression.nonEmpty
       )
   }
 
   case class Config(compressDuplicateValues: Boolean,
                     compressDuplicateRangeValues: Boolean,
                     duplicateValueSearchCount: Int,
-                    cacheOnRead: Boolean)
+                    cacheOnRead: Boolean,
+                    hasCompression: Boolean)
 
   def valueNotFound: IO.Failure[Nothing] =
     IO.Failure(IO.Error.Fatal("Value not found."))

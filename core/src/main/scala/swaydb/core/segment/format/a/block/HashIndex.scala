@@ -46,7 +46,8 @@ private[core] object HashIndex extends LazyLogging {
         maxProbe = -1,
         minimumNumberOfKeys = Int.MaxValue,
         allocateSpace = _ => Int.MinValue,
-        cacheOnRead = false
+        cacheOnRead = false,
+        hasCompression = false
       )
 
     def apply(config: swaydb.data.config.HashIndex): Config =
@@ -56,14 +57,16 @@ private[core] object HashIndex extends LazyLogging {
             maxProbe = -1,
             minimumNumberOfKeys = Int.MaxValue,
             allocateSpace = _ => Int.MinValue,
-            cacheOnRead = false
+            cacheOnRead = false,
+            hasCompression = false
           )
         case enable: swaydb.data.config.HashIndex.Enable =>
           Config(
             maxProbe = enable.maxProbe,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             allocateSpace = enable.allocateSpace,
-            cacheOnRead = enable.cacheOnRead
+            cacheOnRead = enable.cacheOnRead,
+            hasCompression = enable.compression.nonEmpty
           )
       }
   }
@@ -71,7 +74,8 @@ private[core] object HashIndex extends LazyLogging {
   case class Config(maxProbe: Int,
                     minimumNumberOfKeys: Int,
                     allocateSpace: HashIndexMeter => Int,
-                    cacheOnRead: Boolean)
+                    cacheOnRead: Boolean,
+                    hasCompression: Boolean)
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 

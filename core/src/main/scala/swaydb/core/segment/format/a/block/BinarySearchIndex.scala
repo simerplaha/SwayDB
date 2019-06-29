@@ -38,7 +38,8 @@ object BinarySearchIndex {
         enabled = false,
         minimumNumberOfKeys = 0,
         fullIndex = false,
-        cacheOnRead = false
+        cacheOnRead = false,
+        hasCompression = false
       )
 
     def apply(config: swaydb.data.config.BinarySearchIndex): Config =
@@ -48,14 +49,16 @@ object BinarySearchIndex {
             enabled = false,
             minimumNumberOfKeys = Int.MaxValue,
             fullIndex = false,
-            cacheOnRead = false
+            cacheOnRead = false,
+            hasCompression = false
           )
         case enable: swaydb.data.config.BinarySearchIndex.FullIndex =>
           Config(
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             fullIndex = true,
-            cacheOnRead = enable.cacheOnRead
+            cacheOnRead = enable.cacheOnRead,
+            hasCompression = enable.compression.nonEmpty
           )
 
         case enable: swaydb.data.config.BinarySearchIndex.SecondaryIndex =>
@@ -63,7 +66,8 @@ object BinarySearchIndex {
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             fullIndex = false,
-            cacheOnRead = enable.cacheOnRead
+            cacheOnRead = enable.cacheOnRead,
+            hasCompression = enable.compression.nonEmpty
           )
       }
   }
@@ -71,7 +75,8 @@ object BinarySearchIndex {
   case class Config(enabled: Boolean,
                     minimumNumberOfKeys: Int,
                     fullIndex: Boolean,
-                    cacheOnRead: Boolean)
+                    cacheOnRead: Boolean,
+                    hasCompression: Boolean)
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 
