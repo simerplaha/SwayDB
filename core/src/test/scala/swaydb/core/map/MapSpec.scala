@@ -326,7 +326,7 @@
 //      val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse]()
 //      val file = PersistentMap.recover[Slice[Byte], Memory.SegmentResponse](createRandomDir, false, 4.mb, skipList, dropCorruptedTailEntries = false).assertGet._1.item
 //
-//      file.isOpen shouldBe true
+//      file.isInitialised shouldBe true
 //      file.isMemoryMapped.assertGet shouldBe false
 //      file.existsOnDisk shouldBe true
 //      file.fileSize.assertGet shouldBe 0
@@ -356,7 +356,7 @@
 //      val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
 //      val recoveredFile = PersistentMap.recover(map.path, false, 4.mb, skipList, dropCorruptedTailEntries = false).assertGet._1.item
 //
-//      recoveredFile.isOpen shouldBe true
+//      recoveredFile.isInitialised shouldBe true
 //      recoveredFile.isMemoryMapped.assertGet shouldBe false
 //      recoveredFile.existsOnDisk shouldBe true
 //      recoveredFile.path.fileId.assertGet shouldBe(1, Extension.Log) //file id gets incremented on recover
@@ -393,7 +393,7 @@
 //      //reopen file
 //      val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
 //      val recoveredFile = PersistentMap.recover(map.path, true, 1.byte, skipList, dropCorruptedTailEntries = false).assertGet._1.item
-//      recoveredFile.isOpen shouldBe true
+//      recoveredFile.isInitialised shouldBe true
 //      recoveredFile.isMemoryMapped.assertGet shouldBe true
 //      recoveredFile.existsOnDisk shouldBe true
 //      recoveredFile.path.fileId.assertGet shouldBe(6, Extension.Log) //file id gets incremented on recover
@@ -409,7 +409,7 @@
 //      //reopen the recovered file
 //      val skipList2 = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
 //      val recoveredFile2 = PersistentMap.recover(map.path, true, 1.byte, skipList2, dropCorruptedTailEntries = false).assertGet._1.item
-//      recoveredFile2.isOpen shouldBe true
+//      recoveredFile2.isInitialised shouldBe true
 //      recoveredFile2.isMemoryMapped.assertGet shouldBe true
 //      recoveredFile2.existsOnDisk shouldBe true
 //      recoveredFile2.path.fileId.assertGet shouldBe(7, Extension.Log) //file id gets incremented on recover
@@ -439,7 +439,7 @@
 //      val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
 //      val file = PersistentMap.recover(map.path, false, 4.mb, skipList, dropCorruptedTailEntries = false).assertGet._1.item
 //
-//      file.isOpen shouldBe true
+//      file.isInitialised shouldBe true
 //      file.isMemoryMapped.assertGet shouldBe false
 //      file.existsOnDisk shouldBe true
 //      file.path.fileId.assertGet shouldBe(1, Extension.Log) //file id gets incremented on recover

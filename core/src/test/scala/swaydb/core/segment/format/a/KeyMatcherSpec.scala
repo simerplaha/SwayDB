@@ -22,11 +22,10 @@ package swaydb.core.segment.format.a
 import swaydb.core.TestBase
 import swaydb.core.data.Persistent._
 import swaydb.core.data.{Persistent, Time}
-import swaydb.core.group.compression.GroupDecompressor
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.MatchResult._
 import swaydb.core.segment.format.a.block.Values
-import swaydb.core.segment.format.a.entry.reader.value.{LazyGroupValueReader, LazyRangeValueReader, LazyValueReader}
+import swaydb.core.segment.format.a.entry.reader.value.{LazyRangeValueReader, LazyValueReader}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -81,8 +80,6 @@ class KeyMatcherSpec extends TestBase {
       Group(
         _minKey = tuple._1,
         _maxKey = MaxKey.Fixed(tuple._2),
-        groupDecompressor = GroupDecompressor(Reader(Slice.emptyBytes), 0),
-        lazyGroupValueReader = LazyGroupValueReader(Values.empty.createBlockReader(Reader.empty), 0, 0),
         valueReader = Reader(Slice.emptyBytes),
         nextIndexOffset = 0,
         nextIndexSize = 0,
@@ -97,8 +94,6 @@ class KeyMatcherSpec extends TestBase {
       Group(
         _minKey = tuple._1,
         _maxKey = MaxKey.Range(tuple._2._1, tuple._2._2),
-        groupDecompressor = GroupDecompressor(Reader(Slice.emptyBytes), 0),
-        lazyGroupValueReader = LazyGroupValueReader(Values.empty.createBlockReader(Reader.empty), 0, 0),
         valueReader = Reader(Slice.emptyBytes),
         nextIndexOffset = 0,
         nextIndexSize = 0,

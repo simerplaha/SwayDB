@@ -30,15 +30,14 @@ import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
-import swaydb.core.segment.format.a.{SegmentCompression, SegmentReader}
+import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.{SegmentBlock, SegmentCompression}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
 import swaydb.data.IO._
 import swaydb.data.config.Dir
-import swaydb.data.config.HashIndex.HashIndexMeter
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey, Reserve}
 
 import scala.concurrent.Future
@@ -68,7 +67,9 @@ private[segment] case class PersistentSegment(file: DBFile,
       minKey = minKey,
       cache = cache,
       unsliceKey = true,
-      createSegmentReader = () => IO.Success(Reader(file))
+      offset = () => file.fileSize map (fileSize => SegmentBlock.Offset(0, fileSize.toInt)),
+      createSegmentReader = () => Reader(file),
+      segmentBlockReserve = Reserve()
     )
 
   def close: IO[Unit] =

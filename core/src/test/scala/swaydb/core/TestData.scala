@@ -380,8 +380,7 @@ object TestData {
                 minKey = fromKey,
                 maxKey = toKey,
                 compressedKeyValues = compressedKeyValues.flattenSegmentBytes.unslice(),
-                deadline = deadline,
-                groupStartOffset = 0
+                deadline = deadline
               )
           }
       }
@@ -395,8 +394,7 @@ object TestData {
                 minKey = fromKey,
                 maxKey = toKey,
                 compressedKeyValues = compressedKeyValues.flattenSegmentBytes.unslice(),
-                deadline = deadline,
-                groupStartOffset = 0
+                deadline = deadline
               )
           }
 
@@ -735,13 +733,12 @@ object TestData {
 
     def toMemoryGroup =
       keyValue match {
-        case Persistent.Group(minKey, maxKey, groupDecompressor, _, _, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline, _) =>
+        case Persistent.Group(minKey, maxKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline, _) =>
           Memory.Group(
             minKey = minKey,
             maxKey = maxKey,
             deadline = deadline,
-            groupDecompressor = groupDecompressor,
-            valueLength = valueLength
+            compressedKeyValues = valueReader.moveTo(valueOffset).read(valueLength).get
           )
       }
 

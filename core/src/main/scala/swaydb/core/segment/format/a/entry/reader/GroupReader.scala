@@ -23,7 +23,6 @@ import swaydb.core.data.Persistent
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.format.a.block.Values
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
-import swaydb.core.segment.format.a.entry.reader.value.LazyGroupValueReader
 import swaydb.data.IO
 import swaydb.data.slice.Reader
 
@@ -58,15 +57,9 @@ object GroupReader extends EntryReader[Persistent.Group] {
                       valueReader = valueReader,
                       nextIndexOffset = nextIndexOffset,
                       nextIndexSize = nextIndexSize,
-                      lazyGroupValueReader =
-                        LazyGroupValueReader(
-                          reader = valueReader,
-                          offset = valueOffset,
-                          length = valueLength
-                        ),
                       indexOffset = indexOffset,
-                      valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1),
-                      valueLength = valueOffsetAndLength.map(_._2).getOrElse(0),
+                      valueOffset = valueOffset,
+                      valueLength = valueLength,
                       isPrefixCompressed =
                         isKeyPrefixCompressed ||
                           timeReader.isPrefixCompressed ||

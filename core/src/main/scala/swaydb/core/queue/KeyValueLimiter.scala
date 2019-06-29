@@ -76,8 +76,6 @@ private[core] sealed trait KeyValueLimiter {
 private class KeyValueLimiterImpl(cacheSize: Long,
                                   delay: FiniteDuration)(implicit ex: ExecutionContext) extends LazyLogging with KeyValueLimiter {
 
-  val nextGuessWeight = new AtomicInteger(10)
-
   private def keyValueWeigher(entry: Command): Long =
     entry match {
       case WeighAndAdd(keyValue, _) =>
@@ -107,8 +105,8 @@ private class KeyValueLimiterImpl(cacheSize: Long,
               * if it's already uncompressed only then remove or else uncompress and re-add to the queue.
               * Header is not checked here because it's always going to be uncompressed since it's always pre-read before the Group is added to he Queue in [[add]].
               */
-            if (persistentGroup.isIndexDecompressed || persistentGroup.isValueDecompressed) {
-              val uncompressedGroup = persistentGroup.uncompress()
+            if (persistentGroup.isInitialised) {
+              val uncompressedGroup = persistentGroup.copy()
               skipList.asInstanceOf[ConcurrentSkipListMap[Slice[Byte], Persistent]].put(persistentGroup.key, uncompressedGroup)
               add(uncompressedGroup, skipList)
             } else {
@@ -138,15 +136,10 @@ private class KeyValueLimiterImpl(cacheSize: Long,
     * weights can also be used.
     */
   def add(keyValue: KeyValue.ReadOnly.Group,
-          skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =
-    keyValue.header() map {
-      header =>
-        val weight = header.indexDecompressedLength + header.valueInfo.map(_.valuesDecompressedLength).getOrElse(0) + (264 * 2)
-        nextGuessWeight lazySet ((weight + nextGuessWeight.get) / 2)
-        queue ! Command.AddWeighed(new WeakReference(keyValue), new WeakReference[ConcurrentSkipListMap[Slice[Byte], _]](skipList), weight)
-    } getOrElse {
-      queue ! Command.AddWeighed(new WeakReference(keyValue), new WeakReference[ConcurrentSkipListMap[Slice[Byte], _]](skipList), nextGuessWeight.get)
-    }
+          skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit = {
+    val weight = keyValue.valueLength
+    queue ! Command.AddWeighed(new WeakReference(keyValue), new WeakReference[ConcurrentSkipListMap[Slice[Byte], _]](skipList), weight)
+  }
 }
 
 private object NoneKeyValueLimiter extends KeyValueLimiter {

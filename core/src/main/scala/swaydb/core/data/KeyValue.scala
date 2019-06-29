@@ -20,15 +20,14 @@
 package swaydb.core.data
 
 import swaydb.core.data.KeyValue.ReadOnly
-import swaydb.core.group.compression.data.{GroupHeader, GroupingStrategy}
-import swaydb.core.group.compression.{GroupCompressor, GroupDecompressor, GroupKeyCompressor}
+import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.format.a.{SegmentCompression, SegmentWriter}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
+import swaydb.core.segment.format.a.{SegmentBlock, SegmentCompression, SegmentWriter}
 import swaydb.core.segment.{BinarySegment, BinarySegmentInitialiser, Segment}
 import swaydb.core.util.Bytes
 import swaydb.core.util.CollectionUtil._
@@ -186,10 +185,10 @@ private[core] object KeyValue {
     sealed trait Group extends KeyValue.ReadOnly with CacheAble {
       def minKey: Slice[Byte]
       def maxKey: MaxKey[Slice[Byte]]
-      def header(): IO[GroupHeader]
       def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
                   keyValueLimiter: KeyValueLimiter): BinarySegment
       def deadline: Option[Deadline]
+      def isInitialised: Boolean
     }
   }
 
@@ -488,57 +487,47 @@ private[swaydb] object Memory {
     def apply(minKey: Slice[Byte],
               maxKey: MaxKey[Slice[Byte]],
               compressedKeyValues: Slice[Byte],
-              groupStartOffset: Int,
               deadline: Option[Deadline]): Memory.Group =
       new Group(
         minKey = minKey,
         maxKey = maxKey,
         deadline = deadline,
-        valueLength = compressedKeyValues.size,
-        groupDecompressor = GroupDecompressor(Reader(compressedKeyValues), groupStartOffset)
+        compressedKeyValues = compressedKeyValues
       )
   }
 
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
-                   deadline: Option[Deadline],
-                   groupDecompressor: GroupDecompressor,
-                   valueLength: Int) extends Memory with KeyValue.ReadOnly.Group {
+                   compressedKeyValues: Slice[Byte],
+                   deadline: Option[Deadline]) extends Memory with KeyValue.ReadOnly.Group {
+
+    val blockOffset = IO.Success(SegmentBlock.Offset(0, compressedKeyValues.written))
 
     private lazy val binarySegment: BinarySegmentInitialiser =
       new BinarySegmentInitialiser(
-        id = "Persistent.Group",
+        id = "Memory.Group - BinarySegment",
         minKey = minKey,
         maxKey = maxKey,
         unsliceKey = false,
-        createReader = groupDecompressor.reader _
+        offset = () => blockOffset,
+        createSegmentReader = () => Reader(compressedKeyValues)
       )
+
+    override def valueLength: Int = compressedKeyValues.written
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
     override def key: Slice[Byte] = minKey
 
-    def isValueDefined: Boolean =
-      groupDecompressor.isIndexDecompressed()
+    override def isInitialised: Boolean =
+      binarySegment.isInitialised
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
                 keyValueLimiter: KeyValueLimiter): BinarySegment =
       binarySegment.get
 
-    def header() =
-      groupDecompressor.header()
-
-    def isHeaderDecompressed: Boolean =
-      groupDecompressor.isHeaderDecompressed()
-
-    def isIndexDecompressed: Boolean =
-      groupDecompressor.isIndexDecompressed()
-
-    def isValueDecompressed: Boolean =
-      groupDecompressor.isValueDecompressed()
-
     def uncompress(): Memory.Group =
-      copy(groupDecompressor = groupDecompressor.uncompress())
+      copy()
   }
 
 }
@@ -1163,8 +1152,6 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble {
 
   def key: Slice[Byte]
 
-  def isValueDefined: Boolean
-
   def valueLength: Int
 
   def valueOffset: Int
@@ -1175,13 +1162,15 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble {
     * This function is NOT thread-safe and is mutable. It should always be invoke at the time of creation
     * and before inserting into the Segment's cache.
     */
-  def unsliceIndexBytes: Unit
+  def unsliceKeys: Unit
 }
 
 private[core] object Persistent {
 
   sealed trait SegmentResponse extends KeyValue.ReadOnly.SegmentResponse with Persistent {
     def toMemory(): IO[Memory.SegmentResponse]
+
+    def isValueDefined: Boolean
 
     def toMemoryResponseOption(): IO[Option[Memory.SegmentResponse]] =
       toMemory() map (Some(_))
@@ -1221,7 +1210,7 @@ private[core] object Persistent {
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
-    override def unsliceIndexBytes(): Unit = {
+    override def unsliceKeys(): Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
     }
@@ -1264,7 +1253,7 @@ private[core] object Persistent {
                  valueOffset: Int,
                  valueLength: Int,
                  isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Put {
-    override def unsliceIndexBytes: Unit = {
+    override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
     }
@@ -1327,7 +1316,7 @@ private[core] object Persistent {
                     valueOffset: Int,
                     valueLength: Int,
                     isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Update {
-    override def unsliceIndexBytes: Unit = {
+    override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
     }
@@ -1420,7 +1409,7 @@ private[core] object Persistent {
                       valueOffset: Int,
                       valueLength: Int,
                       isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Function {
-    override def unsliceIndexBytes: Unit = {
+    override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
     }
@@ -1492,7 +1481,7 @@ private[core] object Persistent {
                           valueOffset: Int,
                           valueLength: Int,
                           isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.PendingApply {
-    override def unsliceIndexBytes: Unit = {
+    override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
     }
@@ -1571,7 +1560,7 @@ private[core] object Persistent {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def unsliceIndexBytes: Unit = {
+    override def unsliceKeys: Unit = {
       this._fromKey = _fromKey.unslice()
       this._toKey = _toKey.unslice()
     }
@@ -1606,7 +1595,6 @@ private[core] object Persistent {
   object Group {
     def apply(key: Slice[Byte],
               valueReader: Reader,
-              lazyGroupValueReader: LazyGroupValueReader,
               nextIndexOffset: Int,
               nextIndexSize: Int,
               indexOffset: Int,
@@ -1619,8 +1607,6 @@ private[core] object Persistent {
           Group(
             _minKey = minKey,
             _maxKey = maxKey,
-            lazyGroupValueReader = lazyGroupValueReader,
-            groupDecompressor = GroupDecompressor(valueReader.copy(), valueOffset),
             valueReader = valueReader.copy(),
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
@@ -1635,8 +1621,6 @@ private[core] object Persistent {
 
   case class Group(private var _minKey: Slice[Byte],
                    private var _maxKey: MaxKey[Slice[Byte]],
-                   private val groupDecompressor: GroupDecompressor,
-                   lazyGroupValueReader: LazyGroupValueReader,
                    valueReader: Reader,
                    nextIndexOffset: Int,
                    nextIndexSize: Int,
@@ -1646,17 +1630,23 @@ private[core] object Persistent {
                    deadline: Option[Deadline],
                    isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group {
 
+    val blockOffset = IO.Success(SegmentBlock.Offset(valueOffset, valueLength))
+
     private lazy val binarySegment =
       new BinarySegmentInitialiser(
-        id = "Persistent.Group",
+        id = "Persistent.Group - BinarySegment",
         minKey = minKey,
         maxKey = maxKey,
         //persistent key-value's key do not have be sliced either because the decompressed bytes are still in memory.
         //slicing will just use more memory. On memory overflow the Group itself will find dropped and hence all the
         //key-values inside the group's SegmentCache will also be GC'd.
         unsliceKey = false,
-        createReader = groupDecompressor.reader _
+        offset = () => blockOffset,
+        createSegmentReader = () => valueReader.copy()
       )
+
+    def isInitialised =
+      binarySegment.isInitialised
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
@@ -1669,35 +1659,13 @@ private[core] object Persistent {
     override def maxKey: MaxKey[Slice[Byte]] =
       _maxKey
 
-    override def unsliceIndexBytes: Unit = {
+    override def unsliceKeys: Unit = {
       this._minKey = _minKey.unslice()
       this._maxKey = _maxKey.unslice()
     }
 
-    def isIndexDecompressed: Boolean =
-      groupDecompressor.isIndexDecompressed()
-
-    def isValueDecompressed: Boolean =
-      groupDecompressor.isValueDecompressed()
-
-    def isHeaderDecompressed: Boolean =
-      groupDecompressor.isHeaderDecompressed()
-
-    def header() =
-      groupDecompressor.header()
-
-    /**
-      * On uncompressed a new Group is returned. It would be much efficient if the Group's old [[BinarySegment]]'s skipList's
-      * key-values are also still passed to the new Group in a thread-safe manner.
-      */
-    def uncompress(): Persistent.Group =
-      copy(groupDecompressor = groupDecompressor.uncompress(), valueReader = valueReader.copy())
-
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
                 keyValueLimiter: KeyValueLimiter): BinarySegment =
       binarySegment.get
-
-    override def isValueDefined: Boolean =
-      lazyGroupValueReader.isValueDefined
   }
 }

@@ -663,7 +663,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       //reading an in-memory file
       file.readAll.assertGet shouldBe bytes
-      //      file.isOpen shouldBe true
+      //      file.isInitialised shouldBe true
 
       file.close.assertGet
     }

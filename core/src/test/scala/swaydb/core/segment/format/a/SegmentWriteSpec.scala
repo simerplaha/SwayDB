@@ -505,13 +505,13 @@
 //            testWithCachePopulated = false,
 //            assert =
 //              (keyValues, segment) => {
-//                segment.isOpen shouldBe false
+//                segment.isInitialised shouldBe false
 //                segment.isFileDefined shouldBe false
 //                segment.isCacheEmpty shouldBe true
 //
 //                assertReads(keyValues, segment)
 //
-//                segment.isOpen shouldBe true
+//                segment.isInitialised shouldBe true
 //                segment.isFileDefined shouldBe true
 //                segment.isCacheEmpty shouldBe false
 //
@@ -564,9 +564,9 @@
 //      deleted.assertGet shouldBe 3
 //
 //      //files should be closed
-//      segment1.isOpen shouldBe false
-//      segment2.isOpen shouldBe false
-//      segment3.isOpen shouldBe false
+//      segment1.isInitialised shouldBe false
+//      segment2.isInitialised shouldBe false
+//      segment3.isInitialised shouldBe false
 //
 //      segment1.isFileDefined shouldBe false
 //      segment2.isFileDefined shouldBe false
@@ -593,7 +593,7 @@
 //            //instead of just reading from in-memory Group key-value.
 //            segment.clearCache()
 //            segment.isFileDefined shouldBe false
-//            segment.isOpen shouldBe false
+//            segment.isInitialised shouldBe false
 //            segment.isFooterDefined shouldBe false
 //          }
 //        }
@@ -601,7 +601,7 @@
 //        def open(keyValue: KeyValue) = {
 //          segment.get(keyValue.key).assertGet shouldBe keyValue
 //          segment.isFileDefined shouldBe true
-//          segment.isOpen shouldBe true
+//          segment.isInitialised shouldBe true
 //          segment.isFooterDefined shouldBe true
 //        }
 //
@@ -620,7 +620,7 @@
 //      val segment = TestSegment(keyValues).assertGet
 //
 //      segment.delete.assertGet
-//      segment.isOpen shouldBe false
+//      segment.isInitialised shouldBe false
 //      segment.isFileDefined shouldBe false
 //
 //      segment.existsOnDisk shouldBe false
@@ -655,7 +655,7 @@
 //        maxProbe = TestData.maxProbe
 //      ).failed.assertGet.exception shouldBe a[NoSuchFileException]
 //
-//      segment.isOpen shouldBe false
+//      segment.isInitialised shouldBe false
 //      segment.isFileDefined shouldBe false
 //    }
 //  }
@@ -669,7 +669,7 @@
 //      val segment1 = TestSegment(keyValues)(keyOrder, keyValueLimiter, segmentOpenLimit).assertGet
 //
 //      segment1.getHeadKeyValueCount().assertGet shouldBe keyValues.size
-//      segment1.isOpen shouldBe true
+//      segment1.isInitialised shouldBe true
 //
 //      //create another segment should close segment 1
 //      val segment2 = TestSegment(keyValues)(keyOrder, keyValueLimiter, segmentOpenLimit).assertGet
@@ -677,15 +677,15 @@
 //
 //      eventual(5.seconds) {
 //        //segment one is closed
-//        segment1.isOpen shouldBe false
+//        segment1.isInitialised shouldBe false
 //      }
 //      //read one key value from Segment1 so that it's reopened and added to the cache. This will also remove Segment 2 from cache
 //      (segment1 get keyValues.head.key).assertGet shouldBe keyValues.head
-//      segment1.isOpen shouldBe true
+//      segment1.isInitialised shouldBe true
 //
 //      eventual(5.seconds) {
 //        //segment2 is closed
-//        segment2.isOpen shouldBe false
+//        segment2.isInitialised shouldBe false
 //      }
 //    }
 //  }
@@ -702,7 +702,7 @@
 //      segment.delete.assertGet
 //      segment.cacheSize shouldBe keyValues.size //cache is not cleared
 //      if (persistent) {
-//        segment.isOpen shouldBe false
+//        segment.isInitialised shouldBe false
 //        segment.isFooterDefined shouldBe false //on delete in-memory footer is cleared
 //      }
 //      segment.existsOnDisk shouldBe false
@@ -1026,7 +1026,7 @@
 //
 //      val segment = TestSegment(keyValues1).assertGet
 //      segment.close.assertGet
-//      if (persistent) segment.isOpen shouldBe false
+//      if (persistent) segment.isInitialised shouldBe false
 //
 //      val keyValues2 = randomizedKeyValues(keyValuesCount)
 //
@@ -1045,7 +1045,7 @@
 //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
 //      ).assertGet
 //
-//      if (persistent) segment.isOpen shouldBe true
+//      if (persistent) segment.isInitialised shouldBe true
 //    }
 //
 //    "return a new segment with merged key values" in {

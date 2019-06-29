@@ -38,8 +38,6 @@ private[core] object SegmentWriter extends LazyLogging {
 
   val crcBytes: Int = 7
 
-  case class Offset(start: Int, size: Int) extends OffsetBase
-
   object Result {
     val empty =
       Result(

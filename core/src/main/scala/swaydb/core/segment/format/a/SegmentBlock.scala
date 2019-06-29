@@ -26,7 +26,9 @@ import swaydb.data.slice.{Reader, Slice}
 
 object SegmentBlock {
 
-  def read(offset: SegmentWriter.Offset,
+  case class Offset(start: Int, size: Int) extends OffsetBase
+
+  def read(offset: SegmentBlock.Offset,
            segmentReader: Reader): IO[SegmentBlock] =
     Block.readHeader(
       offset = offset,
@@ -41,7 +43,7 @@ object SegmentBlock {
     }
 }
 
-case class SegmentBlock(blockOffset: SegmentWriter.Offset,
+case class SegmentBlock(blockOffset: SegmentBlock.Offset,
                         headerSize: Int,
                         compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
@@ -55,5 +57,5 @@ case class SegmentBlock(blockOffset: SegmentWriter.Offset,
     )
 
   override def updateOffset(start: Int, size: Int): Block =
-    copy(blockOffset = SegmentWriter.Offset(start = start, size = size))
+    copy(blockOffset = SegmentBlock.Offset(start = start, size = size))
 }

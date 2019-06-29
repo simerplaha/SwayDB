@@ -78,7 +78,7 @@ private[segment] case class MemorySegment(path: Path,
     *
     */
   private def addToQueueMayBe(group: Memory.Group): Unit =
-    if (!group.isHeaderDecompressed) //If the header is already decompressed then this Group is already in the Limit queue as the queue always pre-reads the header
+    if (!group.isInitialised) //If the header is already initialised then this Group is already in the Limit queue as the queue always pre-reads the header
       keyValueLimiter.add(group, cache) //this is a new decompression, add to queue.
 
   override def reserveForCompactionOrGet(): Option[Unit] =

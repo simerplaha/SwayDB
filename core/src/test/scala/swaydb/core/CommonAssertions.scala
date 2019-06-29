@@ -63,7 +63,6 @@ object CommonAssertions {
       IO.Async.runSafe(input).safeGetBlocking.get
   }
 
-
   implicit class KeyValueImplicits(actual: KeyValue) {
 
     def asPut: Option[KeyValue.ReadOnly.Put] =
@@ -141,7 +140,7 @@ object CommonAssertions {
               Some(bytes)
 
             case keyValue: Memory.Group =>
-              Option(keyValue.groupDecompressor.reader().assertGet.readRemaining().assertGet)
+              Option(keyValue.compressedKeyValues)
           }
         case keyValue: Transient =>
           keyValue match {
@@ -175,7 +174,13 @@ object CommonAssertions {
             case keyValue: Persistent.Range =>
               keyValue.lazyRangeValueReader.getOrFetchValue.get.safeGetBlocking()
             case keyValue: Persistent.Group =>
-              keyValue.lazyGroupValueReader.getOrFetchValue.get.safeGetBlocking()
+              keyValue
+                .valueReader
+                .moveTo(keyValue.valueOffset)
+                .read(keyValue.valueLength)
+                .safeGetBlocking()
+                .map(Some(_))
+                .get
           }
       }
   }
@@ -952,7 +957,7 @@ object CommonAssertions {
                         s"""RANGE - ${fromKey.readInt()} -> ${toKey.readInt()}, $fromValue (${fromValue.map(Value.hasTimeLeft)}), $rangeValue (${Value.hasTimeLeft(rangeValue)})"""
                     }
 
-                  case Memory.Group(minKey, maxKey, deadline, groupDecompressor, valueLength) =>
+                  case Memory.Group(minKey, maxKey, deadline, valueLength) =>
                     fail("should have ungrouped.")
                 }
             }
@@ -1557,7 +1562,7 @@ object CommonAssertions {
             fromValue foreach assertSliced
             assertSliced(rangeValue)
 
-          case Memory.Group(minKey, maxKey, deadline, groupDecompressor, valueLength) =>
+          case Memory.Group(minKey, maxKey, deadline, valueLength) =>
             minKey.shouldBeSliced()
             maxKey.maxKey.shouldBeSliced()
           //todo assert decompressed length
@@ -1595,10 +1600,10 @@ object CommonAssertions {
             lazyRangeValueReader.fetchFromValue.assertGetOpt foreach assertSliced
             lazyRangeValueReader.fetchRangeValue foreach assertSliced
 
-          case Persistent.Group(_minKey, _maxKey, groupDecompressor, lazyGroupValueReader, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline, _) =>
+          case Persistent.Group(_minKey, _maxKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline, _) =>
             _minKey.shouldBeSliced()
             _maxKey.maxKey.shouldBeSliced()
-            lazyGroupValueReader.getOrFetchValue.get.safeGetBlocking().shouldBeSliced()
+            valueReader.moveTo(valueOffset).read(valueLength).safeGetBlocking().get.shouldBeSliced()
         }
     }
 
