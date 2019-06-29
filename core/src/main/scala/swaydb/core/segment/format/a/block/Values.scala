@@ -24,6 +24,7 @@ import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.OffsetBase
+import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
@@ -80,36 +81,41 @@ object Values {
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 
-  val headerSize =
-    Block.blockCompressionOnlyHeaderSize
+  def headerSize(hasCompression: Boolean): Int = {
+    val size = Block.headerSize(hasCompression)
+    Bytes.sizeOf(size) +
+      size
+  }
 
   def init(keyValues: Iterable[KeyValue.WriteOnly],
-           compressions: Seq[CompressionInternal]): Option[Values.State] =
-    if (keyValues.last.stats.segmentValuesSize > Values.headerSize) {
+           compressions: Seq[CompressionInternal]): Option[Values.State] = {
+    val headSize = headerSize(compressions.nonEmpty)
+    if (keyValues.last.stats.segmentValuesSize > headSize) {
       val bytes = Slice.create[Byte](keyValues.last.stats.segmentValuesSize)
-      bytes moveWritePosition headerSize
+      bytes moveWritePosition headSize
       Some(
         Values.State(
           _bytes = bytes,
-          headerSize = headerSize,
+          headerSize = headSize,
           compressions = compressions
         )
       )
     }
     else
       None
+  }
 
   def close(state: State) =
     Block.compress(
-      headerSize = Values.headerSize,
+      headerSize = state.headerSize,
       bytes = state.bytes,
       compressions = state.compressions
     ) flatMap {
       compressedOrUncompressedBytes =>
         IO {
           state.bytes = compressedOrUncompressedBytes
-          if (state.bytes.currentWritePosition > Values.headerSize)
-            throw new Exception(s"Calculated header size was incorrect. Expected: ${Values.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+          if (state.bytes.currentWritePosition > state.headerSize)
+            throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
         }
     }
 
@@ -119,7 +125,7 @@ object Values {
       result =>
         Values(
           blockOffset = offset,
-          headerSize = Values.headerSize,
+          headerSize = result.headerSize,
           compressionInfo = result.compressionInfo
         )
     }

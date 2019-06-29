@@ -66,8 +66,8 @@ class BloomFilterSpec extends TestBase {
 
   "optimalSegmentBloomFilterByteSize" should {
     "return empty if false positive rate is 0.0 or number of keys is 0" in {
-      BloomFilter.optimalSize(1000, 0.0) shouldBe 0
-      BloomFilter.optimalSize(0, 0.001) shouldBe 0
+      BloomFilter.optimalSize(1000, 0.0, randomBoolean()) shouldBe 0
+      BloomFilter.optimalSize(0, 0.001, randomBoolean()) shouldBe 0
     }
 
     "return the number of bytes required to store the Bloom filter" in {
@@ -75,13 +75,21 @@ class BloomFilterSpec extends TestBase {
         i =>
           val numberOfItems = i * 10
           val falsePositiveRate = 0.0 + (0 + "." + i.toString).toDouble
+          val compression = eitherOne(Seq.empty, Seq(randomCompression()))
+
           val bloomFilter =
             BloomFilter.init(
               numberOfKeys = numberOfItems,
               falsePositiveRate = falsePositiveRate,
-              compressions = eitherOne(Seq.empty, Seq(randomCompression()))
+              compressions = compression
             ).get
-          bloomFilter.bytes.written should be <= BloomFilter.optimalSize(numberOfItems, falsePositiveRate)
+
+          bloomFilter.bytes.written should be <=
+            BloomFilter.optimalSize(
+              numberOfKeys = numberOfItems,
+              falsePositiveRate = falsePositiveRate,
+              hasCompression = compression.nonEmpty
+            )
       }
     }
   }

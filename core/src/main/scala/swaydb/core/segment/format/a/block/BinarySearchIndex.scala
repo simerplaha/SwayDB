@@ -95,6 +95,7 @@ object BinarySearchIndex {
             optimalBytesRequired(
               largestValue = largestValue,
               valuesCount = uniqueValuesCount,
+              hasCompression = compressions.nonEmpty,
               minimNumberOfKeysForBinarySearchIndex = minimumNumberOfKeys
             )
           ),
@@ -114,7 +115,8 @@ object BinarySearchIndex {
         headerSize =
           optimalHeaderSize(
             largestValue = largestValue,
-            valuesCount = uniqueValuesCount
+            valuesCount = uniqueValuesCount,
+            hasCompression = compressions.nonEmpty
           ),
         uniqueValuesCount = uniqueValuesCount,
         _bytes = bytes,
@@ -173,20 +175,23 @@ object BinarySearchIndex {
 
   def optimalBytesRequired(largestValue: Int,
                            valuesCount: Int,
+                           hasCompression: Boolean,
                            minimNumberOfKeysForBinarySearchIndex: Int): Int =
     if (valuesCount < minimNumberOfKeysForBinarySearchIndex)
       0
     else
       optimalHeaderSize(
         largestValue = largestValue,
-        valuesCount = valuesCount
+        valuesCount = valuesCount,
+        hasCompression = hasCompression
       ) + (bytesToAllocatePerValue(largestValue) * valuesCount)
 
   def optimalHeaderSize(largestValue: Int,
-                        valuesCount: Int): Int = {
+                        valuesCount: Int,
+                        hasCompression: Boolean): Int = {
 
     val headerSize =
-      Block.headerSize +
+      Block.headerSize(hasCompression) +
         Bytes.sizeOf(valuesCount) + //uniqueValuesCount
         ByteSizeOf.int + //bytesPerValue
         ByteSizeOf.boolean //isFullIndex

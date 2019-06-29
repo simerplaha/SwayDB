@@ -265,7 +265,7 @@ private[core] object SegmentWriter extends LazyLogging {
         bloomFilter =>
           //temporary check.
           assert(
-            bloomFilter.bytes.size == lastStats.segmentBloomFilterSize || bloomFilter.bytes.size == lastStats.segmentBloomFilterSize - Block.headerSize + Block.headerSizeNoCompression + 1,
+            bloomFilter.bytes.size == lastStats.segmentBloomFilterSize,
             s"BloomFilter size calculation were incorrect. Actual: ${bloomFilter.bytes.size}. Expected: ${lastStats.segmentBloomFilterSize}"
           )
       }

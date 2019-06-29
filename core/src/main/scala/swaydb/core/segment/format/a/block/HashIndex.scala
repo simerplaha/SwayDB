@@ -107,7 +107,12 @@ private[core] object HashIndex extends LazyLogging {
           hit = 0,
           miss = 0,
           maxProbe = maxProbe,
-          headerSize = headerSize(keyCounts = keyCount, writeAbleLargestValueSize = writeAbleLargestValueSize),
+          headerSize =
+            headerSize(
+              keyCounts = keyCount,
+              writeAbleLargestValueSize = writeAbleLargestValueSize,
+              hasCompression = compressions.nonEmpty
+            ),
           writeAbleLargestValueSize = writeAbleLargestValueSize,
           _bytes = Slice.create[Byte](size),
           compressions = compressions
@@ -126,9 +131,10 @@ private[core] object HashIndex extends LazyLogging {
     )
 
   def headerSize(keyCounts: Int,
-                 writeAbleLargestValueSize: Int): Int = {
+                 writeAbleLargestValueSize: Int,
+                 hasCompression: Boolean): Int = {
     val headerSize =
-      Block.headerSize +
+      Block.headerSize(hasCompression) +
         ByteSizeOf.int + 1 + //allocated bytes
         ByteSizeOf.int + //max probe
         (Bytes.sizeOf(keyCounts) * 2) + //hit & miss rate
@@ -143,12 +149,14 @@ private[core] object HashIndex extends LazyLogging {
     */
   def optimalBytesRequired(keyCounts: Int,
                            largestValue: Int,
+                           hasCompression: Boolean,
                            allocateSpace: HashIndexMeter => Int): Int = {
     val writeAbleLargestValueSize = Bytes.sizeOf(largestValue + 1) //largest value is +1 because 0s are reserved.
 
     val bytesWithOutCompensation =
       headerSize(
         keyCounts = keyCounts,
+        hasCompression = hasCompression,
         writeAbleLargestValueSize = writeAbleLargestValueSize
       ) + (keyCounts * (writeAbleLargestValueSize + 1)) //+1 to skip left & right 0 start-end markers.
 

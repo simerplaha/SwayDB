@@ -64,24 +64,19 @@ object Block extends LazyLogging {
                     headerReader: Reader,
                     headerSize: Int)
 
-  //header size required to store block compression information.
-  val headerSize =
+  private val headerSizeWithCompression =
     ByteSizeOf.byte + //formatId
       ByteSizeOf.byte + //decompressor
       ByteSizeOf.int + 1 //decompressed length. +1 for larger varints
 
-  //header size if the header only contains block compression information.
-  val blockCompressionOnlyHeaderSize =
-    Bytes.sizeOf(headerSize) + headerSize
-
-  val headerSizeNoCompression =
+  private val headerSizeNoCompression =
     ByteSizeOf.byte //formatId
 
-  val blockNoCompressionOnlyHeaderSize =
-    Bytes.sizeOf(headerSizeNoCompression) + headerSizeNoCompression
-
-  val headerSizeNoCompressionByteSize =
-    Bytes.sizeOf(headerSizeNoCompression)
+  def headerSize(hasCompression: Boolean) =
+    if (hasCompression)
+      Block.headerSizeWithCompression
+    else
+      Block.headerSizeNoCompression
 
   /**
     * Compress the bytes and update the header with the compression information.

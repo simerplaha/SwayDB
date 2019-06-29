@@ -621,9 +621,11 @@ private[core] object Transient {
         isPrefixCompressed = isPrefixCompressed,
         numberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
+        sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
         binarySearch = binarySearchIndexConfig,
+        values = valuesConfig,
         previous = previous,
         deadline = deadline
       )
@@ -686,9 +688,11 @@ private[core] object Transient {
         isPrefixCompressed = isPrefixCompressed,
         numberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
+        sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
         binarySearch = binarySearchIndexConfig,
+        values = valuesConfig,
         previous = previous,
         deadline = deadline
       )
@@ -749,9 +753,11 @@ private[core] object Transient {
         isPrefixCompressed = isPrefixCompressed,
         numberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
+        sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
         binarySearch = binarySearchIndexConfig,
+        values = valuesConfig,
         previous = previous,
         deadline = deadline
       )
@@ -813,9 +819,11 @@ private[core] object Transient {
         isPrefixCompressed = isPrefixCompressed,
         numberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
+        sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
         binarySearch = binarySearchIndexConfig,
+        values = valuesConfig,
         previous = previous,
         deadline = deadline
       )
@@ -898,9 +906,11 @@ private[core] object Transient {
         isPrefixCompressed = isPrefixCompressed,
         numberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
+        sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
         binarySearch = binarySearchIndexConfig,
+        values = valuesConfig,
         previous = previous,
         deadline = deadline
       )
@@ -1012,10 +1022,12 @@ private[core] object Transient {
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
         numberOfRanges = 1,
         thisKeyValuesUniqueKeys = 1,
+        sortedIndex = sortedIndexConfig,
         isPrefixCompressed = isPrefixCompressed,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
         binarySearch = binarySearchIndexConfig,
+        values = valuesConfig,
         previous = previous,
         deadline = None
       )
@@ -1100,9 +1112,11 @@ private[core] object Transient {
         isPrefixCompressed = isPrefixCompressed,
         numberOfRanges = keyValues.last.stats.segmentTotalNumberOfRanges,
         thisKeyValuesUniqueKeys = keyValues.last.stats.segmentUniqueKeysCount,
+        sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
         binarySearch = binarySearchIndexConfig,
+        values = valuesConfig,
         previous = previous,
         deadline = deadline
       )

@@ -38,9 +38,11 @@ private[core] object Stats {
             isPrefixCompressed: Boolean,
             numberOfRanges: Int,
             thisKeyValuesUniqueKeys: Int,
+            sortedIndex: SortedIndex.Config,
             bloomFilter: BloomFilter.Config,
             hashIndex: HashIndex.Config,
             binarySearch: BinarySearchIndex.Config,
+            values: Values.Config,
             previous: Option[KeyValue.WriteOnly],
             deadline: Option[Deadline]): Stats = {
 
@@ -76,7 +78,7 @@ private[core] object Stats {
         indexEntry.size
 
     val thisKeyValuesSortedIndexSizeWithoutFooter =
-      SortedIndex.headerSize +
+      SortedIndex.headerSize(sortedIndex.hasCompression) +
         thisKeyValuesSortedIndexSizeWithoutFooterAndHeader
 
     val thisKeyValuesRealIndexOffset =
@@ -96,7 +98,7 @@ private[core] object Stats {
       if (valueLength == 0)
         0
       else
-        Values.headerSize +
+        Values.headerSize(values.hasCompression) +
           valueLength
 
     val thisKeyValuesSegmentKeyAndValueSize =
@@ -122,7 +124,8 @@ private[core] object Stats {
         HashIndex.optimalBytesRequired(
           keyCounts = segmentUniqueKeysCount,
           largestValue = thisKeyValuesAccessIndexOffset,
-          allocateSpace = hashIndex.allocateSpace
+          allocateSpace = hashIndex.allocateSpace,
+          hasCompression = hashIndex.hasCompression
         )
 
     //binary search indexes are only created for non-prefix compressed or reset point keys.
@@ -140,6 +143,7 @@ private[core] object Stats {
             if (previousStats.thisKeyValuesAccessIndexOffset != thisKeyValuesAccessIndexOffset)
               BinarySearchIndex.optimalBytesRequired(
                 largestValue = thisKeyValuesAccessIndexOffset,
+                hasCompression = binarySearch.hasCompression,
                 minimNumberOfKeysForBinarySearchIndex = binarySearch.minimumNumberOfKeys,
                 valuesCount = binarySearchIndexEntriesCount()
               )
@@ -148,6 +152,7 @@ private[core] object Stats {
         } getOrElse {
           BinarySearchIndex.optimalBytesRequired(
             largestValue = thisKeyValuesAccessIndexOffset,
+            hasCompression = binarySearch.hasCompression,
             minimNumberOfKeysForBinarySearchIndex = binarySearch.minimumNumberOfKeys,
             valuesCount = binarySearchIndexEntriesCount()
           )
@@ -161,10 +166,10 @@ private[core] object Stats {
 
     val segmentValuesSize: Int =
       if (segmentValuesSizeWithoutHeader != 0)
-        Values.headerSize +
+        Values.headerSize(values.hasCompression) +
           segmentValuesSizeWithoutHeader
       else if (valueLength != 0)
-        Values.headerSize +
+        Values.headerSize(values.hasCompression) +
           segmentValuesSizeWithoutHeader
       else
         0
@@ -174,18 +179,18 @@ private[core] object Stats {
         thisKeyValuesSortedIndexSizeWithoutFooterAndHeader
 
     val segmentSortedIndexSize =
-      SortedIndex.headerSize +
+      SortedIndex.headerSize(sortedIndex.hasCompression) +
         segmentSortedIndexSizeWithoutHeader
 
     val segmentValueAndSortedIndexEntrySize =
       if (segmentValuesSizeWithoutHeader == 0)
         segmentSortedIndexSizeWithoutHeader +
-          SortedIndex.headerSize
+          SortedIndex.headerSize(sortedIndex.hasCompression)
       else
         segmentValuesSizeWithoutHeader +
           segmentSortedIndexSizeWithoutHeader +
-          SortedIndex.headerSize +
-          Values.headerSize
+          SortedIndex.headerSize(sortedIndex.hasCompression) +
+          Values.headerSize(values.hasCompression)
 
     val segmentBloomFilterSize =
       if (bloomFilter.falsePositiveRate <= 0.0 || (hasRemoveRange && !binarySearch.enabled))
@@ -193,7 +198,8 @@ private[core] object Stats {
       else
         BloomFilter.optimalSize(
           numberOfKeys = segmentUniqueKeysCount,
-          falsePositiveRate = bloomFilter.falsePositiveRate
+          falsePositiveRate = bloomFilter.falsePositiveRate,
+          hasCompression = bloomFilter.hasCompression
         )
 
     val segmentSizeWithoutFooter: Int =

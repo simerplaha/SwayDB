@@ -87,7 +87,8 @@ object BloomFilter extends LazyLogging {
   }
 
   def optimalSize(numberOfKeys: Int,
-                  falsePositiveRate: Double): Int = {
+                  falsePositiveRate: Double,
+                  hasCompression: Boolean): Int = {
     if (falsePositiveRate <= 0.0 || numberOfKeys <= 0) {
       0
     } else {
@@ -97,7 +98,7 @@ object BloomFilter extends LazyLogging {
       val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
       val maxProbeSize = Bytes.sizeOf(maxProbe)
 
-      Block.headerSize +
+      Block.headerSize(hasCompression) +
         numberOfBitsSize +
         maxProbeSize +
         numberOfBits
@@ -114,7 +115,7 @@ object BloomFilter extends LazyLogging {
     val maxProbeSize = Bytes.sizeOf(maxProbe)
 
     val headerBytesSize =
-      (if (compressions.isEmpty) Block.headerSizeNoCompression else Block.headerSize) +
+      Block.headerSize(compressions.nonEmpty) +
         numberOfBitsSize +
         maxProbeSize
 
