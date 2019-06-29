@@ -377,7 +377,7 @@ case class HashIndex(blockOffset: HashIndex.Offset,
 
   def createBlockReader(segmentReader: Reader): BlockReader[HashIndex] =
     BlockReader(
-      segmentReader = segmentReader,
+      reader = segmentReader,
       block = this
     )
 

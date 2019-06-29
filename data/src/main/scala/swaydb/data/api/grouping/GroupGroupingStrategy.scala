@@ -30,7 +30,8 @@ object GroupGroupingStrategy {
                    binarySearchIndex: BinarySearchIndex,
                    bloomFilter: BloomFilter,
                    prefixCompression: PrefixCompression,
-                   values: Values) extends GroupGroupingStrategy
+                   values: Values,
+                   groupsCompression: Seq[Compression]) extends GroupGroupingStrategy
 
   case class Size(size: Int,
                   sortedIndex: SortedIndex,
@@ -38,5 +39,6 @@ object GroupGroupingStrategy {
                   binarySearchIndex: BinarySearchIndex,
                   bloomFilter: BloomFilter,
                   prefixCompression: PrefixCompression,
-                  values: Values) extends GroupGroupingStrategy
+                  values: Values,
+                  groupsCompression: Seq[Compression]) extends GroupGroupingStrategy
 }

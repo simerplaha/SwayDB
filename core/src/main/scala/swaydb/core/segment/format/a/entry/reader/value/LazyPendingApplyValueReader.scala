@@ -74,7 +74,7 @@ class ActivePendingApplyValueReader(applies: Slice[Value.Apply]) extends LazyPen
     val slice = Slice.create[Byte](bytesRequires)
     ValueSerializer.write(applies)(slice)
     BlockReader(
-      segmentReader = Reader(slice),
+      reader = Reader(slice),
       block = Values(Values.Offset(0, slice.written), 0, None)
     )
   }

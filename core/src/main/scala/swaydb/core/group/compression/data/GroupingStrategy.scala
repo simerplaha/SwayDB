@@ -67,7 +67,8 @@ private[swaydb] object KeyValueGroupingStrategyInternal {
               hashIndex = grouping.hashIndex,
               binarySearchIndex = grouping.binarySearchIndex,
               sortedIndex = grouping.sortedIndex,
-              values = grouping.values
+              values = grouping.values,
+              segment = grouping.groupCompression
             )
         )
 
@@ -87,7 +88,8 @@ private[swaydb] object KeyValueGroupingStrategyInternal {
               hashIndex = grouping.hashIndex,
               binarySearchIndex = grouping.binarySearchIndex,
               sortedIndex = grouping.sortedIndex,
-              values = grouping.values
+              values = grouping.values,
+              segment = grouping.groupCompression
             )
         )
     }
@@ -136,7 +138,8 @@ private[swaydb] object GroupGroupingStrategyInternal {
               hashIndex = grouping.hashIndex,
               binarySearchIndex = grouping.binarySearchIndex,
               sortedIndex = grouping.sortedIndex,
-              values = grouping.values
+              values = grouping.values,
+              segment = grouping.groupsCompression
             )
         )
       case grouping: swaydb.data.api.grouping.GroupGroupingStrategy.Size =>
@@ -153,7 +156,8 @@ private[swaydb] object GroupGroupingStrategyInternal {
               hashIndex = grouping.hashIndex,
               binarySearchIndex = grouping.binarySearchIndex,
               sortedIndex = grouping.sortedIndex,
-              values = grouping.values
+              values = grouping.values,
+              segment = grouping.groupsCompression
             )
         )
     }

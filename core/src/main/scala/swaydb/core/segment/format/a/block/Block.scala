@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.{BlockReader, Reader}
-import swaydb.core.segment.format.a.{OffsetBase, SegmentBlock}
+import swaydb.core.segment.format.a.{OffsetBase, SegmentWriter}
 import swaydb.data.IO._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
@@ -116,8 +116,8 @@ object Block extends LazyLogging {
     }
 
   def create(headerSize: Int,
-             writeResult: SegmentBlock.Result,
-             compressions: Seq[CompressionInternal]): IO[SegmentBlock.Result] =
+             writeResult: SegmentWriter.Result,
+             compressions: Seq[CompressionInternal]): IO[SegmentWriter.Result] =
     if (compressions.isEmpty) {
       logger.debug(s"No compression strategies provided for Segment level compression. Storing ${writeResult.segmentSize}.bytes uncompressed.")
       IO {
@@ -133,7 +133,7 @@ object Block extends LazyLogging {
         compressions = compressions
       ) map {
         bytes =>
-          SegmentBlock.Result(
+          SegmentWriter.Result(
             segmentBytes = Slice(bytes),
             nearestDeadline = writeResult.nearestDeadline
           )

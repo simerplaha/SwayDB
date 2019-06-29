@@ -32,6 +32,7 @@ object KeyValueGroupingStrategy {
                    values: Values,
                    prefixCompression: PrefixCompression,
                    applyGroupingOnCopy: Boolean,
+                   groupCompression: Seq[Compression],
                    groupGroupingStrategy: Option[GroupGroupingStrategy]) extends KeyValueGroupingStrategy
 
   case class Size(size: Int,
@@ -42,5 +43,6 @@ object KeyValueGroupingStrategy {
                   values: Values,
                   applyGroupingOnCopy: Boolean,
                   prefixCompression: PrefixCompression,
+                  groupCompression: Seq[Compression],
                   groupGroupingStrategy: Option[GroupGroupingStrategy]) extends KeyValueGroupingStrategy
 }

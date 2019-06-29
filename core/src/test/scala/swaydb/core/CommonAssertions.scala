@@ -43,7 +43,7 @@ import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
-import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader, SegmentBlock}
+import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader, SegmentWriter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.IO

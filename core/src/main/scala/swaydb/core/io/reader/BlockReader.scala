@@ -28,14 +28,14 @@ import swaydb.data.slice.{Reader, Slice}
   * Reader for the [[Block.CompressionInfo]] that skips [[Block.Header]] bytes.
   */
 object BlockReader {
-  def apply[B <: Block](segmentReader: Reader, block: B): BlockReader[B] =
+  def apply[B <: Block](reader: Reader, block: B): BlockReader[B] =
     new BlockReader[B](
-      segmentReader = segmentReader,
+      reader = reader,
       block = block
     )
 }
 
-private[core] class BlockReader[B <: Block](segmentReader: Reader,
+private[core] class BlockReader[B <: Block](reader: Reader,
                                             val block: B) extends Reader with LazyLogging {
 
   private var position: Int = 0
@@ -48,7 +48,7 @@ private[core] class BlockReader[B <: Block](segmentReader: Reader,
           Block.decompress(
             compressionInfo = compressionInfo,
             //do not copy, decompress already copies if required.
-            segmentReader = segmentReader,
+            segmentReader = reader,
             offset = block.blockOffset
           ) map {
             decompressedBytes =>
@@ -57,7 +57,7 @@ private[core] class BlockReader[B <: Block](segmentReader: Reader,
           }
       }
       .getOrElse {
-        IO.Success((block.blockOffset.start + block.headerSize, segmentReader.copy())) //no compression used. Set the offset.
+        IO.Success((block.blockOffset.start + block.headerSize, reader.copy())) //no compression used. Set the offset.
       }
 
   override val size: IO[Long] =
@@ -88,7 +88,7 @@ private[core] class BlockReader[B <: Block](segmentReader: Reader,
 
   override def copy(): BlockReader[B] =
     new BlockReader(
-      segmentReader = segmentReader.copy(),
+      reader = reader.copy(),
       block = block
     )
 
@@ -132,7 +132,7 @@ private[core] class BlockReader[B <: Block](segmentReader: Reader,
     }
 
   def readFullBlock(): IO[Slice[Byte]] =
-    segmentReader
+    reader
       .moveTo(block.blockOffset.start)
       .read(block.blockOffset.size)
 
@@ -141,7 +141,7 @@ private[core] class BlockReader[B <: Block](segmentReader: Reader,
       .map {
         bytes =>
           BlockReader[B](
-            segmentReader = Reader(bytes),
+            reader = Reader(bytes),
             block = block.updateOffset(0, bytes.size).asInstanceOf[B]
           )
       }

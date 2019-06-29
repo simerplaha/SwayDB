@@ -428,7 +428,7 @@ case class SortedIndex(blockOffset: SortedIndex.Offset,
 
   def createBlockReader(segmentReader: Reader): BlockReader[SortedIndex] =
     BlockReader(
-      segmentReader = segmentReader,
+      reader = segmentReader,
       block = this
     )
 

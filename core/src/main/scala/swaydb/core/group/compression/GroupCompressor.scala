@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.{SegmentCompression, SegmentBlock}
+import swaydb.core.segment.format.a.{SegmentCompression, SegmentWriter}
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey}
 
@@ -55,7 +55,7 @@ private[core] object GroupCompressor extends LazyLogging {
       IO.Failure(message)
     } else {
       logger.debug(s"Compressing ${keyValues.size} key-values with previous key-value as ${previous.map(_.getClass.getSimpleName)}.")
-      SegmentBlock.write(
+      SegmentWriter.write(
         keyValues = keyValues,
         segmentCompression = segmentCompression,
         createdInLevel = 0,

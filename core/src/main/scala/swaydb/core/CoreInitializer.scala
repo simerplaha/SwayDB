@@ -187,7 +187,8 @@ private[core] object CoreInitializer extends LazyLogging {
                 hashIndex = config.hashIndex,
                 binarySearchIndex = config.binarySearchIndex,
                 sortedIndex = config.sortedIndex,
-                values = config.values
+                values = config.values,
+                segment = config.segmentCompression
               ),
             levelStorage =
               LevelStorage.Persistent(

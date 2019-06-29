@@ -163,7 +163,7 @@ case class Values(blockOffset: Values.Offset,
 
   def createBlockReader(segmentReader: Reader): BlockReader[Values] =
     BlockReader(
-      segmentReader = segmentReader,
+      reader = segmentReader,
       block = this
     )
 

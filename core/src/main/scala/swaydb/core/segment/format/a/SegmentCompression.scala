@@ -20,6 +20,7 @@
 package swaydb.core.segment.format.a
 
 import swaydb.compression.CompressionInternal
+import swaydb.data.api.grouping.Compression
 
 object SegmentCompression {
 
@@ -37,14 +38,15 @@ object SegmentCompression {
             hashIndex: swaydb.data.config.HashIndex,
             binarySearchIndex: swaydb.data.config.BinarySearchIndex,
             sortedIndex: swaydb.data.config.SortedIndex,
-            values: swaydb.data.config.Values): SegmentCompression =
+            values: swaydb.data.config.Values,
+            segment: Seq[Compression]): SegmentCompression =
     SegmentCompression(
       values = bloomFilter.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
       sortedIndex = sortedIndex.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
       hashIndex = hashIndex.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
       binarySearchIndex = binarySearchIndex.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
       bloomFilter = bloomFilter.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
-      segmentCompression = ???
+      segmentCompression = segment map CompressionInternal.apply
     )
 }
 

@@ -273,7 +273,7 @@ case class BloomFilter(blockOffset: BloomFilter.Offset,
 
   override def createBlockReader(segmentReader: Reader): BlockReader[BloomFilter] =
     new BlockReader(
-      segmentReader = segmentReader,
+      reader = segmentReader,
       block = this
     )
   override def updateOffset(start: Int, size: Int): Block =

@@ -123,6 +123,7 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
+        segmentCompression = Seq.empty,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -178,6 +179,7 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
+        segmentCompression = Seq.empty,
         groupingStrategy = groupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
@@ -233,6 +235,7 @@ object DefaultPersistentConfig {
             compression = Seq.empty,
             cacheOnRead = false
           ),
+        segmentCompression = Seq.empty,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -288,6 +291,7 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
+        segmentCompression = Seq.empty,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -343,6 +347,7 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
+        segmentCompression = Seq.empty,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -400,6 +405,7 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
+        segmentCompression = Seq.empty,
         groupingStrategy = groupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =

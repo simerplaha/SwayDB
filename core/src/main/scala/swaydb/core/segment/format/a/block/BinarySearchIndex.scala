@@ -325,7 +325,7 @@ case class BinarySearchIndex(blockOffset: BinarySearchIndex.Offset,
 
   override def createBlockReader(segmentReader: Reader): BlockReader[BinarySearchIndex] =
     BlockReader(
-      segmentReader = segmentReader,
+      reader = segmentReader,
       block = this
     )
 
