@@ -372,6 +372,8 @@ private[core] object SegmentWriter extends LazyLogging {
             segmentFooterSlice addInt footerOffset
 
             val headerBytes = Slice.create[Byte](headerSize)
+            //set header bytes to be fully written so that it does not closed when compression.
+            headerBytes moveWritePosition headerBytes.size
 
             Result(
               headerBytes = headerBytes,
