@@ -33,7 +33,6 @@ private[writer] object TimeWriter {
                                enablePrefixCompression: Boolean,
                                plusSize: Int,
                                isKeyCompressed: Boolean,
-                               duplicateValueSearchCount: Int,
                                hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
     if (currentTime.time.nonEmpty)
       (if (enablePrefixCompression) current.previous.map(getTime) else None) flatMap {
@@ -47,7 +46,6 @@ private[writer] object TimeWriter {
             entryId = entryId,
             plusSize = plusSize,
             enablePrefixCompression = enablePrefixCompression,
-            duplicateValueSearchCount = duplicateValueSearchCount,
             isKeyUncompressed = isKeyCompressed
           )
       } getOrElse {
@@ -59,7 +57,6 @@ private[writer] object TimeWriter {
           entryId = entryId,
           plusSize = plusSize,
           enablePrefixCompression = enablePrefixCompression,
-          duplicateValueSearchCount = duplicateValueSearchCount,
           isKeyUncompressed = isKeyCompressed,
           hasPrefixCompressed = hasPrefixCompressed
         )
@@ -71,7 +68,6 @@ private[writer] object TimeWriter {
         entryId = entryId,
         plusSize = plusSize,
         enablePrefixCompression = enablePrefixCompression,
-        duplicateValueSearchCount = duplicateValueSearchCount,
         isKeyUncompressed = isKeyCompressed,
         hasPrefixCompressed = hasPrefixCompressed
       )
@@ -108,7 +104,6 @@ private[writer] object TimeWriter {
                                        compressDuplicateValues: Boolean,
                                        entryId: BaseEntryId.Key,
                                        plusSize: Int,
-                                       duplicateValueSearchCount: Int,
                                        enablePrefixCompression: Boolean,
                                        isKeyUncompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[KeyValueWriter.Result] =
     compress(
@@ -124,7 +119,6 @@ private[writer] object TimeWriter {
             entryId = entryId.timePartiallyCompressed,
             plusSize = plusSize + sizeOf(commonBytes) + sizeOf(remainingBytes.size) + remainingBytes.size,
             enablePrefixCompression = enablePrefixCompression,
-            duplicateValueSearchCount = duplicateValueSearchCount,
             isKeyUncompressed = isKeyUncompressed,
             hasPrefixCompressed = true
           )
@@ -143,7 +137,6 @@ private[writer] object TimeWriter {
                                 compressDuplicateValues: Boolean,
                                 entryId: BaseEntryId.Key,
                                 plusSize: Int,
-                                duplicateValueSearchCount: Int,
                                 enablePrefixCompression: Boolean,
                                 isKeyUncompressed: Boolean,
                                 hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) = {
@@ -155,7 +148,6 @@ private[writer] object TimeWriter {
         entryId = entryId.timeUncompressed,
         plusSize = plusSize + sizeOf(currentTime.time.size) + currentTime.time.size,
         enablePrefixCompression = enablePrefixCompression,
-        duplicateValueSearchCount = duplicateValueSearchCount,
         isKeyUncompressed = isKeyUncompressed,
         hasPrefixCompressed = hasPrefixCompressed
       )
@@ -172,7 +164,6 @@ private[writer] object TimeWriter {
                      compressDuplicateValues: Boolean,
                      entryId: BaseEntryId.Key,
                      plusSize: Int,
-                     duplicateValueSearchCount: Int,
                      enablePrefixCompression: Boolean,
                      isKeyUncompressed: Boolean,
                      hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) =
@@ -181,7 +172,6 @@ private[writer] object TimeWriter {
       compressDuplicateValues = compressDuplicateValues,
       entryId = entryId.noTime,
       plusSize = plusSize,
-      duplicateValueSearchCount = duplicateValueSearchCount,
       enablePrefixCompression = enablePrefixCompression,
       isKeyUncompressed = isKeyUncompressed,
       hasPrefixCompressed = hasPrefixCompressed

@@ -120,7 +120,6 @@ object DefaultPersistentConfig {
           Values(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            duplicateValueSearchCount = 2,
             cacheOnRead = false,
             compression = Seq.empty
           ),
@@ -176,7 +175,6 @@ object DefaultPersistentConfig {
           Values(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            duplicateValueSearchCount = 2,
             cacheOnRead = false,
             compression = Seq.empty
           ),
@@ -232,9 +230,8 @@ object DefaultPersistentConfig {
           Values(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            duplicateValueSearchCount = 2,
-            cacheOnRead = false,
-            compression = Seq.empty
+            compression = Seq.empty,
+            cacheOnRead = false
           ),
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
@@ -288,7 +285,6 @@ object DefaultPersistentConfig {
           Values(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            duplicateValueSearchCount = 2,
             cacheOnRead = false,
             compression = Seq.empty
           ),
@@ -344,7 +340,6 @@ object DefaultPersistentConfig {
           Values(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            duplicateValueSearchCount = 2,
             cacheOnRead = false,
             compression = Seq.empty
           ),
@@ -402,7 +397,6 @@ object DefaultPersistentConfig {
           Values(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            duplicateValueSearchCount = 2,
             cacheOnRead = false,
             compression = Seq.empty
           ),

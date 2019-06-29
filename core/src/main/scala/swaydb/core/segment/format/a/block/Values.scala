@@ -36,7 +36,6 @@ object Values {
       Values.Config(
         compressDuplicateValues = false,
         compressDuplicateRangeValues = false,
-        duplicateValueSearchCount = 0,
         cacheOnRead = false,
         hasCompression = false
       )
@@ -45,7 +44,6 @@ object Values {
       Config(
         compressDuplicateValues = config.compressDuplicateValues,
         compressDuplicateRangeValues = config.compressDuplicateRangeValues,
-        duplicateValueSearchCount = config.duplicateValueSearchCount,
         cacheOnRead = config.cacheOnRead,
         hasCompression = config.compression.nonEmpty
       )
@@ -53,7 +51,6 @@ object Values {
 
   case class Config(compressDuplicateValues: Boolean,
                     compressDuplicateRangeValues: Boolean,
-                    duplicateValueSearchCount: Int,
                     cacheOnRead: Boolean,
                     hasCompression: Boolean)
 

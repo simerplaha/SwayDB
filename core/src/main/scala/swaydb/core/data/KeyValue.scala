@@ -197,7 +197,7 @@ private[core] object KeyValue {
     * Write-only instances are only created after a successful merge of key-values and are used to write to Persistent
     * and Memory Segments.
     */
-  sealed trait WriteOnly extends KeyValue {
+  sealed trait WriteOnly extends KeyValue { self =>
     val isRemoveRangeMayBe: Boolean
     val isRange: Boolean
     val isGroup: Boolean
@@ -231,12 +231,10 @@ private[core] object KeyValue {
                        bloomFilterConfig: BloomFilter.Config,
                        previous: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly
 
-    private def thisInScope = this
-
     def reverseIterator: Iterator[WriteOnly] =
       new Iterator[WriteOnly] {
         var currentPrevious: Option[KeyValue.WriteOnly] =
-          Some(thisInScope)
+          Some(self)
 
         override def hasNext: Boolean =
           currentPrevious.isDefined
@@ -606,7 +604,6 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = false,
-        duplicateValueSearchCount = 0,
         enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(sortedIndexConfig, previous)
       ).unapply
 
@@ -672,7 +669,6 @@ private[core] object Transient {
       KeyValueWriter.write(
         current = this,
         currentTime = time,
-        duplicateValueSearchCount = valuesConfig.duplicateValueSearchCount,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
         enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(sortedIndexConfig, previous)
       ).unapply
@@ -740,7 +736,6 @@ private[core] object Transient {
       KeyValueWriter.write(
         current = this,
         currentTime = time,
-        duplicateValueSearchCount = valuesConfig.duplicateValueSearchCount,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
         enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(sortedIndexConfig, previous)
       ).unapply
@@ -808,7 +803,6 @@ private[core] object Transient {
       KeyValueWriter.write(
         current = this,
         currentTime = time,
-        duplicateValueSearchCount = valuesConfig.duplicateValueSearchCount,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
         enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(sortedIndexConfig, previous)
       ).unapply
@@ -897,7 +891,6 @@ private[core] object Transient {
       KeyValueWriter.write(
         current = this,
         currentTime = time,
-        duplicateValueSearchCount = valuesConfig.duplicateValueSearchCount,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
         enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(sortedIndexConfig, previous)
       ).unapply
@@ -1013,7 +1006,6 @@ private[core] object Transient {
       KeyValueWriter.write(
         current = this,
         currentTime = Time.empty,
-        duplicateValueSearchCount = valuesConfig.duplicateValueSearchCount,
         //It's highly likely that two sequential key-values within the same range have the different value after the range split occurs so this is always set to true.
         compressDuplicateValues = valuesConfig.compressDuplicateRangeValues,
         enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(sortedIndexConfig, previous)
@@ -1105,7 +1097,6 @@ private[core] object Transient {
       KeyValueWriter.write(
         current = this,
         currentTime = Time.empty,
-        duplicateValueSearchCount = valuesConfig.duplicateValueSearchCount,
         //it's highly unlikely that 2 groups after compression will have duplicate values.
         //compressDuplicateValues check is unnecessary since the value bytes of a group can be large.
         compressDuplicateValues = false,

@@ -127,7 +127,6 @@ object DefaultEventuallyPersistentConfig {
           Values(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            duplicateValueSearchCount = 2,
             cacheOnRead = false,
             compression = Seq.empty
           ),
