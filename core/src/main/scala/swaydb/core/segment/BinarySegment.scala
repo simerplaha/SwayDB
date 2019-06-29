@@ -33,6 +33,7 @@ import swaydb.core.util._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{IO, MaxKey, Reserve}
+import EitherUtil._
 
 import scala.annotation.tailrec
 
@@ -205,7 +206,7 @@ private[core] class BinarySegment(id: String,
 
   def getFooter(): IO[SegmentFooter] =
     footer
-      .getOrElse {
+      .getOrElseEither {
         createSegmentBlockReader() flatMap {
           reader =>
             SegmentFooter.read(reader) map {
@@ -218,14 +219,14 @@ private[core] class BinarySegment(id: String,
 
   def getFooterAndSegmentReader(): IO[(SegmentFooter, Reader)] =
     footer
-      .map {
+      .mapEither {
         footer =>
           for {
             reader <- createSegmentBlockReader()
             footer <- footer
           } yield (footer, reader)
       }
-      .getOrElse {
+      .getOrElseEither {
         createSegmentBlockReader() flatMap {
           reader =>
             SegmentFooter.read(reader) map {
@@ -250,7 +251,7 @@ private[core] class BinarySegment(id: String,
 
   def getHashIndex(): IO[Option[HashIndex]] =
     hashIndex
-      .getOrElse {
+      .getOrElseEither {
         getFooterAndSegmentReader() flatMap {
           case (footer, reader) =>
             footer.hashIndexOffset map {
@@ -273,7 +274,7 @@ private[core] class BinarySegment(id: String,
 
   def getBloomFilter(): IO[Option[BloomFilter]] =
     bloomFilter
-      .getOrElse {
+      .getOrElseEither {
         getFooterAndSegmentReader() flatMap {
           case (footer, reader) =>
             footer.bloomFilterOffset map {
@@ -296,7 +297,7 @@ private[core] class BinarySegment(id: String,
 
   def getBinarySearchIndex(): IO[Option[BinarySearchIndex]] =
     binarySearchIndex
-      .getOrElse {
+      .getOrElseEither {
         getFooterAndSegmentReader() flatMap {
           case (footer, reader) =>
             footer.binarySearchIndexOffset map {
@@ -331,7 +332,7 @@ private[core] class BinarySegment(id: String,
 
   def getSortedIndex(): IO[SortedIndex] =
     sortedIndex
-      .getOrElse {
+      .getOrElseEither {
         getFooterAndSegmentReader() flatMap {
           case (footer, reader) =>
             SortedIndex.read(footer.sortedIndexOffset, reader) map {
@@ -347,7 +348,7 @@ private[core] class BinarySegment(id: String,
 
   def getValues(): IO[Option[Values]] =
     values
-      .getOrElse {
+      .getOrElseEither {
         getFooterAndSegmentReader() flatMap {
           case (footer, reader) =>
             footer.valuesOffset map {
@@ -620,10 +621,10 @@ private[core] class BinarySegment(id: String,
     cache.isEmpty()
 
   def isFooterDefined: Boolean =
-    footer.exists(_ => true)
+    footer.existsEither(_ => true)
 
   def isBloomFilterDefined: Boolean =
-    bloomFilter.exists(_.exists(_.isDefined))
+    bloomFilter.existsEither(_.exists(_.isDefined))
 
   def createdInLevel: IO[Int] =
     getFooter().map(_.createdInLevel)

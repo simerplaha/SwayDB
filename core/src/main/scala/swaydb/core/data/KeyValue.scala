@@ -483,19 +483,6 @@ private[swaydb] object Memory {
       IO.Success(fromValue, rangeValue)
   }
 
-  object Group {
-    def apply(minKey: Slice[Byte],
-              maxKey: MaxKey[Slice[Byte]],
-              compressedKeyValues: Slice[Byte],
-              deadline: Option[Deadline]): Memory.Group =
-      new Group(
-        minKey = minKey,
-        maxKey = maxKey,
-        deadline = deadline,
-        compressedKeyValues = compressedKeyValues
-      )
-  }
-
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
                    compressedKeyValues: Slice[Byte],
