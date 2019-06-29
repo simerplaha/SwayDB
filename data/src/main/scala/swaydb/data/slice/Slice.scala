@@ -40,6 +40,8 @@ object Slice {
 
   val someEmptyBytes = Some(emptyBytes)
 
+  val emptyEmptyBytes: Slice[Slice[Byte]] = Slice.empty[Slice[Byte]]
+
   @inline final def empty[T: ClassTag] =
     Slice.create[T](0)
 

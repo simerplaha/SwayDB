@@ -41,7 +41,7 @@ private[file] class MemoryFile(val path: Path,
   override def append(slice: Slice[Byte]): IO[Unit] =
     IO.Failure(new UnsupportedOperationException("Memory files are immutable. Cannot append."))
 
-  override def append(slice: Slice[Byte]*): IO[Unit] =
+  override def append(slice: Iterable[Slice[Byte]]): IO[Unit] =
     IO.Failure(new UnsupportedOperationException("Memory files are immutable. Cannot append."))
 
   override def read(position: Int, size: Int): IO[Slice[Byte]] =

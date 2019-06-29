@@ -172,7 +172,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           resetPrefixCompressionEvery = 2
         )
 
-      val segment = SegmentWriter.write(keyValues, segmentCompression = randomSegmentCompression(), 0, 5).get.flattenBytes
+      val segment = SegmentWriter.write(keyValues, segmentCompression = randomSegmentCompression(), 0, 5).get.flattenSegmentBytes
       val indexes = getIndexes(Reader(segment)).get
 
       keyValues foreach {

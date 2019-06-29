@@ -30,7 +30,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 
 import scala.annotation.tailrec
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 
 private[core] object SegmentWriter extends LazyLogging {
@@ -62,15 +61,15 @@ private[core] object SegmentWriter extends LazyLogging {
                     footer: Slice[Byte],
                     nearestDeadline: Option[Deadline]) {
 
-    val segmentBytes: Seq[Slice[Byte]] = {
-      val all = ListBuffer.empty[Slice[Byte]]
-      values foreach (all += _)
-      all += sortedIndex
-      hashIndex foreach (all += _)
-      binarySearchIndex foreach (all += _)
-      bloomFilter foreach (all += _)
-      all += footer
-      all
+    val segmentBytes: Slice[Slice[Byte]] = {
+      val allBytes = Slice.create[Slice[Byte]](6)
+      values foreach (allBytes add _)
+      allBytes add sortedIndex
+      hashIndex foreach (allBytes add _)
+      binarySearchIndex foreach (allBytes add _)
+      bloomFilter foreach (allBytes add _)
+      allBytes add footer
+      allBytes.close()
     }
 
     def isEmpty =
@@ -78,17 +77,6 @@ private[core] object SegmentWriter extends LazyLogging {
 
     def segmentSize =
       segmentBytes.foldLeft(0)(_ + _.written)
-
-    def flattenBytes: Slice[Byte] = {
-      val size = segmentBytes.foldLeft(0)(_ + _.written)
-      val slice = Slice.create[Byte](size)
-      segmentBytes.map(_.unslice()) foreach slice.addAll
-      assert(slice.isFull)
-      slice
-    }
-
-    def flatten: (Slice[Byte], Option[Deadline]) =
-      (flattenBytes, nearestDeadline)
   }
 
   private def write(keyValue: KeyValue.WriteOnly,
@@ -181,7 +169,7 @@ private[core] object SegmentWriter extends LazyLogging {
           nearestDeadline
       }
 
-    if (keyValue.valueEntryBytes.isDefined && values.isEmpty)
+    if (keyValue.valueEntryBytes.nonEmpty && values.isEmpty)
       Values.valueSliceNotInitialised
     else
       IO {

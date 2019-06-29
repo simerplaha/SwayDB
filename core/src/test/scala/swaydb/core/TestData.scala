@@ -385,7 +385,7 @@ object TestData {
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
-                compressedKeyValues = compressedKeyValues.flattenBytes.unslice(),
+                compressedKeyValues = compressedKeyValues.flattenSegmentBytes.unslice(),
                 deadline = deadline,
                 groupStartOffset = 0
               )
@@ -400,7 +400,7 @@ object TestData {
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
-                compressedKeyValues = compressedKeyValues.flattenBytes.unslice(),
+                compressedKeyValues = compressedKeyValues.flattenSegmentBytes.unslice(),
                 deadline = deadline,
                 groupStartOffset = 0
               )

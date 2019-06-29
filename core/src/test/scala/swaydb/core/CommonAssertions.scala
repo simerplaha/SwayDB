@@ -43,7 +43,7 @@ import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
-import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
+import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader, SegmentWriter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.IO
@@ -61,6 +61,19 @@ object CommonAssertions {
   implicit class RunSafe[T](input: => T) {
     def safeGetBlocking(): T =
       IO.Async.runSafe(input).safeGetBlocking.get
+  }
+
+  implicit class SegmentWriterResultImplicits(result: SegmentWriter.Result) {
+    def flattenSegmentBytes: Slice[Byte] = {
+      val size = result.segmentBytes.foldLeft(0)(_ + _.written)
+      val slice = Slice.create[Byte](size)
+      result.segmentBytes.map(_.unslice()) foreach slice.addAll
+      assert(slice.isFull)
+      slice
+    }
+
+    def flattenSegment: (Slice[Byte], Option[Deadline]) =
+      (flattenSegmentBytes, result.nearestDeadline)
   }
 
   implicit class KeyValueImplicits(actual: KeyValue) {
@@ -149,7 +162,7 @@ object CommonAssertions {
             case keyValue: Transient.Update =>
               keyValue.value
             case keyValue: Transient.Function =>
-              keyValue.value
+              Some(keyValue.function)
             case keyValue: Transient.PendingApply =>
               keyValue.value
             case keyValue: Transient.Remove =>
@@ -157,7 +170,7 @@ object CommonAssertions {
             case keyValue: Transient.Range =>
               keyValue.value
             case keyValue: Transient.Group =>
-              keyValue.value
+              Some(keyValue.result.flattenSegmentBytes)
           }
         case keyValue: Persistent =>
           keyValue match {
@@ -169,8 +182,8 @@ object CommonAssertions {
               Some(keyValue.getOrFetchFunction.get.safeGetBlocking())
             case keyValue: Persistent.PendingApply =>
               keyValue.lazyValueReader.getOrFetchValue.get.safeGetBlocking()
-            case _: Persistent.Remove =>
-              None
+            case keyValue: Persistent.Remove =>
+              keyValue.getOrFetchValue
             case keyValue: Persistent.Range =>
               keyValue.lazyRangeValueReader.getOrFetchValue.get.safeGetBlocking()
             case keyValue: Persistent.Group =>
@@ -933,7 +946,7 @@ object CommonAssertions {
         val data =
           Seq(s"\nLevel: ${level.rootPath}\n") ++
             dump(level.segmentsInLevel())
-        IOEffect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice.writeString(data.mkString("\n"))).get
+        IOEffect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString(data.mkString("\n")))).get
 
         dump(nextLevel)
 
@@ -941,7 +954,7 @@ object CommonAssertions {
         val data =
           Seq(s"\nLevel: ${level.rootPath}\n") ++
             dump(level.segmentsInLevel())
-        IOEffect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice.writeString(data.mkString("\n"))).get
+        IOEffect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString(data.mkString("\n")))).get
     }
 
   def assertGet(keyValues: Iterable[KeyValue],
@@ -1273,54 +1286,54 @@ object CommonAssertions {
   def assertGroup(group: Transient.Group,
                   expectedIndexCompressionUsed: CompressionInternal,
                   expectedValueCompressionUsed: Option[CompressionInternal])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
-    val groupKeyValues = group.keyValues
-    //check if there are values exists in the group's key-values. Use this flag to read values bytes.
-    val hasNoValues = groupKeyValues.forall(_.value.isEmpty)
-    //if no values exist, no value compression should be used.
-    if (hasNoValues) expectedValueCompressionUsed shouldBe empty
-
-    group.minKey shouldBe (groupKeyValues.head.key: Slice[Byte])
-    group.maxKey shouldBe groupKeyValues.maxKey()
-
-    //read and assert keys info from the key bytes write
-    val groupSegmentReader = Reader(group.value.get) //create a reader from the compressed group key-values.
-    //read the header bytes.
-
-    //assert key info
-    if (hasNoValues)
-      groupSegmentReader.readIntUnsigned().assertGet should be >= 5.bytes
-    else
-      groupSegmentReader.readIntUnsigned().assertGet should be >= 8.bytes
-
-//    groupSegmentReader.readIntUnsigned().assertGet shouldBe GroupCompressor.formatId
-    ???
-    groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.segmentHasRange
-    groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.segmentHasPut
-    groupSegmentReader.readIntUnsigned().assertGet shouldBe expectedIndexCompressionUsed.decompressor.id //key decompression id
-    groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.size //key-value count
-    groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.last.stats.segmentUniqueKeysCount //bloomFilterItemsCount count
-    val keysDecompressLength = groupSegmentReader.readIntUnsigned().assertGet //keys length
-    val keysCompressLength = groupSegmentReader.readIntUnsigned().assertGet //keys length
-
-    //assert value info only if value bytes exists.
-    val (valuesDecompressedBytes, valuesDecompressLength) =
-      if (!hasNoValues) {
-        groupSegmentReader.readIntUnsigned().assertGet shouldBe expectedValueCompressionUsed.assertGet.decompressor.id //value compression id
-        val valuesDecompressLength = groupSegmentReader.readIntUnsigned().assertGet //values length
-        val valuesCompressedLength = groupSegmentReader.readIntUnsigned().assertGet //values compressed length
-        val valueCompressedBytes = groupSegmentReader.read(valuesCompressedLength).assertGet
-        (expectedValueCompressionUsed.assertGet.decompressor.decompress(valueCompressedBytes, valuesDecompressLength).assertGet, valuesDecompressLength)
-      } else {
-        (Slice.empty, 0)
-      }
-
-    val keyCompressedBytes = groupSegmentReader.read(keysCompressLength).assertGet
-    val keysDecompressedBytes = expectedIndexCompressionUsed.decompressor.decompress(keyCompressedBytes, keysDecompressLength).assertGet
-
-    //merge both values and keys with values at the top and read key-values like it was a Segment.
-    val keyValuesDecompressedBytes = valuesDecompressedBytes append keysDecompressedBytes
-
-    val tempFooter: SegmentFooter =
+    //    val groupKeyValues = group.keyValues
+    //    //check if there are values exists in the group's key-values. Use this flag to read values bytes.
+    //    val hasNoValues = groupKeyValues.forall(_.value.isEmpty)
+    //    //if no values exist, no value compression should be used.
+    //    if (hasNoValues) expectedValueCompressionUsed shouldBe empty
+    //
+    //    group.minKey shouldBe (groupKeyValues.head.key: Slice[Byte])
+    //    group.maxKey shouldBe groupKeyValues.maxKey()
+    //
+    //    //read and assert keys info from the key bytes write
+    //    val groupSegmentReader = Reader(group.value.get) //create a reader from the compressed group key-values.
+    //    //read the header bytes.
+    //
+    //    //assert key info
+    //    if (hasNoValues)
+    //      groupSegmentReader.readIntUnsigned().assertGet should be >= 5.bytes
+    //    else
+    //      groupSegmentReader.readIntUnsigned().assertGet should be >= 8.bytes
+    //
+    ////    groupSegmentReader.readIntUnsigned().assertGet shouldBe GroupCompressor.formatId
+    //    ???
+    //    groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.segmentHasRange
+    //    groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.segmentHasPut
+    //    groupSegmentReader.readIntUnsigned().assertGet shouldBe expectedIndexCompressionUsed.decompressor.id //key decompression id
+    //    groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.size //key-value count
+    //    groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.last.stats.segmentUniqueKeysCount //bloomFilterItemsCount count
+    //    val keysDecompressLength = groupSegmentReader.readIntUnsigned().assertGet //keys length
+    //    val keysCompressLength = groupSegmentReader.readIntUnsigned().assertGet //keys length
+    //
+    //    //assert value info only if value bytes exists.
+    //    val (valuesDecompressedBytes, valuesDecompressLength) =
+    //      if (!hasNoValues) {
+    //        groupSegmentReader.readIntUnsigned().assertGet shouldBe expectedValueCompressionUsed.assertGet.decompressor.id //value compression id
+    //        val valuesDecompressLength = groupSegmentReader.readIntUnsigned().assertGet //values length
+    //        val valuesCompressedLength = groupSegmentReader.readIntUnsigned().assertGet //values compressed length
+    //        val valueCompressedBytes = groupSegmentReader.read(valuesCompressedLength).assertGet
+    //        (expectedValueCompressionUsed.assertGet.decompressor.decompress(valueCompressedBytes, valuesDecompressLength).assertGet, valuesDecompressLength)
+    //      } else {
+    //        (Slice.empty, 0)
+    //      }
+    //
+    //    val keyCompressedBytes = groupSegmentReader.read(keysCompressLength).assertGet
+    //    val keysDecompressedBytes = expectedIndexCompressionUsed.decompressor.decompress(keyCompressedBytes, keysDecompressLength).assertGet
+    //
+    //    //merge both values and keys with values at the top and read key-values like it was a Segment.
+    //    val keyValuesDecompressedBytes = valuesDecompressedBytes append keysDecompressedBytes
+    //
+    //    val tempFooter: SegmentFooter =
     //      SegmentFooter(
     //      crc = 0,
     //      sortedIndexStartOffset = valuesDecompressLength,
@@ -1335,7 +1348,7 @@ object CommonAssertions {
     //      bloomFilterItemsCount = groupKeyValues.last.stats.segmentUniqueKeysCount,
     //      bloomFilter = None
     //    )
-      ???
+    ???
 
     //read just the group bytes.
     //    val keyValues = SortedIndex.readAll(footer = tempFooter, reader = Reader(keyValuesDecompressedBytes)).assertGet

@@ -208,13 +208,12 @@ private[core] object KeyValue {
     def resetPrefixCompressionEvery: Int
     def minimumNumberOfKeysForHashIndex: Int
     def hashIndexCompensation: Int => Int
-    def value: Option[Slice[Byte]]
     def isPrefixCompressed: Boolean
     def fullKey: Slice[Byte]
     def stats: Stats
     def deadline: Option[Deadline]
     def indexEntryBytes: Slice[Byte]
-    def valueEntryBytes: Option[Slice[Byte]]
+    def valueEntryBytes: Slice[Slice[Byte]]
     //a flag that returns true if valueBytes are created for this or any of it's previous key-values indicating value slice is required.
     def hasValueEntryBytes: Boolean
     //start value offset is carried current value offset position.
@@ -554,7 +553,9 @@ private[core] sealed trait Transient extends KeyValue.WriteOnly
 
 private[core] object Transient {
 
-  private[core] sealed trait SegmentResponse extends Transient
+  private[core] sealed trait SegmentResponse extends Transient {
+    def value: Option[Slice[Byte]]
+  }
 
   implicit class TransientImplicits(transient: Transient.SegmentResponse)(implicit keyOrder: KeyOrder[Slice[Byte]]) {
 
@@ -617,7 +618,7 @@ private[core] object Transient {
     override val stats =
       Stats(
         indexEntry = indexEntryBytes,
-        value = None,
+        value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
@@ -771,6 +772,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
+    override val value: Option[Slice[Byte]] = Some(function)
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
@@ -803,8 +805,6 @@ private[core] object Transient {
       )
 
     override def fullKey = key
-
-    override def value = Some(function)
 
     override def updateStats(falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): Transient.Function =
       this.copy(falsePositiveRate = falsePositiveRate, previous = previous)
@@ -826,8 +826,18 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
-    override val deadline: Option[Deadline] =
-      Segment.getNearestDeadline(None, applies)
+    override val deadline: Option[Deadline] = Segment.getNearestDeadline(None, applies)
+    val value: Option[Slice[Byte]] = Some(ValueSerializer.writeBytes(applies))
+
+    override def time = Time.fromApplies(applies)
+
+    override def fullKey = key
+
+    override def updateStats(falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): Transient.PendingApply =
+      this.copy(falsePositiveRate = falsePositiveRate, previous = previous)
+
+    override def hasTimeLeft(): Boolean =
+      true
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
@@ -858,23 +868,6 @@ private[core] object Transient {
         previous = previous,
         deadline = deadline
       )
-
-    override def time = Time.fromApplies(applies)
-
-    override def fullKey = key
-
-    override def value: Option[Slice[Byte]] = {
-      val bytesRequired = ValueSerializer.bytesRequired(applies)
-      val bytes = Slice.create[Byte](bytesRequired)
-      ValueSerializer.write(applies)(bytes)
-      Some(bytes)
-    }
-
-    override def updateStats(falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): Transient.PendingApply =
-      this.copy(falsePositiveRate = falsePositiveRate, previous = previous)
-
-    override def hasTimeLeft(): Boolean =
-      true
   }
 
   object Range {
@@ -1057,7 +1050,6 @@ private[core] object Transient {
     override val isRemoveRangeMayBe: Boolean = keyValues.last.stats.segmentHasRemoveRange
     override val isRange: Boolean = keyValues.last.stats.segmentHasRange
     override val isGroup: Boolean = true
-    override val value: Option[Slice[Byte]] = Some(result.flattenBytes)
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(

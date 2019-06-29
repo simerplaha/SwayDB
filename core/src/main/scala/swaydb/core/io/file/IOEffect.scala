@@ -64,11 +64,25 @@ private[core] object IOEffect extends LazyLogging {
   }
 
   def write(to: Path,
-            bytes: Slice[Byte]*): IO[Path] =
+            bytes: Slice[Byte]): IO[Path] =
     IO(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
       channel =>
         try {
-          writeUnclosed(channel, bytes: _*) map {
+          writeUnclosed(channel, bytes) map {
+            _ =>
+              to
+          }
+        } finally {
+          channel.close()
+        }
+    }
+
+  def write(to: Path,
+            bytes: Iterable[Slice[Byte]]): IO[Path] =
+    IO(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
+      channel =>
+        try {
+          writeUnclosed(channel, bytes) map {
             _ =>
               to
           }
@@ -92,20 +106,29 @@ private[core] object IOEffect extends LazyLogging {
     }
 
   def writeUnclosed(channel: WritableByteChannel,
-                    bytes: Slice[Byte]*): IO[Unit] =
+                    bytes: Iterable[Slice[Byte]]): IO[Unit] =
     try {
       bytes foreachIO {
         bytes =>
-          val written = channel write bytes.toByteBufferWrap
-
-          // toByteBuffer uses size of Slice instead of written,
-          // but here the check on written ensures that only the actually written bytes find written.
-          // All the client code invoking writes to Disk using Slice should ensure that no Slice contains empty bytes.
-          if (written != bytes.written)
-            IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(written, bytes.written, bytes.size)))
-          else
-            IO.unit
+          writeUnclosed(channel, bytes)
       } getOrElse IO.unit
+    } catch {
+      case exception: Exception =>
+        IO.Failure(exception)
+    }
+
+  def writeUnclosed(channel: WritableByteChannel,
+                    bytes: Slice[Byte]): IO[Unit] =
+    try {
+      val written = channel write bytes.toByteBufferWrap
+
+      // toByteBuffer uses size of Slice instead of written,
+      // but here the check on written ensures that only the actually written bytes find written.
+      // All the client code invoking writes to Disk using Slice should ensure that no Slice contains empty bytes.
+      if (written != bytes.written)
+        IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(written, bytes.written, bytes.size)))
+      else
+        IO.unit
     } catch {
       case exception: Exception =>
         IO.Failure(exception)

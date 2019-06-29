@@ -28,7 +28,7 @@ import swaydb.data.slice.Slice
 private[core] object KeyValueWriter {
 
   case class Result(indexBytes: Slice[Byte],
-                    valueBytes: Option[Slice[Byte]],
+                    valueBytes: Slice[Slice[Byte]],
                     valueStartOffset: Int,
                     valueEndOffset: Int,
                     isPrefixCompressed: Boolean) {

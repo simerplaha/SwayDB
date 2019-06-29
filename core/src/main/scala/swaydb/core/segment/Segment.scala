@@ -285,10 +285,10 @@ private[core] object Segment extends LazyLogging {
           val writeResult =
           //if both read and writes are mmaped. Keep the file open.
             if (mmapWrites && mmapReads)
-              DBFile.mmapWriteAndRead(path = path, autoClose = true, result.segmentBytes: _*)
+              DBFile.mmapWriteAndRead(path = path, autoClose = true, result.segmentBytes)
             //if mmapReads is false, write bytes in mmaped mode and then close and re-open for read.
             else if (mmapWrites && !mmapReads)
-              DBFile.mmapWriteAndRead(path = path, autoClose = true, result.segmentBytes: _*) flatMap {
+              DBFile.mmapWriteAndRead(path = path, autoClose = true, result.segmentBytes) flatMap {
                 file =>
                   //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
                   //is probably not the most efficient and should be advised not to used.
@@ -298,12 +298,12 @@ private[core] object Segment extends LazyLogging {
                   }
               }
             else if (!mmapWrites && mmapReads)
-              DBFile.write(path, result.segmentBytes: _*) flatMap {
+              DBFile.write(path, result.segmentBytes) flatMap {
                 path =>
                   DBFile.mmapRead(path, autoClose = true)
               }
             else
-              DBFile.write(path, result.segmentBytes: _*) flatMap {
+              DBFile.write(path, result.segmentBytes) flatMap {
                 path =>
                   DBFile.channelRead(path, autoClose = true)
               }

@@ -359,7 +359,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   }
 
   def createFile(bytes: Slice[Byte]): Path =
-    IOEffect.write(testDir.resolve(nextSegmentId), bytes).assertGet
+    IOEffect.write(testDir.resolve(nextSegmentId), Slice(bytes)).assertGet
 
   def createFileReader(path: Path): FileReader = {
     implicit val limiter = fileOpenLimiter

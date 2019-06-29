@@ -19,13 +19,26 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.KeyValue.WriteOnly
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.core.util.Bytes._
 import swaydb.data.slice.Slice
 
 private[writer] object ValueWriter {
+
+  def compressibleValue(keyValue: KeyValue.WriteOnly): Option[Slice[Byte]] =
+    keyValue match {
+      case transient: Transient.SegmentResponse =>
+        //if value is empty byte slice, return None instead of empty Slice. We do not store empty byte arrays.
+        if (transient.value.exists(_.isEmpty))
+          None
+        else
+          transient.value
+      case _: Transient.Group =>
+        None
+    }
 
   def write[T](current: KeyValue.WriteOnly,
                enablePrefixCompression: Boolean,
@@ -34,119 +47,78 @@ private[writer] object ValueWriter {
                plusSize: Int,
                isKeyUncompressed: Boolean,
                hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.Result =
-    current.value map {
-      currentValue: Slice[Byte] =>
-        current.previous map {
-          previous: KeyValue.WriteOnly =>
+    current match {
+      case current: Transient.SegmentResponse =>
+        (compressibleValue(current), current.previous.flatMap(compressibleValue)) match {
+          case (Some(currentValue), Some(previousValue)) =>
             compressWithPrevious(
               current = current,
+              previousValue = previousValue,
               currentValue = currentValue,
-              previous = previous,
-              enablePrefixCompression = enablePrefixCompression,
+              previous = current.previous.get,
               compressDuplicateValues = compressDuplicateValues,
+              enablePrefixCompression = enablePrefixCompression,
               entryId = entryId,
               plusSize = plusSize,
               isKeyUncompressed = isKeyUncompressed,
               hasPrefixCompressed = hasPrefixCompressed
             )
-        } getOrElse {
-          noPreviousValue(
-            current = current,
-            entryId = entryId,
-            plusSize = plusSize,
-            currentValue = currentValue,
-            enablePrefixCompression = enablePrefixCompression,
-            isKeyUncompressed = isKeyUncompressed,
-            hasPrefixCompressed = hasPrefixCompressed
-          )
-        }
-    } getOrElse {
-      noValue(
-        current = current,
-        entryId = entryId,
-        plusSize = plusSize,
-        enablePrefixCompression = enablePrefixCompression,
-        isKeyUncompressed = isKeyUncompressed,
-        hasPrefixCompressed = hasPrefixCompressed
-      )
-    }
 
-  private def compressWithPrevious(current: KeyValue.WriteOnly,
-                                   currentValue: Slice[Byte],
-                                   previous: KeyValue.WriteOnly,
-                                   compressDuplicateValues: Boolean,
-                                   enablePrefixCompression: Boolean,
-                                   entryId: BaseEntryId.Time,
-                                   plusSize: Int,
-                                   isKeyUncompressed: Boolean,
-                                   hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): KeyValueWriter.Result =
-  //if value is empty byte slice, return None instead of empty Slice. We do not store empty byte arrays.
-    previous.value.flatMap(value => if (value.isEmpty) None else Some(value)) flatMap {
-      previousValue => {
-        if (compressDuplicateValues) //check if values are the same.
-          compressExact(
-            previous = previous,
-            currentValue = currentValue,
-            previousValue = previousValue,
-            current = current,
-            entryId = entryId,
-            plusSize = plusSize,
-            enablePrefixCompression = enablePrefixCompression,
-            isKeyUncompressed = isKeyUncompressed,
-            hasPrefixCompressed = hasPrefixCompressed
-          )
-        else
-          None
-      } orElse {
-        if (enablePrefixCompression)
-          Some(
-            partialCompressWithPrevious(
+          case (Some(currentValue), None) =>
+            uncompressed(
               current = current,
               entryId = entryId,
               plusSize = plusSize,
-              currentValue = currentValue,
-              previous = previous,
-              previousValue = previousValue,
+              currentValue = Slice(currentValue),
+              enablePrefixCompression = enablePrefixCompression,
               isKeyUncompressed = isKeyUncompressed,
               hasPrefixCompressed = hasPrefixCompressed
             )
-          )
-        else
-          None
-      }
-    } getOrElse {
-      uncompressed(
-        current = current,
-        currentValue = currentValue,
-        previous = previous,
-        entryId = entryId,
-        plusSize = plusSize,
-        enablePrefixCompression = enablePrefixCompression,
-        isKeyUncompressed = isKeyUncompressed,
-        hasPrefixCompressed = hasPrefixCompressed
-      )
+
+          case (None, Some(_)) | (None, None) =>
+            noValue(
+              current = current,
+              entryId = entryId,
+              plusSize = plusSize,
+              enablePrefixCompression = enablePrefixCompression,
+              isKeyUncompressed = isKeyUncompressed,
+              hasPrefixCompressed = hasPrefixCompressed
+            )
+        }
+
+      case group: Transient.Group =>
+        uncompressed(
+          current = current,
+          currentValue = group.result.segmentBytes,
+          entryId = entryId,
+          plusSize = plusSize,
+          enablePrefixCompression = enablePrefixCompression,
+          isKeyUncompressed = isKeyUncompressed,
+          hasPrefixCompressed = hasPrefixCompressed
+        )
     }
 
   private def uncompressed(current: KeyValue.WriteOnly,
-                           currentValue: Slice[Byte],
-                           previous: KeyValue.WriteOnly,
+                           currentValue: Slice[Slice[Byte]],
                            entryId: BaseEntryId.Time,
                            plusSize: Int,
                            enablePrefixCompression: Boolean,
                            isKeyUncompressed: Boolean,
                            hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): KeyValueWriter.Result = {
     //if previous does not exists write full offsets and then write deadline.
-    val currentValueOffset = previous.nextStartValueOffsetPosition
+    val currentValueSize = currentValue.foldLeft(0)(_ + _.written)
+
+    val currentValueOffset = current.previous.map(_.nextStartValueOffsetPosition) getOrElse 0
     val currentValueOffsetUnsignedBytes = Slice.writeIntUnsigned(currentValueOffset)
-    val currentValueLengthUnsignedBytes = Slice.writeIntUnsigned(currentValue.size)
+    val currentValueLengthUnsignedBytes = Slice.writeIntUnsigned(currentValueSize)
 
     val (indexEntryBytes, isPrefixCompressed) =
       DeadlineWriter.write(
         currentDeadline = current.deadline,
         previousDeadline = current.previous.flatMap(_.deadline),
         getDeadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
-        plusSize = plusSize + currentValueOffsetUnsignedBytes.size + currentValueLengthUnsignedBytes.size,
         enablePrefixCompression = enablePrefixCompression,
+        plusSize = plusSize + currentValueOffsetUnsignedBytes.size + currentValueLengthUnsignedBytes.size,
         isKeyCompressed = isKeyUncompressed,
         hasPrefixCompressed = hasPrefixCompressed
       )
@@ -157,10 +129,62 @@ private[writer] object ValueWriter {
 
     KeyValueWriter.Result(
       indexBytes = indexEntryBytes,
-      valueBytes = Some(currentValue),
+      valueBytes = currentValue,
       valueStartOffset = currentValueOffset,
-      valueEndOffset = currentValueOffset + currentValue.size - 1,
+      valueEndOffset = currentValueOffset + currentValueSize - 1,
       isPrefixCompressed = isPrefixCompressed
+    )
+  }
+
+  private def compressWithPrevious(current: KeyValue.WriteOnly,
+                                   previousValue: Slice[Byte],
+                                   currentValue: Slice[Byte],
+                                   previous: KeyValue.WriteOnly,
+                                   compressDuplicateValues: Boolean,
+                                   enablePrefixCompression: Boolean,
+                                   entryId: BaseEntryId.Time,
+                                   plusSize: Int,
+                                   isKeyUncompressed: Boolean,
+                                   hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): KeyValueWriter.Result = {
+    if (compressDuplicateValues) //check if values are the same.
+      compressExact(
+        previous = previous,
+        currentValue = currentValue,
+        previousValue = previousValue,
+        current = current,
+        entryId = entryId,
+        plusSize = plusSize,
+        enablePrefixCompression = enablePrefixCompression,
+        isKeyUncompressed = isKeyUncompressed,
+        hasPrefixCompressed = hasPrefixCompressed
+      )
+    else
+      None
+  } orElse {
+    if (enablePrefixCompression)
+      Some(
+        partialCompressWithPrevious(
+          current = current,
+          entryId = entryId,
+          plusSize = plusSize,
+          currentValue = currentValue,
+          previous = previous,
+          previousValue = previousValue,
+          isKeyUncompressed = isKeyUncompressed,
+          hasPrefixCompressed = hasPrefixCompressed
+        )
+      )
+    else
+      None
+  } getOrElse {
+    uncompressed(
+      current = current,
+      currentValue = Slice(currentValue),
+      entryId = entryId,
+      plusSize = plusSize,
+      enablePrefixCompression = enablePrefixCompression,
+      isKeyUncompressed = isKeyUncompressed,
+      hasPrefixCompressed = hasPrefixCompressed
     )
   }
 
@@ -217,7 +241,7 @@ private[writer] object ValueWriter {
 
         KeyValueWriter.Result(
           indexBytes = indexEntry,
-          valueBytes = None,
+          valueBytes = Slice.emptyEmptyBytes,
           valueStartOffset = previous.currentStartValueOffsetPosition,
           valueEndOffset = previous.currentEndValueOffsetPosition,
           isPrefixCompressed = isPrefixCompressed
@@ -299,7 +323,7 @@ private[writer] object ValueWriter {
 
         KeyValueWriter.Result(
           indexBytes = indexEntryBytes,
-          valueBytes = Some(currentValue),
+          valueBytes = Slice(currentValue),
           valueStartOffset = currentValueOffset,
           valueEndOffset = currentValueOffset + currentValue.size - 1,
           isPrefixCompressed = isPrefixCompressed
@@ -326,7 +350,7 @@ private[writer] object ValueWriter {
 
       KeyValueWriter.Result(
         indexBytes = indexEntryBytes,
-        valueBytes = Some(currentValue),
+        valueBytes = Slice(currentValue),
         valueStartOffset = currentValueOffset,
         valueEndOffset = currentValueOffset + currentValue.size - 1,
         isPrefixCompressed = isPrefixCompressed
@@ -385,7 +409,7 @@ private[writer] object ValueWriter {
 
             KeyValueWriter.Result(
               indexBytes = indexEntryBytes,
-              valueBytes = Some(currentValue),
+              valueBytes = Slice(currentValue),
               valueStartOffset = currentValueOffset,
               valueEndOffset = currentValueOffset + currentValue.size - 1,
               isPrefixCompressed = true
@@ -410,7 +434,7 @@ private[writer] object ValueWriter {
 
           KeyValueWriter.Result(
             indexBytes = indexEntryBytes,
-            valueBytes = Some(currentValue),
+            valueBytes = Slice(currentValue),
             valueStartOffset = currentValueOffset,
             valueEndOffset = currentValueOffset + currentValue.size - 1,
             isPrefixCompressed = isPrefixCompressed
@@ -438,44 +462,9 @@ private[writer] object ValueWriter {
     //since there is no value, offsets will continue from previous key-values offset.
     KeyValueWriter.Result(
       indexBytes = indexEntryBytes,
-      valueBytes = None,
+      valueBytes = Slice.emptyEmptyBytes,
       valueStartOffset = current.previous.map(_.currentStartValueOffsetPosition).getOrElse(0),
       valueEndOffset = current.previous.map(_.currentEndValueOffsetPosition).getOrElse(0),
-      isPrefixCompressed = isPrefixCompressed
-    )
-  }
-
-  private def noPreviousValue(current: KeyValue.WriteOnly,
-                              entryId: BaseEntryId.Time,
-                              plusSize: Int,
-                              currentValue: Slice[Byte],
-                              enablePrefixCompression: Boolean,
-                              isKeyUncompressed: Boolean,
-                              hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): KeyValueWriter.Result = {
-    //if previous does not exists write offset as the first value in the Transient chain.
-    val currentValueOffset = 0
-    val currentValueOffsetUnsignedBytes = Slice.writeIntUnsigned(currentValueOffset)
-    val currentValueLengthUnsignedBytes = Slice.writeIntUnsigned(currentValue.size)
-
-    val (indexEntryBytes, isPrefixCompressed) =
-      DeadlineWriter.write(
-        currentDeadline = current.deadline,
-        enablePrefixCompression = enablePrefixCompression,
-        previousDeadline = current.previous.flatMap(_.deadline),
-        getDeadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
-        plusSize = plusSize + currentValueOffsetUnsignedBytes.size + currentValueLengthUnsignedBytes.size,
-        isKeyCompressed = isKeyUncompressed,
-        hasPrefixCompressed = hasPrefixCompressed
-      )
-    indexEntryBytes
-      .addAll(currentValueOffsetUnsignedBytes)
-      .addAll(currentValueLengthUnsignedBytes)
-
-    KeyValueWriter.Result(
-      indexBytes = indexEntryBytes,
-      valueBytes = Some(currentValue),
-      valueStartOffset = currentValueOffset,
-      valueEndOffset = currentValue.size - 1,
       isPrefixCompressed = isPrefixCompressed
     )
   }

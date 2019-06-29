@@ -35,8 +35,12 @@ import scala.util.hashing.MurmurHash3
 object DBFile {
 
   def write(path: Path,
-            bytes: Slice[Byte]*): IO[Path] =
-    IOEffect.write(path, bytes: _*)
+            bytes: Slice[Byte]): IO[Path] =
+    IOEffect.write(path, bytes)
+
+  def write(path: Path,
+            bytes: Iterable[Slice[Byte]]): IO[Path] =
+    IOEffect.write(path, bytes)
 
   def channelWrite(path: Path, autoClose: Boolean)(implicit limiter: FileLimiter): IO[DBFile] =
     ChannelFile.write(path) map {
@@ -66,7 +70,7 @@ object DBFile {
 
   def mmapWriteAndRead(path: Path,
                        autoClose: Boolean,
-                       bytes: Slice[Byte]*)(implicit limiter: FileLimiter): IO[DBFile] =
+                       bytes: Iterable[Slice[Byte]])(implicit limiter: FileLimiter): IO[DBFile] =
   //do not write bytes if the Slice has empty bytes.
     bytes.foldLeftIO(0) {
       case (written, bytes) =>
@@ -82,12 +86,31 @@ object DBFile {
           autoClose = autoClose
         ) flatMap {
           file =>
-            file.append(bytes: _*) map {
+            file.append(bytes) map {
               _ =>
                 file
             }
         }
     }
+
+  def mmapWriteAndRead(path: Path,
+                       autoClose: Boolean,
+                       bytes: Slice[Byte])(implicit limiter: FileLimiter): IO[DBFile] =
+  //do not write bytes if the Slice has empty bytes.
+    if (!bytes.isFull)
+      IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(0, bytes.written, bytes.size)))
+    else
+      mmapInit(
+        path = path,
+        bufferSize = bytes.written,
+        autoClose = autoClose
+      ) flatMap {
+        file =>
+          file.append(bytes) map {
+            _ =>
+              file
+          }
+      }
 
   def mmapRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit limiter: FileLimiter): IO[DBFile] =
     if (checkExists && IOEffect.notExists(path))
@@ -238,8 +261,8 @@ class DBFile(val path: Path,
   def append(slice: Slice[Byte]) =
     openFile() flatMap (_.append(slice))
 
-  def append(slice: Slice[Byte]*) =
-    openFile() flatMap (_.append(slice: _*))
+  def append(slice: Iterable[Slice[Byte]]) =
+    openFile() flatMap (_.append(slice))
 
   def read(position: Int, size: Int): IO[Slice[Byte]] =
     openFile() flatMap (_.read(position, size))

@@ -139,7 +139,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
               keyValues = Slice(result.assertGet),
               segmentCompression = randomSegmentCompression(),
               createdInLevel = 0,
-              maxProbe = TestData.maxProbe).assertGet.flatten
+              maxProbe = TestData.maxProbe).assertGet.flattenSegment
 
           val rootGroup = readAll(bytes).assertGet
           rootGroup should have size 1
@@ -267,7 +267,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
                   keyValues = Slice(result.assertGet).updateStats,
                   segmentCompression = randomSegmentCompression(),
                   createdInLevel = 0,
-                  maxProbe = TestData.maxProbe).assertGet.flatten
+                  maxProbe = TestData.maxProbe).assertGet.flattenSegment
 
               val rootGroup = readAll(bytes).assertGet
               rootGroup should have size 1
@@ -320,7 +320,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
             keyValues = Slice(result.assertGet).updateStats,
             segmentCompression = randomSegmentCompression(),
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe).assertGet.flatten
+            maxProbe = TestData.maxProbe).assertGet.flattenSegment
 
         val rootGroup = readAll(bytes).assertGet
         rootGroup should have size 1

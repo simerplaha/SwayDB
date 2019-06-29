@@ -30,7 +30,7 @@ import scala.concurrent.duration.Deadline
 private[core] object Stats {
 
   def apply(indexEntry: Slice[Byte],
-            value: Option[Slice[Byte]],
+            value: Slice[Slice[Byte]],
             falsePositiveRate: Double,
             isRemoveRange: Boolean,
             isRange: Boolean,
@@ -50,7 +50,7 @@ private[core] object Stats {
       previous.map(_.stats)
 
     val valueLength =
-      value.map(_.size).getOrElse(0)
+      value.foldLeft(0)(_ + _.size)
 
     val hasRemoveRange =
       previous.exists(_.stats.segmentHasRemoveRange) || isRemoveRange

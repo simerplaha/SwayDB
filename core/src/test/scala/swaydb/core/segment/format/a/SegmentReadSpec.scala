@@ -818,7 +818,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
             segmentCompression = randomSegmentCompression(),
             createdInLevel = 0,
             maxProbe = TestData.maxProbe
-          ).assertGet.flatten
+          ).assertGet.flattenSegment
 
         deadline shouldBe nearestDeadline(all)
 

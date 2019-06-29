@@ -51,33 +51,34 @@ class ValuesSpec extends TestBase {
 
   "close" should {
     "prepare for persisting" in {
-      runThis(10.times) {
-        val keyValues = (1 to 1000) map {
-          i =>
-            randomFixedTransientKeyValue(i, Some(i + 1), compressDuplicateValues = false)
-        } updateStats
-
-        val state = Values.init(keyValues, eitherOne(Seq.empty, Seq(randomCompression()))).get
-
-        keyValues foreach {
-          keyValue =>
-            state.bytes addAll keyValue.valueEntryBytes
-        }
-
-        Values.close(state).get
-
-        val values = Values.read(Values.Offset(0, state.bytes.written), Reader(state.bytes.close())).get
-        keyValues.foldLeft(0) {
-          case (offset, keyValue) =>
-            keyValue.value map {
-              value =>
-                Values.read(offset, value.size, values.createBlockReader(state.bytes)).get should contain(value)
-                offset + value.size
-            } getOrElse offset
-        }
-        //        println(s"Allocated size: ${keyValues.last.stats.segmentValuesSize}")
-        //        println(s"Actual size: ${state.bytes.written}")
-      }
+//      runThis(10.times) {
+//        val keyValues = (1 to 1000) map {
+//          i =>
+//            randomFixedTransientKeyValue(i, Some(i + 1), compressDuplicateValues = false)
+//        } updateStats
+//
+//        val state = Values.init(keyValues, eitherOne(Seq.empty, Seq(randomCompression()))).get
+//
+//        keyValues foreach {
+//          keyValue =>
+//            state.bytes addAll keyValue.valueEntryBytes.flatten
+//        }
+//
+//        Values.close(state).get
+//
+//        val values = Values.read(Values.Offset(0, state.bytes.written), Reader(state.bytes.close())).get
+//        keyValues.foldLeft(0) {
+//          case (offset, keyValue) =>
+//            keyValue.value map {
+//              value =>
+//                Values.read(offset, value.size, values.createBlockReader(state.bytes)).get should contain(value)
+//                offset + value.size
+//            } getOrElse offset
+//        }
+//        //        println(s"Allocated size: ${keyValues.last.stats.segmentValuesSize}")
+//        //        println(s"Actual size: ${state.bytes.written}")
+//      }
+      ???
     }
   }
 }

@@ -435,6 +435,13 @@ object ValueSerializer {
       }
   }
 
+  def writeBytes[T](value: T)(implicit serializer: ValueSerializer[T]): Slice[Byte] = {
+    val bytesRequired = ValueSerializer.bytesRequired(value)
+    val bytes = Slice.create[Byte](bytesRequired)
+    serializer.write(value, bytes)
+    bytes
+  }
+
   def write[T](value: T)(bytes: Slice[Byte])(implicit serializer: ValueSerializer[T]): Unit =
     serializer.write(value, bytes)
 

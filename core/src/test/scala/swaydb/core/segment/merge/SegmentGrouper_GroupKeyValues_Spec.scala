@@ -136,7 +136,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
               keyValues = Slice(result.assertGet),
               segmentCompression = randomSegmentCompression(),
               createdInLevel = 0,
-              maxProbe = TestData.maxProbe).assertGet.flatten
+              maxProbe = TestData.maxProbe).assertGet.flattenSegment
 
           readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
         }
@@ -341,7 +341,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
               segmentCompression = randomSegmentCompression(),
               createdInLevel = 0,
               maxProbe = TestData.maxProbe
-        ).assertGet.flatten
+        ).assertGet.flattenSegment
 
           readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe otherKeyValues
         }
@@ -395,7 +395,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
               segmentCompression = randomSegmentCompression(),
               createdInLevel = 0,
               maxProbe = TestData.maxProbe
-        ).assertGet.flatten
+        ).assertGet.flattenSegment
 
           readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe otherKeyValues
         }
@@ -478,7 +478,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             segmentCompression = randomSegmentCompression(),
             createdInLevel = 0,
             maxProbe = TestData.maxProbe
-        ).assertGet.flatten
+        ).assertGet.flattenSegment
 
         readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
       }
@@ -522,7 +522,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             segmentCompression = randomSegmentCompression(),
             createdInLevel = 0,
             maxProbe = TestData.maxProbe
-        ).assertGet.flatten
+        ).assertGet.flattenSegment
 
         val readGroups = readAll(bytes).assertGet
         readGroups.head.asInstanceOf[Persistent.Group] shouldBe group
@@ -571,7 +571,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             segmentCompression = randomSegmentCompression(),
             createdInLevel = 0,
             maxProbe = TestData.maxProbe
-        ).assertGet.flatten
+        ).assertGet.flattenSegment
 
         val readGroups = readAll(bytes).assertGet
         readGroups.head.asInstanceOf[Persistent.Group] shouldBe group1
@@ -625,7 +625,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
               segmentCompression = randomSegmentCompression(),
               createdInLevel = 0,
               maxProbe = TestData.maxProbe
-        ).assertGet.flatten
+        ).assertGet.flattenSegment
 
           readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
         }
