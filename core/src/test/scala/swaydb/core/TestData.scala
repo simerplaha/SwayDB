@@ -31,11 +31,12 @@ import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.level.seek.{CurrentWalker, Higher, Lower, NextWalker, Seek}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.seek._
+import swaydb.core.level.seek._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.SegmentCompression
 import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}

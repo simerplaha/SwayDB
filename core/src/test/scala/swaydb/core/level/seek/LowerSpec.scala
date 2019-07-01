@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.seek
+package swaydb.core.level.seek
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
@@ -30,27 +30,27 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class HigherSpec extends WordSpec with Matchers {
+class LowerSpec extends WordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
   implicit val functionStore = TestData.functionStore
   implicit val time = TestTimer.Empty
 
-  "higherFromValue" in {
+  "lowerFromValue" in {
     runThis(100.times) {
-      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = None) shouldBe empty
-      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = None) shouldBe empty
+      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = None) shouldBe empty
+      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = None) shouldBe empty
 
-      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = randomFromValueOption(addPut = false)) shouldBe empty
-      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = randomFromValueOption(addPut = false)) shouldBe empty
+      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = randomFromValueOption(addPut = false)) shouldBe empty
+      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = randomFromValueOption(addPut = false)) shouldBe empty
 
-      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = Some(Value.put(randomStringOption, Some(expiredDeadline())))) shouldBe empty
-      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Some(Value.put(randomStringOption, Some(expiredDeadline())))) shouldBe empty
+      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = Some(Value.put(randomStringOption, Some(expiredDeadline())))) shouldBe empty
+      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = Some(Value.put(randomStringOption, Some(expiredDeadline())))) shouldBe empty
 
       val put = Value.put(randomStringOption, randomDeadlineOption(false))
-      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = Some(put)) shouldBe empty
-      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Some(put)).assertGet shouldBe put.toMemory(2)
+      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = Some(put)).assertGet shouldBe put.toMemory(1)
+      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = Some(put)) shouldBe empty
     }
   }
 

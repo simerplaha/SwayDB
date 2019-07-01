@@ -17,23 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.seek
+package swaydb.core.level.seek
 
 import swaydb.core.data.KeyValue
+import swaydb.data.IO
+import swaydb.data.slice.Slice
 
-private[swaydb] object Seek {
+trait CurrentGetter {
 
-  sealed trait Current
-  object Current {
-    case object Stop extends Seek.Current
-    case class Stash(current: KeyValue.ReadOnly.SegmentResponse) extends Seek.Current
-  }
+  def get(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.SegmentResponse]]
 
-  sealed trait Next
-  object Next {
-    case class Stop(stateID: Long) extends Seek.Next
-    case class Stash(next: KeyValue.ReadOnly.Put, stateID: Long) extends Seek.Next
-  }
-
-  case object Read extends Seek.Current with Seek.Next
 }

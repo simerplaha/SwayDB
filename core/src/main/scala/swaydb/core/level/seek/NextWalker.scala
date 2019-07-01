@@ -17,14 +17,24 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.seek
+package swaydb.core.level.seek
 
 import swaydb.core.data.KeyValue
 import swaydb.data.IO
 import swaydb.data.slice.Slice
 
-trait NextGetter {
+trait NextWalker extends NextGetter {
+
+  def levelNumber: String
+
+  def higher(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
+
+  def lower(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
 
   def get(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
+
+  def hasStateChanged(previousState: Long): Boolean
+
+  def stateID: Long
 
 }

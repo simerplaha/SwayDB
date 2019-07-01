@@ -30,10 +30,11 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.IOEffect
 import swaydb.core.io.file.IOEffect._
+import swaydb.core.level.seek.{CurrentGetter, CurrentWalker, Get, Higher, Lower, NextWalker, Seek}
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.seek.{NextWalker, _}
+import swaydb.core.level.seek.{NextWalker, _}
 import swaydb.core.segment.SegmentException.SegmentFileMissing
 import swaydb.core.segment.format.a.SegmentCompression
 import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}

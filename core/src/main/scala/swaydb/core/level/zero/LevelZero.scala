@@ -28,13 +28,14 @@ import swaydb.core.data.KeyValue._
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect
+import swaydb.core.level.seek.{CurrentGetter, CurrentWalker, Get, Higher, Lower, NextGetter, NextWalker, Seek}
 import swaydb.core.level.{LevelRef, NextLevel}
 import swaydb.core.map
 import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
 import swaydb.core.queue.FileLimiter
-import swaydb.core.seek._
+import swaydb.core.level.seek._
 import swaydb.core.segment.Segment
 import swaydb.core.util.MinMax
 import swaydb.data.IO

@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.seek
+package swaydb.core.level.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
@@ -31,7 +31,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class LowerFixedNoneSpec extends WordSpec with Matchers with MockFactory with OptionValues {
+class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with OptionValues {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
@@ -50,44 +50,40 @@ class LowerFixedNoneSpec extends WordSpec with Matchers with MockFactory with Op
 
       inSequence {
         //@formatter:off
-        current.lower         _ expects (0: Slice[Byte])  returning IO.none
+        current.higher        _ expects (0: Slice[Byte])  returning IO.none
         next.stateID          _ expects ()                returning 1
-        next.lower            _ expects (0: Slice[Byte])  returning IO.none
+        next.higher           _ expects (0: Slice[Byte])  returning IO.none
         next.hasStateChanged  _ expects 1                 returning false
         //@formatter:on
       }
-      Lower(0: Slice[Byte]).assertGetOpt shouldBe empty
+      Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
     }
 
-
-    //     1
     //   0
-    //   x
+    //     1
+    //     x
     "2" in {
-
       runThis(100.times) {
-
         implicit val current = mock[CurrentWalker]
         implicit val next = mock[NextWalker]
 
         inSequence {
           //@formatter:off
-          current.lower         _ expects (1: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(0)))
+          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
           next.stateID          _ expects ()                returning 1
-          next.lower            _ expects (1: Slice[Byte])  returning IO.none
+          next.higher           _ expects (0: Slice[Byte])  returning IO.none
           next.hasStateChanged  _ expects 1                 returning false repeat 2.times
-          current.lower         _ expects (0: Slice[Byte])  returning IO.none
+          current.higher        _ expects (1: Slice[Byte])  returning IO.none
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Lower(1: Slice[Byte]).assertGetOpt shouldBe empty
+        Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
       }
     }
 
-
+    //   0
     //     1
-    //   0
-    //   0
+    //     1
     "3" in {
 
       runThis(100.times) {
@@ -97,24 +93,23 @@ class LowerFixedNoneSpec extends WordSpec with Matchers with MockFactory with Op
 
         inSequence {
           //@formatter:off
-          current.lower         _ expects (1: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(0)))
+          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
           next.stateID          _ expects ()                returning 1
-          next.lower            _ expects (1: Slice[Byte])  returning IO(Some(randomPutKeyValue(0))).asAsync
+          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(randomPutKeyValue(1))).asAsync
           next.hasStateChanged  _ expects 1                 returning false
-          current.lower         _ expects (0: Slice[Byte])  returning IO.none
+          current.higher        _ expects (1: Slice[Byte])  returning IO.none
           next.stateID          _ expects ()                returning 2
-          next.lower            _ expects (0: Slice[Byte])  returning IO.none
+          next.higher           _ expects (1: Slice[Byte])  returning IO.none
           next.hasStateChanged  _ expects 2                 returning false
           //@formatter:on
         }
-        Lower(1: Slice[Byte]).assertGetOpt shouldBe empty
+        Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
       }
     }
 
-
-    //       2
-    //   0  1
     //   0
+    //     1 2
+    //       2
     "4" in {
 
       runThis(100.times) {
@@ -126,25 +121,25 @@ class LowerFixedNoneSpec extends WordSpec with Matchers with MockFactory with Op
 
         inSequence {
           //@formatter:off
-          current.lower         _ expects (2: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
+          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
           next.stateID          _ expects ()                returning 1
-          next.lower            _ expects (2: Slice[Byte])  returning IO(Some(randomPutKeyValue(0))).asAsync
+          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(randomPutKeyValue(2))).asAsync
           next.hasStateChanged  _ expects 1                 returning false repeat 2.times
-          current.lower         _ expects (1: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(0)))
+          current.higher        _ expects (1: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(2)))
           next.hasStateChanged  _ expects 1                 returning false
-          current.lower         _ expects (0: Slice[Byte])  returning IO.none
+          current.higher        _ expects (2: Slice[Byte])  returning IO.none
           next.stateID          _ expects ()                returning 2
-          next.lower            _ expects (0: Slice[Byte])  returning IO.none
+          next.higher           _ expects (2: Slice[Byte])  returning IO.none
           next.hasStateChanged  _ expects 2                 returning false
           //@formatter:on
         }
-        Lower(2: Slice[Byte]).assertGetOpt shouldBe empty
+        Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
       }
     }
 
+    //   0
     //       2
     //     1
-    //   0
-    //this test is not implemented as it would result in a put. See LowerFixedSomeSpec
+    //this test is not implemented as it would result in a put. See HigherFixedSomeSpec
   }
 }

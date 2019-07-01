@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.seek
+package swaydb.core.level.seek
 
 import swaydb.core.data.KeyValue
 import swaydb.data.IO
