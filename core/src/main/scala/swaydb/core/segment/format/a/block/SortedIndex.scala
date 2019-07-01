@@ -132,15 +132,18 @@ private[core] object SortedIndex {
       segmentReader = segmentReader
     ) flatMap {
       header =>
-        header.headerReader.readBoolean() map {
-          enablePositionIndex =>
-            SortedIndex(
-              offset = offset,
-              enableAccessPositionIndex = enablePositionIndex,
-              headerSize = header.headerSize,
-              compressionInfo = header.compressionInfo
-            )
-        }
+        header
+          .headerReader
+          .readBoolean()
+          .map {
+            enableAccessPositionIndex =>
+              SortedIndex(
+                offset = offset,
+                enableAccessPositionIndex = enableAccessPositionIndex,
+                headerSize = header.headerSize,
+                compressionInfo = header.compressionInfo
+              )
+          }
     }
 
   private def readNextKeyValue(previous: Persistent,
