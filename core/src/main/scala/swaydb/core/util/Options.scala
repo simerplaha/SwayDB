@@ -21,7 +21,8 @@ package swaydb.core.util
 
 object Options {
 
-  val `false` = Some(false)
-  val `true` = Some(true)
+  val `false`: Option[Boolean] = Some(false)
+  val `true`: Option[Boolean] = Some(true)
+  val unit: Option[Unit] = Some(())
 
 }

@@ -46,7 +46,7 @@ object SegmentCache {
       minKey = minKey,
       cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder),
       unsliceKey = unsliceKey,
-      blockReader =
+      blockCache =
         SegmentBlockCache(
           id = id,
           segmentBlock = createSegmentBlockReader
@@ -58,8 +58,8 @@ private[core] class SegmentCache(id: String,
                                  minKey: Slice[Byte],
                                  cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
                                  unsliceKey: Boolean,
-                                 blockReader: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                 keyValueLimiter: KeyValueLimiter) extends LazyLogging {
+                                 blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                keyValueLimiter: KeyValueLimiter) extends LazyLogging {
 
 
   import keyOrder._
@@ -85,14 +85,14 @@ private[core] class SegmentCache(id: String,
       keyValueLimiter.add(group, cache)
   }
 
-  private def prepareGet[T](operation: (SegmentFooter, Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
+  private def prepareGet[T](f: (SegmentFooter, Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
     for {
-      footer <- blockReader.footer
-      hashIndex <- blockReader.createHashIndexReader()
-      binarySearchIndex <- blockReader.createBinarySearchReader()
-      sortedIndex <- blockReader.createSortedIndexReader()
-      values <- blockReader.valuesReader()
-      result <- operation(footer, hashIndex, binarySearchIndex, sortedIndex, values)
+      footer <- blockCache.footer
+      hashIndex <- blockCache.createHashIndexReader()
+      binarySearchIndex <- blockCache.createBinarySearchReader()
+      sortedIndex <- blockCache.createSortedIndexReader()
+      values <- blockCache.valuesReader()
+      result <- f(footer, hashIndex, binarySearchIndex, sortedIndex, values)
     } yield {
       result
     }
@@ -101,12 +101,12 @@ private[core] class SegmentCache(id: String,
       ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
   }
 
-  private def prepareGetAll[T](operation: (SegmentFooter, BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
+  private def prepareGetAll[T](f: (SegmentFooter, BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
     for {
-      footer <- blockReader.footer
-      sortedIndex <- blockReader.createSortedIndexReader()
-      values <- blockReader.valuesReader()
-      result <- operation(footer, sortedIndex, values)
+      footer <- blockCache.footer
+      sortedIndex <- blockCache.createSortedIndexReader()
+      values <- blockCache.valuesReader()
+      result <- f(footer, sortedIndex, values)
     } yield {
       result
     }
@@ -115,13 +115,13 @@ private[core] class SegmentCache(id: String,
       ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
   }
 
-  private def prepareIteration[T](operation: (SegmentFooter, Option[BlockReader[BinarySearchIndex]], BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
+  private def prepareIteration[T](f: (SegmentFooter, Option[BlockReader[BinarySearchIndex]], BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
     for {
-      footer <- blockReader.footer
-      binarySearchIndex <- blockReader.createBinarySearchReader()
-      sortedIndex <- blockReader.createSortedIndexReader()
-      values <- blockReader.valuesReader()
-      result <- operation(footer, binarySearchIndex, sortedIndex, values)
+      footer <- blockCache.footer
+      binarySearchIndex <- blockCache.createBinarySearchReader()
+      sortedIndex <- blockCache.createSortedIndexReader()
+      values <- blockCache.valuesReader()
+      result <- f(footer, binarySearchIndex, sortedIndex, values)
     } yield {
       result
     }
@@ -135,7 +135,7 @@ private[core] class SegmentCache(id: String,
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
     for {
-      bloom <- blockReader.createBloomFilterReader()
+      bloom <- blockCache.createBloomFilterReader()
       contains <- bloom.map(BloomFilter.mightContain(key, _)) getOrElse IO.`true`
     } yield contains
 
@@ -367,31 +367,31 @@ private[core] class SegmentCache(id: String,
     }
 
   def getHeadKeyValueCount(): IO[Int] =
-    blockReader.footer.map(_.keyValueCount)
+    blockCache.footer.map(_.keyValueCount)
 
   def getBloomFilterKeyValueCount(): IO[Int] =
-    blockReader.footer.map(_.bloomFilterItemsCount)
+    blockCache.footer.map(_.bloomFilterItemsCount)
 
   def hasRange: IO[Boolean] =
-    blockReader.footer.map(_.hasRange)
+    blockCache.footer.map(_.hasRange)
 
   def hasPut: IO[Boolean] =
-    blockReader.footer.map(_.hasPut)
+    blockCache.footer.map(_.hasPut)
 
   def isCacheEmpty =
     cache.isEmpty
 
   def isFooterDefined: Boolean =
-    blockReader.isFooterDefined
+    blockCache.isFooterDefined
 
   def isBloomFilterDefined: Boolean =
-    blockReader.isBloomFilterDefined
+    blockCache.isBloomFilterDefined
 
   def createdInLevel: IO[Int] =
-    blockReader.footer.map(_.createdInLevel)
+    blockCache.footer.map(_.createdInLevel)
 
   def isGrouped: IO[Boolean] =
-    blockReader.footer.map(_.hasGroup)
+    blockCache.footer.map(_.hasGroup)
 
   def isInCache(key: Slice[Byte]): Boolean =
     cache containsKey key
@@ -401,9 +401,9 @@ private[core] class SegmentCache(id: String,
 
   def clear() = {
     cache.clear()
-    blockReader.clear()
+    blockCache.clear()
   }
 
   def isInitialised() =
-    blockReader.isOpen
+    blockCache.isOpen
 }

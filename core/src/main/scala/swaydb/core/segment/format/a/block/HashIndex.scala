@@ -80,6 +80,7 @@ private[core] object HashIndex extends LazyLogging {
 
   final case class State(var hit: Int,
                          var miss: Int,
+                         minimumNumberOfKeys: Int,
                          writeAbleLargestValueSize: Int,
                          headerSize: Int,
                          maxProbe: Int,
@@ -90,44 +91,38 @@ private[core] object HashIndex extends LazyLogging {
 
     def bytes_=(bytes: Slice[Byte]) =
       this._bytes = bytes
+
+    def hasMinimumKeys =
+      hit >= minimumNumberOfKeys
   }
 
   def init(maxProbe: Int,
-           keyCount: Int,
-           largestValue: Int,
-           size: Int,
+           keyValues: Iterable[KeyValue.WriteOnly],
            compressions: Seq[CompressionInternal]): Option[HashIndex.State] =
-    if (size <= 6) //formatId, maxProbe, hit, miss, largestValue, allocatedBytes
+    if (keyValues.size < keyValues.last.hashIndexConfig.minimumNumberOfKeys)
+      None
+    else if (keyValues.last.stats.segmentHashIndexSize <= 6) //formatId, maxProbe, hit, miss, largestValue, allocatedBytes
       None
     else
       Some {
-        val writeAbleLargestValueSize = Bytes.sizeOf(largestValue + 1)
+        val writeAbleLargestValueSize = Bytes.sizeOf(keyValues.last.stats.thisKeyValuesAccessIndexOffset + 1)
+        val headSize =
+          headerSize(
+            keyCounts = keyValues.last.stats.segmentUniqueKeysCount,
+            writeAbleLargestValueSize = writeAbleLargestValueSize,
+            hasCompression = compressions.nonEmpty
+          )
         HashIndex.State(
           hit = 0,
           miss = 0,
-          maxProbe = maxProbe,
-          headerSize =
-            headerSize(
-              keyCounts = keyCount,
-              writeAbleLargestValueSize = writeAbleLargestValueSize,
-              hasCompression = compressions.nonEmpty
-            ),
+          minimumNumberOfKeys = keyValues.last.hashIndexConfig.minimumNumberOfKeys,
           writeAbleLargestValueSize = writeAbleLargestValueSize,
-          _bytes = Slice.create[Byte](size),
+          headerSize = headSize,
+          maxProbe = maxProbe,
+          _bytes = Slice.create[Byte](keyValues.last.stats.segmentHashIndexSize),
           compressions = compressions
         )
       }
-
-  def init(maxProbe: Int,
-           keyValues: Iterable[KeyValue.WriteOnly],
-           compressions: Seq[CompressionInternal]): Option[State] =
-    init(
-      maxProbe = maxProbe,
-      keyCount = keyValues.last.stats.segmentUniqueKeysCount,
-      largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
-      size = keyValues.last.stats.segmentHashIndexSize,
-      compressions = compressions
-    )
 
   def headerSize(keyCounts: Int,
                  writeAbleLargestValueSize: Int,
@@ -168,25 +163,29 @@ private[core] object HashIndex extends LazyLogging {
     } getOrElse 0
   }
 
-  def close(state: State): IO[Unit] =
-    Block.create(
-      headerSize = state.headerSize,
-      bytes = state.bytes,
-      compressions = state.compressions
-    ) flatMap {
-      compressedOrUncompressedBytes =>
-        IO {
-          val allocatedBytes = state.bytes.size
-          state.bytes = compressedOrUncompressedBytes
-          state.bytes addInt allocatedBytes //allocated bytes
-          state.bytes addInt state.maxProbe
-          state.bytes addIntUnsigned state.hit
-          state.bytes addIntUnsigned state.miss
-          state.bytes addIntUnsigned state.writeAbleLargestValueSize
-          if (state.bytes.currentWritePosition > state.headerSize)
-            throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
-        }
-    }
+  def close(state: State): IO[Option[State]] =
+    if (state.hasMinimumKeys)
+      Block.create(
+        headerSize = state.headerSize,
+        bytes = state.bytes,
+        compressions = state.compressions
+      ) flatMap {
+        compressedOrUncompressedBytes =>
+          IO {
+            val allocatedBytes = state.bytes.size
+            state.bytes = compressedOrUncompressedBytes
+            state.bytes addInt allocatedBytes //allocated bytes
+            state.bytes addInt state.maxProbe
+            state.bytes addIntUnsigned state.hit
+            state.bytes addIntUnsigned state.miss
+            state.bytes addIntUnsigned state.writeAbleLargestValueSize
+            if (state.bytes.currentWritePosition > state.headerSize)
+              throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+            Some(state)
+          }
+      }
+    else
+      IO.none
 
   def read(offset: Offset, reader: Reader): IO[HashIndex] =
     for {

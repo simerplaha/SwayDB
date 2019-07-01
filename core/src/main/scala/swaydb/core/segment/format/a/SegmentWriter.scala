@@ -213,21 +213,21 @@ private[core] object SegmentWriter extends LazyLogging {
                     values: Option[Values.State],
                     hashIndex: Option[HashIndex.State],
                     binarySearchIndex: Option[BinarySearchIndex.State],
-                    bloomFilter: Option[BloomFilter.State]): IO[Unit] =
+                    bloomFilter: Option[BloomFilter.State]): IO[(SortedIndex.State, Option[Values.State], Option[HashIndex.State], Option[BinarySearchIndex.State], Option[BloomFilter.State])] =
     for {
-      _ <- SortedIndex.close(sortedIndex)
-      _ <- values.map(Values.close) getOrElse IO.unit
-      _ <- hashIndex.map(HashIndex.close) getOrElse IO.unit
-      _ <- binarySearchIndex.map(BinarySearchIndex.close) getOrElse IO.unit
-      _ <- bloomFilter.map(BloomFilter.close) getOrElse IO.unit
-    } yield ()
+      sortedIndexClosed <- SortedIndex.close(sortedIndex)
+      valuesClosed <- values.map(values => Values.close(values).map(Some(_))) getOrElse IO.none
+      hashIndexClosed <- hashIndex.map(HashIndex.close) getOrElse IO.none
+      binarySearchIndexClosed <- binarySearchIndex.map(BinarySearchIndex.close) getOrElse IO.none
+      bloomFilterClosed <- bloomFilter.map(BloomFilter.close(_).map(Some(_))) getOrElse IO(bloomFilter)
+    } yield (sortedIndexClosed, valuesClosed, hashIndexClosed, binarySearchIndexClosed, bloomFilterClosed)
 
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             sortedIndex: SortedIndex.State,
             values: Option[Values.State],
             hashIndex: Option[HashIndex.State],
             binarySearchIndex: Option[BinarySearchIndex.State],
-            bloomFilter: Option[BloomFilter.State]): IO[Option[Deadline]] =
+            bloomFilter: Option[BloomFilter.State]): IO[(SortedIndex.State, Option[Values.State], Option[HashIndex.State], Option[BinarySearchIndex.State], Option[BloomFilter.State], Option[Deadline])] =
     keyValues.foldLeftIO(Option.empty[Deadline]) {
       case (deadline, keyValue) =>
         write(
@@ -248,18 +248,18 @@ private[core] object SegmentWriter extends LazyLogging {
           bloomFilter = bloomFilter,
           binarySearchIndex = binarySearchIndex
         ) map {
-          _ =>
-            nearestDeadline
+          case (sortedIndex, values, hashIndex, binarySearchIndex, bloomFilter) =>
+            (sortedIndex, values, hashIndex, binarySearchIndex, bloomFilter, nearestDeadline)
         }
     } flatMap {
-      deadline =>
+      result =>
         //ensure that all the slices are full.
         if (!sortedIndex.bytes.isFull)
           IO.Failure(new Exception(s"indexSlice is not full actual: ${sortedIndex.bytes.written} - expected: ${sortedIndex.bytes.size}"))
         else if (values.exists(!_.bytes.isFull))
           IO.Failure(new Exception(s"valuesSlice is not full actual: ${values.get.bytes.written} - expected: ${values.get.bytes.size}"))
         else
-          IO.Success(deadline)
+          IO.Success(result)
     }
 
   /**
@@ -304,7 +304,7 @@ private[core] object SegmentWriter extends LazyLogging {
         binarySearchIndex = binarySearchIndex,
         bloomFilter = bloomFilter
       ) flatMap {
-        nearestDeadline =>
+        case (sortedIndex, values, hashIndex, binarySearchIndex, bloomFilter, nearestDeadline) =>
           IO {
             val segmentFooterSlice = Slice.create[Byte](lastStats.segmentFooterSize)
             //this is a placeholder to store the format type of the Segment file written.

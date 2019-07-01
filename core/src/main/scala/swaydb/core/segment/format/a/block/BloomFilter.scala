@@ -147,7 +147,7 @@ object BloomFilter extends LazyLogging {
     else
       math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
 
-  def close(state: State) =
+  def close(state: State): IO[State] =
     Block.create(
       headerSize = state.headerSize,
       bytes = state.bytes,
@@ -160,6 +160,7 @@ object BloomFilter extends LazyLogging {
           state.bytes addIntUnsigned state.maxProbe
           if (state.bytes.currentWritePosition > state.headerSize)
             throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+          state
         }
     }
 

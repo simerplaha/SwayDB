@@ -85,53 +85,48 @@ object BinarySearchIndex {
               uniqueValuesCount: Int,
               isFullIndex: Boolean,
               minimumNumberOfKeys: Int,
-              compressions: Seq[CompressionInternal]): State =
-      State(
-        largestValue = largestValue,
-        uniqueValuesCount = uniqueValuesCount,
-        isFullIndex = isFullIndex,
-        bytes =
-          Slice.create[Byte](
-            optimalBytesRequired(
-              largestValue = largestValue,
-              valuesCount = uniqueValuesCount,
-              hasCompression = compressions.nonEmpty,
-              minimNumberOfKeysForBinarySearchIndex = minimumNumberOfKeys
-            )
-          ),
-        compressions = compressions
-      )
-
-    def apply(largestValue: Int,
-              uniqueValuesCount: Int,
-              isFullIndex: Boolean,
-              bytes: Slice[Byte],
-              compressions: Seq[CompressionInternal]): State =
-      new State(
-        bytesPerValue = bytesToAllocatePerValue(largestValue),
-        isFullIndex = isFullIndex,
-        _previousWritten = Int.MinValue,
-        writtenValues = 0,
-        headerSize =
+              compressions: Seq[CompressionInternal]): Option[State] =
+      if (uniqueValuesCount < minimumNumberOfKeys) {
+        None
+      } else {
+        val headerSize: Int =
           optimalHeaderSize(
             largestValue = largestValue,
             valuesCount = uniqueValuesCount,
             hasCompression = compressions.nonEmpty
-          ),
-        uniqueValuesCount = uniqueValuesCount,
-        _bytes = bytes,
-        compressions = compressions
-      )
+          )
+        val bytes: Int =
+          optimalBytesRequired(
+            largestValue = largestValue,
+            valuesCount = uniqueValuesCount,
+            hasCompression = compressions.nonEmpty,
+            minimNumberOfKeysForBinarySearchIndex = minimumNumberOfKeys
+          )
+        Some(
+          new State(
+            bytesPerValue = bytesToAllocatePerValue(largestValue),
+            uniqueValuesCount = uniqueValuesCount,
+            _previousWritten = Int.MinValue,
+            writtenValues = 0,
+            minimumNumberOfKeys = minimumNumberOfKeys,
+            headerSize = headerSize,
+            isFullIndex = isFullIndex,
+            _bytes = Slice.create[Byte](bytes),
+            compressions = compressions
+          )
+        )
+      }
   }
 
-  case class State(bytesPerValue: Int,
-                   uniqueValuesCount: Int,
-                   var _previousWritten: Int,
-                   var writtenValues: Int,
-                   headerSize: Int,
-                   isFullIndex: Boolean,
-                   var _bytes: Slice[Byte],
-                   compressions: Seq[CompressionInternal]) {
+  class State(val bytesPerValue: Int,
+              val uniqueValuesCount: Int,
+              var _previousWritten: Int,
+              var writtenValues: Int,
+              val minimumNumberOfKeys: Int,
+              val headerSize: Int,
+              val isFullIndex: Boolean,
+              var _bytes: Slice[Byte],
+              val compressions: Seq[CompressionInternal]) {
 
     def incrementWrittenValuesCount() =
       writtenValues += 1
@@ -145,21 +140,22 @@ object BinarySearchIndex {
 
     def bytes_=(bytes: Slice[Byte]) =
       this._bytes = bytes
+
+    def hasMinimumKeys =
+      writtenValues >= minimumNumberOfKeys
   }
 
   def init(keyValues: Iterable[KeyValue.WriteOnly],
-           compressions: Seq[CompressionInternal]) =
+           compressions: Seq[CompressionInternal]): Option[State] =
     if (keyValues.last.stats.segmentBinarySearchIndexSize <= 1)
       None
     else
-      Some(
-        BinarySearchIndex.State(
-          largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
-          uniqueValuesCount = keyValues.last.stats.segmentUniqueKeysCount,
-          isFullIndex = keyValues.last.binarySearchIndexConfig.fullIndex,
-          minimumNumberOfKeys = keyValues.last.binarySearchIndexConfig.minimumNumberOfKeys,
-          compressions = compressions
-        )
+      BinarySearchIndex.State(
+        largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
+        uniqueValuesCount = keyValues.last.stats.segmentUniqueKeysCount,
+        isFullIndex = keyValues.last.binarySearchIndexConfig.fullIndex,
+        minimumNumberOfKeys = keyValues.last.binarySearchIndexConfig.minimumNumberOfKeys,
+        compressions = compressions
       )
 
   def isVarInt(varintSizeOfLargestValue: Int) =
@@ -200,22 +196,26 @@ object BinarySearchIndex {
       headerSize
   }
 
-  def close(state: State): IO[Unit] =
-    Block.create(
-      headerSize = state.headerSize,
-      bytes = state.bytes,
-      compressions = state.compressions
-    ) flatMap {
-      compressedOrUncompressedBytes =>
-        IO {
-          state.bytes = compressedOrUncompressedBytes
-          state.bytes addIntUnsigned state.writtenValues
-          state.bytes addInt state.bytesPerValue
-          state.bytes addBoolean state.isFullIndex
-          if (state.bytes.currentWritePosition > state.headerSize)
-            throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
-        }
-    }
+  def close(state: State): IO[Option[State]] =
+    if (state.hasMinimumKeys)
+      Block.create(
+        headerSize = state.headerSize,
+        bytes = state.bytes,
+        compressions = state.compressions
+      ) flatMap {
+        compressedOrUncompressedBytes =>
+          IO {
+            state.bytes = compressedOrUncompressedBytes
+            state.bytes addIntUnsigned state.writtenValues
+            state.bytes addInt state.bytesPerValue
+            state.bytes addBoolean state.isFullIndex
+            if (state.bytes.currentWritePosition > state.headerSize)
+              throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+            Some(state)
+          }
+      }
+    else
+      IO.none
 
   def read(offset: Offset,
            reader: Reader): IO[BinarySearchIndex] =

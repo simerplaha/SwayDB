@@ -102,7 +102,7 @@ object Values {
       None
   }
 
-  def close(state: State) =
+  def close(state: State): IO[State] =
     Block.create(
       headerSize = state.headerSize,
       bytes = state.bytes,
@@ -113,6 +113,7 @@ object Values {
           state.bytes = compressedOrUncompressedBytes
           if (state.bytes.currentWritePosition > state.headerSize)
             throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+          state
         }
     }
 

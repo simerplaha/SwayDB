@@ -97,7 +97,7 @@ private[core] object SortedIndex {
     )
   }
 
-  def close(state: State): IO[Unit] =
+  def close(state: State): IO[State] =
     Block.create(
       headerSize = state.headerSize,
       bytes = state.bytes,
@@ -108,7 +108,7 @@ private[core] object SortedIndex {
         if (state.bytes.currentWritePosition > state.headerSize)
           IO.Failure(IO.Error.Fatal(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}"))
         else
-          IO.unit
+          IO.Success(state)
     }
 
   def read(offset: SortedIndex.Offset,
