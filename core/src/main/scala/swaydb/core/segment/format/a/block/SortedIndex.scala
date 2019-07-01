@@ -29,6 +29,7 @@ import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
 
@@ -38,6 +39,7 @@ private[core] object SortedIndex {
     val disabled =
       Config(
         cacheOnRead = false,
+        enablePositionIndex = false,
         prefixCompressionResetCount = 0,
         hasCompression = false
       )
@@ -51,6 +53,7 @@ private[core] object SortedIndex {
     def apply(config: swaydb.data.config.SortedIndex.Enable): Config =
       Config(
         cacheOnRead = config.cacheOnRead,
+        enablePositionIndex = config.enablePositionIndex,
         prefixCompressionResetCount = config.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0),
         hasCompression = config.compression.nonEmpty
       )
@@ -66,6 +69,7 @@ private[core] object SortedIndex {
 
   case class Config(cacheOnRead: Boolean,
                     prefixCompressionResetCount: Int,
+                    enablePositionIndex: Boolean,
                     hasCompression: Boolean)
 
   case class Offset(start: Int, size: Int) extends OffsetBase
@@ -82,6 +86,7 @@ private[core] object SortedIndex {
   def headerSize(hasCompression: Boolean): Int = {
     val size = Block.headerSize(hasCompression)
     Bytes.sizeOf(size) +
+      ByteSizeOf.byte + //enablePositionIndex
       size
   }
 
@@ -109,6 +114,12 @@ private[core] object SortedIndex {
           IO.Failure(IO.Error.Fatal(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}"))
         else
           IO.Success(state)
+    }
+
+  def write(keyValue: KeyValue.WriteOnly, state: SortedIndex.State) =
+    IO {
+      state.bytes addIntUnsigned keyValue.stats.keySize
+      state.bytes addAll keyValue.indexEntryBytes
     }
 
   def read(offset: SortedIndex.Offset,

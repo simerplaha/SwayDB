@@ -205,15 +205,16 @@ private[core] object SegmentWriter extends LazyLogging {
     if (keyValue.valueEntryBytes.nonEmpty && values.isEmpty)
       Values.valueSliceNotInitialised
     else
-      IO {
-        sortedIndex.bytes addIntUnsigned keyValue.stats.keySize
-        sortedIndex.bytes addAll keyValue.indexEntryBytes
-        keyValue.valueEntryBytes foreach (bytes => values.foreach(_.bytes.addAll(bytes)))
-        write(
-          keyValues = Slice(keyValue),
-          nearestDeadline = currentNearestDeadline
-        )
-      }
+      SortedIndex
+        .write(keyValue, sortedIndex)
+        .flatMap(_ => values.map(Values.write(keyValue, _)).getOrElse(IO.unit))
+        .map {
+          _ =>
+            write(
+              keyValues = Slice(keyValue),
+              nearestDeadline = currentNearestDeadline
+            )
+        }
   }
 
   private def closeBlocks(sortedIndex: SortedIndex.State,

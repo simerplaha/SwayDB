@@ -468,6 +468,7 @@ object TestData {
       SortedIndex.Config(
         cacheOnRead = randomBoolean(),
         prefixCompressionResetCount = randomIntMax(50),
+        enablePositionIndex = randomBoolean(),
         hasCompression = true
       )
   }

@@ -31,5 +31,6 @@ sealed trait SortedIndex {
 object SortedIndex {
   case class Enable(cacheOnRead: Boolean,
                     prefixCompression: PrefixCompression,
+                    enablePositionIndex: Boolean,
                     compression: Seq[Compression]) extends SortedIndex
 }

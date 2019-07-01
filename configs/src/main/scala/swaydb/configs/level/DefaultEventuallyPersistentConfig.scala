@@ -95,6 +95,7 @@ object DefaultEventuallyPersistentConfig {
         sortedIndex =
           SortedIndex.Enable(
             cacheOnRead = false,
+            enablePositionIndex = true,
             prefixCompression =
               PrefixCompression.Enable(
                 resetCount = Some(10)

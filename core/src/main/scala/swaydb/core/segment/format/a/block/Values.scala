@@ -102,6 +102,11 @@ object Values {
       None
   }
 
+  def write(keyValue: KeyValue.WriteOnly, state: Values.State) =
+    IO {
+      keyValue.valueEntryBytes foreach state.bytes.addAll
+    }
+
   def close(state: State): IO[State] =
     Block.create(
       headerSize = state.headerSize,
