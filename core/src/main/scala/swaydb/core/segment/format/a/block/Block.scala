@@ -128,8 +128,8 @@ object Block extends LazyLogging {
     }
 
   def create(headerSize: Int,
-             writeResult: SegmentWriter.Result,
-             compressions: Seq[CompressionInternal]): IO[SegmentWriter.Result] =
+             writeResult: SegmentWriter.ClosedSegment,
+             compressions: Seq[CompressionInternal]): IO[SegmentWriter.ClosedSegment] =
     if (compressions.isEmpty) {
       logger.debug(s"No compression strategies provided for Segment level compression. Storing ${writeResult.segmentSize}.bytes uncompressed.")
       IO {
@@ -145,7 +145,7 @@ object Block extends LazyLogging {
         compressions = compressions
       ) map {
         bytes =>
-          SegmentWriter.Result(
+          SegmentWriter.ClosedSegment(
             segmentBytes = Slice(bytes),
             nearestDeadline = writeResult.nearestDeadline
           )

@@ -1086,7 +1086,7 @@ private[core] object Transient {
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
                    fullKey: Slice[Byte],
-                   result: SegmentWriter.Result,
+                   result: SegmentWriter.ClosedSegment,
                    //the deadline is the nearest deadline in the Group's key-values.
                    deadline: Option[Deadline],
                    keyValues: Slice[KeyValue.WriteOnly],
