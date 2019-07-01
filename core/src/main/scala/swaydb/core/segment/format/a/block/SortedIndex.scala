@@ -58,12 +58,11 @@ private[core] object SortedIndex {
         hasCompression = config.compression.nonEmpty
       )
 
-    def enablePrefixCompression(config: Config,
-                                previous: Option[KeyValue.WriteOnly]): Boolean =
-      config.prefixCompressionResetCount > 0 &&
-        previous.exists {
+    def enablePrefixCompression(keyValue: KeyValue.WriteOnly): Boolean =
+      keyValue.sortedIndexConfig.prefixCompressionResetCount > 0 &&
+        keyValue.previous.exists {
           previous =>
-            (previous.stats.chainPosition + 1) % config.prefixCompressionResetCount == 0
+            (previous.stats.chainPosition + 1) % keyValue.sortedIndexConfig.prefixCompressionResetCount == 0
         }
   }
 

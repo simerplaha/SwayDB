@@ -63,8 +63,7 @@ private[core] object KeyValueWriter {
             current = current,
             previous = previous,
             currentTime = currentTime,
-            compressDuplicateValues = compressDuplicateValues,
-            enablePrefixCompression = enablePrefixCompression
+            compressDuplicateValues = compressDuplicateValues
           )
         else
           None
@@ -80,8 +79,7 @@ private[core] object KeyValueWriter {
   private def writeCompressed[T <: KeyValue.WriteOnly](current: T,
                                                        previous: KeyValue.WriteOnly,
                                                        currentTime: Time,
-                                                       compressDuplicateValues: Boolean,
-                                                       enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
+                                                       compressDuplicateValues: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
     compress(key = current.fullKey, previous = previous, minimumCommonBytes = 2) map {
       case (commonBytes, remainingBytes) =>
         val writeResult =
@@ -90,7 +88,7 @@ private[core] object KeyValueWriter {
             currentTime = currentTime,
             compressDuplicateValues = compressDuplicateValues,
             entryId = BaseEntryIdFormatA.format.start,
-            enablePrefixCompression = enablePrefixCompression,
+            enablePrefixCompression = true,
             isKeyCompressed = true,
             hasPrefixCompressed = true,
             plusSize = sizeOf(commonBytes) + remainingBytes.size //write the size of keys compressed and also the uncompressed Bytes

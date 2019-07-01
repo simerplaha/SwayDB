@@ -602,7 +602,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = false,
-        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(sortedIndexConfig, previous)
+        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -668,7 +668,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
-        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(sortedIndexConfig, previous)
+        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean =
@@ -735,7 +735,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
-        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(sortedIndexConfig, previous)
+        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -802,7 +802,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
-        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(sortedIndexConfig, previous)
+        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -890,7 +890,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
-        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(sortedIndexConfig, previous)
+        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -1006,7 +1006,7 @@ private[core] object Transient {
         currentTime = Time.empty,
         //It's highly likely that two sequential key-values within the same range have the different value after the range split occurs so this is always set to true.
         compressDuplicateValues = valuesConfig.compressDuplicateRangeValues,
-        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(sortedIndexConfig, previous)
+        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -1110,7 +1110,7 @@ private[core] object Transient {
         //it's highly unlikely that 2 groups after compression will have duplicate values.
         //compressDuplicateValues check is unnecessary since the value bytes of a group can be large.
         compressDuplicateValues = false,
-        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(sortedIndexConfig, previous)
+        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
