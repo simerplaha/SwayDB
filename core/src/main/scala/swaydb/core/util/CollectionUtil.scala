@@ -51,7 +51,7 @@ object CollectionUtil {
 
   /**
     * Groups items ensuring if the input groupSize is > 1 then the output groups
-    * should not contain a single item. Single items get merged into their previous gorup.
+    * should not contain a single item. Single items value merged into their previous gorup.
     */
   def groupedMergeSingles[T](groupSize: Int,
                              items: List[T]): List[List[T]] =
@@ -67,7 +67,7 @@ object CollectionUtil {
 
   /**
     * Groups items ensuring if the input groupSize is > 1 then the output groups
-    * should not contain a single item. Single items get merged into their previous gorup.
+    * should not contain a single item. Single items value merged into their previous gorup.
     */
   def groupedMergeSingles[T](groupSize: Int,
                              items: List[T],

@@ -140,9 +140,9 @@
 //      readGroup.isIndexDecompressed shouldBe false
 //      readGroup.isValueDecompressed shouldBe false
 //
-//      val binarySegment = readGroup.segment
-//      binarySegment.isCacheEmpty shouldBe true
-//      binarySegment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+//      val segmentCache = readGroup.segment
+//      segmentCache.isCacheEmpty shouldBe true
+//      segmentCache.get(keyValues.head.key).assertGet shouldBe keyValues.head
 //
 //      readGroup.isHeaderDecompressed shouldBe true
 //      readGroup.isIndexDecompressed shouldBe true
@@ -193,9 +193,9 @@
 //      readGroup.isIndexDecompressed shouldBe false
 //      readGroup.isValueDecompressed shouldBe false
 //
-//      val binarySegment = readGroup.segment
-//      binarySegment.isCacheEmpty shouldBe true
-//      binarySegment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+//      val segmentCache = readGroup.segment
+//      segmentCache.isCacheEmpty shouldBe true
+//      segmentCache.get(keyValues.head.key).assertGet shouldBe keyValues.head
 //
 //      readGroup.isHeaderDecompressed shouldBe true
 //      readGroup.isIndexDecompressed shouldBe true

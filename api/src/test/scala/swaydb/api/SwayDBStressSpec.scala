@@ -87,7 +87,7 @@
 //    val deadline = 1.hour.fromNow
 //
 //    runThis(100.times) {
-//      //add multiple Levels to Memory databases and the get fails
+//      //add multiple Levels to Memory databases and the value fails
 //      //swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
 //      eitherOne(
 //        left = (1 to keyValueCount) foreach (i => db.remove(i).assertGet),

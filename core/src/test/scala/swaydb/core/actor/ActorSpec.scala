@@ -67,7 +67,7 @@ class ActorSpec extends WordSpec with Matchers {
         message =>
           Future(actor ! message.toString)
       }
-      //concurrent sends, messages should arrive in any order but all messages should get processed
+      //concurrent sends, messages should arrive in any order but all messages should value processed
       eventual {
         state.processed.size shouldBe messageCount
         state.processed should contain allElementsOf (1 to messageCount).map(_.toString)
@@ -133,7 +133,7 @@ class ActorSpec extends WordSpec with Matchers {
         Actor.timer[Int, State](state, 1.second) {
           case (int, self) =>
             self.state.processed += int
-            //delay sending message to self so that it does get processed in the same batch
+            //delay sending message to self so that it does value processed in the same batch
             println(s"Message: $int")
             if (int >= 6)
               ()
@@ -143,7 +143,7 @@ class ActorSpec extends WordSpec with Matchers {
 
       actor ! 1
       sleep(7.second)
-      //ensure that within those 5.second interval at least 3 and no more then 5 messages get processed.
+      //ensure that within those 5.second interval at least 3 and no more then 5 messages value processed.
       state.processed.size should be >= 3
       state.processed.size should be <= 6
 

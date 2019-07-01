@@ -105,7 +105,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       "writing to an empty Level" in {
         val level = TestLevel()
         level.put(map).assertGet
-        //since this is a new Segment and Level has no sub-level, all the deleted key-values will get removed.
+        //since this is a new Segment and Level has no sub-level, all the deleted key-values will value removed.
         val (deletedKeyValues, otherKeyValues) = keyValues.partition(_.isInstanceOf[Memory.Remove])
 
         assertReads(otherKeyValues, level)

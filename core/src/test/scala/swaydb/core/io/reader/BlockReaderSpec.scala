@@ -30,7 +30,7 @@ class BlockReaderSpec extends WordSpec with Matchers {
     //size
     reader.size.get shouldBe bodyBytes.size
 
-    //moveTo and get
+    //moveTo and value
     (0 until bodyBytes.size) foreach {
       index =>
         reader.moveTo(index).get().get shouldBe bodyBytes(index)

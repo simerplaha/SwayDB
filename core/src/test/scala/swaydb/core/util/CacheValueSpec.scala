@@ -33,9 +33,9 @@ class CacheValueSpec extends WordSpec with Matchers with MockFactory {
       value.isCached shouldBe false
       mock.expects() returning IO(123)
 
-      value.get shouldBe IO.Success(123)
+      value.value shouldBe IO.Success(123)
       value.isCached shouldBe true
-      value.get shouldBe IO.Success(123) //get again mock function is not invoked again
+      value.value shouldBe IO.Success(123) //value again mock function is not invoked again
     }
 
     "not cache on failure" in {
@@ -46,12 +46,12 @@ class CacheValueSpec extends WordSpec with Matchers with MockFactory {
       mock.expects() returning IO.Failure("Kaboom!")
 
       //failure
-      value.get.failed.get.exception.getMessage shouldBe "Kaboom!"
+      value.value.failed.get.exception.getMessage shouldBe "Kaboom!"
       value.isCached shouldBe false
 
       //success
       mock.expects() returning IO(123)
-      value.get shouldBe IO.Success(123) //get again mock function is not invoked again
+      value.value shouldBe IO.Success(123) //value again mock function is not invoked again
       value.isCached shouldBe true
     }
 

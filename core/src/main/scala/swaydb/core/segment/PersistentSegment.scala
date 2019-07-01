@@ -58,24 +58,21 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def path = file.path
 
-  private[segment] val cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder)
+  private val segmentBlockCache = CacheValue.reserved[SegmentBlock](getSegmentBlock())
 
-  private val binarySegment =
-    new BinarySegment(
+  private val segmentCache =
+    SegmentCache(
       id = file.path.toString,
       maxKey = maxKey,
       minKey = minKey,
-      cache = cache,
       unsliceKey = true,
-      offset = () => file.fileSize map (fileSize => SegmentBlock.Offset(0, fileSize.toInt)),
-      createSegmentReader = () => Reader(file),
-      segmentBlockReserve = Reserve()
+      createSegmentBlockReader = () => segmentBlockCache.map(_.createBlockReader(Reader(file)))
     )
 
   def close: IO[Unit] =
     file.close map {
       _ =>
-        binarySegment.close()
+        segmentCache.clear()
     }
 
   def isOpen: Boolean =
@@ -94,7 +91,7 @@ private[segment] case class PersistentSegment(file: DBFile,
         logger.error(s"{}: Failed to delete Segment file.", path, failure)
     } map {
       _ =>
-        binarySegment.close()
+        segmentCache.clear()
     }
   }
 
@@ -220,41 +217,50 @@ private[segment] case class PersistentSegment(file: DBFile,
         }
     }
 
+  def getSegmentBlockOffset(): IO[SegmentBlock.Offset] =
+    file.fileSize map (fileSize => SegmentBlock.Offset(0, fileSize.toInt))
+
+  def getSegmentBlock() =
+    for {
+      offset <- getSegmentBlockOffset()
+      block <- SegmentBlock.read(offset, Reader(file))
+    } yield block
+
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
-    binarySegment getFromCache key
+    segmentCache getFromCache key
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
-    binarySegment mightContain key
+    segmentCache mightContain key
 
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
-    binarySegment get key
+    segmentCache get key
 
   def lower(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
-    binarySegment lower key
+    segmentCache lower key
 
   def floorHigherHint(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
-    binarySegment floorHigherHint key
+    segmentCache floorHigherHint key
 
   def higher(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
-    binarySegment higher key
+    segmentCache higher key
 
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
-    binarySegment getAll addTo
+    segmentCache getAll addTo
 
   override def hasRange: IO[Boolean] =
-    binarySegment.hasRange
+    segmentCache.hasRange
 
   override def hasPut: IO[Boolean] =
-    binarySegment.hasPut
+    segmentCache.hasPut
 
   def getHeadKeyValueCount(): IO[Int] =
-    binarySegment.getHeadKeyValueCount()
+    segmentCache.getHeadKeyValueCount()
 
   def getBloomFilterKeyValueCount(): IO[Int] =
-    binarySegment.getBloomFilterKeyValueCount()
+    segmentCache.getBloomFilterKeyValueCount()
 
   override def isFooterDefined: Boolean =
-    binarySegment.isFooterDefined
+    segmentCache.isFooterDefined
 
   def existsOnDisk: Boolean =
     file.existsOnDisk
@@ -272,11 +278,23 @@ private[segment] case class PersistentSegment(file: DBFile,
     !file.existsOnDisk
 
   override def createdInLevel: IO[Int] =
-    binarySegment.getFooter().map(_.createdInLevel)
+    segmentCache.createdInLevel
 
   override def isGrouped: IO[Boolean] =
-    binarySegment.getFooter().map(_.hasGroup)
+    segmentCache.isGrouped
 
   override def isBloomFilterDefined: Boolean =
-    binarySegment.isBloomFilterDefined
+    segmentCache.isBloomFilterDefined
+
+  def clearCache(): Unit =
+    segmentCache.clear()
+
+  def isInCache(key: Slice[Byte]): Boolean =
+    segmentCache isInCache key
+
+  def isCacheEmpty: Boolean =
+    segmentCache.isCacheEmpty
+
+  def cacheSize: Int =
+    segmentCache.cacheSize
 }

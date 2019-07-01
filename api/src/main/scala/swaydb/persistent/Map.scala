@@ -48,7 +48,7 @@ object Map extends LazyLogging {
     * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
     *
     * @param dir                         Root directory for all Level where appendix folder & files are created
-    * @param otherDirs                   Secondary directories for all Levels where Segments get distributed.
+    * @param otherDirs                   Secondary directories for all Levels where Segments value distributed.
     * @param maxOpenSegments             Number of concurrent Segments opened
     * @param cacheSize                   Size of in-memory key-values
     * @param mapSize                     Size of LevelZero's maps (WAL)
@@ -58,10 +58,10 @@ object Map extends LazyLogging {
     * @param segmentSize                 Minimum size of Segment files in each Level
     * @param appendixFlushCheckpointSize Size of the appendix file before it's flushed. Appendix files are append only log files.
     *                                    Flushing removes deleted entries in the file hence reducing the size of the file.
-    * @param cacheCheckDelay             Sets the max interval at which key-values get dropped from the cache. The delays
+    * @param cacheCheckDelay             Sets the max interval at which key-values value dropped from the cache. The delays
     *                                    are dynamically adjusted based on the current size of the cache to stay close the set
     *                                    cacheSize.
-    * @param segmentsOpenCheckDelay      Sets the max interval at which Segments get closed. The delays
+    * @param segmentsOpenCheckDelay      Sets the max interval at which Segments value closed. The delays
     *                                    are dynamically adjusted based on the current number of open Segments.
     * @param acceleration                Controls the write speed.
     * @param keySerializer               Converts keys to Bytes

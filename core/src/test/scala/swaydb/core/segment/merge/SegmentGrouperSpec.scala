@@ -77,7 +77,7 @@
 //        compressDuplicateValues = true
 //      )
 //
-//      //the initialSegment should be closed and a new segment should get started
+//      //the initialSegment should be closed and a new segment should value started
 //      segments.size shouldBe 2
 //
 //      val firstSegment = segments.head

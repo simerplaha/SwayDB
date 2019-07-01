@@ -190,16 +190,16 @@
 //    ).assertGet
 //  }
 //
-//  "Segment get benchmark 1" in {
+//  "Segment value benchmark 1" in {
 //    initSegment()
 //
-//    benchmark(s"get ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+//    benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
 //      assertGet(segment)
 //    }
 //  }
 //
-//  "Segment get benchmark 2" in {
-//    benchmark(s"get ${keyValues.size} cached key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+//  "Segment value benchmark 2" in {
+//    benchmark(s"value ${keyValues.size} cached key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
 //      assertGet(segment)
 //    }
 //  }

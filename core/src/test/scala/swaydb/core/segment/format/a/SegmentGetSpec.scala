@@ -151,7 +151,7 @@
 //      }
 //    }
 //
-//    "get Group key-values" in {
+//    "value Group key-values" in {
 //      //run this test randomly to possibly test all range key-value combinations
 //      runThis(100.times) {
 //        val groupKeyValues = randomizedKeyValues(keyValuesCount)
@@ -165,7 +165,7 @@
 //      }
 //    }
 //
-//    "get random key-values" in {
+//    "value random key-values" in {
 //      val keyValues = randomizedKeyValues(keyValuesCount)
 //      val segment = TestSegment(keyValues).assertGet
 //      assertGet(keyValues, segment)
@@ -209,7 +209,7 @@
 //              keyValues foreach {
 //                keyValue =>
 //                  if (persistent) segment isInCache keyValue.key shouldBe false
-//                  (segment get keyValue.key).assertGet shouldBe keyValue
+//                  (segment value keyValue.key).assertGet shouldBe keyValue
 //                  eventually(segment isInCache keyValue.key shouldBe true)
 //              }
 //        )

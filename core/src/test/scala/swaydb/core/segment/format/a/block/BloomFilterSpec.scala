@@ -246,7 +246,7 @@
 //    }
 //  }
 //
-//  //  "write indexes and get the nearest deadline" in {
+//  //  "write indexes and value the nearest deadline" in {
 //  //    runThis(100.times) {
 //  //      val keyValues = randomizedKeyValues(keyValueCount)
 //  //      val group = randomGroup(keyValues)

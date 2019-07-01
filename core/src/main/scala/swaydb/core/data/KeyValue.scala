@@ -28,8 +28,8 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.format.a.{SegmentBlock, SegmentCompression, SegmentWriter}
-import swaydb.core.segment.{BinarySegment, BinarySegmentInitialiser, Segment}
-import swaydb.core.util.Bytes
+import swaydb.core.segment.{SegmentCache, Segment}
+import swaydb.core.util.{Bytes, CacheValue, CacheFunctionValue}
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
@@ -186,7 +186,7 @@ private[core] object KeyValue {
       def minKey: Slice[Byte]
       def maxKey: MaxKey[Slice[Byte]]
       def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                  keyValueLimiter: KeyValueLimiter): BinarySegment
+                  keyValueLimiter: KeyValueLimiter): SegmentCache
       def deadline: Option[Deadline]
       def isInitialised: Boolean
     }
@@ -483,22 +483,43 @@ private[swaydb] object Memory {
       IO.Success(fromValue, rangeValue)
   }
 
+  object Group {
+    def apply(minKey: Slice[Byte],
+              maxKey: MaxKey[Slice[Byte]],
+              compressedKeyValues: Slice[Byte],
+              deadline: Option[Deadline]): Group =
+      new Group(
+        minKey = minKey,
+        maxKey = maxKey,
+        compressedKeyValues = compressedKeyValues,
+        deadline = deadline,
+        segmentBlock =
+          CacheValue(
+            SegmentBlock.read(
+              offset = SegmentBlock.Offset(0, compressedKeyValues.written),
+              segmentReader = Reader(compressedKeyValues)
+            )
+          )
+      )
+  }
+
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
                    compressedKeyValues: Slice[Byte],
-                   deadline: Option[Deadline]) extends Memory with KeyValue.ReadOnly.Group {
+                   deadline: Option[Deadline],
+                   segmentBlock: CacheValue[SegmentBlock]) extends Memory with KeyValue.ReadOnly.Group {
 
-    val blockOffset = IO.Success(SegmentBlock.Offset(0, compressedKeyValues.written))
-
-    private lazy val binarySegment: BinarySegmentInitialiser =
-      new BinarySegmentInitialiser(
-        id = "Memory.Group - BinarySegment",
-        minKey = minKey,
-        maxKey = maxKey,
-        unsliceKey = false,
-        offset = () => blockOffset,
-        createSegmentReader = () => Reader(compressedKeyValues)
-      )
+    private val segmentCache: CacheFunctionValue[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
+      CacheValue.partial {
+        case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter) =>
+          SegmentCache(
+            id = "Memory.Group - BinarySegment",
+            minKey = minKey,
+            maxKey = maxKey,
+            unsliceKey = false,
+            createSegmentBlockReader = () => segmentBlock.map(_.createBlockReader(Reader(compressedKeyValues)))
+          )(keyOrder, limiter)
+      }
 
     override def valueLength: Int = compressedKeyValues.written
 
@@ -507,16 +528,17 @@ private[swaydb] object Memory {
     override def key: Slice[Byte] = minKey
 
     override def isInitialised: Boolean =
-      binarySegment.isInitialised
+      segmentCache.isCached
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                keyValueLimiter: KeyValueLimiter): BinarySegment =
-      binarySegment.get
+                keyValueLimiter: KeyValueLimiter): SegmentCache =
+      segmentCache.value(keyOrder, keyValueLimiter).get
 
-    def uncompress(): Memory.Group =
-      copy()
+    def uncompress(): Memory.Group = {
+      segmentBlock.clear()
+      this
+    }
   }
-
 }
 
 private[core] sealed trait Transient extends KeyValue.WriteOnly
@@ -1601,7 +1623,14 @@ private[core] object Persistent {
             valueOffset = valueOffset,
             valueLength = valueLength,
             deadline = deadline,
-            isPrefixCompressed = isPrefixCompressed
+            isPrefixCompressed = isPrefixCompressed,
+            segmentBlock =
+              CacheValue.reserved(
+                SegmentBlock.read(
+                  offset = SegmentBlock.Offset(valueOffset, valueLength),
+                  segmentReader = valueReader
+                )
+              )
           )
       }
   }
@@ -1615,25 +1644,26 @@ private[core] object Persistent {
                    valueOffset: Int,
                    valueLength: Int,
                    deadline: Option[Deadline],
-                   isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group {
+                   isPrefixCompressed: Boolean,
+                   segmentBlock: CacheValue[SegmentBlock]) extends Persistent with KeyValue.ReadOnly.Group {
 
-    val blockOffset = IO.Success(SegmentBlock.Offset(valueOffset, valueLength))
-
-    private lazy val binarySegment =
-      new BinarySegmentInitialiser(
-        id = "Persistent.Group - BinarySegment",
-        minKey = minKey,
-        maxKey = maxKey,
-        //persistent key-value's key do not have be sliced either because the decompressed bytes are still in memory.
-        //slicing will just use more memory. On memory overflow the Group itself will find dropped and hence all the
-        //key-values inside the group's SegmentCache will also be GC'd.
-        unsliceKey = false,
-        offset = () => blockOffset,
-        createSegmentReader = () => valueReader.copy()
-      )
+    private val segmentCache: CacheFunctionValue[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
+      CacheValue.partial {
+        case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter) =>
+          SegmentCache(
+            id = "Persistent.Group - BinarySegment",
+            minKey = minKey,
+            maxKey = maxKey,
+            //persistent key-value's key do not have be sliced either because the decompressed bytes are still in memory.
+            //slicing will just use more memory. On memory overflow the Group itself will find dropped and hence all the
+            //key-values inside the group's SegmentCache will also be GC'd.
+            unsliceKey = false,
+            createSegmentBlockReader = () => segmentBlock.map(_.createBlockReader(valueReader))
+          )(keyOrder, limiter)
+      }
 
     def isInitialised =
-      binarySegment.isInitialised
+      segmentCache.isCached
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
@@ -1652,7 +1682,7 @@ private[core] object Persistent {
     }
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                keyValueLimiter: KeyValueLimiter): BinarySegment =
-      binarySegment.get
+                keyValueLimiter: KeyValueLimiter): SegmentCache =
+      segmentCache.value(keyOrder, keyValueLimiter).get
   }
 }

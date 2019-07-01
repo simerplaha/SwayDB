@@ -27,7 +27,7 @@ import swaydb.core.util.Extension
 class IOEffectSpec extends TestBase {
 
   "fileId" should {
-    "get the file id" in {
+    "value the file id" in {
       IOEffect.fileId(Paths.get("/one/1.log")).assertGet shouldBe(1, Extension.Log)
       IOEffect.fileId(Paths.get("/one/two/10.log")).assertGet shouldBe(10, Extension.Log)
       IOEffect.fileId(Paths.get("/one/two/three/1000.seg")).assertGet shouldBe(1000, Extension.Seg)
@@ -45,7 +45,7 @@ class IOEffectSpec extends TestBase {
   }
 
   "folderId" should {
-    "get the folderId" in {
+    "value the folderId" in {
       IOEffect.folderId(Paths.get("/one/1")) shouldBe 1
       IOEffect.folderId(Paths.get("/one/two/10")) shouldBe 10
       IOEffect.folderId(Paths.get("/one/two/three/1000")) shouldBe 1000

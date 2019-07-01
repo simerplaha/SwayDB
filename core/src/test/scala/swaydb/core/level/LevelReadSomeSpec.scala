@@ -137,7 +137,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
                       throw exception
 
                     case Success(_) =>
-                      //on successful get check deadline is updated.
+                      //on successful value check deadline is updated.
                       updatedDeadline foreach {
                         updatedDeadline =>
                           gotDeadline should contain(updatedDeadline)

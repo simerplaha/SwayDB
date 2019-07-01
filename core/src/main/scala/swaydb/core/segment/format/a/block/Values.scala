@@ -142,7 +142,7 @@ object Values {
                 IO.Failure(
                   IO.Error.Fatal(
                     SegmentCorruptionException(
-                      message = s"Corrupted Segment: Failed to get bytes of length $length from offset $fromOffset",
+                      message = s"Corrupted Segment: Failed to value bytes of length $length from offset $fromOffset",
                       cause = exception
                     )
                   )

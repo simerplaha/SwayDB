@@ -147,7 +147,7 @@
 //  }
 //
 //  //  "Decompressed group" should {
-//  //    "eventually get uncompressed and update cache" in {
+//  //    "eventually value uncompressed and update cache" in {
 //  //      val keyValues = randomizedKeyValues(100, addRandomGroups = false)
 //  //
 //  //      implicit val keyValueLimiter = KeyValueLimiter(100.bytes, 5.second)
@@ -177,7 +177,7 @@
 //  //            group.isIndexDecompressed shouldBe true
 //  //            segment.isCacheEmpty shouldBe false
 //  //          }
-//  //          println("Checking group should eventually get removed")
+//  //          println("Checking group should eventually value removed")
 //  //          eventual(10.seconds) {
 //  //            segment.isCacheEmpty shouldBe true
 //  //          }

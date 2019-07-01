@@ -237,7 +237,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
           self = actor
         )
         //after calling scheduleNextWakeUp listener should be initialised.
-        //this ensures that multiple wakeUp callbacks do not get registered for the same pull.
+        //this ensures that multiple wakeUp callbacks do not value registered for the same pull.
         awaitingPull.listenerInitialised shouldBe true
 
         //free the reserve and compaction should expect a message.

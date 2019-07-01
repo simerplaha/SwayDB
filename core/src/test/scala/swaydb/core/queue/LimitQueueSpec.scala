@@ -97,7 +97,7 @@ class LimitQueueSpec extends TestBase {
       //clear and ready for second eviction
       evictedItems.clear()
 
-      //after the previous eviction submit another 5 times so another 5 get evicted.
+      //after the previous eviction submit another 5 times so another 5 value evicted.
       //but this time the second half if items (first items) is evicted.
       val items2: Seq[Item] = (11 to 15).map(Item)
       items2 foreach {

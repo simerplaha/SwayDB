@@ -38,7 +38,7 @@
 //
 ///**
 //  * [[swaydb.core.group.compression.GroupCompressor]] is always invoked directly from [[Transient.Group]] there these test cases initialise the Group
-//  * to get full code coverage.
+//  * to value full code coverage.
 //  *
 //  */
 //class GroupDecompressorSpec extends TestBase {
@@ -49,7 +49,7 @@
 //
 //  "GroupDecompressor" should {
 //    "Concurrently read multiple key-values" in {
-//      //only 100.bytes (very small) for key-values bytes so that all key-values get dropped from the cache eventually.
+//      //only 100.bytes (very small) for key-values bytes so that all key-values value dropped from the cache eventually.
 //      implicit val keyValueLimiter = KeyValueLimiter(1.byte, 1.second)
 //      runThis(10.times) {
 //        //randomly generate key-values
@@ -96,7 +96,7 @@
 //        //            right = unzipGroups(keyValues)
 //        //          ) mapIO {
 //        //            keyValue =>
-//        //              IO.Async.runSafe(persistentGroup.binarySegment.get(keyValue.key).get).safeGetBlocking match {
+//        //              IO.Async.runSafe(persistentGroup.segmentCache.get(keyValue.key).get).safeGetBlocking match {
 //        //                case IO.Failure(exception) =>
 //        //                  IO.Failure(exception)
 //        //
@@ -115,7 +115,7 @@
 //        //        println("Done reading.")
 //        //        //cache should eventually be empty.
 //        //        eventual(20.seconds) {
-//        //          persistentGroup.binarySegment.isCacheEmpty shouldBe true
+//        //          persistentGroup.segmentCache.isCacheEmpty shouldBe true
 //        //        }
 //        //        println("Cache is empty")
 //        ???

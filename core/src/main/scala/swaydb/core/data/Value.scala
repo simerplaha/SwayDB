@@ -49,7 +49,7 @@ private[swaydb] object Value {
 //        case remove: Remove =>
 //          remove
 //        case update: Update =>
-//          if (update.value.isEmpty)
+//          if (update.get.isEmpty)
 //            update
 //          else
 //            update.copy(value = None)
@@ -60,7 +60,7 @@ private[swaydb] object Value {
 //          removeValues(apply.applies)
 //
 //        case put: Put =>
-//          if (put.value.isEmpty)
+//          if (put.get.isEmpty)
 //            put
 //          else
 //            put.copy(value = None)

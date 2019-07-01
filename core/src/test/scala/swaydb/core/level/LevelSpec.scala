@@ -195,7 +195,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
   }
 
   "largestSegmentId" should {
-    "get the largest segment in the Level when the Level is not empty" in {
+    "value the largest segment in the Level when the Level is not empty" in {
       val level = TestLevel(segmentSize = 1.kb)
       level.putKeyValuesTest(randomizedKeyValues(2000)).assertGet
 

@@ -40,7 +40,7 @@ private[swaydb] sealed trait ActorRef[-T] {
     *
     * Used when guaranteed submission of the message is the only requirement.
     *
-    * Used in timer actors where messages get processed after a delay interval.
+    * Used in timer actors where messages value processed after a delay interval.
     */
   def submit(message: T): Unit
 

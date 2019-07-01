@@ -43,7 +43,7 @@
 //      val entry = randomFixedKeyValue(key = randomIntMax(), value = randomStringOption).toTransient
 //      //      println("write: " + entry)
 //
-//      val read = EntryReader.read(Reader(entry.indexEntryBytes), entry.valueEntryBytes.map(Reader(_)).getOrElse(Reader.empty), 0, 0, 0, None).assertGet
+//      val read = EntryReader.read(Reader(entry.indexEntryBytes), entry.valueEntryBytes.map(Reader(_)).getValueOrElse(Reader.empty), 0, 0, 0, None).assertGet
 //      //      println("read:  " + read)
 //      read shouldBe entry
 //    }
@@ -56,7 +56,7 @@
 //      val keyValues = randomizedKeyValues(count = 1, addRandomGroups = false)
 //      val previous = keyValues.head
 //
-//      val duplicateValues = if (Random.nextBoolean()) previous.value else randomStringOption
+//      val duplicateValues = if (Random.nextBoolean()) previous.get else randomStringOption
 //      val duplicateDeadline = if (Random.nextBoolean()) previous.deadline else randomDeadlineOption
 //      val next = randomFixedKeyValue(randomIntMax(), deadline = duplicateDeadline, value = duplicateValues).toTransient(previous = Some(previous))
 //

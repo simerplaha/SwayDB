@@ -964,7 +964,6 @@ private[core] object Segment extends LazyLogging {
 }
 
 private[core] trait Segment extends FileLimiterItem {
-  private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], _]
   val minKey: Slice[Byte]
   val maxKey: MaxKey[Slice[Byte]]
   val segmentSize: Int
@@ -1033,17 +1032,13 @@ private[core] trait Segment extends FileLimiterItem {
 
   def getBloomFilterKeyValueCount(): IO[Int]
 
-  def clearCache(): Unit =
-    cache.clear()
+  def clearCache(): Unit
 
-  def isInCache(key: Slice[Byte]): Boolean =
-    cache containsKey key
+  def isInCache(key: Slice[Byte]): Boolean
 
-  def isCacheEmpty: Boolean =
-    cache.isEmpty
+  def isCacheEmpty: Boolean
 
-  def cacheSize: Int =
-    cache.size()
+  def cacheSize: Int
 
   def hasRange: IO[Boolean]
 

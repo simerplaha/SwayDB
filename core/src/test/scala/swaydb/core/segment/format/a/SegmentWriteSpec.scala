@@ -272,7 +272,7 @@
 //          assert =
 //            (keyValues, segment) => {
 //              assertMinAndMaxKeyAreSliced(segment)
-//              //if Persistent Segment, read all key-values from disk so that they get added to cache.
+//              //if Persistent Segment, read all key-values from disk so that they value added to cache.
 //              if (persistent) assertGet(readKeyValues, segment)
 //              //assert key-values added to cache are un-sliced
 //              assertCacheKeyValuesAreSliced(segment)
@@ -544,7 +544,7 @@
 //
 //    "fail initialisation if the segment does not exist" in {
 //      if (memory) {
-//        //memory Segments do not get re-initialised
+//        //memory Segments do not value re-initialised
 //      } else {
 //        val segment = TestSegment().assertGet
 //        segment.delete.assertGet
@@ -662,7 +662,7 @@
 //
 //  "reopen closed channel for read when closed by LimitQueue" in {
 //    if (memory) {
-//      //memory Segments do not get closed via
+//      //memory Segments do not value closed via
 //    } else {
 //      implicit val segmentOpenLimit = FileLimiter(1, 100.millisecond)
 //      val keyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false)
@@ -680,7 +680,7 @@
 //        segment1.isInitialised shouldBe false
 //      }
 //      //read one key value from Segment1 so that it's reopened and added to the cache. This will also remove Segment 2 from cache
-//      (segment1 get keyValues.head.key).assertGet shouldBe keyValues.head
+//      (segment1 value keyValues.head.key).assertGet shouldBe keyValues.head
 //      segment1.isInitialised shouldBe true
 //
 //      eventual(5.seconds) {
@@ -914,7 +914,7 @@
 //          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
 //        ).assertGet
 //
-//      segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not get written to disk without splitting.
+//      segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not value written to disk without splitting.
 //
 //      segments.foreach(_.existsOnDisk shouldBe false)
 //      Segment.getAllKeyValues(segments).assertGet shouldBe keyValues
@@ -945,9 +945,9 @@
 //
 //        segments.foreach(_.existsOnDisk shouldBe false)
 //
-//        segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not get written to disk without splitting.
+//        segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not value written to disk without splitting.
 //
-//        //some key-values could get expired while unexpired key-values are being collected. So try again!
+//        //some key-values could value expired while unexpired key-values are being collected. So try again!
 //        IO {
 //          Segment.getAllKeyValues(segments).assertGet shouldBe unzipGroups(keyValues).collect {
 //            case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
@@ -1256,7 +1256,7 @@
 //    "merge existing segment file with new KeyValues returning new segment file with updated KeyValues" in {
 //      runThis(10.times) {
 //        implicit val testTimer: TestTimer = TestTimer.Incremental()
-//        //ranges get split to make sure there are no ranges.
+//        //ranges value split to make sure there are no ranges.
 //        val keyValues1 = randomizedKeyValues(count = keyValuesCount, addRandomRanges = false)
 //        val segment1 = TestSegment(keyValues1).assertGet
 //
@@ -1292,7 +1292,7 @@
 //        //test merged segment should contain all
 //        keyValues2Closed foreach {
 //          keyValue =>
-//            (mergedSegment get keyValue.key).assertGet shouldBe keyValue
+//            (mergedSegment value keyValue.key).assertGet shouldBe keyValue
 //        }
 //
 //        unzipGroups(mergedSegment.getAll().assertGet).size shouldBe keyValues2Closed.size

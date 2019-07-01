@@ -91,7 +91,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.Segmen
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore): Unit = {
     import keyOrder._
-    //get the start position of this range to fetch the range's start and end key-values for the skipList.
+    //value the start position of this range to fetch the range's start and end key-values for the skipList.
     val startKey = Option(skipList.floorEntry(insert.fromKey)) map {
       floorEntry =>
         floorEntry.getValue match {

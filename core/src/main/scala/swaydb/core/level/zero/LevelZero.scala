@@ -562,7 +562,7 @@ private[core] case class LevelZero(path: Path,
     )
 
   /**
-    * Higher cannot use an iterator because a single Map can get read requests multiple times for cases where a Map contains a range
+    * Higher cannot use an iterator because a single Map can value read requests multiple times for cases where a Map contains a range
     * to fetch ceiling key.
     *
     * Higher queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
@@ -622,7 +622,7 @@ private[core] case class LevelZero(path: Path,
     )
 
   /**
-    * Lower cannot use an iterator because a single Map can get read requests multiple times for cases where a Map contains a range
+    * Lower cannot use an iterator because a single Map can value read requests multiple times for cases where a Map contains a range
     * to fetch ceiling key.
     *
     * Lower queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.

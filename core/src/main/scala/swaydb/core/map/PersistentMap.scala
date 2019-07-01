@@ -175,7 +175,7 @@ private[map] object PersistentMap extends LazyLogging {
     * re-read oldFiles to apply the existing entries to skipList, skipList should already be populated with new entries.
     * This is to ensure that before deleting any of the old entries, a new file is successful created.
     *
-    * oldFiles get deleted after the recovery is successful. In case of a failure an error message is logged.
+    * oldFiles value deleted after the recovery is successful. In case of a failure an error message is logged.
     */
   private[map] def nextFile[K, V](oldFiles: Iterable[DBFile],
                                   mmap: Boolean,
@@ -249,7 +249,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   // actualSize of the file can be different to fileSize when the entry's size is > fileSize.
   // In this case a file is created just to fit those bytes (for that one entry).
   // For eg: if fileSize is 4.mb and the entry size is 5.mb, a new file is created with 5.mb for that one entry.
-  // all the subsequent entries get added to 4.mb files, if it fits, or else the size is extended again.
+  // all the subsequent entries value added to 4.mb files, if it fits, or else the size is extended again.
   private var actualFileSize: Long = fileSize
   // does not account of flushed entries.
   private var bytesWritten: Long = 0

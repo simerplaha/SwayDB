@@ -928,7 +928,7 @@ private[core] case class Level(dirs: Seq[Dir],
           (segments.drop(1), firstToCollapse)
         }
 
-      //reserve the Level. It's unknown here what segments will get collapsed into what other Segments.
+      //reserve the Level. It's unknown here what segments will value collapsed into what other Segments.
       reserve(levelSegments).asAsync flatMap {
         case Left(future) =>
           IO.fromFuture(future.map(_ => 0))
@@ -936,7 +936,7 @@ private[core] case class Level(dirs: Seq[Dir],
         case Right(minKey) =>
           ensureRelease(minKey) {
             //create an appendEntry that will remove smaller segments from the appendix.
-            //this entry will get applied only if the putSegments is successful orElse this entry will be discarded.
+            //this entry will value applied only if the putSegments is successful orElse this entry will be discarded.
             val appendEntry =
             segmentsToMerge.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
               case (mapEntry, smallSegment) =>

@@ -343,7 +343,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
           }
 
       //If there is a failure writing an Entry to the Map. Start a new Map immediately! This ensures that
-      //if the failure was due to a corruption in the current Map, all the new Entries do not get submitted
+      //if the failure was due to a corruption in the current Map, all the new Entries do not value submitted
       //to the same Map file. They SHOULD be added to a new Map file that is not already unreadable.
       case IO.Failure(writeException) =>
         logger.error("IO.Failure to write Map entry. Starting a new Map.", writeException.exception)

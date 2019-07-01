@@ -68,7 +68,7 @@ sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethod
       val segments = Seq(TestSegment(randomKeyValues(keyValuesCount)).assertGet, TestSegment(randomIntKeyStringValues(keyValuesCount)).assertGet)
       level.put(segments).assertGet
 
-      //throttle is Duration.Zero, Segments get merged to lower ExpiryLevel and deleted from Level.
+      //throttle is Duration.Zero, Segments value merged to lower ExpiryLevel and deleted from Level.
       eventual(15.seconds)(level.isEmpty shouldBe true)
       //key values do not exist
       Segment.getAllKeyValues(segments).assertGet foreach {

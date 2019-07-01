@@ -666,7 +666,7 @@
 //  }
 //
 //  //  "SegmentReader.find" should {
-//  //    "get key-values using KeyMatcher.Get" in {
+//  //    "value key-values using KeyMatcher.Get" in {
 //  //      val keyValues =
 //  //        Slice(
 //  //          Transient.put(1, "one"),
@@ -766,7 +766,7 @@
 //  //      ???
 //  //    }
 //  //
-//  //    "get key-values using KeyMatcher.Lower" in {
+//  //    "value key-values using KeyMatcher.Lower" in {
 //  //      val keyValues =
 //  //        Slice(
 //  //          Transient.put(1, "one"),
@@ -827,7 +827,7 @@
 //  //      sixthToKey.toKey shouldBe sixth.toKey
 //  //    }
 //  //
-//  //    "get key-values using KeyMatcher.Higher" in {
+//  //    "value key-values using KeyMatcher.Higher" in {
 //  //      val keyValues =
 //  //        Slice(
 //  //          Transient.put(1, "one"),
@@ -884,7 +884,7 @@
 //  //        //create sequential deadline and randomly select one on call.
 //  //        def deadlines = Random.shuffle((1 to 10).toList).map(i => Deadline(new FiniteDuration(i, TimeUnit.SECONDS)))
 //  //
-//  //        //may be get the next deadline
+//  //        //may be value the next deadline
 //  //        def nextDeadline =
 //  //          eitherOne(
 //  //            left = None,
@@ -975,9 +975,9 @@
 //  //            right = pendingApply
 //  //          )
 //  //
-//  //        //get the first value for either fixed or range.
+//  //        //value the first value for either fixed or range.
 //  //        //this value is only expected to be written ones.
-//  //        val value = keyValues.head.value.assertGet
+//  //        val value = keyValues.head.get.assertGet
 //  //
 //  //        val (bytes, deadline) =
 //  //          SegmentWriter.write(

@@ -88,7 +88,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
         */
 
       val channelFile = DBFile.channelRead(file.path, autoClose = true).assertGet
-      benchmark("FileChannel get benchmark") {
+      benchmark("FileChannel value benchmark") {
         bytes.indices foreach {
           index =>
             channelFile.get(index).assertGet shouldBe bytes(index)
@@ -104,7 +104,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
         * Round 3: 1.044735106 seconds
         */
       val mmapFile = DBFile.mmapRead(file.path, autoClose = true).assertGet
-      benchmark("mmap get benchmark") {
+      benchmark("mmap value benchmark") {
         bytes.indices foreach {
           index =>
             mmapFile.get(index).assertGet shouldBe bytes(index)

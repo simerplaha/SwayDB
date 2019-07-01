@@ -571,7 +571,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
       rootMap.closeDatabase().get
     }
 
-    "get when sub map is removed" in {
+    "value when sub map is removed" in {
       val rootMap = newDB()
       rootMap.put((1, "one"), (2, "two")).assertGet
 
@@ -776,7 +776,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
         val secondAgain = first.maps.put(2, "second again").assertGet
 
-        //map value get updated
+        //map value value updated
         first.maps.get(2).assertGetOpt shouldBe defined
         first.maps.getValue(2).assertGet shouldBe "second again"
         second.getValue().assertGet shouldBe "second again"
@@ -828,7 +828,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
         //submit put on second map and assert that all it's contents are replaced.
         val secondAgain = first.maps.put(2, "second updated").assertGet
 
-        //map value get updated
+        //map value value updated
         first.maps.get(2).assertGetOpt shouldBe defined
         first.maps.getValue(2).assertGet shouldBe "second updated"
         second.getValue().assertGet shouldBe "second updated"

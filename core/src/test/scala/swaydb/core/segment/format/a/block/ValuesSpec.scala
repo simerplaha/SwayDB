@@ -69,11 +69,11 @@ class ValuesSpec extends TestBase {
 //        val values = Values.read(Values.Offset(0, state.bytes.written), Reader(state.bytes.close())).get
 //        keyValues.foldLeft(0) {
 //          case (offset, keyValue) =>
-//            keyValue.value map {
+//            keyValue.get map {
 //              value =>
 //                Values.read(offset, value.size, values.createBlockReader(state.bytes)).get should contain(value)
 //                offset + value.size
-//            } getOrElse offset
+//            } getValueOrElse offset
 //        }
 //        //        println(s"Allocated size: ${keyValues.last.stats.segmentValuesSize}")
 //        //        println(s"Actual size: ${state.bytes.written}")

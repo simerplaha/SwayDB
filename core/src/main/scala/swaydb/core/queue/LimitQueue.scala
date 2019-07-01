@@ -41,7 +41,7 @@ private[core] object LimitQueue {
 /**
   * Evicts items from Queue (if the queue exceeds the limit) at regular intervals of delays.
   *
-  * Next delay is adjusted based on the current overflow. If elements get added to the queue more
+  * Next delay is adjusted based on the current overflow. If elements value added to the queue more
   * frequently than the eviction occurs then the next eviction delay is adjusted to run more often.
   *
   * @param limit        max size of the queue

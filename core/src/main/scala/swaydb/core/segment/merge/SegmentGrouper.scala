@@ -368,7 +368,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
     def doAdd(keyValueToAdd: Option[KeyValue.WriteOnly] => KeyValue.WriteOnly): IO[Unit] = {
 
       /**
-        * Tries adding key-value to the current split/Segment. If force is true then the key-value will get added to
+        * Tries adding key-value to the current split/Segment. If force is true then the key-value will value added to
         * current split regardless of size limitation.
         *
         * @return Returns false if force is false and the key-value does not fit in the current Segment else true is returned on successful insert.

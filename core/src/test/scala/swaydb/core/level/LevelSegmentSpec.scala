@@ -96,7 +96,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
       "level is non-empty" in {
         //small Segment size so that small Segments do not collapse when running this test
-        // as reads do not get retried on failure in Level, they only get retried in LevelZero.
+        // as reads do not value retried on failure in Level, they only value retried in LevelZero.
         val level = TestLevel(segmentSize = 100.bytes)
         val keyValues = randomIntKeyStringValues(keyValuesCount)
         val segment = TestSegment(keyValues).assertGet
@@ -247,7 +247,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         level.isEmpty shouldBe true
 
-        //if it's a persistent Level, reopen to ensure that Segment did not get committed.
+        //if it's a persistent Level, reopen to ensure that Segment did not value committed.
         if (persistent) level.reopen.isEmpty shouldBe true
       }
 
@@ -312,7 +312,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
       "upper level has overlapping Segments" in {
         val nextLevel = mock[NextLevel]
 
-        //no key-values get forwarded to next Level
+        //no key-values value forwarded to next Level
         nextLevel.isTrash _ expects() returning false
         nextLevel.close _ expects() returning IO.unit
         nextLevel.releaseLocks _ expects() returning IO.unit
@@ -422,9 +422,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         level.put(Seq(segment2, segment3)).assertGet
 
-        assertGetFromThisLevelOnly(keyValues, level) //all key-values get persisted into upper level.
+        assertGetFromThisLevelOnly(keyValues, level) //all key-values value persisted into upper level.
         //segment2's key-values still readable from upper Level since they were copied locally.
-        assertGetFromThisLevelOnly(keyValues2.head, level) //all key-values get persisted into upper level.
+        assertGetFromThisLevelOnly(keyValues2.head, level) //all key-values value persisted into upper level.
         assertGetNoneFromThisLevelOnly(keyValues2.last, level) //they were copied to lower level.
       }
 
@@ -458,8 +458,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         level.put(segment).assertGet
 
-        assertGetFromThisLevelOnly(keyValues, level) //all key-values get persisted into upper level.
-        assertGetFromThisLevelOnly(keyValues2, level) //all key-values get persisted into upper level.
+        assertGetFromThisLevelOnly(keyValues, level) //all key-values value persisted into upper level.
+        assertGetFromThisLevelOnly(keyValues2, level) //all key-values value persisted into upper level.
       }
     }
   }

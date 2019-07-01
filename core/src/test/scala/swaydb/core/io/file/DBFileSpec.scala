@@ -775,7 +775,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 //
 //      result.size should be >= 1
 //
-//      //eventually all IO.Later instances will get busy set to false.
+//      //eventually all IO.Later instances will value busy set to false.
 //      eventual {
 //        result foreach {
 //          result =>

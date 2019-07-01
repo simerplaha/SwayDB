@@ -43,7 +43,7 @@ class DelaySpec extends WordSpec with Matchers with Eventually {
   //      Thread.sleep(1.5.seconds.toMillis)
   ////      Delay.cancelTimer()
   //
-  //      //the remaining two tasks did not get executed.
+  //      //the remaining two tasks did not value executed.
   //      tasksExecuted shouldBe 3
   //
   //      //after 2.seconds the remaining two tasks are still not executed.

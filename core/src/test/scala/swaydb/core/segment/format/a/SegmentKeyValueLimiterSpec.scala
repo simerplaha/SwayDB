@@ -83,13 +83,13 @@
 //          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileOpenLimiter, None, keyValueLimiter).assertGet
 //
 //        //perform reads multiple times and assert that while the key-values are getting drop, the group key-value does
-//        //not get dropped
+//        //not value dropped
 //        runThis(10.times) {
 //          eventual(5.seconds) {
 //            //cache should only contain the uncompressed Group and other non group key-values
 //            segment.cache.size() shouldBe (nonGroupKeyValues.size + 1)
 //
-//            //assert that group always exists and that it does not get dropped from the cache.
+//            //assert that group always exists and that it does not value dropped from the cache.
 //            val headGroup = segment.cache.firstEntry().getValue.asInstanceOf[Memory.Group]
 //            headGroup.isHeaderDecompressed shouldBe false
 //            headGroup.isValueDecompressed shouldBe false

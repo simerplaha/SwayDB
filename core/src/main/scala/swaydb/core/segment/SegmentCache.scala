@@ -19,9 +19,7 @@
 
 package swaydb.core.segment
 
-import java.nio.file.Paths
 import java.util.concurrent.ConcurrentSkipListMap
-import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
@@ -31,112 +29,40 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.{KeyMatcher, SegmentBlock, SegmentFooter, SegmentReader}
 import swaydb.core.util._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Reader, Slice}
-import swaydb.data.{IO, MaxKey, Reserve}
-import EitherUtil._
+import swaydb.data.slice.Slice
+import swaydb.data.{IO, MaxKey}
 
-import scala.annotation.tailrec
+object SegmentCache {
 
-private[core] class BinarySegmentInitialiser(id: String,
-                                             maxKey: MaxKey[Slice[Byte]],
-                                             minKey: Slice[Byte],
-                                             unsliceKey: Boolean,
-                                             offset: () => IO[SegmentBlock.Offset],
-                                             createSegmentReader: () => Reader) {
-  private val created = new AtomicBoolean(false)
-  @volatile private var segment: BinarySegment = _
-
-  def isInitialised: Boolean =
-    segment != null && segment.isOpen
-
-  @tailrec
-  final def get(implicit keyOrder: KeyOrder[Slice[Byte]],
-                keyValueLimiter: KeyValueLimiter): BinarySegment =
-    if (segment != null) {
-      segment
-    } else if (created.compareAndSet(false, true)) {
-      segment =
-        new BinarySegment(
+  def apply(id: String,
+            maxKey: MaxKey[Slice[Byte]],
+            minKey: Slice[Byte],
+            unsliceKey: Boolean,
+            createSegmentBlockReader: () => IO[BlockReader[SegmentBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                           keyValueLimiter: KeyValueLimiter): SegmentCache =
+    new SegmentCache(
+      id = id,
+      maxKey = maxKey,
+      minKey = minKey,
+      cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder),
+      unsliceKey = unsliceKey,
+      blockReader =
+        SegmentBlockCache(
           id = id,
-          maxKey = maxKey,
-          minKey = minKey,
-          cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder),
-          unsliceKey = unsliceKey,
-          offset = offset,
-          createSegmentReader = createSegmentReader,
-          segmentBlockReserve = Reserve()
+          segmentBlock = createSegmentBlockReader
         )
-      segment
-    } else {
-      get
-    }
+    )
 }
+private[core] class SegmentCache(id: String,
+                                 maxKey: MaxKey[Slice[Byte]],
+                                 minKey: Slice[Byte],
+                                 cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
+                                 unsliceKey: Boolean,
+                                 blockReader: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                 keyValueLimiter: KeyValueLimiter) extends LazyLogging {
 
-private[core] class BinarySegment(id: String,
-                                  maxKey: MaxKey[Slice[Byte]],
-                                  minKey: Slice[Byte],
-                                  cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
-                                  unsliceKey: Boolean,
-                                  offset: () => IO[SegmentBlock.Offset],
-                                  createSegmentReader: () => Reader,
-                                  segmentBlockReserve: Reserve[Unit])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                      keyValueLimiter: KeyValueLimiter) extends LazyLogging {
 
   import keyOrder._
-
-  @volatile private var segmentBlockCache: Option[IO.Success[SegmentBlock]] = None
-  @volatile private var footer: Either[Unit, IO.Success[SegmentFooter]] = Left()
-  @volatile private var hashIndex: Either[Unit, IO.Success[Option[HashIndex]]] = Left()
-  @volatile private var bloomFilter: Either[Unit, IO.Success[Option[BloomFilter]]] = Left()
-  @volatile private var binarySearchIndex: Either[Unit, IO.Success[Option[BinarySearchIndex]]] = Left()
-  @volatile private var sortedIndex: Either[Unit, IO.Success[SortedIndex]] = Left()
-  @volatile private var values: Either[Unit, IO.Success[Option[Values]]] = Left()
-
-  def close() = {
-    segmentBlockCache = None
-    footer = Left()
-    hashIndex = Left()
-    bloomFilter = Left()
-    binarySearchIndex = Left()
-    sortedIndex = Left()
-    values = Left()
-  }
-
-  def isOpen: Boolean =
-    segmentBlockCache.isDefined ||
-      footer.isRight ||
-      hashIndex.isRight ||
-      bloomFilter.isRight ||
-      binarySearchIndex.isRight ||
-      sortedIndex.isRight ||
-      values.isRight
-
-  private def segmentBlock: IO[SegmentBlock] =
-    segmentBlockCache.getOrElse {
-      if (Reserve.setBusyOrGet((), segmentBlockReserve).isEmpty)
-        try
-          offset() flatMap {
-            segmentOffset =>
-              SegmentBlock.read(
-                offset = SegmentBlock.Offset(0, segmentOffset.size),
-                segmentReader = createSegmentReader()
-              ) map {
-                block =>
-                  segmentBlockCache = Some(IO.Success(block))
-                  block
-              }
-          }
-        finally
-          Reserve.setFree(segmentBlockReserve)
-      else
-        IO.Failure(IO.Error.OpeningFile(Paths.get(id), segmentBlockReserve))
-    }
-
-  def createSegmentBlockReader(): IO[BlockReader[SegmentBlock]] =
-    segmentBlock map {
-      block =>
-        block.createBlockReader(createSegmentReader())
-    }
 
   /**
     * Notes for why use putIfAbsent before adding to cache:
@@ -161,11 +87,11 @@ private[core] class BinarySegment(id: String,
 
   private def prepareGet[T](operation: (SegmentFooter, Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
     for {
-      footer <- getFooter()
-      hashIndex <- createHashIndexReader()
-      binarySearchIndex <- createBinarySearchIndexReader()
-      sortedIndex <- createSortedIndexReader()
-      values <- createValuesReader()
+      footer <- blockReader.footer
+      hashIndex <- blockReader.createHashIndexReader()
+      binarySearchIndex <- blockReader.createBinarySearchReader()
+      sortedIndex <- blockReader.createSortedIndexReader()
+      values <- blockReader.valuesReader()
       result <- operation(footer, hashIndex, binarySearchIndex, sortedIndex, values)
     } yield {
       result
@@ -177,9 +103,9 @@ private[core] class BinarySegment(id: String,
 
   private def prepareGetAll[T](operation: (SegmentFooter, BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
     for {
-      footer <- getFooter()
-      sortedIndex <- createSortedIndexReader()
-      values <- createValuesReader()
+      footer <- blockReader.footer
+      sortedIndex <- blockReader.createSortedIndexReader()
+      values <- blockReader.valuesReader()
       result <- operation(footer, sortedIndex, values)
     } yield {
       result
@@ -191,10 +117,10 @@ private[core] class BinarySegment(id: String,
 
   private def prepareIteration[T](operation: (SegmentFooter, Option[BlockReader[BinarySearchIndex]], BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
     for {
-      footer <- getFooter()
-      binarySearchIndex <- createBinarySearchIndexReader()
-      sortedIndex <- createSortedIndexReader()
-      values <- createValuesReader()
+      footer <- blockReader.footer
+      binarySearchIndex <- blockReader.createBinarySearchReader()
+      sortedIndex <- blockReader.createSortedIndexReader()
+      values <- blockReader.valuesReader()
       result <- operation(footer, binarySearchIndex, sortedIndex, values)
     } yield {
       result
@@ -204,177 +130,12 @@ private[core] class BinarySegment(id: String,
       ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
   }
 
-  def getFooter(): IO[SegmentFooter] =
-    footer
-      .getOrElseEither {
-        createSegmentBlockReader() flatMap {
-          reader =>
-            SegmentFooter.read(reader) map {
-              footer =>
-                this.footer = Right(IO.Success(footer))
-                footer
-            }
-        }
-      }
-
-  def getFooterAndSegmentReader(): IO[(SegmentFooter, Reader)] =
-    footer
-      .mapEither {
-        footer =>
-          for {
-            reader <- createSegmentBlockReader()
-            footer <- footer
-          } yield (footer, reader)
-      }
-      .getOrElseEither {
-        createSegmentBlockReader() flatMap {
-          reader =>
-            SegmentFooter.read(reader) map {
-              footer =>
-                this.footer = Right(IO.Success(footer))
-                (footer, reader.reset())
-            }
-        }
-      }
-
-  def createOptionalBlockReader[B <: Block](block: Option[B]): IO[Option[BlockReader[B]]] =
-    block map {
-      index =>
-        createBlockReader(index).map(Some(_))
-    } getOrElse IO.none
-
-  def createBlockReader[B <: Block](block: B): IO[BlockReader[B]] =
-    createSegmentBlockReader() map {
-      reader =>
-        block.createBlockReader(reader).asInstanceOf[BlockReader[B]]
-    }
-
-  def getHashIndex(): IO[Option[HashIndex]] =
-    hashIndex
-      .getOrElseEither {
-        getFooterAndSegmentReader() flatMap {
-          case (footer, reader) =>
-            footer.hashIndexOffset map {
-              offset =>
-                HashIndex.read(offset, reader) map {
-                  index =>
-                    val someIndex = Some(index)
-                    this.hashIndex = Right(IO.Success(someIndex))
-                    someIndex
-                }
-            } getOrElse {
-              this.hashIndex = Right(IO.none)
-              IO.none
-            }
-        }
-      }
-
-  def createHashIndexReader(): IO[Option[BlockReader[HashIndex]]] =
-    getHashIndex() flatMap createOptionalBlockReader
-
-  def getBloomFilter(): IO[Option[BloomFilter]] =
-    bloomFilter
-      .getOrElseEither {
-        getFooterAndSegmentReader() flatMap {
-          case (footer, reader) =>
-            footer.bloomFilterOffset map {
-              offset =>
-                BloomFilter.read(offset, reader) map {
-                  index =>
-                    val someIndex = Some(index)
-                    this.bloomFilter = Right(IO.Success(someIndex))
-                    someIndex
-                }
-            } getOrElse {
-              this.bloomFilter = Right(IO.none)
-              IO.none
-            }
-        }
-      }
-
-  def createBloomFilterReader(): IO[Option[BlockReader[BloomFilter]]] =
-    getBloomFilter() flatMap createOptionalBlockReader
-
-  def getBinarySearchIndex(): IO[Option[BinarySearchIndex]] =
-    binarySearchIndex
-      .getOrElseEither {
-        getFooterAndSegmentReader() flatMap {
-          case (footer, reader) =>
-            footer.binarySearchIndexOffset map {
-              offset =>
-                BinarySearchIndex.read(offset, reader) map {
-                  index =>
-                    val someIndex = Some(index)
-                    this.binarySearchIndex = Right(IO.Success(someIndex))
-                    someIndex
-                }
-            } getOrElse {
-              this.binarySearchIndex = Right(IO.none)
-              IO.none
-            }
-        }
-      }
-
-  def createBinarySearchReader(): IO[Option[BlockReader[BinarySearchIndex]]] =
-    getBinarySearchIndex() flatMap createOptionalBlockReader
-
-  def createBinarySearchIndexReader(): IO[Option[BlockReader[BinarySearchIndex]]] =
-    getBinarySearchIndex() flatMap {
-      indexOption =>
-        indexOption map {
-          index =>
-            createSegmentBlockReader() map {
-              reader =>
-                Some(index.createBlockReader(reader))
-            }
-        } getOrElse IO.none
-    }
-
-  def getSortedIndex(): IO[SortedIndex] =
-    sortedIndex
-      .getOrElseEither {
-        getFooterAndSegmentReader() flatMap {
-          case (footer, reader) =>
-            SortedIndex.read(footer.sortedIndexOffset, reader) map {
-              index =>
-                this.sortedIndex = Right(IO.Success(index))
-                index
-            }
-        }
-      }
-
-  def createSortedIndexReader(): IO[BlockReader[SortedIndex]] =
-    getSortedIndex() flatMap createBlockReader
-
-  def getValues(): IO[Option[Values]] =
-    values
-      .getOrElseEither {
-        getFooterAndSegmentReader() flatMap {
-          case (footer, reader) =>
-            footer.valuesOffset map {
-              valuesOffset =>
-                Values.read(valuesOffset, reader) map {
-                  values =>
-                    val someValues = Some(values)
-                    this.values = Right(IO.Success(someValues))
-                    someValues
-                }
-            } getOrElse {
-              this.values = Right(IO.none)
-              IO.none
-            }
-        }
-      }
-
-  def createValuesReader(): IO[Option[BlockReader[Values]]] =
-    getValues() flatMap createOptionalBlockReader
-
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     Option(cache.get(key))
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
     for {
-      bloom <- createBloomFilterReader()
+      bloom <- blockReader.createBloomFilterReader()
       contains <- bloom.map(BloomFilter.mightContain(key, _)) getOrElse IO.`true`
     } yield contains
 
@@ -606,29 +367,43 @@ private[core] class BinarySegment(id: String,
     }
 
   def getHeadKeyValueCount(): IO[Int] =
-    getFooter().map(_.keyValueCount)
+    blockReader.footer.map(_.keyValueCount)
 
   def getBloomFilterKeyValueCount(): IO[Int] =
-    getFooter().map(_.bloomFilterItemsCount)
+    blockReader.footer.map(_.bloomFilterItemsCount)
 
   def hasRange: IO[Boolean] =
-    getFooter().map(_.hasRange)
+    blockReader.footer.map(_.hasRange)
 
   def hasPut: IO[Boolean] =
-    getFooter().map(_.hasPut)
+    blockReader.footer.map(_.hasPut)
 
   def isCacheEmpty =
-    cache.isEmpty()
+    cache.isEmpty
 
   def isFooterDefined: Boolean =
-    footer.existsEither(_ => true)
+    blockReader.isFooterDefined
 
   def isBloomFilterDefined: Boolean =
-    bloomFilter.existsEither(_.exists(_.isDefined))
+    blockReader.isBloomFilterDefined
 
   def createdInLevel: IO[Int] =
-    getFooter().map(_.createdInLevel)
+    blockReader.footer.map(_.createdInLevel)
 
   def isGrouped: IO[Boolean] =
-    getFooter().map(_.hasGroup)
+    blockReader.footer.map(_.hasGroup)
+
+  def isInCache(key: Slice[Byte]): Boolean =
+    cache containsKey key
+
+  def cacheSize: Int =
+    cache.size()
+
+  def clear() = {
+    cache.clear()
+    blockReader.clear()
+  }
+
+  def isInitialised() =
+    blockReader.isOpen
 }

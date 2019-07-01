@@ -203,7 +203,7 @@
 //      map.close().assertGet
 //    }
 //
-//    "initialise a Map that has two persistent Level0 map files (second file did not get deleted due to early JVM termination)" in {
+//    "initialise a Map that has two persistent Level0 map files (second file did not value deleted due to early JVM termination)" in {
 //      import LevelZeroMapEntryReader._
 //      import LevelZeroMapEntryWriter._
 //
@@ -242,7 +242,7 @@
 //      map1Recovered.close().assertGet
 //    }
 //
-//    "initialise a Map that has two persistent Appendix map files (second file did not get deleted due to early JVM termination)" in {
+//    "initialise a Map that has two persistent Appendix map files (second file did not value deleted due to early JVM termination)" in {
 //      import AppendixMapEntryWriter._
 //      import appendixReader._
 //
@@ -516,7 +516,7 @@
 //      map.size shouldBe 100
 //      val allBytes = Files.readAllBytes(map.currentFilePath)
 //
-//      //recover again with SkipLogOnCorruption, since the last entry is corrupted, the first two entries will still get read
+//      //recover again with SkipLogOnCorruption, since the last entry is corrupted, the first two entries will still value read
 //      Files.write(map.currentFilePath, allBytes.dropRight(1))
 //      val recoveredMap = Map.persistent[Slice[Byte], Memory.SegmentResponse](map.currentFilePath.getParent, mmap = false, flushOnOverflow = false, fileSize = 4.mb, initialWriteCount = 0, dropCorruptedTailEntries = true).assertGet.item
 //      (1 to 99) foreach {

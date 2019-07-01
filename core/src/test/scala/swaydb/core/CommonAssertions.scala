@@ -957,7 +957,7 @@ object CommonAssertions {
                         s"""RANGE - ${fromKey.readInt()} -> ${toKey.readInt()}, $fromValue (${fromValue.map(Value.hasTimeLeft)}), $rangeValue (${Value.hasTimeLeft(rangeValue)})"""
                     }
 
-                  case Memory.Group(minKey, maxKey, deadline, valueLength) =>
+                  case Memory.Group(minKey, maxKey, deadline, valueLength, _) =>
                     fail("should have ungrouped.")
                 }
             }
@@ -1562,7 +1562,7 @@ object CommonAssertions {
             fromValue foreach assertSliced
             assertSliced(rangeValue)
 
-          case Memory.Group(minKey, maxKey, deadline, valueLength) =>
+          case Memory.Group(minKey, maxKey, deadline, valueLength, _) =>
             minKey.shouldBeSliced()
             maxKey.maxKey.shouldBeSliced()
           //todo assert decompressed length
@@ -1600,7 +1600,7 @@ object CommonAssertions {
             lazyRangeValueReader.fetchFromValue.assertGetOpt foreach assertSliced
             lazyRangeValueReader.fetchRangeValue foreach assertSliced
 
-          case Persistent.Group(_minKey, _maxKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline, _) =>
+          case Persistent.Group(_minKey, _maxKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline, _, _) =>
             _minKey.shouldBeSliced()
             _maxKey.maxKey.shouldBeSliced()
             valueReader.moveTo(valueOffset).read(valueLength).safeGetBlocking().get.shouldBeSliced()

@@ -90,14 +90,14 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val keyValues = randomPutKeyValues(keyValueCount).groupedSlice(2)
         val segments = Seq(TestSegment(keyValues(0).toTransient).get, TestSegment(keyValues(1).toTransient).get)
 
-        //next level should get a put for all the input Segments
+        //next level should value a put for all the input Segments
         (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
           (putSegments: Iterable[Segment], _) =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
             IO.unit
         }
 
-        //segments get removed
+        //segments value removed
         (thisLevel.removeSegments(_: Iterable[Segment])) expects * onCall {
           putSegments: Iterable[Segment] =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
@@ -116,14 +116,14 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val keyValues = randomPutKeyValues(keyValueCount).groupedSlice(2)
         val segments = Seq(TestSegment(keyValues(0).toTransient).get, TestSegment(keyValues(1).toTransient).get)
 
-        //next level should get a put for all the input Segments
+        //next level should value a put for all the input Segments
         (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
           (putSegments: Iterable[Segment], _) =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
             IO.unit
         }
 
-        //segments get removed
+        //segments value removed
         (thisLevel.removeSegments(_: Iterable[Segment])) expects * onCall {
           putSegments: Iterable[Segment] =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
@@ -193,7 +193,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
 
         Compaction.copyForwardForEach(level1.reverseLevels.toSlice)
 
-        //top levels are level, second last level get all overlapping Segments, last Level gets the rest.
+        //top levels are level, second last level value all overlapping Segments, last Level gets the rest.
         level1.isEmpty shouldBe true
         level2.isEmpty shouldBe true
         level3.isEmpty shouldBe true

@@ -86,7 +86,7 @@
 ////  val keyValueCount = 1000000
 //  val keyValueCount = 100
 //
-//  "Concurrently put, get, read lower and higher 1 million key-values" in {
+//  "Concurrently put, value, read lower and higher 1 million key-values" in {
 //    val level1 = TestLevel(nextLevel = Some(TestLevel()))
 //    val zero = TestLevelZero(Some(level1))
 //    val keyValues = randomIntKeyStringValues(keyValueCount, valueSize = 17)

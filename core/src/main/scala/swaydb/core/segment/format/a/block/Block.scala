@@ -57,6 +57,18 @@ object Block extends LazyLogging {
 
     def isBusy =
       reserve.isBusy
+
+    def clear() =
+      if (_decompressedBytes.isEmpty)
+        this
+      else
+        new CompressionInfo(
+          decompressor = decompressor,
+          decompressedLength = decompressedLength,
+          headerSize = headerSize,
+          reserve = reserve,
+          _decompressedBytes = None
+        )
   }
 
   case class Header(compressionInfo: Option[CompressionInfo],

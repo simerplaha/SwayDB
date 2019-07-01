@@ -199,7 +199,7 @@ private[segment] case class MemorySegment(path: Path,
     Option(cache.get(key))
 
   /**
-    * Basic get does not perform floor checks on the cache which are only required if the Segment contains
+    * Basic value does not perform floor checks on the cache which are only required if the Segment contains
     * range or groups.
     */
   private def doBasicGet(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
@@ -283,7 +283,7 @@ private[segment] case class MemorySegment(path: Path,
       }
 
   /**
-    * Basic get does not perform floor checks on the cache which are only required if the Segment contains
+    * Basic value does not perform floor checks on the cache which are only required if the Segment contains
     * range or groups.
     */
   private def doBasicHigher(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
@@ -435,4 +435,21 @@ private[segment] case class MemorySegment(path: Path,
 
   override def isBloomFilterDefined: Boolean =
     bloomFilter.isDefined
+
+  override def clearCache(): Unit =
+    cache.values().asScala foreach {
+      case group: Group =>
+        group.segment.clear()
+
+      case _: SegmentResponse =>
+        ()
+    }
+
+  override def isInCache(key: Slice[Byte]): Boolean =
+    cache containsKey key
+
+  override def isCacheEmpty: Boolean =
+    cache.isEmpty
+  override def cacheSize: Int =
+    cache.size()
 }

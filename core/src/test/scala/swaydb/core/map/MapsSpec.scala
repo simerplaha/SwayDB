@@ -63,10 +63,10 @@ class MapsSpec extends TestBase {
 
       maps.get(1).assertGet shouldBe Memory.remove(1)
       maps.get(2).assertGet shouldBe Memory.put(2)
-      //since the size of the Map is 1.mb and entries are too small. No flushing will get executed and there should only be one folder.
+      //since the size of the Map is 1.mb and entries are too small. No flushing will value executed and there should only be one folder.
       path.folders.map(_.folderId) should contain only 0
 
-      //reopen and it should contain the same entries as above and old map should get delete
+      //reopen and it should contain the same entries as above and old map should value delete
       val reopen = Maps.persistent[Slice[Byte], Memory.SegmentResponse](path, mmap = false, 1.mb, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
       //adding more entries to reopened Map should contain all entries
       reopen.write(_ => MapEntry.Put(3, Memory.put(3))).assertGet
@@ -95,7 +95,7 @@ class MapsSpec extends TestBase {
       //reopen should create a new map, delete the previous maps current map as it's empty
       val reopen = Maps.persistent[Slice[Byte], Memory.SegmentResponse](path, mmap = true, 1.mb, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
       reopen.queuedMapsCountWithCurrent shouldBe 1
-      //since the old map is empty, it should get deleted
+      //since the old map is empty, it should value deleted
       currentMapsPath.exists shouldBe false
     }
   }
@@ -119,7 +119,7 @@ class MapsSpec extends TestBase {
         maps.write(_ => MapEntry.Put(2: Slice[Byte], Memory.Range(2, 2, None, Value.update(2)))).assertGet //another 43.bytes
         maps.queuedMapsCountWithCurrent shouldBe 1
         //another 32.bytes but map has total size of 82.bytes.
-        //now since the Map is overflow a new should get created.
+        //now since the Map is overflow a new should value created.
         maps.write(_ => MapEntry.Put[Slice[Byte], Memory.SegmentResponse](3, Memory.remove(3))).assertGet
         maps.queuedMapsCount shouldBe 1
         maps.queuedMapsCountWithCurrent shouldBe 2
@@ -141,7 +141,7 @@ class MapsSpec extends TestBase {
 
       def test(maps: Maps[Slice[Byte], Memory.SegmentResponse]) = {
         //adding 1.mb key-value to map, the file size is 500.bytes, since this is the first entry in the map and the map is empty,
-        // the entry will get added.
+        // the entry will value added.
         maps.write(_ => MapEntry.Put(1, Memory.put(1, largeValue))).assertGet //large entry
         maps.get(1).assertGet shouldBe Memory.put(1, largeValue)
         maps.queuedMapsCount shouldBe 0
@@ -196,7 +196,7 @@ class MapsSpec extends TestBase {
       maps.write(_ => MapEntry.Put(5, Memory.put(5)))
 
       maps.queuedMapsCountWithCurrent shouldBe 5
-      //maps get added
+      //maps value added
       maps.maps.asScala.toList.map(_.pathOption.assertGet.folderId) should contain inOrderOnly(3, 2, 1, 0)
       maps.last().assertGet.pathOption.assertGet.folderId shouldBe 0
 

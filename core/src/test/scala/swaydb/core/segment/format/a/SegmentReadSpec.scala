@@ -800,7 +800,7 @@
 //  }
 //
 //  "getAllKeyValues" should {
-//    "get KeyValues from multiple Segments" in {
+//    "value KeyValues from multiple Segments" in {
 //      runThis(10.times) {
 //        val keyValues1 = randomizedKeyValues(keyValuesCount)
 //        val keyValues2 = randomizedKeyValues(keyValuesCount)

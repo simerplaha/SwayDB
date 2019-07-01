@@ -259,7 +259,7 @@
 //    }
 //
 //    "searching a segment" should {
-//      "get" in {
+//      "value" in {
 //        val keyValues =
 //          randomizedKeyValues(
 //            count = 100,

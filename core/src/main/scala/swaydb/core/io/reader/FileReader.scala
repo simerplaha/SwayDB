@@ -35,7 +35,7 @@ private[core] class FileReader(file: DBFile) extends Reader with LazyLogging {
     file.isLoaded
 
   override def size: IO[Long] =
-    fileSizeCacheValue.get
+    fileSizeCacheValue.value
 
   def moveTo(newPosition: Long): Reader = {
     position = newPosition.toInt
