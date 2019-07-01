@@ -36,6 +36,7 @@ object FunctionReader extends EntryReader[Persistent.Function] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
+                              accessPosition: Int,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -65,6 +66,7 @@ object FunctionReader extends EntryReader[Persistent.Function] {
                       indexOffset = indexOffset,
                       valueOffset = valueOffset,
                       valueLength = valueLength,
+                      accessPosition = accessPosition,
                       isPrefixCompressed =
                         isKeyPrefixCompressed ||
                           timeReader.isPrefixCompressed ||

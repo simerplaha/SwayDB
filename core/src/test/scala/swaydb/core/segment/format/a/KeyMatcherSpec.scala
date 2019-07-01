@@ -50,7 +50,7 @@ class KeyMatcherSpec extends TestBase {
     */
 
   implicit def toPut(int: Int): Persistent.Fixed =
-    Put(int, None, LazyValueReader(Values.empty.createBlockReader(Reader.empty), 0, 0), Time.empty, 0, 0, 0, 0, 0, false)
+    Put(int, None, LazyValueReader(Values.empty.createBlockReader(Reader.empty), 0, 0), Time.empty, 0, 0, 0, 0, 0, 0, false)
 
   implicit def toSomePut(int: Int): Option[Persistent.Fixed] =
     Some(int)
@@ -63,7 +63,7 @@ class KeyMatcherSpec extends TestBase {
       */
 
     implicit def toRange(tuple: (Int, Int)): Persistent.Range =
-      Persistent.Range(tuple._1, tuple._2, LazyRangeValueReader(Values.empty.createBlockReader(Reader.empty), 0, 0), 0, 0, 0, 0, 0, false)
+      Persistent.Range(tuple._1, tuple._2, LazyRangeValueReader(Values.empty.createBlockReader(Reader.empty), 0, 0), 0, 0, 0, 0, 0, 0, false)
 
     implicit def toSomeRange(tuple: (Int, Int)): Option[Persistent.Range] =
       Some(tuple)
@@ -87,6 +87,7 @@ class KeyMatcherSpec extends TestBase {
         indexOffset = 0,
         valueOffset = 0,
         valueLength = 0,
+        accessPosition = 0,
         deadline = None,
         isPrefixCompressed = false,
         segmentBlock = CacheValue(IO(null))
@@ -102,6 +103,7 @@ class KeyMatcherSpec extends TestBase {
         indexOffset = 0,
         valueOffset = 0,
         valueLength = 0,
+        accessPosition = 0,
         deadline = None,
         isPrefixCompressed = false,
         segmentBlock = CacheValue(IO(null))

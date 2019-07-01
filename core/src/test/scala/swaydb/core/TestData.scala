@@ -468,7 +468,7 @@ object TestData {
       SortedIndex.Config(
         cacheOnRead = randomBoolean(),
         prefixCompressionResetCount = randomIntMax(50),
-        enablePositionIndex = randomBoolean(),
+        enableAccessPositionIndex = randomBoolean(),
         hasCompression = true
       )
   }
@@ -624,7 +624,7 @@ object TestData {
           persistent match {
             case persistent: Persistent.Fixed =>
               persistent match {
-                case put @ Persistent.Put(key, deadline, valueReader, time, _, _, _, _, _, _) =>
+                case put @ Persistent.Put(key, deadline, valueReader, time, _, _, _, _, _, _, _) =>
                   Transient.Put(
                     key = key,
                     value = put.getOrFetchValue.assertGetOpt,
@@ -638,7 +638,7 @@ object TestData {
                     bloomFilterConfig = bloomFilterConfig
                   )
 
-                case put @ Persistent.Update(key, deadline, valueReader, time, _, _, _, _, _, _) =>
+                case put @ Persistent.Update(key, deadline, valueReader, time, _, _, _, _, _, _, _) =>
                   Transient.Update(
                     key = key,
                     value = put.getOrFetchValue.assertGetOpt,
@@ -652,7 +652,7 @@ object TestData {
                     bloomFilterConfig = bloomFilterConfig
                   )
 
-                case function @ Persistent.Function(key, lazyFunctionReader, time, _, _, _, _, _, _) =>
+                case function @ Persistent.Function(key, lazyFunctionReader, time, _, _, _, _, _, _, _) =>
                   Transient.Function(
                     key = key,
                     function = lazyFunctionReader.getOrFetchFunction.assertGet,
@@ -678,7 +678,7 @@ object TestData {
                     bloomFilterConfig = bloomFilterConfig
                   )
 
-                case Persistent.Remove(_key, deadline, time, _, _, _, _) =>
+                case Persistent.Remove(_key, deadline, time, _, _, _, _, _) =>
                   Transient.Remove(
                     key = _key,
                     deadline = deadline,
@@ -692,7 +692,7 @@ object TestData {
                   )
               }
 
-            case range @ Persistent.Range(_fromKey, _toKey, _, _, _, _, _, _, _) =>
+            case range @ Persistent.Range(_fromKey, _toKey, _, _, _, _, _, _, _, _) =>
               val (fromValue, rangeValue) = range.fetchFromAndRangeValue.assertGet
               Transient.Range(
                 fromKey = _fromKey,
@@ -734,7 +734,7 @@ object TestData {
 
     def toMemoryGroup =
       keyValue match {
-        case Persistent.Group(minKey, maxKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline, _, _) =>
+        case Persistent.Group(minKey, maxKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, accessPosition, deadline, _, _) =>
           Memory.Group(
             minKey = minKey,
             maxKey = maxKey,
@@ -765,23 +765,23 @@ object TestData {
           persistent match {
             case persistent: Persistent.Fixed =>
               persistent match {
-                case put @ Persistent.Put(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
+                case put @ Persistent.Put(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
                   Memory.Put(key, put.getOrFetchValue.get.safeGetBlocking(), deadline, time)
 
-                case put @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
+                case put @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
                   Memory.Update(key, put.getOrFetchValue.get.safeGetBlocking(), deadline, time)
 
-                case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
+                case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
                   Memory.Function(key, function.getOrFetchFunction.get.safeGetBlocking(), time)
 
-                case pendingApply @ Persistent.PendingApply(key, time, deadline, lazyPendingApplyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
+                case pendingApply @ Persistent.PendingApply(key, time, deadline, lazyPendingApplyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
                   Memory.PendingApply(key, pendingApply.getOrFetchApplies.get.safeGetBlocking())
 
-                case Persistent.Remove(_key, deadline, time, indexOffset, nextIndexOffset, nextIndexSize, _) =>
+                case Persistent.Remove(_key, deadline, time, indexOffset, nextIndexOffset, nextIndexSize, _, _) =>
                   Memory.Remove(_key, deadline, time)
               }
 
-            case range @ Persistent.Range(_fromKey, _toKey, _, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
+            case range @ Persistent.Range(_fromKey, _toKey, _, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
               val (fromValue, rangeValue) = range.fetchFromAndRangeValue.get.safeGetBlocking()
               Memory.Range(_fromKey, _toKey, fromValue, rangeValue)
           }

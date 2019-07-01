@@ -74,18 +74,34 @@ private[core] object Stats {
       else
         previousStats.map(_.groupsCount) getOrElse 0
 
-    val thisKeyValuesSortedIndexSizeWithoutFooterAndHeader =
+    val thisKeyValueAccessIndexPosition =
+      if (sortedIndex.enableAccessPositionIndex)
+        if (isPrefixCompressed)
+          previousStats.map(_.thisKeyValueAccessIndexPosition) getOrElse 1
+        else
+          previousStats.map(_.thisKeyValueAccessIndexPosition + 1) getOrElse 1
+      else
+        0
+
+    val thisKeyValueAccessIndexPositionSize =
+      if (sortedIndex.enableAccessPositionIndex)
+        Bytes.sizeOf(thisKeyValueAccessIndexPosition)
+      else
+        0
+
+    val thisKeyValuesSortedIndexEntrySize =
       Bytes.sizeOf(indexEntry.size) +
+        thisKeyValueAccessIndexPositionSize +
         indexEntry.size
 
     val thisKeyValuesSortedIndexSizeWithoutFooter =
       SortedIndex.headerSize(sortedIndex.hasCompression) +
-        thisKeyValuesSortedIndexSizeWithoutFooterAndHeader
+        thisKeyValuesSortedIndexEntrySize
 
     val thisKeyValuesRealIndexOffset =
       previousStats map {
         previous =>
-          previous.thisKeyValueIndexOffset + previous.thisKeyValuesIndexSizeWithoutFooterAndHeader
+          previous.thisKeyValueIndexOffset + previous.thisKeyValuesSortedIndexEntrySize
       } getOrElse 0
 
     //starts from 0. Do not need the actual index offset for space efficiency. The actual indexOffset can be adjust during read.
@@ -178,7 +194,7 @@ private[core] object Stats {
 
     val segmentSortedIndexSizeWithoutHeader =
       previousStats.map(_.segmentSortedIndexSizeWithoutHeader).getOrElse(0) +
-        thisKeyValuesSortedIndexSizeWithoutFooterAndHeader
+        thisKeyValuesSortedIndexEntrySize
 
     val segmentSortedIndexSize =
       SortedIndex.headerSize(sortedIndex.hasCompression) +
@@ -260,11 +276,11 @@ private[core] object Stats {
       segmentSizeWithoutFooter = segmentSizeWithoutFooter,
       segmentSizeWithoutFooterForNextGroup = segmentSizeWithoutFooterForNextGroup,
       segmentUniqueAccessIndexKeyCounts = segmentUniqueAccessIndexKeyCounts,
-      keySize = indexEntry.size,
       thisKeyValuesSegmentKeyAndValueSize = thisKeyValuesSegmentKeyAndValueSize,
-      thisKeyValuesIndexSizeWithoutFooterAndHeader = thisKeyValuesSortedIndexSizeWithoutFooterAndHeader,
+      thisKeyValuesSortedIndexEntrySize = thisKeyValuesSortedIndexEntrySize,
       thisKeyValuesAccessIndexOffset = thisKeyValuesAccessIndexOffset,
       thisKeyValueIndexOffset = thisKeyValuesRealIndexOffset,
+      thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
       segmentHashIndexSize = segmentHashIndexSize,
       segmentBloomFilterSize = segmentBloomFilterSize,
       segmentBinarySearchIndexSize = segmentBinarySearchIndexSize,
@@ -292,11 +308,11 @@ private[core] case class Stats(valueSize: Int,
                                segmentSizeWithoutFooter: Int,
                                segmentSizeWithoutFooterForNextGroup: Int,
                                segmentUniqueAccessIndexKeyCounts: Int,
-                               keySize: Int,
                                thisKeyValuesSegmentKeyAndValueSize: Int,
-                               thisKeyValuesIndexSizeWithoutFooterAndHeader: Int,
+                               thisKeyValuesSortedIndexEntrySize: Int,
                                thisKeyValuesAccessIndexOffset: Int,
                                thisKeyValueIndexOffset: Int,
+                               thisKeyValueAccessIndexPosition: Int,
                                segmentHashIndexSize: Int,
                                segmentBloomFilterSize: Int,
                                segmentBinarySearchIndexSize: Int,
@@ -313,5 +329,5 @@ private[core] case class Stats(valueSize: Int,
     segmentUncompressedKeysSize + segmentValuesSize
 
   def thisKeyValueMemorySize =
-    keySize + valueSize
+    thisKeyValuesSortedIndexEntrySize + valueSize
 }

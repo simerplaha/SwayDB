@@ -39,6 +39,7 @@ trait BaseEntryReader {
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
+              accessPosition: Int,
               previous: Option[Persistent],
               reader: EntryReader[T]): Option[IO[T]]
 }

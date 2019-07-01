@@ -35,6 +35,7 @@ object GroupReader extends EntryReader[Persistent.Group] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
+                              accessPosition: Int,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -60,6 +61,7 @@ object GroupReader extends EntryReader[Persistent.Group] {
                       indexOffset = indexOffset,
                       valueOffset = valueOffset,
                       valueLength = valueLength,
+                      accessPosition = accessPosition,
                       isPrefixCompressed =
                         isKeyPrefixCompressed ||
                           timeReader.isPrefixCompressed ||

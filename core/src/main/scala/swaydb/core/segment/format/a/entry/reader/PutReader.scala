@@ -35,6 +35,7 @@ object PutReader extends EntryReader[Persistent.Put] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
+                              accessPosition: Int,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -76,6 +77,7 @@ object PutReader extends EntryReader[Persistent.Put] {
                       indexOffset = indexOffset,
                       valueOffset = valueOffset,
                       valueLength = valueLength,
+                      accessPosition = accessPosition,
                       isPrefixCompressed =
                         isKeyPrefixCompressed ||
                           timeReader.isPrefixCompressed ||

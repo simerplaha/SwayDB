@@ -35,6 +35,7 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
+                              accessPosition: Int,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -52,6 +53,7 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
                   nextIndexOffset = nextIndexOffset,
                   nextIndexSize = nextIndexSize,
                   deadline = deadline,
+                  accessPosition = accessPosition,
                   _time = time,
                   isPrefixCompressed =
                     isKeyPrefixCompressed ||

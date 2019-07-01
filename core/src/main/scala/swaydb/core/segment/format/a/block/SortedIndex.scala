@@ -39,7 +39,7 @@ private[core] object SortedIndex {
     val disabled =
       Config(
         cacheOnRead = false,
-        enablePositionIndex = false,
+        enableAccessPositionIndex = false,
         prefixCompressionResetCount = 0,
         hasCompression = false
       )
@@ -53,7 +53,7 @@ private[core] object SortedIndex {
     def apply(config: swaydb.data.config.SortedIndex.Enable): Config =
       Config(
         cacheOnRead = config.cacheOnRead,
-        enablePositionIndex = config.enablePositionIndex,
+        enableAccessPositionIndex = config.enablePositionIndex,
         prefixCompressionResetCount = config.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0),
         hasCompression = config.compression.nonEmpty
       )
@@ -68,13 +68,14 @@ private[core] object SortedIndex {
 
   case class Config(cacheOnRead: Boolean,
                     prefixCompressionResetCount: Int,
-                    enablePositionIndex: Boolean,
+                    enableAccessPositionIndex: Boolean,
                     hasCompression: Boolean)
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 
   case class State(var _bytes: Slice[Byte],
                    headerSize: Int,
+                   enableAccessPositionIndex: Boolean,
                    compressions: Seq[CompressionInternal]) {
     def bytes = _bytes
 
@@ -85,7 +86,7 @@ private[core] object SortedIndex {
   def headerSize(hasCompression: Boolean): Int = {
     val size = Block.headerSize(hasCompression)
     Bytes.sizeOf(size) +
-      ByteSizeOf.byte + //enablePositionIndex
+      ByteSizeOf.boolean + //enablePositionIndex
       size
   }
 
@@ -97,6 +98,7 @@ private[core] object SortedIndex {
     State(
       _bytes = bytes,
       headerSize = headSize,
+      enableAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
       compressions = compressions
     )
   }
@@ -109,6 +111,7 @@ private[core] object SortedIndex {
     ) flatMap {
       compressedOrUncompressedBytes =>
         state.bytes = compressedOrUncompressedBytes
+        state.bytes addBoolean state.enableAccessPositionIndex
         if (state.bytes.currentWritePosition > state.headerSize)
           IO.Failure(IO.Error.Fatal(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}"))
         else
@@ -117,7 +120,8 @@ private[core] object SortedIndex {
 
   def write(keyValue: KeyValue.WriteOnly, state: SortedIndex.State) =
     IO {
-      state.bytes addIntUnsigned keyValue.stats.keySize
+      state.bytes addIntUnsigned keyValue.stats.thisKeyValuesSortedIndexEntrySize
+      if (state.enableAccessPositionIndex) state.bytes addIntUnsigned keyValue.stats.thisKeyValueAccessIndexPosition
       state.bytes addAll keyValue.indexEntryBytes
     }
 
@@ -126,13 +130,17 @@ private[core] object SortedIndex {
     Block.readHeader(
       offset = offset,
       segmentReader = segmentReader
-    ) map {
+    ) flatMap {
       header =>
-        SortedIndex(
-          offset = offset,
-          headerSize = header.headerSize,
-          compressionInfo = header.compressionInfo
-        )
+        header.headerReader.readBoolean() map {
+          enablePositionIndex =>
+            SortedIndex(
+              offset = offset,
+              enableAccessPositionIndex = enablePositionIndex,
+              headerSize = header.headerSize,
+              compressionInfo = header.compressionInfo
+            )
+        }
     }
 
   private def readNextKeyValue(previous: Persistent,
@@ -199,13 +207,22 @@ private[core] object SortedIndex {
           }.get
       }
 
+      val sortedIndexReader = Reader(indexEntryBytesAndNextIndexEntrySize.take(indexSize))
+
+      val accessPosition =
+        if (indexReader.block.enableAccessPositionIndex)
+          sortedIndexReader.readIntUnsigned().get
+        else
+          0
+
       EntryReader.read(
         //take only the bytes required for this in entry and submit it for parsing/reading.
-        indexReader = Reader(indexEntryBytesAndNextIndexEntrySize.take(indexSize)),
+        indexReader = sortedIndexReader,
         valueReader = valueReader,
         indexOffset = positionBeforeRead,
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
+        accessPosition = accessPosition,
         previous = previous
       )
     } catch {
@@ -429,6 +446,7 @@ private[core] object SortedIndex {
 }
 
 case class SortedIndex(offset: SortedIndex.Offset,
+                       enableAccessPositionIndex: Boolean,
                        headerSize: Int,
                        compressionInfo: Option[Block.CompressionInfo]) extends Block {
 

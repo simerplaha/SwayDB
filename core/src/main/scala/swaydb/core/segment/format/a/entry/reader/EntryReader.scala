@@ -36,11 +36,12 @@ trait EntryReader[E] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
+                              accessPosition: Int,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
-                                                        deadlineReader: DeadlineReader[T],
-                                                        valueOffsetReader: ValueOffsetReader[T],
-                                                        valueLengthReader: ValueLengthReader[T],
-                                                        valueBytesReader: ValueReader[T]): IO[E]
+                                                            deadlineReader: DeadlineReader[T],
+                                                            valueOffsetReader: ValueOffsetReader[T],
+                                                            valueLengthReader: ValueLengthReader[T],
+                                                            valueBytesReader: ValueReader[T]): IO[E]
 }
 
 object EntryReader {
@@ -58,6 +59,7 @@ object EntryReader {
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
+              accessPosition: Int,
               previous: Option[Persistent],
               entryReader: EntryReader[T]): IO[T] =
     findReader(baseId = baseId) flatMap {
@@ -70,6 +72,7 @@ object EntryReader {
           indexOffset = indexOffset,
           nextIndexOffset = nextIndexOffset,
           nextIndexSize = nextIndexSize,
+          accessPosition = accessPosition,
           previous = previous,
           reader = entryReader
         )
@@ -80,23 +83,101 @@ object EntryReader {
            indexOffset: Int,
            nextIndexOffset: Int,
            nextIndexSize: Int,
+           accessPosition: Int,
            previous: Option[Persistent]): IO[Persistent] =
     indexReader.readIntUnsigned() flatMap {
       keyValueId =>
         if (KeyValueId.Put.hasKeyValueId(keyValueId))
-          EntryReader.read(KeyValueId.Put.adjustKeyValueIdToBaseId(keyValueId), keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, PutReader)
+          EntryReader.read(
+            baseId = KeyValueId.Put.adjustKeyValueIdToBaseId(keyValueId),
+            keyValueId = keyValueId,
+            indexReader = indexReader,
+            valueReader = valueReader,
+            indexOffset = indexOffset,
+            nextIndexOffset = nextIndexOffset,
+            nextIndexSize = nextIndexSize,
+            accessPosition = accessPosition,
+            previous = previous,
+            entryReader = PutReader
+          )
         else if (KeyValueId.Group.hasKeyValueId(keyValueId))
-          EntryReader.read(KeyValueId.Group.adjustKeyValueIdToBaseId(keyValueId), keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, GroupReader)
+          EntryReader.read(
+            baseId = KeyValueId.Group.adjustKeyValueIdToBaseId(keyValueId),
+            keyValueId = keyValueId,
+            indexReader = indexReader,
+            valueReader = valueReader,
+            indexOffset = indexOffset,
+            nextIndexOffset = nextIndexOffset,
+            nextIndexSize = nextIndexSize,
+            accessPosition = accessPosition,
+            previous = previous,
+            entryReader = GroupReader
+          )
         else if (KeyValueId.Range.hasKeyValueId(keyValueId))
-          EntryReader.read(KeyValueId.Range.adjustKeyValueIdToBaseId(keyValueId), keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, RangeReader)
+          EntryReader.read(
+            baseId = KeyValueId.Range.adjustKeyValueIdToBaseId(keyValueId),
+            keyValueId = keyValueId,
+            indexReader = indexReader,
+            valueReader = valueReader,
+            indexOffset = indexOffset,
+            nextIndexOffset = nextIndexOffset,
+            nextIndexSize = nextIndexSize,
+            accessPosition = accessPosition,
+            previous = previous,
+            entryReader = RangeReader
+          )
         else if (KeyValueId.Remove.hasKeyValueId(keyValueId))
-          EntryReader.read(KeyValueId.Remove.adjustKeyValueIdToBaseId(keyValueId), keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, RemoveReader)
+          EntryReader.read(
+            baseId = KeyValueId.Remove.adjustKeyValueIdToBaseId(keyValueId),
+            keyValueId = keyValueId,
+            indexReader = indexReader,
+            valueReader = valueReader,
+            indexOffset = indexOffset,
+            nextIndexOffset = nextIndexOffset,
+            nextIndexSize = nextIndexSize,
+            accessPosition = accessPosition,
+            previous = previous,
+            entryReader = RemoveReader
+          )
         else if (KeyValueId.Update.hasKeyValueId(keyValueId))
-          EntryReader.read(KeyValueId.Update.adjustKeyValueIdToBaseId(keyValueId), keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, UpdateReader)
+          EntryReader.read(
+            baseId = KeyValueId.Update.adjustKeyValueIdToBaseId(keyValueId),
+            keyValueId = keyValueId,
+            indexReader = indexReader,
+            valueReader = valueReader,
+            indexOffset = indexOffset,
+            nextIndexOffset = nextIndexOffset,
+            nextIndexSize = nextIndexSize,
+            accessPosition = accessPosition,
+            previous = previous,
+            entryReader = UpdateReader
+          )
         else if (KeyValueId.Function.hasKeyValueId(keyValueId))
-          EntryReader.read(KeyValueId.Function.adjustKeyValueIdToBaseId(keyValueId), keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, FunctionReader)
+          EntryReader.read(
+            baseId = KeyValueId.Function.adjustKeyValueIdToBaseId(keyValueId),
+            keyValueId = keyValueId,
+            indexReader = indexReader,
+            valueReader = valueReader,
+            indexOffset = indexOffset,
+            nextIndexOffset = nextIndexOffset,
+            nextIndexSize = nextIndexSize,
+            accessPosition = accessPosition,
+            previous = previous,
+            entryReader = FunctionReader
+          )
         else if (KeyValueId.PendingApply.hasKeyValueId(keyValueId))
-          EntryReader.read(KeyValueId.PendingApply.adjustKeyValueIdToBaseId(keyValueId), keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, PendingApplyReader)
+          EntryReader.read(
+            baseId = KeyValueId.PendingApply.adjustKeyValueIdToBaseId(keyValueId),
+            keyValueId = keyValueId,
+            indexReader = indexReader,
+            valueReader = valueReader,
+            indexOffset = indexOffset,
+            nextIndexOffset = nextIndexOffset,
+            nextIndexSize = nextIndexSize,
+            accessPosition = accessPosition,
+            previous = previous,
+            entryReader = PendingApplyReader
+          )
         else
           IO.Failure(IO.Error.Fatal(SegmentException.InvalidKeyValueId(keyValueId)))
     }

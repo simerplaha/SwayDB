@@ -206,8 +206,8 @@ private[core] object SegmentWriter extends LazyLogging {
       Values.valueSliceNotInitialised
     else
       SortedIndex
-        .write(keyValue, sortedIndex)
-        .flatMap(_ => values.map(Values.write(keyValue, _)).getOrElse(IO.unit))
+        .write(keyValue = keyValue, state = sortedIndex)
+        .flatMap(_ => values.map(Values.write(keyValue, _)) getOrElse IO.unit)
         .map {
           _ =>
             write(
