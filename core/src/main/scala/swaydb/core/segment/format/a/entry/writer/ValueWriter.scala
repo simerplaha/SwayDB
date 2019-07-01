@@ -98,29 +98,15 @@ private[writer] object ValueWriter {
         )
 
       case keyValue: Transient.SegmentResponse =>
-        keyValue.value map {
-          value =>
-            uncompressed(
-              current = current,
-              currentValue = keyValue.value.map(Slice(_)).getOrElse(Slice.emptyEmptyBytes),
-              entryId = entryId,
-              plusSize = plusSize,
-              enablePrefixCompression = enablePrefixCompression,
-              isKeyUncompressed = isKeyUncompressed,
-              hasPrefixCompressed = hasPrefixCompressed
-            )
-        } getOrElse {
-          uncompressed(
-            current = current,
-            currentValue = keyValue.value.map(Slice(_)).getOrElse(Slice.emptyEmptyBytes),
-            entryId = entryId,
-            plusSize = plusSize,
-            enablePrefixCompression = enablePrefixCompression,
-            isKeyUncompressed = isKeyUncompressed,
-            hasPrefixCompressed = hasPrefixCompressed
-          )
-        }
-
+        uncompressed(
+          current = current,
+          currentValue = keyValue.value.map(Slice(_)).getOrElse(Slice.emptyEmptyBytes),
+          entryId = entryId,
+          plusSize = plusSize,
+          enablePrefixCompression = enablePrefixCompression,
+          isKeyUncompressed = isKeyUncompressed,
+          hasPrefixCompressed = hasPrefixCompressed
+        )
     }
 
   private def uncompressed(current: KeyValue.WriteOnly,
@@ -160,7 +146,6 @@ private[writer] object ValueWriter {
       isPrefixCompressed = isPrefixCompressed
     )
   }
-
 
   private def noValue(current: KeyValue.WriteOnly,
                       entryId: BaseEntryId.Time,
@@ -493,5 +478,4 @@ private[writer] object ValueWriter {
           )
         }
     }
-
 }
