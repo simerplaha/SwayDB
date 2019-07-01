@@ -510,7 +510,7 @@ private[swaydb] object Memory {
                    segmentBlock: CacheValue[SegmentBlock]) extends Memory with KeyValue.ReadOnly.Group {
 
     private val segmentCache: CacheFunctionValue[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
-      CacheValue.partial {
+      CacheValue.function {
         case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter) =>
           SegmentCache(
             id = "Memory.Group - BinarySegment",
@@ -1380,7 +1380,7 @@ private[core] object Persistent {
         valueOffset = valueOffset,
         valueLength = valueLength,
         accessPosition = accessPosition,
-        isPrefixCompressed = isPrefixCompressed,
+        isPrefixCompressed = isPrefixCompressed
       )
 
     override def toPut(deadline: Option[Deadline]): Persistent.Put =
@@ -1626,7 +1626,7 @@ private[core] object Persistent {
                    segmentBlock: CacheValue[SegmentBlock]) extends Persistent with KeyValue.ReadOnly.Group {
 
     private val segmentCache: CacheFunctionValue[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
-      CacheValue.partial {
+      CacheValue.function {
         case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter) =>
           SegmentCache(
             id = "Persistent.Group - BinarySegment",

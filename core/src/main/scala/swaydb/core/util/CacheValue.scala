@@ -28,7 +28,7 @@ object CacheValue {
   def reserved[T](fetch: => IO[T]): CacheValue[T] =
     new CacheValueReserved(fetch, Reserve())
 
-  def partial[I, T](fetch: PartialFunction[I, T]): CacheFunctionValue[I, T] =
+  def function[I, T](fetch: PartialFunction[I, T]): CacheFunctionValue[I, T] =
     new CacheFunctionValue[I, T](fetch)
 }
 
