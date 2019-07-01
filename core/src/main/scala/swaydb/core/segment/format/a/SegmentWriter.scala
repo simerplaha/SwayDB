@@ -238,12 +238,12 @@ private[core] object SegmentWriter extends LazyLogging {
         nearestDeadline = nearestDeadline
       )
 
-  def write(keyValues: Iterable[KeyValue.WriteOnly],
-            sortedIndex: SortedIndex.State,
-            values: Option[Values.State],
-            hashIndex: Option[HashIndex.State],
-            binarySearchIndex: Option[BinarySearchIndex.State],
-            bloomFilter: Option[BloomFilter.State]): IO[ClosedBlocks] =
+  private def write(keyValues: Iterable[KeyValue.WriteOnly],
+                    sortedIndex: SortedIndex.State,
+                    values: Option[Values.State],
+                    hashIndex: Option[HashIndex.State],
+                    binarySearchIndex: Option[BinarySearchIndex.State],
+                    bloomFilter: Option[BloomFilter.State]): IO[ClosedBlocks] =
     keyValues.foldLeftIO(Option.empty[Deadline]) {
       case (deadline, keyValue) =>
         writeBlocks(

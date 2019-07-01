@@ -73,7 +73,8 @@ db
 
 Undergoing frequent changes & beta testing.
 
-Default branch is `develop` and is pushed to directly. See the tags to see a more stable version.
+See the tags to see a more stable version.
+Default branch is `develop` and is pushed to directly so at times it will be unstable. 
 
 # Project support
 Thank you Jetbrains for providing an open-source licence for their awesome development tools. 
