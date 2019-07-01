@@ -105,7 +105,7 @@ private[writer] object TimeWriter {
                                        entryId: BaseEntryId.Key,
                                        plusSize: Int,
                                        enablePrefixCompression: Boolean,
-                                       isKeyUncompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[KeyValueWriter.Result] =
+                                       isKeyUncompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[KeyValueWriter.WriteResult] =
     compress(
       previous = previousTime.time,
       next = currentTime.time,

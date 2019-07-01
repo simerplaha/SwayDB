@@ -27,11 +27,11 @@ import swaydb.data.slice.Slice
 
 private[core] object KeyValueWriter {
 
-  case class Result(indexBytes: Slice[Byte],
-                    valueBytes: Slice[Slice[Byte]],
-                    valueStartOffset: Int,
-                    valueEndOffset: Int,
-                    isPrefixCompressed: Boolean) {
+  case class WriteResult(indexBytes: Slice[Byte],
+                         valueBytes: Slice[Slice[Byte]],
+                         valueStartOffset: Int,
+                         valueEndOffset: Int,
+                         isPrefixCompressed: Boolean) {
     //TODO check if companion object function unapply returning an Option[Result] is cheaper than this unapply function.
     def unapply =
       (indexBytes, valueBytes, valueStartOffset, valueEndOffset, isPrefixCompressed)
@@ -55,7 +55,7 @@ private[core] object KeyValueWriter {
   def write[T <: KeyValue.WriteOnly](current: T,
                                      currentTime: Time,
                                      compressDuplicateValues: Boolean,
-                                     enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.Result =
+                                     enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.WriteResult =
     current.previous flatMap {
       previous =>
         if (enablePrefixCompression)
@@ -107,7 +107,7 @@ private[core] object KeyValueWriter {
   private def writeUncompressed[T <: KeyValue.WriteOnly](current: T,
                                                          currentTime: Time,
                                                          compressDuplicateValues: Boolean,
-                                                         enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) = {
+                                                         enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): WriteResult = {
     //no common prefixes or no previous write without compression
     val writeResult =
       TimeWriter.write(

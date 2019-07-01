@@ -480,8 +480,6 @@ class Slice[+T: ClassTag](array: Array[T],
     group(Slice.create[Slice[T]](size), this, size)
   }
 
-  //Note: using moveTo will set the writePosition incorrectly during runTime.
-  //one moveTo is invoked manually, all the subsequent writes should move this pointer manually.
   @throws[ArrayIndexOutOfBoundsException]
   private[swaydb] def moveWritePosition(writePosition: Int): Unit = {
     val adjustedPosition = fromOffset + writePosition
