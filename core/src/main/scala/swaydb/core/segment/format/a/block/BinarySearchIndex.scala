@@ -257,6 +257,8 @@ object BinarySearchIndex {
       }
 
   def search(reader: BlockReader[BinarySearchIndex],
+             start: Option[Int],
+             end: Option[Int],
              assertValue: Int => IO[MatchResult]) = {
 
     @tailrec
@@ -291,15 +293,19 @@ object BinarySearchIndex {
       }
     }
 
-    hop(start = 0, end = reader.block.valuesCount - 1)
+    hop(start = start.getOrElse(0), end = end.getOrElse(reader.block.valuesCount - 1))
   }
 
   def get(matcher: KeyMatcher.Get.WhilePrefixCompressed,
+          start: Option[Persistent],
+          end: Option[Persistent],
           binarySearchIndex: BlockReader[BinarySearchIndex],
           sortedIndex: BlockReader[SortedIndex],
           values: Option[BlockReader[Values]]): IO[Option[Persistent]] =
     search(
       reader = binarySearchIndex,
+      start = start.map(_.accessPosition),
+      end = end.map(_.accessPosition),
       assertValue =
         sortedIndexOffsetValue =>
           SortedIndex.findAndMatch(

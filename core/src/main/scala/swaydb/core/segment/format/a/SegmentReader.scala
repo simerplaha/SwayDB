@@ -83,7 +83,7 @@ private[core] object SegmentReader extends LazyLogging {
             else
               get(
                 matcher = matcher,
-                startFrom = startFrom,
+                start = startFrom,
                 binarySearchIndex = binarySearchIndex,
                 sortedIndex = sortedIndex,
                 valuesReader = valuesReader
@@ -92,7 +92,7 @@ private[core] object SegmentReader extends LazyLogging {
     } getOrElse {
       get(
         matcher = matcher,
-        startFrom = startFrom,
+        start = startFrom,
         binarySearchIndex = binarySearchIndex,
         sortedIndex = sortedIndex,
         valuesReader = valuesReader
@@ -100,7 +100,7 @@ private[core] object SegmentReader extends LazyLogging {
     }
 
   private def get(matcher: KeyMatcher.Get,
-                  startFrom: Option[Persistent],
+                  start: Option[Persistent],
                   binarySearchIndex: Option[BlockReader[BinarySearchIndex]],
                   sortedIndex: BlockReader[SortedIndex],
                   valuesReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
@@ -108,6 +108,8 @@ private[core] object SegmentReader extends LazyLogging {
       binarySearchIndex =>
         BinarySearchIndex.get(
           matcher = matcher.whilePrefixCompressed,
+          start = start,
+          end = None,
           binarySearchIndex = binarySearchIndex,
           sortedIndex = sortedIndex,
           values = valuesReader
@@ -121,7 +123,7 @@ private[core] object SegmentReader extends LazyLogging {
             else
               SortedIndex.find(
                 matcher = matcher,
-                startFrom = startFrom,
+                startFrom = start,
                 indexReader = sortedIndex,
                 valuesReader = valuesReader
               )
@@ -129,7 +131,7 @@ private[core] object SegmentReader extends LazyLogging {
     } getOrElse {
       SortedIndex.find(
         matcher = matcher,
-        startFrom = startFrom,
+        startFrom = start,
         indexReader = sortedIndex,
         valuesReader = valuesReader
       )

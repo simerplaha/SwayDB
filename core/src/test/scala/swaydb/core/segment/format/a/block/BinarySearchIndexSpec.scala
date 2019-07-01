@@ -50,6 +50,8 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
         value =>
           BinarySearchIndex.search(
             reader = alteredIndex.createBlockReader(alteredBytes),
+            start = None,
+            end = None,
             assertValue = matcher(valueToFind = value)
           ).get shouldBe defined
       }
@@ -61,6 +63,8 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
         i =>
           BinarySearchIndex.search(
             reader = alteredIndex.createBlockReader(alteredBytes),
+            start = None,
+            end = None,
             assertValue = matcher(valueToFind = i)
           ).get shouldBe empty
       }
