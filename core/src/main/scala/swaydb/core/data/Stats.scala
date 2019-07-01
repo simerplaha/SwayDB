@@ -124,6 +124,7 @@ private[core] object Stats {
       else
         HashIndex.optimalBytesRequired(
           keyCounts = segmentUniqueKeysCount,
+          minimumNumberOfKeys = hashIndex.minimumNumberOfKeys,
           largestValue = thisKeyValuesAccessIndexOffset,
           allocateSpace = hashIndex.allocateSpace,
           hasCompression = hashIndex.hasCompression

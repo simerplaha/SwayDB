@@ -38,7 +38,7 @@ import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.{FiniteDurationUtil, IDGenerator}
 import swaydb.data.IO._
 import swaydb.data.config.Dir
-import swaydb.data.config.HashIndex.HashIndexMeter
+import swaydb.data.config.HashIndex.HashIndexSpace
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey, Reserve}

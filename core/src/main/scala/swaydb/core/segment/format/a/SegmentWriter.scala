@@ -225,7 +225,7 @@ private[core] object SegmentWriter extends LazyLogging {
     for {
       sortedIndexClosed <- SortedIndex.close(sortedIndex)
       valuesClosed <- values.map(values => Values.close(values).map(Some(_))) getOrElse IO.none
-      hashIndexClosed <- hashIndex.map(HashIndex.close) getOrElse IO.none
+      hashIndexClosed <- hashIndex.map(HashIndex.close(_).map(Some(_))) getOrElse IO(hashIndex)
       binarySearchIndexClosed <- binarySearchIndex.map(BinarySearchIndex.close) getOrElse IO.none
       bloomFilterClosed <- bloomFilter.map(BloomFilter.close(_).map(Some(_))) getOrElse IO(bloomFilter)
     } yield

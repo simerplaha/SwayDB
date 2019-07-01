@@ -49,11 +49,11 @@ object Block extends LazyLogging {
                         val decompressedLength: Int,
                         val headerSize: Int,
                         private[Block] val reserve: Reserve[Unit],
-                        @volatile private var _decompressedBytes: Option[Slice[Byte]]) {
+                        @volatile private var _decompressedBytes: Option[IO.Success[Slice[Byte]]]) {
     def decompressedBytes = _decompressedBytes
 
     def decompressedBytes_=(bytes: Slice[Byte]) =
-      this._decompressedBytes = Some(bytes)
+      this._decompressedBytes = Some(IO.Success(bytes))
 
     def isBusy =
       reserve.isBusy
@@ -208,7 +208,6 @@ object Block extends LazyLogging {
                  offset: OffsetBase): IO[Slice[Byte]] =
     compressionInfo
       .decompressedBytes
-      .map(IO.Success(_))
       .getOrElse {
         if (Reserve.setBusyOrGet((), compressionInfo.reserve).isEmpty)
           try

@@ -32,11 +32,13 @@ object HashIndex {
   case object Disable extends HashIndex
   case class Enable(maxProbe: Int,
                     minimumNumberOfKeys: Int,
-                    allocateSpace: HashIndexMeter => Int,
+                    allocateSpace: HashIndexSpace => Int,
                     cacheOnRead: Boolean,
                     compression: Seq[Compression]) extends HashIndex
 
-  trait HashIndexMeter {
+  trait HashIndexSpace {
     def requiredSpace: Int
+    def numberOfKeys: Int
   }
+
 }

@@ -43,7 +43,7 @@ import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.util.UUIDUtil
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.HashIndex.HashIndexMeter
+import swaydb.data.config.HashIndex.HashIndexSpace
 import swaydb.data.config.{Dir, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice

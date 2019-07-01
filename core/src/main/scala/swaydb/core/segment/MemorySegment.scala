@@ -36,7 +36,7 @@ import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashI
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
 import swaydb.data.IO._
-import swaydb.data.config.HashIndex.HashIndexMeter
+import swaydb.data.config.HashIndex.HashIndexSpace
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey, Reserve}

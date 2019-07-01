@@ -26,7 +26,7 @@ import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
-import swaydb.data.config.HashIndex.HashIndexMeter
+import swaydb.data.config.HashIndex.HashIndexSpace
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -72,7 +72,7 @@ private[core] object HashIndex extends LazyLogging {
 
   case class Config(maxProbe: Int,
                     minimumNumberOfKeys: Int,
-                    allocateSpace: HashIndexMeter => Int,
+                    allocateSpace: HashIndexSpace => Int,
                     cacheOnRead: Boolean,
                     hasCompression: Boolean)
 
@@ -142,50 +142,53 @@ private[core] object HashIndex extends LazyLogging {
     * Number of bytes required to build a high probability index.
     */
   def optimalBytesRequired(keyCounts: Int,
+                           minimumNumberOfKeys: Int,
                            largestValue: Int,
                            hasCompression: Boolean,
-                           allocateSpace: HashIndexMeter => Int): Int = {
-    val writeAbleLargestValueSize = Bytes.sizeOf(largestValue + 1) //largest value is +1 because 0s are reserved.
+                           allocateSpace: HashIndexSpace => Int): Int = {
+    if (keyCounts < minimumNumberOfKeys) {
+      0
+    } else {
+      val writeAbleLargestValueSize = Bytes.sizeOf(largestValue + 1) //largest value is +1 because 0s are reserved.
 
-    val bytesWithOutCompensation =
-      headerSize(
-        keyCounts = keyCounts,
-        hasCompression = hasCompression,
-        writeAbleLargestValueSize = writeAbleLargestValueSize
-      ) + (keyCounts * (writeAbleLargestValueSize + 1)) //+1 to skip left & right 0 start-end markers.
+      val minimumRequired =
+        headerSize(
+          keyCounts = keyCounts,
+          hasCompression = hasCompression,
+          writeAbleLargestValueSize = writeAbleLargestValueSize
+        ) + (keyCounts * (writeAbleLargestValueSize + 1)) //+1 to skip left & right 0 start-end markers.
 
-    Try {
-      allocateSpace {
-        new HashIndexMeter {
-          override def requiredSpace: Int = bytesWithOutCompensation
+      Try {
+        allocateSpace {
+          new HashIndexSpace {
+            override def requiredSpace: Int = minimumRequired
+            override def numberOfKeys: Int = keyCounts
+          }
         }
-      }
-    } getOrElse 0
+      } getOrElse minimumRequired
+    }
   }
 
-  def close(state: State): IO[Option[State]] =
-    if (state.hasMinimumKeys)
-      Block.create(
-        headerSize = state.headerSize,
-        bytes = state.bytes,
-        compressions = state.compressions
-      ) flatMap {
-        compressedOrUncompressedBytes =>
-          IO {
-            val allocatedBytes = state.bytes.size
-            state.bytes = compressedOrUncompressedBytes
-            state.bytes addInt allocatedBytes //allocated bytes
-            state.bytes addInt state.maxProbe
-            state.bytes addIntUnsigned state.hit
-            state.bytes addIntUnsigned state.miss
-            state.bytes addIntUnsigned state.writeAbleLargestValueSize
-            if (state.bytes.currentWritePosition > state.headerSize)
-              throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
-            Some(state)
-          }
-      }
-    else
-      IO.none
+  def close(state: State): IO[State] =
+    Block.create(
+      headerSize = state.headerSize,
+      bytes = state.bytes,
+      compressions = state.compressions
+    ) flatMap {
+      compressedOrUncompressedBytes =>
+        IO {
+          val allocatedBytes = state.bytes.size
+          state.bytes = compressedOrUncompressedBytes
+          state.bytes addInt allocatedBytes //allocated bytes
+          state.bytes addInt state.maxProbe
+          state.bytes addIntUnsigned state.hit
+          state.bytes addIntUnsigned state.miss
+          state.bytes addIntUnsigned state.writeAbleLargestValueSize
+          if (state.bytes.currentWritePosition > state.headerSize)
+            throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+          state
+        }
+    }
 
   def read(offset: Offset, reader: Reader): IO[HashIndex] =
     for {

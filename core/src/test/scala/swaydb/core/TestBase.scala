@@ -47,7 +47,7 @@ import swaydb.core.util.IDGenerator
 import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
-import swaydb.data.config.HashIndex.HashIndexMeter
+import swaydb.data.config.HashIndex.HashIndexSpace
 import swaydb.data.config.{Dir, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
