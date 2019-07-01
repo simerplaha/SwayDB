@@ -718,6 +718,9 @@ object IO {
 
     @inline final def apply[T](exception: Throwable): IO.Failure[T] =
       IO.Failure[T](IO.Error(exception))
+
+    @inline final def apply[T](message: String): IO.Failure[T] =
+      IO.Failure[T](IO.Error(new Exception(message)))
   }
 
   final case class Failure[+T](error: Error) extends IO[T] with IO.Async[T] {

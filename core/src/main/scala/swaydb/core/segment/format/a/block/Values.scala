@@ -121,7 +121,7 @@ object Values {
     Block.readHeader(offset = offset, segmentReader = segmentReader) map {
       result =>
         Values(
-          blockOffset = offset,
+          offset = offset,
           headerSize = result.headerSize,
           compressionInfo = result.compressionInfo
         )
@@ -154,7 +154,7 @@ object Values {
         }
 }
 
-case class Values(blockOffset: Values.Offset,
+case class Values(offset: Values.Offset,
                   headerSize: Int,
                   compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
@@ -168,5 +168,5 @@ case class Values(blockOffset: Values.Offset,
     )
 
   override def updateOffset(start: Int, size: Int): Block =
-    copy(blockOffset = Values.Offset(start = start, size = size))
+    copy(offset = Values.Offset(start = start, size = size))
 }

@@ -49,7 +49,7 @@ private[core] class BlockReader[B <: Block](reader: Reader,
             compressionInfo = compressionInfo,
             //do not copy, decompress already copies if required.
             segmentReader = reader,
-            offset = block.blockOffset
+            offset = block.offset
           ) map {
             decompressedBytes =>
               //decompressed bytes, offsets not required, set to 0.
@@ -57,15 +57,15 @@ private[core] class BlockReader[B <: Block](reader: Reader,
           }
       }
       .getOrElse {
-        IO.Success((block.blockOffset.start + block.headerSize, reader.copy())) //no compression used. Set the offset.
+        IO.Success((block.offset.start + block.headerSize, reader.copy())) //no compression used. Set the offset.
       }
 
   override val size: IO[Long] =
-    IO.Success {
+    IO {
       block.
         compressionInfo
         .map(_.decompressedLength)
-        .getOrElse(block.blockOffset.size - block.headerSize)
+        .getOrElse(block.offset.size - block.headerSize)
         .toLong
     }
 
@@ -95,7 +95,7 @@ private[core] class BlockReader[B <: Block](reader: Reader,
   override def getPosition: Int =
     position
 
-  override def get() =
+  override def get(): IO[Int] =
     hasMore flatMap {
       hasMore =>
         if (hasMore)
@@ -114,7 +114,7 @@ private[core] class BlockReader[B <: Block](reader: Reader,
           IO.Failure(IO.Error.Fatal(s"Has no more bytes. Position: $getPosition"))
     }
 
-  override def read(size: Int) =
+  override def read(size: Int): IO[Slice[Byte]] =
     blockReader flatMap {
       case (offset, reader) =>
         remaining flatMap {
@@ -133,8 +133,8 @@ private[core] class BlockReader[B <: Block](reader: Reader,
 
   def readFullBlock(): IO[Slice[Byte]] =
     reader
-      .moveTo(block.blockOffset.start)
-      .read(block.blockOffset.size)
+      .moveTo(block.offset.start)
+      .read(block.offset.size)
 
   def readFullBlockAndGetReader(): IO[BlockReader[B]] =
     readFullBlock()
@@ -142,7 +142,7 @@ private[core] class BlockReader[B <: Block](reader: Reader,
         bytes =>
           BlockReader[B](
             reader = Reader(bytes),
-            block = block.updateOffset(0, bytes.size).asInstanceOf[B]
+            block = block.updateOffset(0, bytes.written).asInstanceOf[B]
           )
       }
 

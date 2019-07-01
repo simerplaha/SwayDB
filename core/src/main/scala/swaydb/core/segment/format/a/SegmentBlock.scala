@@ -36,14 +36,14 @@ object SegmentBlock {
     ) map {
       header =>
         SegmentBlock(
-          blockOffset = offset,
+          offset = offset,
           headerSize = header.headerSize,
           compressionInfo = header.compressionInfo
         )
     }
 }
 
-case class SegmentBlock(blockOffset: SegmentBlock.Offset,
+case class SegmentBlock(offset: SegmentBlock.Offset,
                         headerSize: Int,
                         compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
@@ -57,5 +57,5 @@ case class SegmentBlock(blockOffset: SegmentBlock.Offset,
     )
 
   override def updateOffset(start: Int, size: Int): Block =
-    copy(blockOffset = SegmentBlock.Offset(start = start, size = size))
+    copy(offset = SegmentBlock.Offset(start = start, size = size))
 }

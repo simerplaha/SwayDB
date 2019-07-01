@@ -28,7 +28,6 @@ import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.config.SortedIndex
 import swaydb.data.slice.{Reader, Slice}
 
 import scala.annotation.tailrec
@@ -120,7 +119,7 @@ private[core] object SortedIndex {
     ) map {
       header =>
         SortedIndex(
-          blockOffset = offset,
+          offset = offset,
           headerSize = header.headerSize,
           compressionInfo = header.compressionInfo
         )
@@ -419,7 +418,7 @@ private[core] object SortedIndex {
     keyValue.nextIndexSize > 0
 }
 
-case class SortedIndex(blockOffset: SortedIndex.Offset,
+case class SortedIndex(offset: SortedIndex.Offset,
                        headerSize: Int,
                        compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
@@ -433,5 +432,5 @@ case class SortedIndex(blockOffset: SortedIndex.Offset,
     )
 
   override def updateOffset(start: Int, size: Int): Block =
-    copy(blockOffset = SortedIndex.Offset(start = start, size = size))
+    copy(offset = SortedIndex.Offset(start = start, size = size))
 }

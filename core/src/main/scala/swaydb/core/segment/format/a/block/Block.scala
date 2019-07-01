@@ -32,12 +32,12 @@ import swaydb.data.{IO, Reserve}
   * A block is a group of compressed or uncompressed bytes.
   */
 trait Block {
-  def blockOffset: OffsetBase
+  def offset: OffsetBase
   def headerSize: Int
   def compressionInfo: Option[Block.CompressionInfo]
+  def updateOffset(start: Int, size: Int): Block
   def createBlockReader(segmentReader: Reader): BlockReader[_ <: Block]
   def createBlockReader(bytes: Slice[Byte]): BlockReader[_ <: Block]
-  def updateOffset(start: Int, size: Int): Block
 }
 
 object Block extends LazyLogging {

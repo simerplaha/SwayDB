@@ -26,7 +26,6 @@ import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
-import swaydb.data.config.HashIndex
 import swaydb.data.config.HashIndex.HashIndexMeter
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
@@ -199,7 +198,7 @@ private[core] object HashIndex extends LazyLogging {
       largestValueSize <- result.headerReader.readIntUnsigned()
     } yield
       HashIndex(
-        blockOffset = offset,
+        offset = offset,
         compressionInfo = result.compressionInfo,
         maxProbe = maxProbe,
         hit = hit,
@@ -360,7 +359,7 @@ private[core] object HashIndex extends LazyLogging {
     )
 }
 
-case class HashIndex(blockOffset: HashIndex.Offset,
+case class HashIndex(offset: HashIndex.Offset,
                      compressionInfo: Option[Block.CompressionInfo],
                      maxProbe: Int,
                      hit: Int,
@@ -382,5 +381,5 @@ case class HashIndex(blockOffset: HashIndex.Offset,
     )
 
   override def updateOffset(start: Int, size: Int): Block =
-    copy(blockOffset = HashIndex.Offset(start = start, size = size))
+    copy(offset = HashIndex.Offset(start = start, size = size))
 }

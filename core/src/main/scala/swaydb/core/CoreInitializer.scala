@@ -212,7 +212,11 @@ private[core] object CoreInitializer extends LazyLogging {
                      previousLowerLevel: Option[NextLevel]): IO[BlockingCore[IO]] =
       levelConfigs match {
         case Nil =>
-          createLevel(1, previousLowerLevel, config.level1) flatMap {
+          createLevel(
+            id = 1,
+            nextLevel = previousLowerLevel,
+            config = config.level1
+          ) flatMap {
             level1 =>
               LevelZero(
                 mapSize = config.level0.mapSize,

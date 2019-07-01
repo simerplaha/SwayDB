@@ -171,7 +171,7 @@ object BloomFilter extends LazyLogging {
       maxProbe <- blockHeader.headerReader.readIntUnsigned()
     } yield
       BloomFilter(
-        blockOffset = offset,
+        offset = offset,
         headerSize = blockHeader.headerSize,
         maxProbe = maxProbe,
         numberOfBits = numberOfBits,
@@ -262,7 +262,7 @@ object BloomFilter extends LazyLogging {
   }
 }
 
-case class BloomFilter(blockOffset: BloomFilter.Offset,
+case class BloomFilter(offset: BloomFilter.Offset,
                        maxProbe: Int,
                        numberOfBits: Int,
                        headerSize: Int,
@@ -277,5 +277,5 @@ case class BloomFilter(blockOffset: BloomFilter.Offset,
       block = this
     )
   override def updateOffset(start: Int, size: Int): Block =
-    copy(blockOffset = BloomFilter.Offset(start = start, size = size))
+    copy(offset = BloomFilter.Offset(start = start, size = size))
 }

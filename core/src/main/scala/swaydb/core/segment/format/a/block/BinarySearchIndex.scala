@@ -226,7 +226,7 @@ object BinarySearchIndex {
       isFullBinarySearchIndex <- result.headerReader.readBoolean()
     } yield
       BinarySearchIndex(
-        blockOffset = offset,
+        offset = offset,
         valuesCount = valuesCount,
         headerSize = result.headerSize,
         bytesPerValue = bytesPerValue,
@@ -311,7 +311,7 @@ object BinarySearchIndex {
     )
 }
 
-case class BinarySearchIndex(blockOffset: BinarySearchIndex.Offset,
+case class BinarySearchIndex(offset: BinarySearchIndex.Offset,
                              valuesCount: Int,
                              headerSize: Int,
                              bytesPerValue: Int,
@@ -330,5 +330,5 @@ case class BinarySearchIndex(blockOffset: BinarySearchIndex.Offset,
     )
 
   override def updateOffset(start: Int, size: Int): Block =
-    copy(blockOffset = BinarySearchIndex.Offset(start = start, size = size))
+    copy(offset = BinarySearchIndex.Offset(start = start, size = size))
 }

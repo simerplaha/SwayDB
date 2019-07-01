@@ -23,6 +23,8 @@ import com.typesafe.scalalogging.LazyLogging
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
+
+import swaydb.core.util.CacheValue
 import swaydb.data.IO
 import swaydb.data.slice.Slice
 
@@ -51,6 +53,8 @@ private[file] object ChannelFile {
 
 private[file] class ChannelFile(val path: Path,
                                 channel: FileChannel) extends LazyLogging with DBFileType {
+
+  private val fileSizeCache: CacheValue[Long] = CacheValue(IO(channel.size()))
 
   def close: IO[Unit] =
     IO {
@@ -82,7 +86,7 @@ private[file] class ChannelFile(val path: Path,
     }
 
   def fileSize =
-    IO(channel.size())
+    fileSizeCache.get
 
   override def isOpen =
     channel.isOpen

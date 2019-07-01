@@ -19,18 +19,20 @@
 
 package swaydb.core.io.file
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.{Path, StandardOpenOption}
 import java.nio.{BufferOverflowException, MappedByteBuffer}
 import java.util.concurrent.atomic.AtomicBoolean
-import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext
+
+import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.util.CacheValue
 import swaydb.data.IO
+import swaydb.data.IO._
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
-import IO._
+
+import scala.annotation.tailrec
 
 private[file] object MMAPFile {
 
@@ -80,6 +82,8 @@ private[file] class MMAPFile(val path: Path,
                              @volatile private var buffer: MappedByteBuffer) extends LazyLogging with DBFileType {
 
   private val open = new AtomicBoolean(true)
+
+  private val fileSizeCache: CacheValue[Long] = CacheValue(IO(channel.size()))
 
   def close(): IO[Unit] =
   //    logger.info(s"$path: Closing channel")
@@ -166,7 +170,7 @@ private[file] class MMAPFile(val path: Path,
     }
 
   override def fileSize =
-    IO(channel.size())
+    fileSizeCache.get
 
   override def readAll: IO[Slice[Byte]] =
     read(0, channel.size().toInt)
