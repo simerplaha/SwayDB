@@ -59,7 +59,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def path = file.path
 
-  private val segmentBlockCache = Cache.io[SegmentBlock](synchronised = true)(getSegmentBlock())
+  private val segmentBlockCache = Cache.io[SegmentBlock](synchronised = true, stored = true)(getSegmentBlock())
 
   private val segmentCache =
     SegmentCache(

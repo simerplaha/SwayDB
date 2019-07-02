@@ -21,7 +21,6 @@ package swaydb.core.util.cache
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.data.IO
 
 import scala.util.Random
 
@@ -30,7 +29,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
   "LazyValue" when {
     "empty" should {
       "return undefined and not set value on getOrElse" in {
-        val lazyValue = Lazy.value[Int](Random.nextBoolean())
+        val lazyValue = Lazy.value[Int](Random.nextBoolean(), Random.nextBoolean())
 
         lazyValue.isDefined shouldBe false
         lazyValue getOrElse 10 shouldBe 10
@@ -45,7 +44,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
 
     "set" should {
       "return value and not set new value" in {
-        val lazyValue = Lazy.value[Int](Random.nextBoolean())
+        val lazyValue = Lazy.value[Int](Random.nextBoolean(), Random.nextBoolean())
 
         lazyValue.getOrSet(20) shouldBe 20
         lazyValue getOrElse 10 shouldBe 20

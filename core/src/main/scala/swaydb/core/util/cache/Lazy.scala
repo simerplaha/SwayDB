@@ -22,11 +22,19 @@ package swaydb.core.util.cache
 import swaydb.data.IO
 
 object Lazy {
-  def value[T](synchronised: Boolean): LazyValue[T] =
-    new LazyValue[T](synchronised)
+  def value[T](synchronised: Boolean, stored: Boolean): LazyValue[T] =
+    new LazyValue[T](
+      synchronised = synchronised,
+      stored = stored
+    )
 
-  def io[T](synchronised: Boolean): LazyIO[T] =
-    new LazyIO[T](Lazy.value(synchronised))
+  def io[T](synchronised: Boolean, stored: Boolean): LazyIO[T] =
+    new LazyIO[T](
+      lazyValue = Lazy.value(
+        synchronised = synchronised,
+        stored = stored
+      )
+    )
 }
 
 protected sealed trait Lazy[V] {
@@ -38,22 +46,23 @@ protected sealed trait Lazy[V] {
   def clear(): Unit
 }
 
-class LazyValue[V](isSynchronised: Boolean) extends Lazy[V] {
+class LazyValue[V](synchronised: Boolean, stored: Boolean) extends Lazy[V] {
 
   @volatile private var cache: Option[V] = None
 
   override def get(): Option[V] =
-    if (isSynchronised)
+    if (synchronised)
       this.synchronized(cache)
     else
       cache
 
   def set(value: => V): V = {
     val got = value
-    if (isSynchronised)
-      this.synchronized(cache = Some(got))
-    else
-      cache = Some(got)
+    if (stored)
+      if (synchronised)
+        this.synchronized(cache = Some(got))
+      else
+        cache = Some(got)
     got
   }
 
@@ -66,15 +75,15 @@ class LazyValue[V](isSynchronised: Boolean) extends Lazy[V] {
   def getOrSet(value: => V): V =
     cache getOrElse {
       val got = value
-      if (isSynchronised)
+      if (synchronised)
         this.synchronized {
           cache.getOrElse {
-            cache = Some(got)
+            if (stored) cache = Some(got)
             got
           }
         }
       else {
-        cache = Some(got)
+        if (stored) cache = Some(got)
         got
       }
     }

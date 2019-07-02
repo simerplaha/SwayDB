@@ -90,7 +90,7 @@ class KeyMatcherSpec extends TestBase {
         accessPosition = 0,
         deadline = None,
         isPrefixCompressed = false,
-        segmentBlock = Cache.io(false)(IO(null))
+        segmentBlock = Cache.io(false, false)(IO(null))
       )
 
     implicit def toGroupRange(tuple: (Int, (Int, Int))): Group =
@@ -106,7 +106,7 @@ class KeyMatcherSpec extends TestBase {
         accessPosition = 0,
         deadline = None,
         isPrefixCompressed = false,
-        segmentBlock = Cache.io(false)(IO(null))
+        segmentBlock = Cache.io(false, false)(IO(null))
       )
 
     implicit def toSomeGroupFixed(tuple: (Int, Int)): Option[Group] =

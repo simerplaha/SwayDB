@@ -34,12 +34,12 @@ object SegmentBlockCache {
 class SegmentBlockCache(id: String,
                         segmentBlock: () => IO[BlockReader[SegmentBlock]]) {
 
-  private val footerCache = Cache.io[SegmentFooter](synchronised = true)(getFooterInfo())
-  private val hashIndexCache = Cache.io[Option[HashIndex]](synchronised = true)(getHashIndexInfo())
-  private val bloomFilterCache = Cache.io[Option[BloomFilter]](synchronised = true)(getBloomFilterInfo())
-  private val binarySearchIndexCache = Cache.io[Option[BinarySearchIndex]](synchronised = true)(getBinarySearchIndexInfo())
-  private val sortedIndexCache = Cache.io[SortedIndex](synchronised = true)(getSortedIndexInfo())
-  private val valuesCache = Cache.io[Option[Values]](synchronised = true)(getValuesInfo())
+  private val footerCache = Cache.io[SegmentFooter](synchronised = true, stored = true)(getFooterInfo())
+  private val hashIndexCache = Cache.io[Option[HashIndex]](synchronised = true, stored = true)(getHashIndexInfo())
+  private val bloomFilterCache = Cache.io[Option[BloomFilter]](synchronised = true, stored = true)(getBloomFilterInfo())
+  private val binarySearchIndexCache = Cache.io[Option[BinarySearchIndex]](synchronised = true, stored = true)(getBinarySearchIndexInfo())
+  private val sortedIndexCache = Cache.io[SortedIndex](synchronised = true, stored = true)(getSortedIndexInfo())
+  private val valuesCache = Cache.io[Option[Values]](synchronised = true, stored = true)(getValuesInfo())
 
   def clear(): Unit = {
     footerCache.clear()

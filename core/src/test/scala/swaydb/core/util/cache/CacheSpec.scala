@@ -29,7 +29,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     "invoke the init function only once on success" in {
       val mock = mockFunction[IO[Int]]
 
-      val cache = Cache.io[Int](false)(mock.apply())
+      val cache = Cache.io[Int](false, false)(mock.apply())
       cache.isCached shouldBe false
       mock.expects() returning IO(123)
 
@@ -41,7 +41,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     "not cache on failure" in {
       val mock = mockFunction[IO[Int]]
 
-      val cache = Cache.io[Int](false)(mock.apply())
+      val cache = Cache.io[Int](false, false)(mock.apply())
       cache.isCached shouldBe false
       mock.expects() returning IO.Failure("Kaboom!")
 

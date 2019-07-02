@@ -22,14 +22,27 @@ package swaydb.core.util.cache
 import swaydb.data.{IO, Reserve}
 
 object Cache {
-  def io[T](synchronised: Boolean)(fetch: => IO[T]): Cache[T] =
+  def io[T](synchronised: Boolean, stored: Boolean)(fetch: => IO[T]): Cache[T] =
     if (synchronised)
-      new SynchronisedIO[T](fetch, Lazy.io(synchronised = true))
+      new SynchronisedIO[T](
+        init = fetch,
+        lazyIO = Lazy.io(synchronised = true, stored = stored)
+      )
     else
-      new ReservedIO(fetch, Lazy.io(synchronised = false), Reserve())
+      new ReservedIO(
+        init = fetch,
+        lazyIO = Lazy.io(synchronised = false, stored = stored),
+        reserve = Reserve()
+      )
 
-  def value[I, T](synchronised: Boolean)(fetch: PartialFunction[I, T]): CacheFunctionOutput[I, T] =
-    new CacheFunctionOutput[I, T](fetch, Lazy.value(synchronised))
+  def value[I, T](synchronised: Boolean, stored: Boolean)(fetch: PartialFunction[I, T]): CacheFunctionOutput[I, T] =
+    new CacheFunctionOutput[I, T](
+      f = fetch,
+      lazyValue = Lazy.value(
+        synchronised = synchronised,
+        stored = stored
+      )
+    )
 }
 
 /**

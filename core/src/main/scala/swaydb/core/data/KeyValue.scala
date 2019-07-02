@@ -495,7 +495,7 @@ private[swaydb] object Memory {
         compressedKeyValues = compressedKeyValues,
         deadline = deadline,
         segmentBlock =
-          Cache.io(synchronised = true)(
+          Cache.io(synchronised = true, stored = true)(
             SegmentBlock.read(
               offset = SegmentBlock.Offset(0, compressedKeyValues.written),
               segmentReader = Reader(compressedKeyValues)
@@ -511,7 +511,7 @@ private[swaydb] object Memory {
                    segmentBlock: Cache[SegmentBlock]) extends Memory with KeyValue.ReadOnly.Group {
 
     private val segmentCache: CacheFunctionOutput[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
-      Cache.value(synchronised = true) {
+      Cache.value(synchronised = true, stored = true) {
         case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter) =>
           SegmentCache(
             id = "Memory.Group - BinarySegment",
@@ -1603,7 +1603,7 @@ private[core] object Persistent {
             deadline = deadline,
             isPrefixCompressed = isPrefixCompressed,
             segmentBlock =
-              Cache.io(synchronised = true)(
+              Cache.io(synchronised = true, stored = true)(
                 SegmentBlock.read(
                   offset = SegmentBlock.Offset(valueOffset, valueLength),
                   segmentReader = valueReader
@@ -1627,7 +1627,7 @@ private[core] object Persistent {
                    segmentBlock: Cache[SegmentBlock]) extends Persistent with KeyValue.ReadOnly.Group {
 
     private val segmentCache: CacheFunctionOutput[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
-      Cache.value(synchronised = true) {
+      Cache.value(synchronised = true, stored = true) {
         case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter) =>
           SegmentCache(
             id = "Persistent.Group - BinarySegment",
