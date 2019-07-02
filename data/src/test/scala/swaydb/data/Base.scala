@@ -44,7 +44,7 @@ object Base {
       IO.Error.DecompressingIndex(busyBoolean),
       IO.Error.DecompressingValues(busyBoolean),
       IO.Error.ReadingHeader(busyBoolean),
-      IO.Error.FetchingValue(busyBoolean)
+      IO.Error.ReservedValue(busyBoolean)
     )
 
   def randomBusyException(busyBoolean: Reserve[Unit] = Reserve()): IO.Error.Busy =

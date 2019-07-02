@@ -75,10 +75,10 @@ class IOErrorSpec extends FlatSpec with Matchers {
     error.exception.getMessage shouldBe exception.getMessage
     IO.Error(exception) shouldBe a[IO.Error.ReadingHeader]
 
-    error = IO.Error.FetchingValue(Reserve())
+    error = IO.Error.ReservedValue(Reserve())
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    IO.Error(exception) shouldBe a[IO.Error.FetchingValue]
+    IO.Error(exception) shouldBe a[IO.Error.ReservedValue]
 
     //OTHER Errors
     error = IO.Error.OverlappingPushSegment

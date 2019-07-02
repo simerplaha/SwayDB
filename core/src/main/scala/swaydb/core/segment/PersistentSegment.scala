@@ -34,6 +34,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.{SegmentBlock, SegmentCompression}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
+import swaydb.core.util.cache.Cache
 import swaydb.data.IO._
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -58,7 +59,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def path = file.path
 
-  private val segmentBlockCache = CacheValue.reserved[SegmentBlock](getSegmentBlock())
+  private val segmentBlockCache = Cache.io[SegmentBlock](synchronised = true)(getSegmentBlock())
 
   private val segmentCache =
     SegmentCache(

@@ -17,42 +17,42 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.util
+package swaydb.core.util.cache
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.data.IO
 
-class CacheValueSpec extends WordSpec with Matchers with MockFactory {
+class CacheSpec extends WordSpec with Matchers with MockFactory {
 
   "CacheValue" should {
     "invoke the init function only once on success" in {
       val mock = mockFunction[IO[Int]]
 
-      val value = CacheValue[Int](mock.apply())
-      value.isCached shouldBe false
+      val cache = Cache.io[Int](false)(mock.apply())
+      cache.isCached shouldBe false
       mock.expects() returning IO(123)
 
-      value.value shouldBe IO.Success(123)
-      value.isCached shouldBe true
-      value.value shouldBe IO.Success(123) //value again mock function is not invoked again
+      cache.value shouldBe IO.Success(123)
+      cache.isCached shouldBe true
+      cache.value shouldBe IO.Success(123) //value again mock function is not invoked again
     }
 
     "not cache on failure" in {
       val mock = mockFunction[IO[Int]]
 
-      val value = CacheValue[Int](mock.apply())
-      value.isCached shouldBe false
+      val cache = Cache.io[Int](false)(mock.apply())
+      cache.isCached shouldBe false
       mock.expects() returning IO.Failure("Kaboom!")
 
       //failure
-      value.value.failed.get.exception.getMessage shouldBe "Kaboom!"
-      value.isCached shouldBe false
+      cache.value.failed.get.exception.getMessage shouldBe "Kaboom!"
+      cache.isCached shouldBe false
 
       //success
       mock.expects() returning IO(123)
-      value.value shouldBe IO.Success(123) //value again mock function is not invoked again
-      value.isCached shouldBe true
+      cache.value shouldBe IO.Success(123) //value again mock function is not invoked again
+      cache.isCached shouldBe true
     }
 
   }

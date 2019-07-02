@@ -26,7 +26,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.MatchResult._
 import swaydb.core.segment.format.a.block.Values
 import swaydb.core.segment.format.a.entry.reader.value.{LazyRangeValueReader, LazyValueReader}
-import swaydb.core.util.CacheValue
+import swaydb.core.util.cache.Cache
 import swaydb.data.{IO, MaxKey}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -90,7 +90,7 @@ class KeyMatcherSpec extends TestBase {
         accessPosition = 0,
         deadline = None,
         isPrefixCompressed = false,
-        segmentBlock = CacheValue(IO(null))
+        segmentBlock = Cache.io(false)(IO(null))
       )
 
     implicit def toGroupRange(tuple: (Int, (Int, Int))): Group =
@@ -106,7 +106,7 @@ class KeyMatcherSpec extends TestBase {
         accessPosition = 0,
         deadline = None,
         isPrefixCompressed = false,
-        segmentBlock = CacheValue(IO(null))
+        segmentBlock = Cache.io(false)(IO(null))
       )
 
     implicit def toSomeGroupFixed(tuple: (Int, Int)): Option[Group] =

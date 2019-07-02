@@ -28,9 +28,10 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.format.a.{SegmentBlock, SegmentCompression, SegmentWriter}
-import swaydb.core.segment.{SegmentCache, Segment}
-import swaydb.core.util.{Bytes, CacheValue, CacheFunctionValue}
+import swaydb.core.segment.{Segment, SegmentCache}
+import swaydb.core.util.Bytes
 import swaydb.core.util.CollectionUtil._
+import swaydb.core.util.cache.{Cache, CacheFunctionOutput}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{IO, MaxKey}
@@ -494,7 +495,7 @@ private[swaydb] object Memory {
         compressedKeyValues = compressedKeyValues,
         deadline = deadline,
         segmentBlock =
-          CacheValue(
+          Cache.io(synchronised = true)(
             SegmentBlock.read(
               offset = SegmentBlock.Offset(0, compressedKeyValues.written),
               segmentReader = Reader(compressedKeyValues)
@@ -507,10 +508,10 @@ private[swaydb] object Memory {
                    maxKey: MaxKey[Slice[Byte]],
                    compressedKeyValues: Slice[Byte],
                    deadline: Option[Deadline],
-                   segmentBlock: CacheValue[SegmentBlock]) extends Memory with KeyValue.ReadOnly.Group {
+                   segmentBlock: Cache[SegmentBlock]) extends Memory with KeyValue.ReadOnly.Group {
 
-    private val segmentCache: CacheFunctionValue[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
-      CacheValue.function {
+    private val segmentCache: CacheFunctionOutput[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
+      Cache.value(synchronised = true) {
         case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter) =>
           SegmentCache(
             id = "Memory.Group - BinarySegment",
@@ -528,11 +529,11 @@ private[swaydb] object Memory {
     override def key: Slice[Byte] = minKey
 
     override def isInitialised: Boolean =
-      segmentCache.isCached
+      segmentCache.isDefined
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
                 keyValueLimiter: KeyValueLimiter): SegmentCache =
-      segmentCache.value(keyOrder, keyValueLimiter).get
+      segmentCache.value(keyOrder, keyValueLimiter)
 
     def uncompress(): Memory.Group = {
       segmentBlock.clear()
@@ -1602,7 +1603,7 @@ private[core] object Persistent {
             deadline = deadline,
             isPrefixCompressed = isPrefixCompressed,
             segmentBlock =
-              CacheValue.reserved(
+              Cache.io(synchronised = true)(
                 SegmentBlock.read(
                   offset = SegmentBlock.Offset(valueOffset, valueLength),
                   segmentReader = valueReader
@@ -1623,10 +1624,10 @@ private[core] object Persistent {
                    accessPosition: Int,
                    deadline: Option[Deadline],
                    isPrefixCompressed: Boolean,
-                   segmentBlock: CacheValue[SegmentBlock]) extends Persistent with KeyValue.ReadOnly.Group {
+                   segmentBlock: Cache[SegmentBlock]) extends Persistent with KeyValue.ReadOnly.Group {
 
-    private val segmentCache: CacheFunctionValue[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
-      CacheValue.function {
+    private val segmentCache: CacheFunctionOutput[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
+      Cache.value(synchronised = true) {
         case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter) =>
           SegmentCache(
             id = "Persistent.Group - BinarySegment",
@@ -1640,8 +1641,8 @@ private[core] object Persistent {
           )(keyOrder, limiter)
       }
 
-    def isInitialised =
-      segmentCache.isCached
+    def isInitialised: Boolean =
+      segmentCache.isDefined
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
@@ -1661,6 +1662,6 @@ private[core] object Persistent {
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
                 keyValueLimiter: KeyValueLimiter): SegmentCache =
-      segmentCache.value(keyOrder, keyValueLimiter).get
+      segmentCache.value(keyOrder, keyValueLimiter)
   }
 }

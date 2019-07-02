@@ -17,28 +17,28 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.util
+package swaydb.core.util.cache
 
 import swaydb.data.{IO, Reserve}
 
-object CacheValue {
-  def apply[T](fetch: => IO[T]): CacheValue[T] =
-    new CacheValueNotReserved[T](fetch)
+object Cache {
+  def io[T](synchronised: Boolean)(fetch: => IO[T]): Cache[T] =
+    if (synchronised)
+      new SynchronisedIO[T](fetch, Lazy.io(synchronised = true))
+    else
+      new ReservedIO(fetch, Lazy.io(synchronised = false), Reserve())
 
-  def reserved[T](fetch: => IO[T]): CacheValue[T] =
-    new CacheValueReserved(fetch, Reserve())
-
-  def function[I, T](fetch: PartialFunction[I, T]): CacheFunctionValue[I, T] =
-    new CacheFunctionValue[I, T](fetch)
+  def value[I, T](synchronised: Boolean)(fetch: PartialFunction[I, T]): CacheFunctionOutput[I, T] =
+    new CacheFunctionOutput[I, T](fetch, Lazy.value(synchronised))
 }
 
 /**
   * Caches a value on read. Used for IO operations where the output does not change.
   * For example: A file's size.
   */
-sealed trait CacheValue[T] {
+sealed trait Cache[T] {
   def value: IO[T]
-  def getValueOrElse(f: => IO[T]): IO[T]
+  def getOrElse(f: => IO[T]): IO[T]
   def isCached: Boolean
   def clear(): Unit
   def set(value: T): Unit
@@ -50,85 +50,66 @@ sealed trait CacheValue[T] {
     value flatMap f
 }
 
-private class CacheValueNotReserved[T](init: => IO[T]) extends CacheValue[T] {
-
-  @volatile private var cacheValue: Option[IO[T]] = None
+private class SynchronisedIO[T](init: => IO[T], lazyIO: LazyIO[T]) extends Cache[T] {
 
   override def value: IO[T] =
-    cacheValue getOrElse {
-      init map {
-        success =>
-          cacheValue = Some(IO.Success(success))
-          success
-      }
-    }
+    lazyIO getOrSet init
 
-  override def getValueOrElse(f: => IO[T]): IO[T] =
-    cacheValue getOrElse f
+  override def getOrElse(f: => IO[T]): IO[T] =
+    lazyIO getOrElse f
 
   override def isCached: Boolean =
-    cacheValue.isDefined
+    lazyIO.isDefined
 
   override def clear(): Unit =
-    cacheValue = None
+    lazyIO.clear()
 
   override def set(value: T): Unit =
-    cacheValue = Some(IO.Success(value))
+    lazyIO set IO.Success(value)
 }
 
 /**
   * Caches a value on read. Used for IO operations where the output does not change.
   * For example: A file's size.
   */
-private class CacheValueReserved[T](init: => IO[T], reserve: Reserve[Unit]) extends CacheValue[T] {
-
-  private val cacheValue = CacheValue[T](init)
+private class ReservedIO[T](init: => IO[T], lazyIO: LazyIO[T], reserve: Reserve[Unit]) extends Cache[T] {
 
   override def value: IO[T] =
-    cacheValue.getValueOrElse {
+    lazyIO.getOrElse {
       if (Reserve.setBusyOrGet((), reserve).isEmpty)
         try
-          cacheValue.value
+          lazyIO set init
         finally
           Reserve.setFree(reserve)
       else
-        IO.Failure(IO.Error.FetchingValue(reserve))
+        IO.Failure(IO.Error.ReservedValue(reserve))
     }
 
   override def isCached: Boolean =
-    cacheValue.isCached
+    lazyIO.isDefined
 
   override def clear() =
-    cacheValue.clear()
+    lazyIO.clear()
 
-  override def getValueOrElse(f: => IO[T]): IO[T] =
-    cacheValue getValueOrElse f
+  override def getOrElse(f: => IO[T]): IO[T] =
+    lazyIO getOrElse f
 
   override def set(value: T): Unit =
-    cacheValue set value
+    lazyIO set IO.Success(value)
 }
 
 /**
   * Caches a value on read. Used for IO operations where the output does not change.
   * For example: A file's size.
   */
-class CacheFunctionValue[I, O](f: I => O) {
+class CacheFunctionOutput[I, O](f: I => O, lazyValue: LazyValue[O]) {
 
-  private val cacheValue = CacheValue[Option[O]](IO.none)
+  def value(input: I): O =
+    lazyValue getOrSet f(input)
 
-  def value(input: I): IO[O] =
-    cacheValue map {
-      value =>
-        value.getOrElse {
-          val output = f(input)
-          cacheValue.set(Some(output))
-          output
-        }
-    }
-
-  def isCached: Boolean =
-    cacheValue.isCached
+  def isDefined: Boolean =
+    lazyValue.isDefined
 
   def clear() =
-    cacheValue.clear()
+    lazyValue.clear()
 }

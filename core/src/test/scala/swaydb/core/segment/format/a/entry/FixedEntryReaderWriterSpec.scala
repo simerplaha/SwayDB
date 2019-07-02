@@ -43,7 +43,7 @@
 //      val entry = randomFixedKeyValue(key = randomIntMax(), value = randomStringOption).toTransient
 //      //      println("write: " + entry)
 //
-//      val read = EntryReader.read(Reader(entry.indexEntryBytes), entry.valueEntryBytes.map(Reader(_)).getValueOrElse(Reader.empty), 0, 0, 0, None).assertGet
+//      val read = EntryReader.read(Reader(entry.indexEntryBytes), entry.valueEntryBytes.map(Reader(_)).getOrElse(Reader.empty), 0, 0, 0, None).assertGet
 //      //      println("read:  " + read)
 //      read shouldBe entry
 //    }

@@ -73,7 +73,7 @@ class ValuesSpec extends TestBase {
 //              value =>
 //                Values.read(offset, value.size, values.createBlockReader(state.bytes)).get should contain(value)
 //                offset + value.size
-//            } getValueOrElse offset
+//            } getOrElse offset
 //        }
 //        //        println(s"Allocated size: ${keyValues.last.stats.segmentValuesSize}")
 //        //        println(s"Actual size: ${state.bytes.written}")

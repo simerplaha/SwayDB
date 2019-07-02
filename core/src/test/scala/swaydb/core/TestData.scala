@@ -2054,11 +2054,11 @@ object TestData {
     //        time = testTimer.next,
     //        previous = previous,
     //        falsePositiveRate = falsePositiveRate,
-    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
-    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
-    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getValueOrElse(TestData.resetPrefixCompressionEvery),
-    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getValueOrElse(TestData.minimumNumberOfKeysForHashIndex),
-    //        allocateSpace = previous.map(_.allocateSpace).getValueOrElse(TestData.allocateSpace)
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace)
     //      )
       ???
 
@@ -2072,11 +2072,11 @@ object TestData {
     //        time = testTimer.next,
     //        previous = previous,
     //        falsePositiveRate = falsePositiveRate,
-    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
-    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
-    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getValueOrElse(TestData.resetPrefixCompressionEvery),
-    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getValueOrElse(TestData.minimumNumberOfKeysForHashIndex),
-    //        allocateSpace = previous.map(_.allocateSpace).getValueOrElse(TestData.allocateSpace)
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace)
     //      )
       ???
 
@@ -2091,12 +2091,12 @@ object TestData {
     //        time = testTimer.next,
     //        previous = previous,
     //        falsePositiveRate = falsePositiveRate,
-    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
-    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
     //        compressDuplicateValues = true,
-    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getValueOrElse(TestData.resetPrefixCompressionEvery),
-    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getValueOrElse(TestData.minimumNumberOfKeysForHashIndex),
-    //        allocateSpace = previous.map(_.allocateSpace).getValueOrElse(TestData.allocateSpace)
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace)
     //      )
       ???
 
@@ -2113,12 +2113,12 @@ object TestData {
     //        time = testTimer.next,
     //        previous = previous,
     //        falsePositiveRate = falsePositiveRate,
-    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
-    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
     //        compressDuplicateValues = compressDuplicateValues,
-    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getValueOrElse(TestData.resetPrefixCompressionEvery),
-    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getValueOrElse(TestData.minimumNumberOfKeysForHashIndex),
-    //        allocateSpace = previous.map(_.allocateSpace).getValueOrElse(TestData.allocateSpace)
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace)
     //      )
       ???
 
@@ -2261,12 +2261,12 @@ object TestData {
     //        value = None,
     //        deadline = deadline,
     //        previous = previous,
-    //        falsePositiveRate = previous.map(_.falsePositiveRate).getValueOrElse(TestData.falsePositiveRate),
-    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
-    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
-    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getValueOrElse(TestData.resetPrefixCompressionEvery),
-    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getValueOrElse(TestData.minimumNumberOfKeysForHashIndex),
-    //        allocateSpace = previous.map(_.allocateSpace).getValueOrElse(TestData.allocateSpace),
+    //        falsePositiveRate = previous.map(_.falsePositiveRate).getOrElse(TestData.falsePositiveRate),
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace),
     //        time = testTimer.next,
     //        compressDuplicateValues = compressDuplicateValues
     //      )
@@ -2283,11 +2283,11 @@ object TestData {
     //        deadline = None,
     //        previous = previous,
     //        falsePositiveRate = falsePositiveRate,
-    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
-    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
-    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getValueOrElse(TestData.resetPrefixCompressionEvery),
-    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getValueOrElse(TestData.minimumNumberOfKeysForHashIndex),
-    //        allocateSpace = previous.map(_.allocateSpace).getValueOrElse(TestData.allocateSpace),
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace),
     //        time = testTimer.next,
     //        compressDuplicateValues = compressDuplicateValues
     //      )
@@ -2304,11 +2304,11 @@ object TestData {
     //        time = testTimer.next,
     //        previous = previous,
     //        falsePositiveRate = falsePositiveRate,
-    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
-    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
-    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getValueOrElse(TestData.resetPrefixCompressionEvery),
-    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getValueOrElse(TestData.minimumNumberOfKeysForHashIndex),
-    //        allocateSpace = previous.map(_.allocateSpace).getValueOrElse(TestData.allocateSpace),
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace),
     //        compressDuplicateValues = true
     //      )
       ???
@@ -2325,11 +2325,11 @@ object TestData {
     //        deadline = deadline,
     //        previous = previous,
     //        falsePositiveRate = falsePositiveRate,
-    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
-    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getValueOrElse(TestData.enableBinarySearchIndex),
-    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getValueOrElse(TestData.resetPrefixCompressionEvery),
-    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getValueOrElse(TestData.minimumNumberOfKeysForHashIndex),
-    //        allocateSpace = previous.map(_.allocateSpace).getValueOrElse(TestData.allocateSpace),
+    //        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+    //        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+    //        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeysForHashIndex),
+    //        allocateSpace = previous.map(_.allocateSpace).getOrElse(TestData.allocateSpace),
     //        time = testTimer.next,
     //        compressDuplicateValues = compressDuplicateValues
     //      )

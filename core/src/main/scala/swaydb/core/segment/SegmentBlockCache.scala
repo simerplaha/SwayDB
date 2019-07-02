@@ -22,7 +22,7 @@ package swaydb.core.segment
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.{SegmentBlock, SegmentFooter}
-import swaydb.core.util.CacheValue
+import swaydb.core.util.cache.Cache
 import swaydb.data.IO
 
 object SegmentBlockCache {
@@ -34,12 +34,12 @@ object SegmentBlockCache {
 class SegmentBlockCache(id: String,
                         segmentBlock: () => IO[BlockReader[SegmentBlock]]) {
 
-  private val footerCache = CacheValue[SegmentFooter](getFooterInfo())
-  private val hashIndexCache = CacheValue[Option[HashIndex]](getHashIndexInfo())
-  private val bloomFilterCache = CacheValue[Option[BloomFilter]](getBloomFilterInfo())
-  private val binarySearchIndexCache = CacheValue[Option[BinarySearchIndex]](getBinarySearchIndexInfo())
-  private val sortedIndexCache = CacheValue[SortedIndex](getSortedIndexInfo())
-  private val valuesCache = CacheValue[Option[Values]](getValuesInfo())
+  private val footerCache = Cache.io[SegmentFooter](synchronised = true)(getFooterInfo())
+  private val hashIndexCache = Cache.io[Option[HashIndex]](synchronised = true)(getHashIndexInfo())
+  private val bloomFilterCache = Cache.io[Option[BloomFilter]](synchronised = true)(getBloomFilterInfo())
+  private val binarySearchIndexCache = Cache.io[Option[BinarySearchIndex]](synchronised = true)(getBinarySearchIndexInfo())
+  private val sortedIndexCache = Cache.io[SortedIndex](synchronised = true)(getSortedIndexInfo())
+  private val valuesCache = Cache.io[Option[Values]](synchronised = true)(getValuesInfo())
 
   def clear(): Unit = {
     footerCache.clear()

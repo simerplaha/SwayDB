@@ -252,7 +252,7 @@ object IO {
 
     case class DecompressingIndex(busy: Reserve[Unit]) extends Exception("Failed to decompress index")
     case class DecompressionValues(busy: Reserve[Unit]) extends Exception("Failed to decompress values")
-    case class FetchingValue(busy: Reserve[Unit]) extends Exception("Failed to fetch value")
+    case class ReservedValue(busy: Reserve[Unit]) extends Exception("Failed to fetch value")
     case class ReadingHeader(busy: Reserve[Unit]) extends Exception("Failed to read header")
     case class BusyFuture(busy: Reserve[Unit]) extends Exception("Busy future")
 
@@ -287,7 +287,7 @@ object IO {
         case exception: IO.Exception.OpeningFile => Error.OpeningFile(exception.file, exception.busy)
         case exception: IO.Exception.DecompressingIndex => Error.DecompressingIndex(exception.busy)
         case exception: IO.Exception.DecompressionValues => Error.DecompressingValues(exception.busy)
-        case exception: IO.Exception.FetchingValue => Error.FetchingValue(exception.busy)
+        case exception: IO.Exception.ReservedValue => Error.ReservedValue(exception.busy)
         case exception: IO.Exception.ReadingHeader => Error.ReadingHeader(exception.busy)
         case exception: IO.Exception.ReceivedKeyValuesToMergeWithoutTargetSegment => Error.ReceivedKeyValuesToMergeWithoutTargetSegment(exception.keyValueCount)
 
@@ -367,8 +367,8 @@ object IO {
       override def exception: IO.Exception.ReadingHeader = IO.Exception.ReadingHeader(busy)
     }
 
-    case class FetchingValue(busy: Reserve[Unit]) extends Busy {
-      override def exception: IO.Exception.FetchingValue = IO.Exception.FetchingValue(busy)
+    case class ReservedValue(busy: Reserve[Unit]) extends Busy {
+      override def exception: IO.Exception.ReservedValue = IO.Exception.ReservedValue(busy)
     }
 
     case class BusyFuture(busy: Reserve[Unit]) extends Busy {
