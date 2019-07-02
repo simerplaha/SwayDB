@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.tool
+package swaydb.core.level.tool
 
 import java.nio.file.NoSuchFileException
 import scala.concurrent.duration.Duration

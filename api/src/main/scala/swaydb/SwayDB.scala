@@ -21,14 +21,15 @@ package swaydb
 
 import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.forkjoin.ForkJoinPool
 import swaydb.core.BlockingCore
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
+import swaydb.core.level.tool.AppendixRepairer
 import swaydb.core.queue.FileLimiter
-import swaydb.core.tool.AppendixRepairer
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
