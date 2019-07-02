@@ -66,50 +66,49 @@ class LazyValue[V](synchronised: Boolean, stored: Boolean) extends Lazy[V] {
     got
   }
 
-  def map[T](f: V => T): Option[T] =
-    get() map f
-
-  def flatMap[T >: V](f: V => Option[T]): Option[T] =
-    get() flatMap f
-
   def getOrSet(value: => V): V =
     cache getOrElse {
-      val got = value
       if (synchronised)
         this.synchronized {
           cache.getOrElse {
+            val got = value
             if (stored) cache = Some(got)
             got
           }
         }
       else {
+        val got = value
         if (stored) cache = Some(got)
         got
       }
     }
 
   def getOrElse[T >: V](f: => T): T =
-    cache getOrElse f
+    get() getOrElse f
+
+  def map[T](f: V => T): Option[T] =
+    get() map f
+
+  def flatMap[T >: V](f: V => Option[T]): Option[T] =
+    get() flatMap f
 
   def isDefined: Boolean =
-    cache.isDefined
+    get().isDefined
 
   def clear(): Unit =
-    cache = None
+    this.synchronized(cache = None)
 }
 
 class LazyIO[V](lazyValue: LazyValue[IO.Success[V]]) extends Lazy[IO[V]] {
 
-  def set(value: => IO[V]): IO[V] = {
-    val got = value
-    got foreach {
-      got =>
-        lazyValue set IO.Success(got)
+  def set(value: => IO[V]): IO[V] =
+    value map {
+      value =>
+        lazyValue set IO.Success(value)
+        value
     }
-    got
-  }
 
-  override def get(): Option[IO[V]] =
+  override def get(): Option[IO.Success[V]] =
     lazyValue.get()
 
   override def getOrSet(value: => IO[V]): IO[V] =
@@ -123,6 +122,9 @@ class LazyIO[V](lazyValue: LazyValue[IO.Success[V]]) extends Lazy[IO[V]] {
       }
     }
 
+  override def getOrElse[T >: IO[V]](f: => T): T =
+    lazyValue getOrElse f
+
   def map[T](f: V => T): IO[Option[T]] =
     lazyValue
       .get()
@@ -134,9 +136,6 @@ class LazyIO[V](lazyValue: LazyValue[IO.Success[V]]) extends Lazy[IO[V]] {
       .get()
       .map(_.flatMap(f).map(Some(_)))
       .getOrElse(IO.none)
-
-  override def getOrElse[T >: IO[V]](f: => T): T =
-    lazyValue getOrElse f
 
   override def isDefined: Boolean =
     lazyValue isDefined
