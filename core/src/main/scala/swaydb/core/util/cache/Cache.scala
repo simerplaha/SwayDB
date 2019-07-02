@@ -54,7 +54,6 @@ sealed trait Cache[V] {
   def getOrElse(f: => IO[V]): IO[V]
   def isCached: Boolean
   def clear(): Unit
-  def set(value: V): Unit
 
   def map[T](f: V => T): IO[T] =
     value map f
@@ -76,9 +75,6 @@ private class SynchronisedIO[V](init: => IO[V], lazyIO: LazyIO[V]) extends Cache
 
   override def clear(): Unit =
     lazyIO.clear()
-
-  override def set(value: V): Unit =
-    lazyIO set IO.Success(value)
 }
 
 /**
@@ -106,9 +102,6 @@ private class ReservedIO[V](init: => IO[V], lazyIO: LazyIO[V], reserve: Reserve[
 
   override def getOrElse(f: => IO[V]): IO[V] =
     lazyIO getOrElse f
-
-  override def set(value: V): Unit =
-    lazyIO set IO.Success(value)
 }
 
 /**

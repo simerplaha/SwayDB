@@ -21,8 +21,11 @@ package swaydb.core.util.cache
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.RunThis._
 import swaydb.data.IO
 
+import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.util.Random
 
 class CacheSpec extends WordSpec with Matchers with MockFactory {
@@ -55,6 +58,34 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
       mock.expects() returning IO(123)
       cache.value shouldBe IO.Success(123) //value again mock function is not invoked again
       cache.isCached shouldBe true
+    }
+
+    "concurrent access to reserved io" should {
+      "not be allowed" in {
+        val cache =
+          Cache.io(synchronised = false, stored = true) {
+            sleep(200.millisecond) //delay access
+            IO.Success(10)
+          }
+
+        val futures =
+        //concurrently do requests
+          Future.sequence {
+            (1 to 100) map {
+              _ =>
+                Future().flatMap(_ => cache.value.toFuture)
+            }
+          }
+
+        //results in failure since some thread has reserved.
+        val failure = futures.failed.await
+        failure shouldBe a[IO.Exception.ReservedValue]
+
+        //eventually it's freed
+        eventual {
+          failure.asInstanceOf[IO.Exception.ReservedValue].busy.isBusy shouldBe false
+        }
+      }
     }
   }
 }
