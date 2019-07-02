@@ -22,9 +22,9 @@ package swaydb.core.util.cache
 import swaydb.data.{IO, Reserve}
 
 object Cache {
-  def io[T](synchronised: Boolean, stored: Boolean)(fetch: => IO[T]): Cache[T] =
+  def io[V](synchronised: Boolean, stored: Boolean)(fetch: => IO[V]): Cache[V] =
     if (synchronised)
-      new SynchronisedIO[T](
+      new SynchronisedIO[V](
         init = fetch,
         lazyIO = Lazy.io(synchronised = true, stored = stored)
       )
@@ -35,8 +35,8 @@ object Cache {
         reserve = Reserve()
       )
 
-  def value[I, T](synchronised: Boolean, stored: Boolean)(fetch: PartialFunction[I, T]): CacheFunctionOutput[I, T] =
-    new CacheFunctionOutput[I, T](
+  def value[I, V](synchronised: Boolean, stored: Boolean)(fetch: PartialFunction[I, V]): CacheFunctionOutput[I, V] =
+    new CacheFunctionOutput[I, V](
       f = fetch,
       lazyValue = Lazy.value(
         synchronised = synchronised,
@@ -49,26 +49,26 @@ object Cache {
   * Caches a value on read. Used for IO operations where the output does not change.
   * For example: A file's size.
   */
-sealed trait Cache[T] {
-  def value: IO[T]
-  def getOrElse(f: => IO[T]): IO[T]
+sealed trait Cache[V] {
+  def value: IO[V]
+  def getOrElse(f: => IO[V]): IO[V]
   def isCached: Boolean
   def clear(): Unit
-  def set(value: T): Unit
+  def set(value: V): Unit
 
-  def map[X](f: T => X): IO[X] =
+  def map[T](f: V => T): IO[T] =
     value map f
 
-  def flatMap[X](f: T => IO[X]): IO[X] =
+  def flatMap[T](f: V => IO[T]): IO[T] =
     value flatMap f
 }
 
-private class SynchronisedIO[T](init: => IO[T], lazyIO: LazyIO[T]) extends Cache[T] {
+private class SynchronisedIO[V](init: => IO[V], lazyIO: LazyIO[V]) extends Cache[V] {
 
-  override def value: IO[T] =
+  override def value: IO[V] =
     lazyIO getOrSet init
 
-  override def getOrElse(f: => IO[T]): IO[T] =
+  override def getOrElse(f: => IO[V]): IO[V] =
     lazyIO getOrElse f
 
   override def isCached: Boolean =
@@ -77,7 +77,7 @@ private class SynchronisedIO[T](init: => IO[T], lazyIO: LazyIO[T]) extends Cache
   override def clear(): Unit =
     lazyIO.clear()
 
-  override def set(value: T): Unit =
+  override def set(value: V): Unit =
     lazyIO set IO.Success(value)
 }
 
@@ -85,9 +85,9 @@ private class SynchronisedIO[T](init: => IO[T], lazyIO: LazyIO[T]) extends Cache
   * Caches a value on read. Used for IO operations where the output does not change.
   * For example: A file's size.
   */
-private class ReservedIO[T](init: => IO[T], lazyIO: LazyIO[T], reserve: Reserve[Unit]) extends Cache[T] {
+private class ReservedIO[V](init: => IO[V], lazyIO: LazyIO[V], reserve: Reserve[Unit]) extends Cache[V] {
 
-  override def value: IO[T] =
+  override def value: IO[V] =
     lazyIO.getOrElse {
       if (Reserve.setBusyOrGet((), reserve).isEmpty)
         try
@@ -104,10 +104,10 @@ private class ReservedIO[T](init: => IO[T], lazyIO: LazyIO[T], reserve: Reserve[
   override def clear() =
     lazyIO.clear()
 
-  override def getOrElse(f: => IO[T]): IO[T] =
+  override def getOrElse(f: => IO[V]): IO[V] =
     lazyIO getOrElse f
 
-  override def set(value: T): Unit =
+  override def set(value: V): Unit =
     lazyIO set IO.Success(value)
 }
 
@@ -115,9 +115,9 @@ private class ReservedIO[T](init: => IO[T], lazyIO: LazyIO[T], reserve: Reserve[
   * Caches a value on read. Used for IO operations where the output does not change.
   * For example: A file's size.
   */
-class CacheFunctionOutput[I, O](f: I => O, lazyValue: LazyValue[O]) {
+class CacheFunctionOutput[I, V](f: I => V, lazyValue: LazyValue[V]) {
 
-  def value(input: I): O =
+  def value(input: I): V =
     lazyValue getOrSet f(input)
 
   def isDefined: Boolean =
