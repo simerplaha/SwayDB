@@ -913,8 +913,8 @@ private[core] object Segment extends LazyLogging {
     }
 
   def getNearestDeadline(deadline: Option[Deadline],
-                         keyValue: Value.RangeValue): Option[Deadline] =
-    keyValue match {
+                         rangeValue: Value.RangeValue): Option[Deadline] =
+    rangeValue match {
       case remove: Value.Remove =>
         FiniteDurationUtil.getNearestDeadline(deadline, remove.deadline)
       case update: Value.Update =>
@@ -929,7 +929,10 @@ private[core] object Segment extends LazyLogging {
                          applies: Slice[Value.Apply]): Option[Deadline] =
     applies.foldLeft(previous) {
       case (deadline, apply) =>
-        getNearestDeadline(deadline, apply)
+        getNearestDeadline(
+          deadline = deadline,
+          rangeValue = apply
+        )
     }
 
   def getNearestDeadline(keyValues: Iterable[KeyValue]): IO[Option[Deadline]] =

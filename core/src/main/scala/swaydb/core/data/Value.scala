@@ -43,33 +43,6 @@ private[swaydb] object Value {
         true
     }
 
-//  def removeValues(applies: Slice[Value]): Slice[Value] = {
-//    def doRemove(remaining: Slice[Value], newValues: Slice[Value]) =
-//      applies map {
-//        case remove: Remove =>
-//          remove
-//        case update: Update =>
-//          if (update.get.isEmpty)
-//            update
-//          else
-//            update.copy(value = None)
-//        case function: Function =>
-//          function
-//
-//        case apply: PendingApply =>
-//          removeValues(apply.applies)
-//
-//        case put: Put =>
-//          if (put.get.isEmpty)
-//            put
-//          else
-//            put.copy(value = None)
-//      }
-//
-//    doRemove(applies, Slice.create[])
-//  }
-//
-
   def hasTimeLeft(fromValue: Value.FromValue): Boolean =
     fromValue match {
       case rangeValue: RangeValue =>

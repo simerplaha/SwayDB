@@ -60,7 +60,7 @@ class LazyValue[V](synchronised: Boolean, stored: Boolean) extends Lazy[V] {
     val got = value
     if (stored)
       if (synchronised)
-        this.synchronized(cache = Some(got))
+        this.synchronized(this.cache = Some(got))
       else
         cache = Some(got)
     got
@@ -96,7 +96,7 @@ class LazyValue[V](synchronised: Boolean, stored: Boolean) extends Lazy[V] {
     get().isDefined
 
   def clear(): Unit =
-    this.synchronized(cache = None)
+    this.synchronized(this.cache = None)
 }
 
 class LazyIO[V](lazyValue: LazyValue[IO.Success[V]]) extends Lazy[IO[V]] {
