@@ -30,7 +30,7 @@ import swaydb.core.IOAssert._
 
 class BytesSpec extends WordSpec with Matchers {
 
-  "compress and decompress" should {
+  "compress, decompress & commonPrefixBytes" should {
     "return common bytes" in {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte, 5.toByte, 6.toByte))
@@ -46,6 +46,8 @@ class BytesSpec extends WordSpec with Matchers {
       decompress shouldBe next
       //return empty if minimum compressed bytes is not reached
       Bytes.compress(previous, next, 5) shouldBe empty
+
+      Bytes.commonPrefixBytes(previous, next) shouldBe previous
     }
 
     "return empty bytes when all the bytes were compressed" in {
@@ -63,6 +65,8 @@ class BytesSpec extends WordSpec with Matchers {
       decompress shouldBe next
       //return empty if minimum compressed bytes is not reached
       Bytes.compress(previous, next, 4) shouldBe empty
+
+      Bytes.commonPrefixBytes(previous, next) shouldBe next
     }
 
     "return empty when there are no common bytes" in {
@@ -70,6 +74,8 @@ class BytesSpec extends WordSpec with Matchers {
       val next: Slice[Byte] = Slice(Array(5.toByte, 6.toByte, 7.toByte, 8.toByte, 9.toByte, 10.toByte))
 
       Bytes.compress(previous, next, 1) shouldBe empty
+
+      Bytes.commonPrefixBytes(previous, next) shouldBe Slice.emptyBytes
     }
   }
 
@@ -78,7 +84,7 @@ class BytesSpec extends WordSpec with Matchers {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
 
-      Bytes.compressFull(previous, next).assertGet shouldBe Done
+      Bytes.compressFull(Some(previous), next).assertGet shouldBe Done
       Bytes.compressExact(previous, next).assertGet shouldBe Done
     }
 
@@ -86,7 +92,7 @@ class BytesSpec extends WordSpec with Matchers {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte))
 
-      Bytes.compressFull(previous, next).assertGet shouldBe Done
+      Bytes.compressFull(Some(previous), next).assertGet shouldBe Done
       Bytes.compressExact(previous, next) shouldBe empty
     }
 
@@ -94,7 +100,7 @@ class BytesSpec extends WordSpec with Matchers {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
 
-      Bytes.compressFull(previous, next) shouldBe empty
+      Bytes.compressFull(Some(previous), next) shouldBe empty
       Bytes.compressExact(previous, next) shouldBe empty
     }
 
@@ -102,7 +108,7 @@ class BytesSpec extends WordSpec with Matchers {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte))
 
-      Bytes.compressFull(previous, next) shouldBe empty
+      Bytes.compressFull(Some(previous), next) shouldBe empty
       Bytes.compressExact(previous, next) shouldBe empty
     }
 
@@ -110,7 +116,7 @@ class BytesSpec extends WordSpec with Matchers {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(5.toByte, 6.toByte, 7.toByte, 8.toByte, 9.toByte, 10.toByte))
 
-      Bytes.compressFull(previous, next) shouldBe empty
+      Bytes.compressFull(Some(previous), next) shouldBe empty
       Bytes.compressExact(previous, next) shouldBe empty
     }
   }
