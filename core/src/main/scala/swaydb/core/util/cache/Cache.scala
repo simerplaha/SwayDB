@@ -84,7 +84,7 @@ private class SynchronisedIO[V](init: => IO[V], lazyIO: LazyIO[V]) extends Cache
 private class ReservedIO[V](init: => IO[V], lazyIO: LazyIO[V], reserve: Reserve[Unit]) extends Cache[V] {
 
   override def value: IO[V] =
-    lazyIO.getOrElse {
+    lazyIO getOrElse {
       if (Reserve.setBusyOrGet((), reserve).isEmpty)
         try
           lazyIO set init
@@ -113,7 +113,7 @@ class CacheFunctionOutput[I, V](f: I => V, lazyValue: LazyValue[V]) {
   def value(input: I): V =
     lazyValue getOrSet f(input)
 
-  def isDefined: Boolean =
+  def isCached: Boolean =
     lazyValue.isDefined
 
   def clear() =

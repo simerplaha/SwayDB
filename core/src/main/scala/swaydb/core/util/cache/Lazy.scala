@@ -117,6 +117,7 @@ class LazyIO[V](lazyValue: LazyValue[IO.Success[V]]) extends Lazy[IO[V]] {
         case success @ IO.Success(_) =>
           lazyValue set success
           success
+
         case failure @ IO.Failure(_) =>
           failure
       }

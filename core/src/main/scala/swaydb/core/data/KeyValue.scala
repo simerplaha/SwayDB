@@ -529,7 +529,7 @@ private[swaydb] object Memory {
     override def key: Slice[Byte] = minKey
 
     override def isInitialised: Boolean =
-      segmentCache.isDefined
+      segmentCache.isCached
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
                 keyValueLimiter: KeyValueLimiter): SegmentCache =
@@ -1642,7 +1642,7 @@ private[core] object Persistent {
       }
 
     def isInitialised: Boolean =
-      segmentCache.isDefined
+      segmentCache.isCached
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 

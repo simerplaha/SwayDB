@@ -32,39 +32,107 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
   "Cache.io" should {
     "invoke the init function only once on success" in {
-      val mock = mockFunction[IO[Int]]
 
-      val cache = Cache.io[Int](synchronised = Random.nextBoolean(), stored = true)(mock.apply())
-      cache.isCached shouldBe false
-      mock.expects() returning IO(123)
+      def doTest(isSynchronised: Boolean) = {
+        val mock = mockFunction[IO[Int]]
+        val cache = Cache.io[Int](synchronised = isSynchronised, stored = true)(mock.apply())
+        cache.isCached shouldBe false
 
-      cache.value shouldBe IO.Success(123)
-      cache.isCached shouldBe true
-      cache.value shouldBe IO.Success(123) //value again mock function is not invoked again
+        //getOrElse on un-cached should set the cache
+        cache.getOrElse(IO(111)) shouldBe IO.Success(111)
+        cache.isCached shouldBe false
+
+        mock.expects() returning IO(123)
+
+        cache.value shouldBe IO.Success(123)
+        cache.isCached shouldBe true
+        cache.value shouldBe IO.Success(123) //value again mock function is not invoked again
+
+        cache.map(int => int) shouldBe IO.Success(123)
+        cache.flatMap(int => IO.Success(int + 1)) shouldBe IO.Success(124)
+
+        cache.getOrElse(IO(111)) shouldBe IO.Success(123)
+
+        cache.clear()
+        //getOrElse on un-cached should set the cache
+        cache.getOrElse(IO(111)) shouldBe IO.Success(111)
+        cache.isCached shouldBe false
+      }
+
+      doTest(isSynchronised = true)
+      doTest(isSynchronised = false)
     }
 
     "not cache on failure" in {
-      val mock = mockFunction[IO[Int]]
+      def doTest(isSynchronised: Boolean) = {
+        val mock = mockFunction[IO[Int]]
 
-      val cache = Cache.io[Int](synchronised = Random.nextBoolean(), stored = true)(mock.apply())
-      cache.isCached shouldBe false
-      mock.expects() returning IO.Failure("Kaboom!")
+        val cache = Cache.io[Int](synchronised = isSynchronised, stored = true)(mock.apply())
+        cache.isCached shouldBe false
+        mock.expects() returning IO.Failure("Kaboom!")
 
-      //failure
-      cache.value.failed.get.exception.getMessage shouldBe "Kaboom!"
-      cache.isCached shouldBe false
+        //failure
+        cache.value.failed.get.exception.getMessage shouldBe "Kaboom!"
+        cache.isCached shouldBe false
 
-      //success
-      mock.expects() returning IO(123)
-      cache.value shouldBe IO.Success(123) //value again mock function is not invoked again
-      cache.isCached shouldBe true
+        //success
+        mock.expects() returning IO(123)
+        cache.value shouldBe IO.Success(123) //value again mock function is not invoked again
+        cache.isCached shouldBe true
+      }
+
+      doTest(isSynchronised = true)
+      doTest(isSynchronised = false)
+    }
+
+    "cache on successful map and flatMap" in {
+      def doTest(isSynchronised: Boolean) = {
+        val mock = mockFunction[IO[Int]]
+
+        val cache = Cache.io[Int](synchronised = isSynchronised, stored = true)(mock.apply())
+        cache.isCached shouldBe false
+
+        mock.expects() returning IO(111)
+        cache.map(int => int) shouldBe IO.Success(111)
+        cache.flatMap(int => IO.Success(int + 1)) shouldBe IO.Success(112)
+
+        cache.clear()
+        cache.isCached shouldBe false
+        mock.expects() returning IO(222)
+        cache.flatMap(int => IO.Success(int + 1)) shouldBe IO.Success(223)
+      }
+
+      doTest(isSynchronised = true)
+      doTest(isSynchronised = false)
+    }
+
+    "not cache on unsuccessful map and flatMap" in {
+      def doTest(isSynchronised: Boolean) = {
+        val mock = mockFunction[IO[Int]]
+
+        val cache = Cache.io[Int](synchronised = isSynchronised, stored = true)(mock.apply())
+        cache.isCached shouldBe false
+
+        mock.expects() returning IO.Failure("Kaboom!") repeat 2.times
+        cache.map(int => int).failed.get.exception.getMessage shouldBe "Kaboom!"
+        cache.isCached shouldBe false
+        cache.flatMap(int => IO.Success(int + 1)).failed.get.exception.getMessage shouldBe "Kaboom!"
+        cache.isCached shouldBe false
+
+        mock.expects() returning IO(222)
+        cache.flatMap(int => IO.Success(int + 1)) shouldBe IO.Success(223)
+        cache.isCached shouldBe true
+      }
+
+      doTest(isSynchronised = true)
+      doTest(isSynchronised = false)
     }
 
     "concurrent access to reserved io" should {
       "not be allowed" in {
         val cache =
           Cache.io(synchronised = false, stored = true) {
-            sleep(200.millisecond) //delay access
+            sleep(1.millisecond) //delay access
             IO.Success(10)
           }
 
@@ -86,6 +154,44 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
           failure.asInstanceOf[IO.Exception.ReservedValue].busy.isBusy shouldBe false
         }
       }
+    }
+  }
+
+  "Cache.value" should {
+    "cache function's output" in {
+      def doTest(isSynchronised: Boolean) = {
+        @volatile var got1 = false
+        val cache =
+          Cache.value[Unit, Int](Random.nextBoolean(), true) {
+            case _: Unit =>
+              if (!got1) {
+                got1 = true
+                1
+              } else {
+                Random.nextInt()
+              }
+          }
+
+        cache.isCached shouldBe false
+
+        cache.value() shouldBe 1
+
+        (1 to 1000).par foreach {
+          _ =>
+            cache.value() shouldBe 1
+        }
+
+        cache.isCached shouldBe true
+
+        cache.clear()
+        cache.isCached shouldBe false
+
+        cache.value() should not be 1
+        cache.isCached shouldBe true
+      }
+
+      doTest(isSynchronised = true)
+      doTest(isSynchronised = false)
     }
   }
 }
