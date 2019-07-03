@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.entry.writer
 
 import swaydb.core.segment.format.a.entry.id.BaseEntryId.GetDeadlineId
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
-import swaydb.core.util.Bytes._
+import swaydb.core.util.Bytes
 import swaydb.core.util.TimeUtil._
 import swaydb.data.slice.Slice
 
@@ -41,7 +41,7 @@ private[writer] object DeadlineWriter {
         //fetch the previous deadline bytes
         (if (enablePrefixCompression) previousDeadline else None) flatMap {
           previousDeadline =>
-            tryCompress(
+            compress(
               currentDeadline = currentDeadline,
               previousDeadline = previousDeadline,
               getDeadlineId = getDeadlineId,
@@ -103,19 +103,19 @@ private[writer] object DeadlineWriter {
       )
 
     val bytes =
-      Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + currentDeadlineUnsignedBytes.size + plusSize)
+      Slice.create[Byte](Bytes.sizeOf(adjustedToEntryIdDeadlineId) + currentDeadlineUnsignedBytes.size + plusSize)
         .addIntUnsigned(adjustedToEntryIdDeadlineId)
         .addAll(currentDeadlineUnsignedBytes)
 
     (bytes, isKeyCompressed || hasPrefixCompressed)
   }
 
-  private[writer] def tryCompress(currentDeadline: Deadline,
-                                  previousDeadline: Deadline,
-                                  getDeadlineId: GetDeadlineId,
-                                  plusSize: Int,
-                                  isKeyCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[(Slice[Byte], Boolean)] =
-    compress(
+  private[writer] def compress(currentDeadline: Deadline,
+                               previousDeadline: Deadline,
+                               getDeadlineId: GetDeadlineId,
+                               plusSize: Int,
+                               isKeyCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[(Slice[Byte], Boolean)] =
+    Bytes.compress(
       previous = previousDeadline.toBytes,
       next = currentDeadline.toBytes,
       minimumCommonBytes = 1
@@ -125,7 +125,7 @@ private[writer] object DeadlineWriter {
         val adjustedToEntryIdDeadlineId = binder.keyValueId.adjustBaseIdToKeyValueIdKey(deadlineId.baseId, isKeyCompressed)
 
         val bytes =
-          Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + deadlineCompressedBytes.size + plusSize)
+          Slice.create[Byte](Bytes.sizeOf(adjustedToEntryIdDeadlineId) + deadlineCompressedBytes.size + plusSize)
             .addIntUnsigned(adjustedToEntryIdDeadlineId)
             .addAll(deadlineCompressedBytes)
 
@@ -145,7 +145,7 @@ private[writer] object DeadlineWriter {
       )
 
     val bytes =
-      Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + plusSize)
+      Slice.create[Byte](Bytes.sizeOf(adjustedToEntryIdDeadlineId) + plusSize)
         .addIntUnsigned(adjustedToEntryIdDeadlineId)
 
     (bytes, isKeyCompressed || hasPrefixCompressed)

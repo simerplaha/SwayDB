@@ -1179,20 +1179,18 @@ object TestData {
                               includeRanges: Boolean = true,
                               includeGroups: Boolean = true): KeyValue.WriteOnly =
     if (toKey.isDefined && includeRanges && randomBoolean())
-    //      Transient.Range(
-    //        fromKey = key,
-    //        toKey = toKey.get,
-    //        fromValue = fromValue,
-    //        rangeValue = rangeValue,
-    //        falsePositiveRate = falsePositiveRate,
-    //        enableBinarySearchIndex = enableBinarySearchIndex,
-    //        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-    //        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-    //        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-    //        allocateSpace = allocateSpace,
-    //        previous = previous
-    //      )
-      ???
+      Transient.Range(
+        fromKey = key,
+        toKey = toKey.get,
+        fromValue = fromValue,
+        rangeValue = rangeValue,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        previous = previous
+      )
     else if (includeGroups && randomBoolean())
       randomGroup(
         keyValues =
@@ -1256,85 +1254,76 @@ object TestData {
                                    includeFunctions: Boolean = true,
                                    includeRemoves: Boolean = true,
                                    includePuts: Boolean = true): KeyValue.WriteOnly.Fixed =
-  //    if (includePuts && randomBoolean())
-  //      Transient.Put(
-  //        key = key,
-  //        value = value,
-  //        deadline = deadline,
-  //        time = time,
-  //        previous = previous,
-  //        falsePositiveRate = falsePositiveRate,
-  //        compressDuplicateValues = compressDuplicateValues,
-  //        enableBinarySearchIndex = enableBinarySearchIndex,
-  //        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-  //        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-  //        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-  //        allocateSpace = allocateSpace
-  //      )
-  //    else if (includeRemoves && randomBoolean())
-  //      Transient.Remove(
-  //        key = key,
-  //        deadline = deadline,
-  //        time = time,
-  //        previous = previous,
-  //        falsePositiveRate = falsePositiveRate,
-  //        enableBinarySearchIndex = enableBinarySearchIndex,
-  //        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-  //        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-  //        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-  //        allocateSpace = allocateSpace
-  //      )
-  //    else if (includeFunctions && randomBoolean())
-  //      Transient.Function(
-  //        key = key,
-  //        function = randomFunctionId(functionOutput),
-  //        deadline = deadline,
-  //        time = time,
-  //        previous = previous,
-  //        falsePositiveRate = falsePositiveRate,
-  //        compressDuplicateValues = compressDuplicateValues,
-  //        enableBinarySearchIndex = enableBinarySearchIndex,
-  //        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-  //        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-  //        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-  //        allocateSpace = allocateSpace
-  //      )
-  //    else if (includePendingApply && randomBoolean())
-  //      Transient.PendingApply(
-  //        key = key,
-  //        applies = randomApplies(
-  //          max = 10,
-  //          value = value,
-  //          deadline = deadline,
-  //          addRemoves = includeRemoves,
-  //          functionOutput = functionOutput,
-  //          includeFunctions = includeFunctions
-  //        ),
-  //        previous = previous,
-  //        falsePositiveRate = falsePositiveRate,
-  //        enableBinarySearchIndex = enableBinarySearchIndex,
-  //        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-  //        compressDuplicateValues = compressDuplicateValues,
-  //        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-  //        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-  //        allocateSpace = allocateSpace
-  //      )
-  //    else
-  //      Transient.Update(
-  //        key = key,
-  //        value = value,
-  //        deadline = deadline,
-  //        time = time,
-  //        previous = previous,
-  //        falsePositiveRate = falsePositiveRate,
-  //        enableBinarySearchIndex = enableBinarySearchIndex,
-  //        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-  //        compressDuplicateValues = compressDuplicateValues,
-  //        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-  //        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-  //        allocateSpace = allocateSpace
-  //      )
-    ???
+    if (includePuts && randomBoolean())
+      Transient.Put(
+        key = key,
+        value = value,
+        deadline = deadline,
+        time = time,
+        previous = previous,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig
+      )
+    else if (includeRemoves && randomBoolean())
+      Transient.Remove(
+        key = key,
+        deadline = deadline,
+        time = time,
+        previous = previous,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig
+      )
+    else if (includeFunctions && randomBoolean())
+      Transient.Function(
+        key = key,
+        function = randomFunctionId(functionOutput),
+        deadline = deadline,
+        time = time,
+        previous = previous,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig
+      )
+    else if (includePendingApply && randomBoolean())
+      Transient.PendingApply(
+        key = key,
+        applies =
+          randomApplies(
+            max = 10,
+            value = value,
+            deadline = deadline,
+            addRemoves = includeRemoves,
+            functionOutput = functionOutput,
+            includeFunctions = includeFunctions
+          ),
+        previous = previous,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig
+      )
+    else
+      Transient.Update(
+        key = key,
+        value = value,
+        deadline = deadline,
+        time = time,
+        previous = previous,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig
+      )
 
   def randomFixedKeyValue(key: Slice[Byte],
                           value: Option[Slice[Byte]] = randomStringOption,
@@ -1352,15 +1341,16 @@ object TestData {
       Memory.Function(key, randomFunctionId(functionOutput), testTimer.next)
     else if (includePendingApply && randomBoolean())
       Memory.PendingApply(
-        key,
-        randomApplies(
-          max = 10,
-          value = value,
-          deadline = deadline,
-          addRemoves = includeRemoves,
-          functionOutput = functionOutput,
-          includeFunctions = includeFunctions
-        )
+        key = key,
+        applies =
+          randomApplies(
+            max = 10,
+            value = value,
+            deadline = deadline,
+            addRemoves = includeRemoves,
+            functionOutput = functionOutput,
+            includeFunctions = includeFunctions
+          )
       )
     else
       Memory.Update(key, value, deadline, testTimer.next)
