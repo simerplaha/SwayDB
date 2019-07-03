@@ -20,7 +20,7 @@
 package swaydb.core.map.timer
 
 import java.nio.file.Path
-import scala.concurrent.ExecutionContext
+
 import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.MapEntry

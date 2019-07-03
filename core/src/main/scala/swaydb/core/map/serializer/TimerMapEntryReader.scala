@@ -31,16 +31,16 @@ object TimerMapEntryReader {
         id <- reader.readIntUnsigned()
         keySize <- reader.readIntUnsigned()
         key <-
-          if (keySize == 0)
-            IO.emptyBytes
-          else
-            reader.read(keySize)
+        if (keySize == 0)
+          IO.emptyBytes
+        else
+          reader.read(keySize)
         valueSize <- reader.readIntUnsigned()
         value <-
-          if (valueSize == 0)
-            IO.emptyBytes
-          else
-            reader.read(valueSize)
+        if (valueSize == 0)
+          IO.emptyBytes
+        else
+          reader.read(valueSize)
       } yield {
         Some(MapEntry.Put(key, value)(TimerMapEntryWriter.TimerPutMapEntryWriter))
       }

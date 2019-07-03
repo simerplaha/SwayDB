@@ -19,11 +19,12 @@
 
 package swaydb.data.io
 
+import swaydb.data.IO
+
 import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
-import swaydb.data.IO
 
 /**
   * [[Tag]]s are used to tag databases operations (side-effects) into types that can be

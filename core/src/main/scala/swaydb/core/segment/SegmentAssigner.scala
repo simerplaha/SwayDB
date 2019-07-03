@@ -23,12 +23,12 @@ import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.map.Map
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.merge.MergeList
+import swaydb.data.IO
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
 import scala.collection.mutable
-import swaydb.data.IO
-import swaydb.data.order.KeyOrder
 
 private[core] object SegmentAssigner {
 

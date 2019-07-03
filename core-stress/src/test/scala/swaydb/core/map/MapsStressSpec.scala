@@ -21,7 +21,6 @@ package swaydb.core.map
 
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
-import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.io.file.IOEffect
@@ -110,6 +109,5 @@ class MapsStressSpec extends TestBase {
 
       println("total number of maps recovered: " + dir1.folders.size)
     }
-
   }
 }

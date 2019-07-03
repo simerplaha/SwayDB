@@ -20,15 +20,16 @@
 package swaydb.core.level.zero
 
 import java.util.concurrent.ConcurrentSkipListMap
-import scala.collection.JavaConverters._
+
 import swaydb.core.data.{Memory, Transient}
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.map.{MapEntry, SkipListMerger}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+
+import scala.collection.JavaConverters._
 
 /**
   * When inserting key-values that alter existing Range key-values in the skipList, they should be inserted into the skipList atomically and should only
@@ -42,7 +43,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.Segmen
   //But this is a temporary solution until applyValue is updated to accept type classes to perform side effect.
   def applyValue(newKeyValue: Memory.Fixed,
                  oldKeyValue: Memory.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                                     functionStore: FunctionStore): Memory.Fixed =
+                                            functionStore: FunctionStore): Memory.Fixed =
     FixedMerger(
       newKeyValue = newKeyValue,
       oldKeyValue = oldKeyValue

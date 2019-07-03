@@ -20,9 +20,10 @@
 package swaydb.data
 
 import org.scalatest.{Matchers, WordSpec}
-import scala.collection.mutable.ListBuffer
 import swaydb.data.IO._
 import swaydb.data.slice.Slice
+
+import scala.collection.mutable.ListBuffer
 
 class IOSpec extends WordSpec with Matchers {
 
@@ -298,5 +299,4 @@ class IOSpec extends WordSpec with Matchers {
     failure shouldBe a[IO.Success[_]]
     failure.asInstanceOf[IO.Success[_]].get shouldBe 1
   }
-
 }

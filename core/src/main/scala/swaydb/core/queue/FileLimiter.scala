@@ -18,12 +18,14 @@
  */
 package swaydb.core.queue
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
+
+import com.typesafe.scalalogging.LazyLogging
+import swaydb.data.IO
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.ref.WeakReference
-import swaydb.data.IO
 
 private[swaydb] trait FileLimiter {
 
@@ -32,7 +34,6 @@ private[swaydb] trait FileLimiter {
   def delete(file: FileLimiterItem): Unit
 
   def terminate(): Unit
-
 }
 
 private[core] trait FileLimiterItem {

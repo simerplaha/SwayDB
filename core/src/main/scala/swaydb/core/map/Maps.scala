@@ -19,13 +19,10 @@
 
 package swaydb.core.map
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentLinkedDeque
-import scala.annotation.tailrec
-import scala.collection.JavaConverters._
-import scala.collection.mutable.ListBuffer
-import scala.reflect.ClassTag
+
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.brake.BrakePedal
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect
@@ -39,6 +36,11 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.RecoveryMode
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+
+import scala.annotation.tailrec
+import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
+import scala.reflect.ClassTag
 
 private[core] object Maps extends LazyLogging {
 

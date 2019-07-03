@@ -20,9 +20,10 @@
 package swaydb.core.util
 
 import org.scalatest.{Matchers, WordSpec}
-import scala.concurrent.duration._
-import TimeUtil._
+import swaydb.core.util.TimeUtil._
 import swaydb.data.slice.Slice
+
+import scala.concurrent.duration._
 
 class TimeUtilSpec extends WordSpec with Matchers {
 
@@ -66,5 +67,4 @@ class TimeUtilSpec extends WordSpec with Matchers {
       0L.toDeadlineOption shouldBe empty
     }
   }
-
 }

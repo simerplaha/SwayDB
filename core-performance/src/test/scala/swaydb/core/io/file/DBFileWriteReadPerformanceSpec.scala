@@ -20,7 +20,6 @@
 package swaydb.core.io.file
 
 import swaydb.core.IOAssert._
-import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.queue.FileLimiter
 import swaydb.core.util.Benchmark
@@ -67,7 +66,6 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
         bytes foreach mmapFile.append
       }
       mmapFile.fileSize.assertGet shouldBe bytes.size * chunkSize
-
 
       channelFile.close.assertGet
       readChannelFile.close.assertGet

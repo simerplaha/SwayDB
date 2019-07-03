@@ -20,6 +20,7 @@
 package swaydb.core.actor
 
 import java.util.TimerTask
+
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try

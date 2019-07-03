@@ -21,17 +21,13 @@ package swaydb.core.queue
 
 import java.util.concurrent.ConcurrentSkipListSet
 
+import swaydb.core.RunThis._
 import swaydb.core.TestBase
-import swaydb.core.util.Benchmark
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.ref.WeakReference
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
 
 case class Item(i: Int)
 class LimitQueueSpec extends TestBase {
@@ -136,8 +132,8 @@ class LimitQueueSpec extends TestBase {
           limitQueue ! i.toString
           if (i == 100)
             limitQueue.terminate()
-
       }
+
       def assertNotLooping() = {
         sleep(3.second)
         evictedItems shouldBe empty

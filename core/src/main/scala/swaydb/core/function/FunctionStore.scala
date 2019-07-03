@@ -20,6 +20,7 @@
 package swaydb.core.function
 
 import java.util.concurrent.ConcurrentHashMap
+
 import swaydb.core.data.SwayFunction
 import swaydb.data.slice.Slice
 
@@ -33,7 +34,6 @@ object FunctionStore {
 
   def memory() =
     new MemoryStore()
-
 }
 
 class MemoryStore extends FunctionStore {

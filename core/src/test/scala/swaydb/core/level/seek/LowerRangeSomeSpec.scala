@@ -22,9 +22,9 @@ package swaydb.core.level.seek
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.IOAssert._
 import swaydb.core.data.{Time, Value}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.{TestData, TestTimer}

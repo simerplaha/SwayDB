@@ -20,13 +20,12 @@
 package swaydb.core.util
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.IOAssert
+import swaydb.core.IOAssert._
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteUtil
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.IOAssert._
 
 class BytesSpec extends WordSpec with Matchers {
 
@@ -212,8 +211,6 @@ class BytesSpec extends WordSpec with Matchers {
         sliceReverse shouldBe Slice(slice.toList.reverse.toArray)
 
         ByteUtil.readLastUnsignedInt(sliceReverse).assertGet shouldBe ((intToWrite, slice.size))
-
     }
   }
-
 }

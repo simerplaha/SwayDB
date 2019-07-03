@@ -20,11 +20,11 @@
 package swaydb.compression
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.compression.IOAssert._
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import IOAssert._
 
 import scala.util.Random
 

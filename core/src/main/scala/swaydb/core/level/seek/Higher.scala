@@ -19,7 +19,6 @@
 
 package swaydb.core.level.seek
 
-import scala.annotation.tailrec
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
@@ -27,6 +26,8 @@ import swaydb.core.merge._
 import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+
+import scala.annotation.tailrec
 
 private[core] object Higher {
 
@@ -355,7 +356,6 @@ private[core] object Higher {
                             //do need to check if range is expired because if it was then
                             //next would not have been read from next level in the first place.
                             Higher(next.key, currentStash, Seek.Read)
-
                         }
 
                       case IO.Failure(error) =>

@@ -19,8 +19,6 @@
 
 package swaydb.core.level.compaction
 
-import swaydb.core.util.FiniteDurationUtil._
-
 import swaydb.data.IO
 
 import scala.concurrent.duration.{Deadline, _}

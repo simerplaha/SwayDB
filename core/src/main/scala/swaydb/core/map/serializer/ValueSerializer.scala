@@ -19,18 +19,19 @@
 
 package swaydb.core.map.serializer
 
-import scala.annotation.implicitNotFound
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.Deadline
 import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.core.util.TimeUtil._
 import swaydb.data.IO
+import swaydb.data.IO._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
-import IO._
+
+import scala.annotation.implicitNotFound
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.Deadline
 
 @implicitNotFound("Type class implementation not found for ValueSerializer of type ${T}")
 sealed trait ValueSerializer[T] {

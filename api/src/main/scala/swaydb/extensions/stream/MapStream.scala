@@ -19,13 +19,14 @@
 
 package swaydb.extensions.stream
 
-import scala.annotation.tailrec
 import swaydb.Streamer
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.extensions.Key
 import swaydb.serializers.Serializer
+
+import scala.annotation.tailrec
 
 /**
   * TODO - [[MapStream]] and [[MapKeysStream]] are similar and need a higher type - tagless final.
@@ -169,7 +170,6 @@ object MapStream {
       case IO.Failure(error) =>
         IO.Failure(error)
     }
-
 }
 
 case class MapStream[K, V](mapKey: Seq[K],

@@ -22,8 +22,8 @@ package swaydb.core.data
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
-import swaydb.core.{TestBase, TestData, TestTimer}
+import swaydb.core.segment.format.a.block._
+import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

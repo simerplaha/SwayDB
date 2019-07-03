@@ -20,9 +20,11 @@
 package swaydb.core
 
 import java.util.concurrent.ConcurrentLinkedQueue
-import scala.concurrent.duration._
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter, FileLimiterItem}
+
+import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
 import swaydb.data.util.StorageUnits._
+
+import scala.concurrent.duration._
 
 object TestLimitQueues {
 

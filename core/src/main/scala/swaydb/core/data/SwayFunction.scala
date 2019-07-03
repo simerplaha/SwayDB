@@ -19,8 +19,9 @@
 
 package swaydb.core.data
 
-import scala.concurrent.duration.Deadline
 import swaydb.data.slice.Slice
+
+import scala.concurrent.duration.Deadline
 
 private[swaydb] sealed trait SwayFunction
 

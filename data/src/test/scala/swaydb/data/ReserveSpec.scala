@@ -20,7 +20,7 @@
 package swaydb.data
 
 import org.scalatest.{FlatSpec, Matchers}
-import Base._
+import swaydb.data.Base._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

@@ -19,10 +19,9 @@
 
 package swaydb.extensions.persistent
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{FiniteDuration, _}
+
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.SwayDB
 import swaydb.configs.level.{DefaultGroupingStrategy, DefaultPersistentConfig}
 import swaydb.core.BlockingCore
@@ -36,6 +35,9 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.extensions.{Extend, Key}
 import swaydb.serializers.Serializer
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{FiniteDuration, _}
 
 object Map extends LazyLogging {
 

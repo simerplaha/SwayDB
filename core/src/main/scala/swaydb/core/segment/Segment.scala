@@ -31,14 +31,13 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
+import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.{SegmentFooter, SegmentWriter}
-import swaydb.core.segment.format.a.block.{BinarySearchIndex, BlocksCompression, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.{FiniteDurationUtil, IDGenerator}
 import swaydb.data.IO._
 import swaydb.data.config.Dir
-import swaydb.data.config.HashIndex.HashIndexSpace
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey, Reserve}

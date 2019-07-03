@@ -139,7 +139,6 @@ sealed trait ScalaMapSpec extends TestBaseEmbedded {
       db.asScala.contains(3) shouldBe false
 
       db.close().get
-
     }
   }
 }

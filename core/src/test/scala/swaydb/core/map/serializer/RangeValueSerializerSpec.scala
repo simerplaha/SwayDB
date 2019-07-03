@@ -20,14 +20,13 @@
 package swaydb.core.map.serializer
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.TestTimer
 import swaydb.core.data.Value
 import swaydb.core.data.Value.{FromValue, RangeValue}
-import swaydb.core.{CommonAssertions, TestTimer, IOAssert}
 import swaydb.data.slice.Slice
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
 
 class RangeValueSerializerSpec extends WordSpec with Matchers {
 
@@ -75,7 +74,6 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
           doAssert(rangeValue)
       }
     }
-
   }
 
   def doAssert[F <: FromValue, R <: RangeValue](fromValue: F, rangeValue: R)(implicit serializer: RangeValueSerializer[F, R]) = {
@@ -133,6 +131,5 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
         case (fromValue: Value.PendingApply, rangeValue: Value.PendingApply) => doAssert(fromValue, rangeValue)
       }
     }
-
   }
 }

@@ -20,14 +20,12 @@
 package swaydb
 
 import swaydb.api.TestBaseEmbedded
-import swaydb.core.TestBase
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
+import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
-import swaydb.core.IOAssert._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.data.IO
 
 class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
   implicit val order: KeyOrder[Slice[Byte]] = KeyOrder.reverse

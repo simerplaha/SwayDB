@@ -19,8 +19,9 @@
 
 package swaydb.data.accelerate
 
-import scala.concurrent.duration._
 import swaydb.data.util.StorageUnits._
+
+import scala.concurrent.duration._
 
 /**
   * Default Accelerator implementation.

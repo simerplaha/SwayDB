@@ -20,21 +20,23 @@
 package swaydb.core.map.serializer
 
 import java.util.concurrent.ConcurrentSkipListMap
-import scala.collection.JavaConverters._
-import swaydb.core.{TestBase, TestTimer}
+
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
+import swaydb.core.{TestBase, TestTimer}
+import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
-import swaydb.data.IO
+
+import scala.collection.JavaConverters._
 
 class LevelZeroMapEntrySpec extends TestBase {
 
@@ -221,10 +223,7 @@ class LevelZeroMapEntrySpec extends TestBase {
 
     "write, remove & update key-value" in {
       runThis(100.times) {
-        import LevelZeroMapEntryWriter.Level0PutWriter
-        import LevelZeroMapEntryWriter.Level0UpdateWriter
-        import LevelZeroMapEntryWriter.Level0RemoveWriter
-        import LevelZeroMapEntryWriter.Level0RangeWriter
+        import LevelZeroMapEntryWriter.{Level0PutWriter, Level0RangeWriter, Level0RemoveWriter, Level0UpdateWriter}
 
         val put1 = Memory.put(1, randomStringOption, randomDeadlineOption)
         val put2 = Memory.put(2, randomStringOption, randomDeadlineOption)

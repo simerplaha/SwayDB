@@ -20,9 +20,11 @@
 package swaydb.core.util
 
 import java.util.{Timer, TimerTask}
+
+import swaydb.data.IO
+
 import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
-import swaydb.data.IO
 
 object Delay {
 

@@ -31,5 +31,4 @@ object UUIDUtil {
 
   def randomIdNoHyphenBytes(): Slice[Byte] =
     Slice.writeString(randomIdNoHyphen())
-
 }

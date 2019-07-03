@@ -19,16 +19,17 @@
 
 package swaydb
 
+import swaydb.Stream.StreamBuilder
+import swaydb.data.IO
+import swaydb.data.io.Tag
+import swaydb.data.io.Tag._
+
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
-import swaydb.Stream.StreamBuilder
-import swaydb.data.IO
-import swaydb.data.io.Tag
-import swaydb.data.io.Tag._
 
 /**
   * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if

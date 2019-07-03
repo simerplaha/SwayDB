@@ -24,5 +24,4 @@ object Options {
   val `false`: Option[Boolean] = Some(false)
   val `true`: Option[Boolean] = Some(true)
   val unit: Option[Unit] = Some(())
-
 }

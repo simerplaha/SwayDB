@@ -20,14 +20,15 @@
 package swaydb.api
 
 import org.scalatest.{Matchers, WordSpec}
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.util.Try
+import swaydb.Stream
 import swaydb.core.RunThis._
 import swaydb.data._
 import swaydb.data.io.Tag
 import swaydb.data.io.Tag._
-import swaydb.Stream
+
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
+import scala.util.Try
 
 class StreamFutureSpec extends StreamSpec[Future] {
   override def get[A](a: Future[A]): A = Await.result(a, 60.seconds)

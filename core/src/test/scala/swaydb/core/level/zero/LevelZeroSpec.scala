@@ -20,8 +20,6 @@
 package swaydb.core.level.zero
 
 import org.scalamock.scalatest.MockFactory
-import scala.concurrent.duration._
-import scala.util.Random
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
@@ -36,6 +34,9 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+
+import scala.concurrent.duration._
+import scala.util.Random
 
 class LevelZeroSpec0 extends LevelZeroSpec
 
@@ -260,7 +261,6 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       zero.last.assertGetOpt shouldBe empty
     }
 
-
     "remove all key-values" in {
       val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))), mapSize = 1.byte)
       val keyValues = randomIntKeyStringValues(keyValuesCount)
@@ -274,7 +274,6 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       zero.head.assertGetOpt shouldBe empty
       zero.last.assertGetOpt shouldBe empty
     }
-
   }
 
   "LevelZero.head" should {

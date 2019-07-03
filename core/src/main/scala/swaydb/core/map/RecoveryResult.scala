@@ -19,9 +19,9 @@
 
 package swaydb.core.map
 
-import swaydb.data.config.RecoveryMode
 import swaydb.core.io.file.DBFile
 import swaydb.data.IO
+import swaydb.data.config.RecoveryMode
 
 /**
   * Files can be partially recovered based on the value set for [[RecoveryMode]].

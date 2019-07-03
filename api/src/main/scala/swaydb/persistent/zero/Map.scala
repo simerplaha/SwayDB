@@ -19,9 +19,9 @@
 
 package swaydb.persistent.zero
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
-import scala.concurrent.ExecutionContext
+
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.SwayDB
 import swaydb.configs.level.DefaultPersistentZeroConfig
 import swaydb.core.BlockingCore
@@ -31,8 +31,10 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{Dir, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.serializers.Serializer
 import swaydb.data.util.StorageUnits._
+import swaydb.serializers.Serializer
+
+import scala.concurrent.ExecutionContext
 
 object Map extends LazyLogging {
 

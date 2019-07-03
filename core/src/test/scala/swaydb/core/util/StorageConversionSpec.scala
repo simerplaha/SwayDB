@@ -35,5 +35,4 @@ class StorageConversionSpec extends WordSpec with Matchers {
       1.kb shouldBe 1000
     }
   }
-
 }

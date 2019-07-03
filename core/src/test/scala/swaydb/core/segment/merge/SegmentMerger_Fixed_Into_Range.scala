@@ -20,19 +20,20 @@
 package swaydb.core.segment.merge
 
 import org.scalatest.WordSpec
-import scala.concurrent.duration._
-import scala.util.Random
-import swaydb.core.data.{Memory, Time, Value}
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.TestTimer
+import swaydb.core.data.{Memory, Value}
 import swaydb.core.merge.FixedMerger
-import swaydb.core.{CommonAssertions, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
+
+import scala.concurrent.duration._
+import scala.util.Random
 
 class SegmentMerger_Fixed_Into_Range extends WordSpec {
 
@@ -208,5 +209,4 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
       )
     }
   }
-
 }

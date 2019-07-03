@@ -20,10 +20,12 @@
 package swaydb.data
 
 import java.nio.file.{NoSuchFileException, Paths}
+
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.data.Base._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
-import swaydb.data.Base._
 
 class IOFailureSpec extends WordSpec with Matchers {
 

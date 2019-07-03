@@ -20,10 +20,11 @@
 package swaydb.data.slice
 
 import org.scalatest.{Matchers, WordSpec}
-import scala.util.Random
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.ByteSizeOf
+
+import scala.util.Random
 
 class SliceSpec extends WordSpec with Matchers {
 

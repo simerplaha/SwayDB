@@ -32,5 +32,4 @@ trait CurrentWalker {
   def higher(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.SegmentResponse]]
 
   def lower(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.SegmentResponse]]
-
 }

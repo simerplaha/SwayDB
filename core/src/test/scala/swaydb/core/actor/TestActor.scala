@@ -25,10 +25,8 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import org.scalatest.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.Span._
-import swaydb.core.util.Delay
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
+import swaydb.core.util.Delay
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

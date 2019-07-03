@@ -19,16 +19,17 @@
 
 package swaydb.core
 
+import swaydb.core.IOAssert._
 import swaydb.core.data.Memory
-import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
-import swaydb.data.slice.Slice
-import scala.util.Random
-import swaydb.data.util.StorageUnits._
-import scala.concurrent.ExecutionContext
 import swaydb.core.function.FunctionStore
-import swaydb.data.order.{KeyOrder, TimeOrder}
-import IOAssert._
+import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
+import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice
+import swaydb.data.util.StorageUnits._
+
+import scala.concurrent.ExecutionContext
+import scala.util.Random
 
 package object map {
 

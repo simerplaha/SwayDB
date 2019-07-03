@@ -19,13 +19,11 @@
 
 package swaydb.core.map
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.BiConsumer
-import scala.annotation.tailrec
-import scala.collection.JavaConverters._
-import scala.reflect.ClassTag
+
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
@@ -33,6 +31,10 @@ import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+
+import scala.annotation.tailrec
+import scala.collection.JavaConverters._
+import scala.reflect.ClassTag
 
 private[core] object Map extends LazyLogging {
 

@@ -20,6 +20,7 @@
 package swaydb.core.level
 
 import java.util.concurrent.ConcurrentSkipListMap
+
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.{MapEntry, SkipListMerger}
 import swaydb.core.segment.Segment
@@ -44,5 +45,4 @@ object AppendixSkipListMerger extends SkipListMerger[Slice[Byte], Segment] {
                                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                                              functionStore: FunctionStore): Unit =
     throw new IllegalAccessException("Appendix does not require merger.")
-
 }

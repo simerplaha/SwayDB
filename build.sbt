@@ -1,7 +1,7 @@
 import sbt.Keys.{libraryDependencies, publishMavenStyle}
 import sbt.url
+import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import xerial.sbt.Sonatype._
-import ReleaseTransformations._
 
 val lz4Version = "1.6.0"
 val snappyVersion = "1.1.7.3"

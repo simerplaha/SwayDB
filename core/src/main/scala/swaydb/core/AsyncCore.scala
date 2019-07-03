@@ -19,8 +19,6 @@
 
 package swaydb.core
 
-import scala.concurrent.duration.Deadline
-import scala.concurrent.{ExecutionContext, Future}
 import swaydb.Prepare
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.SwayFunction
@@ -32,6 +30,9 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.{Tag, TagAsync}
 import swaydb.data.slice.Slice
+
+import scala.concurrent.duration.Deadline
+import scala.concurrent.{ExecutionContext, Future}
 
 private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Unit])(implicit ec: ExecutionContext,
                                                                                      tag: TagAsync[T]) extends Core[T] {

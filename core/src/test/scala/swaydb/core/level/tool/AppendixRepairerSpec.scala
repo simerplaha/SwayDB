@@ -20,22 +20,24 @@
 package swaydb.core.level.tool
 
 import java.nio.file.NoSuchFileException
-import scala.concurrent.duration.Duration
-import scala.util.Random
+
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.io.file.IOEffect
+import swaydb.core.io.file.IOEffect._
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
-import swaydb.core.io.file.IOEffect._
-import swaydb.core.{TestBase, TestData, TestLimitQueues}
+import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.compaction.Throttle
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+
+import scala.concurrent.duration.Duration
+import scala.util.Random
 
 class AppendixRepairerSpec extends TestBase {
 

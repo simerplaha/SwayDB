@@ -24,7 +24,6 @@ import swaydb.core.data.Persistent
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.format.a.block.{BinarySearchIndex, HashIndex, SortedIndex, Values}
 import swaydb.data.IO
-import swaydb.data.slice.Reader
 
 /**
   * All public APIs are wrapped around a try catch block because eager fetches on IO's results (.get).

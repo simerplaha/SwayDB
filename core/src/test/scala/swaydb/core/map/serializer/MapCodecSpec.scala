@@ -20,6 +20,10 @@
 package swaydb.core.map.serializer
 
 import java.util.concurrent.ConcurrentSkipListMap
+
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
+import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
@@ -27,11 +31,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
-import swaydb.core.io.file.DBFile
 
 class MapCodecSpec extends TestBase {
 
@@ -172,7 +171,5 @@ class MapCodecSpec extends TestBase {
       MapCodec.read(corruptedBytes1, dropCorruptedTailEntries = false).failed.assertGet.exception shouldBe a[IllegalStateException]
       MapCodec.read(corruptedBytes1, dropCorruptedTailEntries = true).assertGet.item shouldBe empty
     }
-
   }
-
 }

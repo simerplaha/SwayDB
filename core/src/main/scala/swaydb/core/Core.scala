@@ -19,8 +19,6 @@
 
 package swaydb.core
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.Deadline
 import swaydb.Prepare
 import swaydb.core.data.KeyValue.KeyValueTuple
 import swaydb.core.data.SwayFunction
@@ -29,6 +27,9 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.{Tag, TagAsync}
 import swaydb.data.slice.Slice
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Deadline
 
 private[swaydb] trait Core[T[_]] {
 

@@ -84,6 +84,5 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
         level.reopen.isEmpty shouldBe true
       }
     }
-
   }
 }

@@ -20,7 +20,6 @@
 package swaydb.core.util
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.IOAssert
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.slice.Slice
 

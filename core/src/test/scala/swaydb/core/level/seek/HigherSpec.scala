@@ -21,9 +21,9 @@ package swaydb.core.level.seek
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.IOAssert._
 import swaydb.core.data.Value
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -53,5 +53,4 @@ class HigherSpec extends WordSpec with Matchers {
       Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Some(put)).assertGet shouldBe put.toMemory(2)
     }
   }
-
 }

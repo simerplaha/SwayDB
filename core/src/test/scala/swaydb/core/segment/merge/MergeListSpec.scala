@@ -20,14 +20,13 @@
 package swaydb.core.segment.merge
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.CommonAssertions._
+import swaydb.core.TestData._
+import swaydb.core.TestTimer
 import swaydb.core.data.{KeyValue, Memory, Value}
-import swaydb.core.{CommonAssertions, TestData, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
 
 class MergeListSpec extends WordSpec with Matchers {
 

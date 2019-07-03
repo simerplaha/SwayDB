@@ -68,5 +68,4 @@ private[swaydb] case class SliceReader(slice: Slice[Byte]) extends Reader {
 
   override def readRemaining(): IO[Slice[Byte]] =
     remaining flatMap read
-
 }

@@ -19,9 +19,10 @@
 
 package swaydb.core.data
 
-import scala.concurrent.duration.Deadline
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
+
+import scala.concurrent.duration.Deadline
 
 private[swaydb] sealed trait Value {
   def hasRemoveMayBe: Boolean

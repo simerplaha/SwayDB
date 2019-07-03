@@ -20,6 +20,7 @@
 package swaydb.core.map.serializer
 
 import java.nio.charset.StandardCharsets
+
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.util.Bytes

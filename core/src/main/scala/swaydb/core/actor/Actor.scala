@@ -19,15 +19,17 @@
 
 package swaydb.core.actor
 
-import com.typesafe.scalalogging.LazyLogging
 import java.util.TimerTask
-import java.util.concurrent.{ConcurrentLinkedQueue, TimeUnit}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.{ConcurrentLinkedQueue, TimeUnit}
 import java.util.function.IntUnaryOperator
-import scala.concurrent.duration.{FiniteDuration, _}
-import scala.concurrent.{ExecutionContext, Future}
+
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Delay
 import swaydb.data.IO
+
+import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.{ExecutionContext, Future}
 
 private[swaydb] sealed trait ActorRef[-T] {
   /**

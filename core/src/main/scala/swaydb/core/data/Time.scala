@@ -20,6 +20,7 @@
 package swaydb.core.data
 
 import java.util.concurrent.atomic.AtomicLong
+
 import swaydb.data.IO
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice

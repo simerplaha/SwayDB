@@ -20,7 +20,6 @@
 package swaydb.core.segment.format.a.entry.writer
 
 import swaydb.core.data.{KeyValue, Transient}
-import swaydb.core.data.KeyValue.WriteOnly
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.core.util.Bytes._

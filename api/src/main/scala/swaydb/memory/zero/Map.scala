@@ -20,7 +20,6 @@
 package swaydb.memory.zero
 
 import com.typesafe.scalalogging.LazyLogging
-import scala.concurrent.ExecutionContext
 import swaydb.SwayDB
 import swaydb.configs.level.DefaultMemoryZeroConfig
 import swaydb.core.BlockingCore
@@ -31,6 +30,8 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
+
+import scala.concurrent.ExecutionContext
 
 object Map extends LazyLogging {
 

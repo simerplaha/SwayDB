@@ -19,10 +19,11 @@
 
 package swaydb.core.queue
 
-import scala.concurrent.Future
-import scala.concurrent.duration._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
+
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class LimitQueueStressSpec extends TestBase {
 
@@ -51,30 +52,30 @@ class LimitQueueStressSpec extends TestBase {
       }
     }
 
-//    "performance insert 10 million items to queue" in {
-//      import swaydb.serializers._
-//      import swaydb.serializers.Default._
-//      //increase this val to test the queue on a larger number of items
-//      val itemCount = 10000000
-//
-//      val limitQueue = KeyValueLimiter(100.mb, 5.seconds)
-//      val segment = TestSegment().get
-//
-//      val skipList = new ConcurrentSkipListMap[Slice[Byte], Int](KeyOrder.default)
-//
-//      (1 to itemCount) foreach {
-//        i =>
-//          skipList.put(i, i)
-//      }
-//
-//      (1 to itemCount) foreach {
-//        i =>
-//          if (i % 10000 == 0) {
-//            println(s"Key: $i")
-//          }
-//          //          val item = CreatedReadOnly(i, Reader.emptyReader, 0, 0, 0, 10, 0)
-//          limitQueue.add(Persistent.Put(i, None, Reader.empty, 0, 0, 0, 0, 0), skipList)
-//      }
-//    }
+    //    "performance insert 10 million items to queue" in {
+    //      import swaydb.serializers._
+    //      import swaydb.serializers.Default._
+    //      //increase this val to test the queue on a larger number of items
+    //      val itemCount = 10000000
+    //
+    //      val limitQueue = KeyValueLimiter(100.mb, 5.seconds)
+    //      val segment = TestSegment().get
+    //
+    //      val skipList = new ConcurrentSkipListMap[Slice[Byte], Int](KeyOrder.default)
+    //
+    //      (1 to itemCount) foreach {
+    //        i =>
+    //          skipList.put(i, i)
+    //      }
+    //
+    //      (1 to itemCount) foreach {
+    //        i =>
+    //          if (i % 10000 == 0) {
+    //            println(s"Key: $i")
+    //          }
+    //          //          val item = CreatedReadOnly(i, Reader.emptyReader, 0, 0, 0, 10, 0)
+    //          limitQueue.add(Persistent.Put(i, None, Reader.empty, 0, 0, 0, 0, 0), skipList)
+    //      }
+    //    }
   }
 }

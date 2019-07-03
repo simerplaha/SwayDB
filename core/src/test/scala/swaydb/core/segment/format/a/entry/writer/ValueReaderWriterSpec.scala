@@ -23,10 +23,10 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.{Time, Transient}
 import swaydb.core.io.reader.Reader
+import swaydb.core.segment.format.a.SegmentWriter
+import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, BaseEntryIdFormatA, TransientToKeyValueIdBinder}
-import swaydb.core.segment.format.a.block.{BinarySearchIndex, BlocksCompression, BloomFilter, HashIndex, SortedIndex, Values}
-import swaydb.core.segment.format.a.{SegmentFooter, SegmentWriter}
-import swaydb.core.{TestBase, TestData, TestTimer}
+import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

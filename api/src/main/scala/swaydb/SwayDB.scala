@@ -19,12 +19,9 @@
 
 package swaydb
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{FiniteDuration, _}
-import scala.concurrent.forkjoin.ForkJoinPool
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.BlockingCore
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -37,6 +34,10 @@ import swaydb.data.repairAppendix._
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey}
 import swaydb.serializers.Serializer
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.forkjoin.ForkJoinPool
 
 /**
   * Instance used for creating/initialising databases.

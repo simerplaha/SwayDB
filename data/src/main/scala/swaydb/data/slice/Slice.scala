@@ -22,14 +22,16 @@ package swaydb.data.slice
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
+
+import swaydb.data.order.KeyOrder
+import swaydb.data.util.{ByteSizeOf, ByteUtil}
+import swaydb.data.{IO, MaxKey}
+
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
 import scala.collection.{IterableLike, mutable}
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
-import swaydb.data.{IO, MaxKey}
-import swaydb.data.order.KeyOrder
-import swaydb.data.util.{ByteSizeOf, ByteUtil}
 
 /**
   * Documentation - http://swaydb.io/slice

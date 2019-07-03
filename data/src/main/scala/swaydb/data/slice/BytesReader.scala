@@ -100,5 +100,4 @@ class BytesReader(slice: Slice[Byte]) {
 
   def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): String =
     sliceReader.readString(size, charset).get
-
 }

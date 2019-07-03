@@ -32,7 +32,7 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
-import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -139,5 +139,4 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
 
     level1.segmentsInLevel() foreach (_.createdInLevel.assertGet shouldBe level2.levelNumber)
   }
-
 }

@@ -20,11 +20,13 @@
 package swaydb.core.actor
 
 import java.util.concurrent.ConcurrentSkipListSet
+
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.RunThis._
+
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import swaydb.core.RunThis._
 
 class ActorSpec extends WordSpec with Matchers {
 

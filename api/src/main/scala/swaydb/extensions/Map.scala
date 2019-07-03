@@ -19,7 +19,6 @@
 
 package swaydb.extensions
 
-import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.data.IO
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
@@ -28,6 +27,8 @@ import swaydb.data.slice.Slice
 import swaydb.extensions.stream.{MapKeysStream, MapStream}
 import swaydb.serializers.Serializer
 import swaydb.{From, Prepare}
+
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 private[extensions] object Map {
   def apply[K, V](map: swaydb.Map[Key[K], Option[V], IO],

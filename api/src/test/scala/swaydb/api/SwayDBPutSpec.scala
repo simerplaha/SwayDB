@@ -19,14 +19,14 @@
 
 package swaydb
 
-import scala.concurrent.duration._
 import swaydb.api.TestBaseEmbedded
-import swaydb.core.TestBase
-import swaydb.serializers.Default._
-import swaydb.core.IOAssert._
 import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.data.IO
+import swaydb.serializers.Default._
+
+import scala.concurrent.duration._
 
 class SwayDBPutSpec0 extends SwayDBPutSpec {
   val keyValueCount: Int = 1000
@@ -451,6 +451,5 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
       db.clear().assertGet
       db.isEmpty.get shouldBe true
     }
-
   }
 }

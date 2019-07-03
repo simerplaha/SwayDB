@@ -19,8 +19,6 @@
 
 package swaydb.extensions
 
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration._
 import swaydb.Prepare
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
@@ -30,6 +28,9 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
+
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration._
 
 class MapSpec0 extends MapSpec {
   val keyValueCount: Int = 1000

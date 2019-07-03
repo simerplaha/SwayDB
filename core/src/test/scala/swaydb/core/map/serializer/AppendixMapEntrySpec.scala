@@ -20,23 +20,21 @@
 package swaydb.core.map.serializer
 
 import java.util.concurrent.ConcurrentSkipListMap
-import swaydb.core.data.Persistent
-import swaydb.core.data.Persistent
+
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
+import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestLimitQueues}
-import swaydb.data.slice.Slice
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
+
 import scala.collection.JavaConverters._
-import swaydb.core.io.file.DBFile
 
 class AppendixMapEntrySpec extends TestBase {
 
@@ -94,7 +92,6 @@ class AppendixMapEntrySpec extends TestBase {
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Segment](keyOrder)
       readEntry applyTo skipList
       skipList shouldBe empty
-
     }
 
     "write and remove key-value" in {

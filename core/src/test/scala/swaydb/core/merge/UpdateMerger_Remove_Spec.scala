@@ -20,15 +20,14 @@
 package swaydb.core.merge
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.{CommonAssertions, TestTimer}
-import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.serializers.Default._
-import swaydb.serializers._
-import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
+import swaydb.core.TestData._
+import swaydb.core.TestTimer
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.serializers.Default._
+import swaydb.serializers._
 
 class UpdateMerger_Remove_Spec extends WordSpec with Matchers {
 

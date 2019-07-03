@@ -20,12 +20,14 @@
 package swaydb.core.map
 
 import java.util.concurrent.ConcurrentSkipListMap
+
 import swaydb.core.data.Memory
 import swaydb.core.map.MapEntry.{Put, Remove}
 import swaydb.core.map.serializer.{MapCodec, MapEntryWriter}
-import swaydb.data.slice.Slice
-import scala.collection.mutable.ListBuffer
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
+
+import scala.collection.mutable.ListBuffer
 
 /**
   * [[MapEntry]]s can be batched via ++ function.
@@ -151,7 +153,6 @@ private[swaydb] object MapEntry {
 
     def entries: List[MapEntry[K, V]] =
       left._entries.toList.asInstanceOf[List[MapEntry[K, V]]]
-
   }
 
   case class Put[K, V](key: K,
@@ -181,7 +182,6 @@ private[swaydb] object MapEntry {
     //times when recovery key-values from Level0's map files. This should be changed to be immutable.
     def copySingle() =
       copy()
-
   }
 
   case class Remove[K](key: K)(implicit serializer: MapEntryWriter[MapEntry.Remove[K]]) extends MapEntry[K, Nothing] {

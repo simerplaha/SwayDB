@@ -76,7 +76,6 @@ sealed trait FromSpec extends TestBaseEmbedded {
         .get shouldBe empty
 
       db.closeDatabase().get
-
     }
 
     "if the map contains only 1 element" in {

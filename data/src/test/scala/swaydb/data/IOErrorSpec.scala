@@ -23,6 +23,7 @@ import java.io.FileNotFoundException
 import java.nio.ReadOnlyBufferException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.{NoSuchFileException, Paths}
+
 import org.scalatest.{FlatSpec, Matchers}
 
 class IOErrorSpec extends FlatSpec with Matchers {
@@ -111,5 +112,4 @@ class IOErrorSpec extends FlatSpec with Matchers {
     error.exception.getMessage shouldBe exception.getMessage
     IO.Error(exception) shouldBe a[IO.Error.Fatal]
   }
-
 }

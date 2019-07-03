@@ -20,10 +20,11 @@
 package swaydb.core.actor
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.RunThis._
+import swaydb.core.TestBase
+
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
-import swaydb.core.TestBase
-import swaydb.core.RunThis._
 import scala.concurrent.duration._
 
 class WiredActorSpec extends WordSpec with Matchers with TestBase {

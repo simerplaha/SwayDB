@@ -27,10 +27,9 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.level.compaction.{Compaction, Compactor, CompactorState, DefaultCompactionOrdering}
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

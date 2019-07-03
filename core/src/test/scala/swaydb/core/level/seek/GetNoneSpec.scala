@@ -27,9 +27,9 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{SwayFunctionOutput, Value}
 import swaydb.core.{TestData, TestTimer}
-import swaydb.data.{Reserve, IO}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.{IO, Reserve}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -272,5 +272,4 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
       }
     }
   }
-
 }

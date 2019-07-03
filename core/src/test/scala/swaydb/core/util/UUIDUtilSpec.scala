@@ -28,5 +28,4 @@ class UUIDUtilSpec extends TestBase {
       UUIDUtil.randomIdNoHyphen() should not include "-"
     }
   }
-
 }

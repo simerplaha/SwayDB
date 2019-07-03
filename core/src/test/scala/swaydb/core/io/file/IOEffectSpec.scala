@@ -20,6 +20,7 @@
 package swaydb.core.io.file
 
 import java.nio.file.Paths
+
 import swaydb.core.IOAssert._
 import swaydb.core.TestBase
 import swaydb.core.util.Extension

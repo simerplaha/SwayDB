@@ -31,14 +31,14 @@ import swaydb.core.level.compaction._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.segment.format.a.block
+import swaydb.core.segment.format.a.block.BlocksCompression
 import swaydb.data.IO
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-import swaydb.core.segment.format.a.block
-import swaydb.core.segment.format.a.block.BlocksCompression
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration

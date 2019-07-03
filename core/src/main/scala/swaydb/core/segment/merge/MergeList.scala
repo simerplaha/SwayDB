@@ -115,7 +115,6 @@ private[core] class Single[H <: T, T](private var headRange: Option[H],
 
   override def size =
     tailKeyValues.size + (if (headRange.isDefined) 1 else 0)
-
 }
 
 private[core] class Multiple[H <: T, T](private var left: MergeList[H, T],
@@ -173,5 +172,4 @@ private[core] class Multiple[H <: T, T](private var left: MergeList[H, T],
 
   override def size =
     left.size + right.size
-
 }

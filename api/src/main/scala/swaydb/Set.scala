@@ -19,17 +19,18 @@
 
 package swaydb
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
 import swaydb.data.IO
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.{Tag, TagAsync}
 import swaydb.data.io.Tag._
+import swaydb.data.io.{Tag, TagAsync}
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object Set {
   def apply[T](api: Core[IO])(implicit serializer: Serializer[T]): Set[T, IO] =

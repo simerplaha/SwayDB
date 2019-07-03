@@ -20,12 +20,12 @@
 package swaydb.benchmark
 
 import java.nio.file.Path
+
 import swaydb._
 import swaydb.data.IO
 import swaydb.data.config.MMAP
 import swaydb.data.slice.Slice
-import swaydb.serializers.Default.SliceSerializer
-import swaydb.serializers.Default.SliceOptionSerializer
+import swaydb.serializers.Default.{SliceOptionSerializer, SliceSerializer}
 
 sealed trait Test {
   val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], IO]

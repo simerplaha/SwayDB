@@ -239,7 +239,6 @@ object FunctionMerger {
                 case None =>
                   IO.Failure(IO.Exception.FunctionNotFound(function))
               }
-
           }
       }
 
@@ -304,5 +303,4 @@ object FunctionMerger {
       }
     else
       IO.Success(oldKeyValue)
-
 }

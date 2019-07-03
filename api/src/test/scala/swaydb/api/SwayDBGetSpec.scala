@@ -19,13 +19,14 @@
 
 package swaydb.api
 
-import scala.concurrent.duration._
 import swaydb._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.data.IO
 import swaydb.serializers.Default._
+
+import scala.concurrent.duration._
 
 class SwayDBGetSpec0 extends SwayDBGetSpec {
   override def newDB(): Map[Int, String, IO] =

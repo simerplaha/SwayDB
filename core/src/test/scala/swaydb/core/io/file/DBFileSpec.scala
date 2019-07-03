@@ -22,6 +22,7 @@ package swaydb.core.io.file
 import java.nio.ReadOnlyBufferException
 import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
+
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
@@ -31,7 +32,7 @@ import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.core.util.Benchmark
 import swaydb.core.util.PipeOps._
-import swaydb.core.{RunThis, TestBase, TestLimitQueues}
+import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.slice.Slice
 
 class DBFileSpec extends TestBase with Benchmark with MockFactory {
@@ -751,38 +752,38 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     }
   }
 
-//  "Concurrently opening files" should {
-//    "result in Busy exception" in {
-//      //create a file
-//      val bytes = Slice(randomBytes())
-//      val file = DBFile.mmapInit(randomFilePath, bytes.size, autoClose = true).assertGet
-//      file.append(bytes).assertGet
-//
-//      //concurrently close and read the same file.
-//      val ios =
-//        (1 to 500).par map {
-//          _ =>
-//            if (randomBoolean) Future(file.close)
-//            file.readAll
-//        }
-//
-//      //convert all failures to Async
-//      val result: List[IO.Later[_]] =
-//        ios.toList collect {
-//          case io: IO.Failure[_] =>
-//            io.recoverToAsync(IO.Async((), IO.Error.None)).asInstanceOf[IO.Later[_]]
-//        }
-//
-//      result.size should be >= 1
-//
-//      //eventually all IO.Later instances will value busy set to false.
-//      eventual {
-//        result foreach {
-//          result =>
-//            result.error.busy.isBusy shouldBe false
-//        }
-//      }
-//    }
-//
-//  }
+  //  "Concurrently opening files" should {
+  //    "result in Busy exception" in {
+  //      //create a file
+  //      val bytes = Slice(randomBytes())
+  //      val file = DBFile.mmapInit(randomFilePath, bytes.size, autoClose = true).assertGet
+  //      file.append(bytes).assertGet
+  //
+  //      //concurrently close and read the same file.
+  //      val ios =
+  //        (1 to 500).par map {
+  //          _ =>
+  //            if (randomBoolean) Future(file.close)
+  //            file.readAll
+  //        }
+  //
+  //      //convert all failures to Async
+  //      val result: List[IO.Later[_]] =
+  //        ios.toList collect {
+  //          case io: IO.Failure[_] =>
+  //            io.recoverToAsync(IO.Async((), IO.Error.None)).asInstanceOf[IO.Later[_]]
+  //        }
+  //
+  //      result.size should be >= 1
+  //
+  //      //eventually all IO.Later instances will value busy set to false.
+  //      eventual {
+  //        result foreach {
+  //          result =>
+  //            result.error.busy.isBusy shouldBe false
+  //        }
+  //      }
+  //    }
+  //
+  //  }
 }

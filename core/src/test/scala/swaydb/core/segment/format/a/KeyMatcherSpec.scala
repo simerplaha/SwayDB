@@ -27,9 +27,9 @@ import swaydb.core.segment.format.a.MatchResult._
 import swaydb.core.segment.format.a.block.Values
 import swaydb.core.segment.format.a.entry.reader.value.{LazyRangeValueReader, LazyValueReader}
 import swaydb.core.util.cache.Cache
-import swaydb.data.{IO, MaxKey}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.{IO, MaxKey}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

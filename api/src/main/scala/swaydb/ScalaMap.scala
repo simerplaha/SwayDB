@@ -19,8 +19,9 @@
 
 package swaydb
 
-import scala.collection.{TraversableOnce, mutable}
 import swaydb.data.IO
+
+import scala.collection.{TraversableOnce, mutable}
 
 /**
   * Scala collections are blocking and requires an IO Map from SwayDB to build a Map.

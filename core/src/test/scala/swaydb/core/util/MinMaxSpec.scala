@@ -20,12 +20,12 @@
 package swaydb.core.util
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.IOAssert._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.serializers._
 import swaydb.serializers.Default._
-import swaydb.core.IOAssert._
+import swaydb.serializers._
 
 class MinMaxSpec extends WordSpec with Matchers {
 
@@ -128,5 +128,4 @@ class MinMaxSpec extends WordSpec with Matchers {
       MinMax.max(None, None)(KeyOrder.default) shouldBe empty
     }
   }
-
 }

@@ -23,9 +23,9 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
+import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.segment.Segment
-import swaydb.core.{TestBase, TestData}
 import swaydb.data.compaction.Throttle
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice

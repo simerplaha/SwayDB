@@ -20,19 +20,20 @@
 package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{FiniteDuration, _}
+import swaydb.SwayDB
 import swaydb.configs.level.DefaultMemoryConfig
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
+import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.SwayDB
-import swaydb.data.IO
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{FiniteDuration, _}
 
 object Set extends LazyLogging {
 

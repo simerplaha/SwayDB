@@ -46,5 +46,4 @@ private[swaydb] trait Streamer[A, T[_]] {
   def lastOption: T[Option[A]]
 
   def headOption: T[Option[A]]
-
 }

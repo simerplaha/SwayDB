@@ -19,7 +19,6 @@
 
 package swaydb.core.level
 
-import scala.util.Random
 import swaydb.core.IOAssert._
 import swaydb.core.TestBase
 import swaydb.core.io.file.IOEffect
@@ -27,6 +26,8 @@ import swaydb.core.segment.Segment
 import swaydb.core.util.Benchmark
 import swaydb.data.config.Dir
 import swaydb.data.order.KeyOrder
+
+import scala.util.Random
 
 class PathsDistributorPerformanceSpec extends TestBase with Benchmark {
 

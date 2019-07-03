@@ -36,5 +36,4 @@ trait NextWalker extends NextGetter {
   def hasStateChanged(previousState: Long): Boolean
 
   def stateID: Long
-
 }

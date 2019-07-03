@@ -231,7 +231,6 @@ object LevelZeroMapEntryWriter {
 
         case entry @ MapEntry.Put(_, _: Memory.PendingApply) =>
           MapEntryWriter.write(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.PendingApply]], bytes)
-
       }
 
     override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Memory.SegmentResponse]): Int =
@@ -254,6 +253,5 @@ object LevelZeroMapEntryWriter {
         case entry @ MapEntry.Put(_, _: Memory.PendingApply) =>
           MapEntryWriter.bytesRequired(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.PendingApply]])
       }
-
   }
 }

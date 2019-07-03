@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.entry.reader.value
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.format.a.block.Values
 import swaydb.data.IO
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Slice
 
 object LazyPutValueReader {
   def apply(reader: BlockReader[Values],

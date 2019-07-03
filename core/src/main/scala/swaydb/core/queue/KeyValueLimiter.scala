@@ -20,7 +20,6 @@
 package swaydb.core.queue
 
 import java.util.concurrent.ConcurrentSkipListMap
-import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Memory, Persistent}

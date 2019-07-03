@@ -20,11 +20,13 @@
 package swaydb.data
 
 import java.nio.file.{NoSuchFileException, Paths}
+
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.data.Base._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
-import swaydb.data.Base._
 
 class IOAsyncSpec extends WordSpec with Matchers {
 
@@ -56,7 +58,6 @@ class IOAsyncSpec extends WordSpec with Matchers {
       }
 
       io.safeGet.asInstanceOf[IO.Later[_]].error shouldBe IO.Error.OpeningFile(Paths.get(""), boolean)
-
     }
 
     "safeGet on multiple when last is a failure should return failure" in {

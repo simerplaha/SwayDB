@@ -20,8 +20,6 @@
 package swaydb.extensions.memory
 
 import com.typesafe.scalalogging.LazyLogging
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{FiniteDuration, _}
 import swaydb.SwayDB
 import swaydb.configs.level.DefaultMemoryConfig
 import swaydb.core.BlockingCore
@@ -34,6 +32,9 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.extensions.{Extend, Key}
 import swaydb.serializers.Serializer
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{FiniteDuration, _}
 
 object Map extends LazyLogging {
 

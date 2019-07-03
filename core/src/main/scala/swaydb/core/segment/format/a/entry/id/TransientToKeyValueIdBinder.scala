@@ -19,9 +19,10 @@
 
 package swaydb.core.segment.format.a.entry.id
 
-import scala.annotation.implicitNotFound
 import swaydb.core.data.Transient
 import swaydb.macros.SealedList
+
+import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for TransientToKeyValueIdBinder of type ${T}")
 private[core] sealed trait TransientToKeyValueIdBinder[T] {

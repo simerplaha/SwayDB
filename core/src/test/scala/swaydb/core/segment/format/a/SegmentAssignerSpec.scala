@@ -19,26 +19,24 @@
 
 package swaydb.core.segment.format.a
 
-import scala.collection.mutable
-import scala.concurrent.duration._
 import swaydb.core.CommonAssertions._
-import swaydb.core.{TestBase, TestTimer}
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{KeyValue, Memory, Transient, Value}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.io.file.IOEffect._
 import swaydb.core.segment.{Segment, SegmentAssigner}
+import swaydb.core.util.PipeOps._
+import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
-import swaydb.core.IOAssert._
-import swaydb.core.util.PipeOps._
-import swaydb.core.io.file.IOEffect._
+
+import scala.collection.mutable
+import scala.concurrent.duration._
 
 //@formatter:off
 class SegmentAssignerSpec0 extends SegmentAssignerSpec {
@@ -204,7 +202,6 @@ sealed trait SegmentAssignerSpec extends TestBase {
       //group should also result in same.
       val grouped = randomGroup(keyValues.toTransient).toMemory
       assertResult(SegmentAssigner.assign(Slice(grouped), segments).assertGet)
-
     }
 
     "assign key value to the first segment when the key is the new smallest" in {
@@ -331,7 +328,5 @@ sealed trait SegmentAssignerSpec extends TestBase {
       resultArray(4)._2 should have size 1
       resultArray(4)._2.head.key shouldBe (5: Slice[Byte])
     }
-
   }
-
 }

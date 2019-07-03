@@ -20,21 +20,22 @@
 package swaydb.core.map.serializer
 
 import java.util.concurrent.ConcurrentSkipListMap
+
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
 import swaydb.core.TestBase
-import swaydb.core.data.{Memory, Transient, Value}
+import swaydb.core.TestData._
+import swaydb.core.data.{Memory, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
+import swaydb.data.IO
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
+
 import scala.collection.JavaConverters._
-import swaydb.data.order.KeyOrder
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
-import swaydb.data.IO
 
 class Level0MapEntrySpec extends TestBase {
 
@@ -85,46 +86,42 @@ class Level0MapEntrySpec extends TestBase {
 
       keyValues foreach {
         case keyValue: Transient.Remove =>
-          import LevelZeroMapEntryWriter.Level0RemoveWriter
           import LevelZeroMapEntryReader.Level0RemoveReader
+          import LevelZeroMapEntryWriter.Level0RemoveWriter
           assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Remove]))
 
         case keyValue: Transient.Put =>
-          import LevelZeroMapEntryWriter.Level0PutWriter
           import LevelZeroMapEntryReader.Level0PutReader
+          import LevelZeroMapEntryWriter.Level0PutWriter
           assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Put]))
 
         case keyValue: Transient.Update =>
-          import LevelZeroMapEntryWriter.Level0UpdateWriter
           import LevelZeroMapEntryReader.Level0UpdateReader
+          import LevelZeroMapEntryWriter.Level0UpdateWriter
           assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Update]))
 
         case keyValue: Transient.Function =>
-          import LevelZeroMapEntryWriter.Level0FunctionWriter
           import LevelZeroMapEntryReader.Level0FunctionReader
+          import LevelZeroMapEntryWriter.Level0FunctionWriter
           assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Function]))
 
         case keyValue: Transient.PendingApply =>
-          import LevelZeroMapEntryWriter.Level0PendingApplyWriter
           import LevelZeroMapEntryReader.Level0PendingApplyReader
+          import LevelZeroMapEntryWriter.Level0PendingApplyWriter
           assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.PendingApply]))
 
         case keyValue: Transient.Range =>
-          import LevelZeroMapEntryWriter.Level0RangeWriter
           import LevelZeroMapEntryReader.Level0RangeReader
+          import LevelZeroMapEntryWriter.Level0RangeWriter
           assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Range]))
 
         case keyValue: Transient.Group =>
           fail("Groups are not added to Level0")
       }
-
     }
 
     "write, remove & update key-value" in {
-      import LevelZeroMapEntryWriter.Level0PutWriter
-      import LevelZeroMapEntryWriter.Level0UpdateWriter
-      import LevelZeroMapEntryWriter.Level0RemoveWriter
-      import LevelZeroMapEntryWriter.Level0RangeWriter
+      import LevelZeroMapEntryWriter.{Level0PutWriter, Level0RangeWriter, Level0RemoveWriter, Level0UpdateWriter}
 
       val put1 = Memory.put(1, randomStringOption, randomDeadlineOption)
       val put2 = Memory.put(2, randomStringOption, randomDeadlineOption)

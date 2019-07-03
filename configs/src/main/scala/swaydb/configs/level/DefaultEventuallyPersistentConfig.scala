@@ -22,7 +22,7 @@ package swaydb.configs.level
 import java.nio.file.Path
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.api.grouping.{Compression, KeyValueGroupingStrategy}
+import swaydb.data.api.grouping.KeyValueGroupingStrategy
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config._
 

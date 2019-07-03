@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.entry.reader.base
 
 import swaydb.core.data.Persistent
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.segment.format.a.block.{SortedIndex, Values}
+import swaydb.core.segment.format.a.block.Values
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.data.IO

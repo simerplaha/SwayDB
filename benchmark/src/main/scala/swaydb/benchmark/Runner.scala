@@ -20,13 +20,14 @@
 package swaydb.benchmark
 
 import com.typesafe.scalalogging.LazyLogging
-import scala.annotation.tailrec
-import scala.concurrent.duration._
-import scala.util.Random
 import swaydb.core.util.Benchmark
 import swaydb.data.IO
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default.{LongSerializer, StringSerializer}
+
+import scala.annotation.tailrec
+import scala.concurrent.duration._
+import scala.util.Random
 
 case class Runner(test: Test) extends Benchmark with LazyLogging {
 

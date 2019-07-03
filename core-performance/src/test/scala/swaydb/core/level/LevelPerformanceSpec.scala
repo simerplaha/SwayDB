@@ -145,5 +145,4 @@ sealed trait LevelPerformanceSpec extends TestBase with Benchmark {
       readHigher(level)
     }
   }
-
 }

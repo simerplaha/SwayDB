@@ -20,11 +20,13 @@
 package swaydb.core.segment.format.a.entry.generators
 
 import java.nio.file.Paths
-import scala.collection.mutable.ListBuffer
-import scala.io.Source
+
 import swaydb.core.io.file.IOEffect
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.data.slice.Slice
+
+import scala.collection.mutable.ListBuffer
+import scala.io.Source
 
 object IdsGenerator extends App {
 

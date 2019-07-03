@@ -19,14 +19,15 @@
 
 package swaydb.api
 
+import swaydb._
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
+import swaydb.core.TestBase
+import swaydb.data.IO
+
 import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import swaydb.core.RunThis._
-import swaydb.core.TestBase
-import swaydb.core.IOAssert._
-import swaydb._
-import swaydb.data.IO
 
 trait TestBaseEmbedded extends TestBase {
 
@@ -40,7 +41,6 @@ trait TestBaseEmbedded extends TestBase {
             value.hasTimeLeft() shouldBe false
 
           case None =>
-
         }
         db.get(i).assertGetOpt shouldBe empty
     }
@@ -95,5 +95,4 @@ trait TestBaseEmbedded extends TestBase {
     //this test might take a while depending on the Compaction speed but it should not run for too long hence the timeout.
     Future(checkEmpty(1, false)).await(10.minutes)
   }
-
 }

@@ -20,6 +20,7 @@
 package swaydb.core.brake
 
 import org.scalatest.{Matchers, WordSpec}
+
 import scala.concurrent.duration._
 
 class BrakePedalSpec extends WordSpec with Matchers {

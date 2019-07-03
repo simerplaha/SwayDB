@@ -81,5 +81,4 @@ private[swaydb] object CompressionInternal extends LazyLogging {
 
   def randomLZ4(minCompressionPercentage: Double = Double.MinValue) =
     LZ4(CompressorInternal.randomLZ4(minCompressionSavingsPercent = minCompressionPercentage), DecompressorInternal.randomLZ4())
-
 }

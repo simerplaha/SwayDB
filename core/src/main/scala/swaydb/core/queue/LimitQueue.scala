@@ -21,10 +21,11 @@ package swaydb.core.queue
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.{Actor, ActorRef}
+import swaydb.data.IO
+
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import swaydb.data.IO
 
 private class State[T](var size: Long,
                        val queue: mutable.Queue[(T, Long)])
@@ -35,7 +36,6 @@ private[core] object LimitQueue {
                delay: FiniteDuration,
                weigher: T => Long)(onEvict: T => Unit)(implicit ec: ExecutionContext): LimitQueue[T] =
     new LimitQueue(limit, onEvict, delay, weigher)
-
 }
 
 /**

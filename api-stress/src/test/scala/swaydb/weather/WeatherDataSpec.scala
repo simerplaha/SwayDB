@@ -21,8 +21,6 @@ package swaydb.weather
 
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.BeforeAndAfterAll
-import scala.concurrent.Future
-import scala.concurrent.duration._
 import swaydb.configs.level.DefaultGroupingStrategy
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
@@ -32,6 +30,9 @@ import swaydb.data.IO
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
+
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class Memory_WeatherDataSpec extends WeatherDataSpec {
   override val db = swaydb.memory.Map[Int, WeatherData]().get
@@ -279,13 +280,13 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
     putRequest runThis 4.times
     batchRandomRequest runThis 2.times
     batchRequest(inBatchesOf = 10000 min keyValueCount)
-//    Future {
-//      while (true) {
-//        println("db.level0Meter.mapsCount:     " + db.level0Meter.mapsCount)
-//        println("db.level1Meter.segmentsCount: " + db.level1Meter.segmentsCount)
-//        sleep(5.seconds)
-//      }
-//    }
+    //    Future {
+    //      while (true) {
+    //        println("db.level0Meter.mapsCount:     " + db.level0Meter.mapsCount)
+    //        println("db.level1Meter.segmentsCount: " + db.level1Meter.segmentsCount)
+    //        sleep(5.seconds)
+    //      }
+    //    }
 
     readRequests runThis 10.times await 10.minutes
     //    doDeleteAll

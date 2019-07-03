@@ -21,7 +21,6 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.exceptions.TestFailedException
-import scala.util.{Failure, Success, Try}
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
@@ -32,6 +31,8 @@ import swaydb.core.util.Benchmark
 import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+
+import scala.util.{Failure, Success, Try}
 
 class LevelReadSomeSpec0 extends LevelReadSomeSpec
 
@@ -113,7 +114,6 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
 
                     case None =>
                       (None, None)
-
                   } assertGet
 
                   Try(gotValue shouldBe updatedValue) match {

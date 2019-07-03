@@ -21,17 +21,16 @@ package swaydb.core.merge
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.TestTimer
 import swaydb.core.data._
-import swaydb.core.{CommonAssertions, TestTimer, IOAssert}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import scala.concurrent.duration._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
 
 class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory {
 
@@ -221,5 +220,4 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
       }
     }
   }
-
 }

@@ -21,9 +21,9 @@ package swaydb.core.level.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
+import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.IOAssert._
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}

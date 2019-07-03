@@ -19,17 +19,18 @@
 package swaydb.core.level.zero
 
 import java.util.concurrent.ConcurrentSkipListMap
+
 import org.scalatest.{Matchers, WordSpec}
-import scala.collection.JavaConverters._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.{Memory, Value}
+import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.IOAssert._
-import swaydb.data.order.TimeOrder
+
+import scala.collection.JavaConverters._
 
 class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
   implicit val keyOrder = swaydb.data.order.KeyOrder.default
@@ -134,7 +135,6 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
       skipList.get(1: Slice[Byte]) shouldBe Memory.Range(1, 10, None, Value.update(40))
       skipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, None, Value.update(20))
       skipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, None, Value.update(20))
-
     }
 
     "insert overlapping ranges when insert fromKey is greater than existing range's fromKey and fromKey is set" in {

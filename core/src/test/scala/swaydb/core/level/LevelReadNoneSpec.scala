@@ -20,13 +20,12 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
-import scala.util.Random
 import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.IOAssert._
-import swaydb.core.data.{Memory, Time, Value}
+import swaydb.core.data.{Memory, Value}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
 import swaydb.data.slice.Slice

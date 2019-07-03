@@ -19,8 +19,10 @@
 
 package swaydb.core.actor
 
-import scala.concurrent.duration._
 import swaydb.core.RunThis._
+
+import scala.concurrent.duration._
+
 object PingPong extends App {
 
   case class Pong(replyTo: ActorRef[Ping])

@@ -22,9 +22,8 @@ package swaydb.core.segment.format.a.block
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.{TestBase, TestTimer}
 import swaydb.core.data.Transient
-import swaydb.core.io.reader.Reader
+import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -51,33 +50,33 @@ class ValuesSpec extends TestBase {
 
   "close" should {
     "prepare for persisting" in {
-//      runThis(10.times) {
-//        val keyValues = (1 to 1000) map {
-//          i =>
-//            randomFixedTransientKeyValue(i, Some(i + 1), compressDuplicateValues = false)
-//        } updateStats
-//
-//        val state = Values.init(keyValues, eitherOne(Seq.empty, Seq(randomCompression()))).get
-//
-//        keyValues foreach {
-//          keyValue =>
-//            state.bytes addAll keyValue.valueEntryBytes.flatten
-//        }
-//
-//        Values.close(state).get
-//
-//        val values = Values.read(Values.Offset(0, state.bytes.written), Reader(state.bytes.close())).get
-//        keyValues.foldLeft(0) {
-//          case (offset, keyValue) =>
-//            keyValue.get map {
-//              value =>
-//                Values.read(offset, value.size, values.createBlockReader(state.bytes)).get should contain(value)
-//                offset + value.size
-//            } getOrElse offset
-//        }
-//        //        println(s"Allocated size: ${keyValues.last.stats.segmentValuesSize}")
-//        //        println(s"Actual size: ${state.bytes.written}")
-//      }
+      //      runThis(10.times) {
+      //        val keyValues = (1 to 1000) map {
+      //          i =>
+      //            randomFixedTransientKeyValue(i, Some(i + 1), compressDuplicateValues = false)
+      //        } updateStats
+      //
+      //        val state = Values.init(keyValues, eitherOne(Seq.empty, Seq(randomCompression()))).get
+      //
+      //        keyValues foreach {
+      //          keyValue =>
+      //            state.bytes addAll keyValue.valueEntryBytes.flatten
+      //        }
+      //
+      //        Values.close(state).get
+      //
+      //        val values = Values.read(Values.Offset(0, state.bytes.written), Reader(state.bytes.close())).get
+      //        keyValues.foldLeft(0) {
+      //          case (offset, keyValue) =>
+      //            keyValue.get map {
+      //              value =>
+      //                Values.read(offset, value.size, values.createBlockReader(state.bytes)).get should contain(value)
+      //                offset + value.size
+      //            } getOrElse offset
+      //        }
+      //        //        println(s"Allocated size: ${keyValues.last.stats.segmentValuesSize}")
+      //        //        println(s"Actual size: ${state.bytes.written}")
+      //      }
       ???
     }
   }

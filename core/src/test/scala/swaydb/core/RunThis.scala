@@ -20,11 +20,11 @@
 package swaydb.core
 
 import org.scalatest.concurrent.Eventually
-import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.concurrent.duration._
-import scala.util.Random
 import swaydb.core.util.FiniteDurationUtil._
+
+import scala.concurrent.duration.{Deadline, FiniteDuration, _}
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.Random
 
 object RunThis extends Eventually {
 
@@ -80,7 +80,7 @@ object RunThis extends Eventually {
   def runThis(times: Int)(f: => Unit): Unit =
     (1 to times) foreach {
       i =>
-//        println(s"Iteration number: $i")
+        //        println(s"Iteration number: $i")
         f
     }
 

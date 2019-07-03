@@ -21,8 +21,8 @@ package swaydb.core.group.compression
 
 import swaydb.core.data.KeyValue
 import swaydb.core.util.Bytes
-import swaydb.data.{IO, MaxKey}
 import swaydb.data.slice.Slice
+import swaydb.data.{IO, MaxKey}
 
 private[core] object GroupKeyCompressor {
 
@@ -90,9 +90,7 @@ private[core] object GroupKeyCompressor {
           case (minKey, maxKey) =>
             (minKey, MaxKey.Range(minKey, maxKey))
         }
-
     } getOrElse {
       IO.Failure(GroupCompressorFailure.GroupKeyIsEmpty)
     }
-
 }

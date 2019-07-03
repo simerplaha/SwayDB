@@ -22,7 +22,6 @@ package swaydb.extensions
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 

@@ -19,8 +19,6 @@
 
 package swaydb.api
 
-import scala.concurrent.Future
-import scala.concurrent.duration._
 import swaydb._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
@@ -283,8 +281,8 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           db.contains(i).assertGet shouldBe true
       }
 
-//      db.mightContain(Int.MaxValue).assertGet shouldBe false
-//      db.mightContain(Int.MinValue).assertGet shouldBe false
+      //      db.mightContain(Int.MaxValue).assertGet shouldBe false
+      //      db.mightContain(Int.MinValue).assertGet shouldBe false
       db.contains(20000).assertGet shouldBe false
 
       db.close().get

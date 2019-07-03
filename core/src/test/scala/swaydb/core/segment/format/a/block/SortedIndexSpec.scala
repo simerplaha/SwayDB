@@ -19,21 +19,9 @@
 
 package swaydb.core.segment.format.a.block
 
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
 import swaydb.core.TestBase
-import swaydb.core.TestData._
-import swaydb.core.data.Transient
-import swaydb.core.io.reader.Reader
-import swaydb.data.IO
-import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
-
-import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
 class SortedIndexSpec extends TestBase {
 
   ""
-
 }

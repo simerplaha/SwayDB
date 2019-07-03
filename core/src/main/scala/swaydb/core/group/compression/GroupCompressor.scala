@@ -22,8 +22,8 @@ package swaydb.core.group.compression
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
-import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.SegmentWriter
+import swaydb.core.segment.format.a.block._
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey}
 

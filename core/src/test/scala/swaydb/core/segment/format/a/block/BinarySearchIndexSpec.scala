@@ -1,11 +1,11 @@
 package swaydb.core.segment.format.a.block
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.CommonAssertions.{eitherOne, _}
+import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.RunThis._
-import swaydb.core.TestData.{randomBytesSlice, randomCompression, randomIntMax, _}
+import swaydb.core.TestData.{randomBytesSlice, randomCompression, randomIntMax}
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, SegmentWriter}
+import swaydb.core.segment.format.a.MatchResult
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder

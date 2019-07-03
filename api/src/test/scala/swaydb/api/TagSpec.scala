@@ -20,9 +20,9 @@
 package swaydb.api
 
 import org.scalatest.{Matchers, WordSpec}
-import scala.util.Try
 import swaydb.data.io.Tag
-import swaydb.data._
+
+import scala.util.Try
 
 class TagSpec extends WordSpec with Matchers {
 
@@ -33,8 +33,6 @@ class TagSpec extends WordSpec with Matchers {
       val result: swaydb.Stream[Int, Try] = swaydb.Stream(1 to 100)
 
       result.foreach(println)
-
     }
   }
-
 }

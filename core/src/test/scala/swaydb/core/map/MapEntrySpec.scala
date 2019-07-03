@@ -20,25 +20,25 @@
 package swaydb.core.map
 
 import java.util.concurrent.ConcurrentSkipListMap
-import swaydb.core.data.{Memory, Persistent, Value}
+
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
+import swaydb.core.TestData._
+import swaydb.core.data.{Memory, Value}
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
-import scala.concurrent.duration._
+
 import scala.collection.JavaConverters._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.DBFile
+import scala.concurrent.duration._
 
 class MapEntrySpec extends TestBase {
 
@@ -246,7 +246,6 @@ class MapEntrySpec extends TestBase {
       segment3.close.assertGet
       segment4.close.assertGet
     }
-
   }
 
   "MapEntry.Put" should {

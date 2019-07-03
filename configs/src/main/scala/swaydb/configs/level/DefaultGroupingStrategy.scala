@@ -19,8 +19,7 @@
 
 package swaydb.configs.level
 
-import swaydb.data.api.grouping.{Compression, GroupGroupingStrategy, KeyValueGroupingStrategy}
-import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
+import swaydb.data.api.grouping.GroupGroupingStrategy
 import swaydb.data.util.StorageUnits._
 
 object DefaultGroupingStrategy {
