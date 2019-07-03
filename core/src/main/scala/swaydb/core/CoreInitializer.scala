@@ -37,7 +37,8 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-import swaydb.core.segment.format.a.{SegmentCompression, block}
+import swaydb.core.segment.format.a.block
+import swaydb.core.segment.format.a.block.BlocksCompression
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
@@ -163,7 +164,7 @@ private[core] object CoreInitializer extends LazyLogging {
             binarySearchIndexConfig = block.BinarySearchIndex.Config.disabled,
             sortedIndexConfig = block.SortedIndex.Config.disabled,
             valuesConfig = block.Values.Config.disabled,
-            segmentCompression = SegmentCompression.disabled,
+            blocksCompression = BlocksCompression.disabled,
             levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
             appendixStorage = AppendixStorage.Memory,
             nextLevel = nextLevel,
@@ -181,14 +182,14 @@ private[core] object CoreInitializer extends LazyLogging {
             binarySearchIndexConfig = block.BinarySearchIndex.Config(config = config.binarySearchIndex),
             sortedIndexConfig = block.SortedIndex.Config(config.sortedIndex),
             valuesConfig = block.Values.Config(config.values),
-            segmentCompression =
-              SegmentCompression(
+            blocksCompression =
+              BlocksCompression(
                 bloomFilter = config.bloomFilter,
                 hashIndex = config.hashIndex,
                 binarySearchIndex = config.binarySearchIndex,
                 sortedIndex = config.sortedIndex,
                 values = config.values,
-                segment = config.segmentCompression
+                segment = config.segmentCompressions
               ),
             levelStorage =
               LevelStorage.Persistent(

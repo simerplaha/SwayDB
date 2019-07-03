@@ -27,7 +27,7 @@ import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
-import swaydb.core.segment.format.a.{SegmentBlock, SegmentCompression, SegmentWriter}
+import swaydb.core.segment.format.a.{SegmentBlock, SegmentWriter}
 import swaydb.core.segment.{Segment, SegmentCache}
 import swaydb.core.util.Bytes
 import swaydb.core.util.CollectionUtil._
@@ -1065,7 +1065,7 @@ private[core] object Transient {
     def apply(keyValues: Slice[KeyValue.WriteOnly],
               previous: Option[KeyValue.WriteOnly],
               //compression is for the group's key-values.
-              groupCompression: SegmentCompression,
+              groupCompression: BlocksCompression,
               //these configs are for the Group itself and not the key-values within the group.
               valuesConfig: Values.Config,
               sortedIndexConfig: SortedIndex.Config,
@@ -1075,7 +1075,7 @@ private[core] object Transient {
       GroupCompressor.compress(
         keyValues = keyValues,
         previous = previous,
-        segmentCompression = groupCompression,
+        blocksCompression = groupCompression,
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,

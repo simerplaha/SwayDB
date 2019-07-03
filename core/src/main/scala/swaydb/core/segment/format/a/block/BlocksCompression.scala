@@ -17,15 +17,15 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a
+package swaydb.core.segment.format.a.block
 
 import swaydb.compression.CompressionInternal
 import swaydb.data.api.grouping.Compression
 
-object SegmentCompression {
+object BlocksCompression {
 
   def disabled =
-    SegmentCompression(
+    BlocksCompression(
       values = Seq.empty,
       sortedIndex = Seq.empty,
       hashIndex = Seq.empty,
@@ -39,9 +39,9 @@ object SegmentCompression {
             binarySearchIndex: swaydb.data.config.BinarySearchIndex,
             sortedIndex: swaydb.data.config.SortedIndex,
             values: swaydb.data.config.Values,
-            segment: Seq[Compression]): SegmentCompression =
-    SegmentCompression(
-      values = bloomFilter.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
+            segment: Seq[Compression]): BlocksCompression =
+    BlocksCompression(
+      values = values.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
       sortedIndex = sortedIndex.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
       hashIndex = hashIndex.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
       binarySearchIndex = binarySearchIndex.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
@@ -50,9 +50,9 @@ object SegmentCompression {
     )
 }
 
-case class SegmentCompression(values: Seq[CompressionInternal],
-                              sortedIndex: Seq[CompressionInternal],
-                              hashIndex: Seq[CompressionInternal],
-                              binarySearchIndex: Seq[CompressionInternal],
-                              bloomFilter: Seq[CompressionInternal],
-                              segmentCompression: Seq[CompressionInternal])
+case class BlocksCompression(values: Seq[CompressionInternal],
+                             sortedIndex: Seq[CompressionInternal],
+                             hashIndex: Seq[CompressionInternal],
+                             binarySearchIndex: Seq[CompressionInternal],
+                             bloomFilter: Seq[CompressionInternal],
+                             segmentCompression: Seq[CompressionInternal])

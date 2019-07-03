@@ -36,8 +36,7 @@ import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.level.seek.{NextWalker, _}
 import swaydb.core.segment.SegmentException.SegmentFileMissing
-import swaydb.core.segment.format.a.SegmentCompression
-import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BlocksCompression, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.core.segment.{Segment, SegmentAssigner}
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.ExceptionUtil._
@@ -90,7 +89,7 @@ private[core] object Level extends LazyLogging {
             binarySearchIndexConfig: BinarySearchIndex.Config,
             sortedIndexConfig: SortedIndex.Config,
             valuesConfig: Values.Config,
-            segmentCompression: SegmentCompression,
+            blocksCompression: BlocksCompression,
             levelStorage: LevelStorage,
             appendixStorage: AppendixStorage,
             nextLevel: Option[NextLevel],
@@ -185,7 +184,7 @@ private[core] object Level extends LazyLogging {
                       binarySearchIndexConfig = binarySearchIndexConfig,
                       sortedIndexConfig = sortedIndexConfig,
                       valuesConfig = valuesConfig,
-                      segmentCompression = segmentCompression,
+                      blocksCompression = blocksCompression,
                       mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
                       mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
                       inMemory = levelStorage.memory,
@@ -316,7 +315,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                binarySearchIndexConfig: BinarySearchIndex.Config,
                                sortedIndexConfig: SortedIndex.Config,
                                valuesConfig: Values.Config,
-                               segmentCompression: SegmentCompression,
+                               blocksCompression: BlocksCompression,
                                mmapSegmentsOnWrite: Boolean,
                                mmapSegmentsOnRead: Boolean,
                                inMemory: Boolean,
@@ -711,7 +710,7 @@ private[core] case class Level(dirs: Seq[Dir],
     else
       Segment.copyToPersist(
         keyValues = keyValues,
-        segmentCompression = segmentCompression,
+        blocksCompression = blocksCompression,
         createdInLevel = levelNumber,
         fetchNextPath = targetSegmentPath,
         mmapSegmentsOnRead = mmapSegmentsOnRead,
@@ -795,7 +794,7 @@ private[core] case class Level(dirs: Seq[Dir],
           else
             Segment.copyToPersist(
               segment = segment,
-              segmentCompression = segmentCompression,
+              blocksCompression = blocksCompression,
               createdInLevel = levelNumber,
               fetchNextPath = targetSegmentPath,
               mmapSegmentsOnRead = mmapSegmentsOnRead,
@@ -840,7 +839,7 @@ private[core] case class Level(dirs: Seq[Dir],
             binarySearchIndexConfig = binarySearchIndexConfig,
             hashIndexConfig = hashIndexConfig,
             bloomFilterConfig = bloomFilterConfig,
-            segmentCompression = segmentCompression,
+            blocksCompression = blocksCompression,
             targetPaths = paths
           ) flatMap {
             newSegments =>
@@ -1060,7 +1059,7 @@ private[core] case class Level(dirs: Seq[Dir],
             binarySearchIndexConfig = binarySearchIndexConfig,
             hashIndexConfig = hashIndexConfig,
             bloomFilterConfig = bloomFilterConfig,
-            segmentCompression = segmentCompression,
+            blocksCompression = blocksCompression,
             targetPaths = paths.addPriorityPath(targetSegment.path.getParent)
           ) map {
             newSegments =>

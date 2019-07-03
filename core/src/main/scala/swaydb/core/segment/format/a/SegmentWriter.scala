@@ -289,17 +289,17 @@ private[core] object SegmentWriter extends LazyLogging {
     * Segment reads can take appropriate steps to fetch the right range key-value.
     */
   def write(keyValues: Iterable[KeyValue.WriteOnly],
-            segmentCompression: SegmentCompression,
+            blocksCompression: BlocksCompression,
             createdInLevel: Int,
             maxProbe: Int): IO[ClosedSegment] =
     if (keyValues.isEmpty)
       ClosedSegment.emptyIO
     else {
-      val sortedIndex = SortedIndex.init(keyValues = keyValues, compressions = segmentCompression.sortedIndex)
-      val values = Values.init(keyValues = keyValues, compressions = segmentCompression.values)
-      val hashIndex = HashIndex.init(maxProbe = maxProbe, keyValues = keyValues, compressions = segmentCompression.hashIndex)
-      val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues, compressions = segmentCompression.binarySearchIndex)
-      val bloomFilter = BloomFilter.init(keyValues = keyValues, compressions = segmentCompression.bloomFilter)
+      val sortedIndex = SortedIndex.init(keyValues = keyValues, compressions = blocksCompression.sortedIndex)
+      val values = Values.init(keyValues = keyValues, compressions = blocksCompression.values)
+      val hashIndex = HashIndex.init(maxProbe = maxProbe, keyValues = keyValues, compressions = blocksCompression.hashIndex)
+      val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues, compressions = blocksCompression.binarySearchIndex)
+      val bloomFilter = BloomFilter.init(keyValues = keyValues, compressions = blocksCompression.bloomFilter)
       bloomFilter foreach {
         bloomFilter =>
           //temporary check.
@@ -323,7 +323,7 @@ private[core] object SegmentWriter extends LazyLogging {
             closeResult = closeResult,
             keyValues = keyValues,
             createdInLevel = createdInLevel,
-            segmentCompression = segmentCompression
+            blocksCompression = blocksCompression
           )
       }
     }
@@ -331,7 +331,7 @@ private[core] object SegmentWriter extends LazyLogging {
   def close(closeResult: ClosedBlocks,
             keyValues: Iterable[KeyValue.WriteOnly],
             createdInLevel: Int,
-            segmentCompression: SegmentCompression): IO[ClosedSegment] = {
+            blocksCompression: BlocksCompression): IO[ClosedSegment] = {
     IO {
       val lastStats: Stats = keyValues.last.stats
 
@@ -362,7 +362,7 @@ private[core] object SegmentWriter extends LazyLogging {
       assert(indexBytesToCRC.size == SegmentWriter.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentWriter.crcBytes}")
       segmentFooterSlice addLong CRC32.forBytes(indexBytesToCRC)
 
-      val headerSize = SegmentWriter.headerSize(segmentCompression.segmentCompression.nonEmpty)
+      val headerSize = SegmentWriter.headerSize(blocksCompression.segmentCompression.nonEmpty)
 
       var segmentOffset = values.map(_.bytes.written + headerSize) getOrElse headerSize
 
@@ -425,7 +425,7 @@ private[core] object SegmentWriter extends LazyLogging {
         Block.create(
           headerSize = result.segmentBytes.head.size,
           writeResult = result,
-          compressions = segmentCompression.segmentCompression
+          compressions = blocksCompression.segmentCompression
         )
     }
   }

@@ -131,7 +131,7 @@ object DefaultEventuallyPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        segmentCompression = Seq.empty,
+        segmentCompressions = Seq.empty,
         groupingStrategy = groupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         throttle =
