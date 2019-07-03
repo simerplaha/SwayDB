@@ -265,7 +265,7 @@ private[core] object Segment extends LazyLogging {
                  maxProbe: Int,
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
-                 blocksCompression: BlocksCompression,
+                 blockCompressions: BlocksCompression,
                  keyValues: Iterable[KeyValue.WriteOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                           functionStore: FunctionStore,
@@ -275,7 +275,7 @@ private[core] object Segment extends LazyLogging {
       keyValues = keyValues,
       createdInLevel = createdInLevel,
       maxProbe = maxProbe,
-      blocksCompression = blocksCompression
+      blockCompressions = blockCompressions
     ) flatMap {
       result =>
         if (result.isEmpty) {
@@ -336,7 +336,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def copyToPersist(segment: Segment,
-                    blocksCompression: BlocksCompression,
+                    blockCompressions: BlocksCompression,
                     createdInLevel: Int,
                     fetchNextPath: => Path,
                     mmapSegmentsOnRead: Boolean,
@@ -382,7 +382,7 @@ private[core] object Segment extends LazyLogging {
       case memory: MemorySegment =>
         copyToPersist(
           keyValues = Slice(memory.cache.values().asScala.toArray),
-          blocksCompression = blocksCompression,
+          blockCompressions = blockCompressions,
           createdInLevel = createdInLevel,
           fetchNextPath = fetchNextPath,
           mmapSegmentsOnRead = mmapSegmentsOnRead,
@@ -398,7 +398,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def copyToPersist(keyValues: Slice[KeyValue.ReadOnly],
-                    blocksCompression: BlocksCompression,
+                    blockCompressions: BlocksCompression,
                     createdInLevel: Int,
                     fetchNextPath: => Path,
                     mmapSegmentsOnRead: Boolean,
@@ -433,7 +433,7 @@ private[core] object Segment extends LazyLogging {
               Segment.persistent(
                 path = fetchNextPath,
                 createdInLevel = createdInLevel,
-                blocksCompression = blocksCompression,
+                blockCompressions = blockCompressions,
                 maxProbe = hashIndexConfig.maxProbe,
                 mmapReads = mmapSegmentsOnRead,
                 mmapWrites = mmapSegmentsOnWrite,
@@ -995,7 +995,7 @@ private[core] trait Segment extends FileLimiterItem {
           binarySearchIndexConfig: BinarySearchIndex.Config,
           hashIndexConfig: HashIndex.Config,
           bloomFilterConfig: BloomFilter.Config,
-          blocksCompression: BlocksCompression,
+          blockCompressions: BlocksCompression,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 
@@ -1007,7 +1007,7 @@ private[core] trait Segment extends FileLimiterItem {
               binarySearchIndexConfig: BinarySearchIndex.Config,
               hashIndexConfig: HashIndex.Config,
               bloomFilterConfig: BloomFilter.Config,
-              blocksCompression: BlocksCompression,
+              blockCompressions: BlocksCompression,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 

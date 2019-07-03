@@ -47,7 +47,7 @@ object DefaultMemoryConfig {
     */
   def apply(mapSize: Int,
             segmentSize: Int,
-            bloomFilterFalsePositiveRate: Double,
+            mightContainFalsePositiveRate: Double,
             compressDuplicateValues: Boolean,
             deleteSegmentsEventually: Boolean,
             groupingStrategy: Option[KeyValueGroupingStrategy],
@@ -63,9 +63,9 @@ object DefaultMemoryConfig {
         segmentSize = segmentSize,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        bloomFilter =
-          BloomFilter.Enable(
-            falsePositiveRate = bloomFilterFalsePositiveRate,
+        mightContainKey =
+          MightContain.Enable(
+            falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 100,
             cacheOnRead = false,
             compression = Seq.empty

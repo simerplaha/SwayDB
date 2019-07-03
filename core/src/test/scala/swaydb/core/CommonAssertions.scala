@@ -234,7 +234,7 @@ object CommonAssertions {
                     binarySearchIndexConfig = BinarySearchIndex.Config.random,
                     hashIndexConfig = HashIndex.Config.random,
                     bloomFilterConfig = BloomFilter.Config.random,
-                    blocksCompression = randomBlocksCompression()
+                    blockCompressions = randomBlocksCompression()
                   )
                 ),
               mid =
@@ -246,7 +246,7 @@ object CommonAssertions {
                     binarySearchIndexConfig = BinarySearchIndex.Config.random,
                     hashIndexConfig = HashIndex.Config.random,
                     bloomFilterConfig = BloomFilter.Config.random,
-                    blocksCompression = randomBlocksCompression()
+                    blockCompressions = randomBlocksCompression()
                   )
                 ),
               right =
@@ -257,7 +257,7 @@ object CommonAssertions {
           binarySearchIndexConfig = BinarySearchIndex.Config.random,
           hashIndexConfig = HashIndex.Config.random,
           bloomFilterConfig = BloomFilter.Config.random,
-          blocksCompression = randomBlocksCompression(),
+          blockCompressions = randomBlocksCompression(),
           applyGroupingOnCopy = randomBoolean()
         ),
       right =
@@ -274,7 +274,7 @@ object CommonAssertions {
                     binarySearchIndexConfig = BinarySearchIndex.Config.random,
                     hashIndexConfig = HashIndex.Config.random,
                     bloomFilterConfig = BloomFilter.Config.random,
-                    blocksCompression = randomBlocksCompression()
+                    blockCompressions = randomBlocksCompression()
                   )
                 ),
               mid =
@@ -286,7 +286,7 @@ object CommonAssertions {
                     binarySearchIndexConfig = BinarySearchIndex.Config.random,
                     hashIndexConfig = HashIndex.Config.random,
                     bloomFilterConfig = BloomFilter.Config.random,
-                    blocksCompression = randomBlocksCompression()
+                    blockCompressions = randomBlocksCompression()
                   )),
               right =
                 None
@@ -296,7 +296,7 @@ object CommonAssertions {
           binarySearchIndexConfig = BinarySearchIndex.Config.random,
           hashIndexConfig = HashIndex.Config.random,
           bloomFilterConfig = BloomFilter.Config.random,
-          blocksCompression = randomBlocksCompression(),
+          blockCompressions = randomBlocksCompression(),
           applyGroupingOnCopy = randomBoolean()
         )
     )

@@ -248,7 +248,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   object TestSegment {
     def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
               path: Path = testSegmentFile,
-              blocksCompression: BlocksCompression = randomBlocksCompression())(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+              blockCompressions: BlocksCompression = randomBlocksCompression())(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                 keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                                                 fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                                                 timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
@@ -264,7 +264,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
           path = path,
           createdInLevel = 0,
           maxProbe = ???,
-          blocksCompression = blocksCompression,
+          blockCompressions = blockCompressions,
           mmapReads = levelStorage.mmapSegmentsOnRead,
           mmapWrites = levelStorage.mmapSegmentsOnWrite,
           keyValues = keyValues
@@ -310,7 +310,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
               hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
               bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random,
-              blocksCompression: BlocksCompression = randomBlocksCompression(),
+              blockCompressions: BlocksCompression = randomBlocksCompression(),
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
@@ -329,7 +329,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         hashIndexConfig = hashIndexConfig,
         bloomFilterConfig = bloomFilterConfig,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        blocksCompression = blocksCompression
+        blockCompressions = blockCompressions
       ) flatMap {
         level =>
           level.putKeyValuesTest(keyValues) map {

@@ -39,7 +39,7 @@ private[core] object GroupCompressor extends LazyLogging {
 
   def compress(keyValues: Slice[KeyValue.WriteOnly],
                previous: Option[KeyValue.WriteOnly],
-               blocksCompression: BlocksCompression,
+               blockCompressions: BlocksCompression,
                valuesConfig: Values.Config,
                sortedIndexConfig: SortedIndex.Config,
                binarySearchIndexConfig: BinarySearchIndex.Config,
@@ -57,7 +57,7 @@ private[core] object GroupCompressor extends LazyLogging {
       logger.debug(s"Compressing ${keyValues.size} key-values with previous key-value as ${previous.map(_.getClass.getSimpleName)}.")
       SegmentWriter.write(
         keyValues = keyValues,
-        blocksCompression = blocksCompression,
+        blockCompressions = blockCompressions,
         createdInLevel = 0,
         maxProbe = keyValues.last.hashIndexConfig.maxProbe
       ) flatMap {

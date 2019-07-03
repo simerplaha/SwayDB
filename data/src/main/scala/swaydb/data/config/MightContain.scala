@@ -21,19 +21,19 @@ package swaydb.data.config
 
 import swaydb.data.api.grouping.Compression
 
-sealed trait BloomFilter {
-  def toOption: Option[BloomFilter.Enable] =
+sealed trait MightContain {
+  def toOption: Option[MightContain.Enable] =
     this match {
-      case BloomFilter.Disable => None
-      case enable: BloomFilter.Enable => Some(enable)
+      case MightContain.Disable => None
+      case enable: MightContain.Enable => Some(enable)
     }
 }
 
-object BloomFilter {
+object MightContain {
 
-  case object Disable extends BloomFilter
+  case object Disable extends MightContain
   case class Enable(falsePositiveRate: Double,
                     minimumNumberOfKeys: Int,
                     cacheOnRead: Boolean,
-                    compression: Seq[Compression]) extends BloomFilter
+                    compression: Seq[Compression]) extends MightContain
 }

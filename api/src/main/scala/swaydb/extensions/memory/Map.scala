@@ -62,7 +62,7 @@ object Map extends LazyLogging {
                   segmentSize: Int = 2.mb,
                   cacheSize: Int = 500.mb,
                   cacheCheckDelay: FiniteDuration = 10.seconds,
-                  bloomFilterFalsePositiveRate: Double = 0.01,
+                  mightContainFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = false,
                   deleteSegmentsEventually: Boolean = false,
                   groupingStrategy: Option[KeyValueGroupingStrategy] = None,
@@ -75,7 +75,7 @@ object Map extends LazyLogging {
       config = DefaultMemoryConfig(
         mapSize = mapSize,
         segmentSize = segmentSize,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        mightContainFalsePositiveRate = mightContainFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = groupingStrategy,

@@ -56,7 +56,7 @@ object DefaultEventuallyPersistentConfig {
             persistentLevelAppendixFlushCheckpointSize: Int,
             mmapPersistentSegments: MMAP,
             mmapPersistentAppendix: Boolean,
-            bloomFilterFalsePositiveRate: Double,
+            mightContainFalsePositiveRate: Double,
             compressDuplicateValues: Boolean,
             deleteSegmentsEventually: Boolean,
             groupingStrategy: Option[KeyValueGroupingStrategy],
@@ -72,7 +72,7 @@ object DefaultEventuallyPersistentConfig {
         segmentSize = memoryLevelSegmentSize,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        bloomFilter = BloomFilter.Enable(bloomFilterFalsePositiveRate, 10, false, Seq.empty),
+        mightContainKey = MightContain.Enable(mightContainFalsePositiveRate, 10, false, Seq.empty),
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -117,9 +117,9 @@ object DefaultEventuallyPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        bloomFilter =
-          BloomFilter.Enable(
-            falsePositiveRate = bloomFilterFalsePositiveRate,
+        mightContainKey =
+          MightContain.Enable(
+            falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnRead = false,
             compression = Seq.empty

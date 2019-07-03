@@ -1075,7 +1075,7 @@ private[core] object Transient {
       GroupCompressor.compress(
         keyValues = keyValues,
         previous = previous,
-        blocksCompression = groupCompression,
+        blockCompressions = groupCompression,
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,

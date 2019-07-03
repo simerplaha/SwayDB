@@ -55,7 +55,7 @@ object DefaultPersistentConfig {
             mmapAppendix: Boolean,
             segmentSize: Int,
             appendixFlushCheckpointSize: Int,
-            bloomFilterFalsePositiveRate: Double,
+            mightContainFalsePositiveRate: Double,
             compressDuplicateValues: Boolean,
             deleteSegmentsEventually: Boolean,
             groupingStrategy: Option[KeyValueGroupingStrategy],
@@ -110,9 +110,9 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        bloomFilter =
-          BloomFilter.Enable(
-            falsePositiveRate = bloomFilterFalsePositiveRate,
+        mightContainKey =
+          MightContain.Enable(
+            falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnRead = false,
             compression = Seq.empty
@@ -124,7 +124,7 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        blocksCompression = Seq.empty,
+        blockCompressions = Seq.empty,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -167,9 +167,9 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        bloomFilter =
-          BloomFilter.Enable(
-            falsePositiveRate = bloomFilterFalsePositiveRate,
+        mightContain =
+          MightContain.Enable(
+            falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnRead = false,
             compression = Seq.empty
@@ -224,9 +224,9 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        bloomFilter =
-          BloomFilter.Enable(
-            falsePositiveRate = bloomFilterFalsePositiveRate,
+        mightContain =
+          MightContain.Enable(
+            falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnRead = false,
             compression = Seq.empty
@@ -281,9 +281,9 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        bloomFilter =
-          BloomFilter.Enable(
-            falsePositiveRate = bloomFilterFalsePositiveRate,
+        mightContain =
+          MightContain.Enable(
+            falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnRead = false,
             compression = Seq.empty
@@ -338,9 +338,9 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        bloomFilter =
-          BloomFilter.Enable(
-            falsePositiveRate = bloomFilterFalsePositiveRate,
+        mightContain =
+          MightContain.Enable(
+            falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnRead = false,
             compression = Seq.empty
@@ -397,9 +397,9 @@ object DefaultPersistentConfig {
             cacheOnRead = false,
             compression = Seq.empty
           ),
-        bloomFilter =
-          BloomFilter.Enable(
-            falsePositiveRate = bloomFilterFalsePositiveRate,
+        mightContain =
+          MightContain.Enable(
+            falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnRead = false,
             compression = Seq.empty

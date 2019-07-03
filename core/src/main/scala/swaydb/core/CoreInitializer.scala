@@ -164,7 +164,7 @@ private[core] object CoreInitializer extends LazyLogging {
             binarySearchIndexConfig = block.BinarySearchIndex.Config.disabled,
             sortedIndexConfig = block.SortedIndex.Config.disabled,
             valuesConfig = block.Values.Config.disabled,
-            blocksCompression = BlocksCompression.disabled,
+            blockCompressions = BlocksCompression.disabled,
             levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
             appendixStorage = AppendixStorage.Memory,
             nextLevel = nextLevel,
@@ -177,14 +177,14 @@ private[core] object CoreInitializer extends LazyLogging {
           implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
           Level(
             segmentSize = config.segmentSize,
-            bloomFilterConfig = block.BloomFilter.Config(config = config.bloomFilter),
+            bloomFilterConfig = block.BloomFilter.Config(config = config.mightContainKey),
             hashIndexConfig = block.HashIndex.Config(config = config.hashIndex),
             binarySearchIndexConfig = block.BinarySearchIndex.Config(config = config.binarySearchIndex),
             sortedIndexConfig = block.SortedIndex.Config(config.sortedIndex),
             valuesConfig = block.Values.Config(config.values),
-            blocksCompression =
+            blockCompressions =
               BlocksCompression(
-                bloomFilter = config.bloomFilter,
+                bloomFilter = config.mightContainKey,
                 hashIndex = config.hashIndex,
                 binarySearchIndex = config.binarySearchIndex,
                 sortedIndex = config.sortedIndex,

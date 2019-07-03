@@ -89,7 +89,7 @@ private[core] object Level extends LazyLogging {
             binarySearchIndexConfig: BinarySearchIndex.Config,
             sortedIndexConfig: SortedIndex.Config,
             valuesConfig: Values.Config,
-            blocksCompression: BlocksCompression,
+            blockCompressions: BlocksCompression,
             levelStorage: LevelStorage,
             appendixStorage: AppendixStorage,
             nextLevel: Option[NextLevel],
@@ -184,7 +184,7 @@ private[core] object Level extends LazyLogging {
                       binarySearchIndexConfig = binarySearchIndexConfig,
                       sortedIndexConfig = sortedIndexConfig,
                       valuesConfig = valuesConfig,
-                      blocksCompression = blocksCompression,
+                      blockCompressions = blockCompressions,
                       mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
                       mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
                       inMemory = levelStorage.memory,
@@ -315,7 +315,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                binarySearchIndexConfig: BinarySearchIndex.Config,
                                sortedIndexConfig: SortedIndex.Config,
                                valuesConfig: Values.Config,
-                               blocksCompression: BlocksCompression,
+                               blockCompressions: BlocksCompression,
                                mmapSegmentsOnWrite: Boolean,
                                mmapSegmentsOnRead: Boolean,
                                inMemory: Boolean,
@@ -710,7 +710,7 @@ private[core] case class Level(dirs: Seq[Dir],
     else
       Segment.copyToPersist(
         keyValues = keyValues,
-        blocksCompression = blocksCompression,
+        blockCompressions = blockCompressions,
         createdInLevel = levelNumber,
         fetchNextPath = targetSegmentPath,
         mmapSegmentsOnRead = mmapSegmentsOnRead,
@@ -794,7 +794,7 @@ private[core] case class Level(dirs: Seq[Dir],
           else
             Segment.copyToPersist(
               segment = segment,
-              blocksCompression = blocksCompression,
+              blockCompressions = blockCompressions,
               createdInLevel = levelNumber,
               fetchNextPath = targetSegmentPath,
               mmapSegmentsOnRead = mmapSegmentsOnRead,
@@ -839,7 +839,7 @@ private[core] case class Level(dirs: Seq[Dir],
             binarySearchIndexConfig = binarySearchIndexConfig,
             hashIndexConfig = hashIndexConfig,
             bloomFilterConfig = bloomFilterConfig,
-            blocksCompression = blocksCompression,
+            blockCompressions = blockCompressions,
             targetPaths = paths
           ) flatMap {
             newSegments =>
@@ -1059,7 +1059,7 @@ private[core] case class Level(dirs: Seq[Dir],
             binarySearchIndexConfig = binarySearchIndexConfig,
             hashIndexConfig = hashIndexConfig,
             bloomFilterConfig = bloomFilterConfig,
-            blocksCompression = blocksCompression,
+            blockCompressions = blockCompressions,
             targetPaths = paths.addPriorityPath(targetSegment.path.getParent)
           ) map {
             newSegments =>

@@ -57,7 +57,7 @@ object Set extends LazyLogging {
                otherDirs: Seq[Dir] = Seq.empty,
                cacheCheckDelay: FiniteDuration = 10.seconds,
                segmentsOpenCheckDelay: FiniteDuration = 10.seconds,
-               bloomFilterFalsePositiveRate: Double = 0.01,
+               mightContainFalsePositiveRate: Double = 0.01,
                compressDuplicateValues: Boolean = true,
                deleteSegmentsEventually: Boolean = false,
                lastLevelGroupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
@@ -78,7 +78,7 @@ object Set extends LazyLogging {
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        mightContainFalsePositiveRate = mightContainFalsePositiveRate,
         groupingStrategy = lastLevelGroupingStrategy,
         acceleration = acceleration
       ),

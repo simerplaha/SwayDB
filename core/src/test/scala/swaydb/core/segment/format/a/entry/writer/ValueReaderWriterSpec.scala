@@ -106,7 +106,7 @@ class ValueReaderWriterSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = 0,
-          blocksCompression = BlocksCompression.disabled
+          blockCompressions = BlocksCompression.disabled
         ).get.flattenSegmentBytes
 
       val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getIndexes(Reader(bytes)).get

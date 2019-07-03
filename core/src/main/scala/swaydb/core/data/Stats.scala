@@ -262,7 +262,7 @@ private[core] object Stats {
       previousStats.map(_.segmentUncompressedKeysSize).getOrElse(0) + keySize
 
     new Stats(
-      valueSize = valueLength,
+      valueLength = valueLength,
       segmentSize = segmentSize,
       chainPosition = chainPosition,
       segmentValueAndSortedIndexEntrySize = segmentValueAndSortedIndexEntrySize,
@@ -294,7 +294,7 @@ private[core] object Stats {
   }
 }
 
-private[core] case class Stats(valueSize: Int,
+private[core] case class Stats(valueLength: Int,
                                segmentSize: Int,
                                chainPosition: Int,
                                segmentValueAndSortedIndexEntrySize: Int,
@@ -329,5 +329,5 @@ private[core] case class Stats(valueSize: Int,
     segmentUncompressedKeysSize + segmentValuesSize
 
   def thisKeyValueMemorySize =
-    thisKeyValuesSortedIndexEntrySize + valueSize
+    thisKeyValuesSortedIndexEntrySize + valueLength
 }

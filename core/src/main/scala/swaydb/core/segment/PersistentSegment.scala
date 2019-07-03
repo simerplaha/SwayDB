@@ -123,7 +123,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           binarySearchIndexConfig: BinarySearchIndex.Config,
           hashIndexConfig: HashIndex.Config,
           bloomFilterConfig: BloomFilter.Config,
-          blocksCompression: BlocksCompression,
+          blockCompressions: BlocksCompression,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
@@ -146,7 +146,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                 keyValues =>
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
-                    blocksCompression = blocksCompression,
+                    blockCompressions = blockCompressions,
                     createdInLevel = createdInLevel,
                     maxProbe = hashIndexConfig.maxProbe,
                     mmapReads = mmapReads,
@@ -175,7 +175,7 @@ private[segment] case class PersistentSegment(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndex.Config,
               hashIndexConfig: HashIndex.Config,
               bloomFilterConfig: BloomFilter.Config,
-              blocksCompression: BlocksCompression,
+              blockCompressions: BlocksCompression,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
@@ -198,7 +198,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                     createdInLevel = createdInLevel,
-                    blocksCompression = blocksCompression,
+                    blockCompressions = blockCompressions,
                     maxProbe = hashIndexConfig.maxProbe,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,

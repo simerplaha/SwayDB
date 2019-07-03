@@ -177,7 +177,7 @@ object TestData {
           mmapSegmentsOnWrite = randomBoolean(),
           removeDeletes = false,
           minSegmentSize = 1000.mb,
-          blocksCompression = level.blocksCompression,
+          blockCompressions = level.blockCompressions,
           valuesConfig = level.valuesConfig,
           sortedIndexConfig = level.sortedIndexConfig,
           binarySearchIndexConfig = level.binarySearchIndexConfig,
@@ -230,7 +230,7 @@ object TestData {
                 nextLevel = nextLevel,
                 pushForward = level.pushForward,
                 throttle = throttle,
-                blocksCompression = level.blocksCompression,
+                blockCompressions = level.blockCompressions,
                 deleteSegmentsEventually = level.deleteSegmentsEventually,
                 valuesConfig = level.valuesConfig,
                 sortedIndexConfig = level.sortedIndexConfig,
@@ -1994,8 +1994,7 @@ object TestData {
       )
 
     def remove(key: Slice[Byte],
-               removeAfter: FiniteDuration,
-               falsePositiveRate: Double)(implicit testTimer: TestTimer): Transient.Remove =
+               removeAfter: FiniteDuration)(implicit testTimer: TestTimer): Transient.Remove =
       Transient.Remove(
         key = key,
         deadline = Some(removeAfter.fromNow),
@@ -2009,21 +2008,6 @@ object TestData {
       )
 
     def remove(key: Slice[Byte],
-               falsePositiveRate: Double)(implicit testTimer: TestTimer): Transient.Remove =
-      Transient.Remove(
-        key = key,
-        deadline = None,
-        time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
-        previous = None
-      )
-
-    def remove(key: Slice[Byte],
-               falsePositiveRate: Double,
                previous: Option[KeyValue.WriteOnly])(implicit testTimer: TestTimer): Transient.Remove =
       Transient.Remove(
         key = key,
@@ -2070,7 +2054,6 @@ object TestData {
 
     def put(key: Slice[Byte],
             value: Option[Slice[Byte]],
-            falsePositiveRate: Double,
             previous: Option[KeyValue.WriteOnly],
             deadline: Option[Deadline],
             compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Put =
@@ -2102,8 +2085,7 @@ object TestData {
       )
 
     def put(key: Slice[Byte],
-            value: Slice[Byte],
-            compressDuplicateValues: Boolean = true)(implicit testTimer: TestTimer): Transient.Put =
+            value: Slice[Byte])(implicit testTimer: TestTimer): Transient.Put =
       Transient.Put(
         key = key,
         value = Some(value),
@@ -2180,39 +2162,6 @@ object TestData {
         previous = None
       )
 
-    def put(key: Slice[Byte],
-            value: Slice[Byte],
-            falsePositiveRate: Double)(implicit testTimer: TestTimer): Transient.Put =
-      Transient.Put(
-        key = key,
-        value = Some(value),
-        deadline = None,
-        time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
-        previous = None
-      )
-
-    def put(key: Slice[Byte],
-            previous: Option[KeyValue.WriteOnly],
-            deadline: Option[Deadline],
-            compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Put =
-      Transient.Put(
-        key = key,
-        value = None,
-        deadline = deadline,
-        time = testTimer.next,
-        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.disabled),
-        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.disabled),
-        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.disabled),
-        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.disabled),
-        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.disabled),
-        previous = previous
-      )
-
     def update(key: Slice[Byte],
                value: Option[Slice[Byte]],
                previous: Option[KeyValue.WriteOnly])(implicit testTimer: TestTimer): Transient.Update =
@@ -2261,8 +2210,7 @@ object TestData {
       )
 
     def update(key: Slice[Byte],
-               value: Slice[Byte],
-               compressDuplicateValues: Boolean = true)(implicit testTimer: TestTimer): Transient.Update =
+               value: Slice[Byte])(implicit testTimer: TestTimer): Transient.Update =
       Transient.Update(
         key = key,
         value = Some(value),
@@ -2337,39 +2285,6 @@ object TestData {
         hashIndexConfig = HashIndex.Config.disabled,
         bloomFilterConfig = BloomFilter.Config.disabled,
         previous = None
-      )
-
-    def update(key: Slice[Byte],
-               value: Slice[Byte],
-               falsePositiveRate: Double)(implicit testTimer: TestTimer): Transient.Update =
-      Transient.Update(
-        key = key,
-        value = Some(value),
-        deadline = None,
-        time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
-        previous = None
-      )
-
-    def update(key: Slice[Byte],
-               previous: Option[KeyValue.WriteOnly],
-               deadline: Option[Deadline],
-               compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Update =
-      Transient.Update(
-        key = key,
-        value = None,
-        deadline = deadline,
-        time = testTimer.next,
-        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.disabled),
-        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.disabled),
-        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.disabled),
-        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.disabled),
-        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.disabled),
-        previous = previous
       )
   }
 
