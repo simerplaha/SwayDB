@@ -57,7 +57,10 @@ case class Set[A, T[_]](private val core: Core[T],
     wrapCall(core contains elem)
 
   def mightContain(elem: A): T[Boolean] =
-    wrapCall(core mightContain elem)
+    wrapCall(core mightContainKey elem)
+
+  def mightContainFunction(functionId: A): T[Boolean] =
+    wrapCall(core mightContainFunction functionId)
 
   def add(elem: A): T[IO.OK] =
     wrapCall(core.put(key = elem))

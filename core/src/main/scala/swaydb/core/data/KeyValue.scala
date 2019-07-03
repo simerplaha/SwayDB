@@ -29,7 +29,7 @@ import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.format.a.{SegmentBlock, SegmentWriter}
 import swaydb.core.segment.{Segment, SegmentCache}
-import swaydb.core.util.Bytes
+import swaydb.core.util.{Bytes, MinMax}
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.cache.{Cache, CacheFunctionOutput}
 import swaydb.data.order.KeyOrder
@@ -292,6 +292,7 @@ private[core] object KeyValue {
     sealed trait Group extends KeyValue.WriteOnly {
       def minKey: Slice[Byte]
       def maxKey: MaxKey[Slice[Byte]]
+      def minMaxFunctionId: Option[MinMax]
       def fullKey: Slice[Byte]
       def keyValues: Slice[KeyValue.WriteOnly]
     }
@@ -1089,6 +1090,7 @@ private[core] object Transient {
                    fullKey: Slice[Byte],
                    result: SegmentWriter.ClosedSegment,
                    //the deadline is the nearest deadline in the Group's key-values.
+                   minMaxFunctionId: Option[MinMax],
                    deadline: Option[Deadline],
                    keyValues: Slice[KeyValue.WriteOnly],
                    valuesConfig: Values.Config,

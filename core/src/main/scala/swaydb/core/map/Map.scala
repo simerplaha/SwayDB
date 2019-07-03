@@ -99,9 +99,9 @@ private[core] trait Map[K, V] {
 
   val fileSize: Long
 
-  def stateID: Long
+  def writeCountStateId: Long
 
-  def incrementStateID: Long
+  def incrementWriteCountStateId: Long
 
   def write(mapEntry: MapEntry[K, V]): IO[Boolean]
 

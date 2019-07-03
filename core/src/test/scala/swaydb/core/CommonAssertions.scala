@@ -824,7 +824,7 @@ object CommonAssertions {
 
     unzipedKeyValues.par.count {
       keyValue =>
-        segment.mightContain(keyValue.key).get
+        segment.mightContainKey(keyValue.key).get
     } should be >= (unzipedKeyValues.size * 0.90).toInt
 
     assertBloomNotContains(segment)
@@ -832,7 +832,7 @@ object CommonAssertions {
 
   def assertBloomNotContains(segment: Segment) =
     runThis(1000.times) {
-      IO(segment.mightContain(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false)
+      IO(segment.mightContainKey(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false)
     }
 
   def assertBloomNotContains(bloom: BloomFilter.State) =

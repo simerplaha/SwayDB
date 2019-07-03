@@ -60,7 +60,8 @@ private[swaydb] trait Core[T[_]] {
   def lastKey: T[Option[Slice[Byte]]]
 
   def contains(key: Slice[Byte]): T[Boolean]
-  def mightContain(key: Slice[Byte]): T[Boolean]
+  def mightContainKey(key: Slice[Byte]): T[Boolean]
+  def mightContainFunction(functionId: Slice[Byte]): T[Boolean]
 
   def get(key: Slice[Byte]): T[Option[Option[Slice[Byte]]]]
   def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]]

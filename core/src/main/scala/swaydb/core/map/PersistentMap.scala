@@ -257,7 +257,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   //_hasRange is not a case class input parameters because 2.11 throws compilation error 'values cannot be volatile'
   @volatile private var _hasRange: Boolean = hasRangeInitial
 
-  @volatile private var writeCount: Long = initialWriteCount
+  @volatile private var _writeCount: Long = initialWriteCount
 
   override def hasRange: Boolean = _hasRange
 
@@ -266,22 +266,22 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   def currentFilePath =
     currentFile.path
 
-  def stateID: Long =
+  def writeCountStateId: Long =
     stateIDLock.synchronized {
-      writeCount
+      _writeCount
     }
 
-  def incrementStateID: Long =
+  def incrementWriteCountStateId: Long =
     stateIDLock.synchronized {
-      writeCount += 1
-      writeCount
+      _writeCount += 1
+      _writeCount
     }
 
   override def write(mapEntry: MapEntry[K, V]): IO[Boolean] =
     stateIDLock.synchronized {
       persist(mapEntry) onSuccessSideEffect {
         _ =>
-          writeCount += 1
+          _writeCount += 1
       }
     }
 

@@ -21,8 +21,11 @@ package swaydb.core.function
 
 import java.util.concurrent.ConcurrentHashMap
 
-import swaydb.core.data.SwayFunction
+import swaydb.core.data.{SwayFunction, Value}
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+
+import scala.annotation.tailrec
 
 trait FunctionStore {
   def get(functionId: Slice[Byte]): Option[SwayFunction]
@@ -34,6 +37,41 @@ object FunctionStore {
 
   def memory() =
     new MemoryStore()
+
+  val order: FunctionIdOrder =
+    new FunctionIdOrder {
+      override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
+        KeyOrder.lexicographic.compare(x, y)
+    }
+
+  def containsFunction(functionId: Slice[Byte], values: Slice[Value]) = {
+
+    @tailrec
+    def checkContains(values: Slice[Value]): Boolean =
+      values.headOption match {
+        case Some(value) =>
+          value match {
+            case _: Value.Remove | _: Value.Update | _: Value.Put =>
+              false
+
+            case Value.Function(function, _) =>
+              if (order.equiv(function, functionId))
+                true
+              else
+                checkContains(values.dropHead())
+
+            case Value.PendingApply(applies) =>
+              checkContains(applies)
+          }
+
+        case None =>
+          false
+      }
+
+    checkContains(values)
+  }
+
+  trait FunctionIdOrder extends Ordering[Slice[Byte]]
 }
 
 class MemoryStore extends FunctionStore {

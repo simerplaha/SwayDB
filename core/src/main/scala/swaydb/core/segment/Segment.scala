@@ -35,7 +35,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.{SegmentFooter, SegmentWriter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
-import swaydb.core.util.{FiniteDurationUtil, IDGenerator}
+import swaydb.core.util.{FiniteDurationUtil, IDGenerator, MinMax}
 import swaydb.data.IO._
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -250,6 +250,7 @@ private[core] object Segment extends LazyLogging {
                   _hasPut = keyValues.last.stats.segmentHasPut,
                   _hasGroup = keyValues.last.stats.segmentHasGroup,
                   segmentSize = keyValues.last.stats.memorySegmentSize,
+                  minMaxFunctionId = ???,
                   bloomFilter = bloomFilter,
                   cache = skipList,
                   nearestExpiryDeadline = nearestExpiryDeadline,
@@ -327,6 +328,7 @@ private[core] object Segment extends LazyLogging {
                       MaxKey.Fixed(keyValue.key.unslice())
                   },
                 segmentSize = result.segmentSize,
+                minMaxFunctionId = result.minMaxFunctionId,
                 nearestExpiryDeadline = result.nearestDeadline,
                 compactionReserve = Reserve()
               )
@@ -364,6 +366,7 @@ private[core] object Segment extends LazyLogging {
               minKey = segment.minKey,
               maxKey = segment.maxKey,
               segmentSize = segment.segmentSize,
+              minMaxFunctionId = segment.minMaxFunctionId,
               nearestExpiryDeadline = segment.nearestExpiryDeadline
             ) onFailureSideEffect {
               exception =>
@@ -525,6 +528,7 @@ private[core] object Segment extends LazyLogging {
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
             segmentSize: Int,
+            minMaxFunctionId: Option[MinMax],
             nearestExpiryDeadline: Option[Deadline],
             checkExists: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                          timeOrder: TimeOrder[Slice[Byte]],
@@ -547,6 +551,7 @@ private[core] object Segment extends LazyLogging {
           minKey = minKey,
           maxKey = maxKey,
           segmentSize = segmentSize,
+          minMaxFunctionId = minMaxFunctionId,
           nearestExpiryDeadline = nearestExpiryDeadline,
           compactionReserve = Reserve()
         )
@@ -970,6 +975,7 @@ private[core] trait Segment extends FileLimiterItem {
   val maxKey: MaxKey[Slice[Byte]]
   val segmentSize: Int
   val nearestExpiryDeadline: Option[Deadline]
+  val minMaxFunctionId: Option[MinMax]
 
   def createdInLevel: IO[Int]
 
@@ -1012,7 +1018,9 @@ private[core] trait Segment extends FileLimiterItem {
 
   def getFromCache(key: Slice[Byte]): Option[KeyValue.ReadOnly]
 
-  def mightContain(key: Slice[Byte]): IO[Boolean]
+  def mightContainKey(key: Slice[Byte]): IO[Boolean]
+
+  def mightContainFunction(key: Slice[Byte]): IO[Boolean]
 
   def get(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.SegmentResponse]]
 

@@ -242,8 +242,11 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def contains(key: Slice[Byte]): T[Boolean] =
     tag.fromIO(zero.contains(key).safeGetBlocking)
 
-  def mightContain(key: Slice[Byte]): T[Boolean] =
-    tag.fromIO(IO.Async.runSafe(zero.mightContain(key).get).safeGetBlocking)
+  def mightContainKey(key: Slice[Byte]): T[Boolean] =
+    tag.fromIO(IO.Async.runSafe(zero.mightContainKey(key).get).safeGetBlocking)
+
+  def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
+    tag.fromIO(IO.Async.runSafe(zero.mightContainFunction(functionId).get).safeGetBlocking)
 
   private def getIO(key: Slice[Byte]): IO[Option[Option[Slice[Byte]]]] =
     zero.get(key).safeGetBlocking flatMap {

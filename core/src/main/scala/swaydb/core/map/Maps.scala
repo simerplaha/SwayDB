@@ -253,7 +253,7 @@ private[core] object Maps extends LazyLogging {
               folder = currentMap.path.incrementFolderId,
               mmap = currentMap.mmap,
               flushOnOverflow = false,
-              initialWriteCount = currentMap.stateID + 1,
+              initialWriteCount = currentMap.writeCountStateId + 1,
               fileSize = nextMapSize
             )
         }
@@ -414,8 +414,9 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     find(getNext(), None)
   }
 
-  private def find[R](matcher: Map[K, V] => Option[R]): Option[R] =
+  def find[R](matcher: Map[K, V] => Option[R]): Option[R] =
     matcher(currentMap) orElse findFirst(matcher)
+
 
   def contains(key: K): Boolean =
     get(key).isDefined

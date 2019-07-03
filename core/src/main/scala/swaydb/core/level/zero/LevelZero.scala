@@ -36,7 +36,7 @@ import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
 import swaydb.core.queue.FileLimiter
 import swaydb.core.segment.Segment
-import swaydb.core.util.MinMax
+import swaydb.core.util.{MinMax, Options}
 import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.LevelMeter
@@ -679,11 +679,43 @@ private[core] case class LevelZero(path: Path,
   def closeSegments: IO[Unit] =
     nextLevel.map(_.closeSegments()) getOrElse IO.unit
 
-  def mightContain(key: Slice[Byte]): IO[Boolean] =
+  def mightContainKey(key: Slice[Byte]): IO[Boolean] =
     if (maps.contains(key))
       IO.`true`
     else
-      nextLevel.map(_.mightContain(key)) getOrElse IO.`true`
+      nextLevel.map(_.mightContainKey(key)) getOrElse IO.`true`
+
+  private def findFunctionInMaps(functionId: Slice[Byte]): Boolean =
+    maps.find[Boolean] {
+      map =>
+        Option {
+          map.values().asScala exists {
+            case _: Memory.Put | _: Memory.Remove | _: Memory.Update =>
+              false
+
+            case function: Memory.Function =>
+              function.function equiv functionId
+
+            case pendingApply: Memory.PendingApply =>
+              FunctionStore.containsFunction(functionId, pendingApply.applies)
+
+            case range: Memory.Range =>
+              FunctionStore.containsFunction(functionId, Slice(range.rangeValue) ++ range.fromValue)
+          }
+        }
+    } getOrElse false
+
+  def mightContainFunctionInMaps(functionId: Slice[Byte]): Boolean =
+    maps.iterator.asScala.foldLeft(maps.map.writeCountStateId)(_ + _.writeCountStateId) >= 10000 ||
+      findFunctionInMaps(functionId)
+
+  def mightContainFunction(functionId: Slice[Byte]): IO[Boolean] =
+    if (mightContainFunctionInMaps(functionId))
+      IO.`true`
+    else
+      nextLevel
+        .map(_.mightContainFunction(functionId))
+        .getOrElse(IO.`false`)
 
   override def hasNextLevel: Boolean =
     nextLevel.isDefined

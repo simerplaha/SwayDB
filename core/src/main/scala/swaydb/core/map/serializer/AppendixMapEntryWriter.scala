@@ -38,13 +38,13 @@ object AppendixMapEntryWriter {
     override def write(entry: MapEntry.Remove[Slice[Byte]], bytes: Slice[Byte]): Unit =
       bytes
         .addIntUnsigned(id)
-        .addIntUnsigned(entry.key.size)
+        .addIntUnsigned(entry.key.written)
         .addAll(entry.key)
 
     override def bytesRequired(entry: MapEntry.Remove[Slice[Byte]]): Int =
       Bytes.sizeOf(id) +
-        Bytes.sizeOf(entry.key.size) +
-        entry.key.size
+        Bytes.sizeOf(entry.key.written) +
+        entry.key.written
   }
 
   implicit object AppendixPutWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]] {
@@ -59,20 +59,40 @@ object AppendixMapEntryWriter {
         entry.value.maxKey match {
           case MaxKey.Fixed(maxKey) =>
             (1, maxKey)
+
           case MaxKey.Range(fromKey, maxToKey) =>
             (2, Bytes.compressJoin(fromKey, maxToKey))
         }
+
+      def writeMinMax(bytes: Slice[Byte]) =
+        entry.value.minMaxFunctionId map {
+          minMaxFunctionId =>
+            bytes addIntUnsigned minMaxFunctionId.min.written
+            bytes addAll minMaxFunctionId.min
+            minMaxFunctionId.max map {
+              max =>
+                bytes addIntUnsigned max.size
+                bytes addAll max
+            } getOrElse {
+              bytes addIntUnsigned 0
+            }
+        } getOrElse {
+          bytes addIntUnsigned 0
+        }
+
       bytes
         .addIntUnsigned(id)
-        .addIntUnsigned(segmentPath.size)
+        .addIntUnsigned(segmentPath.written)
         .addBytes(segmentPath)
         .addIntUnsigned(entry.value.segmentSize)
-        .addIntUnsigned(entry.key.size)
+        .addIntUnsigned(entry.key.written)
         .addAll(entry.key)
         .addIntUnsigned(maxKeyId)
-        .addIntUnsigned(maxKeyBytes.size)
+        .addIntUnsigned(maxKeyBytes.written)
         .addAll(maxKeyBytes)
         .addLongUnsigned(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L))
+
+      writeMinMax(bytes)
     }
 
     override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Segment]): Int = {
@@ -86,16 +106,26 @@ object AppendixMapEntryWriter {
             (2, Bytes.compressJoin(fromKey, maxToKey))
         }
 
+      val minMaxFunctionIdBytesRequires =
+        entry.value.minMaxFunctionId map {
+          minMax =>
+            Bytes.sizeOf(minMax.min.written) +
+              minMax.min.written +
+              Bytes.sizeOf(minMax.max.map(_.written).getOrElse(0)) +
+              minMax.max.map(_.written).getOrElse(0)
+        } getOrElse 1
+
       Bytes.sizeOf(id) +
         Bytes.sizeOf(segmentPath.length) +
         segmentPath.length +
         Bytes.sizeOf(entry.value.segmentSize) +
-        Bytes.sizeOf(entry.key.size) +
-        entry.key.size +
+        Bytes.sizeOf(entry.key.written) +
+        entry.key.written +
         Bytes.sizeOf(maxKeyId) +
-        Bytes.sizeOf(maxKeyBytes.size) +
-        maxKeyBytes.size +
-        Bytes.sizeOf(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L))
+        Bytes.sizeOf(maxKeyBytes.written) +
+        maxKeyBytes.written +
+        Bytes.sizeOf(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L)) +
+        minMaxFunctionIdBytesRequires
     }
   }
 

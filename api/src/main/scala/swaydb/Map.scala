@@ -199,7 +199,10 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     wrapCall(core contains key)
 
   def mightContain(key: K): T[Boolean] =
-    wrapCall(core mightContain key)
+    wrapCall(core mightContainKey key)
+
+  def mightContainFunction(functionId: K): T[Boolean] =
+    wrapCall(core mightContainFunction functionId)
 
   def keys: Set[K, T] =
     Set[K, T](

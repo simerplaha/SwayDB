@@ -147,6 +147,7 @@ object Block extends LazyLogging {
         bytes =>
           SegmentWriter.ClosedSegment(
             segmentBytes = Slice(bytes),
+            minMaxFunctionId = writeResult.minMaxFunctionId,
             nearestDeadline = writeResult.nearestDeadline
           )
       }

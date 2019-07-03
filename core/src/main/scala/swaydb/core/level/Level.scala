@@ -367,10 +367,10 @@ private[core] case class Level(dirs: Seq[Dir],
         getFromNextLevel(key)
 
       override def hasStateChanged(previousState: Long): Boolean =
-        appendix.stateID != previousState
+        appendix.writeCountStateId != previousState
 
       override def stateID: Long =
-        appendix.stateID
+        appendix.writeCountStateId
 
       override def levelNumber: String =
         "Level: " + self.levelNumber
@@ -596,7 +596,7 @@ private[core] case class Level(dirs: Seq[Dir],
               appendEntry = None
             )
           else { //all Segments were forward copied, increment the stateID so reads can reset.
-            appendix.incrementStateID
+            appendix.incrementWriteCountStateId
             IO.unit
           }
       }
@@ -636,7 +636,7 @@ private[core] case class Level(dirs: Seq[Dir],
                         deleteCopiedSegments(newSegments)
                     }
                   else {
-                    appendix.incrementStateID
+                    appendix.incrementWriteCountStateId
                     Segment.emptyIterableIO
                   }
               }
@@ -1127,22 +1127,45 @@ private[core] case class Level(dirs: Seq[Dir],
   override def get(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     Get(key)
 
-  private def mightContainInThisLevel(key: Slice[Byte]): IO[Boolean] =
+  private def mightContainKeyInThisLevel(key: Slice[Byte]): IO[Boolean] =
     appendixWithReadLocked(_.floor(key)) match {
       case Some(segment) =>
-        segment mightContain key
+        segment mightContainKey key
 
       case None =>
         IO.`false`
     }
 
-  override def mightContain(key: Slice[Byte]): IO[Boolean] =
-    mightContainInThisLevel(key) flatMap {
+  private def mightContainFunctionInThisLevel(functionId: Slice[Byte]): IO[Boolean] =
+    IO {
+      appendix.values().asScala exists {
+        segment =>
+          segment.minMaxFunctionId exists {
+            minMax =>
+              MinMax.contains(
+                key = functionId,
+                minMax = minMax
+              )(FunctionStore.order)
+          }
+      }
+    }
+
+  override def mightContainKey(key: Slice[Byte]): IO[Boolean] =
+    mightContainKeyInThisLevel(key) flatMap {
       yes =>
         if (yes)
-          IO.Success(yes)
+          IO.`true`
         else
-          nextLevel.map(_.mightContain(key)) getOrElse IO.Success(yes)
+          nextLevel.map(_.mightContainKey(key)) getOrElse IO.`false`
+    }
+
+  override def mightContainFunction(functionId: Slice[Byte]): IO[Boolean] =
+    mightContainFunctionInThisLevel(functionId) flatMap {
+      yes =>
+        if (yes)
+          IO.`true`
+        else
+          nextLevel.map(_.mightContainFunction(functionId)) getOrElse IO.`false`
     }
 
   private def lowerInThisLevel(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
@@ -1412,7 +1435,7 @@ private[core] case class Level(dirs: Seq[Dir],
     false
 
   override def stateID: Long =
-    appendix.stateID
+    appendix.writeCountStateId
 
   override def nextCompactionDelay: FiniteDuration =
     throttle(meter).pushDelay

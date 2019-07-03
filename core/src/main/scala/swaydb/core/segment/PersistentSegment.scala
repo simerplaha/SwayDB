@@ -48,6 +48,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                                               mmapWrites: Boolean,
                                               minKey: Slice[Byte],
                                               maxKey: MaxKey[Slice[Byte]],
+                                              minMaxFunctionId: Option[MinMax],
                                               segmentSize: Int,
                                               nearestExpiryDeadline: Option[Deadline],
                                               compactionReserve: Reserve[Unit])(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -229,8 +230,19 @@ private[segment] case class PersistentSegment(file: DBFile,
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     segmentCache getFromCache key
 
-  def mightContain(key: Slice[Byte]): IO[Boolean] =
+  def mightContainKey(key: Slice[Byte]): IO[Boolean] =
     segmentCache mightContain key
+
+  override def mightContainFunction(key: Slice[Byte]): IO[Boolean] =
+    IO {
+      minMaxFunctionId.exists {
+        minMaxFunctionId =>
+          MinMax.contains(
+            key = key,
+            minMax = minMaxFunctionId
+          )(FunctionStore.order)
+      }
+    }
 
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     segmentCache get key

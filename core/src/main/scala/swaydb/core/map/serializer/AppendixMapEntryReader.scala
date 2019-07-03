@@ -28,7 +28,7 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
-import swaydb.core.util.Bytes
+import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{IO, MaxKey}
@@ -69,35 +69,58 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
         maxKeyId <- reader.readIntUnsigned()
         maxKeyLength <- reader.readIntUnsigned()
         maxKeyBytes <- reader.read(maxKeyLength).map(_.unslice())
-        maxKey <-
-        if (maxKeyId == 1)
-          IO.Success(MaxKey.Fixed(maxKeyBytes))
-        else {
-          Bytes.decompressJoin(maxKeyBytes) map {
-            case (fromKey, toKey) =>
-              MaxKey.Range(fromKey, toKey)
+        maxKey <- {
+          if (maxKeyId == 1)
+            IO.Success(MaxKey.Fixed(maxKeyBytes))
+          else {
+            Bytes.decompressJoin(maxKeyBytes) map {
+              case (fromKey, toKey) =>
+                MaxKey.Range(fromKey, toKey)
+            }
           }
         }
-        nearestExpiryDeadline <- reader.readLongUnsigned() map {
-          deadlineNanos =>
-            if (deadlineNanos == 0)
-              None
-            else
-              Some(Deadline(deadlineNanos, TimeUnit.NANOSECONDS))
+        nearestExpiryDeadline <- {
+          reader.readLongUnsigned() map {
+            deadlineNanos =>
+              if (deadlineNanos == 0)
+                None
+              else
+                Some(Deadline(deadlineNanos, TimeUnit.NANOSECONDS))
+          }
         }
-        segment <-
-        Segment(
-          path = segmentPath,
-          mmapReads = mmapSegmentsOnRead,
-          mmapWrites = mmapSegmentsOnWrite,
-          minKey = minKey,
-          maxKey = maxKey,
-          segmentSize = segmentSize,
-          nearestExpiryDeadline = nearestExpiryDeadline,
-          checkExists = false
-        )
+        minMaxFunctionId <- {
+          reader.readIntUnsigned() flatMap {
+            minIdSize =>
+              if (minIdSize == 0)
+                IO.none
+              else
+                for {
+                  minId <- reader.read(minIdSize)
+                  maxIdSize <- reader.readIntUnsigned()
+                  maxId <- if (maxIdSize == 0) IO.none else reader.read(maxIdSize).map(Some(_))
+                } yield Some(MinMax(minId, maxId))
+          }
+        }
+        segment <- {
+          Segment(
+            path = segmentPath,
+            mmapReads = mmapSegmentsOnRead,
+            mmapWrites = mmapSegmentsOnWrite,
+            minKey = minKey,
+            maxKey = maxKey,
+            segmentSize = segmentSize,
+            minMaxFunctionId = minMaxFunctionId,
+            nearestExpiryDeadline = nearestExpiryDeadline,
+            checkExists = false
+          )
+        }
       } yield {
-        Some(MapEntry.Put(minKey, segment)(AppendixMapEntryWriter.AppendixPutWriter))
+        Some(
+          MapEntry.Put(
+            key = minKey,
+            value = segment
+          )(AppendixMapEntryWriter.AppendixPutWriter)
+        )
       }
   }
 

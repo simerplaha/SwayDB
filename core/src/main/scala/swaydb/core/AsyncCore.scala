@@ -168,8 +168,11 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
   def contains(key: Slice[Byte]): T[Boolean] =
     tag.fromFuture(zero.contains(key).safeGetFuture)
 
-  def mightContain(key: Slice[Byte]): T[Boolean] =
-    tag.fromFuture(IO.Async.runSafe(zero.mightContain(key).get).safeGetFuture)
+  def mightContainKey(key: Slice[Byte]): T[Boolean] =
+    tag.fromFuture(IO.Async.runSafe(zero.mightContainKey(key).get).safeGetFuture)
+
+  def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
+    tag.fromFuture(IO.Async.runSafe(zero.mightContainFunction(functionId).get).safeGetFuture)
 
   def getFuture(key: Slice[Byte]): Future[Option[Option[Slice[Byte]]]] =
     zero.get(key).safeGetFuture flatMap {

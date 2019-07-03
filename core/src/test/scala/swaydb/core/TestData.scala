@@ -113,6 +113,7 @@ object TestData {
         minKey = segment.minKey,
         maxKey = segment.maxKey,
         segmentSize = segment.segmentSize,
+        minMaxFunctionId = segment.minMaxFunctionId,
         nearestExpiryDeadline = segment.nearestExpiryDeadline
       ) flatMap {
         reopenedSegment =>
@@ -373,7 +374,7 @@ object TestData {
       keyValue match {
         case group: KeyValue.WriteOnly.Group =>
           group match {
-            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, _, _, _, _, _, _, _) =>
+            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, minMaxFunctionId, deadline, _, _, _, _, _, _, _) =>
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
@@ -387,7 +388,7 @@ object TestData {
       keyValue match {
         case group: KeyValue.WriteOnly.Group =>
           group match {
-            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, _, _, _, _, _, _, _) =>
+            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, minMaxFunctionId, deadline, _, _, _, _, _, _, _) =>
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,

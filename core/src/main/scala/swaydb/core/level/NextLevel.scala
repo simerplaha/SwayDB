@@ -70,6 +70,8 @@ trait NextLevel extends LevelRef {
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
 
+  def mightContainFunction(key: Slice[Byte]): IO[Boolean]
+
   def put(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit]
 
   def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Async[Unit]

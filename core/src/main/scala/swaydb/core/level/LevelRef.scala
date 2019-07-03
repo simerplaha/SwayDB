@@ -161,7 +161,7 @@ private[core] trait LevelRef {
 
   def floor(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
 
-  def mightContain(key: Slice[Byte]): IO[Boolean]
+  def mightContainKey(key: Slice[Byte]): IO[Boolean]
 
   def lower(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
 

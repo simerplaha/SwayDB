@@ -41,21 +41,21 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
   private var currentBytesWritten: Long = 0
 
   @volatile private var _hasRange: Boolean = false
-  @volatile private var writeCount: Long = 0L
+  @volatile private var _writeCountStateId: Long = 0L
 
   override def hasRange: Boolean = _hasRange
 
   private val stateIDLock = new Object()
 
-  def stateID: Long =
+  def writeCountStateId: Long =
     stateIDLock.synchronized {
-      writeCount
+      _writeCountStateId
     }
 
-  def incrementStateID: Long =
+  def incrementWriteCountStateId: Long =
     stateIDLock.synchronized {
-      writeCount += 1
-      writeCount
+      _writeCountStateId += 1
+      _writeCountStateId
     }
 
   def delete: IO[Unit] =
@@ -73,7 +73,7 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
           entry applyTo skipList
         }
         currentBytesWritten += entry.totalByteSize
-        writeCount += 1
+        _writeCountStateId += 1
         IO.`true`
       } else {
         IO.`false`

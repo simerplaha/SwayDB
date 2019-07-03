@@ -68,16 +68,17 @@ private[core] object GroupCompressor extends LazyLogging {
               Transient.Group(
                 minKey = minKey,
                 maxKey = maxKey,
+                minMaxFunctionId = result.minMaxFunctionId,
                 fullKey = fullKey,
                 result = result,
                 deadline = result.nearestDeadline,
                 keyValues = keyValues,
-                previous = previous,
                 valuesConfig = valuesConfig,
                 sortedIndexConfig = sortedIndexConfig,
                 binarySearchIndexConfig = binarySearchIndexConfig,
                 hashIndexConfig = hashIndexConfig,
-                bloomFilterConfig = bloomFilterConfig
+                bloomFilterConfig = bloomFilterConfig,
+                previous = previous
               )
             )
           }

@@ -19,6 +19,11 @@
 
 package swaydb.core.util
 
+import swaydb.core.data.Value
+import swaydb.data.slice.Slice
+
+import scala.annotation.tailrec
+
 private[core] object MinMax {
 
   private def minimum[T](left: T,
@@ -44,8 +49,10 @@ private[core] object MinMax {
 
       case (left @ Some(_), None) =>
         left
+
       case (None, right @ Some(_)) =>
         right
+
       case (None, None) =>
         None
     }
@@ -63,4 +70,85 @@ private[core] object MinMax {
   def max[T](left: Option[T],
              right: Option[T])(implicit ordering: Ordering[T]): Option[T] =
     pickOne[T](left, right, maximum)
+
+  def contains(key: Slice[Byte], minMax: MinMax)(implicit order: Ordering[Slice[Byte]]) = {
+    import order._
+    minMax.max map {
+      max =>
+        key >= minMax.min && key <= max
+    } getOrElse key.equiv(minMax.min)
+  }
+
+  def minMax(left: Option[MinMax],
+             right: Option[Value])(implicit order: Ordering[Slice[Byte]]): Option[MinMax] =
+    right flatMap {
+      right =>
+        minMax(left, right)
+    } orElse left
+
+  def minMax(left: Option[MinMax],
+             right: Value)(implicit order: Ordering[Slice[Byte]]): Option[MinMax] =
+    right match {
+      case _: Value.Remove | _: Value.Update | _: Value.Put =>
+        left
+
+      case Value.Function(function, _) =>
+        Some(minMax(left, function))
+
+      case Value.PendingApply(applies) =>
+        minMaxWithValue(left, applies)
+    }
+
+  @tailrec
+  def minMaxWithValue(left: Option[MinMax],
+                      right: Slice[Value])(implicit order: Ordering[Slice[Byte]]): Option[MinMax] =
+    right.headOption match {
+      case Some(value) =>
+        minMaxWithValue(minMax(left, value), right.dropHead())
+
+      case None =>
+        left
+    }
+
+  def getMinMax(left: Option[MinMax],
+                right: Option[MinMax])(implicit order: Ordering[Slice[Byte]]): Option[MinMax] =
+    (left, right) match {
+      case (Some(left), Some(right)) =>
+        Some(
+          MinMax(
+            min = order.min(left.min, right.min),
+            max = MinMax.max(left.max, right.max)(order)
+          )
+        )
+
+      case (None, right @ Some(_)) =>
+        right
+
+      case (left @ Some(_), None) =>
+        left
+
+      case (None, None) =>
+        None
+    }
+
+  def minMax(currentMinMax: Option[MinMax],
+             newMinMax: Slice[Byte])(implicit order: Ordering[Slice[Byte]]): MinMax =
+    currentMinMax map {
+      currentMinMax =>
+        minMax(currentMinMax, newMinMax)
+    } getOrElse MinMax(min = newMinMax, None)
+
+  def minMax(currentMinMax: MinMax,
+             functionId: Slice[Byte])(implicit order: Ordering[Slice[Byte]]): MinMax = {
+    import order._
+    if (functionId < currentMinMax.min)
+      currentMinMax.copy(min = functionId)
+    else if (currentMinMax.max.forall(_ < functionId))
+      currentMinMax.copy(max = Some(functionId))
+    else
+      currentMinMax
+  }
 }
+
+case class MinMax(min: Slice[Byte],
+                  max: Option[Slice[Byte]])

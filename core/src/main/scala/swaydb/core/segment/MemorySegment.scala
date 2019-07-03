@@ -45,6 +45,7 @@ import scala.concurrent.duration.Deadline
 private[segment] case class MemorySegment(path: Path,
                                           minKey: Slice[Byte],
                                           maxKey: MaxKey[Slice[Byte]],
+                                          minMaxFunctionId: Option[MinMax],
                                           segmentSize: Int,
                                           _hasRange: Boolean,
                                           _hasPut: Boolean,
@@ -212,9 +213,8 @@ private[segment] case class MemorySegment(path: Path,
   override def get(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     if (deleted)
       IO.Failure(IO.Error.NoSuchFile(path))
-
     else
-      mightContain(key) flatMap {
+      mightContainKey(key) flatMap {
         mightContain =>
           if (!mightContain)
             IO.none
@@ -250,12 +250,23 @@ private[segment] case class MemorySegment(path: Path,
             }
       }
 
-  def mightContain(key: Slice[Byte]): IO[Boolean] =
+  def mightContainKey(key: Slice[Byte]): IO[Boolean] =
     bloomFilter map {
       case (bloomFilter, bytes) =>
         //        BloomFilter.mightContain(key, Reader(bytes), bloomFilter)
         ???
     } getOrElse IO.`true`
+
+  override def mightContainFunction(key: Slice[Byte]): IO[Boolean] =
+    IO {
+      minMaxFunctionId.exists {
+        minMaxFunctionId =>
+          MinMax.contains(
+            key = key,
+            minMax = minMaxFunctionId
+          )(FunctionStore.order)
+      }
+    }
 
   override def lower(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     if (deleted)

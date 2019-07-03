@@ -117,7 +117,10 @@ private[core] object TrashLevel extends NextLevel {
   override def meterFor(levelNumber: Int): Option[LevelMeter] =
     None
 
-  override def mightContain(key: Slice[Byte]): IO[Boolean] =
+  override def mightContainKey(key: Slice[Byte]): IO[Boolean] =
+    IO.`false`
+
+  override def mightContainFunction(key: Slice[Byte]): IO[Boolean] =
     IO.`false`
 
   override val isTrash: Boolean = true

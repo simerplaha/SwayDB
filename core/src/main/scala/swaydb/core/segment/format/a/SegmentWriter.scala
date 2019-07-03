@@ -20,10 +20,11 @@
 package swaydb.core.segment.format.a
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{KeyValue, Stats}
+import swaydb.core.data.{KeyValue, Stats, Transient}
+import swaydb.core.function.FunctionStore
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
-import swaydb.core.util.{Bytes, CRC32}
+import swaydb.core.util.{Bytes, CRC32, MinMax}
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.slice.Slice
@@ -48,6 +49,7 @@ private[core] object SegmentWriter extends LazyLogging {
         binarySearchIndex = None,
         bloomFilter = None,
         footer = Slice.emptyBytes,
+        functionMinMax = None,
         nearestDeadline = None
       )
 
@@ -60,6 +62,7 @@ private[core] object SegmentWriter extends LazyLogging {
               binarySearchIndex: Option[Slice[Byte]],
               bloomFilter: Option[Slice[Byte]],
               footer: Slice[Byte],
+              functionMinMax: Option[MinMax],
               nearestDeadline: Option[Deadline]): ClosedSegment = {
       val segmentBytes: Slice[Slice[Byte]] = {
         val allBytes = Slice.create[Slice[Byte]](6)
@@ -74,12 +77,14 @@ private[core] object SegmentWriter extends LazyLogging {
 
       new ClosedSegment(
         segmentBytes = segmentBytes,
+        minMaxFunctionId = functionMinMax,
         nearestDeadline = nearestDeadline
       )
     }
   }
 
   case class ClosedSegment(segmentBytes: Slice[Slice[Byte]],
+                           minMaxFunctionId: Option[MinMax],
                            nearestDeadline: Option[Deadline]) {
 
     def isEmpty: Boolean =
@@ -105,6 +110,7 @@ private[core] object SegmentWriter extends LazyLogging {
                                   hashIndex: Option[HashIndex.State],
                                   binarySearchIndex: Option[BinarySearchIndex.State],
                                   bloomFilter: Option[BloomFilter.State],
+                                  minMaxFunction: Option[MinMax],
                                   nearestDeadline: Option[Deadline])
 
   def headerSize(hasCompression: Boolean): Int = {
@@ -118,7 +124,8 @@ private[core] object SegmentWriter extends LazyLogging {
                           hashIndex: Option[HashIndex.State],
                           binarySearchIndex: Option[BinarySearchIndex.State],
                           bloomFilter: Option[BloomFilter.State],
-                          currentNearestDeadline: Option[Deadline]): IO[Option[Deadline]] = {
+                          currentMinMaxFunction: Option[MinMax],
+                          currentNearestDeadline: Option[Deadline]): IO[NearestDeadlineMinMaxFunctionId] = {
 
     def writeOne(rootGroup: Option[KeyValue.WriteOnly.Group],
                  keyValue: KeyValue.WriteOnly): IO[Unit] =
@@ -176,30 +183,63 @@ private[core] object SegmentWriter extends LazyLogging {
 
     @tailrec
     def write(keyValues: Slice[KeyValue.WriteOnly],
-              nearestDeadline: Option[Deadline]): Option[Deadline] =
+              currentMinMaxFunction: Option[MinMax],
+              nearestDeadline: Option[Deadline]): NearestDeadlineMinMaxFunctionId =
       keyValues.headOption match {
         case Some(keyValue) =>
           val nextNearestDeadline = Segment.getNearestDeadline(nearestDeadline, keyValue)
+          var nextMinMaxFunctionId = currentMinMaxFunction
 
-          if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-            keyValue match {
-              case rootGroup: KeyValue.WriteOnly.Group =>
+          keyValue match {
+            case rootGroup: Transient.Group =>
+              nextMinMaxFunctionId = MinMax.getMinMax(currentMinMaxFunction, rootGroup.minMaxFunctionId)(FunctionStore.order)
+
+              if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeMany(
                   rootGroup = Some(rootGroup),
                   keyValues = rootGroup.keyValues
                 ).get
 
-              case _: KeyValue.WriteOnly.Range | _: KeyValue.WriteOnly.Fixed =>
+            case range: Transient.Range =>
+              nextMinMaxFunctionId = MinMax.minMax(currentMinMaxFunction, range.fromValue)(FunctionStore.order)
+              nextMinMaxFunctionId = MinMax.minMax(currentMinMaxFunction, range.rangeValue)(FunctionStore.order)
+
+              if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(
                   rootGroup = None,
-                  keyValue = keyValue
+                  keyValue = range
                 ).get
-            }
 
-          write(keyValues.drop(1), nextNearestDeadline)
+            case function: Transient.Function =>
+              nextMinMaxFunctionId = Some(MinMax.minMax(currentMinMaxFunction, function.function)(FunctionStore.order))
+
+              if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
+                writeOne(
+                  rootGroup = None,
+                  keyValue = function
+                ).get
+
+            case pendingApply: Transient.PendingApply =>
+              nextMinMaxFunctionId = MinMax.minMaxWithValue(currentMinMaxFunction, pendingApply.applies)(FunctionStore.order)
+
+              if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
+                writeOne(
+                  rootGroup = None,
+                  keyValue = pendingApply
+                ).get
+
+            case others @ (_: Transient.Put | _: Transient.Remove| _: Transient.Update) =>
+              if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
+                writeOne(
+                  rootGroup = None,
+                  keyValue = others
+                ).get
+          }
+
+          write(keyValues.drop(1), nextMinMaxFunctionId, nextNearestDeadline)
 
         case None =>
-          nearestDeadline
+          NearestDeadlineMinMaxFunctionId(nearestDeadline, currentMinMaxFunction)
       }
 
     if (keyValue.valueEntryBytes.nonEmpty && values.isEmpty)
@@ -212,6 +252,7 @@ private[core] object SegmentWriter extends LazyLogging {
           _ =>
             write(
               keyValues = Slice(keyValue),
+              currentMinMaxFunction = currentMinMaxFunction,
               nearestDeadline = currentNearestDeadline
             )
         }
@@ -222,6 +263,7 @@ private[core] object SegmentWriter extends LazyLogging {
                           hashIndex: Option[HashIndex.State],
                           binarySearchIndex: Option[BinarySearchIndex.State],
                           bloomFilter: Option[BloomFilter.State],
+                          minMaxFunction: Option[MinMax],
                           nearestDeadline: Option[Deadline]): IO[ClosedBlocks] =
     for {
       sortedIndexClosed <- SortedIndex.close(sortedIndex)
@@ -236,6 +278,7 @@ private[core] object SegmentWriter extends LazyLogging {
         hashIndex = hashIndexClosed,
         binarySearchIndex = binarySearchIndexClosed,
         bloomFilter = bloomFilterClosed,
+        minMaxFunction = minMaxFunction,
         nearestDeadline = nearestDeadline
       )
 
@@ -245,8 +288,8 @@ private[core] object SegmentWriter extends LazyLogging {
                     hashIndex: Option[HashIndex.State],
                     binarySearchIndex: Option[BinarySearchIndex.State],
                     bloomFilter: Option[BloomFilter.State]): IO[ClosedBlocks] =
-    keyValues.foldLeftIO(Option.empty[Deadline]) {
-      case (deadline, keyValue) =>
+    keyValues.foldLeftIO(NearestDeadlineMinMaxFunctionId(None, None)) {
+      case (nearestDeadlineMinMaxFunctionId, keyValue) =>
         writeBlocks(
           keyValue = keyValue,
           sortedIndex = sortedIndex,
@@ -254,17 +297,19 @@ private[core] object SegmentWriter extends LazyLogging {
           hashIndex = hashIndex,
           bloomFilter = bloomFilter,
           binarySearchIndex = binarySearchIndex,
-          currentNearestDeadline = deadline
+          currentMinMaxFunction = nearestDeadlineMinMaxFunctionId.minMaxFunctionId,
+          currentNearestDeadline = nearestDeadlineMinMaxFunctionId.nearestDeadline
         )
     } flatMap {
-      nearestDeadline =>
+      nearestDeadlineMinMaxFunctionId =>
         closeBlocks(
           sortedIndex = sortedIndex,
           values = values,
           hashIndex = hashIndex,
           bloomFilter = bloomFilter,
           binarySearchIndex = binarySearchIndex,
-          nearestDeadline = nearestDeadline
+          minMaxFunction = nearestDeadlineMinMaxFunctionId.minMaxFunctionId,
+          nearestDeadline = nearestDeadlineMinMaxFunctionId.nearestDeadline
         )
     } flatMap {
       result =>
@@ -418,6 +463,7 @@ private[core] object SegmentWriter extends LazyLogging {
         binarySearchIndex = binarySearchIndex map (_.bytes.close()),
         bloomFilter = bloomFilter map (_.bytes.close()),
         footer = segmentFooterSlice.close(),
+        functionMinMax = closeResult.minMaxFunction,
         nearestDeadline = closeResult.nearestDeadline
       )
     } flatMap {
