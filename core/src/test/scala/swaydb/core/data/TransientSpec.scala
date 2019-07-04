@@ -101,7 +101,7 @@ class TransientSpec extends TestBase {
           keyValue.stats.chainPosition shouldBe 1
           keyValue.stats.segmentTotalNumberOfRanges shouldBe 0
           keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
+          keyValue.stats.thisKeyValueRealIndexOffset shouldBe 0
           keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
           keyValue.stats.segmentUniqueKeysCount shouldBe 1
 
@@ -112,7 +112,7 @@ class TransientSpec extends TestBase {
           keyValue.stats.chainPosition shouldBe 1
           keyValue.stats.segmentTotalNumberOfRanges shouldBe 0
           keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
+          keyValue.stats.thisKeyValueRealIndexOffset shouldBe 0
           keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
           keyValue.stats.segmentUniqueKeysCount shouldBe 1
 
@@ -123,7 +123,7 @@ class TransientSpec extends TestBase {
           keyValue.stats.chainPosition shouldBe 1
           keyValue.stats.segmentTotalNumberOfRanges shouldBe 0
           keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
+          keyValue.stats.thisKeyValueRealIndexOffset shouldBe 0
           keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
           keyValue.stats.segmentUniqueKeysCount shouldBe 1
 
@@ -134,7 +134,7 @@ class TransientSpec extends TestBase {
           keyValue.stats.chainPosition shouldBe 1
           keyValue.stats.segmentTotalNumberOfRanges shouldBe 0
           keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
+          keyValue.stats.thisKeyValueRealIndexOffset shouldBe 0
           keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
           keyValue.stats.segmentUniqueKeysCount shouldBe 1
 
@@ -145,7 +145,7 @@ class TransientSpec extends TestBase {
           keyValue.stats.chainPosition shouldBe 1
           keyValue.stats.segmentTotalNumberOfRanges shouldBe 0
           keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
+          keyValue.stats.thisKeyValueRealIndexOffset shouldBe 0
           keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
           keyValue.stats.segmentUniqueKeysCount shouldBe 1
 
@@ -156,7 +156,7 @@ class TransientSpec extends TestBase {
           keyValue.stats.chainPosition shouldBe 1
           keyValue.stats.segmentTotalNumberOfRanges shouldBe 1
           keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
+          keyValue.stats.thisKeyValueRealIndexOffset shouldBe 0
           keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
           keyValue.stats.segmentUniqueKeysCount shouldBe 1
 
@@ -167,7 +167,7 @@ class TransientSpec extends TestBase {
           keyValue.stats.chainPosition shouldBe 1
           keyValue.stats.segmentTotalNumberOfRanges shouldBe countRangesManually(keyValue.keyValues)
           keyValue.stats.groupsCount shouldBe 1
-          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
+          keyValue.stats.thisKeyValueRealIndexOffset shouldBe 0
           keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
           keyValue.stats.segmentUniqueKeysCount shouldBe keyValue.keyValues.last.stats.segmentUniqueKeysCount
       }

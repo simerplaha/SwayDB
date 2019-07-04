@@ -226,8 +226,7 @@ private[core] object HashIndex extends LazyLogging {
     //add 1 to each offset to avoid 0 offsets.
     //0 bytes are reserved as empty bucket markers.
     val valuePlusOne = value + 1
-    //+1 to reserve left 0 byte.
-    val bytesRequired = Bytes.sizeOf(valuePlusOne) + 1
+    val valueBytes = Slice.writeIntUnsigned(valuePlusOne)
 
     val hash = key.##
     val hash1 = hash >>> 32
@@ -248,12 +247,14 @@ private[core] object HashIndex extends LazyLogging {
             writeAbleLargestValueSize = state.writeAbleLargestValueSize
           )
 
-        val existing = state.bytes.take(hashIndex, bytesRequired + 1) //read one more to not overwrite next zero.
+        val existing = state.bytes.take(hashIndex, valueBytes.size + 2) ////+1 to reserve left 0 byte another +1 not overwrite next 0.
         if (existing.forall(_ == 0)) {
           state.bytes moveWritePosition (hashIndex + 1)
-          state.bytes addIntUnsigned valuePlusOne
+          state.bytes addAll valueBytes
           state.hit += 1
           //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = success")
+          true
+        } else if (existing == valueBytes) {
           true
         } else {
           //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = failure")

@@ -101,7 +101,7 @@ private[core] object Stats {
     val thisKeyValuesRealIndexOffset =
       previousStats map {
         previous =>
-          previous.thisKeyValueIndexOffset + previous.thisKeyValuesSortedIndexEntrySize
+          previous.thisKeyValueRealIndexOffset + previous.thisKeyValuesSortedIndexEntrySize
       } getOrElse 0
 
     //starts from 0. Do not need the actual index offset for space efficiency. The actual indexOffset can be adjust during read.
@@ -118,12 +118,12 @@ private[core] object Stats {
         Values.headerSize(values.hasCompression) +
           valueLength
 
-    val thisKeyValuesSegmentKeyAndValueSize =
+    val thisKeyValuesSegmentSortedIndexAndValueSize =
       thisKeyValuesSegmentValueSize +
         thisKeyValuesSortedIndexSizeWithoutFooter
 
     //Items to add to BloomFilters is different to the position because a Group can contain
-    //multiple inner key-values but the Group's key itself does not find added to the BloomFilter.
+    //multiple inner key-values but the Group's key itself does not get added to the BloomFilter.
     val segmentUniqueKeysCount =
     previousStats.map(_.segmentUniqueKeysCount + thisKeyValuesUniqueKeys) getOrElse thisKeyValuesUniqueKeys
 
@@ -276,10 +276,10 @@ private[core] object Stats {
       segmentSizeWithoutFooter = segmentSizeWithoutFooter,
       segmentSizeWithoutFooterForNextGroup = segmentSizeWithoutFooterForNextGroup,
       segmentUniqueAccessIndexKeyCounts = segmentUniqueAccessIndexKeyCounts,
-      thisKeyValuesSegmentKeyAndValueSize = thisKeyValuesSegmentKeyAndValueSize,
+      thisKeyValuesSegmentKeyAndValueSize = thisKeyValuesSegmentSortedIndexAndValueSize,
       thisKeyValuesSortedIndexEntrySize = thisKeyValuesSortedIndexEntrySize,
       thisKeyValuesAccessIndexOffset = thisKeyValuesAccessIndexOffset,
-      thisKeyValueIndexOffset = thisKeyValuesRealIndexOffset,
+      thisKeyValueRealIndexOffset = thisKeyValuesRealIndexOffset,
       thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
       segmentHashIndexSize = segmentHashIndexSize,
       segmentBloomFilterSize = segmentBloomFilterSize,
@@ -311,7 +311,7 @@ private[core] case class Stats(valueLength: Int,
                                thisKeyValuesSegmentKeyAndValueSize: Int,
                                thisKeyValuesSortedIndexEntrySize: Int,
                                thisKeyValuesAccessIndexOffset: Int,
-                               thisKeyValueIndexOffset: Int,
+                               private[data] val thisKeyValueRealIndexOffset: Int,
                                thisKeyValueAccessIndexPosition: Int,
                                segmentHashIndexSize: Int,
                                segmentBloomFilterSize: Int,

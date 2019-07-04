@@ -100,13 +100,13 @@ object Slice {
     Slice.create[Byte](1).addBoolean(boolean)
 
   def writeIntUnsigned(int: Int): Slice[Byte] =
-    Slice.create[Byte](ByteSizeOf.int + 1).addIntUnsigned(int).close()
+    Slice.create[Byte](ByteSizeOf.varInt).addIntUnsigned(int).close()
 
   def writeLong(long: Long): Slice[Byte] =
     Slice.create[Byte](ByteSizeOf.long).addLong(long)
 
   def writeLongUnsigned(long: Long): Slice[Byte] =
-    Slice.create[Byte](ByteSizeOf.long + 1).addLongUnsigned(long).close()
+    Slice.create[Byte](ByteSizeOf.varLong).addLongUnsigned(long).close()
 
   def writeString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] =
     Slice(string.getBytes(charsets))
