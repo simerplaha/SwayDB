@@ -94,7 +94,7 @@ object DefaultEventuallyPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedIndex =
           SortedIndex.Enable(
-            cacheOnRead = false,
+            cacheOnAccess = false,
             enablePositionIndex = true,
             prefixCompression =
               PrefixCompression.Enable(
@@ -108,27 +108,27 @@ object DefaultEventuallyPersistentConfig {
             maxProbe = 5,
             minimumNumberOfKeys = 20,
             allocateSpace = _.requiredSpace * 2,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 5,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         mightContainKey =
           MightContain.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         values =
           Values(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         segmentCompressions = Seq.empty,

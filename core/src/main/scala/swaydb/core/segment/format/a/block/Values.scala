@@ -36,7 +36,7 @@ object Values {
       Values.Config(
         compressDuplicateValues = false,
         compressDuplicateRangeValues = false,
-        cacheOnRead = false,
+        cacheOnAccess = false,
         hasCompression = false
       )
 
@@ -44,14 +44,14 @@ object Values {
       Config(
         compressDuplicateValues = config.compressDuplicateValues,
         compressDuplicateRangeValues = config.compressDuplicateRangeValues,
-        cacheOnRead = config.cacheOnRead,
+        cacheOnAccess = config.cacheOnAccess,
         hasCompression = config.compression.nonEmpty
       )
   }
 
   case class Config(compressDuplicateValues: Boolean,
                     compressDuplicateRangeValues: Boolean,
-                    cacheOnRead: Boolean,
+                    cacheOnAccess: Boolean,
                     hasCompression: Boolean)
 
   def valueNotFound: IO.Failure[Nothing] =

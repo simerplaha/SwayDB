@@ -37,7 +37,7 @@ object BloomFilter extends LazyLogging {
       Config(
         falsePositiveRate = 0.0,
         minimumNumberOfKeys = Int.MaxValue,
-        cacheOnRead = false,
+        cacheOnAccess = false,
         hasCompression = false
       )
 
@@ -47,14 +47,14 @@ object BloomFilter extends LazyLogging {
           Config(
             falsePositiveRate = 0.0,
             minimumNumberOfKeys = Int.MaxValue,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             hasCompression = false
           )
         case enable: swaydb.data.config.MightContain.Enable =>
           Config(
             falsePositiveRate = enable.falsePositiveRate,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
-            cacheOnRead = enable.cacheOnRead,
+            cacheOnAccess = enable.cacheOnAccess,
             hasCompression = enable.compression.nonEmpty
           )
       }
@@ -62,7 +62,7 @@ object BloomFilter extends LazyLogging {
 
   case class Config(falsePositiveRate: Double,
                     minimumNumberOfKeys: Int,
-                    cacheOnRead: Boolean,
+                    cacheOnAccess: Boolean,
                     hasCompression: Boolean)
 
   case class Offset(start: Int, size: Int) extends OffsetBase

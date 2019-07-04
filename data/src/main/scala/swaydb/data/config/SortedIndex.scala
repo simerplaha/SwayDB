@@ -29,7 +29,7 @@ sealed trait SortedIndex {
     }
 }
 object SortedIndex {
-  case class Enable(cacheOnRead: Boolean,
+  case class Enable(cacheOnAccess: Boolean,
                     prefixCompression: PrefixCompression,
                     enablePositionIndex: Boolean,
                     compression: Seq[Compression]) extends SortedIndex

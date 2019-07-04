@@ -67,12 +67,12 @@ class ValueReaderWriterSpec extends TestBase {
               Values.Config(
                 compressDuplicateValues = true,
                 compressDuplicateRangeValues = true,
-                cacheOnRead = false,
+                cacheOnAccess = false,
                 hasCompression = true
               ),
             sortedIndexConfig =
               SortedIndex.Config(
-                cacheOnRead = false,
+                cacheOnAccess = false,
                 prefixCompressionResetCount = 0,
                 hasCompression = false,
                 enableAccessPositionIndex = true

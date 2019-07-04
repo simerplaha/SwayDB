@@ -88,7 +88,7 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedIndex =
           SortedIndex.Enable(
-            cacheOnRead = false,
+            cacheOnAccess = false,
             enablePositionIndex = true,
             prefixCompression =
               PrefixCompression.Enable(
@@ -101,27 +101,27 @@ object DefaultPersistentConfig {
             maxProbe = 5,
             minimumNumberOfKeys = 20,
             allocateSpace = _.requiredSpace * 2,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         mightContainKey =
           MightContain.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         values =
           Values(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         blockCompressions = Seq.empty,
@@ -145,7 +145,7 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedIndex =
           SortedIndex.Enable(
-            cacheOnRead = false,
+            cacheOnAccess = false,
             enablePositionIndex = true,
             prefixCompression =
               PrefixCompression.Enable(
@@ -158,27 +158,27 @@ object DefaultPersistentConfig {
             maxProbe = 5,
             minimumNumberOfKeys = 20,
             allocateSpace = _.requiredSpace * 2,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         mightContain =
           MightContain.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         values =
           Values(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         segmentCompressions = Seq.empty,
@@ -202,7 +202,7 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedIndex =
           SortedIndex.Enable(
-            cacheOnRead = false,
+            cacheOnAccess = false,
             enablePositionIndex = true,
             prefixCompression =
               PrefixCompression.Enable(
@@ -215,20 +215,20 @@ object DefaultPersistentConfig {
             maxProbe = 5,
             minimumNumberOfKeys = 20,
             allocateSpace = _.requiredSpace * 2,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         mightContain =
           MightContain.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         values =
@@ -236,7 +236,7 @@ object DefaultPersistentConfig {
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             compression = Seq.empty,
-            cacheOnRead = false
+            cacheOnAccess = false
           ),
         segmentCompressions = Seq.empty,
         groupingStrategy = None,
@@ -259,7 +259,7 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedIndex =
           SortedIndex.Enable(
-            cacheOnRead = false,
+            cacheOnAccess = false,
             enablePositionIndex = true,
             prefixCompression =
               PrefixCompression.Enable(
@@ -272,27 +272,27 @@ object DefaultPersistentConfig {
             maxProbe = 5,
             minimumNumberOfKeys = 20,
             allocateSpace = _.requiredSpace * 2,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         mightContain =
           MightContain.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         values =
           Values(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         segmentCompressions = Seq.empty,
@@ -316,7 +316,7 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedIndex =
           SortedIndex.Enable(
-            cacheOnRead = false,
+            cacheOnAccess = false,
             enablePositionIndex = true,
             prefixCompression =
               PrefixCompression.Enable(
@@ -329,27 +329,27 @@ object DefaultPersistentConfig {
             maxProbe = 5,
             minimumNumberOfKeys = 20,
             allocateSpace = _.requiredSpace * 2,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         mightContain =
           MightContain.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         values =
           Values(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         segmentCompressions = Seq.empty,
@@ -375,7 +375,7 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedIndex =
           SortedIndex.Enable(
-            cacheOnRead = false,
+            cacheOnAccess = false,
             enablePositionIndex = true,
             prefixCompression =
               PrefixCompression.Enable(
@@ -388,27 +388,27 @@ object DefaultPersistentConfig {
             maxProbe = 5,
             minimumNumberOfKeys = 20,
             allocateSpace = _.requiredSpace * 2,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         mightContain =
           MightContain.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         values =
           Values(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         segmentCompressions = Seq.empty,

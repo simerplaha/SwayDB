@@ -59,12 +59,12 @@ class TransientSpec extends TestBase {
           Values.Config(
             compressDuplicateValues = randomBoolean(),
             compressDuplicateRangeValues = false,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             hasCompression = false
           ),
         sortedIndexConfig =
           SortedIndex.Config(
-            cacheOnRead = randomBoolean(),
+            cacheOnAccess = randomBoolean(),
             prefixCompressionResetCount = 0,
             enableAccessPositionIndex = true,
             hasCompression = true
@@ -74,7 +74,7 @@ class TransientSpec extends TestBase {
             enabled = true,
             minimumNumberOfKeys = 0,
             fullIndex = true,
-            cacheOnRead = randomBoolean(),
+            cacheOnAccess = randomBoolean(),
             hasCompression = false
           ),
         hashIndexConfig =
@@ -82,14 +82,14 @@ class TransientSpec extends TestBase {
             maxProbe = -1,
             minimumNumberOfKeys = Int.MaxValue,
             allocateSpace = _ => Int.MinValue,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             hasCompression = false
           ),
         bloomFilterConfig =
           BloomFilter.Config(
             falsePositiveRate = Random.nextDouble(),
             minimumNumberOfKeys = randomIntMax(100),
-            cacheOnRead = randomBoolean(),
+            cacheOnAccess = randomBoolean(),
             hasCompression = randomBoolean()
           )
 

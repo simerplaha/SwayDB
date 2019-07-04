@@ -457,7 +457,7 @@ object TestData {
       Values.Config(
         compressDuplicateValues = randomBoolean(),
         compressDuplicateRangeValues = randomBoolean(),
-        cacheOnRead = randomBoolean(),
+        cacheOnAccess = randomBoolean(),
         hasCompression = true
       )
   }
@@ -465,7 +465,7 @@ object TestData {
   implicit class SortedIndexConfig(values: SortedIndex.Config.type) {
     def random =
       SortedIndex.Config(
-        cacheOnRead = randomBoolean(),
+        cacheOnAccess = randomBoolean(),
         prefixCompressionResetCount = randomIntMax(50),
         enableAccessPositionIndex = randomBoolean(),
         hasCompression = true
@@ -478,7 +478,7 @@ object TestData {
         enabled = randomBoolean(),
         minimumNumberOfKeys = randomIntMax(10),
         fullIndex = randomBoolean(),
-        cacheOnRead = randomBoolean(),
+        cacheOnAccess = randomBoolean(),
         hasCompression = true
       )
   }
@@ -489,7 +489,7 @@ object TestData {
         maxProbe = randomIntMax(10),
         minimumNumberOfKeys = randomIntMax(10),
         allocateSpace = _.requiredSpace * randomIntMax(3),
-        cacheOnRead = randomBoolean(),
+        cacheOnAccess = randomBoolean(),
         hasCompression = true
       )
   }
@@ -499,7 +499,7 @@ object TestData {
       BloomFilter.Config(
         falsePositiveRate = Random.nextDouble(),
         minimumNumberOfKeys = randomIntMax(100),
-        cacheOnRead = randomBoolean(),
+        cacheOnAccess = randomBoolean(),
         hasCompression = randomBoolean()
       )
   }

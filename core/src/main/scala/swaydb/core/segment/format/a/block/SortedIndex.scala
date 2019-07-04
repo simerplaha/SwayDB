@@ -38,7 +38,7 @@ private[core] object SortedIndex {
   object Config {
     val disabled =
       Config(
-        cacheOnRead = false,
+        cacheOnAccess = false,
         enableAccessPositionIndex = false,
         prefixCompressionResetCount = 0,
         hasCompression = false
@@ -52,7 +52,7 @@ private[core] object SortedIndex {
 
     def apply(config: swaydb.data.config.SortedIndex.Enable): Config =
       Config(
-        cacheOnRead = config.cacheOnRead,
+        cacheOnAccess = config.cacheOnAccess,
         enableAccessPositionIndex = config.enablePositionIndex,
         prefixCompressionResetCount = config.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0),
         hasCompression = config.compression.nonEmpty
@@ -66,7 +66,7 @@ private[core] object SortedIndex {
         }
   }
 
-  case class Config(cacheOnRead: Boolean,
+  case class Config(cacheOnAccess: Boolean,
                     prefixCompressionResetCount: Int,
                     enableAccessPositionIndex: Boolean,
                     hasCompression: Boolean)
@@ -120,7 +120,7 @@ private[core] object SortedIndex {
 
   def write(keyValue: KeyValue.WriteOnly, state: SortedIndex.State) =
     IO {
-      state.bytes addIntUnsigned keyValue.stats.thisKeyValuesSortedIndexEntrySize
+      state.bytes addIntUnsigned keyValue.stats.thisKeyValuesSortedIndexSize
       if (state.enableAccessPositionIndex) state.bytes addIntUnsigned keyValue.stats.thisKeyValueAccessIndexPosition
       state.bytes addAll keyValue.indexEntryBytes
     }

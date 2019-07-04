@@ -33,7 +33,7 @@ object HashIndex {
   case class Enable(maxProbe: Int,
                     minimumNumberOfKeys: Int,
                     allocateSpace: HashIndexSpace => Int,
-                    cacheOnRead: Boolean,
+                    cacheOnAccess: Boolean,
                     compression: Seq[Compression]) extends HashIndex
 
   trait HashIndexSpace {

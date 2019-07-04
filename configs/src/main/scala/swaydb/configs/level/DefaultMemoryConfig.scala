@@ -67,7 +67,7 @@ object DefaultMemoryConfig {
           MightContain.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 100,
-            cacheOnRead = false,
+            cacheOnAccess = false,
             compression = Seq.empty
           ),
         groupingStrategy = groupingStrategy,

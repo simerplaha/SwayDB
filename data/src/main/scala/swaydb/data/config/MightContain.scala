@@ -34,6 +34,6 @@ object MightContain {
   case object Disable extends MightContain
   case class Enable(falsePositiveRate: Double,
                     minimumNumberOfKeys: Int,
-                    cacheOnRead: Boolean,
+                    cacheOnAccess: Boolean,
                     compression: Seq[Compression]) extends MightContain
 }
