@@ -202,6 +202,7 @@ private[core] object KeyValue {
     val isRange: Boolean
     val isGroup: Boolean
     val previous: Option[KeyValue.WriteOnly]
+    def values: Slice[Slice[Byte]]
     def valuesConfig: Values.Config
     def sortedIndexConfig: SortedIndex.Config
     def binarySearchIndexConfig: BinarySearchIndex.Config
@@ -547,6 +548,55 @@ private[core] sealed trait Transient extends KeyValue.WriteOnly
 
 private[core] object Transient {
 
+  def hasSameValue(left: KeyValue.WriteOnly, right: KeyValue.WriteOnly): Boolean =
+    (left, right) match {
+      //Groups
+      case (_: Transient.Group, right: Transient) => false
+      case (_: Transient, right: Transient.Group) => false
+      //Remove
+      case (left: Transient.Remove, right: Transient.Remove) => true
+      case (left: Transient.Remove, right: Transient.Put) => right.value.isEmpty
+      case (left: Transient.Remove, right: Transient.Update) => right.value.isEmpty
+      case (left: Transient.Remove, right: Transient.Function) => false
+      case (left: Transient.Remove, right: Transient.PendingApply) => false
+      case (left: Transient.Remove, right: Transient.Range) => false
+      //Put
+      case (left: Transient.Put, right: Transient.Remove) => left.value.isEmpty
+      case (left: Transient.Put, right: Transient.Put) => left.value == right.value
+      case (left: Transient.Put, right: Transient.Update) => left.value == right.value
+      case (left: Transient.Put, right: Transient.Function) => left.value contains right.function
+      case (left: Transient.Put, right: Transient.PendingApply) => false
+      case (left: Transient.Put, right: Transient.Range) => false
+      //Update
+      case (left: Transient.Update, right: Transient.Remove) => left.value.isEmpty
+      case (left: Transient.Update, right: Transient.Put) => left.value == right.value
+      case (left: Transient.Update, right: Transient.Update) => left.value == right.value
+      case (left: Transient.Update, right: Transient.Function) => left.value contains right.function
+      case (left: Transient.Update, right: Transient.PendingApply) => false
+      case (left: Transient.Update, right: Transient.Range) => false
+      //Function
+      case (left: Transient.Function, right: Transient.Remove) => false
+      case (left: Transient.Function, right: Transient.Put) => right.value contains left.function
+      case (left: Transient.Function, right: Transient.Update) => right.value contains left.function
+      case (left: Transient.Function, right: Transient.Function) => left.function == right.function
+      case (left: Transient.Function, right: Transient.PendingApply) => false
+      case (left: Transient.Function, right: Transient.Range) => false
+      //PendingApply
+      case (left: Transient.Function, right: Transient.Remove) => false
+      case (left: Transient.Function, right: Transient.Put) => right.value contains left.function
+      case (left: Transient.Function, right: Transient.Update) => right.value contains left.function
+      case (left: Transient.Function, right: Transient.Function) => left.function == right.function
+      case (left: Transient.Function, right: Transient.PendingApply) => false
+      case (left: Transient.Function, right: Transient.Range) => false
+      //Range
+      case (left: Transient.Range, right: Transient.Remove) => false
+      case (left: Transient.Range, right: Transient.Put) => false
+      case (left: Transient.Range, right: Transient.Update) => false
+      case (left: Transient.Range, right: Transient.Function) => false
+      case (left: Transient.Range, right: Transient.PendingApply) => false
+      case (left: Transient.Range, right: Transient.Range) => left.fromValue == right.fromValue && left.rangeValue == right.rangeValue
+    }
+
   private[core] sealed trait SegmentResponse extends Transient {
     def value: Option[Slice[Byte]]
   }
@@ -597,7 +647,8 @@ private[core] object Transient {
     override val isRange: Boolean = false
     override val isGroup: Boolean = false
     override val isRemoveRangeMayBe = false
-    override val value: Option[Slice[Byte]] = None
+    override def value: Option[Slice[Byte]] = None
+    override def values: Slice[Slice[Byte]] = Slice.emptyEmptyBytes
 
     override val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
@@ -664,6 +715,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
+    override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
@@ -731,6 +783,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
+    override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
@@ -797,7 +850,8 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
-    override val value: Option[Slice[Byte]] = Some(function)
+    override def value: Option[Slice[Byte]] = Some(function)
+    override def values: Slice[Slice[Byte]] = Slice(function)
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
@@ -864,6 +918,7 @@ private[core] object Transient {
     override val isRange: Boolean = false
     override val deadline: Option[Deadline] = Segment.getNearestDeadline(None, applies)
     override val value: Option[Slice[Byte]] = Some(ValueSerializer.writeBytes(applies))
+    override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     override def time = Time.fromApplies(applies)
 
@@ -930,9 +985,14 @@ private[core] object Transient {
                                      hashIndexConfig: HashIndex.Config,
                                      bloomFilterConfig: BloomFilter.Config,
                                      previous: Option[KeyValue.WriteOnly])(implicit rangeValueSerializer: RangeValueSerializer[Unit, R]): Range = {
-      val bytesRequired = rangeValueSerializer.bytesRequired((), rangeValue)
-      val value = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
-      value.foreach(rangeValueSerializer.write((), rangeValue, _))
+
+      def valueSerialiser() = {
+        val bytesRequired = rangeValueSerializer.bytesRequired((), rangeValue)
+        val bytes = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
+        bytes.foreach(rangeValueSerializer.write((), rangeValue, _))
+        bytes
+      }
+
       val fullKey = Bytes.compressJoin(fromKey, toKey)
       new Range(
         fromKey = fromKey,
@@ -940,7 +1000,7 @@ private[core] object Transient {
         fullKey = fullKey,
         fromValue = None,
         rangeValue = rangeValue,
-        value = value,
+        valueSerialiser = valueSerialiser,
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
@@ -960,9 +1020,13 @@ private[core] object Transient {
                                                            hashIndexConfig: HashIndex.Config,
                                                            bloomFilterConfig: BloomFilter.Config,
                                                            previous: Option[KeyValue.WriteOnly])(implicit rangeValueSerializer: RangeValueSerializer[Option[F], R]): Range = {
-      val bytesRequired = rangeValueSerializer.bytesRequired(fromValue, rangeValue)
-      val value = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
-      value.foreach(rangeValueSerializer.write(fromValue, rangeValue, _))
+      def valueSerialiser() = {
+        val bytesRequired = rangeValueSerializer.bytesRequired(fromValue, rangeValue)
+        val bytes = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
+        bytes.foreach(rangeValueSerializer.write(fromValue, rangeValue, _))
+        bytes
+      }
+
       val fullKey: Slice[Byte] = Bytes.compressJoin(fromKey, toKey)
 
       new Range(
@@ -971,7 +1035,7 @@ private[core] object Transient {
         fullKey = fullKey,
         fromValue = fromValue,
         rangeValue = rangeValue,
-        value = value,
+        valueSerialiser = valueSerialiser,
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
@@ -987,7 +1051,7 @@ private[core] object Transient {
                    fullKey: Slice[Byte],
                    fromValue: Option[Value.FromValue],
                    rangeValue: Value.RangeValue,
-                   value: Option[Slice[Byte]],
+                   valueSerialiser: () => Option[Slice[Byte]],
                    valuesConfig: Values.Config,
                    sortedIndexConfig: SortedIndex.Config,
                    binarySearchIndexConfig: BinarySearchIndex.Config,
@@ -1001,6 +1065,8 @@ private[core] object Transient {
     override val isGroup: Boolean = false
     override val isRange: Boolean = true
     override val deadline: Option[Deadline] = None
+    override def value = valueSerialiser()
+    override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
@@ -1105,6 +1171,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe: Boolean = keyValues.last.stats.segmentHasRemoveRange
     override val isRange: Boolean = keyValues.last.stats.segmentHasRange
     override val isGroup: Boolean = true
+    override def values: Slice[Slice[Byte]] = result.segmentBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(

@@ -689,7 +689,7 @@ class Slice[+T: ClassTag](array: Array[T],
   override def equals(that: Any): Boolean =
     that match {
       case other: Slice[T] =>
-        this.size == other.size &&
+        this.written == other.written &&
           this.iterator.sameElements(other.iterator)
 
       case _ =>
