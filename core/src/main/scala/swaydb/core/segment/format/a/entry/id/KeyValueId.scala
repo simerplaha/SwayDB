@@ -40,7 +40,7 @@ sealed trait KeyValueId {
     keyValueId >= minKey_Uncompressed_KeyValueId && keyValueId <= maxKey_Uncompressed_KeyValueId
 
   /**
-    * Given persisted entryID convert it to
+    * Given persisted entryID convert it to [[BaseEntryId]].
     */
   def adjustKeyValueIdToBaseId(keyValueId: Int): Int =
     if (isKeyValueId_CompressedKey(keyValueId))

@@ -22,7 +22,7 @@ package swaydb.core.data
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
 import swaydb.core.io.reader.Reader
-import swaydb.core.map.serializer.RangeValueSerializer
+import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.entry.reader.value._
@@ -863,7 +863,7 @@ private[core] object Transient {
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
     override val deadline: Option[Deadline] = Segment.getNearestDeadline(None, applies)
-    val value: Option[Slice[Byte]] = ??? //Some(ValueSerializer.writeBytes(applies)) TODO - remove values
+    override val value: Option[Slice[Byte]] = Some(ValueSerializer.writeBytes(applies))
 
     override def time = Time.fromApplies(applies)
 

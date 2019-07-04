@@ -70,9 +70,7 @@ class ActivePendingApplyValueReader(applies: Slice[Value.Apply]) extends LazyPen
   override def getOrFetchApplies: IO[Slice[Value.Apply]] = IO.Success(applies)
 
   override val valueReader: BlockReader[Values] = {
-    val bytesRequires = ValueSerializer.bytesRequired(applies)
-    val slice = Slice.create[Byte](bytesRequires)
-    ValueSerializer.write(applies)(slice)
+    val slice = ValueSerializer.writeBytes(applies)
     BlockReader(
       reader = Reader(slice),
       block = Values(Values.Offset(0, slice.written), 0, None)
@@ -80,7 +78,7 @@ class ActivePendingApplyValueReader(applies: Slice[Value.Apply]) extends LazyPen
   }
 
   override def valueLength: Int =
-    ValueSerializer.bytesRequired(applies)
+    valueReader.block.offset.size
 
   override def valueOffset: Int =
     0

@@ -34,7 +34,7 @@ import swaydb.serializers._
 
 class ValueReaderWriterSpec extends TestBase {
 
-  "it" should {
+  "write" should {
     "not compress valueOffset and valueLength if prefixCompression is disabled and compressDuplicateValues is true" in {
       implicit val binder = TransientToKeyValueIdBinder.PutBinder
 
@@ -109,7 +109,7 @@ class ValueReaderWriterSpec extends TestBase {
           blockCompressions = BlocksCompression.disabled
         ).get.flattenSegmentBytes
 
-      val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getIndexes(Reader(bytes)).get
+      val (footer, valuesReader, sortedIndex, _, _, _) = getIndexes(Reader(bytes)).get
 
       footer.hasGroup shouldBe false
       footer.bloomFilterItemsCount shouldBe keyValues.size
