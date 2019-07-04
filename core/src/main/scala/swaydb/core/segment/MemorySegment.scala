@@ -45,7 +45,7 @@ import scala.concurrent.duration.Deadline
 private[segment] case class MemorySegment(path: Path,
                                           minKey: Slice[Byte],
                                           maxKey: MaxKey[Slice[Byte]],
-                                          minMaxFunctionId: Option[MinMax],
+                                          minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                           segmentSize: Int,
                                           _hasRange: Boolean,
                                           _hasPut: Boolean,

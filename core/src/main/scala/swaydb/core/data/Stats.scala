@@ -56,17 +56,8 @@ private[core] object Stats {
     val hasRemoveRange =
       previous.exists(_.stats.segmentHasRemoveRange) || isRemoveRange
 
-    val segmentHasRange =
-      hasRemoveRange || previous.exists(_.stats.segmentHasRange) || isRange
-
-    val segmentHasPut =
-      previous.exists(_.stats.segmentHasPut) || isPut
-
     val chainPosition =
       previousStats.map(_.chainPosition + 1) getOrElse 1
-
-    val segmentTotalNumberOfRanges =
-      previousStats.map(_.segmentTotalNumberOfRanges + numberOfRanges) getOrElse numberOfRanges
 
     val groupsCount =
       if (isGroup)
@@ -121,6 +112,15 @@ private[core] object Stats {
     val thisKeyValuesSegmentSortedIndexAndValueSize =
       thisKeyValuesSegmentValueSize +
         thisKeyValuesSortedIndexSizeWithoutFooter
+
+    val segmentHasRange =
+      hasRemoveRange || previous.exists(_.stats.segmentHasRange) || isRange
+
+    val segmentHasPut =
+      previous.exists(_.stats.segmentHasPut) || isPut
+
+    val segmentTotalNumberOfRanges =
+      previousStats.map(_.segmentTotalNumberOfRanges + numberOfRanges) getOrElse numberOfRanges
 
     //Items to add to BloomFilters is different to the position because a Group can contain
     //multiple inner key-values but the Group's key itself does not get added to the BloomFilter.

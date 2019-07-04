@@ -20,14 +20,15 @@
 package swaydb.core.segment.format.a
 
 import swaydb.core.util.MinMax
+import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.Deadline
 
 object NearestDeadlineMinMaxFunctionId {
   def apply(deadline: Option[Deadline],
-            minMaxFunctionId: Option[MinMax]): NearestDeadlineMinMaxFunctionId =
+            minMaxFunctionId: Option[MinMax[Slice[Byte]]]): NearestDeadlineMinMaxFunctionId =
     new NearestDeadlineMinMaxFunctionId(deadline, minMaxFunctionId)
 }
 
 class NearestDeadlineMinMaxFunctionId(val nearestDeadline: Option[Deadline],
-                                      val minMaxFunctionId: Option[MinMax])
+                                      val minMaxFunctionId: Option[MinMax[Slice[Byte]]])

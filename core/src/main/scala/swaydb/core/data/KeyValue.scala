@@ -293,7 +293,7 @@ private[core] object KeyValue {
     sealed trait Group extends KeyValue.WriteOnly {
       def minKey: Slice[Byte]
       def maxKey: MaxKey[Slice[Byte]]
-      def minMaxFunctionId: Option[MinMax]
+      def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
       def fullKey: Slice[Byte]
       def keyValues: Slice[KeyValue.WriteOnly]
     }
@@ -1156,7 +1156,7 @@ private[core] object Transient {
                    fullKey: Slice[Byte],
                    result: SegmentWriter.ClosedSegment,
                    //the deadline is the nearest deadline in the Group's key-values.
-                   minMaxFunctionId: Option[MinMax],
+                   minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                    deadline: Option[Deadline],
                    keyValues: Slice[KeyValue.WriteOnly],
                    valuesConfig: Values.Config,

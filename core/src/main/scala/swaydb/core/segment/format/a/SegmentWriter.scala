@@ -62,7 +62,7 @@ private[core] object SegmentWriter extends LazyLogging {
               binarySearchIndex: Option[Slice[Byte]],
               bloomFilter: Option[Slice[Byte]],
               footer: Slice[Byte],
-              functionMinMax: Option[MinMax],
+              functionMinMax: Option[MinMax[Slice[Byte]]],
               nearestDeadline: Option[Deadline]): ClosedSegment = {
       val segmentBytes: Slice[Slice[Byte]] = {
         val allBytes = Slice.create[Slice[Byte]](6)
@@ -84,7 +84,7 @@ private[core] object SegmentWriter extends LazyLogging {
   }
 
   case class ClosedSegment(segmentBytes: Slice[Slice[Byte]],
-                           minMaxFunctionId: Option[MinMax],
+                           minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                            nearestDeadline: Option[Deadline]) {
 
     def isEmpty: Boolean =
@@ -110,7 +110,7 @@ private[core] object SegmentWriter extends LazyLogging {
                                   hashIndex: Option[HashIndex.State],
                                   binarySearchIndex: Option[BinarySearchIndex.State],
                                   bloomFilter: Option[BloomFilter.State],
-                                  minMaxFunction: Option[MinMax],
+                                  minMaxFunction: Option[MinMax[Slice[Byte]]],
                                   nearestDeadline: Option[Deadline])
 
   def headerSize(hasCompression: Boolean): Int = {
@@ -124,7 +124,7 @@ private[core] object SegmentWriter extends LazyLogging {
                           hashIndex: Option[HashIndex.State],
                           binarySearchIndex: Option[BinarySearchIndex.State],
                           bloomFilter: Option[BloomFilter.State],
-                          currentMinMaxFunction: Option[MinMax],
+                          currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
                           currentNearestDeadline: Option[Deadline]): IO[NearestDeadlineMinMaxFunctionId] = {
 
     def writeOne(rootGroup: Option[KeyValue.WriteOnly.Group],
@@ -183,7 +183,7 @@ private[core] object SegmentWriter extends LazyLogging {
 
     @tailrec
     def write(keyValues: Slice[KeyValue.WriteOnly],
-              currentMinMaxFunction: Option[MinMax],
+              currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
               nearestDeadline: Option[Deadline]): NearestDeadlineMinMaxFunctionId =
       keyValues.headOption match {
         case Some(keyValue) =>
@@ -192,7 +192,7 @@ private[core] object SegmentWriter extends LazyLogging {
 
           keyValue match {
             case rootGroup: Transient.Group =>
-              nextMinMaxFunctionId = MinMax.getMinMax(currentMinMaxFunction, rootGroup.minMaxFunctionId)(FunctionStore.order)
+              nextMinMaxFunctionId = MinMax.minMaxGet(currentMinMaxFunction, rootGroup.minMaxFunctionId)(FunctionStore.order)
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeMany(
@@ -220,7 +220,7 @@ private[core] object SegmentWriter extends LazyLogging {
                 ).get
 
             case pendingApply: Transient.PendingApply =>
-              nextMinMaxFunctionId = MinMax.minMaxWithValue(currentMinMaxFunction, pendingApply.applies)(FunctionStore.order)
+              nextMinMaxFunctionId = MinMax.minMax(currentMinMaxFunction, pendingApply.applies)(FunctionStore.order)
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(
@@ -263,7 +263,7 @@ private[core] object SegmentWriter extends LazyLogging {
                           hashIndex: Option[HashIndex.State],
                           binarySearchIndex: Option[BinarySearchIndex.State],
                           bloomFilter: Option[BloomFilter.State],
-                          minMaxFunction: Option[MinMax],
+                          minMaxFunction: Option[MinMax[Slice[Byte]]],
                           nearestDeadline: Option[Deadline]): IO[ClosedBlocks] =
     for {
       sortedIndexClosed <- SortedIndex.close(sortedIndex)

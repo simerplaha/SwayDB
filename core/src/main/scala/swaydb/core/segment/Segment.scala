@@ -528,7 +528,7 @@ private[core] object Segment extends LazyLogging {
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
             segmentSize: Int,
-            minMaxFunctionId: Option[MinMax],
+            minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             nearestExpiryDeadline: Option[Deadline],
             checkExists: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                          timeOrder: TimeOrder[Slice[Byte]],
@@ -975,7 +975,7 @@ private[core] trait Segment extends FileLimiterItem {
   val maxKey: MaxKey[Slice[Byte]]
   val segmentSize: Int
   val nearestExpiryDeadline: Option[Deadline]
-  val minMaxFunctionId: Option[MinMax]
+  val minMaxFunctionId: Option[MinMax[Slice[Byte]]]
 
   def createdInLevel: IO[Int]
 
