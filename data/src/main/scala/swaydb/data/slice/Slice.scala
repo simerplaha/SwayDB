@@ -386,7 +386,7 @@ object Slice {
   * @param array      Array to create Slices for
   * @param fromOffset start offset
   * @param toOffset   end offset
-  * @param _written   write position
+  * @param _written   items written
   * @tparam T The type of this Slice
   */
 class Slice[+T: ClassTag](array: Array[T],

@@ -716,4 +716,14 @@ class SliceSpec extends WordSpec with Matchers {
     subSlice shouldBe empty
     slice should contain only 1
   }
+
+  "equals" in {
+    val slice = Slice.fill(10)(1)
+    slice == Slice.fill(10)(1) shouldBe true
+
+    slice.dropHead() == slice shouldBe false
+    slice.dropHead() == Slice.fill(9)(1) shouldBe true
+
+    Slice.empty == Slice.empty shouldBe true
+  }
 }
