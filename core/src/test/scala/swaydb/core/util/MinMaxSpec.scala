@@ -277,6 +277,7 @@ class MinMaxSpec extends WordSpec with Matchers {
 
   "minMax on MinMax" should {
     "set min and max" in {
+      implicit val ordering = Ordering.Int
       //None
       //None
       MinMax.minMax(
