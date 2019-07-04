@@ -50,6 +50,7 @@ private[core] object KeyValueWriter {
     *
     * @param binder                  [[BaseEntryIdFormat]] for this key-value's type.
     * @param compressDuplicateValues Compresses duplicate values if set to true.
+    *
     * @return indexEntry, valueBytes, valueOffsetBytes, nextValuesOffsetPosition
     */
   def write[T <: KeyValue.WriteOnly](current: T,

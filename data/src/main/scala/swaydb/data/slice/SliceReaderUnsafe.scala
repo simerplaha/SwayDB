@@ -26,9 +26,9 @@ import java.nio.charset.{Charset, StandardCharsets}
   *
   * SliceReader is used internally and should not be exposed to the API.
   */
-class BytesReader(slice: Slice[Byte]) {
+class SliceReaderUnsafe(slice: Slice[Byte]) {
 
-  private val sliceReader = new SliceReader(slice)
+  private val sliceReader = SliceReaderSafe(slice)
 
   val size: Long =
     sliceReader.size.get
@@ -39,7 +39,7 @@ class BytesReader(slice: Slice[Byte]) {
   def read(size: Int): Slice[Byte] =
     sliceReader.read(size).get
 
-  def moveTo(newPosition: Long): BytesReader = {
+  def moveTo(newPosition: Long): SliceReaderUnsafe = {
     sliceReader.moveTo(newPosition)
     this
   }
@@ -53,10 +53,10 @@ class BytesReader(slice: Slice[Byte]) {
   def getPosition: Int =
     sliceReader.getPosition
 
-  def resetPosition(): BytesReader =
-    new BytesReader(slice)
+  def resetPosition(): SliceReaderUnsafe =
+    new SliceReaderUnsafe(slice)
 
-  def skip(skip: Long): BytesReader = {
+  def skip(skip: Long): SliceReaderUnsafe = {
     sliceReader.skip(skip)
     this
   }

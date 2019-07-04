@@ -206,7 +206,7 @@ private[extensions] object Key {
         }
 
       override def read(data: Slice[Byte]): Key[K] = {
-        val reader = data.createReader()
+        val reader = data.createReaderUnsafe()
         reader.skip(1) //skip formatId
         val keyBytes = reader.read(reader.readIntUnsigned())
         val keys = readKeys(keyBytes, keySerializer).get
@@ -243,13 +243,13 @@ private[extensions] object Key {
   def ordering(customOrder: KeyOrder[Slice[Byte]]) =
     new KeyOrder[Slice[Byte]] {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int = {
-        val readerLeft = a.createReader()
+        val readerLeft = a.createReaderUnsafe()
         readerLeft.skip(1) //skip formatId
         val keySizeLeft = readerLeft.readIntUnsigned()
         readerLeft.skip(keySizeLeft)
         val dataTypeLeft = readerLeft.get()
 
-        val readerRight = a.createReader()
+        val readerRight = a.createReaderUnsafe()
         readerRight.skip(1) //skip formatId
         val keySizeRight = readerRight.readIntUnsigned() //read the keySize integer
         readerRight.skip(keySizeRight) //skip key size

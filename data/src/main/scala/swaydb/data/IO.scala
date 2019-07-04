@@ -24,7 +24,7 @@ import java.nio.ReadOnlyBufferException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.{NoSuchFileException, Path}
 
-import swaydb.data.slice.{Slice, SliceReader}
+import swaydb.data.slice.{Slice, SliceReaderSafe}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -84,7 +84,7 @@ object IO {
   val someTrue: IO[Some[Boolean]] = IO.Success(Some(true))
   val someFalse: IO[Some[Boolean]] = IO.Success(Some(false))
   val zero = IO.Success(0)
-  val emptyReader = IO.Success(SliceReader(Slice.emptyBytes))
+  val emptyReader = IO.Success(SliceReaderSafe(Slice.emptyBytes))
   val emptyBytes = IO.Success(Slice.emptyBytes)
   val emptySeqBytes = IO.Success(Seq.empty[Slice[Byte]])
   val ok = IO.Success(OK)

@@ -298,8 +298,11 @@ object Slice {
     def toByteArrayOutputStream =
       slice.toByteArrayInputStream
 
-    def createReader() =
-      new BytesReader(slice)
+    def createReaderUnsafe() =
+      new SliceReaderUnsafe(slice)
+
+    def createReaderSafe() =
+      SliceReaderSafe(slice)
   }
 
   implicit class SliceImplicit[T](slice: Slice[T]) {
@@ -416,6 +419,7 @@ class Slice[+T: ClassTag](array: Array[T],
     *
     * @param fromOffset start offset
     * @param toOffset   end offset
+    *
     * @return Slice for the given offsets
     */
   override def slice(fromOffset: Int, toOffset: Int): Slice[T] =
@@ -461,7 +465,7 @@ class Slice[+T: ClassTag](array: Array[T],
       (split1, split2)
     }
 
-  def splitAllocatedSliceAt(index: Int): (Slice[T], Slice[T]) =
+  def splitAllocatedAt(index: Int): (Slice[T], Slice[T]) =
     splitAt(index, allocatedSize)
 
   override def splitAt(index: Int): (Slice[T], Slice[T]) =

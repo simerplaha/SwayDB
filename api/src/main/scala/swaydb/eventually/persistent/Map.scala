@@ -71,6 +71,7 @@ object Map extends LazyLogging {
     * @param ec                         ExecutionContext
     * @tparam K Type of key
     * @tparam V Type of value
+    *
     * @return Database instance
     */
   def apply[K, V](dir: Path,

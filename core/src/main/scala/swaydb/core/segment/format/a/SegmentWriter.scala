@@ -228,7 +228,7 @@ private[core] object SegmentWriter extends LazyLogging {
                   keyValue = pendingApply
                 ).get
 
-            case others @ (_: Transient.Put | _: Transient.Remove| _: Transient.Update) =>
+            case others @ (_: Transient.Put | _: Transient.Remove | _: Transient.Update) =>
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(
                   rootGroup = None,
