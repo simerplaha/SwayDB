@@ -64,7 +64,7 @@ object DefaultMemoryConfig {
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
         mightContainKey =
-          MightContain.Enable(
+          MightContainKey.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 100,
             cacheOnAccess = false,

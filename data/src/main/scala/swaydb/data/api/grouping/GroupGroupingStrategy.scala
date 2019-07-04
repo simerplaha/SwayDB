@@ -28,7 +28,7 @@ object GroupGroupingStrategy {
                    sortedIndex: SortedIndex,
                    hashIndex: HashIndex,
                    binarySearchIndex: BinarySearchIndex,
-                   bloomFilter: MightContain,
+                   bloomFilter: MightContainKey,
                    prefixCompression: PrefixCompression,
                    values: Values,
                    groupsCompression: Seq[Compression]) extends GroupGroupingStrategy
@@ -37,7 +37,7 @@ object GroupGroupingStrategy {
                   sortedIndex: SortedIndex,
                   hashIndex: HashIndex,
                   binarySearchIndex: BinarySearchIndex,
-                  bloomFilter: MightContain,
+                  bloomFilter: MightContainKey,
                   prefixCompression: PrefixCompression,
                   values: Values,
                   groupsCompression: Seq[Compression]) extends GroupGroupingStrategy

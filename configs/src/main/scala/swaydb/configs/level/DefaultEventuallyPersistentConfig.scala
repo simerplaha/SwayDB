@@ -72,7 +72,7 @@ object DefaultEventuallyPersistentConfig {
         segmentSize = memoryLevelSegmentSize,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        mightContainKey = MightContain.Enable(mightContainFalsePositiveRate, 10, false, Seq.empty),
+        mightContainKey = MightContainKey.Enable(mightContainFalsePositiveRate, 10, false, Seq.empty),
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -118,7 +118,7 @@ object DefaultEventuallyPersistentConfig {
             compression = Seq.empty
           ),
         mightContainKey =
-          MightContain.Enable(
+          MightContainKey.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnAccess = false,

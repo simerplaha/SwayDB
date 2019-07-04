@@ -34,7 +34,7 @@ object BlocksCompression {
       segmentCompression = Seq.empty
     )
 
-  def apply(bloomFilter: swaydb.data.config.MightContain,
+  def apply(bloomFilter: swaydb.data.config.MightContainKey,
             hashIndex: swaydb.data.config.HashIndex,
             binarySearchIndex: swaydb.data.config.BinarySearchIndex,
             sortedIndex: swaydb.data.config.SortedIndex,

@@ -111,10 +111,10 @@ object DefaultPersistentConfig {
             compression = Seq.empty
           ),
         mightContainKey =
-          MightContain.Enable(
+          MightContainKey.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
-            cacheOnAccess = false,
+            cacheOnAccess = true,
             compression = Seq.empty
           ),
         values =
@@ -168,10 +168,10 @@ object DefaultPersistentConfig {
             compression = Seq.empty
           ),
         mightContain =
-          MightContain.Enable(
+          MightContainKey.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
-            cacheOnAccess = false,
+            cacheOnAccess = true,
             compression = Seq.empty
           ),
         values =
@@ -225,10 +225,10 @@ object DefaultPersistentConfig {
             compression = Seq.empty
           ),
         mightContain =
-          MightContain.Enable(
+          MightContainKey.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
-            cacheOnAccess = false,
+            cacheOnAccess = true,
             compression = Seq.empty
           ),
         values =
@@ -282,10 +282,10 @@ object DefaultPersistentConfig {
             compression = Seq.empty
           ),
         mightContain =
-          MightContain.Enable(
+          MightContainKey.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
-            cacheOnAccess = false,
+            cacheOnAccess = true,
             compression = Seq.empty
           ),
         values =
@@ -339,10 +339,10 @@ object DefaultPersistentConfig {
             compression = Seq.empty
           ),
         mightContain =
-          MightContain.Enable(
+          MightContainKey.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
-            cacheOnAccess = false,
+            cacheOnAccess = true,
             compression = Seq.empty
           ),
         values =
@@ -398,10 +398,10 @@ object DefaultPersistentConfig {
             compression = Seq.empty
           ),
         mightContain =
-          MightContain.Enable(
+          MightContainKey.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
-            cacheOnAccess = false,
+            cacheOnAccess = true,
             compression = Seq.empty
           ),
         values =
