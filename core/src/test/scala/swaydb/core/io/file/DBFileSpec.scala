@@ -76,7 +76,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       bytes.addIntUnsigned(1)
       bytes.addIntUnsigned(2)
 
-      bytes.written shouldBe 2
+      bytes.size shouldBe 2
 
       DBFile.write(testFile, bytes).failed.assertGet.exception shouldBe SegmentException.FailedToWriteAllBytes(10, 2, bytes.size)
     }
@@ -148,7 +148,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       bytes.addIntUnsigned(1)
       bytes.addIntUnsigned(2)
 
-      bytes.written shouldBe 2
+      bytes.size shouldBe 2
 
       val channelFile = DBFile.channelWrite(testFile, autoClose = true).assertGet
       channelFile.append(bytes).failed.assertGet.exception shouldBe SegmentException.FailedToWriteAllBytes(10, 2, bytes.size)
@@ -281,7 +281,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       bytes.addIntUnsigned(1)
       bytes.addIntUnsigned(2)
 
-      bytes.written shouldBe 2
+      bytes.size shouldBe 2
 
       DBFile.mmapWriteAndRead(testFile, autoClose = true, bytes).failed.assertGet.exception shouldBe SegmentException.FailedToWriteAllBytes(0, 2, bytes.size)
     }

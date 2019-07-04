@@ -125,8 +125,8 @@ private[core] object IOEffect extends LazyLogging {
       // toByteBuffer uses size of Slice instead of written,
       // but here the check on written ensures that only the actually written bytes find written.
       // All the client code invoking writes to Disk using Slice should ensure that no Slice contains empty bytes.
-      if (written != bytes.written)
-        IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(written, bytes.written, bytes.size)))
+      if (written != bytes.size)
+        IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(written, bytes.size, bytes.size)))
       else
         IO.unit
     } catch {

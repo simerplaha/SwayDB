@@ -100,7 +100,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
               val index =
                 BinarySearchIndex.read(
-                  offset = BinarySearchIndex.Offset(0, state.bytes.written),
+                  offset = BinarySearchIndex.Offset(0, state.bytes.size),
                   reader = Reader(state.bytes)
                 ).get
 
@@ -147,7 +147,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
           val index =
             BinarySearchIndex.read(
-              offset = BinarySearchIndex.Offset(0, state.bytes.written),
+              offset = BinarySearchIndex.Offset(0, state.bytes.size),
               reader = Reader(state.bytes)
             ).get
 

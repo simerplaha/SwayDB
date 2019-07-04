@@ -91,10 +91,10 @@ private[core] object SegmentWriter extends LazyLogging {
       segmentBytes.exists(_.isEmpty)
 
     def segmentSize =
-      segmentBytes.foldLeft(0)(_ + _.written)
+      segmentBytes.foldLeft(0)(_ + _.size)
 
     def flattenSegmentBytes: Slice[Byte] = {
-      val size = segmentBytes.foldLeft(0)(_ + _.written)
+      val size = segmentBytes.foldLeft(0)(_ + _.size)
       val slice = Slice.create[Byte](size)
       segmentBytes.map(_.unslice()) foreach slice.addAll
       assert(slice.isFull)
@@ -315,9 +315,9 @@ private[core] object SegmentWriter extends LazyLogging {
       result =>
         //ensure that all the slices are full.
         if (!sortedIndex.bytes.isFull)
-          IO.Failure(new Exception(s"indexSlice is not full actual: ${sortedIndex.bytes.written} - expected: ${sortedIndex.bytes.size}"))
+          IO.Failure(new Exception(s"indexSlice is not full actual: ${sortedIndex.bytes.size} - expected: ${sortedIndex.bytes.size}"))
         else if (values.exists(!_.bytes.isFull))
-          IO.Failure(new Exception(s"valuesSlice is not full actual: ${values.get.bytes.written} - expected: ${values.get.bytes.size}"))
+          IO.Failure(new Exception(s"valuesSlice is not full actual: ${values.get.bytes.size} - expected: ${values.get.bytes.size}"))
         else
           IO.Success(result)
     }
@@ -409,45 +409,45 @@ private[core] object SegmentWriter extends LazyLogging {
 
       val headerSize = SegmentWriter.headerSize(blockCompressions.segmentCompression.nonEmpty)
 
-      var segmentOffset = values.map(_.bytes.written + headerSize) getOrElse headerSize
+      var segmentOffset = values.map(_.bytes.size + headerSize) getOrElse headerSize
 
-      segmentFooterSlice addIntUnsigned sortedIndex.bytes.written
+      segmentFooterSlice addIntUnsigned sortedIndex.bytes.size
       segmentFooterSlice addIntUnsigned segmentOffset
-      segmentOffset = segmentOffset + sortedIndex.bytes.written
+      segmentOffset = segmentOffset + sortedIndex.bytes.size
 
       hashIndex map {
         hashIndex =>
-          segmentFooterSlice addIntUnsigned hashIndex.bytes.written
+          segmentFooterSlice addIntUnsigned hashIndex.bytes.size
           segmentFooterSlice addIntUnsigned segmentOffset
-          segmentOffset = segmentOffset + hashIndex.bytes.written
+          segmentOffset = segmentOffset + hashIndex.bytes.size
       } getOrElse {
         segmentFooterSlice addIntUnsigned 0
       }
 
       binarySearchIndex map {
         binarySearchIndex =>
-          segmentFooterSlice addIntUnsigned binarySearchIndex.bytes.written
+          segmentFooterSlice addIntUnsigned binarySearchIndex.bytes.size
           segmentFooterSlice addIntUnsigned segmentOffset
-          segmentOffset = segmentOffset + binarySearchIndex.bytes.written
+          segmentOffset = segmentOffset + binarySearchIndex.bytes.size
       } getOrElse {
         segmentFooterSlice addIntUnsigned 0
       }
 
       bloomFilter map {
         bloomFilter =>
-          segmentFooterSlice addIntUnsigned bloomFilter.bytes.written
+          segmentFooterSlice addIntUnsigned bloomFilter.bytes.size
           segmentFooterSlice addIntUnsigned segmentOffset
-          segmentOffset = segmentOffset + bloomFilter.bytes.written
+          segmentOffset = segmentOffset + bloomFilter.bytes.size
       } getOrElse {
         segmentFooterSlice addIntUnsigned 0
       }
 
       val footerOffset =
-        values.map(_.bytes.written).getOrElse(0) +
-          sortedIndex.bytes.written +
-          hashIndex.map(_.bytes.written).getOrElse(0) +
-          binarySearchIndex.map(_.bytes.written).getOrElse(0) +
-          bloomFilter.map(_.bytes.written).getOrElse(0)
+        values.map(_.bytes.size).getOrElse(0) +
+          sortedIndex.bytes.size +
+          hashIndex.map(_.bytes.size).getOrElse(0) +
+          binarySearchIndex.map(_.bytes.size).getOrElse(0) +
+          bloomFilter.map(_.bytes.size).getOrElse(0)
 
       segmentFooterSlice addInt footerOffset
 

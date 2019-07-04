@@ -142,7 +142,7 @@ private[core] class BlockReader[B <: Block](reader: Reader,
         bytes =>
           BlockReader[B](
             reader = Reader(bytes),
-            block = block.updateOffset(0, bytes.written).asInstanceOf[B]
+            block = block.updateOffset(0, bytes.size).asInstanceOf[B]
           )
       }
 

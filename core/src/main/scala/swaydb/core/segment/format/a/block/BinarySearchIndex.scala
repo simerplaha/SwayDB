@@ -240,7 +240,7 @@ object BinarySearchIndex {
       IO.unit
     else
       IO {
-        if (state.bytes.written == 0) state.bytes moveWritePosition state.headerSize
+        if (state.bytes.size == 0) state.bytes moveWritePosition state.headerSize
         //if the size of largest value is less than 4 bytes, write them as unsigned.
         if (state.bytesPerValue < ByteSizeOf.int) {
           val writePosition = state.bytes.currentWritePosition

@@ -38,13 +38,13 @@ object AppendixMapEntryWriter {
     override def write(entry: MapEntry.Remove[Slice[Byte]], bytes: Slice[Byte]): Unit =
       bytes
         .addIntUnsigned(id)
-        .addIntUnsigned(entry.key.written)
+        .addIntUnsigned(entry.key.size)
         .addAll(entry.key)
 
     override def bytesRequired(entry: MapEntry.Remove[Slice[Byte]]): Int =
       Bytes.sizeOf(id) +
-        Bytes.sizeOf(entry.key.written) +
-        entry.key.written
+        Bytes.sizeOf(entry.key.size) +
+        entry.key.size
   }
 
   implicit object AppendixPutWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]] {
@@ -67,7 +67,7 @@ object AppendixMapEntryWriter {
       def writeMinMax(bytes: Slice[Byte]) =
         entry.value.minMaxFunctionId map {
           minMaxFunctionId =>
-            bytes addIntUnsigned minMaxFunctionId.min.written
+            bytes addIntUnsigned minMaxFunctionId.min.size
             bytes addAll minMaxFunctionId.min
             minMaxFunctionId.max map {
               max =>
@@ -82,13 +82,13 @@ object AppendixMapEntryWriter {
 
       bytes
         .addIntUnsigned(id)
-        .addIntUnsigned(segmentPath.written)
+        .addIntUnsigned(segmentPath.size)
         .addBytes(segmentPath)
         .addIntUnsigned(entry.value.segmentSize)
-        .addIntUnsigned(entry.key.written)
+        .addIntUnsigned(entry.key.size)
         .addAll(entry.key)
         .addIntUnsigned(maxKeyId)
-        .addIntUnsigned(maxKeyBytes.written)
+        .addIntUnsigned(maxKeyBytes.size)
         .addAll(maxKeyBytes)
         .addLongUnsigned(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L))
 
@@ -109,21 +109,21 @@ object AppendixMapEntryWriter {
       val minMaxFunctionIdBytesRequires =
         entry.value.minMaxFunctionId map {
           minMax =>
-            Bytes.sizeOf(minMax.min.written) +
-              minMax.min.written +
-              Bytes.sizeOf(minMax.max.map(_.written).getOrElse(0)) +
-              minMax.max.map(_.written).getOrElse(0)
+            Bytes.sizeOf(minMax.min.size) +
+              minMax.min.size +
+              Bytes.sizeOf(minMax.max.map(_.size).getOrElse(0)) +
+              minMax.max.map(_.size).getOrElse(0)
         } getOrElse 1
 
       Bytes.sizeOf(id) +
         Bytes.sizeOf(segmentPath.length) +
         segmentPath.length +
         Bytes.sizeOf(entry.value.segmentSize) +
-        Bytes.sizeOf(entry.key.written) +
-        entry.key.written +
+        Bytes.sizeOf(entry.key.size) +
+        entry.key.size +
         Bytes.sizeOf(maxKeyId) +
-        Bytes.sizeOf(maxKeyBytes.written) +
-        maxKeyBytes.written +
+        Bytes.sizeOf(maxKeyBytes.size) +
+        maxKeyBytes.size +
         Bytes.sizeOf(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L)) +
         minMaxFunctionIdBytesRequires
     }

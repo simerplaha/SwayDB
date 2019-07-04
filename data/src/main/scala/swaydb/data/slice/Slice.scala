@@ -342,10 +342,10 @@ object Slice {
 
   class SliceBuilder[T: ClassTag](sizeHint: Int) extends mutable.Builder[T, Slice[T]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-    protected var slice: Slice[T] = Slice.create[T](((sizeHint max 100) * 2.5).toInt)
+    protected var slice: Slice[T] = Slice.create[T](sizeHint)
 
     def extendSlice(by: Int) = {
-      val extendedSlice = Slice.create[T](slice.size * by)
+      val extendedSlice = Slice.create[T]((slice.size * by) max 100)
       extendedSlice addAll slice
       slice = extendedSlice
     }
@@ -372,7 +372,7 @@ object Slice {
   implicit def canBuildFrom[T: ClassTag]: CanBuildFrom[Slice[_], T, Slice[T]] =
     new CanBuildFrom[Slice[_], T, Slice[T]] {
       def apply(from: Slice[_]) =
-        new SliceBuilder[T](from.size max 100) //max is used in-case from.size == 0
+        new SliceBuilder[T](from.size) //max is used in-case from.size == 0
 
       def apply() =
         new SliceBuilder[T](100)
@@ -392,21 +392,21 @@ object Slice {
 class Slice[+T: ClassTag](array: Array[T],
                           val fromOffset: Int,
                           val toOffset: Int,
-                          private var _written: Int) extends Iterable[T] with IterableLike[T, Slice[T]] {
+                          private var _written: Int) extends Iterable[T] with IterableLike[T, Slice[T]] { self =>
 
   private var writePosition = fromOffset + _written
 
-  override val size =
+  val allocatedSize =
     toOffset - fromOffset + 1
 
-  def written =
+  override def size: Int =
     _written
 
   override def isEmpty =
-    written == 0
+    size == 0
 
   def isFull =
-    written == size
+    size == allocatedSize
 
   override def nonEmpty =
     !isEmpty
@@ -452,7 +452,7 @@ class Slice[+T: ClassTag](array: Array[T],
       }
     }
 
-  override def splitAt(index: Int): (Slice[T], Slice[T]) =
+  private def splitAt(index: Int, size: Int): (Slice[T], Slice[T]) =
     if (index == 0) {
       (Slice.empty[T], slice(0, size - 1))
     } else {
@@ -460,6 +460,12 @@ class Slice[+T: ClassTag](array: Array[T],
       val split2 = slice(index, size - 1)
       (split1, split2)
     }
+
+  def splitAllocatedSliceAt(index: Int): (Slice[T], Slice[T]) =
+    splitAt(index, allocatedSize)
+
+  override def splitAt(index: Int): (Slice[T], Slice[T]) =
+    splitAt(index, size)
 
   override def grouped(size: Int): Iterator[Slice[T]] =
     groupedSlice(size).iterator
@@ -492,22 +498,22 @@ class Slice[+T: ClassTag](array: Array[T],
   }
 
   override def drop(count: Int): Slice[T] =
-    if (count >= written)
+    if (count >= size)
       Slice.empty[T]
     else
-      slice(count, written - 1)
+      slice(count, size - 1)
 
   def dropHead(): Slice[T] =
     drop(1)
 
   override def dropRight(count: Int): Slice[T] =
-    if (count >= written)
+    if (count >= size)
       Slice.empty[T]
     else
-      slice(0, written - count - 1)
+      slice(0, size - count - 1)
 
   override def take(count: Int): Slice[T] =
-    slice(0, (written min count) - 1)
+    slice(0, (size min count) - 1)
 
   def take(fromIndex: Int, count: Int): Slice[T] =
     if (count == 0)
@@ -516,7 +522,7 @@ class Slice[+T: ClassTag](array: Array[T],
       slice(fromIndex, fromIndex + count - 1)
 
   override def takeRight(count: Int): Slice[T] =
-    slice(written - count, written - 1)
+    slice(size - count, size - 1)
 
   override def head: T =
     headOption.get
@@ -551,16 +557,16 @@ class Slice[+T: ClassTag](array: Array[T],
     * Returns a new slice which is not writable.
     */
   def close(): Slice[T] =
-    if (size == written)
+    if (allocatedSize == size)
       this
     else
-      slice(0, written - 1)
+      slice(0, size - 1)
 
   def apply(index: Int): T =
     get(index)
 
   def incrementWritten() =
-    if (writePosition >= written)
+    if (writePosition >= size)
       _written = _written + 1
 
   @throws[ArrayIndexOutOfBoundsException]
@@ -584,29 +590,29 @@ class Slice[+T: ClassTag](array: Array[T],
   }
 
   private[slice] def toByteBufferWrap: ByteBuffer =
-    ByteBuffer.wrap(array.asInstanceOf[Array[Byte]], fromOffset, written)
+    ByteBuffer.wrap(array.asInstanceOf[Array[Byte]], fromOffset, size)
 
   private[slice] def toByteBufferDirect: ByteBuffer =
     ByteBuffer
-      .allocateDirect(written)
-      .put(array.asInstanceOf[Array[Byte]], 0, written)
+      .allocateDirect(size)
+      .put(array.asInstanceOf[Array[Byte]], 0, size)
 
   private[slice] def toByteArrayInputStream: ByteArrayInputStream =
-    new ByteArrayInputStream(array.asInstanceOf[Array[Byte]], fromOffset, written)
+    new ByteArrayInputStream(array.asInstanceOf[Array[Byte]], fromOffset, size)
 
   /**
     * Returns the original Array if Slice is not a sub Slice
     * else returns a new copied Array from the offsets defined for this Slice.
     */
   override def toArray[B >: T](implicit evidence$1: ClassTag[B]): Array[B] =
-    if (written == array.length)
+    if (size == array.length)
       array.asInstanceOf[Array[B]]
     else
       toArrayCopy
 
   def toArrayCopy[B >: T](implicit evidence$1: ClassTag[B]): Array[B] = {
-    val newArray = new Array[B](written)
-    Array.copy(array, fromOffset, newArray, 0, written)
+    val newArray = new Array[B](size)
+    Array.copy(array, fromOffset, newArray, 0, size)
     newArray
   }
 
@@ -623,7 +629,7 @@ class Slice[+T: ClassTag](array: Array[T],
     Slice(toArray)
 
   override def iterator = new Iterator[T] {
-    private val writtenPosition = fromOffset + written - 1
+    private val writtenPosition = fromOffset + self.size - 1
     private var index = fromOffset
 
     override def hasNext: Boolean =
@@ -637,7 +643,7 @@ class Slice[+T: ClassTag](array: Array[T],
   }
 
   def reverse: Iterator[T] = new Iterator[T] {
-    private var position = toOffset min (fromOffset + written - 1)
+    private var position = toOffset min (fromOffset + self.size - 1)
 
     override def hasNext: Boolean =
       position >= fromOffset
@@ -672,7 +678,7 @@ class Slice[+T: ClassTag](array: Array[T],
     array.length
 
   private[swaydb] def underlyingWrittenArrayUnsafe[X >: T]: (Array[X], Int, Int) =
-    (array.asInstanceOf[Array[X]], fromOffset, written)
+    (array.asInstanceOf[Array[X]], fromOffset, size)
 
   /**
     * Return a new ordered Slice.
@@ -689,7 +695,7 @@ class Slice[+T: ClassTag](array: Array[T],
   override def equals(that: Any): Boolean =
     that match {
       case other: Slice[T] =>
-        this.written == other.written &&
+        this.size == other.size &&
           this.iterator.sameElements(other.iterator)
 
       case _ =>

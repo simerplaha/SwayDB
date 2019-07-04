@@ -138,7 +138,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
         } flatMap {
           case (_, lastGroup) =>
             if (!keyValuesToGroup.isFull)
-              IO.Failure(new Exception(s"keyValuesToGroup is not full! actual: ${keyValuesToGroup.written} - expected: ${keyValuesToGroup.size}"))
+              IO.Failure(new Exception(s"keyValuesToGroup is not full! actual: ${keyValuesToGroup.size} - expected: ${keyValuesToGroup.size}"))
             else
               IO.Success(Some(keyValuesToGroup, lastGroup))
         }

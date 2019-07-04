@@ -35,8 +35,8 @@ class SliceSpec extends WordSpec with Matchers {
   "A Slice" should {
     "be created by specifying it's length" in {
       val slice = Slice.create[Int](10)
-      slice.size shouldBe 10
-      slice.written shouldBe 0
+      slice.allocatedSize shouldBe 10
+      slice.size shouldBe 0
       slice.fromOffset shouldBe 0
       slice.toOffset shouldBe 9
     }
@@ -44,8 +44,8 @@ class SliceSpec extends WordSpec with Matchers {
     "be created from an Array" in {
       val array = Array.fill[Byte](10)(1)
       val slice = Slice[Byte](array)
+      slice.allocatedSize shouldBe 10
       slice.size shouldBe 10
-      slice.written shouldBe 10
       slice.fromOffset shouldBe 0
       slice.toOffset shouldBe 9
     }
@@ -54,18 +54,19 @@ class SliceSpec extends WordSpec with Matchers {
       val array = Array.fill[Int](3)(Random.nextInt())
       val slice1 = Slice[Int](array)
       slice1.size shouldBe 3
+      slice1.allocatedSize shouldBe 3
 
       val slice2 = slice1.slice(1, 2)
+      slice2.allocatedSize shouldBe 2
       slice2.size shouldBe 2
-      slice2.written shouldBe 2
       slice2.fromOffset shouldBe 1
       slice2.toOffset shouldBe 2
       slice2.toList should contain inOrderElementsOf List(array(1), array(2))
       slice2.underlyingArraySize shouldBe slice1.size
 
       val slice2Copy = slice2.unslice()
+      slice2Copy.allocatedSize shouldBe 2
       slice2Copy.size shouldBe 2
-      slice2Copy.written shouldBe 2
       slice2Copy.underlyingArraySize shouldBe 2
     }
 
@@ -74,27 +75,27 @@ class SliceSpec extends WordSpec with Matchers {
       val slice0 = Slice.create[Int](4)
       slice0 add 10
       slice0 add 10 //second slice starts here
-      slice0.written shouldBe 2
+      slice0.size shouldBe 2
 
       //slice1 = (10, 10)
       val slice1 = slice0.slice(0, 1)
-      slice1.written shouldBe 2
+      slice1.size shouldBe 2
       slice1.toArray shouldBe Array(10, 10)
       slice1.underlyingArraySize shouldBe 4
 
       //slice1 = (10, null)
       val slice2 = slice0.slice(1, 2)
-      slice2.written shouldBe 1
+      slice2.size shouldBe 1
       slice2.toArray shouldBe Array(10)
 
       //slice1 = (null, null)
       val slice3 = slice0.slice(2, 3)
-      slice3.written shouldBe 0
+      slice3.size shouldBe 0
       slice3.toArray shouldBe empty
 
       //slice4 = (10, 10, null, null)
       val slice4 = slice0.slice(0, 3)
-      slice4.written shouldBe 2
+      slice4.size shouldBe 2
       slice4.toArray shouldBe Array(10, 10)
     }
 
@@ -105,26 +106,26 @@ class SliceSpec extends WordSpec with Matchers {
       slice0 add 2
       slice0 add 3
       slice0 add 4
-      slice0.written shouldBe 4
+      slice0.size shouldBe 4
 
       //slice1 = (1, 2)
       val slice1 = slice0.slice(0, 1)
-      slice1.written shouldBe 2
+      slice1.size shouldBe 2
       slice1.toArray shouldBe Array(1, 2)
 
       //slice1 = (2, 3)
       val slice2 = slice0.slice(1, 2)
-      slice2.written shouldBe 2
+      slice2.size shouldBe 2
       slice2.toArray shouldBe Array(2, 3)
 
       //slice1 = (3, 4)
       val slice3 = slice0.slice(2, 3)
-      slice3.written shouldBe 2
+      slice3.size shouldBe 2
       slice3.toArray shouldBe Array(3, 4)
 
       //slice4 = (1, 2, 3, 4)
       val slice4 = slice0.slice(0, 3)
-      slice4.written shouldBe 4
+      slice4.size shouldBe 4
       slice4.toArray shouldBe Array(1, 2, 3, 4)
     }
 
@@ -144,24 +145,24 @@ class SliceSpec extends WordSpec with Matchers {
 
     "throw ArrayIndexOutOfBoundsException when inserting items outside the Slice offset" in {
       val slice = Slice.create[Byte](1)
-      slice.size shouldBe 1
-      slice.written shouldBe 0
+      slice.allocatedSize shouldBe 1
+      slice.size shouldBe 0
       slice.fromOffset shouldBe 0
       slice.toOffset shouldBe 0
 
-      slice.add(1).written shouldBe 1
+      slice.add(1).size shouldBe 1
       assertThrows[ArrayIndexOutOfBoundsException] {
         slice.add(1)
       }
-      slice.written shouldBe 1
+      slice.size shouldBe 1
     }
 
     "throw ArrayIndexOutOfBoundsException when adding items outside it's offset and when the Slice is a sub slice" in {
       val slice1 = Slice.fill(4)(Random.nextInt())
-      slice1.written shouldBe 4
+      slice1.size shouldBe 4
 
       val slice2 = slice1.slice(1, 2)
-      slice2.written shouldBe 2
+      slice2.size shouldBe 2
 
       slice2.size shouldBe 2
       slice2.head shouldBe slice1(1)
@@ -268,12 +269,15 @@ class SliceSpec extends WordSpec with Matchers {
 
     "update original slice with moveWritePosition when splits are updated" in {
       val originalSlice = Slice.create[Int](2)
-      val (split1, split2) = originalSlice.splitAt(1)
-      split1.size shouldBe 1
-      split2.size shouldBe 1
+      val (split1, split2) = originalSlice.splitAllocatedSliceAt(1)
+      split1.allocatedSize shouldBe 1
+      split2.size shouldBe 0
 
       split1.add(100)
       split2.add(200)
+
+      split1.size shouldBe 1
+      split2.size shouldBe 1
 
       originalSlice.moveWritePosition(2)
       originalSlice should contain only(100, 200)
@@ -416,7 +420,7 @@ class SliceSpec extends WordSpec with Matchers {
   "++ empty slices" in {
     val merged: Slice[Int] = Slice.empty[Int] ++ Slice.empty[Int]
     merged shouldBe empty
-    merged.written shouldBe 0
+    merged.size shouldBe 0
     merged.isEmpty shouldBe true
     merged.isFull shouldBe true
   }
@@ -424,7 +428,7 @@ class SliceSpec extends WordSpec with Matchers {
   "++ empty and non empty slices" in {
     val merged: Slice[Int] = Slice.empty[Int] ++ Slice(1)
     merged should contain only 1
-    merged.written shouldBe 1
+    merged.size shouldBe 1
     merged.isEmpty shouldBe false
     merged.isFull shouldBe true
   }
@@ -432,7 +436,7 @@ class SliceSpec extends WordSpec with Matchers {
   "++ non empty and empty slices" in {
     val merged: Slice[Int] = Slice(1) ++ Slice.empty[Int]
     merged should contain only 1
-    merged.written shouldBe 1
+    merged.size shouldBe 1
     merged.isEmpty shouldBe false
     merged.isFull shouldBe true
   }
@@ -637,18 +641,18 @@ class SliceSpec extends WordSpec with Matchers {
 
     slice.moveWritePosition(3)
 
-    slice.written shouldBe 3
+    slice.size shouldBe 3
     slice add 4
     slice(3) shouldBe 4
-    slice.written shouldBe 4
+    slice.size shouldBe 4
     slice addAll Seq(5, 6, 7, 8, 9, 10)
-    slice.written shouldBe 10
+    slice.size shouldBe 10
 
     slice.head shouldBe 0
     slice.last shouldBe 10
 
     slice.moveWritePosition(0)
-    slice.written shouldBe 10
+    slice.size shouldBe 10
 
     slice.slice(0, 2).isFull shouldBe true
     slice.slice(2, 5).isFull shouldBe true
@@ -662,21 +666,21 @@ class SliceSpec extends WordSpec with Matchers {
 
     slice.moveWritePosition(5)
     slice add 6
-    slice.written shouldBe 6
+    slice.size shouldBe 6
     slice.moveWritePosition(0)
     slice add 1
-    slice.written shouldBe 6
+    slice.size shouldBe 6
     slice add 2
     slice add 3
     slice add 4
     slice add 5
-    slice.written shouldBe 6
+    slice.size shouldBe 6
 
     slice.slice(5, 6).isEmpty shouldBe false
-    slice.slice(5, 6).written shouldBe 1
-    slice.slice(5, 7).written shouldBe 1
-    slice.slice(5, 8).written shouldBe 1
-    slice.slice(5, 9).written shouldBe 1
+    slice.slice(5, 6).size shouldBe 1
+    slice.slice(5, 7).size shouldBe 1
+    slice.slice(5, 8).size shouldBe 1
+    slice.slice(5, 9).size shouldBe 1
 
     slice.slice(6, 7).isEmpty shouldBe true
     slice.slice(7, 8).isEmpty shouldBe true
@@ -686,13 +690,13 @@ class SliceSpec extends WordSpec with Matchers {
   "closing an empty slice" in {
     val close0 = Slice.create(0).close()
     close0.size shouldBe 0
-    close0.written shouldBe 0
+    close0.size shouldBe 0
     close0.fromOffset shouldBe 0
     close0.toList shouldBe List.empty
 
     val close1 = Slice.create(1).close()
     close1.size shouldBe 0
-    close1.written shouldBe 0
+    close1.size shouldBe 0
     close1.fromOffset shouldBe 0
     close1.toList shouldBe List.empty
   }

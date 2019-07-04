@@ -109,16 +109,16 @@ object Block extends LazyLogging {
           compressedBytes addIntUnsigned headerSize
           compressedBytes add compressedBlockID
           compressedBytes addIntUnsigned compression.decompressor.id
-          compressedBytes addIntUnsigned (bytes.written - headerSize) //decompressed bytes
+          compressedBytes addIntUnsigned (bytes.size - headerSize) //decompressed bytes
           compressedBytes
         }
 
       case None =>
         logger.debug {
           if (compressions.isEmpty)
-            s"No compression strategies provided. Storing ${bytes.written}.bytes uncompressed."
+            s"No compression strategies provided. Storing ${bytes.size}.bytes uncompressed."
           else
-            s"Unable to satisfy compression requirement from ${compressions.size} compression strategies. Storing ${bytes.written}.bytes uncompressed."
+            s"Unable to satisfy compression requirement from ${compressions.size} compression strategies. Storing ${bytes.size}.bytes uncompressed."
         }
         IO {
           bytes moveWritePosition 0

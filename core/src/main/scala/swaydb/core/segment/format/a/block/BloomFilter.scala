@@ -80,7 +80,7 @@ object BloomFilter extends LazyLogging {
       this._bytes = bytes
 
     def written =
-      bytes.written
+      bytes.size
 
     override def hashCode(): Int =
       bytes.hashCode()

@@ -119,7 +119,7 @@ class CompressionSpec extends WordSpec with Matchers {
             val compressed = CompressorInternal.randomLZ4().compress(10, bytes).get.get
             compressed.take(10) foreach (_ shouldBe 0.toByte)
 
-            val decompressedBytes = DecompressorInternal.randomLZ4().decompress(compressed.drop(10), bytes.written).get
+            val decompressedBytes = DecompressorInternal.randomLZ4().decompress(compressed.drop(10), bytes.size).get
             decompressedBytes shouldBe bytes
         }
       }
@@ -130,7 +130,7 @@ class CompressionSpec extends WordSpec with Matchers {
             val compressed = CompressorInternal.Snappy(Int.MinValue).compress(10, bytes).get.get
             compressed.take(10) foreach (_ shouldBe 0.toByte)
 
-            val decompressedBytes = DecompressorInternal.Snappy.decompress(compressed.drop(10), bytes.written).get
+            val decompressedBytes = DecompressorInternal.Snappy.decompress(compressed.drop(10), bytes.size).get
             decompressedBytes shouldBe bytes
         }
       }
@@ -141,7 +141,7 @@ class CompressionSpec extends WordSpec with Matchers {
             val compressed = CompressorInternal.UnCompressedGroup.compress(10, bytes).get.get
             compressed.take(10) foreach (_ shouldBe 0.toByte)
 
-            val decompressedBytes = DecompressorInternal.UnCompressedGroup.decompress(compressed.drop(10), bytes.written).get
+            val decompressedBytes = DecompressorInternal.UnCompressedGroup.decompress(compressed.drop(10), bytes.size).get
             decompressedBytes shouldBe bytes
         }
       }

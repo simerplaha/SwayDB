@@ -75,9 +75,9 @@ object DBFile {
     bytes.foldLeftIO(0) {
       case (written, bytes) =>
         if (!bytes.isFull)
-          IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(0, bytes.written, bytes.size)))
+          IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(0, bytes.size, bytes.size)))
         else
-          IO.Success(written + bytes.written)
+          IO.Success(written + bytes.size)
     } flatMap {
       totalWritten =>
         mmapInit(
@@ -98,11 +98,11 @@ object DBFile {
                        bytes: Slice[Byte])(implicit limiter: FileLimiter): IO[DBFile] =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull)
-      IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(0, bytes.written, bytes.size)))
+      IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(0, bytes.size, bytes.size)))
     else
       mmapInit(
         path = path,
-        bufferSize = bytes.written,
+        bufferSize = bytes.size,
         autoClose = autoClose
       ) flatMap {
         file =>

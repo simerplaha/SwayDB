@@ -103,11 +103,11 @@ private[swaydb] object CompressorInternal extends LazyLogging {
 
     def compress(emptyHeadSpace: Int, slice: Slice[Byte]): IO[Option[Slice[Byte]]] =
       IO {
-        val maxCompressLength = compressor.maxCompressedLength(slice.written)
+        val maxCompressLength = compressor.maxCompressedLength(slice.size)
         val compressedBuffer = ByteBuffer.allocate(maxCompressLength + emptyHeadSpace)
-        val compressedBytes = compressor.compress(slice.toByteBufferWrap, slice.fromOffset, slice.written, compressedBuffer, emptyHeadSpace, maxCompressLength)
+        val compressedBytes = compressor.compress(slice.toByteBufferWrap, slice.fromOffset, slice.size, compressedBuffer, emptyHeadSpace, maxCompressLength)
 
-        if (isCompressionSatisfied(minCompressionPercentage, compressedBytes, slice.written, compressionName))
+        if (isCompressionSatisfied(minCompressionPercentage, compressedBytes, slice.size, compressionName))
           Some(
             Slice.from(
               byteBuffer = compressedBuffer,
@@ -130,7 +130,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
       IO(Some(Slice.fill[Byte](emptyHeadSpace)(0) ++ slice))
 
     override def compress(slice: Slice[Byte]): IO[Option[Slice[Byte]]] = {
-      logger.debug(s"Grouped {}.bytes with {}", slice.written, compressionName)
+      logger.debug(s"Grouped {}.bytes with {}", slice.size, compressionName)
       IO.Success(Some(slice))
     }
   }
@@ -144,10 +144,10 @@ private[swaydb] object CompressorInternal extends LazyLogging {
 
     override def compress(emptyHeadSpace: Int, slice: Slice[Byte]): IO[Option[Slice[Byte]]] =
       IO {
-        val compressedArray = new Array[Byte](snappy.Snappy.maxCompressedLength(slice.written) + emptyHeadSpace)
+        val compressedArray = new Array[Byte](snappy.Snappy.maxCompressedLength(slice.size) + emptyHeadSpace)
         val (bytes, fromOffset, written) = slice.underlyingWrittenArrayUnsafe
         val compressedSize = snappy.Snappy.compress(bytes, fromOffset, written, compressedArray, emptyHeadSpace)
-        if (isCompressionSatisfied(minCompressionPercentage, compressedSize, slice.written, this.getClass.getSimpleName))
+        if (isCompressionSatisfied(minCompressionPercentage, compressedSize, slice.size, this.getClass.getSimpleName))
           Some(Slice(compressedArray).slice(0, emptyHeadSpace + compressedSize - 1))
         else
           None

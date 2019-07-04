@@ -29,7 +29,7 @@ private[swaydb] case class SliceReader(slice: Slice[Byte]) extends Reader {
   private var position: Int = 0
 
   override val size: IO[Long] =
-    IO(slice.written.toLong)
+    IO(slice.size.toLong)
 
   def hasAtLeast(size: Long): IO[Boolean] =
     IO((slice.size - position) >= size)

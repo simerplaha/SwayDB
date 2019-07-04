@@ -499,7 +499,7 @@ private[swaydb] object Memory {
         segmentBlock =
           Cache.io(synchronised = true, stored = true)(
             SegmentBlock.read(
-              offset = SegmentBlock.Offset(0, compressedKeyValues.written),
+              offset = SegmentBlock.Offset(0, compressedKeyValues.size),
               segmentReader = Reader(compressedKeyValues)
             )
           )
@@ -524,7 +524,7 @@ private[swaydb] object Memory {
           )(keyOrder, limiter)
       }
 
-    override def valueLength: Int = compressedKeyValues.written
+    override def valueLength: Int = compressedKeyValues.size
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
@@ -661,7 +661,7 @@ private[core] object Transient {
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
     override val stats =
       Stats(
-        keySize = key.written,
+        keySize = key.size,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -730,7 +730,7 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        keySize = key.written,
+        keySize = key.size,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -797,7 +797,7 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        keySize = key.written,
+        keySize = key.size,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -865,7 +865,7 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        keySize = key.written,
+        keySize = key.size,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -954,7 +954,7 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        keySize = key.written,
+        keySize = key.size,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -1083,7 +1083,7 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        keySize = fromKey.written + toKey.written,
+        keySize = fromKey.size + toKey.size,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -1187,7 +1187,7 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        keySize = minKey.written + maxKey.maxKey.written,
+        keySize = minKey.size + maxKey.maxKey.size,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
