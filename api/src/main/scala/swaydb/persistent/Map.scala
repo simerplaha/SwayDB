@@ -111,7 +111,7 @@ object Map extends LazyLogging {
         mightContainFalsePositiveRate = mightContainFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        groupingStrategy = lastLevelGroupingStrategy,
+        keyValueGroupingStrategy = lastLevelGroupingStrategy,
         acceleration = acceleration
       ),
       maxOpenSegments = maxOpenSegments,

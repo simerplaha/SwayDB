@@ -20,10 +20,10 @@
 package swaydb.data.config
 
 import swaydb.data.api.grouping.Compression
-import swaydb.data.config.BinarySearchIndex.{Disable, FullIndex, SecondaryIndex}
+import swaydb.data.config.BinarySearchKeyIndex.{Disable, FullIndex, SecondaryIndex}
 
-sealed trait BinarySearchIndex {
-  def toOption: Option[BinarySearchIndex.Enable] =
+sealed trait BinarySearchKeyIndex {
+  def toOption: Option[BinarySearchKeyIndex.Enable] =
     this match {
       case Disable => None
       case index: FullIndex => Some(index)
@@ -31,10 +31,10 @@ sealed trait BinarySearchIndex {
     }
 }
 
-object BinarySearchIndex {
-  case object Disable extends BinarySearchIndex
+object BinarySearchKeyIndex {
+  case object Disable extends BinarySearchKeyIndex
 
-  sealed trait Enable extends BinarySearchIndex {
+  sealed trait Enable extends BinarySearchKeyIndex {
     def minimumNumberOfKeys: Int
     def cacheOnAccess: Boolean
     def compression: Seq[Compression]

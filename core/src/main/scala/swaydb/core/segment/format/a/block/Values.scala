@@ -40,7 +40,7 @@ object Values {
         hasCompression = false
       )
 
-    def apply(config: swaydb.data.config.Values): Config =
+    def apply(config: swaydb.data.config.ValuesConfig): Config =
       Config(
         compressDuplicateValues = config.compressDuplicateValues,
         compressDuplicateRangeValues = config.compressDuplicateRangeValues,

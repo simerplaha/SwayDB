@@ -25,20 +25,20 @@ sealed trait GroupGroupingStrategy
 object GroupGroupingStrategy {
 
   case class Count(count: Int,
-                   sortedIndex: SortedIndex,
-                   hashIndex: HashIndex,
-                   binarySearchIndex: BinarySearchIndex,
-                   bloomFilter: MightContainKey,
+                   sortedIndex: SortedKeyIndex,
+                   hashIndex: RandomKeyIndex,
+                   binarySearchIndex: BinarySearchKeyIndex,
+                   bloomFilter: MightContainKeyIndex,
                    prefixCompression: PrefixCompression,
-                   values: Values,
+                   values: ValuesConfig,
                    groupsCompression: Seq[Compression]) extends GroupGroupingStrategy
 
   case class Size(size: Int,
-                  sortedIndex: SortedIndex,
-                  hashIndex: HashIndex,
-                  binarySearchIndex: BinarySearchIndex,
-                  bloomFilter: MightContainKey,
+                  sortedIndex: SortedKeyIndex,
+                  hashIndex: RandomKeyIndex,
+                  binarySearchIndex: BinarySearchKeyIndex,
+                  bloomFilter: MightContainKeyIndex,
                   prefixCompression: PrefixCompression,
-                  values: Values,
+                  values: ValuesConfig,
                   groupsCompression: Seq[Compression]) extends GroupGroupingStrategy
 }

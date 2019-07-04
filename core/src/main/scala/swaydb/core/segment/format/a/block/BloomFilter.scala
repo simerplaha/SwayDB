@@ -41,16 +41,16 @@ object BloomFilter extends LazyLogging {
         hasCompression = false
       )
 
-    def apply(config: swaydb.data.config.MightContainKey): Config =
+    def apply(config: swaydb.data.config.MightContainKeyIndex): Config =
       config match {
-        case swaydb.data.config.MightContainKey.Disable =>
+        case swaydb.data.config.MightContainKeyIndex.Disable =>
           Config(
             falsePositiveRate = 0.0,
             minimumNumberOfKeys = Int.MaxValue,
             cacheOnAccess = false,
             hasCompression = false
           )
-        case enable: swaydb.data.config.MightContainKey.Enable =>
+        case enable: swaydb.data.config.MightContainKeyIndex.Enable =>
           Config(
             falsePositiveRate = enable.falsePositiveRate,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,

@@ -50,7 +50,7 @@ object DefaultMemoryConfig {
             mightContainFalsePositiveRate: Double,
             compressDuplicateValues: Boolean,
             deleteSegmentsEventually: Boolean,
-            groupingStrategy: Option[KeyValueGroupingStrategy],
+            keyValueGroupingStrategy: Option[KeyValueGroupingStrategy],
             acceleration: LevelZeroMeter => Accelerator): SwayDBMemoryConfig =
     ConfigWizard
       .addMemoryLevel0(
@@ -64,13 +64,13 @@ object DefaultMemoryConfig {
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
         mightContainKey =
-          MightContainKey.Enable(
+          MightContainKeyIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 100,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        groupingStrategy = groupingStrategy,
+        keyValueGroupingStrategy = keyValueGroupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           _ =>

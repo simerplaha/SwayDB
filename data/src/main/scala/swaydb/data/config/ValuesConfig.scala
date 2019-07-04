@@ -21,16 +21,10 @@ package swaydb.data.config
 
 import swaydb.data.api.grouping.Compression
 
-sealed trait SortedIndex {
-  def toOption =
-    this match {
-      case enable: SortedIndex.Enable =>
-        Some(enable)
-    }
-}
-object SortedIndex {
-  case class Enable(cacheOnAccess: Boolean,
-                    prefixCompression: PrefixCompression,
-                    enablePositionIndex: Boolean,
-                    compression: Seq[Compression]) extends SortedIndex
+case class ValuesConfig(compressDuplicateValues: Boolean,
+                        compressDuplicateRangeValues: Boolean,
+                        cacheOnAccess: Boolean,
+                        compression: Seq[Compression]) {
+  def toOption: Option[ValuesConfig] =
+    Some(this)
 }

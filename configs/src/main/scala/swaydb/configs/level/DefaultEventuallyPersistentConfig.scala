@@ -72,8 +72,8 @@ object DefaultEventuallyPersistentConfig {
         segmentSize = memoryLevelSegmentSize,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        mightContainKey = MightContainKey.Enable(mightContainFalsePositiveRate, 10, false, Seq.empty),
-        groupingStrategy = None,
+        mightContainKey = MightContainKeyIndex.Enable(mightContainFalsePositiveRate, 10, false, Seq.empty),
+        keyValueGroupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
@@ -93,7 +93,7 @@ object DefaultEventuallyPersistentConfig {
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedIndex =
-          SortedIndex.Enable(
+          SortedKeyIndex.Enable(
             cacheOnAccess = false,
             enablePositionIndex = true,
             prefixCompression =
@@ -104,28 +104,28 @@ object DefaultEventuallyPersistentConfig {
               Seq.empty
           ),
         hashIndex =
-          HashIndex.Enable(
-            maxProbe = 5,
+          RandomKeyIndex.Enable(
+            retries = 5,
             minimumNumberOfKeys = 20,
             allocateSpace = _.requiredSpace * 2,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
         binarySearchIndex =
-          BinarySearchIndex.FullIndex(
+          BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 5,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
         mightContainKey =
-          MightContainKey.Enable(
+          MightContainKeyIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
         values =
-          Values(
+          ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             cacheOnAccess = false,

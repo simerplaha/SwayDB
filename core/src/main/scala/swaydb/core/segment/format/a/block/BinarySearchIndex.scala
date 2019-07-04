@@ -42,9 +42,9 @@ object BinarySearchIndex {
         hasCompression = false
       )
 
-    def apply(config: swaydb.data.config.BinarySearchIndex): Config =
+    def apply(config: swaydb.data.config.BinarySearchKeyIndex): Config =
       config match {
-        case swaydb.data.config.BinarySearchIndex.Disable =>
+        case swaydb.data.config.BinarySearchKeyIndex.Disable =>
           Config(
             enabled = false,
             minimumNumberOfKeys = Int.MaxValue,
@@ -52,7 +52,7 @@ object BinarySearchIndex {
             cacheOnAccess = false,
             hasCompression = false
           )
-        case enable: swaydb.data.config.BinarySearchIndex.FullIndex =>
+        case enable: swaydb.data.config.BinarySearchKeyIndex.FullIndex =>
           Config(
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
@@ -61,7 +61,7 @@ object BinarySearchIndex {
             hasCompression = enable.compression.nonEmpty
           )
 
-        case enable: swaydb.data.config.BinarySearchIndex.SecondaryIndex =>
+        case enable: swaydb.data.config.BinarySearchKeyIndex.SecondaryIndex =>
           Config(
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,

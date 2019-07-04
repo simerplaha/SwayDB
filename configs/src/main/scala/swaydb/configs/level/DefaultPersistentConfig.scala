@@ -58,7 +58,7 @@ object DefaultPersistentConfig {
             mightContainFalsePositiveRate: Double,
             compressDuplicateValues: Boolean,
             deleteSegmentsEventually: Boolean,
-            groupingStrategy: Option[KeyValueGroupingStrategy],
+            keyValueGroupingStrategy: Option[KeyValueGroupingStrategy],
             acceleration: LevelZeroMeter => Accelerator): SwayDBPersistentConfig =
     ConfigWizard
       .addPersistentLevel0( //level0
@@ -86,8 +86,8 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         copyForward = true,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        sortedIndex =
-          SortedIndex.Enable(
+        sortedKeyIndex =
+          SortedKeyIndex.Enable(
             cacheOnAccess = false,
             enablePositionIndex = true,
             prefixCompression =
@@ -96,36 +96,36 @@ object DefaultPersistentConfig {
               ),
             compression = Seq.empty
           ),
-        hashIndex =
-          HashIndex.Enable(
-            maxProbe = 5,
+        randomKeyIndex =
+          RandomKeyIndex.Enable(
+            retries = 5,
             minimumNumberOfKeys = 20,
             allocateSpace = _.requiredSpace * 2,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        binarySearchIndex =
-          BinarySearchIndex.FullIndex(
+        binarySearchKeyIndex =
+          BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        mightContainKey =
-          MightContainKey.Enable(
+        mightContainKeyIndex =
+          MightContainKeyIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnAccess = true,
             compression = Seq.empty
           ),
-        values =
-          Values(
+        valuesConfig =
+          ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        blockCompressions = Seq.empty,
-        groupingStrategy = None,
+        segmentCompression = Seq.empty,
+        keyValueGroupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
@@ -143,8 +143,8 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         copyForward = true,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        sortedIndex =
-          SortedIndex.Enable(
+        sortedKeyIndex =
+          SortedKeyIndex.Enable(
             cacheOnAccess = false,
             enablePositionIndex = true,
             prefixCompression =
@@ -153,36 +153,36 @@ object DefaultPersistentConfig {
               ),
             compression = Seq.empty
           ),
-        hashIndex =
-          HashIndex.Enable(
-            maxProbe = 5,
+        randomKeyIndex =
+          RandomKeyIndex.Enable(
+            retries = 5,
             minimumNumberOfKeys = 20,
             allocateSpace = _.requiredSpace * 2,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        binarySearchIndex =
-          BinarySearchIndex.FullIndex(
+        binarySearchKeyIndex =
+          BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        mightContain =
-          MightContainKey.Enable(
+        mightContainKeyIndex =
+          MightContainKeyIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnAccess = true,
             compression = Seq.empty
           ),
-        values =
-          Values(
+        valuesConfig =
+          ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
         segmentCompressions = Seq.empty,
-        groupingStrategy = groupingStrategy,
+        groupingStrategy = keyValueGroupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
           levelMeter => {
@@ -200,8 +200,8 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        sortedIndex =
-          SortedIndex.Enable(
+        sortedKeyIndex =
+          SortedKeyIndex.Enable(
             cacheOnAccess = false,
             enablePositionIndex = true,
             prefixCompression =
@@ -210,29 +210,29 @@ object DefaultPersistentConfig {
               ),
             compression = Seq.empty
           ),
-        hashIndex =
-          HashIndex.Enable(
-            maxProbe = 5,
+        randomKeyIndex =
+          RandomKeyIndex.Enable(
+            retries = 5,
             minimumNumberOfKeys = 20,
             allocateSpace = _.requiredSpace * 2,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        binarySearchIndex =
-          BinarySearchIndex.FullIndex(
+        binarySearchKeyIndex =
+          BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        mightContain =
-          MightContainKey.Enable(
+        mightContainKeyIndex =
+          MightContainKeyIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnAccess = true,
             compression = Seq.empty
           ),
-        values =
-          Values(
+        valuesConfig =
+          ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             compression = Seq.empty,
@@ -257,8 +257,8 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        sortedIndex =
-          SortedIndex.Enable(
+        sortedKeyIndex =
+          SortedKeyIndex.Enable(
             cacheOnAccess = false,
             enablePositionIndex = true,
             prefixCompression =
@@ -267,29 +267,29 @@ object DefaultPersistentConfig {
               ),
             compression = Seq.empty
           ),
-        hashIndex =
-          HashIndex.Enable(
-            maxProbe = 5,
+        randomKeyIndex =
+          RandomKeyIndex.Enable(
+            retries = 5,
             minimumNumberOfKeys = 20,
             allocateSpace = _.requiredSpace * 2,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        binarySearchIndex =
-          BinarySearchIndex.FullIndex(
+        binarySearchKeyIndex =
+          BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        mightContain =
-          MightContainKey.Enable(
+        mightContainKeyIndex =
+          MightContainKeyIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnAccess = true,
             compression = Seq.empty
           ),
-        values =
-          Values(
+        valuesConfig =
+          ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             cacheOnAccess = false,
@@ -314,8 +314,8 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        sortedIndex =
-          SortedIndex.Enable(
+        sortedKeyIndex =
+          SortedKeyIndex.Enable(
             cacheOnAccess = false,
             enablePositionIndex = true,
             prefixCompression =
@@ -324,29 +324,29 @@ object DefaultPersistentConfig {
               ),
             compression = Seq.empty
           ),
-        hashIndex =
-          HashIndex.Enable(
-            maxProbe = 5,
+        randomKeyIndex =
+          RandomKeyIndex.Enable(
+            retries = 5,
             minimumNumberOfKeys = 20,
             allocateSpace = _.requiredSpace * 2,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        binarySearchIndex =
-          BinarySearchIndex.FullIndex(
+        binarySearchKeyIndex =
+          BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        mightContain =
-          MightContainKey.Enable(
+        mightContainKeyIndex =
+          MightContainKeyIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnAccess = true,
             compression = Seq.empty
           ),
-        values =
-          Values(
+        valuesConfig =
+          ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             cacheOnAccess = false,
@@ -373,8 +373,8 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        sortedIndex =
-          SortedIndex.Enable(
+        sortedKeyIndex =
+          SortedKeyIndex.Enable(
             cacheOnAccess = false,
             enablePositionIndex = true,
             prefixCompression =
@@ -383,36 +383,36 @@ object DefaultPersistentConfig {
               ),
             compression = Seq.empty
           ),
-        hashIndex =
-          HashIndex.Enable(
-            maxProbe = 5,
+        randomKeyIndex =
+          RandomKeyIndex.Enable(
+            retries = 5,
             minimumNumberOfKeys = 20,
             allocateSpace = _.requiredSpace * 2,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        binarySearchIndex =
-          BinarySearchIndex.FullIndex(
+        binarySearchKeyIndex =
+          BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        mightContain =
-          MightContainKey.Enable(
+        mightContainKeyIndex =
+          MightContainKeyIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             cacheOnAccess = true,
             compression = Seq.empty
           ),
-        values =
-          Values(
+        valuesConfig =
+          ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             cacheOnAccess = false,
             compression = Seq.empty
           ),
         segmentCompressions = Seq.empty,
-        groupingStrategy = groupingStrategy,
+        groupingStrategy = keyValueGroupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
           levelMeter =>

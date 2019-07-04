@@ -81,7 +81,7 @@ object Set extends LazyLogging {
         deleteSegmentsEventually = deleteSegmentsEventually,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         mightContainFalsePositiveRate = mightContainFalsePositiveRate,
-        groupingStrategy = lastLevelGroupingStrategy,
+        keyValueGroupingStrategy = lastLevelGroupingStrategy,
         acceleration = acceleration
       ),
       maxOpenSegments = maxOpenSegments,

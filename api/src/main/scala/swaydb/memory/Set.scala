@@ -62,7 +62,7 @@ object Set extends LazyLogging {
         mightContainFalsePositiveRate = mightContainFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        groupingStrategy = groupingStrategy,
+        keyValueGroupingStrategy = groupingStrategy,
         acceleration = acceleration
       ),
       maxOpenSegments = 0,

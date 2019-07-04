@@ -26,7 +26,7 @@ import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
-import swaydb.data.config.HashIndex.HashIndexSpace
+import swaydb.data.config.RandomKeyIndex
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -49,9 +49,9 @@ private[core] object HashIndex extends LazyLogging {
         hasCompression = false
       )
 
-    def apply(config: swaydb.data.config.HashIndex): Config =
+    def apply(config: swaydb.data.config.RandomKeyIndex): Config =
       config match {
-        case swaydb.data.config.HashIndex.Disable =>
+        case swaydb.data.config.RandomKeyIndex.Disable =>
           Config(
             maxProbe = -1,
             minimumNumberOfKeys = Int.MaxValue,
@@ -59,9 +59,9 @@ private[core] object HashIndex extends LazyLogging {
             cacheOnAccess = false,
             hasCompression = false
           )
-        case enable: swaydb.data.config.HashIndex.Enable =>
+        case enable: swaydb.data.config.RandomKeyIndex.Enable =>
           Config(
-            maxProbe = enable.maxProbe,
+            maxProbe = enable.retries,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             allocateSpace = enable.allocateSpace,
             cacheOnAccess = enable.cacheOnAccess,
@@ -72,7 +72,7 @@ private[core] object HashIndex extends LazyLogging {
 
   case class Config(maxProbe: Int,
                     minimumNumberOfKeys: Int,
-                    allocateSpace: HashIndexSpace => Int,
+                    allocateSpace: RandomKeyIndex.RequiredSpace => Int,
                     cacheOnAccess: Boolean,
                     hasCompression: Boolean)
 
@@ -145,7 +145,7 @@ private[core] object HashIndex extends LazyLogging {
                            minimumNumberOfKeys: Int,
                            largestValue: Int,
                            hasCompression: Boolean,
-                           allocateSpace: HashIndexSpace => Int): Int = {
+                           allocateSpace: RandomKeyIndex.RequiredSpace => Int): Int = {
     if (keyCounts < minimumNumberOfKeys) {
       0
     } else {
@@ -160,7 +160,7 @@ private[core] object HashIndex extends LazyLogging {
 
       Try {
         allocateSpace {
-          new HashIndexSpace {
+          new RandomKeyIndex.RequiredSpace {
             override def requiredSpace: Int = minimumRequired
             override def numberOfKeys: Int = keyCounts
           }

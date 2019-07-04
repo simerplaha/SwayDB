@@ -21,22 +21,22 @@ package swaydb.data.config
 
 import swaydb.data.api.grouping.Compression
 
-sealed trait HashIndex {
+sealed trait RandomKeyIndex {
   def toOption =
     this match {
-      case HashIndex.Disable => None
-      case enable: HashIndex.Enable => Some(enable)
+      case RandomKeyIndex.Disable => None
+      case enable: RandomKeyIndex.Enable => Some(enable)
     }
 }
-object HashIndex {
-  case object Disable extends HashIndex
-  case class Enable(maxProbe: Int,
+object RandomKeyIndex {
+  case object Disable extends RandomKeyIndex
+  case class Enable(retries: Int,
                     minimumNumberOfKeys: Int,
-                    allocateSpace: HashIndexSpace => Int,
+                    allocateSpace: RequiredSpace => Int,
                     cacheOnAccess: Boolean,
-                    compression: Seq[Compression]) extends HashIndex
+                    compression: Seq[Compression]) extends RandomKeyIndex
 
-  trait HashIndexSpace {
+  trait RequiredSpace {
     def requiredSpace: Int
     def numberOfKeys: Int
   }

@@ -44,13 +44,13 @@ private[core] object SortedIndex {
         hasCompression = false
       )
 
-    def apply(config: swaydb.data.config.SortedIndex): Config =
+    def apply(config: swaydb.data.config.SortedKeyIndex): Config =
       config match {
-        case config: swaydb.data.config.SortedIndex.Enable =>
+        case config: swaydb.data.config.SortedKeyIndex.Enable =>
           apply(config)
       }
 
-    def apply(config: swaydb.data.config.SortedIndex.Enable): Config =
+    def apply(config: swaydb.data.config.SortedKeyIndex.Enable): Config =
       Config(
         cacheOnAccess = config.cacheOnAccess,
         enableAccessPositionIndex = config.enablePositionIndex,

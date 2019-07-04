@@ -34,11 +34,11 @@ object BlocksCompression {
       segmentCompression = Seq.empty
     )
 
-  def apply(bloomFilter: swaydb.data.config.MightContainKey,
-            hashIndex: swaydb.data.config.HashIndex,
-            binarySearchIndex: swaydb.data.config.BinarySearchIndex,
-            sortedIndex: swaydb.data.config.SortedIndex,
-            values: swaydb.data.config.Values,
+  def apply(bloomFilter: swaydb.data.config.MightContainKeyIndex,
+            hashIndex: swaydb.data.config.RandomKeyIndex,
+            binarySearchIndex: swaydb.data.config.BinarySearchKeyIndex,
+            sortedIndex: swaydb.data.config.SortedKeyIndex,
+            values: swaydb.data.config.ValuesConfig,
             segment: Seq[Compression]): BlocksCompression =
     BlocksCompression(
       values = values.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
