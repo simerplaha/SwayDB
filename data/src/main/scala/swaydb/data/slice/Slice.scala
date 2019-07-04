@@ -375,7 +375,7 @@ object Slice {
   implicit def canBuildFrom[T: ClassTag]: CanBuildFrom[Slice[_], T, Slice[T]] =
     new CanBuildFrom[Slice[_], T, Slice[T]] {
       def apply(from: Slice[_]) =
-        new SliceBuilder[T](from.size) //max is used in-case from.size == 0
+        new SliceBuilder[T](from.size)
 
       def apply() =
         new SliceBuilder[T](100)
@@ -392,10 +392,10 @@ object Slice {
   * @param _written   items written
   * @tparam T The type of this Slice
   */
-class Slice[+T: ClassTag](array: Array[T],
-                          val fromOffset: Int,
-                          val toOffset: Int,
-                          private var _written: Int) extends Iterable[T] with IterableLike[T, Slice[T]] { self =>
+class Slice[+T: ClassTag] private(array: Array[T],
+                                  val fromOffset: Int,
+                                  val toOffset: Int,
+                                  private var _written: Int) extends Iterable[T] with IterableLike[T, Slice[T]] { self =>
 
   private var writePosition = fromOffset + _written
 
