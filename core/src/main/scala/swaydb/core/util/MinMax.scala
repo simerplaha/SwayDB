@@ -19,7 +19,7 @@
 
 package swaydb.core.util
 
-import swaydb.core.data.Value
+import swaydb.core.data.{Transient, Value}
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -71,7 +71,7 @@ private[core] object MinMax {
              right: Option[T])(implicit ordering: Ordering[T]): Option[T] =
     pickOne[T](left, right, maximum)
 
-  def contains[T](key: T, minMax: MinMax[T])(implicit order: Ordering[T]) = {
+  def contains[T](key: T, minMax: MinMax[T])(implicit order: Ordering[T]): Boolean = {
     import order._
     minMax.max map {
       max =>
@@ -79,39 +79,71 @@ private[core] object MinMax {
     } getOrElse key.equiv(minMax.min)
   }
 
-  def minMax(left: Option[MinMax[Slice[Byte]]],
-             right: Option[Value])(implicit order: Ordering[Slice[Byte]]): Option[MinMax[Slice[Byte]]] =
-    right flatMap {
-      right =>
-        minMax(left, right)
-    } orElse left
+  def minMaxFunction(function: Option[Value],
+                     current: Option[MinMax[Slice[Byte]]])(implicit functionKeyOrder: Ordering[Slice[Byte]]): Option[MinMax[Slice[Byte]]] =
+    function flatMap {
+      function =>
+        minMaxFunction(
+          function = function,
+          current = current
+        )
+    } orElse current
 
-  def minMax(left: Option[MinMax[Slice[Byte]]],
-             right: Value)(implicit order: Ordering[Slice[Byte]]): Option[MinMax[Slice[Byte]]] =
-    right match {
+  def minMaxFunction(function: Value,
+                     current: Option[MinMax[Slice[Byte]]])(implicit functionKeyOrder: Ordering[Slice[Byte]]): Option[MinMax[Slice[Byte]]] =
+    function match {
       case _: Value.Remove | _: Value.Update | _: Value.Put =>
-        left
+        current
 
-      case Value.Function(function, _) =>
-        Some(minMax(left, function))
+      case function: Value.Function =>
+        Some(
+          minMaxFunction(
+            function = function,
+            current = current
+          )
+        )
 
       case Value.PendingApply(applies) =>
-        minMax(left, applies)
+        minMaxFunction(
+          functions = applies,
+          current = current
+        )
     }
+
+  def minMaxFunction(function: Value.Function,
+                     current: Option[MinMax[Slice[Byte]]])(implicit functionKeyOrder: Ordering[Slice[Byte]]): MinMax[Slice[Byte]] =
+    minMax(
+      current = current,
+      next = function.function
+    )
+
+  def minMaxFunction(function: Transient.Function,
+                     current: Option[MinMax[Slice[Byte]]])(implicit functionKeyOrder: Ordering[Slice[Byte]]): MinMax[Slice[Byte]] =
+    minMax(
+      current = current,
+      next = function.function
+    )
 
   @tailrec
-  def minMax(left: Option[MinMax[Slice[Byte]]],
-             right: Slice[Value])(implicit order: Ordering[Slice[Byte]]): Option[MinMax[Slice[Byte]]] =
-    right.headOption match {
-      case Some(value) =>
-        minMax(minMax(left, value), right.dropHead())
+  def minMaxFunction(functions: Slice[Value],
+                     current: Option[MinMax[Slice[Byte]]])(implicit functionKeyOrder: Ordering[Slice[Byte]]): Option[MinMax[Slice[Byte]]] =
+    functions.headOption match {
+      case Some(function) =>
+        minMaxFunction(
+          functions = functions.dropHead(),
+          current =
+            minMaxFunction(
+              function = function,
+              current = current
+            )
+        )
 
       case None =>
-        left
+        current
     }
 
-  def minMaxGet[T](left: Option[MinMax[T]],
-                   right: Option[MinMax[T]])(implicit order: Ordering[T]): Option[MinMax[T]] =
+  def minMax[T](left: Option[MinMax[T]],
+                right: Option[MinMax[T]])(implicit order: Ordering[T]): Option[MinMax[T]] =
     (left, right) match {
       case (Some(left), Some(right)) =>
         Some(
@@ -131,22 +163,28 @@ private[core] object MinMax {
         None
     }
 
-  def minMax[T](currentMinMax: Option[MinMax[T]],
-                newMinMax: T)(implicit order: Ordering[T]): MinMax[T] =
-    currentMinMax map {
+  def minMax[T](current: Option[MinMax[T]],
+                next: T)(implicit order: Ordering[T]): MinMax[T] =
+    current map {
       currentMinMax =>
-        minMax(currentMinMax, newMinMax)
-    } getOrElse MinMax(min = newMinMax, None)
+        minMax(currentMinMax, next)
+    } getOrElse MinMax(min = next, None)
 
-  def minMax[T](currentMinMax: MinMax[T],
-                key: T)(implicit order: Ordering[T]): MinMax[T] = {
+  def minMax[T](current: MinMax[T],
+                next: T)(implicit order: Ordering[T]): MinMax[T] = {
     import order._
-    if (key < currentMinMax.min)
-      currentMinMax.copy(min = key)
-    else if (currentMinMax.max.forall(_ < key))
-      currentMinMax.copy(max = Some(key))
+    val minCompare = order.compare(next, current.min)
+    if (minCompare == 0)
+      current
+    else if (minCompare < 0)
+      MinMax(
+        min = next,
+        max = current.max orElse Some(current.min)
+      )
+    else if (current.max.forall(_ < next))
+      current.copy(max = Some(next))
     else
-      currentMinMax
+      current
   }
 }
 

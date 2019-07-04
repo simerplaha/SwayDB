@@ -135,12 +135,20 @@ private[swaydb] object Bytes {
 
   def compressJoin(left: Slice[Byte],
                    right: Slice[Byte]): Slice[Byte] =
-    compressJoin(left, right, Slice.emptyBytes)
+    compressJoin(
+      left = left,
+      right = right,
+      tail = Slice.emptyBytes
+    )
 
   def compressJoin(left: Slice[Byte],
                    right: Slice[Byte],
                    tail: Byte): Slice[Byte] =
-    compressJoin(left, right, Slice(tail))
+    compressJoin(
+      left = left,
+      right = right,
+      tail = Slice(tail)
+    )
 
   /**
     * Merges the input bytes into a single byte array extracting common bytes.

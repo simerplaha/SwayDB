@@ -192,7 +192,7 @@ private[core] object SegmentWriter extends LazyLogging {
 
           keyValue match {
             case rootGroup: Transient.Group =>
-              nextMinMaxFunctionId = MinMax.minMaxGet(currentMinMaxFunction, rootGroup.minMaxFunctionId)(FunctionStore.order)
+              nextMinMaxFunctionId = MinMax.minMax(currentMinMaxFunction, rootGroup.minMaxFunctionId)(FunctionStore.order)
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeMany(
@@ -201,8 +201,8 @@ private[core] object SegmentWriter extends LazyLogging {
                 ).get
 
             case range: Transient.Range =>
-              nextMinMaxFunctionId = MinMax.minMax(currentMinMaxFunction, range.fromValue)(FunctionStore.order)
-              nextMinMaxFunctionId = MinMax.minMax(currentMinMaxFunction, range.rangeValue)(FunctionStore.order)
+              nextMinMaxFunctionId = MinMax.minMaxFunction(range.fromValue, currentMinMaxFunction)(FunctionStore.order)
+              nextMinMaxFunctionId = MinMax.minMaxFunction(range.rangeValue, currentMinMaxFunction)(FunctionStore.order)
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(
@@ -211,7 +211,7 @@ private[core] object SegmentWriter extends LazyLogging {
                 ).get
 
             case function: Transient.Function =>
-              nextMinMaxFunctionId = Some(MinMax.minMax(currentMinMaxFunction, function.function)(FunctionStore.order))
+              nextMinMaxFunctionId = Some(MinMax.minMaxFunction(function, currentMinMaxFunction)(FunctionStore.order))
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(
@@ -220,7 +220,7 @@ private[core] object SegmentWriter extends LazyLogging {
                 ).get
 
             case pendingApply: Transient.PendingApply =>
-              nextMinMaxFunctionId = MinMax.minMax(currentMinMaxFunction, pendingApply.applies)(FunctionStore.order)
+              nextMinMaxFunctionId = MinMax.minMaxFunction(pendingApply.applies, currentMinMaxFunction)(FunctionStore.order)
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(
