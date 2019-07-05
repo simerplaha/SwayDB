@@ -179,7 +179,7 @@ private[writer] object ValueWriter {
       DeadlineWriter.write(
         currentDeadline = current.deadline,
         previousDeadline = current.previous.flatMap(_.deadline),
-        getDeadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
+        deadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
         enablePrefixCompression = enablePrefixCompression,
         plusSize = plusSize + currentValueOffsetUnsignedBytes.size + currentValueLengthUnsignedBytes.size,
         isKeyCompressed = isKeyUncompressed,
@@ -210,7 +210,7 @@ private[writer] object ValueWriter {
       DeadlineWriter.write(
         currentDeadline = current.deadline,
         previousDeadline = current.previous.flatMap(_.deadline),
-        getDeadlineId = entryId.noValue,
+        deadlineId = entryId.noValue,
         plusSize = plusSize,
         enablePrefixCompression = enablePrefixCompression,
         isKeyCompressed = isKeyUncompressed,
@@ -240,7 +240,7 @@ private[writer] object ValueWriter {
           DeadlineWriter.write(
             currentDeadline = current.deadline,
             previousDeadline = current.previous.flatMap(_.deadline),
-            getDeadlineId = entryId.valueFullyCompressed.valueOffsetFullyCompressed.valueLengthFullyCompressed,
+            deadlineId = entryId.valueFullyCompressed.valueOffsetFullyCompressed.valueLengthFullyCompressed,
             plusSize = plusSize,
             enablePrefixCompression = enablePrefixCompression,
             isKeyCompressed = isKeyUncompressed,
@@ -255,7 +255,7 @@ private[writer] object ValueWriter {
             DeadlineWriter.write(
               currentDeadline = current.deadline,
               previousDeadline = current.previous.flatMap(_.deadline),
-              getDeadlineId = entryId.valueFullyCompressed.valueOffsetUncompressed.valueLengthUncompressed,
+              deadlineId = entryId.valueFullyCompressed.valueOffsetUncompressed.valueLengthUncompressed,
               plusSize = plusSize + currentValueOffsetUnsignedBytes.size + currentValueLengthUnsignedBytes.size,
               enablePrefixCompression = enablePrefixCompression,
               isKeyCompressed = isKeyUncompressed,
@@ -345,7 +345,7 @@ private[writer] object ValueWriter {
           DeadlineWriter.write(
             currentDeadline = current.deadline,
             previousDeadline = current.previous.flatMap(_.deadline),
-            getDeadlineId = valueLengthId,
+            deadlineId = valueLengthId,
             plusSize = plusSize + currentUnsignedValueOffsetBytes.size + valueLengthRemainingBytes.size,
             enablePrefixCompression = true,
             isKeyCompressed = isKeyUncompressed,
@@ -370,7 +370,7 @@ private[writer] object ValueWriter {
         DeadlineWriter.write(
           currentDeadline = current.deadline,
           previousDeadline = current.previous.flatMap(_.deadline),
-          getDeadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
+          deadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
           plusSize = plusSize + currentUnsignedValueOffsetBytes.size + currentUnsignedValueLengthBytes.size,
           enablePrefixCompression = true,
           isKeyCompressed = isKeyUncompressed,
@@ -429,7 +429,7 @@ private[writer] object ValueWriter {
               DeadlineWriter.write(
                 currentDeadline = current.deadline,
                 previousDeadline = current.previous.flatMap(_.deadline),
-                getDeadlineId = valueLengthId,
+                deadlineId = valueLengthId,
                 plusSize = plusSize + valueOffsetRemainingBytes.size + valueLengthRemainingBytes.size,
                 enablePrefixCompression = true,
                 isKeyCompressed = isKeyUncompressed,
@@ -454,7 +454,7 @@ private[writer] object ValueWriter {
             DeadlineWriter.write(
               currentDeadline = current.deadline,
               previousDeadline = current.previous.flatMap(_.deadline),
-              getDeadlineId = valueOffsetId.valueLengthUncompressed,
+              deadlineId = valueOffsetId.valueLengthUncompressed,
               plusSize = plusSize + valueOffsetRemainingBytes.size + currentUnsignedValueLengthBytes.size,
               enablePrefixCompression = true,
               isKeyCompressed = isKeyUncompressed,

@@ -37,15 +37,15 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
   val getDeadlineIds =
     allBaseEntryIds collect {
-      case entryId: BaseEntryId.GetDeadlineId =>
+      case entryId: BaseEntryId.DeadlineId =>
         entryId
     }
 
   getDeadlineIds should not be empty
 
-  def runTestForEachDeadlineAndBinder(testFunction: PartialFunction[(BaseEntryId.GetDeadlineId, TransientToKeyValueIdBinder[_]), Unit]) =
-    getDeadlineIds.filter(_.isInstanceOf[BaseEntryId.GetDeadlineId]) foreach { //for all deadline ids
-      deadlineID: BaseEntryId.GetDeadlineId =>
+  def runTestForEachDeadlineAndBinder(testFunction: PartialFunction[(BaseEntryId.DeadlineId, TransientToKeyValueIdBinder[_]), Unit]) =
+    getDeadlineIds.filter(_.isInstanceOf[BaseEntryId.DeadlineId]) foreach { //for all deadline ids
+      deadlineID: BaseEntryId.DeadlineId =>
         TransientToKeyValueIdBinder.allBinders foreach { //for all key-values
           binder: TransientToKeyValueIdBinder[_] =>
             testFunction(deadlineID, binder)
@@ -114,7 +114,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
             val (deadlineBytes, isPrefixCompressed) =
               DeadlineWriter.uncompressed(
                 currentDeadline = deadline,
-                getDeadlineId = deadlineID,
+                deadlineId = deadlineID,
                 plusSize = 0,
                 hasPrefixCompressed = hasCompression,
                 isKeyCompressed = isKeyCompressed
@@ -146,7 +146,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
             val (deadlineBytes, isPrefixCompressed) =
               DeadlineWriter.uncompressed(
                 currentDeadline = deadline,
-                getDeadlineId = deadlineID,
+                deadlineId = deadlineID,
                 plusSize = 0,
                 hasPrefixCompressed = hasCompression,
                 isKeyCompressed = isKeyCompressed
@@ -182,7 +182,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
           DeadlineWriter.compress(
             currentDeadline = Deadline(Slice.fill[Byte](8)(0.toByte)),
             previousDeadline = Deadline(Slice.fill[Byte](8)(1.toByte)),
-            getDeadlineId = deadlineID,
+            deadlineId = deadlineID,
             plusSize = 0,
             isKeyCompressed = false
           ) shouldBe empty
@@ -205,7 +205,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                   DeadlineWriter.compress(
                     currentDeadline = currentDeadline,
                     previousDeadline = previousDeadline,
-                    getDeadlineId = deadlineID,
+                    deadlineId = deadlineID,
                     plusSize = 0,
                     isKeyCompressed = compressedKey
                   )
@@ -262,15 +262,15 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
   "noDeadline" should {
     "write without deadline bytes" in {
-      getDeadlineIds.filter(_.isInstanceOf[BaseEntryId.GetDeadlineId]) foreach { //for all deadline ids
-        deadlineID: BaseEntryId.GetDeadlineId =>
+      getDeadlineIds.filter(_.isInstanceOf[BaseEntryId.DeadlineId]) foreach { //for all deadline ids
+        deadlineID: BaseEntryId.DeadlineId =>
           TransientToKeyValueIdBinder.allBinders foreach { //for all key-values
             implicit binder =>
               def doAssert(isKeyCompressed: Boolean, hasPrefixCompressed: Boolean) = {
 
                 val (deadlineBytes, isPrefixCompressed) =
                   DeadlineWriter.noDeadline(
-                    getDeadlineId = deadlineID,
+                    deadlineId = deadlineID,
                     plusSize = 0,
                     hasPrefixCompressed = hasPrefixCompressed,
                     isKeyCompressed = isKeyCompressed
@@ -308,7 +308,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
               DeadlineWriter.write(
                 currentDeadline = deadline,
                 previousDeadline = deadline,
-                getDeadlineId = deadlineID,
+                deadlineId = deadlineID,
                 enablePrefixCompression = false,
                 plusSize = 0,
                 isKeyCompressed = isKeyCompressed,
@@ -343,7 +343,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
               DeadlineWriter.write(
                 currentDeadline = None,
                 previousDeadline = randomDeadlineOption(),
-                getDeadlineId = deadlineID,
+                deadlineId = deadlineID,
                 enablePrefixCompression = randomBoolean(),
                 plusSize = 0,
                 isKeyCompressed = isKeyCompressed,
@@ -382,7 +382,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
               DeadlineWriter.write(
                 currentDeadline = deadline,
                 previousDeadline = deadline,
-                getDeadlineId = deadlineID,
+                deadlineId = deadlineID,
                 enablePrefixCompression = true,
                 plusSize = 0,
                 isKeyCompressed = isKeyCompressed,
