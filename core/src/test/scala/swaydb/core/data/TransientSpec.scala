@@ -19,6 +19,7 @@
 
 package swaydb.core.data
 
+import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.serializers.Default._
@@ -39,6 +40,39 @@ class TransientSpec extends TestBase {
       val five = Transient.put(key = 5, value = Some(5), previous = Some(four))
 
       five.reverseIterator.toList should contain inOrderOnly(five, four, three, two, one)
+    }
+
+    "has same value" should {
+      //      "return false for groups" in {
+      //        runThis(10.times) {
+      //          Transient.hasSameValue(
+      //            left = randomGroup(),
+      //            right = randomTransientKeyValue(randomString, randomStringOption)
+      //          ) shouldBe false
+      //        }
+      //
+      //        runThis(10.times) {
+      //          Transient.hasSameValue(
+      //            left = randomTransientKeyValue(randomString, randomStringOption),
+      //            right = randomGroup()
+      //          ) shouldBe false
+      //        }
+      //      }
+
+      "return false for put" in {
+        runThis(100.times) {
+          val left = randomPutKeyValue(1, None).toTransient
+          val right = randomFixedTransientKeyValue(randomString, Some(randomString))
+
+          if (right.isInstanceOf[Transient.Remove]) {
+            Transient.hasSameValue(left = left, right = right) shouldBe true
+            Transient.hasSameValue(left = right, right = left) shouldBe true
+          } else {
+            Transient.hasSameValue(left = left, right = right) shouldBe false
+            Transient.hasSameValue(left = right, right = left) shouldBe false
+          }
+        }
+      }
     }
   }
 }

@@ -69,14 +69,14 @@ private[writer] object ValueWriter {
       )
     }
 
-  def compress[T](current: KeyValue.WriteOnly,
-                  previous: KeyValue.WriteOnly,
-                  enablePrefixCompression: Boolean,
-                  compressDuplicateValues: Boolean,
-                  entryId: BaseEntryId.Time,
-                  plusSize: Int,
-                  isKeyUncompressed: Boolean,
-                  hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.WriteResult =
+  private def compress[T](current: KeyValue.WriteOnly,
+                          previous: KeyValue.WriteOnly,
+                          enablePrefixCompression: Boolean,
+                          compressDuplicateValues: Boolean,
+                          entryId: BaseEntryId.Time,
+                          plusSize: Int,
+                          isKeyUncompressed: Boolean,
+                          hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.WriteResult =
     if (compressDuplicateValues) //check if values are the same.
       duplicateValue(
         previous = previous,
@@ -87,7 +87,7 @@ private[writer] object ValueWriter {
         isKeyUncompressed = isKeyUncompressed,
         hasPrefixCompressed = hasPrefixCompressed
       ) getOrElse {
-        compress(
+        partialCompress(
           previous = previous,
           current = current,
           entryId = entryId,
@@ -98,7 +98,7 @@ private[writer] object ValueWriter {
         )
       }
     else
-      compress(
+      partialCompress(
         previous = previous,
         current = current,
         entryId = entryId,
@@ -108,13 +108,13 @@ private[writer] object ValueWriter {
         hasPrefixCompressed = hasPrefixCompressed
       )
 
-  def compress[T](current: KeyValue.WriteOnly,
-                  previous: KeyValue.WriteOnly,
-                  enablePrefixCompression: Boolean,
-                  entryId: BaseEntryId.Time,
-                  plusSize: Int,
-                  isKeyUncompressed: Boolean,
-                  hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.WriteResult =
+  private def partialCompress[T](current: KeyValue.WriteOnly,
+                                 previous: KeyValue.WriteOnly,
+                                 enablePrefixCompression: Boolean,
+                                 entryId: BaseEntryId.Time,
+                                 plusSize: Int,
+                                 isKeyUncompressed: Boolean,
+                                 hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.WriteResult =
     if (enablePrefixCompression)
       (compressibleValue(current), compressibleValue(previous)) match {
         case (Some(currentValue), Some(previousValue)) =>

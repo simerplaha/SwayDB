@@ -99,7 +99,7 @@ private[writer] object DeadlineWriter {
     val adjustedToEntryIdDeadlineId =
       binder.keyValueId.adjustBaseIdToKeyValueIdKey(
         baseId = deadline.baseId,
-        keyCompressed = isKeyCompressed
+        isKeyCompressed = isKeyCompressed
       )
 
     val bytes =
@@ -141,7 +141,7 @@ private[writer] object DeadlineWriter {
     val adjustedToEntryIdDeadlineId =
       binder.keyValueId.adjustBaseIdToKeyValueIdKey(
         baseId = deadline.baseId,
-        keyCompressed = isKeyCompressed
+        isKeyCompressed = isKeyCompressed
       )
 
     val bytes =

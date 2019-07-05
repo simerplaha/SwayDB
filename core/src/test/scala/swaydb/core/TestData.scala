@@ -2285,6 +2285,21 @@ object TestData {
         bloomFilterConfig = BloomFilter.Config.disabled,
         previous = None
       )
+
+    def function(key: Slice[Byte],
+                 function: Slice[Byte])(implicit testTimer: TestTimer): Transient.Function =
+      Transient.Function(
+        key = key,
+        function = function,
+        deadline = None,
+        time = testTimer.next,
+        valuesConfig = Values.Config.disabled,
+        sortedIndexConfig = SortedIndex.Config.disabled,
+        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
+        hashIndexConfig = HashIndex.Config.disabled,
+        bloomFilterConfig = BloomFilter.Config.disabled,
+        previous = None
+      )
   }
 
   implicit class ValueUpdateTypeImplicits(remove: Value.type) {

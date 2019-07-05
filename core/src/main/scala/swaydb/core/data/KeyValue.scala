@@ -582,12 +582,12 @@ private[core] object Transient {
       case (left: Transient.Function, right: Transient.PendingApply) => false
       case (left: Transient.Function, right: Transient.Range) => false
       //PendingApply
-      case (left: Transient.Function, right: Transient.Remove) => false
-      case (left: Transient.Function, right: Transient.Put) => right.value contains left.function
-      case (left: Transient.Function, right: Transient.Update) => right.value contains left.function
-      case (left: Transient.Function, right: Transient.Function) => left.function == right.function
-      case (left: Transient.Function, right: Transient.PendingApply) => false
-      case (left: Transient.Function, right: Transient.Range) => false
+      case (left: Transient.PendingApply, right: Transient.Remove) => false
+      case (left: Transient.PendingApply, right: Transient.Put) => false
+      case (left: Transient.PendingApply, right: Transient.Update) => false
+      case (left: Transient.PendingApply, right: Transient.Function) => false
+      case (left: Transient.PendingApply, right: Transient.PendingApply) => left.applies == right.applies
+      case (left: Transient.PendingApply, right: Transient.Range) => false
       //Range
       case (left: Transient.Range, right: Transient.Remove) => false
       case (left: Transient.Range, right: Transient.Put) => false

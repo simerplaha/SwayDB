@@ -19,15 +19,10 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
-import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.data.{Time, Transient}
-import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.SegmentWriter
-import swaydb.core.segment.format.a.block._
+import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, BaseEntryIdFormatA, TransientToKeyValueIdBinder}
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -57,30 +52,7 @@ class ValueReaderWriterSpec extends TestBase {
         Slice(
           Transient.put(1, 100),
           Transient.update(1, 100),
-          Transient.Function(
-            key = 1,
-            function = 100,
-            deadline = randomDeadlineOption(),
-            time = Time.empty,
-            previous = None,
-            valuesConfig =
-              Values.Config(
-                compressDuplicateValues = true,
-                compressDuplicateRangeValues = true,
-                cacheOnAccess = false,
-                hasCompression = true
-              ),
-            sortedIndexConfig =
-              SortedIndex.Config(
-                cacheOnAccess = false,
-                prefixCompressionResetCount = 0,
-                hasCompression = false,
-                enableAccessPositionIndex = true
-              ),
-            binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-            hashIndexConfig = HashIndex.Config.disabled,
-            bloomFilterConfig = BloomFilter.Config.disabled
-          )
+          Transient.function(1, 100)
         ).updateStats
 
       //the first one is always going to be uncompressed so drop it.
@@ -98,29 +70,6 @@ class ValueReaderWriterSpec extends TestBase {
             )
           assertIndexBytes(result)
       }
-
-      //just a mini test to test these key-values are writable to Segment.
-      implicit val keyOrder = KeyOrder.default
-      val bytes =
-        SegmentWriter.write(
-          keyValues = keyValues,
-          createdInLevel = 0,
-          maxProbe = 0,
-          blockCompressions = BlocksCompression.disabled
-        ).get.flattenSegmentBytes
-
-      val (footer, valuesReader, sortedIndex, _, _, _) = getIndexes(Reader(bytes)).get
-
-      footer.hasGroup shouldBe false
-      footer.bloomFilterItemsCount shouldBe keyValues.size
-      footer.hasRange shouldBe false
-      footer.hasPut shouldBe true
-
-      SortedIndex.readAll(
-        keyValueCount = footer.keyValueCount,
-        sortedIndexReader = sortedIndex,
-        valuesReader = valuesReader
-      ).get shouldBe keyValues
     }
   }
 }

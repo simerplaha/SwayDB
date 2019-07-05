@@ -57,8 +57,8 @@ sealed trait KeyValueId {
   //instead of wrapping in IO for performance throw exception as this is not expected to occur.
   //if it does then it will be caught higher up in SegmentReader before responding the user.
 
-  def adjustBaseIdToKeyValueIdKey(baseId: Int, keyCompressed: Boolean) =
-    if (keyCompressed)
+  def adjustBaseIdToKeyValueIdKey(baseId: Int, isKeyCompressed: Boolean) =
+    if (isKeyCompressed)
       adjustBaseIdToKeyValueIdKey_Compressed(baseId)
     else
       adjustBaseIdToKeyValueIdKey_UnCompressed(baseId)
