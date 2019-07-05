@@ -323,7 +323,7 @@
 //        val group =
 //          Transient.Group(
 //            keyValues = oldKeyValues,
-//            segmentCompression = randomSegmentCompression(),
+//            segmentCompressions = randomSegmentCompression(),
 //            falsePositiveRate = TestData.falsePositiveRate,
 //            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
 //            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,

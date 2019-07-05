@@ -49,7 +49,7 @@
 //      val group =
 //        Transient.Group(
 //          keyValues = randomizedKeyValues(keyValueCount),
-//          segmentCompression = randomSegmentCompression(),
+//          segmentCompressions = randomSegmentCompression(),
 //          falsePositiveRate = TestData.falsePositiveRate,
 //          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
@@ -69,7 +69,7 @@
 //          _ =>
 //            Transient.Group(
 //              keyValues = randomizedKeyValues(keyValueCount),
-//              segmentCompression = randomSegmentCompression(),
+//              segmentCompressions = randomSegmentCompression(),
 //              falsePositiveRate = TestData.falsePositiveRate,
 //              enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
@@ -93,7 +93,7 @@
 //            else
 //              Transient.Group(
 //                keyValues = randomizedKeyValues(keyValueCount),
-//                segmentCompression = randomSegmentCompression(),
+//                segmentCompressions = randomSegmentCompression(),
 //                falsePositiveRate = TestData.falsePositiveRate,
 //                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
@@ -116,7 +116,7 @@
 //      val group =
 //        Transient.Group(
 //          keyValues = keyValues.toTransient,
-//          segmentCompression = randomSegmentCompression(),
+//          segmentCompressions = randomSegmentCompression(),
 //          falsePositiveRate = TestData.falsePositiveRate,
 //          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
@@ -165,7 +165,7 @@
 //      val group =
 //        Transient.Group(
 //          keyValues = keyValues,
-//          segmentCompression = randomSegmentCompression(),
+//          segmentCompressions = randomSegmentCompression(),
 //          falsePositiveRate = TestData.falsePositiveRate,
 //          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,

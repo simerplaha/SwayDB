@@ -38,7 +38,7 @@ object BloomFilter extends LazyLogging {
         falsePositiveRate = 0.0,
         minimumNumberOfKeys = Int.MaxValue,
         cacheOnAccess = false,
-        hasCompression = false
+        compressions = Seq.empty
       )
 
     def apply(config: swaydb.data.config.MightContainKeyIndex): Config =
@@ -48,14 +48,14 @@ object BloomFilter extends LazyLogging {
             falsePositiveRate = 0.0,
             minimumNumberOfKeys = Int.MaxValue,
             cacheOnAccess = false,
-            hasCompression = false
+            compressions = Seq.empty
           )
         case enable: swaydb.data.config.MightContainKeyIndex.Enable =>
           Config(
             falsePositiveRate = enable.falsePositiveRate,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             cacheOnAccess = enable.cacheOnAccess,
-            hasCompression = enable.compression.nonEmpty
+            compressions = enable.compression map CompressionInternal.apply
           )
       }
   }
@@ -63,7 +63,7 @@ object BloomFilter extends LazyLogging {
   case class Config(falsePositiveRate: Double,
                     minimumNumberOfKeys: Int,
                     cacheOnAccess: Boolean,
-                    hasCompression: Boolean)
+                    compressions: Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 
@@ -98,10 +98,14 @@ object BloomFilter extends LazyLogging {
       val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
       val maxProbeSize = Bytes.sizeOf(maxProbe)
 
-      Block.headerSize(hasCompression) +
-        numberOfBitsSize +
-        maxProbeSize +
-        numberOfBits
+      val headerByteSize =
+        Block.headerSize(hasCompression) +
+          numberOfBitsSize +
+          maxProbeSize +
+          numberOfBits
+
+      Bytes.sizeOf(headerByteSize) +
+        headerByteSize
     }
   }
 
@@ -182,7 +186,7 @@ object BloomFilter extends LazyLogging {
   def shouldNotCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =
     keyValues.isEmpty ||
       keyValues.last.stats.segmentHasRemoveRange ||
-      keyValues.last.stats.segmentBloomFilterSize <= 1 ||
+      keyValues.last.stats.segmentBloomFilterSize <= 0 ||
       keyValues.last.bloomFilterConfig.falsePositiveRate <= 0.0
 
   def shouldCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =

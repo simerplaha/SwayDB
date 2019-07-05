@@ -55,7 +55,7 @@
 //      val group =
 //        Transient.Group(
 //          keyValues = groupKeyValues,
-//          segmentCompression = randomSegmentCompression(),
+//          segmentCompressions = randomSegmentCompression(),
 //          falsePositiveRate = TestData.falsePositiveRate,
 //          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
@@ -126,7 +126,7 @@
 //      val group =
 //        Transient.Group(
 //          keyValues = groupKeyValues,
-//          segmentCompression = randomSegmentCompression(),
+//          segmentCompressions = randomSegmentCompression(),
 //          falsePositiveRate = TestData.falsePositiveRate,
 //          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,

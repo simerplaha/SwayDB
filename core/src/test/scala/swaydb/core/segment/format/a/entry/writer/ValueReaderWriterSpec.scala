@@ -20,21 +20,31 @@
 package swaydb.core.segment.format.a.entry.writer
 
 import swaydb.core.TestData._
-import swaydb.core.data.Transient
+import swaydb.core.data.{Memory, Time, Transient}
+import swaydb.core.segment.format.a.block.{SortedIndex, Values}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, BaseEntryIdFormatA, TransientToKeyValueIdBinder}
+import swaydb.core.segment.format.a.entry.reader.ValueReader
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
+/**
+  * These tests can also be within [[swaydb.core.data.TransientSpec]] because they are
+  * asserting on the result of [[Transient.valueEntryBytes]] and [[Transient.indexEntryBytes]].
+  *
+  * The scope of these tests are larger than it should. ValueWriter should remove references to KeyValue
+  * but currently it is like that for performance reasons. We do not value to serialise values to bytes unless
+  * [[ValueWriter]] decides to do so.
+  */
 class ValueReaderWriterSpec extends TestBase {
 
   "write" should {
     "not compress valueOffset and valueLength if prefixCompression is disabled and compressDuplicateValues is true" in {
       implicit val binder = TransientToKeyValueIdBinder.PutBinder
 
-      def assertIndexBytes(result: KeyValueWriter.WriteResult) = {
-        val readKeyValueId = result.indexBytes.readIntUnsigned().get
+      def assertIndexBytes(indexBytes: Slice[Byte]) = {
+        val readKeyValueId = indexBytes.readIntUnsigned().get
         binder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
 
         val baseId = binder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
@@ -50,25 +60,28 @@ class ValueReaderWriterSpec extends TestBase {
 
       val keyValues =
         Slice(
-          Transient.put(1, 100),
-          Transient.update(1, 100),
-          Transient.function(1, 100)
-        ).updateStats
+          Memory.put(1, 100),
+          Memory.put(2, 100),
+          Memory.put(3, 100)
+        ).toTransient(
+          valuesConfig =
+            Values.Config(
+              compressDuplicateValues = true,
+              compressDuplicateRangeValues = true,
+              cacheOnAccess = randomBoolean(),
+              compressions = randomCompressionsOrEmpty()
+            ),
+          sortedIndexConfig =
+            SortedIndex.Config.random.copy(
+              prefixCompressionResetCount = 0
+            )
+        )
 
       //the first one is always going to be uncompressed so drop it.
       keyValues.drop(1) foreach {
         keyValue =>
-          val result =
-            ValueWriter.write(
-              current = keyValue,
-              enablePrefixCompression = false,
-              compressDuplicateValues = true,
-              entryId = BaseEntryIdFormatA.format.start.noTime,
-              plusSize = 0,
-              isKeyUncompressed = false,
-              hasPrefixCompressed = false
-            )
-          assertIndexBytes(result)
+          keyValue.valueEntryBytes shouldBe empty
+          assertIndexBytes(keyValue.indexEntryBytes)
       }
     }
   }

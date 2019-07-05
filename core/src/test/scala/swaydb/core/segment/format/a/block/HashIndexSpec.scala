@@ -274,7 +274,7 @@
 //            allocateSpace = _.requiredSpace * 3
 //          )
 //
-//        val segment = SegmentWriter.write(keyValues, segmentCompression = randomSegmentCompression(), 0, 5).get.flattenSegmentBytes
+//        val segment = SegmentWriter.write(keyValues, segmentCompressions = randomSegmentCompression(), 0, 5).get.flattenSegmentBytes
 //        val indexes = getIndexes(Reader(segment)).get
 //
 //        indexes._4.get.block.miss shouldBe 0

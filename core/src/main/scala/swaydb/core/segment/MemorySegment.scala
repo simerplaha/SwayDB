@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.compression.CompressionInternal
 import swaydb.core.data.Memory.{Group, SegmentResponse}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -100,7 +101,7 @@ private[segment] case class MemorySegment(path: Path,
                    binarySearchIndexConfig: BinarySearchIndex.Config,
                    hashIndexConfig: HashIndex.Config,
                    bloomFilterConfig: BloomFilter.Config,
-                   blockCompressions: BlocksCompression,
+                   segmentCompressions: Seq[CompressionInternal],
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     if (deleted)
@@ -151,7 +152,7 @@ private[segment] case class MemorySegment(path: Path,
                        binarySearchIndexConfig: BinarySearchIndex.Config,
                        hashIndexConfig: HashIndex.Config,
                        bloomFilterConfig: BloomFilter.Config,
-                       blockCompressions: BlocksCompression,
+                       segmentCompressions: Seq[CompressionInternal],
                        targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     if (deleted)

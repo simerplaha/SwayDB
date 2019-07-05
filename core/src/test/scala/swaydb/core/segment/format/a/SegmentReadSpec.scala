@@ -815,7 +815,7 @@
 //        val (slice, deadline) =
 //          SegmentWriter.write(
 //            keyValues = all,
-//            segmentCompression = randomSegmentCompression(),
+//            segmentCompressions = randomSegmentCompression(),
 //            createdInLevel = 0,
 //            maxProbe = TestData.maxProbe
 //          ).assertGet.flattenSegment

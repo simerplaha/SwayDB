@@ -86,7 +86,7 @@ private[core] object Stats {
         indexEntry.size
 
     val thisKeyValuesSortedIndexSizeWithoutFooter =
-      SortedIndex.headerSize(sortedIndex.hasCompression) +
+      SortedIndex.headerSize(sortedIndex.compressions.nonEmpty) +
         thisKeyValuesSortedIndexSize
 
     val thisKeyValuesRealIndexOffset =
@@ -106,7 +106,7 @@ private[core] object Stats {
       if (valueLength == 0)
         0
       else
-        Values.headerSize(values.hasCompression) +
+        Values.headerSize(values.compressions.nonEmpty) +
           valueLength
 
     val thisKeyValuesSegmentSortedIndexAndValueSize =
@@ -143,7 +143,7 @@ private[core] object Stats {
           minimumNumberOfKeys = hashIndex.minimumNumberOfKeys,
           largestValue = thisKeyValuesAccessIndexOffset,
           allocateSpace = hashIndex.allocateSpace,
-          hasCompression = hashIndex.hasCompression
+          hasCompression = hashIndex.compressions.nonEmpty
         )
 
     //binary search indexes are only created for non-prefix compressed or reset point keys.
@@ -161,7 +161,7 @@ private[core] object Stats {
             if (previousStats.thisKeyValuesAccessIndexOffset != thisKeyValuesAccessIndexOffset)
               BinarySearchIndex.optimalBytesRequired(
                 largestValue = thisKeyValuesAccessIndexOffset,
-                hasCompression = binarySearch.hasCompression,
+                hasCompression = binarySearch.compressions.nonEmpty,
                 minimNumberOfKeysForBinarySearchIndex = binarySearch.minimumNumberOfKeys,
                 valuesCount = binarySearchIndexEntriesCount()
               )
@@ -170,7 +170,7 @@ private[core] object Stats {
         } getOrElse {
           BinarySearchIndex.optimalBytesRequired(
             largestValue = thisKeyValuesAccessIndexOffset,
-            hasCompression = binarySearch.hasCompression,
+            hasCompression = binarySearch.compressions.nonEmpty,
             minimNumberOfKeysForBinarySearchIndex = binarySearch.minimumNumberOfKeys,
             valuesCount = binarySearchIndexEntriesCount()
           )
@@ -184,10 +184,10 @@ private[core] object Stats {
 
     val segmentValuesSize: Int =
       if (segmentValuesSizeWithoutHeader != 0)
-        Values.headerSize(values.hasCompression) +
+        Values.headerSize(values.compressions.nonEmpty) +
           segmentValuesSizeWithoutHeader
       else if (valueLength != 0)
-        Values.headerSize(values.hasCompression) +
+        Values.headerSize(values.compressions.nonEmpty) +
           segmentValuesSizeWithoutHeader
       else
         0
@@ -197,18 +197,18 @@ private[core] object Stats {
         thisKeyValuesSortedIndexSize
 
     val segmentSortedIndexSize =
-      SortedIndex.headerSize(sortedIndex.hasCompression) +
+      SortedIndex.headerSize(sortedIndex.compressions.nonEmpty) +
         segmentSortedIndexSizeWithoutHeader
 
     val segmentValueAndSortedIndexEntrySize =
       if (segmentValuesSizeWithoutHeader == 0)
         segmentSortedIndexSizeWithoutHeader +
-          SortedIndex.headerSize(sortedIndex.hasCompression)
+          SortedIndex.headerSize(sortedIndex.compressions.nonEmpty)
       else
         segmentValuesSizeWithoutHeader +
           segmentSortedIndexSizeWithoutHeader +
-          SortedIndex.headerSize(sortedIndex.hasCompression) +
-          Values.headerSize(values.hasCompression)
+          SortedIndex.headerSize(sortedIndex.compressions.nonEmpty) +
+          Values.headerSize(values.compressions.nonEmpty)
 
     val segmentBloomFilterSize =
       if (bloomFilter.falsePositiveRate <= 0.0 || hasRemoveRange)
@@ -217,7 +217,7 @@ private[core] object Stats {
         BloomFilter.optimalSize(
           numberOfKeys = segmentUniqueKeysCount,
           falsePositiveRate = bloomFilter.falsePositiveRate,
-          hasCompression = bloomFilter.hasCompression
+          hasCompression = bloomFilter.compressions.nonEmpty
         )
 
     val segmentSizeWithoutFooter: Int =

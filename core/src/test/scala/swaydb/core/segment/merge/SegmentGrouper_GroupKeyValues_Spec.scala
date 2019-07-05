@@ -134,7 +134,7 @@
 //          val (bytes, _) =
 //            SegmentWriter.write(
 //              keyValues = Slice(result.assertGet),
-//              segmentCompression = randomSegmentCompression(),
+//              segmentCompressions = randomSegmentCompression(),
 //              createdInLevel = 0,
 //              maxProbe = TestData.maxProbe).assertGet.flattenSegment
 //
@@ -338,7 +338,7 @@
 //          val (bytes, _) =
 //            SegmentWriter.write(
 //              keyValues = Slice(result.assertGet).updateStats,
-//              segmentCompression = randomSegmentCompression(),
+//              segmentCompressions = randomSegmentCompression(),
 //              createdInLevel = 0,
 //              maxProbe = TestData.maxProbe
 //        ).assertGet.flattenSegment
@@ -392,7 +392,7 @@
 //          val (bytes, _) =
 //            SegmentWriter.write(
 //              keyValues = Slice(result.assertGet).updateStats,
-//              segmentCompression = randomSegmentCompression(),
+//              segmentCompressions = randomSegmentCompression(),
 //              createdInLevel = 0,
 //              maxProbe = TestData.maxProbe
 //        ).assertGet.flattenSegment
@@ -475,7 +475,7 @@
 //        val (bytes, _) =
 //          SegmentWriter.write(
 //            keyValues = mutableKeyValues,
-//            segmentCompression = randomSegmentCompression(),
+//            segmentCompressions = randomSegmentCompression(),
 //            createdInLevel = 0,
 //            maxProbe = TestData.maxProbe
 //        ).assertGet.flattenSegment
@@ -519,7 +519,7 @@
 //        val (bytes, _) =
 //          SegmentWriter.write(
 //            keyValues = mutableKeyValues,
-//            segmentCompression = randomSegmentCompression(),
+//            segmentCompressions = randomSegmentCompression(),
 //            createdInLevel = 0,
 //            maxProbe = TestData.maxProbe
 //        ).assertGet.flattenSegment
@@ -568,7 +568,7 @@
 //        val (bytes, _) =
 //          SegmentWriter.write(
 //            keyValues = mutableKeyValues,
-//            segmentCompression = randomSegmentCompression(),
+//            segmentCompressions = randomSegmentCompression(),
 //            createdInLevel = 0,
 //            maxProbe = TestData.maxProbe
 //        ).assertGet.flattenSegment
@@ -622,7 +622,7 @@
 //          val (bytes, _) =
 //            SegmentWriter.write(
 //              keyValues = mutableKeyValues,
-//              segmentCompression = randomSegmentCompression(),
+//              segmentCompressions = randomSegmentCompression(),
 //              createdInLevel = 0,
 //              maxProbe = TestData.maxProbe
 //        ).assertGet.flattenSegment

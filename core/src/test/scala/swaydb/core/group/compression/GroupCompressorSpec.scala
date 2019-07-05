@@ -48,7 +48,7 @@
 //    "return no Group if key-values are empty" in {
 //      Transient.Group(
 //        keyValues = Slice.empty,
-//        segmentCompression = randomSegmentLZ4OrSnappyCompression(Random.nextInt()),
+//        segmentCompressions = randomSegmentLZ4OrSnappyCompression(Random.nextInt()),
 //        falsePositiveRate = TestData.falsePositiveRate,
 //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
@@ -73,7 +73,7 @@
 //
 //          Transient.Group(
 //            keyValues = Seq(keyValue).toTransient,
-//            segmentCompression = randomSegmentLZ4OrSnappyCompression(12),
+//            segmentCompressions = randomSegmentLZ4OrSnappyCompression(12),
 //            falsePositiveRate = TestData.falsePositiveRate,
 //            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
@@ -134,7 +134,7 @@
 //
 //          Transient.Group(
 //            keyValues = keyValues,
-//            segmentCompression = randomSegmentLZ4OrSnappyCompression(12),
+//            segmentCompressions = randomSegmentLZ4OrSnappyCompression(12),
 //            falsePositiveRate = TestData.falsePositiveRate,
 //            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,

@@ -22,6 +22,7 @@ package swaydb.core.segment
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
@@ -123,7 +124,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           binarySearchIndexConfig: BinarySearchIndex.Config,
           hashIndexConfig: HashIndex.Config,
           bloomFilterConfig: BloomFilter.Config,
-          blockCompressions: BlocksCompression,
+          segmentCompressions: Seq[CompressionInternal],
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
@@ -146,7 +147,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                 keyValues =>
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
-                    blockCompressions = blockCompressions,
+                    segmentCompressions = segmentCompressions,
                     createdInLevel = createdInLevel,
                     maxProbe = hashIndexConfig.maxProbe,
                     mmapReads = mmapReads,
@@ -175,7 +176,7 @@ private[segment] case class PersistentSegment(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndex.Config,
               hashIndexConfig: HashIndex.Config,
               bloomFilterConfig: BloomFilter.Config,
-              blockCompressions: BlocksCompression,
+              segmentCompressions: Seq[CompressionInternal],
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
@@ -198,7 +199,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                     createdInLevel = createdInLevel,
-                    blockCompressions = blockCompressions,
+                    segmentCompressions = segmentCompressions,
                     maxProbe = hashIndexConfig.maxProbe,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,

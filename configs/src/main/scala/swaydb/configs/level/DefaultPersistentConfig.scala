@@ -124,7 +124,7 @@ object DefaultPersistentConfig {
             cacheOnAccess = false,
             compression = Seq.empty
           ),
-        segmentCompression = Seq.empty,
+        segmentCompressions = Seq.empty,
         keyValueGroupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =

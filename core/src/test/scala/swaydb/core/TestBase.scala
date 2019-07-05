@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.TestData._
@@ -247,11 +248,11 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   object TestSegment {
     def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
               path: Path = testSegmentFile,
-              blockCompressions: BlocksCompression = randomBlocksCompression())(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                                fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
-                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
+              segmentCompressions: Seq[CompressionInternal] = randomCompressions())(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                   keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                                                   fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+                                                                                   timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
       if (levelStorage.memory)
         Segment.memory(
           path = path,
@@ -263,7 +264,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
           path = path,
           createdInLevel = 0,
           maxProbe = ???,
-          blockCompressions = blockCompressions,
+          segmentCompressions = segmentCompressions,
           mmapReads = levelStorage.mmapSegmentsOnRead,
           mmapWrites = levelStorage.mmapSegmentsOnWrite,
           keyValues = keyValues
@@ -309,7 +310,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
               hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
               bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random,
-              blockCompressions: BlocksCompression = randomBlocksCompression(),
+              segmentCompressions: Seq[CompressionInternal] = randomCompressions(),
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
@@ -328,7 +329,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         hashIndexConfig = hashIndexConfig,
         bloomFilterConfig = bloomFilterConfig,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        blockCompressions = blockCompressions
+        segmentCompressions = segmentCompressions
       ) flatMap {
         level =>
           level.putKeyValuesTest(keyValues) map {

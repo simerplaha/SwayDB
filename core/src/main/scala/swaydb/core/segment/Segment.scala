@@ -23,6 +23,7 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.compression.CompressionInternal
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
@@ -265,7 +266,7 @@ private[core] object Segment extends LazyLogging {
                  maxProbe: Int,
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
-                 blockCompressions: BlocksCompression,
+                 segmentCompressions: Seq[CompressionInternal],
                  keyValues: Iterable[KeyValue.WriteOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                           functionStore: FunctionStore,
@@ -275,7 +276,7 @@ private[core] object Segment extends LazyLogging {
       keyValues = keyValues,
       createdInLevel = createdInLevel,
       maxProbe = maxProbe,
-      blockCompressions = blockCompressions
+      segmentCompressions = segmentCompressions
     ) flatMap {
       result =>
         if (result.isEmpty) {
@@ -337,7 +338,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def copyToPersist(segment: Segment,
-                    blockCompressions: BlocksCompression,
+                    segmentCompressions: Seq[CompressionInternal],
                     createdInLevel: Int,
                     fetchNextPath: => Path,
                     mmapSegmentsOnRead: Boolean,
@@ -384,7 +385,7 @@ private[core] object Segment extends LazyLogging {
       case memory: MemorySegment =>
         copyToPersist(
           keyValues = Slice(memory.cache.values().asScala.toArray),
-          blockCompressions = blockCompressions,
+          segmentCompressions = segmentCompressions,
           createdInLevel = createdInLevel,
           fetchNextPath = fetchNextPath,
           mmapSegmentsOnRead = mmapSegmentsOnRead,
@@ -400,7 +401,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def copyToPersist(keyValues: Slice[KeyValue.ReadOnly],
-                    blockCompressions: BlocksCompression,
+                    segmentCompressions: Seq[CompressionInternal],
                     createdInLevel: Int,
                     fetchNextPath: => Path,
                     mmapSegmentsOnRead: Boolean,
@@ -435,7 +436,7 @@ private[core] object Segment extends LazyLogging {
               Segment.persistent(
                 path = fetchNextPath,
                 createdInLevel = createdInLevel,
-                blockCompressions = blockCompressions,
+                segmentCompressions = segmentCompressions,
                 maxProbe = hashIndexConfig.maxProbe,
                 mmapReads = mmapSegmentsOnRead,
                 mmapWrites = mmapSegmentsOnWrite,
@@ -1000,7 +1001,7 @@ private[core] trait Segment extends FileLimiterItem {
           binarySearchIndexConfig: BinarySearchIndex.Config,
           hashIndexConfig: HashIndex.Config,
           bloomFilterConfig: BloomFilter.Config,
-          blockCompressions: BlocksCompression,
+          segmentCompressions: Seq[CompressionInternal],
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 
@@ -1012,7 +1013,7 @@ private[core] trait Segment extends FileLimiterItem {
               binarySearchIndexConfig: BinarySearchIndex.Config,
               hashIndexConfig: HashIndex.Config,
               bloomFilterConfig: BloomFilter.Config,
-              blockCompressions: BlocksCompression,
+              segmentCompressions: Seq[CompressionInternal],
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 

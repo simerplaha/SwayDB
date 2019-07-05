@@ -78,7 +78,7 @@
 //          segment.put(
 //            newKeyValues = Slice(mergePut.toMemory),
 //            minSegmentSize = 10.mb,
-//            segmentCompression = randomSegmentCompression(),
+//            segmentCompressions = randomSegmentCompression(),
 //            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
 //            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
 //            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
@@ -117,7 +117,7 @@
 //          newGroupedSegment.put(
 //            newKeyValues = removeKeyValues.toMemory,
 //            minSegmentSize = 10.mb,
-//            segmentCompression = randomSegmentCompression(),
+//            segmentCompressions = randomSegmentCompression(),
 //            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
 //            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
 //            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,

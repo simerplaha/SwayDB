@@ -22,6 +22,7 @@ package swaydb.core
 import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.compression.CompressionInternal
 import swaydb.core.actor.WiredActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
@@ -32,7 +33,6 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block
-import swaydb.core.segment.format.a.block.BlocksCompression
 import swaydb.data.IO
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
@@ -164,7 +164,7 @@ private[core] object CoreInitializer extends LazyLogging {
             binarySearchIndexConfig = block.BinarySearchIndex.Config.disabled,
             sortedIndexConfig = block.SortedIndex.Config.disabled,
             valuesConfig = block.Values.Config.disabled,
-            blockCompressions = BlocksCompression.disabled,
+            segmentCompressions = Seq.empty,
             levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
             appendixStorage = AppendixStorage.Memory,
             nextLevel = nextLevel,
@@ -182,15 +182,7 @@ private[core] object CoreInitializer extends LazyLogging {
             binarySearchIndexConfig = block.BinarySearchIndex.Config(config = config.binarySearchIndex),
             sortedIndexConfig = block.SortedIndex.Config(config.sortedIndex),
             valuesConfig = block.Values.Config(config.values),
-            blockCompressions =
-              BlocksCompression(
-                bloomFilter = config.mightContainKey,
-                hashIndex = config.hashIndex,
-                binarySearchIndex = config.binarySearchIndex,
-                sortedIndex = config.sortedIndex,
-                values = config.values,
-                segment = config.segmentCompressions
-              ),
+            segmentCompressions = config.segmentCompressions map CompressionInternal.apply,
             levelStorage =
               LevelStorage.Persistent(
                 mmapSegmentsOnWrite = config.mmapSegment.mmapWrite,

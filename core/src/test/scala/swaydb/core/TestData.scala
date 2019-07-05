@@ -176,7 +176,7 @@ object TestData {
           mmapSegmentsOnWrite = randomBoolean(),
           removeDeletes = false,
           minSegmentSize = 1000.mb,
-          blockCompressions = level.blockCompressions,
+          segmentCompressions = level.segmentCompressions,
           valuesConfig = level.valuesConfig,
           sortedIndexConfig = level.sortedIndexConfig,
           binarySearchIndexConfig = level.binarySearchIndexConfig,
@@ -229,7 +229,7 @@ object TestData {
                 nextLevel = nextLevel,
                 pushForward = level.pushForward,
                 throttle = throttle,
-                blockCompressions = level.blockCompressions,
+                segmentCompressions = level.segmentCompressions,
                 deleteSegmentsEventually = level.deleteSegmentsEventually,
                 valuesConfig = level.valuesConfig,
                 sortedIndexConfig = level.sortedIndexConfig,
@@ -458,7 +458,7 @@ object TestData {
         compressDuplicateValues = randomBoolean(),
         compressDuplicateRangeValues = randomBoolean(),
         cacheOnAccess = randomBoolean(),
-        hasCompression = true
+        compressions = randomCompressionsOrEmpty()
       )
   }
 
@@ -468,7 +468,7 @@ object TestData {
         cacheOnAccess = randomBoolean(),
         prefixCompressionResetCount = randomIntMax(50),
         enableAccessPositionIndex = randomBoolean(),
-        hasCompression = true
+        compressions = randomCompressionsOrEmpty()
       )
   }
 
@@ -479,7 +479,7 @@ object TestData {
         minimumNumberOfKeys = randomIntMax(10),
         fullIndex = randomBoolean(),
         cacheOnAccess = randomBoolean(),
-        hasCompression = true
+        compressions = randomCompressionsOrEmpty()
       )
   }
 
@@ -490,7 +490,7 @@ object TestData {
         minimumNumberOfKeys = randomIntMax(10),
         allocateSpace = _.requiredSpace * randomIntMax(3),
         cacheOnAccess = randomBoolean(),
-        hasCompression = true
+        compressions = randomCompressionsOrEmpty()
       )
   }
 
@@ -500,7 +500,7 @@ object TestData {
         falsePositiveRate = Random.nextDouble(),
         minimumNumberOfKeys = randomIntMax(100),
         cacheOnAccess = randomBoolean(),
-        hasCompression = randomBoolean()
+        compressions = randomCompressionsOrEmpty()
       )
   }
 
@@ -1362,24 +1362,22 @@ object TestData {
   def randomCompressionLZ4(minCompressionPercentage: Double = Double.MinValue): CompressionInternal =
     CompressionInternal.randomLZ4(minCompressionPercentage = minCompressionPercentage)
 
-  def randomBlocksCompression(minCompressionPercentage: Double = Double.MinValue): BlocksCompression =
-    BlocksCompression(
-      values = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage)),
-      sortedIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage)),
-      hashIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage)),
-      binarySearchIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage)),
-      bloomFilter = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage)),
-      segmentCompression = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage))
+  def randomCompressions(minCompressionPercentage: Double = Double.MinValue): Seq[CompressionInternal] =
+    (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage))
+
+  def randomCompressionsOrEmpty(minCompressionPercentage: Double = Double.MinValue): Seq[CompressionInternal] =
+    eitherOne(
+      Seq.empty,
+      randomCompressions(minCompressionPercentage)
     )
 
-  def randomSegmentLZ4OrSnappyCompression(minCompressionPercentage: Double = Double.MinValue): BlocksCompression =
-    BlocksCompression(
-      values = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage)),
-      sortedIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage)),
-      hashIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage)),
-      binarySearchIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage)),
-      bloomFilter = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage)),
-      segmentCompression = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage))
+  def randomCompressionsLZ4OrSnappy(minCompressionPercentage: Double = Double.MinValue): Seq[CompressionInternal] =
+    (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage))
+
+  def randomCompressionsLZ4OrSnappyOrEmpty(minCompressionPercentage: Double = Double.MinValue): Seq[CompressionInternal] =
+    eitherOne(
+      Seq.empty,
+      randomCompressionsLZ4OrSnappy(minCompressionPercentage)
     )
 
   def randomRangeKeyValue(from: Slice[Byte],
@@ -1698,7 +1696,7 @@ object TestData {
           Transient.Group(
             keyValues = groupKeyValues,
             previous = slice.lastOption,
-            groupCompression = randomBlocksCompression(),
+            groupCompression = randomCompressions(),
             valuesConfig = valuesConfig,
             sortedIndexConfig = sortedIndexConfig,
             binarySearchIndexConfig = binarySearchIndexConfig,
@@ -1849,7 +1847,7 @@ object TestData {
       addRandomRemoveDeadlines = addRandomRemoveDeadlines)
 
   def randomGroup(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.random, KeyOrder.default, TestLimitQueues.keyValueLimiter),
-                  groupCompression: BlocksCompression = randomBlocksCompression(),
+                  groupCompression: Seq[CompressionInternal] = randomCompressions(),
                   valuesConfig: Values.Config = Values.Config.random,
                   sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
                   binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,

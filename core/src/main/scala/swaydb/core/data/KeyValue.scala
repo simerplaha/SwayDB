@@ -19,6 +19,7 @@
 
 package swaydb.core.data
 
+import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
 import swaydb.core.io.reader.Reader
@@ -1132,7 +1133,7 @@ private[core] object Transient {
     def apply(keyValues: Slice[KeyValue.WriteOnly],
               previous: Option[KeyValue.WriteOnly],
               //compression is for the group's key-values.
-              groupCompression: BlocksCompression,
+              groupCompression: Seq[CompressionInternal],
               //these configs are for the Group itself and not the key-values within the group.
               valuesConfig: Values.Config,
               sortedIndexConfig: SortedIndex.Config,
@@ -1142,7 +1143,7 @@ private[core] object Transient {
       GroupCompressor.compress(
         keyValues = keyValues,
         previous = previous,
-        blockCompressions = groupCompression,
+        groupCompression = groupCompression,
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
