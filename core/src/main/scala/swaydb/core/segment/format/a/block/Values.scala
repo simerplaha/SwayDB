@@ -84,9 +84,8 @@ object Values {
       size
   }
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly],
-           compressions: Seq[CompressionInternal]): Option[Values.State] = {
-    val headSize = headerSize(compressions.nonEmpty)
+  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[Values.State] = {
+    val headSize = headerSize(keyValues.last.valuesConfig.compressions.nonEmpty)
     if (keyValues.last.stats.segmentValuesSize > headSize) {
       val bytes = Slice.create[Byte](keyValues.last.stats.segmentValuesSize)
       bytes moveWritePosition headSize
@@ -94,7 +93,7 @@ object Values {
         Values.State(
           _bytes = bytes,
           headerSize = headSize,
-          compressions = compressions
+          compressions = keyValues.last.valuesConfig.compressions
         )
       )
     }

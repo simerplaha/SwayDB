@@ -36,14 +36,14 @@ class ValuesSpec extends TestBase {
     "not initialise if values do not exists" in {
       runThis(10.times) {
         val keyValues = Slice(Transient.put(key = 1, value = Slice.emptyBytes, removeAfter = None), Transient.remove(key = 1)).updateStats
-        Values.init(keyValues, eitherOne(Seq.empty, Seq(randomCompression()))) shouldBe empty
+        Values.init(keyValues) shouldBe empty
       }
     }
 
     "initialise values exists" in {
       runThis(10.times) {
         val keyValues = Slice(Transient.put(key = 1, value = Slice.writeInt(1), removeAfter = None), randomFixedTransientKeyValue(2, Some(3))).updateStats
-        Values.init(keyValues, eitherOne(Seq.empty, Seq(randomCompression()))) shouldBe defined
+        Values.init(keyValues) shouldBe defined
       }
     }
   }

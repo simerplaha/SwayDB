@@ -90,16 +90,15 @@ private[core] object SortedIndex {
       size
   }
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly],
-           compressions: Seq[CompressionInternal]): SortedIndex.State = {
+  def init(keyValues: Iterable[KeyValue.WriteOnly]): SortedIndex.State = {
     val bytes = Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize)
-    val headSize = headerSize(compressions.nonEmpty)
+    val headSize = headerSize(keyValues.last.sortedIndexConfig.compressions.nonEmpty)
     bytes moveWritePosition headSize
     State(
       _bytes = bytes,
       headerSize = headSize,
       enableAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
-      compressions = compressions
+      compressions = keyValues.last.sortedIndexConfig.compressions
     )
   }
 

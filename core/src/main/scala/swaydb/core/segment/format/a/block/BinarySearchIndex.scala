@@ -145,8 +145,7 @@ object BinarySearchIndex {
       writtenValues >= minimumNumberOfKeys
   }
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly],
-           compressions: Seq[CompressionInternal]): Option[State] =
+  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[State] =
     if (keyValues.last.stats.segmentBinarySearchIndexSize <= 1)
       None
     else
@@ -155,7 +154,7 @@ object BinarySearchIndex {
         uniqueValuesCount = keyValues.last.stats.segmentUniqueKeysCount,
         isFullIndex = keyValues.last.binarySearchIndexConfig.fullIndex,
         minimumNumberOfKeys = keyValues.last.binarySearchIndexConfig.minimumNumberOfKeys,
-        compressions = compressions
+        compressions = keyValues.last.binarySearchIndexConfig.compressions
       )
 
   def isVarInt(varintSizeOfLargestValue: Int) =

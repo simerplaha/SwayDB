@@ -341,12 +341,12 @@ private[core] object SegmentWriter extends LazyLogging {
     if (keyValues.isEmpty)
       ClosedSegment.emptyIO
     else {
-      val lastKeyValue = keyValues.last
-      val sortedIndex = SortedIndex.init(keyValues = keyValues, compressions = lastKeyValue.sortedIndexConfig.compressions)
-      val values = Values.init(keyValues = keyValues, compressions = lastKeyValue.valuesConfig.compressions)
-      val hashIndex = HashIndex.init(maxProbe = maxProbe, keyValues = keyValues, compressions = lastKeyValue.hashIndexConfig.compressions)
-      val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues, compressions = lastKeyValue.binarySearchIndexConfig.compressions)
-      val bloomFilter = BloomFilter.init(keyValues = keyValues, compressions = lastKeyValue.bloomFilterConfig.compressions)
+      val sortedIndex = SortedIndex.init(keyValues = keyValues)
+      val values = Values.init(keyValues = keyValues)
+      val hashIndex = HashIndex.init(maxProbe = maxProbe, keyValues = keyValues)
+      val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues)
+      val bloomFilter = BloomFilter.init(keyValues = keyValues)
+
       bloomFilter foreach {
         bloomFilter =>
           //temporary check.

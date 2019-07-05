@@ -97,8 +97,7 @@ private[core] object HashIndex extends LazyLogging {
   }
 
   def init(maxProbe: Int,
-           keyValues: Iterable[KeyValue.WriteOnly],
-           compressions: Seq[CompressionInternal]): Option[HashIndex.State] =
+           keyValues: Iterable[KeyValue.WriteOnly]): Option[HashIndex.State] =
     if (keyValues.size < keyValues.last.hashIndexConfig.minimumNumberOfKeys)
       None
     else if (keyValues.last.stats.segmentHashIndexSize <= 6) //formatId, maxProbe, hit, miss, largestValue, allocatedBytes
@@ -110,7 +109,7 @@ private[core] object HashIndex extends LazyLogging {
           headerSize(
             keyCounts = keyValues.last.stats.segmentUniqueKeysCount,
             writeAbleLargestValueSize = writeAbleLargestValueSize,
-            hasCompression = compressions.nonEmpty
+            hasCompression = keyValues.last.hashIndexConfig.compressions.nonEmpty
           )
         HashIndex.State(
           hit = 0,
@@ -120,7 +119,7 @@ private[core] object HashIndex extends LazyLogging {
           headerSize = headSize,
           maxProbe = maxProbe,
           _bytes = Slice.create[Byte](keyValues.last.stats.segmentHashIndexSize),
-          compressions = compressions
+          compressions = keyValues.last.hashIndexConfig.compressions
         )
       }
 

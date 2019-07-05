@@ -192,13 +192,12 @@ object BloomFilter extends LazyLogging {
   def shouldCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =
     !shouldNotCreateBloomFilter(keyValues)
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly],
-           compressions: Seq[CompressionInternal]): Option[BloomFilter.State] =
+  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[BloomFilter.State] =
     if (shouldCreateBloomFilter(keyValues))
       init(
         numberOfKeys = keyValues.last.stats.segmentUniqueKeysCount,
         falsePositiveRate = keyValues.last.bloomFilterConfig.falsePositiveRate,
-        compressions = compressions
+        compressions = keyValues.last.bloomFilterConfig.compressions
       )
     else
       None
