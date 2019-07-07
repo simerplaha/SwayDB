@@ -59,7 +59,6 @@ private[core] object GroupCompressor extends LazyLogging {
       SegmentWriter.write(
         keyValues = keyValues,
         createdInLevel = 0,
-        maxProbe = keyValues.last.hashIndexConfig.maxProbe,
         segmentCompressions = groupCompression
       ) flatMap {
         result =>

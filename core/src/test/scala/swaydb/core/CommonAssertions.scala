@@ -1618,4 +1618,9 @@ object CommonAssertions {
             count + countRangesManually(group.keyValues)
         }
     }
+
+  implicit class BooleanImplicit(bool: Boolean) {
+    def toInt =
+      if (bool) 1 else 0
+  }
 }

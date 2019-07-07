@@ -146,19 +146,20 @@ object BinarySearchIndex {
   }
 
   def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[State] =
-    if (keyValues.last.stats.segmentBinarySearchIndexSize <= 1)
+    if (keyValues.last.stats.segmentBinarySearchIndexSize <= 0)
       None
     else
       BinarySearchIndex.State(
         largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
+        //not using size from stats because it's size does not account for hashIndex's missed keys.
         uniqueValuesCount = keyValues.last.stats.segmentUniqueKeysCount,
         isFullIndex = keyValues.last.binarySearchIndexConfig.fullIndex,
         minimumNumberOfKeys = keyValues.last.binarySearchIndexConfig.minimumNumberOfKeys,
         compressions = keyValues.last.binarySearchIndexConfig.compressions
       )
 
-  def isVarInt(varintSizeOfLargestValue: Int) =
-    varintSizeOfLargestValue < ByteSizeOf.int
+  def isVarInt(varIntSizeOfLargestValue: Int) =
+    varIntSizeOfLargestValue < ByteSizeOf.int
 
   def bytesToAllocatePerValue(largestValue: Int): Int = {
     val varintSizeOfLargestValue = Bytes.sizeOf(largestValue)
@@ -188,7 +189,7 @@ object BinarySearchIndex {
     val headerSize =
       Block.headerSize(hasCompression) +
         Bytes.sizeOf(valuesCount) + //uniqueValuesCount
-        ByteSizeOf.int + //bytesPerValue
+        ByteSizeOf.varInt + //bytesPerValue
         ByteSizeOf.boolean //isFullIndex
 
     Bytes.sizeOf(headerSize) +

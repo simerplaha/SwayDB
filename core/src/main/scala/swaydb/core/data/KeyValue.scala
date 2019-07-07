@@ -668,14 +668,14 @@ private[core] object Transient {
         isGroup = isGroup,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
-        numberOfRanges = 0,
+        thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
         binarySearch = binarySearchIndexConfig,
         values = valuesConfig,
-        previous = previous,
+        previousStats = previous.map(_.stats),
         deadline = deadline
       )
 
@@ -735,14 +735,14 @@ private[core] object Transient {
         isGroup = isGroup,
         isPut = true,
         isPrefixCompressed = isPrefixCompressed,
-        numberOfRanges = 0,
+        thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
         binarySearch = binarySearchIndexConfig,
         values = valuesConfig,
-        previous = previous,
+        previousStats = previous.map(_.stats),
         deadline = deadline
       )
 
@@ -800,14 +800,14 @@ private[core] object Transient {
         isGroup = isGroup,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
-        numberOfRanges = 0,
+        thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
         binarySearch = binarySearchIndexConfig,
         values = valuesConfig,
-        previous = previous,
+        previousStats = previous.map(_.stats),
         deadline = deadline
       )
 
@@ -866,14 +866,14 @@ private[core] object Transient {
         isGroup = isGroup,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
-        numberOfRanges = 0,
+        thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
         binarySearch = binarySearchIndexConfig,
         values = valuesConfig,
-        previous = previous,
+        previousStats = previous.map(_.stats),
         deadline = deadline
       )
 
@@ -951,14 +951,14 @@ private[core] object Transient {
         isGroup = isGroup,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
-        numberOfRanges = 0,
+        thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
         binarySearch = binarySearchIndexConfig,
         values = valuesConfig,
-        previous = previous,
+        previousStats = previous.map(_.stats),
         deadline = deadline
       )
   }
@@ -1075,7 +1075,7 @@ private[core] object Transient {
         isRange = isRange,
         isGroup = isGroup,
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
-        numberOfRanges = 1,
+        thisKeyValuesNumberOfRanges = 1,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
         isPrefixCompressed = isPrefixCompressed,
@@ -1083,7 +1083,7 @@ private[core] object Transient {
         hashIndex = hashIndexConfig,
         binarySearch = binarySearchIndexConfig,
         values = valuesConfig,
-        previous = previous,
+        previousStats = previous.map(_.stats),
         deadline = None
       )
 
@@ -1178,14 +1178,14 @@ private[core] object Transient {
         isGroup = isGroup,
         isPut = keyValues.last.stats.segmentHasPut,
         isPrefixCompressed = isPrefixCompressed,
-        numberOfRanges = keyValues.last.stats.segmentTotalNumberOfRanges,
+        thisKeyValuesNumberOfRanges = keyValues.last.stats.segmentTotalNumberOfRanges,
         thisKeyValuesUniqueKeys = keyValues.last.stats.segmentUniqueKeysCount,
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
         binarySearch = binarySearchIndexConfig,
         values = valuesConfig,
-        previous = previous,
+        previousStats = previous.map(_.stats),
         deadline = deadline
       )
 

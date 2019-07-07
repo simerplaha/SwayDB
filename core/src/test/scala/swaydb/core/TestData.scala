@@ -76,17 +76,30 @@ object TestData {
     Random.nextBoolean()
 
   implicit class KeyValuesImplicits(keyValues: Iterable[KeyValue.WriteOnly]) {
-    def updateStats: Slice[KeyValue.WriteOnly] = {
+    def updateStats: Slice[KeyValue.WriteOnly] =
+      updateStats(
+        valuesConfig = keyValues.last.valuesConfig,
+        sortedIndexConfig = keyValues.last.sortedIndexConfig,
+        binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+        hashIndexConfig = keyValues.last.hashIndexConfig,
+        bloomFilterConfig = keyValues.last.bloomFilterConfig
+      )
+
+    def updateStats(valuesConfig: Values.Config = keyValues.last.valuesConfig,
+                    sortedIndexConfig: SortedIndex.Config = keyValues.last.sortedIndexConfig,
+                    binarySearchIndexConfig: BinarySearchIndex.Config = keyValues.last.binarySearchIndexConfig,
+                    hashIndexConfig: HashIndex.Config = keyValues.last.hashIndexConfig,
+                    bloomFilterConfig: BloomFilter.Config = keyValues.last.bloomFilterConfig) = {
       val slice = Slice.create[KeyValue.WriteOnly](keyValues.size)
       keyValues foreach {
         keyValue =>
           slice.add(
             keyValue.updatePrevious(
-              valuesConfig = keyValues.last.valuesConfig,
-              sortedIndexConfig = keyValues.last.sortedIndexConfig,
-              binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
-              hashIndexConfig = keyValues.last.hashIndexConfig,
-              bloomFilterConfig = keyValues.last.bloomFilterConfig,
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig,
               previous = slice.lastOption
             )
           )
@@ -1982,11 +1995,11 @@ object TestData {
         key = key,
         deadline = None,
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random,
         previous = None
       )
 
@@ -1996,11 +2009,11 @@ object TestData {
         key = key,
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random,
         previous = None
       )
 
@@ -2010,11 +2023,11 @@ object TestData {
         key = key,
         deadline = None,
         time = testTimer.next,
-        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.disabled),
-        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.disabled),
-        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.disabled),
-        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.disabled),
-        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.disabled),
+        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.random),
+        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.random),
+        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.random),
+        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.random),
+        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.random),
         previous = previous
       )
 
@@ -2026,11 +2039,11 @@ object TestData {
         deadline = deadline,
         time = testTimer.next,
         previous = previous,
-        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.disabled),
-        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.disabled),
-        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.disabled),
-        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.disabled),
-        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.disabled)
+        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.random),
+        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.random),
+        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.random),
+        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.random),
+        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.random)
       )
 
     def put(key: Slice[Byte],
@@ -2041,11 +2054,11 @@ object TestData {
         value = value,
         deadline = None,
         time = testTimer.next,
-        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.disabled),
-        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.disabled),
-        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.disabled),
-        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.disabled),
-        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.disabled),
+        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.random),
+        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.random),
+        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.random),
+        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.random),
+        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.random),
         previous = previous
       )
 
@@ -2059,11 +2072,11 @@ object TestData {
         value = value,
         deadline = deadline,
         time = testTimer.next,
-        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.disabled),
-        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.disabled),
-        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.disabled),
-        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.disabled),
-        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.disabled),
+        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.random),
+        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.random),
+        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.random),
+        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.random),
+        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.random),
         previous = previous
       )
 
@@ -2073,11 +2086,11 @@ object TestData {
         value = None,
         deadline = None,
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random,
         previous = None
       )
 
@@ -2088,11 +2101,11 @@ object TestData {
         value = Some(value),
         deadline = None,
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random,
         previous = None
       )
 
@@ -2104,11 +2117,11 @@ object TestData {
         value = Some(value),
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random,
         previous = None
       )
 
@@ -2120,11 +2133,11 @@ object TestData {
         value = Some(value),
         deadline = Some(deadline),
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random,
         previous = None
       )
 
@@ -2135,11 +2148,11 @@ object TestData {
         value = None,
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random,
         previous = None
       )
 
@@ -2151,11 +2164,11 @@ object TestData {
         value = Some(value),
         deadline = removeAfter.map(_.fromNow),
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random,
         previous = None
       )
 
@@ -2167,11 +2180,11 @@ object TestData {
         value = value,
         deadline = None,
         time = testTimer.next,
-        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.disabled),
-        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.disabled),
-        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.disabled),
-        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.disabled),
-        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.disabled),
+        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.random),
+        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.random),
+        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.random),
+        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.random),
+        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.random),
         previous = previous
       )
 
@@ -2184,11 +2197,11 @@ object TestData {
         value = value,
         deadline = deadline,
         time = testTimer.next,
-        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.disabled),
-        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.disabled),
-        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.disabled),
-        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.disabled),
-        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.disabled),
+        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.random),
+        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.random),
+        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.random),
+        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.random),
+        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.random),
         previous = previous
       )
 
@@ -2198,11 +2211,11 @@ object TestData {
         value = None,
         deadline = None,
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random,
         previous = None
       )
 
@@ -2214,11 +2227,11 @@ object TestData {
         deadline = None,
         previous = None,
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random
       )
 
     def update(key: Slice[Byte],
@@ -2229,11 +2242,11 @@ object TestData {
         value = Some(value),
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random,
         previous = None
       )
 
@@ -2245,11 +2258,11 @@ object TestData {
         value = Some(value),
         deadline = Some(deadline),
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random,
         previous = None
       )
 
@@ -2260,11 +2273,11 @@ object TestData {
         value = None,
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random,
         previous = None
       )
 
@@ -2276,11 +2289,11 @@ object TestData {
         value = Some(value),
         deadline = removeAfter.map(_.fromNow),
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random,
         previous = None
       )
 
@@ -2291,11 +2304,11 @@ object TestData {
         function = function,
         deadline = None,
         time = testTimer.next,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random,
         previous = None
       )
   }
@@ -2366,17 +2379,18 @@ object TestData {
     def create[F <: Value.FromValue, R <: Value.RangeValue](fromKey: Slice[Byte],
                                                             toKey: Slice[Byte],
                                                             fromValue: Option[F],
-                                                            rangeValue: R)(implicit rangeValueSerializer: RangeValueSerializer[Option[F], R]): Range =
+                                                            rangeValue: R,
+                                                            bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random)(implicit rangeValueSerializer: RangeValueSerializer[Option[F], R]): Range =
       Range(
         fromKey = fromKey,
         toKey = toKey,
         fromValue = fromValue,
         rangeValue = rangeValue,
-        valuesConfig = Values.Config.disabled,
-        sortedIndexConfig = SortedIndex.Config.disabled,
-        binarySearchIndexConfig = BinarySearchIndex.Config.disabled,
-        hashIndexConfig = HashIndex.Config.disabled,
-        bloomFilterConfig = BloomFilter.Config.disabled,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = bloomFilterConfig,
         previous = None
       )
   }
@@ -2536,5 +2550,46 @@ object TestData {
                                 functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] =
       Lower(key, Seek.Read, Seek.Read).safeGetBlocking
   }
+
+  def randomStats(keySize: Int = randomIntMax(10000000),
+                  indexEntry: Slice[Byte] = randomBytesSlice(),
+                  value: Slice[Slice[Byte]] = Slice(randomBytesSlice()),
+                  isRemoveRange: Boolean = randomBoolean(),
+                  isRange: Boolean = randomBoolean(),
+                  isGroup: Boolean = randomBoolean(),
+                  isPut: Boolean = randomBoolean(),
+                  isPrefixCompressed: Boolean = randomBoolean(),
+                  numberOfRanges: Int = randomIntMax(10000000),
+                  thisKeyValuesUniqueKeys: Int = randomIntMax(10000000),
+                  sortedIndex: SortedIndex.Config = SortedIndex.Config.random,
+                  bloomFilter: BloomFilter.Config = BloomFilter.Config.random,
+                  hashIndex: HashIndex.Config = HashIndex.Config.random,
+                  binarySearch: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
+                  values: Values.Config = Values.Config.random,
+                  previousStats: Option[Stats] = None,
+                  deadline: Option[Deadline] = randomDeadlineOption()): Stats =
+    Stats.apply(
+      keySize = keySize,
+      indexEntry = indexEntry,
+      value = value,
+      isRemoveRange = isRemoveRange,
+      isRange = isRange,
+      isGroup = isGroup,
+      isPut = isPut,
+      isPrefixCompressed = isPrefixCompressed,
+      thisKeyValuesNumberOfRanges = numberOfRanges,
+      thisKeyValuesUniqueKeys = thisKeyValuesUniqueKeys,
+      sortedIndex = sortedIndex,
+      bloomFilter = bloomFilter,
+      hashIndex = hashIndex,
+      binarySearch = binarySearch,
+      values = values,
+      previousStats = previousStats,
+      deadline = deadline
+    )
+
+  def randomFalsePositiveRate() =
+    Random.nextDouble()
+
 }
 

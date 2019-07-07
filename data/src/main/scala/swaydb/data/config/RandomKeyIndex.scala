@@ -36,9 +36,16 @@ object RandomKeyIndex {
                     cacheOnAccess: Boolean,
                     compression: Seq[Compression]) extends RandomKeyIndex
 
+  object RequiredSpace {
+    def apply(_requiredSpace: Int, _numberOfKeys: Int): RequiredSpace =
+      new RequiredSpace {
+        override def requiredSpace: Int = _requiredSpace
+        override def numberOfKeys: Int = _numberOfKeys
+      }
+  }
+
   trait RequiredSpace {
     def requiredSpace: Int
     def numberOfKeys: Int
   }
-
 }

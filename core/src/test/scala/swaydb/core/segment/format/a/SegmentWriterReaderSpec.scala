@@ -57,8 +57,7 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = Seq.empty,
           segmentCompressions = randomCompressions(),
-          createdInLevel = randomIntMax(),
-          maxProbe = randomIntMax()
+          createdInLevel = randomIntMax()
         ).assertGet
 
       closedSegment.segmentBytes.isEmpty shouldBe true
@@ -71,8 +70,7 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             segmentCompressions = randomCompressions(),
-            createdInLevel = randomIntMax(),
-            maxProbe = randomIntMax()
+            createdInLevel = randomIntMax()
           ).assertGet
 
         closedSegment.segmentBytes.isFull shouldBe true

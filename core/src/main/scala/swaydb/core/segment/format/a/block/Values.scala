@@ -78,15 +78,27 @@ object Values {
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 
-  def headerSize(hasCompression: Boolean): Int = {
-    val size = Block.headerSize(hasCompression)
+  val hasCompressionHeaderSize = {
+    val size = Block.headerSize(true)
     Bytes.sizeOf(size) +
       size
   }
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[Values.State] = {
-    val headSize = headerSize(keyValues.last.valuesConfig.compressions.nonEmpty)
-    if (keyValues.last.stats.segmentValuesSize > headSize) {
+  val noCompressionHeaderSize = {
+    val size = Block.headerSize(false)
+    Bytes.sizeOf(size) +
+      size
+  }
+
+  def headerSize(hasCompression: Boolean): Int =
+    if (hasCompression)
+      hasCompressionHeaderSize
+    else
+      noCompressionHeaderSize
+
+  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[Values.State] =
+    if (keyValues.last.stats.segmentValuesSize > 0) {
+      val headSize = headerSize(keyValues.last.valuesConfig.compressions.nonEmpty)
       val bytes = Slice.create[Byte](keyValues.last.stats.segmentValuesSize)
       bytes moveWritePosition headSize
       Some(
@@ -99,7 +111,6 @@ object Values {
     }
     else
       None
-  }
 
   def write(keyValue: KeyValue.WriteOnly, state: Values.State) =
     IO {

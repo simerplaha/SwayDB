@@ -336,14 +336,13 @@ private[core] object SegmentWriter extends LazyLogging {
     */
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             createdInLevel: Int,
-            maxProbe: Int,
             segmentCompressions: Seq[CompressionInternal]): IO[ClosedSegment] =
     if (keyValues.isEmpty)
       ClosedSegment.emptyIO
     else {
       val sortedIndex = SortedIndex.init(keyValues = keyValues)
       val values = Values.init(keyValues = keyValues)
-      val hashIndex = HashIndex.init(maxProbe = maxProbe, keyValues = keyValues)
+      val hashIndex = HashIndex.init(keyValues = keyValues)
       val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues)
       val bloomFilter = BloomFilter.init(keyValues = keyValues)
 
@@ -388,7 +387,7 @@ private[core] object SegmentWriter extends LazyLogging {
       val binarySearchIndex = closeResult.binarySearchIndex
       val bloomFilter = closeResult.bloomFilter
 
-      val segmentFooterSlice = Slice.create[Byte](lastStats.segmentFooterSize)
+      val segmentFooterSlice = Slice.create[Byte](Stats.segmentFooterSize)
       //this is a placeholder to store the format type of the Segment file written.
       //currently there is only one format. So this is hardcoded but if there are a new file format then
       //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.

@@ -83,12 +83,25 @@ private[core] object SortedIndex {
       this._bytes = bytes
   }
 
-  def headerSize(hasCompression: Boolean): Int = {
-    val size = Block.headerSize(hasCompression)
+  val hasCompressionHeaderSize = {
+    val size = Block.headerSize(true)
     Bytes.sizeOf(size) +
       ByteSizeOf.boolean + //enablePositionIndex
       size
   }
+
+  val noCompressionHeaderSize = {
+    val size = Block.headerSize(false)
+    Bytes.sizeOf(size) +
+      ByteSizeOf.boolean + //enablePositionIndex
+      size
+  }
+
+  def headerSize(hasCompression: Boolean): Int =
+    if (hasCompression)
+      hasCompressionHeaderSize
+    else
+      noCompressionHeaderSize
 
   def init(keyValues: Iterable[KeyValue.WriteOnly]): SortedIndex.State = {
     val bytes = Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize)

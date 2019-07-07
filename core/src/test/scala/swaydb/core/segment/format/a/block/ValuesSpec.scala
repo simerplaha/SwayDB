@@ -28,6 +28,8 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
+import scala.util.Random
+
 class ValuesSpec extends TestBase {
 
   implicit val timer = TestTimer.Empty
@@ -36,6 +38,9 @@ class ValuesSpec extends TestBase {
     "not initialise if values do not exists" in {
       runThis(10.times) {
         val keyValues = Slice(Transient.put(key = 1, value = Slice.emptyBytes, removeAfter = None), Transient.remove(key = 1)).updateStats
+        keyValues.last.stats.segmentValuesSize shouldBe 0
+        keyValues.last.stats.segmentValuesSizeWithoutHeader shouldBe 0
+        keyValues.last.stats.valueLength shouldBe 0
         Values.init(keyValues) shouldBe empty
       }
     }
@@ -47,6 +52,7 @@ class ValuesSpec extends TestBase {
       }
     }
   }
+
 
   "close" should {
     "prepare for persisting" in {

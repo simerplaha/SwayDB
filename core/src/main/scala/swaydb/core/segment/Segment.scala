@@ -263,7 +263,6 @@ private[core] object Segment extends LazyLogging {
 
   def persistent(path: Path,
                  createdInLevel: Int,
-                 maxProbe: Int,
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
                  segmentCompressions: Seq[CompressionInternal],
@@ -275,7 +274,6 @@ private[core] object Segment extends LazyLogging {
     SegmentWriter.write(
       keyValues = keyValues,
       createdInLevel = createdInLevel,
-      maxProbe = maxProbe,
       segmentCompressions = segmentCompressions
     ) flatMap {
       result =>
@@ -437,7 +435,6 @@ private[core] object Segment extends LazyLogging {
                 path = fetchNextPath,
                 createdInLevel = createdInLevel,
                 segmentCompressions = segmentCompressions,
-                maxProbe = hashIndexConfig.maxProbe,
                 mmapReads = mmapSegmentsOnRead,
                 mmapWrites = mmapSegmentsOnWrite,
                 keyValues = keyValues
