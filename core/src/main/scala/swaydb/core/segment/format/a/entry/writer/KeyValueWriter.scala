@@ -50,7 +50,6 @@ private[core] object KeyValueWriter {
     *
     * @param binder                  [[BaseEntryIdFormat]] for this key-value's type.
     * @param compressDuplicateValues Compresses duplicate values if set to true.
-    *
     * @return indexEntry, valueBytes, valueOffsetBytes, nextValuesOffsetPosition
     */
   def write[T <: KeyValue.WriteOnly](current: T,
@@ -81,7 +80,7 @@ private[core] object KeyValueWriter {
                                                        previous: KeyValue.WriteOnly,
                                                        currentTime: Time,
                                                        compressDuplicateValues: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
-    compress(key = current.fullKey, previous = previous, minimumCommonBytes = 2) map {
+    compress(key = current.key, previous = previous, minimumCommonBytes = 2) map {
       case (commonBytes, remainingBytes) =>
         val writeResult =
           TimeWriter.write(
@@ -117,12 +116,12 @@ private[core] object KeyValueWriter {
         enablePrefixCompression = enablePrefixCompression,
         isKeyCompressed = false,
         hasPrefixCompressed = false,
-        plusSize = current.fullKey.size //write key bytes.
+        plusSize = current.key.size //write key bytes.
       )
 
     writeResult
       .indexBytes
-      .addAll(current.fullKey)
+      .addAll(current.key)
 
     writeResult
   }

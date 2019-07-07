@@ -61,7 +61,7 @@ private[core] object GroupKeyCompressor {
         (range.fromKey, MaxKey.Range(range.fromKey, range.toKey), fullKey)
 
       case (None, group: KeyValue.WriteOnly.Group) =>
-        (group.minKey, group.maxKey, group.fullKey)
+        (group.minKey, group.maxKey, group.key)
     }
 
   def decompress(key: Slice[Byte]): IO[(Slice[Byte], MaxKey[Slice[Byte]])] =

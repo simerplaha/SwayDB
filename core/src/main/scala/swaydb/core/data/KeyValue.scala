@@ -210,7 +210,6 @@ private[core] object KeyValue {
     def hashIndexConfig: HashIndex.Config
     def bloomFilterConfig: BloomFilter.Config
     def isPrefixCompressed: Boolean
-    def fullKey: Slice[Byte]
     def stats: Stats
     def deadline: Option[Deadline]
     def indexEntryBytes: Slice[Byte]
@@ -295,7 +294,6 @@ private[core] object KeyValue {
       def minKey: Slice[Byte]
       def maxKey: MaxKey[Slice[Byte]]
       def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
-      def fullKey: Slice[Byte]
       def keyValues: Slice[KeyValue.WriteOnly]
     }
   }
@@ -681,8 +679,6 @@ private[core] object Transient {
         deadline = deadline
       )
 
-    override def fullKey = key
-
     override def updatePrevious(valuesConfig: Values.Config,
                                 sortedIndexConfig: SortedIndex.Config,
                                 binarySearchIndexConfig: BinarySearchIndex.Config,
@@ -750,8 +746,6 @@ private[core] object Transient {
         deadline = deadline
       )
 
-    override def fullKey = key
-
     override def updatePrevious(valuesConfig: Values.Config,
                                 sortedIndexConfig: SortedIndex.Config,
                                 binarySearchIndexConfig: BinarySearchIndex.Config,
@@ -816,8 +810,6 @@ private[core] object Transient {
         previous = previous,
         deadline = deadline
       )
-
-    override def fullKey = key
 
     override def updatePrevious(valuesConfig: Values.Config,
                                 sortedIndexConfig: SortedIndex.Config,
@@ -885,8 +877,6 @@ private[core] object Transient {
         deadline = deadline
       )
 
-    override def fullKey = key
-
     override def updatePrevious(valuesConfig: Values.Config,
                                 sortedIndexConfig: SortedIndex.Config,
                                 binarySearchIndexConfig: BinarySearchIndex.Config,
@@ -922,8 +912,6 @@ private[core] object Transient {
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     override def time = Time.fromApplies(applies)
-
-    override def fullKey = key
 
     override def updatePrevious(valuesConfig: Values.Config,
                                 sortedIndexConfig: SortedIndex.Config,
@@ -998,7 +986,7 @@ private[core] object Transient {
       new Range(
         fromKey = fromKey,
         toKey = toKey,
-        fullKey = fullKey,
+        key = fullKey,
         fromValue = None,
         rangeValue = rangeValue,
         valueSerialiser = valueSerialiser _,
@@ -1033,7 +1021,7 @@ private[core] object Transient {
       new Range(
         fromKey = fromKey,
         toKey = toKey,
-        fullKey = fullKey,
+        key = fullKey,
         fromValue = fromValue,
         rangeValue = rangeValue,
         valueSerialiser = valueSerialiser _,
@@ -1049,7 +1037,7 @@ private[core] object Transient {
 
   case class Range(fromKey: Slice[Byte],
                    toKey: Slice[Byte],
-                   fullKey: Slice[Byte],
+                   key: Slice[Byte],
                    fromValue: Option[Value.FromValue],
                    rangeValue: Value.RangeValue,
                    valueSerialiser: () => Option[Slice[Byte]],
@@ -1059,8 +1047,6 @@ private[core] object Transient {
                    hashIndexConfig: HashIndex.Config,
                    bloomFilterConfig: BloomFilter.Config,
                    previous: Option[KeyValue.WriteOnly]) extends Transient.SegmentResponse with KeyValue.WriteOnly.Range {
-
-    def key = fromKey
 
     override val isRemoveRangeMayBe = rangeValue.hasRemoveMayBe
     override val isGroup: Boolean = false
@@ -1079,8 +1065,6 @@ private[core] object Transient {
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
-
-    val commonBytesCount = Bytes.commonPrefixBytesCount(fromKey, toKey)
 
     val stats =
       Stats(
@@ -1154,7 +1138,7 @@ private[core] object Transient {
 
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
-                   fullKey: Slice[Byte],
+                   key: Slice[Byte],
                    result: SegmentWriter.ClosedSegment,
                    //the deadline is the nearest deadline in the Group's key-values.
                    minMaxFunctionId: Option[MinMax[Slice[Byte]]],
@@ -1166,8 +1150,6 @@ private[core] object Transient {
                    hashIndexConfig: HashIndex.Config,
                    bloomFilterConfig: BloomFilter.Config,
                    previous: Option[KeyValue.WriteOnly]) extends Transient with KeyValue.WriteOnly.Group {
-
-    override def key = minKey
 
     override val isRemoveRangeMayBe: Boolean = keyValues.last.stats.segmentHasRemoveRange
     override val isRange: Boolean = keyValues.last.stats.segmentHasRange
