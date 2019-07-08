@@ -4,9 +4,9 @@
  * This file is a part of SwayDB.
  *
  * SwayDB is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * SwayDB is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -17,28 +17,43 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a
+package swaydb.core.segment.format.a.block
 
-import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Stats, Transient}
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.Segment
-import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.SegmentException.SegmentCorruptionException
+import swaydb.core.segment.format.a.{NearestDeadlineMinMaxFunctionId, OffsetBase}
 import swaydb.core.util.{Bytes, CRC32, MinMax}
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
+import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Deadline
 
-private[core] object SegmentWriter extends LazyLogging {
+private[core] object SegmentBlock {
 
   val formatId: Byte = 1.toByte
 
   val crcBytes: Int = 7
+
+  case class Offset(start: Int, size: Int) extends OffsetBase
+
+  case class Footer(valuesOffset: Option[Values.Offset],
+                    sortedIndexOffset: SortedIndex.Offset,
+                    hashIndexOffset: Option[HashIndex.Offset],
+                    binarySearchIndexOffset: Option[BinarySearchIndex.Offset],
+                    bloomFilterOffset: Option[BloomFilter.Offset],
+                    keyValueCount: Int,
+                    createdInLevel: Int,
+                    bloomFilterItemsCount: Int,
+                    hasRange: Boolean,
+                    hasGroup: Boolean,
+                    hasPut: Boolean)
 
   object ClosedSegment {
     val empty =
@@ -66,7 +81,8 @@ private[core] object SegmentWriter extends LazyLogging {
               functionMinMax: Option[MinMax[Slice[Byte]]],
               nearestDeadline: Option[Deadline]): ClosedSegment = {
       val segmentBytes: Slice[Slice[Byte]] = {
-        val allBytes = Slice.create[Slice[Byte]](6)
+        val allBytes = Slice.create[Slice[Byte]](8)
+        allBytes add headerBytes.close()
         values foreach (allBytes add _)
         allBytes add sortedIndex
         hashIndex foreach (allBytes add _)
@@ -114,10 +130,159 @@ private[core] object SegmentWriter extends LazyLogging {
                                   minMaxFunction: Option[MinMax[Slice[Byte]]],
                                   nearestDeadline: Option[Deadline])
 
-  def headerSize(hasCompression: Boolean): Int = {
-    val size = Block.headerSize(hasCompression)
+  def read(offset: SegmentBlock.Offset,
+           segmentReader: Reader): IO[SegmentBlock] =
+    Block.readHeader(
+      offset = offset,
+      reader = segmentReader
+    ) map {
+      header =>
+        SegmentBlock(
+          offset = offset,
+          headerSize = header.headerSize,
+          compressionInfo = header.compressionInfo
+        )
+    }
+
+  def getUnblockedReader(bytes: Slice[Byte]): IO[BlockReader[SegmentBlock]] =
+    getUnblockedReader(Reader(bytes))
+
+  def getUnblockedReader(segmentReader: Reader): IO[BlockReader[SegmentBlock]] =
+    segmentReader.size map {
+      size =>
+        BlockReader(
+          reader = segmentReader,
+          block = SegmentBlock(
+            offset = SegmentBlock.Offset(0, size.toInt),
+            headerSize = 0,
+            compressionInfo = None
+          )
+        )
+    }
+
+  //all these functions are wrapper with a try catch block with value only to make it easier to read.
+  def readFooter(reader: BlockReader[SegmentBlock]): IO[Footer] =
+    try {
+      val segmentBlockSize = reader.size.get.toInt
+      val footerStartOffset = reader.moveTo(segmentBlockSize - ByteSizeOf.int).readInt().get
+      val footerSize = segmentBlockSize - footerStartOffset
+      val footerBytes = reader.moveTo(footerStartOffset).read(footerSize - ByteSizeOf.int).get
+      val footerReader = Reader(footerBytes)
+      val formatId = footerReader.readIntUnsigned().get
+      if (formatId != SegmentBlock.formatId) {
+        val message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}"
+        return IO.Failure(IO.Error.Fatal(SegmentCorruptionException(message = message, cause = new Exception(message))))
+      }
+      assert(formatId == SegmentBlock.formatId, s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}")
+      val createdInLevel = footerReader.readIntUnsigned().get
+      val hasGroup = footerReader.readBoolean().get
+      val hasRange = footerReader.readBoolean().get
+      val hasPut = footerReader.readBoolean().get
+      val keyValueCount = footerReader.readIntUnsigned().get
+      val bloomFilterItemsCount = footerReader.readIntUnsigned().get
+      val expectedCRC = footerReader.readLong().get
+      val crcBytes = footerBytes.take(SegmentBlock.crcBytes)
+      val crc = CRC32.forBytes(crcBytes)
+      if (expectedCRC != crc) {
+        IO.Failure(SegmentCorruptionException(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
+      } else {
+        val sortedIndexOffset =
+          SortedIndex.Offset(
+            size = footerReader.readIntUnsigned().get,
+            start = footerReader.readIntUnsigned().get
+          )
+
+        val hashIndexSize = footerReader.readIntUnsigned().get
+        val hashIndexOffset =
+          if (hashIndexSize == 0)
+            None
+          else
+            Some(
+              HashIndex.Offset(
+                start = footerReader.readIntUnsigned().get,
+                size = hashIndexSize
+              )
+            )
+
+        val binarySearchIndexSize = footerReader.readIntUnsigned().get
+        val binarySearchIndexOffset =
+          if (binarySearchIndexSize == 0)
+            None
+          else
+            Some(
+              BinarySearchIndex.Offset(
+                start = footerReader.readIntUnsigned().get,
+                size = binarySearchIndexSize
+              )
+            )
+
+        val bloomFilterSize = footerReader.readIntUnsigned().get
+        val bloomFilterOffset =
+          if (bloomFilterSize == 0)
+            None
+          else
+            Some(
+              BloomFilter.Offset(
+                start = footerReader.readIntUnsigned().get,
+                size = bloomFilterSize
+              )
+            )
+
+        val valuesOffset =
+          if (sortedIndexOffset.start == 0)
+            None
+          else
+            Some(Values.Offset(0, sortedIndexOffset.start))
+
+        IO.Success(
+          Footer(
+            valuesOffset = valuesOffset,
+            sortedIndexOffset = sortedIndexOffset,
+            hashIndexOffset = hashIndexOffset,
+            binarySearchIndexOffset = binarySearchIndexOffset,
+            bloomFilterOffset = bloomFilterOffset,
+            keyValueCount = keyValueCount,
+            createdInLevel = createdInLevel,
+            bloomFilterItemsCount = bloomFilterItemsCount,
+            hasRange = hasRange,
+            hasGroup = hasGroup,
+            hasPut = hasPut
+          )
+        )
+      }
+    } catch {
+      case exception: Exception =>
+        exception match {
+          case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
+            IO.Failure(
+              IO.Error.Fatal(
+                SegmentCorruptionException(
+                  message = "Corrupted Segment: Failed to read footer bytes",
+                  cause = exception
+                )
+              )
+            )
+
+          case ex: Exception =>
+            IO.Failure(ex)
+        }
+    }
+
+  val noCompressionHeaderSize = {
+    val size = Block.headerSize(false)
     Bytes.sizeOf(size) + size
   }
+
+  val hasCompressionHeaderSize = {
+    val size = Block.headerSize(true)
+    Bytes.sizeOf(size) + size
+  }
+
+  def headerSize(hasCompression: Boolean): Int =
+    if (hasCompression)
+      hasCompressionHeaderSize
+    else
+      noCompressionHeaderSize
 
   private def writeBlocks(keyValue: KeyValue.WriteOnly,
                           sortedIndex: SortedIndex.State,
@@ -392,7 +557,7 @@ private[core] object SegmentWriter extends LazyLogging {
       //currently there is only one format. So this is hardcoded but if there are a new file format then
       //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.
       //the following group of bytes are also used for CRC check.
-      segmentFooterSlice addIntUnsigned SegmentWriter.formatId
+      segmentFooterSlice addIntUnsigned SegmentBlock.formatId
       segmentFooterSlice addIntUnsigned createdInLevel
       segmentFooterSlice addBoolean lastStats.segmentHasGroup
       segmentFooterSlice addBoolean lastStats.segmentHasRange
@@ -404,13 +569,11 @@ private[core] object SegmentWriter extends LazyLogging {
       segmentFooterSlice addIntUnsigned lastStats.segmentUniqueKeysCount
 
       //do CRC
-      val indexBytesToCRC = segmentFooterSlice.take(SegmentWriter.crcBytes)
-      assert(indexBytesToCRC.size == SegmentWriter.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentWriter.crcBytes}")
+      val indexBytesToCRC = segmentFooterSlice.take(SegmentBlock.crcBytes)
+      assert(indexBytesToCRC.size == SegmentBlock.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentBlock.crcBytes}")
       segmentFooterSlice addLong CRC32.forBytes(indexBytesToCRC)
 
-      val headerSize = SegmentWriter.headerSize(segmentCompressions.nonEmpty)
-
-      var segmentOffset = values.map(_.bytes.size + headerSize) getOrElse headerSize
+      var segmentOffset = values.map(_.bytes.size) getOrElse 0
 
       segmentFooterSlice addIntUnsigned sortedIndex.bytes.size
       segmentFooterSlice addIntUnsigned segmentOffset
@@ -452,9 +615,10 @@ private[core] object SegmentWriter extends LazyLogging {
 
       segmentFooterSlice addInt footerOffset
 
+      val headerSize = SegmentBlock.headerSize(segmentCompressions.nonEmpty)
       val headerBytes = Slice.create[Byte](headerSize)
       //set header bytes to be fully written so that it does not closed when compression.
-      headerBytes moveWritePosition headerBytes.size
+      headerBytes moveWritePosition headerBytes.allocatedSize
 
       ClosedSegment(
         headerBytes = headerBytes,
@@ -468,12 +632,34 @@ private[core] object SegmentWriter extends LazyLogging {
         nearestDeadline = closeResult.nearestDeadline
       )
     } flatMap {
-      result =>
-        Block.create(
-          headerSize = result.segmentBytes.head.size,
-          writeResult = result,
-          compressions = segmentCompressions
-        )
+      closedSegment =>
+        val closed =
+          Block.create(
+            headerSize = closedSegment.segmentBytes.head.size,
+            closedSegment = closedSegment,
+            compressions = segmentCompressions
+          )
+        closed
     }
   }
+}
+
+private[core] case class SegmentBlock(offset: SegmentBlock.Offset,
+                                      headerSize: Int,
+                                      compressionInfo: Option[Block.CompressionInfo]) extends Block {
+
+  override def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[SegmentBlock] =
+    segmentReader
+
+  def createBlockReader(segmentReader: Reader): BlockReader[SegmentBlock] =
+    BlockReader(
+      reader = segmentReader,
+      block = this
+    )
+
+  def clear(): SegmentBlock =
+    copy(compressionInfo = compressionInfo.map(_.clear()))
+
+  override def updateOffset(start: Int, size: Int): Block =
+    copy(offset = SegmentBlock.Offset(start = start, size = size))
 }

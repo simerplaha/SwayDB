@@ -21,7 +21,6 @@ package swaydb.core.segment
 
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.{SegmentBlock, SegmentFooter}
 import swaydb.core.util.cache.Cache
 import swaydb.data.IO
 
@@ -34,7 +33,7 @@ object SegmentBlockCache {
 class SegmentBlockCache(id: String,
                         segmentBlock: () => IO[BlockReader[SegmentBlock]]) {
 
-  private val footerCache = Cache.io[SegmentFooter](synchronised = true, stored = true)(getFooterInfo())
+  private val footerCache = Cache.io[SegmentBlock.Footer](synchronised = true, stored = true)(getFooterInfo())
   private val hashIndexCache = Cache.io[Option[HashIndex]](synchronised = true, stored = true)(getHashIndexInfo())
   private val bloomFilterCache = Cache.io[Option[BloomFilter]](synchronised = true, stored = true)(getBloomFilterInfo())
   private val binarySearchIndexCache = Cache.io[Option[BinarySearchIndex]](synchronised = true, stored = true)(getBinarySearchIndexInfo())
@@ -58,7 +57,7 @@ class SegmentBlockCache(id: String,
       sortedIndexCache.isCached ||
       valuesCache.isCached
 
-  def footer: IO[SegmentFooter] =
+  def footer: IO[SegmentBlock.Footer] =
     footerCache.value
 
   def isFooterDefined =
@@ -94,7 +93,7 @@ class SegmentBlockCache(id: String,
         block.createBlockReader(reader).asInstanceOf[BlockReader[B]]
     }
 
-  private def getFooterAndSegmentReader(): IO[(SegmentFooter, BlockReader[SegmentBlock])] =
+  private def getFooterAndSegmentReader(): IO[(SegmentBlock.Footer, BlockReader[SegmentBlock])] =
     for {
       footer <- footerCache.value
       reader <- segmentBlock()
@@ -105,8 +104,8 @@ class SegmentBlockCache(id: String,
   /**
     * INFOS
     */
-  private def getFooterInfo(): IO[SegmentFooter] =
-    segmentBlock() flatMap SegmentFooter.read
+  private def getFooterInfo(): IO[SegmentBlock.Footer] =
+    segmentBlock() flatMap SegmentBlock.readFooter
 
   private def getHashIndexInfo(): IO[Option[HashIndex]] =
     getFooterAndSegmentReader() flatMap {

@@ -20,7 +20,7 @@
 package swaydb.core.io.reader
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.segment.format.a.block.Block
+import swaydb.core.segment.format.a.block.{Block, Values}
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
@@ -32,6 +32,12 @@ object BlockReader {
     new BlockReader[B](
       reader = reader,
       block = block
+    )
+
+  def unblockedValues(bytes: Slice[Byte]) =
+    new BlockReader[Values](
+      reader = Reader(bytes),
+      block = Values(Values.Offset(0, bytes.size), 0, None)
     )
 }
 
@@ -48,7 +54,7 @@ private[core] class BlockReader[B <: Block](reader: Reader,
           Block.decompress(
             compressionInfo = compressionInfo,
             //do not copy, decompress already copies if required.
-            segmentReader = reader,
+            reader = reader,
             offset = block.offset
           ) map {
             decompressedBytes =>

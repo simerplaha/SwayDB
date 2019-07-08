@@ -31,7 +31,7 @@ import swaydb.data.IO
   *
   * Leaving as it is now because it's easier to read.
   */
-private[core] object SegmentReader extends LazyLogging {
+private[core] object SegmentSearcher extends LazyLogging {
 
   def lower(matcher: KeyMatcher.Lower,
             startFrom: Option[Persistent],

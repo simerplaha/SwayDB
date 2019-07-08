@@ -21,12 +21,12 @@ package swaydb.core.segment.format.a.block
 
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue
-import swaydb.core.io.reader.{BlockReader, Reader}
+import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.OffsetBase
 import swaydb.core.util.Bytes
 import swaydb.data.IO
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Slice
 
 object Values {
 
@@ -133,8 +133,8 @@ object Values {
     }
 
   def read(offset: Values.Offset,
-           segmentReader: Reader): IO[Values] =
-    Block.readHeader(offset = offset, segmentReader = segmentReader) map {
+           segmentReader: BlockReader[SegmentBlock]): IO[Values] =
+    Block.readHeader(offset = offset, reader = segmentReader) map {
       result =>
         Values(
           offset = offset,
@@ -174,12 +174,9 @@ case class Values(offset: Values.Offset,
                   headerSize: Int,
                   compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
-  override def createBlockReader(bytes: Slice[Byte]): BlockReader[Values] =
-    createBlockReader(Reader(bytes))
-
-  def createBlockReader(segmentReader: Reader): BlockReader[Values] =
+  def createBlockReader(segmentBlock: BlockReader[SegmentBlock]): BlockReader[Values] =
     BlockReader(
-      reader = segmentReader,
+      reader = segmentBlock,
       block = this
     )
 

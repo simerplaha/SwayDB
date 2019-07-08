@@ -22,17 +22,16 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
-import swaydb.core.io.reader.{BlockReader, Reader}
+import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.config.RandomKeyIndex
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.util.Try
 
 /**
   * HashIndex.
@@ -195,9 +194,9 @@ private[core] object HashIndex extends LazyLogging {
         }
     }
 
-  def read(offset: Offset, reader: Reader): IO[HashIndex] =
+  def read(offset: Offset, reader: BlockReader[SegmentBlock]): IO[HashIndex] =
     for {
-      result <- Block.readHeader(offset = offset, segmentReader = reader)
+      result <- Block.readHeader(offset = offset, reader = reader)
       allocatedBytes <- result.headerReader.readInt()
       maxProbe <- result.headerReader.readInt()
       hit <- result.headerReader.readIntUnsigned()
@@ -380,10 +379,7 @@ case class HashIndex(offset: HashIndex.Offset,
 
   val isCompressed = compressionInfo.isDefined
 
-  override def createBlockReader(bytes: Slice[Byte]): BlockReader[HashIndex] =
-    createBlockReader(Reader(bytes))
-
-  def createBlockReader(segmentReader: Reader): BlockReader[HashIndex] =
+  def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[HashIndex] =
     BlockReader(
       reader = segmentReader,
       block = this

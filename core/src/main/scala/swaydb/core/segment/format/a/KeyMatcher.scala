@@ -69,8 +69,8 @@ private[core] object KeyMatcher {
       )
 
     /**
-      * Reserved for [[SegmentReader]] only. Other clients should just submit [[Get]]
-      * and [[SegmentReader]] should apply HashIndex check if necessary.
+      * Reserved for [[SegmentSearcher]] only. Other clients should just submit [[Get]]
+      * and [[SegmentSearcher]] should apply HashIndex check if necessary.
       */
 
     object WhilePrefixCompressed {

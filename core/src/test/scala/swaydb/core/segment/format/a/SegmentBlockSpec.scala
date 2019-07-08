@@ -32,7 +32,7 @@ import swaydb.core.data._
 import swaydb.core.group.compression.GroupCompressor
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.a.block.BloomFilter
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SegmentBlock, SortedIndex, Values}
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
@@ -41,7 +41,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class SegmentWriterReaderSpec extends TestBase {
+class SegmentBlockSpec extends TestBase {
 
   val keyValueCount = 100
 
@@ -50,11 +50,11 @@ class SegmentWriterReaderSpec extends TestBase {
 
   implicit def testTimer: TestTimer = TestTimer.random
 
-  "SegmentWriter" should {
+  "SegmentBlock" should {
 
     "convert empty KeyValues and not throw exception but return empty bytes" in {
       val closedSegment =
-        SegmentWriter.write(
+        SegmentBlock.write(
           keyValues = Seq.empty,
           segmentCompressions = randomCompressions(),
           createdInLevel = randomIntMax()
@@ -64,16 +64,46 @@ class SegmentWriterReaderSpec extends TestBase {
       closedSegment.nearestDeadline shouldBe empty
     }
 
+    "assert blocks" in {
+      def test(keyValues: Slice[KeyValue.WriteOnly]) = {
+        val createdInLevel = randomNextInt(10)
+
+        val closedSegment =
+          SegmentBlock.write(
+            keyValues = keyValues,
+            segmentCompressions = randomCompressions(),
+            createdInLevel = randomNextInt(10)
+          ).assertGet
+
+        val segmentBlock = SegmentBlock.read(SegmentBlock.Offset(0, closedSegment.flattenSegmentBytes.size), Reader(closedSegment.flattenSegmentBytes))
+
+        SegmentBlock.write(
+          keyValues = keyValues,
+          segmentCompressions = Seq.empty,
+          createdInLevel = randomNextInt(10)
+        ).assertGet
+
+        //in memory
+        //        //on disk
+        //        assertReads(keyValues, createFileChannelReader(closedSegment.flattenSegmentBytes))
+      }
+
+      runThis(1.times) {
+        //        val count = randomIntMax(4) + 1
+        //        val keyValues = randomizedKeyValues(count, addRandomGroups = false)
+        val keyValues = randomPutKeyValues(1, startId = Some(0)).toTransient
+        if (keyValues.nonEmpty) test(keyValues)
+      }
+    }
+
     "converting KeyValues to bytes and execute readAll and find on the bytes" in {
       def test(keyValues: Slice[KeyValue.WriteOnly]) = {
         val closedSegment =
-          SegmentWriter.write(
+          SegmentBlock.write(
             keyValues = keyValues,
             segmentCompressions = randomCompressions(),
-            createdInLevel = randomIntMax()
+            createdInLevel = randomNextInt(10)
           ).assertGet
-
-        closedSegment.segmentBytes.isFull shouldBe true
 
         //in memory
         assertReads(keyValues, Reader(closedSegment.flattenSegmentBytes))
@@ -82,9 +112,8 @@ class SegmentWriterReaderSpec extends TestBase {
       }
 
       runThis(100.times) {
-//        val count = randomIntMax(4) + 1
-//        val keyValues = randomizedKeyValues(count, addRandomGroups = false)
-        val keyValues = randomPutKeyValues(1, startId = Some(0)).toTransient
+        val count = randomIntMax(10) max 1
+        val keyValues = randomizedKeyValues(count, addRandomGroups = false)
         if (keyValues.nonEmpty) test(keyValues)
       }
     }
@@ -107,7 +136,7 @@ class SegmentWriterReaderSpec extends TestBase {
     //          ).assertGet
     //
     //        val (bytes, deadline) =
-    //          SegmentWriter.write(
+    //          SegmentBlock.write(
     //            keyValues = Seq(group),
     //            segmentCompressions = randomSegmentCompression(),
     //            createdInLevel = 0,
@@ -156,7 +185,7 @@ class SegmentWriterReaderSpec extends TestBase {
     //          ).assertGet
     //
     //        val (bytes, deadline) =
-    //          SegmentWriter.write(
+    //          SegmentBlock.write(
     //            keyValues = Seq(group1, group2),
     //            segmentCompressions = randomSegmentCompression(),
     //            createdInLevel = 0,
@@ -237,7 +266,7 @@ class SegmentWriterReaderSpec extends TestBase {
     //          ).assertGet
     //
     //        val bytes =
-    //          SegmentWriter.write(
+    //          SegmentBlock.write(
     //            keyValues = Seq(group4),
     //            segmentCompressions = randomSegmentCompression(),
     //            createdInLevel = 0,
@@ -263,7 +292,7 @@ class SegmentWriterReaderSpec extends TestBase {
     //        val keyValues = randomPutKeyValues(count = 2, valueSize = 1, startId = Some(0)).toTransient
     //
     //        val bytes =
-    //          SegmentWriter.write(
+    //          SegmentBlock.write(
     //            keyValues = keyValues,
     //            segmentCompressions = randomSegmentCompression(),
     //            createdInLevel = 0,
@@ -281,7 +310,7 @@ class SegmentWriterReaderSpec extends TestBase {
     //      val keyValues = Slice(Transient.put(Int.MaxValue, Int.MinValue), Transient.put(Int.MinValue, Int.MaxValue)).updateStats
     //
     //      val (bytes, deadline) =
-    //        SegmentWriter.write(
+    //        SegmentBlock.write(
     //          keyValues = keyValues,
     //          segmentCompressions = randomSegmentCompression(),
     //          createdInLevel = 0,
@@ -306,7 +335,7 @@ class SegmentWriterReaderSpec extends TestBase {
     //      }
     //
     //      val (bytes, deadline) =
-    //        SegmentWriter.write(
+    //        SegmentBlock.write(
     //          keyValues = keyValues,
     //          segmentCompressions = randomSegmentCompression(),
     //          createdInLevel = 0,
@@ -325,7 +354,7 @@ class SegmentWriterReaderSpec extends TestBase {
     //      val keyValues = Slice(Transient.put(1)).updateStats
     //
     //      val (bytes, _) =
-    //        SegmentWriter.write(
+    //        SegmentBlock.write(
     //          keyValues = keyValues,
     //          segmentCompressions = randomSegmentCompression(),
     //          createdInLevel = 0,
@@ -344,7 +373,7 @@ class SegmentWriterReaderSpec extends TestBase {
   //        val keyValues = randomizedKeyValues(keyValueCount, addRandomRanges = false, addRandomGroups = true)
   //
   //        val (bytes, deadline) =
-  //          SegmentWriter.write(
+  //          SegmentBlock.write(
   //            keyValues = keyValues,
   //            segmentCompressions = randomSegmentCompression(),
   //            createdInLevel = 0,
@@ -393,7 +422,7 @@ class SegmentWriterReaderSpec extends TestBase {
   //        keyValues.last.stats.segmentHasRemoveRange shouldBe expectedHasRemoveRange
   //
   //        val (bytes, _) =
-  //          SegmentWriter.write(
+  //          SegmentBlock.write(
   //            keyValues = keyValues,
   //            segmentCompressions = randomSegmentCompression(),
   //            createdInLevel = 0,
@@ -425,7 +454,7 @@ class SegmentWriterReaderSpec extends TestBase {
   //        keyValues.last.stats.segmentHasRemoveRange shouldBe true
   //
   //        val (bytes, _) =
-  //          SegmentWriter.write(
+  //          SegmentBlock.write(
   //            keyValues = keyValues,
   //            segmentCompressions = randomSegmentCompression(),
   //            createdInLevel = 0,
@@ -484,7 +513,7 @@ class SegmentWriterReaderSpec extends TestBase {
   //        keyValues.last.stats.segmentHasRemoveRange shouldBe false
   //
   //        val (bytes, _) =
-  //          SegmentWriter.write(
+  //          SegmentBlock.write(
   //            keyValues = keyValues,
   //            segmentCompressions = randomSegmentCompression(),
   //            createdInLevel = 0,
@@ -530,7 +559,7 @@ class SegmentWriterReaderSpec extends TestBase {
   //        keyValues.last.stats.segmentHasRemoveRange shouldBe false
   //
   //        val (bytes, _) =
-  //          SegmentWriter.write(
+  //          SegmentBlock.write(
   //            keyValues = keyValues,
   //            segmentCompressions = randomSegmentCompression(),
   //            createdInLevel = 0,
@@ -564,7 +593,7 @@ class SegmentWriterReaderSpec extends TestBase {
   //        keyValues.last.stats.segmentHasRemoveRange shouldBe false
   //
   //        val (bytes, _) =
-  //          SegmentWriter.write(
+  //          SegmentBlock.write(
   //            keyValues = keyValues,
   //            segmentCompressions = randomSegmentCompression(),
   //            createdInLevel = 0,
@@ -619,7 +648,7 @@ class SegmentWriterReaderSpec extends TestBase {
   //        keyValues.last.stats.segmentHasRemoveRange shouldBe true
   //
   //        val (bytes, _) =
-  //          SegmentWriter.write(
+  //          SegmentBlock.write(
   //            keyValues = keyValues,
   //            createdInLevel = 0,
   //            maxProbe = TestData.maxProbe
@@ -690,7 +719,7 @@ class SegmentWriterReaderSpec extends TestBase {
   //  //        ).updateStats
   //  //
   //  //      val (writtenBytes, _) =
-  //  //        SegmentWriter.write(
+  //  //        SegmentBlock.write(
   //  //          keyValues = keyValues,
   //  //          createdInLevel = 0,
   //  //          maxProbe = TestData.maxProbe
@@ -777,7 +806,7 @@ class SegmentWriterReaderSpec extends TestBase {
   //  //        ).updateStats
   //  //
   //  //      val (bytes, _) =
-  //  //        SegmentWriter.write(
+  //  //        SegmentBlock.write(
   //  //          keyValues = keyValues,
   //  //          createdInLevel = 0,
   //  //          maxProbe = TestData.maxProbe
@@ -838,7 +867,7 @@ class SegmentWriterReaderSpec extends TestBase {
   //  //        ).updateStats
   //  //
   //  //      val (bytes, _) =
-  //  //        SegmentWriter.write(
+  //  //        SegmentBlock.write(
   //  //          keyValues = keyValues,
   //  //          createdInLevel = 0,
   //  //          maxProbe = TestData.maxProbe
@@ -924,7 +953,7 @@ class SegmentWriterReaderSpec extends TestBase {
   //  //        val keyValuesWithDeadline = (1 to 10) map randomKeyValueWithDeadline
   //  //
   //  //        val actualNearestDeadline =
-  //  //          SegmentWriter.write(
+  //  //          SegmentBlock.write(
   //  //            keyValues = keyValuesWithDeadline.updateStats,
   //  //            createdInLevel = 0,
   //  //            maxProbe = TestData.maxProbe
@@ -979,7 +1008,7 @@ class SegmentWriterReaderSpec extends TestBase {
   //  //        val value = keyValues.head.get.assertGet
   //  //
   //  //        val (bytes, deadline) =
-  //  //          SegmentWriter.write(
+  //  //          SegmentBlock.write(
   //  //            keyValues = keyValues,
   //  //            createdInLevel = 0,
   //  //            maxProbe = TestData.maxProbe

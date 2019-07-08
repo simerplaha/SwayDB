@@ -369,7 +369,7 @@ object TestData {
             case Transient.Put(key, value, deadline, time, _, _, _, _, _, _) =>
               Memory.Put(key, value, deadline, time)
 
-            case Transient.Function(key, function, deadline, time, _, _, _, _, _, _) =>
+            case Transient.Function(key, function, time, _, _, _, _, _, _) =>
               Memory.Function(key, function, time)
 
             case Transient.PendingApply(key, applies, _, _, _, _, _, _) =>
@@ -479,7 +479,7 @@ object TestData {
     def random =
       SortedIndex.Config(
         cacheOnAccess = randomBoolean(),
-        prefixCompressionResetCount = randomIntMax(50),
+        prefixCompressionResetCount = randomIntMax(5),
         enableAccessPositionIndex = randomBoolean(),
         compressions = randomCompressionsOrEmpty()
       )
@@ -489,7 +489,7 @@ object TestData {
     def random =
       BinarySearchIndex.Config(
         enabled = randomBoolean(),
-        minimumNumberOfKeys = randomIntMax(10),
+        minimumNumberOfKeys = randomIntMax(5),
         fullIndex = randomBoolean(),
         cacheOnAccess = randomBoolean(),
         compressions = randomCompressionsOrEmpty()
@@ -500,7 +500,7 @@ object TestData {
     def random =
       HashIndex.Config(
         maxProbe = randomIntMax(10),
-        minimumNumberOfKeys = randomIntMax(10),
+        minimumNumberOfKeys = randomIntMax(5),
         allocateSpace = _.requiredSpace * randomIntMax(3),
         cacheOnAccess = randomBoolean(),
         compressions = randomCompressionsOrEmpty()
@@ -511,7 +511,7 @@ object TestData {
     def random =
       BloomFilter.Config(
         falsePositiveRate = Random.nextDouble(),
-        minimumNumberOfKeys = randomIntMax(100),
+        minimumNumberOfKeys = randomIntMax(5),
         cacheOnAccess = randomBoolean(),
         compressions = randomCompressionsOrEmpty()
       )
@@ -579,7 +579,6 @@ object TestData {
                   Transient.Function(
                     key = key,
                     function = function,
-                    deadline = None,
                     time = time,
                     valuesConfig = valuesConfig,
                     sortedIndexConfig = sortedIndexConfig,
@@ -668,7 +667,6 @@ object TestData {
                   Transient.Function(
                     key = key,
                     function = lazyFunctionReader.getOrFetchFunction.assertGet,
-                    deadline = None,
                     time = time,
                     previous = previous,
                     valuesConfig = valuesConfig,
@@ -1278,23 +1276,22 @@ object TestData {
         hashIndexConfig = hashIndexConfig,
         bloomFilterConfig = bloomFilterConfig
       )
-    else if (includeRemoves && randomBoolean())
-      Transient.Remove(
-        key = key,
-        deadline = deadline,
-        time = time,
-        previous = previous,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig
-      )
+//    else if (includeRemoves && randomBoolean())
+//      Transient.Remove(
+//        key = key,
+//        deadline = deadline,
+//        time = time,
+//        previous = previous,
+//        valuesConfig = valuesConfig,
+//        sortedIndexConfig = sortedIndexConfig,
+//        binarySearchIndexConfig = binarySearchIndexConfig,
+//        hashIndexConfig = hashIndexConfig,
+//        bloomFilterConfig = bloomFilterConfig
+//      )
     else if (includeFunctions && randomBoolean())
       Transient.Function(
         key = key,
         function = randomFunctionId(functionOutput),
-        deadline = deadline,
         time = time,
         previous = previous,
         valuesConfig = valuesConfig,
@@ -1569,7 +1566,7 @@ object TestData {
   def randomizedKeyValues(count: Int = 5,
                           startId: Option[Int] = None,
                           valueSize: Int = 50,
-                          addPut: Boolean = true,
+                          addPut: Boolean = randomBoolean(),
                           addRandomRemoves: Boolean = randomBoolean(),
                           addRandomRangeRemoves: Boolean = randomBoolean(),
                           addRandomUpdates: Boolean = randomBoolean(),
@@ -1675,7 +1672,7 @@ object TestData {
       iteration += 1
       //      if (slice.written % 100000 == 0) println(s"Generated ${slice.written} key-values.")
       //protect from going into infinite loop
-      if (iteration >= 10 && slice.isEmpty) fail("Too many iterations without generated data.")
+      if (iteration >= 10000 && slice.isEmpty) fail("Too many iterations without generated data.")
       if (addRandomGroups && randomBoolean()) {
         //create a Random group with the inner key-values the same as count of this group.
         val groupKeyValues =
@@ -2302,7 +2299,6 @@ object TestData {
       Transient.Function(
         key = key,
         function = function,
-        deadline = None,
         time = testTimer.next,
         valuesConfig = Values.Config.random,
         sortedIndexConfig = SortedIndex.Config.random,

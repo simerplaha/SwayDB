@@ -25,10 +25,9 @@ import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
-import swaydb.core.segment.format.a.{SegmentBlock, SegmentWriter}
 import swaydb.core.segment.{Segment, SegmentCache}
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.core.util.CollectionUtil._
@@ -596,6 +595,38 @@ private[core] object Transient {
       case (left: Transient.Range, right: Transient.Range) => left.fromValue == right.fromValue && left.rangeValue == right.rangeValue
     }
 
+  //do not fetch the value itself as it will be serialised if it is a range.
+  //Here we just check the types to determine if a key-value has value.
+  def hasValue(keyValue: KeyValue.WriteOnly): Boolean =
+    keyValue match {
+      case transient: Transient.Put =>
+        transient.value.exists(_.nonEmpty)
+
+      case transient: Transient.Update =>
+        transient.value.exists(_.nonEmpty)
+
+      case _: Transient.Remove =>
+        false
+
+      case _: Transient.Group | _: Transient.Range | _: Transient.PendingApply | _: Transient.Function =>
+        true
+    }
+
+  def hasNoValue(keyValue: KeyValue.WriteOnly): Boolean =
+    !hasValue(keyValue)
+
+  def compressibleValue(keyValue: KeyValue.WriteOnly): Option[Slice[Byte]] =
+    keyValue match {
+      case transient: Transient.SegmentResponse =>
+        //if value is empty byte slice, return None instead of empty Slice.We do not store empty byte arrays.
+        if (transient.value.exists(_.isEmpty))
+          None
+        else
+          transient.value
+      case _: Transient.Group =>
+        None
+    }
+
   private[core] sealed trait SegmentResponse extends Transient {
     def value: Option[Slice[Byte]]
   }
@@ -832,7 +863,6 @@ private[core] object Transient {
 
   case class Function(key: Slice[Byte],
                       function: Slice[Byte],
-                      deadline: Option[Deadline],
                       time: Time,
                       valuesConfig: Values.Config,
                       sortedIndexConfig: SortedIndex.Config,
@@ -845,6 +875,7 @@ private[core] object Transient {
     override val isRange: Boolean = false
     override def value: Option[Slice[Byte]] = Some(function)
     override def values: Slice[Slice[Byte]] = Slice(function)
+    override def deadline: Option[Deadline] = None
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
@@ -1139,7 +1170,7 @@ private[core] object Transient {
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
                    key: Slice[Byte],
-                   result: SegmentWriter.ClosedSegment,
+                   result: SegmentBlock.ClosedSegment,
                    //the deadline is the nearest deadline in the Group's key-values.
                    minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                    deadline: Option[Deadline],

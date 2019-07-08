@@ -30,8 +30,7 @@ import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.segment.format.a.SegmentBlock
-import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
 import swaydb.core.util.cache.Cache

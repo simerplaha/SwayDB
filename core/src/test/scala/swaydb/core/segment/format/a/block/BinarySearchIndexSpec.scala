@@ -4,7 +4,6 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.RunThis._
 import swaydb.core.TestData.{randomBytesSlice, randomCompression, randomIntMax}
-import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.MatchResult
 import swaydb.core.util.Bytes
 import swaydb.data.IO
@@ -49,7 +48,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
       values foreach {
         value =>
           BinarySearchIndex.search(
-            reader = alteredIndex.createBlockReader(alteredBytes),
+            reader = alteredIndex.createBlockReader(SegmentBlock.getUnblockedReader(alteredBytes).get),
             start = None,
             end = None,
             assertValue = matcher(valueToFind = value)
@@ -62,7 +61,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
       notInIndex foreach {
         i =>
           BinarySearchIndex.search(
-            reader = alteredIndex.createBlockReader(alteredBytes),
+            reader = alteredIndex.createBlockReader(SegmentBlock.getUnblockedReader(alteredBytes).get),
             start = None,
             end = None,
             assertValue = matcher(valueToFind = i)
@@ -101,7 +100,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
               val index =
                 BinarySearchIndex.read(
                   offset = BinarySearchIndex.Offset(0, state.bytes.size),
-                  reader = Reader(state.bytes)
+                  reader = SegmentBlock.getUnblockedReader(state.bytes).get
                 ).get
 
               index.valuesCount shouldBe state.writtenValues
@@ -148,7 +147,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           val index =
             BinarySearchIndex.read(
               offset = BinarySearchIndex.Offset(0, state.bytes.size),
-              reader = Reader(state.bytes)
+              reader = SegmentBlock.getUnblockedReader(state.bytes).get
             ).get
 
           index.bytesPerValue shouldBe Bytes.sizeOf(largestValue)

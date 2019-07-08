@@ -89,15 +89,15 @@ private[core] object Stats {
       else
         0
 
-    val thisKeyValueAccessIndexPositionSize =
+    val thisKeyValueAccessIndexPositionByteSize =
       if (sortedIndex.enableAccessPositionIndex)
         Bytes.sizeOf(thisKeyValueAccessIndexPosition)
       else
         0
 
     val thisKeyValuesSortedIndexSize =
-      Bytes.sizeOf(indexEntry.size) +
-        thisKeyValueAccessIndexPositionSize +
+      Bytes.sizeOf(indexEntry.size + thisKeyValueAccessIndexPositionByteSize) +
+        thisKeyValueAccessIndexPositionByteSize +
         indexEntry.size
 
     val thisKeyValuesSortedIndexSizeWithoutFooter =
@@ -221,13 +221,14 @@ private[core] object Stats {
           Values.headerSize(values.compressions.nonEmpty)
 
     val segmentBloomFilterSize =
-      if (bloomFilter.falsePositiveRate <= 0.0 || hasRemoveRange)
+      if (bloomFilter.falsePositiveRate <= 0.0 || hasRemoveRange || segmentUniqueKeysCount < bloomFilter.minimumNumberOfKeys)
         0
       else
         BloomFilter.optimalSize(
           numberOfKeys = segmentUniqueKeysCount,
           falsePositiveRate = bloomFilter.falsePositiveRate,
-          hasCompression = bloomFilter.compressions.nonEmpty
+          hasCompression = bloomFilter.compressions.nonEmpty,
+          minimumNumberOfKeys = bloomFilter.minimumNumberOfKeys
         )
 
     val segmentSizeWithoutFooter: Int =
@@ -258,6 +259,7 @@ private[core] object Stats {
       chainPosition = chainPosition,
       segmentValueAndSortedIndexEntrySize = segmentValueAndSortedIndexEntrySize,
       segmentSortedIndexSizeWithoutHeader = segmentSortedIndexSizeWithoutHeader,
+      thisKeyValueAccessIndexPositionByteSize = thisKeyValueAccessIndexPositionByteSize,
       groupsCount = groupsCount,
       segmentUniqueKeysCount = segmentUniqueKeysCount,
       segmentValuesSize = segmentValuesSize,
@@ -302,6 +304,7 @@ private[core] case class Stats(valueLength: Int,
                                thisKeyValuesSortedIndexSize: Int,
                                thisKeyValuesAccessIndexOffset: Int,
                                private[data] val thisKeyValueRealIndexOffset: Int,
+                               thisKeyValueAccessIndexPositionByteSize: Int,
                                thisKeyValueAccessIndexPosition: Int,
                                segmentHashIndexSize: Int,
                                segmentBloomFilterSize: Int,

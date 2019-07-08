@@ -28,12 +28,10 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.{DBFile, IOEffect}
-import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.{SegmentFooter, SegmentWriter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.{FiniteDurationUtil, IDGenerator, MinMax}
@@ -73,7 +71,7 @@ private[core] object Segment extends LazyLogging {
         val keyUnsliced = keyValue.key.unslice()
         keyValue match {
           case group: KeyValue.WriteOnly.Group =>
-            //            SegmentWriter.write(
+            //            SegmentBlock.write(
             //              keyValue = group,
             //              hashIndex = None,
             //              bloomFilter = bloomFilterOption,
@@ -218,15 +216,16 @@ private[core] object Segment extends LazyLogging {
             .map {
               bloomFilterState: BloomFilter.State =>
                 val unslicedBytes = bloomFilterState.bytes.unslice()
-                BloomFilter
-                  .read(
-                    offset = BloomFilter.Offset(0, unslicedBytes.size),
-                    segmentReader = Reader(unslicedBytes)
-                  )
-                  .map {
-                    bloom =>
-                      Some(bloom, unslicedBytes)
-                  }
+                //                BloomFilter
+                //                  .read(
+                //                    offset = BloomFilter.Offset(0, unslicedBytes.size),
+                //                    segmentReader = Reader(unslicedBytes)
+                //                  )
+                //                  .map {
+                //                    bloom =>
+                //                      Some(bloom, unslicedBytes)
+                //                  }
+                ???
             }
             .getOrElse(IO.none)
             .map {
@@ -271,7 +270,7 @@ private[core] object Segment extends LazyLogging {
                                                           functionStore: FunctionStore,
                                                           keyValueLimiter: KeyValueLimiter,
                                                           fileOpenLimiter: FileLimiter): IO[Segment] =
-    SegmentWriter.write(
+    SegmentBlock.write(
       keyValues = keyValues,
       createdInLevel = createdInLevel,
       segmentCompressions = segmentCompressions
@@ -584,46 +583,47 @@ private[core] object Segment extends LazyLogging {
       file =>
         file.fileSize flatMap {
           fileSize =>
-            SegmentFooter.read(Reader(file)) flatMap {
-              footer =>
-                //                SortedIndex
-                //                  .readAll(
-                //                    offset = footer.sortedIndexOffset,
-                //                    keyValueCount = footer.keyValueCount,
-                //                    reader = Reader(file)
-                //                  )
-                //                  .flatMap {
-                //                    keyValues =>
-                //                      //close the file
-                //                      file.close flatMap {
-                //                        _ =>
-                //                          getNearestDeadline(keyValues) map {
-                //                            nearestDeadline =>
-                //                              PersistentSegment(
-                //                                file = file,
-                //                                mmapReads = mmapReads,
-                //                                mmapWrites = mmapWrites,
-                //                                minKey = keyValues.head.key,
-                //                                maxKey =
-                //                                  keyValues.last match {
-                //                                    case fixed: KeyValue.ReadOnly.Fixed =>
-                //                                      MaxKey.Fixed(fixed.key)
-                //
-                //                                    case group: KeyValue.ReadOnly.Group =>
-                //                                      group.maxKey
-                //
-                //                                    case range: KeyValue.ReadOnly.Range =>
-                //                                      MaxKey.Range(range.fromKey, range.toKey)
-                //                                  },
-                //                                segmentSize = fileSize.toInt,
-                //                                nearestExpiryDeadline = nearestDeadline,
-                //                                compactionReserve = Reserve()
-                //                              )
-                //                          }
-                //                      }
-                //                  }
-                ???
-            }
+            //            SegmentFooter.read(Reader(file)) flatMap {
+            //              footer =>
+            //                //                SortedIndex
+            //                //                  .readAll(
+            //                //                    offset = footer.sortedIndexOffset,
+            //                //                    keyValueCount = footer.keyValueCount,
+            //                //                    reader = Reader(file)
+            //                //                  )
+            //                //                  .flatMap {
+            //                //                    keyValues =>
+            //                //                      //close the file
+            //                //                      file.close flatMap {
+            //                //                        _ =>
+            //                //                          getNearestDeadline(keyValues) map {
+            //                //                            nearestDeadline =>
+            //                //                              PersistentSegment(
+            //                //                                file = file,
+            //                //                                mmapReads = mmapReads,
+            //                //                                mmapWrites = mmapWrites,
+            //                //                                minKey = keyValues.head.key,
+            //                //                                maxKey =
+            //                //                                  keyValues.last match {
+            //                //                                    case fixed: KeyValue.ReadOnly.Fixed =>
+            //                //                                      MaxKey.Fixed(fixed.key)
+            //                //
+            //                //                                    case group: KeyValue.ReadOnly.Group =>
+            //                //                                      group.maxKey
+            //                //
+            //                //                                    case range: KeyValue.ReadOnly.Range =>
+            //                //                                      MaxKey.Range(range.fromKey, range.toKey)
+            //                //                                  },
+            //                //                                segmentSize = fileSize.toInt,
+            //                //                                nearestExpiryDeadline = nearestDeadline,
+            //                //                                compactionReserve = Reserve()
+            //                //                              )
+            //                //                          }
+            //                //                      }
+            //                //                  }
+            //                ???
+            //            }
+            ???
         }
     }
   }

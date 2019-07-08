@@ -28,7 +28,7 @@ import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
@@ -132,16 +132,21 @@ private[core] object SortedIndex {
 
   def write(keyValue: KeyValue.WriteOnly, state: SortedIndex.State) =
     IO {
-      state.bytes addIntUnsigned keyValue.stats.thisKeyValuesSortedIndexSize
-      if (state.enableAccessPositionIndex) state.bytes addIntUnsigned keyValue.stats.thisKeyValueAccessIndexPosition
-      state.bytes addAll keyValue.indexEntryBytes
+      if (state.enableAccessPositionIndex) {
+        state.bytes addIntUnsigned (keyValue.indexEntryBytes.size + keyValue.stats.thisKeyValueAccessIndexPositionByteSize)
+        state.bytes addIntUnsigned keyValue.stats.thisKeyValueAccessIndexPosition
+        state.bytes addAll keyValue.indexEntryBytes
+      } else {
+        state.bytes addIntUnsigned keyValue.indexEntryBytes.size
+        state.bytes addAll keyValue.indexEntryBytes
+      }
     }
 
   def read(offset: SortedIndex.Offset,
-           segmentReader: Reader): IO[SortedIndex] =
+           segmentReader: BlockReader[SegmentBlock]): IO[SortedIndex] =
     Block.readHeader(
       offset = offset,
-      segmentReader = segmentReader
+      reader = segmentReader
     ) flatMap {
       header =>
         header
@@ -197,7 +202,7 @@ private[core] object SortedIndex {
         }
 
       //5 extra bytes are read for each entry to fetch the next index's size.
-      val bytesToRead = indexSize + 5
+      val bytesToRead = indexSize + ByteSizeOf.varInt
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
       val indexEntryBytesAndNextIndexEntrySize = (indexReader read bytesToRead).get
@@ -207,7 +212,7 @@ private[core] object SortedIndex {
       //The above fetches another 5 bytes (unsigned int) along with previous index entry.
       //These 5 bytes contains the next index's size. Here the next key-values indexSize and indexOffset are read.
       val (nextIndexSize, nextIndexOffset) =
-      if (extraBytesRead == 0) {
+      if (extraBytesRead <= 0) {
         //no next key-value, next size is 0 and set offset to -1.
         (0, -1)
       } else {
@@ -248,7 +253,7 @@ private[core] object SortedIndex {
             IO.Failure(
               IO.Error.Fatal(
                 SegmentCorruptionException(
-                  message = s"Corrupted Segment: Failed to read index entry at reader position ${indexReader.getPosition}$atPosition}",
+                  message = s"Corrupted Segment: Failed to read index entry at reader position ${indexReader.getPosition} - $atPosition}",
                   cause = exception
                 )
               )
@@ -465,10 +470,7 @@ case class SortedIndex(offset: SortedIndex.Offset,
                        headerSize: Int,
                        compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
-  override def createBlockReader(bytes: Slice[Byte]): BlockReader[SortedIndex] =
-    createBlockReader(Reader(bytes))
-
-  def createBlockReader(segmentReader: Reader): BlockReader[SortedIndex] =
+  def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[SortedIndex] =
     BlockReader(
       reader = segmentReader,
       block = this

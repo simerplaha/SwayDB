@@ -21,11 +21,11 @@ package swaydb.core.segment.format.a.block
 
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
-import swaydb.core.io.reader.{BlockReader, Reader}
+import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
@@ -218,9 +218,9 @@ object BinarySearchIndex {
       IO.none
 
   def read(offset: Offset,
-           reader: Reader): IO[BinarySearchIndex] =
+           reader: BlockReader[SegmentBlock]): IO[BinarySearchIndex] =
     for {
-      result <- Block.readHeader(offset = offset, segmentReader = reader)
+      result <- Block.readHeader(offset = offset, reader = reader)
       valuesCount <- result.headerReader.readIntUnsigned()
       bytesPerValue <- result.headerReader.readInt()
       isFullBinarySearchIndex <- result.headerReader.readBoolean()
@@ -326,10 +326,7 @@ case class BinarySearchIndex(offset: BinarySearchIndex.Offset,
   val isVarInt: Boolean =
     BinarySearchIndex.isVarInt(bytesPerValue)
 
-  override def createBlockReader(bytes: Slice[Byte]): BlockReader[BinarySearchIndex] =
-    createBlockReader(Reader(bytes))
-
-  override def createBlockReader(segmentReader: Reader): BlockReader[BinarySearchIndex] =
+  def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[BinarySearchIndex] =
     BlockReader(
       reader = segmentReader,
       block = this

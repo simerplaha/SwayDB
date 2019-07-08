@@ -26,7 +26,7 @@ import swaydb.core.data.{Persistent, _}
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.{KeyMatcher, SegmentBlock, SegmentFooter, SegmentReader}
+import swaydb.core.segment.format.a.{KeyMatcher, SegmentSearcher}
 import swaydb.core.util._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -85,7 +85,7 @@ private[core] class SegmentCache(id: String,
       keyValueLimiter.add(group, cache)
   }
 
-  private def prepareGet[T](f: (SegmentFooter, Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
+  private def prepareGet[T](f: (SegmentBlock.Footer, Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
     for {
       footer <- blockCache.footer
       hashIndex <- blockCache.createHashIndexReader()
@@ -101,7 +101,7 @@ private[core] class SegmentCache(id: String,
       ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
   }
 
-  private def prepareGetAll[T](f: (SegmentFooter, BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
+  private def prepareGetAll[T](f: (SegmentBlock.Footer, BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
     for {
       footer <- blockCache.footer
       sortedIndex <- blockCache.createSortedIndexReader()
@@ -115,7 +115,7 @@ private[core] class SegmentCache(id: String,
       ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
   }
 
-  private def prepareIteration[T](f: (SegmentFooter, Option[BlockReader[BinarySearchIndex]], BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
+  private def prepareIteration[T](f: (SegmentBlock.Footer, Option[BlockReader[BinarySearchIndex]], BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
     for {
       footer <- blockCache.footer
       binarySearchIndex <- blockCache.createBinarySearchReader()
@@ -170,7 +170,7 @@ private[core] class SegmentCache(id: String,
                 if (contains)
                   prepareGet {
                     (footer, hashIndex, binarySearchIndex, sortedIndex, values) =>
-                      SegmentReader.get(
+                      SegmentSearcher.get(
                         matcher = KeyMatcher.Get(key),
                         startFrom = floorValue,
                         hashIndex = hashIndex,
@@ -243,7 +243,7 @@ private[core] class SegmentCache(id: String,
           } getOrElse {
             prepareIteration {
               (footer, binarySearchIndex, sortedIndex, valuesReader) =>
-                SegmentReader.lower(
+                SegmentSearcher.lower(
                   matcher = KeyMatcher.Lower(key),
                   startFrom = lowerKeyValue,
                   binarySearch = binarySearchIndex,

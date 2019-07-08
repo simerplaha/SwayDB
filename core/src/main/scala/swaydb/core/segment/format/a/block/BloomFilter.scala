@@ -22,12 +22,12 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue
-import swaydb.core.io.reader.{BlockReader, Reader}
+import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.format.a.OffsetBase
 import swaydb.core.util.{Bytes, MurmurHash3Generic, Options}
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 object BloomFilter extends LazyLogging {
@@ -88,8 +88,9 @@ object BloomFilter extends LazyLogging {
 
   def optimalSize(numberOfKeys: Int,
                   falsePositiveRate: Double,
-                  hasCompression: Boolean): Int = {
-    if (falsePositiveRate <= 0.0 || numberOfKeys <= 0) {
+                  hasCompression: Boolean,
+                  minimumNumberOfKeys: Int): Int = {
+    if (falsePositiveRate <= 0.0 || numberOfKeys < minimumNumberOfKeys) {
       0
     } else {
       val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
@@ -101,11 +102,11 @@ object BloomFilter extends LazyLogging {
       val headerByteSize =
         Block.headerSize(hasCompression) +
           numberOfBitsSize +
-          maxProbeSize +
-          numberOfBits
+          maxProbeSize
 
       Bytes.sizeOf(headerByteSize) +
-        headerByteSize
+        headerByteSize +
+        numberOfBits
     }
   }
 
@@ -143,7 +144,7 @@ object BloomFilter extends LazyLogging {
     if (numberOfKeys <= 0 || falsePositiveRate <= 0.0)
       0
     else
-      math.ceil(-1 * numberOfKeys * math.log(falsePositiveRate) / math.log(2) / math.log(2)).toInt
+      math.ceil(-1 * numberOfKeys * math.log(falsePositiveRate) / math.log(2) / math.log(2)).toInt max ByteSizeOf.long
 
   def optimalNumberOfProbes(numberOfKeys: Int, numberOfBits: Long): Int =
     if (numberOfKeys <= 0 || numberOfBits <= 0)
@@ -169,9 +170,9 @@ object BloomFilter extends LazyLogging {
     }
 
   def read(offset: Offset,
-           segmentReader: Reader): IO[BloomFilter] =
+           segmentReader: BlockReader[SegmentBlock]): IO[BloomFilter] =
     for {
-      blockHeader <- Block.readHeader(offset = offset, segmentReader = segmentReader)
+      blockHeader <- Block.readHeader(offset = offset, reader = segmentReader)
       numberOfBits <- blockHeader.headerReader.readIntUnsigned()
       maxProbe <- blockHeader.headerReader.readIntUnsigned()
     } yield
@@ -184,10 +185,10 @@ object BloomFilter extends LazyLogging {
       )
 
   def shouldNotCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =
-    keyValues.isEmpty ||
-      keyValues.last.stats.segmentHasRemoveRange ||
+    keyValues.last.stats.segmentHasRemoveRange ||
       keyValues.last.stats.segmentBloomFilterSize <= 0 ||
-      keyValues.last.bloomFilterConfig.falsePositiveRate <= 0.0
+      keyValues.last.bloomFilterConfig.falsePositiveRate <= 0.0 ||
+      keyValues.size < keyValues.last.bloomFilterConfig.minimumNumberOfKeys
 
   def shouldCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =
     !shouldNotCreateBloomFilter(keyValues)
@@ -272,10 +273,7 @@ case class BloomFilter(offset: BloomFilter.Offset,
                        headerSize: Int,
                        compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
-  override def createBlockReader(bytes: Slice[Byte]): BlockReader[BloomFilter] =
-    createBlockReader(Reader(bytes))
-
-  override def createBlockReader(segmentReader: Reader): BlockReader[BloomFilter] =
+  def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[BloomFilter] =
     new BlockReader(
       reader = segmentReader,
       block = this

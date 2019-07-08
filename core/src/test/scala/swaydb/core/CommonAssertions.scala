@@ -42,7 +42,7 @@ import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
+import swaydb.core.segment.format.a.{KeyMatcher, SegmentSearcher}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.IO
@@ -790,7 +790,7 @@ object CommonAssertions {
 
     keyValues foreach {
       keyValue =>
-        SegmentReader.get(
+        SegmentSearcher.get(
           matcher = KeyMatcher.Get(keyValue.key),
           startFrom = None,
           hashIndex = hashIndex,
@@ -805,13 +805,13 @@ object CommonAssertions {
   def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
                   bloom: BloomFilter.State) = {
     val unzipedKeyValues = unzipGroups(keyValues)
-    val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), Reader(bloom.bytes)).get
+    val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), SegmentBlock.getUnblockedReader(bloom.bytes).get).get
 
     unzipedKeyValues.par.count {
       keyValue =>
         BloomFilter.mightContain(
           key = keyValue.key,
-          reader = bloomFilter.createBlockReader(Reader(bloom.bytes))
+          reader = bloomFilter.createBlockReader(SegmentBlock.getUnblockedReader(bloom.bytes).get)
         ).get
     } should be >= (unzipedKeyValues.size * 0.90).toInt
 
@@ -837,10 +837,10 @@ object CommonAssertions {
 
   def assertBloomNotContains(bloom: BloomFilter.State) =
     runThis(1000.times) {
-      val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), Reader(bloom.bytes)).get
+      val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), SegmentBlock.getUnblockedReader(bloom.bytes).get).get
       BloomFilter.mightContain(
         key = randomBytesSlice(randomIntMax(1000) min 100),
-        reader = bloomFilter.createBlockReader(bloom.bytes)
+        reader = bloomFilter.createBlockReader(SegmentBlock.getUnblockedReader(bloom.bytes).get)
       ).get shouldBe false
     }
 
@@ -908,8 +908,8 @@ object CommonAssertions {
     readAll(reader.copy()).assertGet shouldBe keyValues
     //find each KeyValue using all Matchers
     assertGet(keyValues, reader.copy())
-    assertLower(keyValues, reader.copy())
-    assertHigher(keyValues, reader.copy())
+    //    assertLower(keyValues, reader.copy())
+    //    assertHigher(keyValues, reader.copy())
   }
 
   def assertGet(keyValues: Iterable[KeyValue],
@@ -1404,9 +1404,10 @@ object CommonAssertions {
 
   def readAll(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Slice[KeyValue.ReadOnly]] =
     for {
-      footer <- SegmentFooter.read(reader)
-      sortedIndex <- SortedIndex.read(footer.sortedIndexOffset, reader).map(_.createBlockReader(reader))
-      valuesReader <- footer.valuesOffset.map(Values.read(_, reader).map(_.createBlockReader(reader)).map(Some(_))) getOrElse IO.none
+      segmentBlockReader <- SegmentBlock.read(SegmentBlock.Offset(0, reader.size.get.toInt), reader).map(_.createBlockReader(reader))
+      footer <- SegmentBlock.readFooter(segmentBlockReader)
+      valuesReader <- footer.valuesOffset.map(Values.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
+      sortedIndex <- SortedIndex.read(footer.sortedIndexOffset, segmentBlockReader).map(_.createBlockReader(segmentBlockReader))
       all <- {
         SortedIndex
           .readAll(
@@ -1419,12 +1420,13 @@ object CommonAssertions {
 
   def getIndexes(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) =
     for {
-      footer <- SegmentFooter.read(reader)
-      valuesReader <- footer.valuesOffset.map(Values.read(_, reader).map(_.createBlockReader(reader)).map(Some(_))) getOrElse IO.none
-      sortedIndex <- SortedIndex.read(footer.sortedIndexOffset, reader).map(_.createBlockReader(reader))
-      hashIndex <- footer.hashIndexOffset.map(HashIndex.read(_, reader).map(_.createBlockReader(reader)).map(Some(_))) getOrElse IO.none
-      binarySearchIndex <- footer.binarySearchIndexOffset.map(BinarySearchIndex.read(_, reader).map(_.createBlockReader(reader)).map(Some(_))) getOrElse IO.none
-      bloomFilter <- footer.bloomFilterOffset.map(BloomFilter.read(_, reader).map(_.createBlockReader(reader)).map(Some(_))) getOrElse IO.none
+      segmentBlockReader <- SegmentBlock.read(SegmentBlock.Offset(0, reader.size.get.toInt), reader).map(_.createBlockReader(reader))
+      footer <- SegmentBlock.readFooter(segmentBlockReader)
+      valuesReader <- footer.valuesOffset.map(Values.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
+      sortedIndex <- SortedIndex.read(footer.sortedIndexOffset, segmentBlockReader).map(_.createBlockReader(segmentBlockReader))
+      hashIndex <- footer.hashIndexOffset.map(HashIndex.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
+      binarySearchIndex <- footer.binarySearchIndexOffset.map(BinarySearchIndex.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
+      bloomFilter <- footer.bloomFilterOffset.map(BloomFilter.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
     } yield (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter)
 
   def printGroupHierarchy(keyValues: Slice[KeyValue.ReadOnly], spaces: Int)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,

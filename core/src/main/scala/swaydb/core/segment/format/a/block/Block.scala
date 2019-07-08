@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.{BlockReader, Reader}
-import swaydb.core.segment.format.a.{OffsetBase, SegmentWriter}
+import swaydb.core.segment.format.a.OffsetBase
 import swaydb.data.IO._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
@@ -36,8 +36,7 @@ trait Block {
   def headerSize: Int
   def compressionInfo: Option[Block.CompressionInfo]
   def updateOffset(start: Int, size: Int): Block
-  def createBlockReader(segmentReader: Reader): BlockReader[_ <: Block]
-  def createBlockReader(bytes: Slice[Byte]): BlockReader[_ <: Block]
+  def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[_ <: Block]
 }
 
 object Block extends LazyLogging {
@@ -128,38 +127,38 @@ object Block extends LazyLogging {
     }
 
   def create(headerSize: Int,
-             writeResult: SegmentWriter.ClosedSegment,
-             compressions: Seq[CompressionInternal]): IO[SegmentWriter.ClosedSegment] =
+             closedSegment: SegmentBlock.ClosedSegment,
+             compressions: Seq[CompressionInternal]): IO[SegmentBlock.ClosedSegment] =
     if (compressions.isEmpty) {
-      logger.debug(s"No compression strategies provided for Segment level compression. Storing ${writeResult.segmentSize}.bytes uncompressed.")
+      logger.debug(s"No compression strategies provided for Segment level compression. Storing ${closedSegment.segmentSize}.bytes uncompressed.")
       IO {
-        writeResult.segmentBytes.head moveWritePosition 0
-        writeResult.segmentBytes.head addIntUnsigned headerSize
-        writeResult.segmentBytes.head add uncompressedBlockId
-        writeResult
+        closedSegment.segmentBytes.head moveWritePosition 0
+        closedSegment.segmentBytes.head addIntUnsigned headerSize
+        closedSegment.segmentBytes.head add uncompressedBlockId
+        closedSegment
       }
     } else {
       create(
         headerSize = headerSize,
-        bytes = writeResult.flattenSegmentBytes,
+        bytes = closedSegment.flattenSegmentBytes,
         compressions = compressions
       ) map {
         bytes =>
-          SegmentWriter.ClosedSegment(
+          SegmentBlock.ClosedSegment(
             segmentBytes = Slice(bytes),
-            minMaxFunctionId = writeResult.minMaxFunctionId,
-            nearestDeadline = writeResult.nearestDeadline
+            minMaxFunctionId = closedSegment.minMaxFunctionId,
+            nearestDeadline = closedSegment.nearestDeadline
           )
       }
     }
 
   private def readCompressionInfo(formatID: Int,
                                   headerSize: Int,
-                                  segmentReader: Reader): IO[Option[CompressionInfo]] =
+                                  reader: Reader): IO[Option[CompressionInfo]] =
     if (formatID == compressedBlockID)
       for {
-        decompressor <- segmentReader.readIntUnsigned() flatMap (DecompressorInternal(_))
-        decompressedLength <- segmentReader.readIntUnsigned()
+        decompressor <- reader.readIntUnsigned() flatMap (DecompressorInternal(_))
+        decompressedLength <- reader.readIntUnsigned()
       } yield
         Some(
           new CompressionInfo(
@@ -180,8 +179,8 @@ object Block extends LazyLogging {
       )
 
   def readHeader(offset: OffsetBase,
-                 segmentReader: Reader): IO[Block.Header] = {
-    val movedReader = segmentReader.moveTo(offset.start)
+                 reader: Reader): IO[Block.Header] = {
+    val movedReader = reader.moveTo(offset.start)
     for {
       headerSize <- movedReader.readIntUnsigned()
       headerReader <- movedReader.read(headerSize).map(Reader(_))
@@ -190,7 +189,7 @@ object Block extends LazyLogging {
         Block.readCompressionInfo(
           formatID = formatID,
           headerSize = headerSize,
-          segmentReader = headerReader
+          reader = headerReader
         )
       }
     } yield
@@ -205,14 +204,14 @@ object Block extends LazyLogging {
     * Decompresses the block skipping the header bytes.
     */
   def decompress(compressionInfo: CompressionInfo,
-                 segmentReader: Reader,
+                 reader: Reader,
                  offset: OffsetBase): IO[Slice[Byte]] =
     compressionInfo
       .decompressedBytes
       .getOrElse {
         if (Reserve.setBusyOrGet((), compressionInfo.reserve).isEmpty)
           try
-            segmentReader
+            reader
               .copy()
               .moveTo(offset.start + compressionInfo.headerSize)
               .read(offset.size - compressionInfo.headerSize)
