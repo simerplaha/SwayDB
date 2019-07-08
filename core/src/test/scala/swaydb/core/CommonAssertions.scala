@@ -806,13 +806,13 @@ object CommonAssertions {
   def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
                   bloom: BloomFilter.State) = {
     val unzipedKeyValues = unzipGroups(keyValues)
-    val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), SegmentBlock.getUnblockedReader(bloom.bytes).get).get
+    val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), SegmentBlock.createUnblockedReader(bloom.bytes).get).get
 
     unzipedKeyValues.par.count {
       keyValue =>
         BloomFilter.mightContain(
           key = keyValue.key,
-          reader = bloomFilter.createBlockReader(SegmentBlock.getUnblockedReader(bloom.bytes).get)
+          reader = bloomFilter.createBlockReader(SegmentBlock.createUnblockedReader(bloom.bytes).get)
         ).get
     } should be >= (unzipedKeyValues.size * 0.90).toInt
 
@@ -838,10 +838,10 @@ object CommonAssertions {
 
   def assertBloomNotContains(bloom: BloomFilter.State) =
     runThis(1000.times) {
-      val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), SegmentBlock.getUnblockedReader(bloom.bytes).get).get
+      val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), SegmentBlock.createUnblockedReader(bloom.bytes).get).get
       BloomFilter.mightContain(
         key = randomBytesSlice(randomIntMax(1000) min 100),
-        reader = bloomFilter.createBlockReader(SegmentBlock.getUnblockedReader(bloom.bytes).get)
+        reader = bloomFilter.createBlockReader(SegmentBlock.createUnblockedReader(bloom.bytes).get)
       ).get shouldBe false
     }
 

@@ -48,7 +48,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
       values foreach {
         value =>
           BinarySearchIndex.search(
-            reader = alteredIndex.createBlockReader(SegmentBlock.getUnblockedReader(alteredBytes).get),
+            reader = alteredIndex.createBlockReader(SegmentBlock.createUnblockedReader(alteredBytes).get),
             start = None,
             end = None,
             assertValue = matcher(valueToFind = value)
@@ -61,7 +61,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
       notInIndex foreach {
         i =>
           BinarySearchIndex.search(
-            reader = alteredIndex.createBlockReader(SegmentBlock.getUnblockedReader(alteredBytes).get),
+            reader = alteredIndex.createBlockReader(SegmentBlock.createUnblockedReader(alteredBytes).get),
             start = None,
             end = None,
             assertValue = matcher(valueToFind = i)
@@ -100,7 +100,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
               val index =
                 BinarySearchIndex.read(
                   offset = BinarySearchIndex.Offset(0, state.bytes.size),
-                  reader = SegmentBlock.getUnblockedReader(state.bytes).get
+                  reader = SegmentBlock.createUnblockedReader(state.bytes).get
                 ).get
 
               index.valuesCount shouldBe state.writtenValues
@@ -147,7 +147,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           val index =
             BinarySearchIndex.read(
               offset = BinarySearchIndex.Offset(0, state.bytes.size),
-              reader = SegmentBlock.getUnblockedReader(state.bytes).get
+              reader = SegmentBlock.createUnblockedReader(state.bytes).get
             ).get
 
           index.bytesPerValue shouldBe Bytes.sizeOf(largestValue)

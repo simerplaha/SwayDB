@@ -92,7 +92,7 @@ object BloomFilter extends LazyLogging {
                   falsePositiveRate: Double,
                   hasCompression: Boolean,
                   minimumNumberOfKeys: Int): Int = {
-    if (falsePositiveRate <= 0.0 || numberOfKeys < minimumNumberOfKeys) {
+    if (falsePositiveRate <= 0.0 || numberOfKeys < minimumNumberOfKeys || numberOfKeys <= 0) {
       0
     } else {
       val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)

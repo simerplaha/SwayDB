@@ -63,7 +63,7 @@ class ValuesSpec extends TestBase {
 
         Values.close(state).get
 
-        val segmentBlock = SegmentBlock.getUnblockedReader(state.bytes).get
+        val segmentBlock = SegmentBlock.createUnblockedReader(state.bytes).get
         val values = Values.read(Values.Offset(0, state.bytes.size), segmentBlock).get
         val valuesBlockReader = values.createBlockReader(segmentBlock)
 

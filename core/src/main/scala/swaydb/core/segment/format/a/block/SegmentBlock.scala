@@ -146,10 +146,10 @@ private[core] object SegmentBlock {
         )
     }
 
-  def getUnblockedReader(bytes: Slice[Byte]): IO[BlockReader[SegmentBlock]] =
-    getUnblockedReader(Reader(bytes))
+  def createUnblockedReader(bytes: Slice[Byte]): IO[BlockReader[SegmentBlock]] =
+    createUnblockedReader(Reader(bytes))
 
-  def getUnblockedReader(segmentReader: Reader): IO[BlockReader[SegmentBlock]] =
+  def createUnblockedReader(segmentReader: Reader): IO[BlockReader[SegmentBlock]] =
     segmentReader.size map {
       size =>
         BlockReader(
