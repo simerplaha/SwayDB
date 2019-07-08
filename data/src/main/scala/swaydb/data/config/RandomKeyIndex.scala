@@ -30,7 +30,7 @@ sealed trait RandomKeyIndex {
 }
 object RandomKeyIndex {
   case object Disable extends RandomKeyIndex
-  case class Enable(retries: Int,
+  case class Enable(tries: Int,
                     minimumNumberOfKeys: Int,
                     allocateSpace: RequiredSpace => Int,
                     cacheOnAccess: Boolean,

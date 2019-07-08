@@ -57,7 +57,7 @@ class SegmentBlockSpec extends TestBase {
         val closedSegment =
           SegmentBlock.write(
             keyValues = keyValues,
-            segmentCompressions = randomCompressions(),
+            segmentCompressions = randomCompressionsOrEmpty(),
             createdInLevel = randomNextInt(10)
           ).assertGet
 
@@ -68,44 +68,45 @@ class SegmentBlockSpec extends TestBase {
       }
 
       runThis(100.times) {
-        val count = randomIntMax(100) max 1
-        val keyValues = randomizedKeyValues(count, addRandomGroups = false)
+        val count =
+          eitherOne(
+            randomIntMax(4) max 1,
+            randomIntMax(1000) max 1
+          )
+        val keyValues = randomizedKeyValues(count, startId = Some(1))
         if (keyValues.nonEmpty) test(keyValues)
       }
     }
 
-    //    "write and read a group" in {
-    //      runThis(1.times) {
-    //        val groupKeyValues = randomizedKeyValues(1, addRandomGroups = false)
-    //        val group =
-    //          Transient.Group(
-    //            keyValues = groupKeyValues,
-    //            segmentCompressions = randomSegmentCompression(),
-    //            falsePositiveRate = TestData.falsePositiveRate,
-    //            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-    //            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-    //            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-    //            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-    //            allocateSpace = TestData.allocateSpace,
-    //            previous = None,
-    //            maxProbe = TestData.maxProbe
-    //          ).assertGet
-    //
-    //        val (bytes, deadline) =
-    //          SegmentBlock.write(
-    //            keyValues = Seq(group),
-    //            segmentCompressions = randomSegmentCompression(),
-    //            createdInLevel = 0,
-    //            maxProbe = TestData.maxProbe
-    //          ).assertGet.flatten
-    //
-    //        bytes.isFull shouldBe true
-    //
-    //        val readGroup = readAll(bytes).assertGet.asInstanceOf[Slice[KeyValue.ReadOnly.Group]]
-    //        val allKeyValuesForGroups = readGroup.flatMap(_.segment.getAll().assertGet)
-    //        allKeyValuesForGroups shouldBe groupKeyValues.toMemory
-    //      }
-    //    }
+    "write and read a group" in {
+      runThis(10.times) {
+        val groupKeyValues = randomizedKeyValues(1)
+        val group =
+          Transient.Group(
+            keyValues = groupKeyValues,
+            groupCompressions = randomCompressionsOrEmpty(),
+            valuesConfig = Values.Config.random,
+            sortedIndexConfig = SortedIndex.Config.random,
+            binarySearchIndexConfig = BinarySearchIndex.Config.random,
+            hashIndexConfig = HashIndex.Config.random,
+            bloomFilterConfig = BloomFilter.Config.random,
+            previous = None
+          ).assertGet
+
+        val bytes =
+          SegmentBlock.write(
+            keyValues = Seq(group),
+            segmentCompressions = randomCompressionsOrEmpty(),
+            createdInLevel = 0
+          ).assertGet.flattenSegmentBytes
+
+        bytes.isFull shouldBe true
+
+        val readGroup = readAll(bytes).assertGet.asInstanceOf[Slice[KeyValue.ReadOnly.Group]]
+        val allKeyValuesForGroups = readGroup.flatMap(_.segment.getAll().assertGet)
+        allKeyValuesForGroups shouldBe groupKeyValues.toMemory
+      }
+    }
     //
     //    "write two sibling groups" in {
     //      runThis(100.times) {

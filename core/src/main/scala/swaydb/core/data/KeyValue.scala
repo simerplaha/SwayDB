@@ -29,11 +29,11 @@ import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.{Segment, SegmentCache}
-import swaydb.core.util.{Bytes, MinMax}
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.cache.{Cache, CacheFunctionOutput}
+import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -1026,11 +1026,11 @@ private[core] object Transient {
         bytes
       }
 
-      val fullKey = Bytes.compressJoin(fromKey, toKey)
+      val mergedKey = Bytes.compressJoin(fromKey, toKey)
       new Range(
         fromKey = fromKey,
         toKey = toKey,
-        key = fullKey,
+        key = mergedKey,
         fromValue = None,
         rangeValue = rangeValue,
         valueSerialiser = valueSerialiser _,
@@ -1060,12 +1060,12 @@ private[core] object Transient {
         bytes
       }
 
-      val fullKey: Slice[Byte] = Bytes.compressJoin(fromKey, toKey)
+      val mergedKey: Slice[Byte] = Bytes.compressJoin(fromKey, toKey)
 
       new Range(
         fromKey = fromKey,
         toKey = toKey,
-        key = fullKey,
+        key = mergedKey,
         fromValue = fromValue,
         rangeValue = rangeValue,
         valueSerialiser = valueSerialiser _,

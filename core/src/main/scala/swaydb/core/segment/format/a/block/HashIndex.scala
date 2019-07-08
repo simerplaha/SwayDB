@@ -62,7 +62,7 @@ private[core] object HashIndex extends LazyLogging {
           )
         case enable: swaydb.data.config.RandomKeyIndex.Enable =>
           Config(
-            maxProbe = enable.retries,
+            maxProbe = enable.tries,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             allocateSpace = enable.allocateSpace,
             cacheOnAccess = enable.cacheOnAccess,
@@ -264,7 +264,7 @@ private[core] object HashIndex extends LazyLogging {
           state.hit += 1
           //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = success")
           true
-        } else if (existing == valuePlusOneBytes) {
+        } else if (existing.head == 0 && existing.dropHead() == valuePlusOneBytes) { //check if value already exists.
           //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = existing")
           true
         } else {
@@ -296,7 +296,7 @@ private[core] object HashIndex extends LazyLogging {
 
     @tailrec
     def doFind(probe: Int, checkedHashIndexes: mutable.HashSet[Int]): IO[Option[V]] =
-      if (probe > hashIndex.maxProbe) {
+      if (probe >= hashIndex.maxProbe) {
         IO.none
       } else {
         val index =
@@ -316,7 +316,7 @@ private[core] object HashIndex extends LazyLogging {
             case IO.Success(possibleValueBytes) =>
               //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe. sortedIndex bytes: $possibleValueBytes")
               if (possibleValueBytes.head != 0) { //head should never be empty because the hash adjusts it.
-                //println(s"Key: ${key.readInt()}: read hashIndex: ${index  + hashIndex.headerSize} probe: $probe = failure - invalid start offset.")
+                //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe = failure - invalid start offset.")
                 doFind(probe + 1, checkedHashIndexes)
               } else {
                 val possibleValueWithoutHeader = possibleValueBytes.dropHead()

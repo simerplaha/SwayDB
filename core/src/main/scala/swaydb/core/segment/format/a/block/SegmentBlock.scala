@@ -310,12 +310,12 @@ private[core] object SegmentBlock {
               .map(_.stats.thisKeyValuesAccessIndexOffset)
               .getOrElse(keyValue.stats.thisKeyValuesAccessIndexOffset)
 
-          bloomFilter foreach (BloomFilter.add(keyValue.key, _))
+          bloomFilter foreach (BloomFilter.add(keyValue.minKey, _))
 
           hashIndex map {
             hashIndexState =>
               HashIndex.write(
-                key = keyValue.key,
+                key = keyValue.minKey,
                 value = thisKeyValuesAccessOffset,
                 state = hashIndexState
               )

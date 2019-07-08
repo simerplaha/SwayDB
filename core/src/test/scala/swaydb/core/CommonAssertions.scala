@@ -792,7 +792,7 @@ object CommonAssertions {
     keyValues foreach {
       keyValue =>
         SegmentSearcher.get(
-          matcher = KeyMatcher.Get(keyValue.key),
+          matcher = KeyMatcher.Get(keyValue.minKey),
           startFrom = None,
           hashIndex = hashIndex,
           binarySearchIndex = binarySearchIndex,
@@ -1199,16 +1199,16 @@ object CommonAssertions {
     assertLowers(0)
   }
 
-  def unzipGroups[T](keyValues: Iterable[T])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                             keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[KeyValue] =
+  def unzipGroups[T <: KeyValue](keyValues: Iterable[T])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                         keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
     keyValues.flatMap {
       case keyValue: KeyValue.WriteOnly.Group =>
         unzipGroups(keyValue.keyValues)
       case keyValue: KeyValue.ReadOnly.Group =>
         unzipGroups(keyValue.segment.getAll().get.safeGetBlocking())
       case keyValue: KeyValue =>
-        Slice(keyValue)
-    }.toMemory.toTransient()
+        Slice(keyValue.toMemory)
+    }.toMemory.toTransient
 
   def assertHigher(keyValues: Slice[KeyValue],
                    segment: Segment): Unit =
