@@ -26,11 +26,11 @@ object LZ4Compressor {
 
   def random(minCompressionSavingsPercent: Double = Double.MinValue) =
     if (Random.nextBoolean())
-      FastCompressor(minCompressionSavingsPercent)
+      Fast(minCompressionSavingsPercent)
     else
-      HighCompressor(minCompressionSavingsPercent, if (Random.nextBoolean()) None else Some(Math.abs(Random.nextInt(17))))
+      High(minCompressionSavingsPercent, if (Random.nextBoolean()) None else Some(Math.abs(Random.nextInt(17))))
 
-  case class FastCompressor(minCompressionSavingsPercent: Double) extends LZ4Compressor
-  case class HighCompressor(minCompressionSavingsPercent: Double,
-                            compressionLevel: Option[Int] = None) extends LZ4Compressor
+  case class Fast(minCompressionSavingsPercent: Double) extends LZ4Compressor
+  case class High(minCompressionSavingsPercent: Double,
+                  compressionLevel: Option[Int] = None) extends LZ4Compressor
 }

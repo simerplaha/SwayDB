@@ -25,7 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import net.jpountz.lz4.{LZ4Compressor, LZ4Factory}
 import org.xerial.snappy
 import swaydb.data.IO
-import swaydb.data.compression.LZ4Compressor.{FastCompressor, HighCompressor}
+import swaydb.data.compression.LZ4Compressor.{Fast, High}
 import swaydb.data.compression.LZ4Instance
 import swaydb.data.compression.LZ4Instance._
 import swaydb.data.slice.Slice
@@ -50,21 +50,21 @@ private[swaydb] object CompressorInternal extends LazyLogging {
   private def lz4Factory(instance: LZ4Instance): LZ4Factory =
     instance match {
       //@formatter:off
-      case FastestInstance =>     LZ4Factory.fastestInstance()
-      case FastestJavaInstance => LZ4Factory.fastestJavaInstance()
-      case NativeInstance =>      LZ4Factory.nativeInstance()
-      case SafeInstance =>        LZ4Factory.safeInstance()
-      case UnsafeInstance =>      LZ4Factory.unsafeInstance()
+      case Fastest =>     LZ4Factory.fastestInstance()
+      case FastestJava => LZ4Factory.fastestJavaInstance()
+      case Native =>      LZ4Factory.nativeInstance()
+      case Safe =>        LZ4Factory.safeInstance()
+      case Unsafe =>      LZ4Factory.unsafeInstance()
       //@formatter:on
     }
 
   private def lz4Compressor(compressor: swaydb.data.compression.LZ4Compressor,
                             factory: LZ4Factory): CompressorInternal.LZ4 =
     compressor match {
-      case FastCompressor(minCompressionPercentage) =>
+      case Fast(minCompressionPercentage) =>
         CompressorInternal.LZ4(minCompressionPercentage, factory.fastCompressor())
 
-      case HighCompressor(minCompressionPercentage, compressionLevel) =>
+      case High(minCompressionPercentage, compressionLevel) =>
         compressionLevel match {
           case Some(compressionLevel) =>
             CompressorInternal.LZ4(minCompressionPercentage, factory.highCompressor(compressionLevel))

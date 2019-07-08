@@ -21,7 +21,9 @@ package swaydb.core.data
 
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.segment.format.a.block.SortedIndex
 import swaydb.core.{TestBase, TestTimer}
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -31,47 +33,80 @@ class TransientSpec extends TestBase {
 
   implicit def testTimer: TestTimer = TestTimer.random
 
-  "Transient" should {
-    "be reverse iterable" in {
-      val one = Transient.remove(1)
-      val two = Transient.remove(2, Some(one))
-      val three = Transient.put(key = 3, value = Some(3), previous = Some(two))
-      val four = Transient.remove(4, Some(three))
-      val five = Transient.put(key = 5, value = Some(5), previous = Some(four))
+  "be reverse iterable" in {
+    val one = Transient.remove(1)
+    val two = Transient.remove(2, Some(one))
+    val three = Transient.put(key = 3, value = Some(3), previous = Some(two))
+    val four = Transient.remove(4, Some(three))
+    val five = Transient.put(key = 5, value = Some(5), previous = Some(four))
 
-      five.reverseIterator.toList should contain inOrderOnly(five, four, three, two, one)
+    five.reverseIterator.toList should contain inOrderOnly(five, four, three, two, one)
+  }
+
+  "has same value" should {
+    "return false for groups" in {
+      runThis(10.times) {
+        Transient.hasSameValue(
+          left = randomGroup(),
+          right = randomTransientKeyValue(randomString, randomStringOption)
+        ) shouldBe false
+      }
+
+      runThis(10.times) {
+        Transient.hasSameValue(
+          left = randomTransientKeyValue(randomString, randomStringOption),
+          right = randomGroup()
+        ) shouldBe false
+      }
     }
 
-    "has same value" should {
-      //      "return false for groups" in {
-      //        runThis(10.times) {
-      //          Transient.hasSameValue(
-      //            left = randomGroup(),
-      //            right = randomTransientKeyValue(randomString, randomStringOption)
-      //          ) shouldBe false
-      //        }
-      //
-      //        runThis(10.times) {
-      //          Transient.hasSameValue(
-      //            left = randomTransientKeyValue(randomString, randomStringOption),
-      //            right = randomGroup()
-      //          ) shouldBe false
-      //        }
-      //      }
+    "return false for put" in {
+      runThis(100.times) {
+        val left = randomPutKeyValue(1, None).toTransient
+        val right = randomFixedTransientKeyValue(randomString, Some(randomString))
 
-      "return false for put" in {
-        runThis(100.times) {
-          val left = randomPutKeyValue(1, None).toTransient
-          val right = randomFixedTransientKeyValue(randomString, Some(randomString))
-
-          if (right.isInstanceOf[Transient.Remove]) {
-            Transient.hasSameValue(left = left, right = right) shouldBe true
-            Transient.hasSameValue(left = right, right = left) shouldBe true
-          } else {
-            Transient.hasSameValue(left = left, right = right) shouldBe false
-            Transient.hasSameValue(left = right, right = left) shouldBe false
-          }
+        if (right.isInstanceOf[Transient.Remove]) {
+          Transient.hasSameValue(left = left, right = right) shouldBe true
+          Transient.hasSameValue(left = right, right = left) shouldBe true
+        } else {
+          Transient.hasSameValue(left = left, right = right) shouldBe false
+          Transient.hasSameValue(left = right, right = left) shouldBe false
         }
+      }
+    }
+  }
+
+  "enablePrefixCompression" should {
+    "return false is reset count is 0" in {
+      runThis(100.times) {
+        Transient.enablePrefixCompression(
+          randomFixedKeyValue(1)
+            .toTransient(
+              previous = None,
+              sortedIndexConfig =
+                SortedIndex.Config.random.copy(prefixCompressionResetCount = 0)
+            )
+        ) shouldBe false
+      }
+    }
+
+    "return true for every 2nd key-value" in {
+      runThis(100.times) {
+        val keyValues =
+          Slice(
+            randomFixedKeyValue(1),
+            randomFixedKeyValue(2),
+            randomFixedKeyValue(3),
+            randomFixedKeyValue(4)
+          ).toTransient(
+            sortedIndexConfig =
+              SortedIndex.Config.random.copy(prefixCompressionResetCount = 2)
+          )
+
+        Transient.enablePrefixCompression(keyValues.head) shouldBe false //there is no previous
+        Transient.enablePrefixCompression(keyValues(1)) shouldBe false //reset
+        Transient.enablePrefixCompression(keyValues(2)) shouldBe true //not reset
+        Transient.enablePrefixCompression(keyValues(3)) shouldBe false //reset again
       }
     }
   }

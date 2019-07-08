@@ -1276,18 +1276,18 @@ object TestData {
         hashIndexConfig = hashIndexConfig,
         bloomFilterConfig = bloomFilterConfig
       )
-//    else if (includeRemoves && randomBoolean())
-//      Transient.Remove(
-//        key = key,
-//        deadline = deadline,
-//        time = time,
-//        previous = previous,
-//        valuesConfig = valuesConfig,
-//        sortedIndexConfig = sortedIndexConfig,
-//        binarySearchIndexConfig = binarySearchIndexConfig,
-//        hashIndexConfig = hashIndexConfig,
-//        bloomFilterConfig = bloomFilterConfig
-//      )
+    //    else if (includeRemoves && randomBoolean())
+    //      Transient.Remove(
+    //        key = key,
+    //        deadline = deadline,
+    //        time = time,
+    //        previous = previous,
+    //        valuesConfig = valuesConfig,
+    //        sortedIndexConfig = sortedIndexConfig,
+    //        binarySearchIndexConfig = binarySearchIndexConfig,
+    //        hashIndexConfig = hashIndexConfig,
+    //        bloomFilterConfig = bloomFilterConfig
+    //      )
     else if (includeFunctions && randomBoolean())
       Transient.Function(
         key = key,
@@ -1703,28 +1703,24 @@ object TestData {
         if (groupKeyValues.isEmpty) {
           if (randomBoolean()) key += 1
         } else {
-          Transient.Group(
-            keyValues = groupKeyValues,
-            previous = slice.lastOption,
-            groupCompression = randomCompressions(),
-            valuesConfig = valuesConfig,
-            sortedIndexConfig = sortedIndexConfig,
-            binarySearchIndexConfig = binarySearchIndexConfig,
-            hashIndexConfig = hashIndexConfig,
-            bloomFilterConfig = bloomFilterConfig
-          ).assertGetOpt match {
-            case Some(group) =>
-              slice add group
-              //randomly skip the Group's toKey for the next key. Next key should not be the same as toKey so add a minimum of 1 to next key.
-              if (randomBoolean())
-                key = group.maxKey.maxKey.readInt() + 1
-              else
-                key = group.maxKey.maxKey.readInt() + 1 + randomIntMax(5)
-            case None =>
-              //if it's empty randomly incrementing the key and continue.
-              if (randomBoolean())
-                key += 1
-          }
+          val group =
+            Transient.Group(
+              keyValues = groupKeyValues,
+              previous = slice.lastOption,
+              groupCompressions = randomCompressions(),
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig
+            ).assertGet
+
+          slice add group
+          //randomly skip the Group's toKey for the next key. Next key should not be the same as toKey so add a minimum of 1 to next key.
+          if (randomBoolean())
+            key = group.maxKey.maxKey.readInt() + 1
+          else
+            key = group.maxKey.maxKey.readInt() + 1 + randomIntMax(5)
         }
       } else if (addRandomRanges && randomBoolean()) {
         val toKey = key + 10
@@ -1867,7 +1863,7 @@ object TestData {
     Transient.Group(
       keyValues = keyValues,
       previous = previous,
-      groupCompression = groupCompression,
+      groupCompressions = groupCompression,
       valuesConfig = valuesConfig,
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
@@ -2586,6 +2582,5 @@ object TestData {
 
   def randomFalsePositiveRate() =
     Random.nextDouble()
-
 }
 

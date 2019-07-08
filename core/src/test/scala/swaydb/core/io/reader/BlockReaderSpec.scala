@@ -104,7 +104,7 @@ class BlockReaderSpec extends WordSpec with Matchers {
       val bodyBytes = (1 to 10).flatMap(Slice.writeLong(_)).toSlice
       val segmentBytes = headerBytes ++ bodyBytes
       val compression = Seq(randomCompression())
-      val compressedSegmentBytes = Block.create(headerBytes.size, segmentBytes, compression).get
+      val compressedSegmentBytes = Block.create(headerBytes.size, segmentBytes, compression, "testblock").get
       val blockOffset = Values.Offset(0, compressedSegmentBytes.size)
       val blockHeader = Block.readHeader(blockOffset, Reader(compressedSegmentBytes)).get
       blockHeader.compressionInfo shouldBe defined

@@ -78,7 +78,7 @@ class SegmentBlockCache(id: String,
   def createBinarySearchReader(): IO[Option[BlockReader[BinarySearchIndex]]] =
     binarySearchIndexCache.value flatMap createOptionalBlockReader
 
-  def valuesReader(): IO[Option[BlockReader[Values]]] =
+  def createValuesReader(): IO[Option[BlockReader[Values]]] =
     valuesCache.value flatMap createOptionalBlockReader
 
   private def createOptionalBlockReader[B <: Block](block: Option[B]): IO[Option[BlockReader[B]]] =

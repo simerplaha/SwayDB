@@ -45,33 +45,33 @@ object GroupReader extends EntryReader[Persistent.Group] {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {
           valueOffsetAndLength =>
-            KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Group) flatMap {
-              case (key, isKeyPrefixCompressed) =>
-                valueReader map {
-                  valueReader =>
-                    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                    val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
-
-                    Persistent.Group(
-                      key = key,
-                      deadline = deadline,
-                      valueReader = valueReader,
-                      nextIndexOffset = nextIndexOffset,
-                      nextIndexSize = nextIndexSize,
-                      indexOffset = indexOffset,
-                      valueOffset = valueOffset,
-                      valueLength = valueLength,
-                      accessPosition = accessPosition,
-                      isPrefixCompressed =
-                        isKeyPrefixCompressed ||
-                          timeReader.isPrefixCompressed ||
-                          deadlineReader.isPrefixCompressed ||
-                          valueOffsetReader.isPrefixCompressed ||
-                          valueLengthReader.isPrefixCompressed ||
-                          valueBytesReader.isPrefixCompressed
-                    )
-                } getOrElse Values.valueNotFound
-            }
+            valueOffsetAndLength map {
+              case (valueOffset, valueLength) =>
+                KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Group) flatMap {
+                  case (key, isKeyPrefixCompressed) =>
+                    valueReader map {
+                      valueReader =>
+                        Persistent.Group(
+                          key = key,
+                          deadline = deadline,
+                          valueReader = valueReader,
+                          nextIndexOffset = nextIndexOffset,
+                          nextIndexSize = nextIndexSize,
+                          indexOffset = indexOffset,
+                          valueOffset = valueOffset,
+                          valueLength = valueLength,
+                          accessPosition = accessPosition,
+                          isPrefixCompressed =
+                            isKeyPrefixCompressed ||
+                              timeReader.isPrefixCompressed ||
+                              deadlineReader.isPrefixCompressed ||
+                              valueOffsetReader.isPrefixCompressed ||
+                              valueLengthReader.isPrefixCompressed ||
+                              valueBytesReader.isPrefixCompressed
+                        )
+                    } getOrElse Values.valueNotFound
+                }
+            } getOrElse Values.valueNotFound
         }
     }
 }

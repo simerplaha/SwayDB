@@ -37,6 +37,8 @@ import scala.concurrent.duration.Deadline
 
 private[core] object SegmentBlock {
 
+  val blockName = this.getClass.getSimpleName.dropRight(1)
+
   val formatId: Byte = 1.toByte
 
   val crcBytes: Int = 7
@@ -434,9 +436,9 @@ private[core] object SegmentBlock {
     for {
       sortedIndexClosed <- SortedIndex.close(sortedIndex)
       valuesClosed <- values.map(values => Values.close(values).map(Some(_))) getOrElse IO.none
-      hashIndexClosed <- hashIndex.map(HashIndex.close(_).map(Some(_))) getOrElse IO(hashIndex)
+      hashIndexClosed <- hashIndex.map(HashIndex.close) getOrElse IO.none
       binarySearchIndexClosed <- binarySearchIndex.map(BinarySearchIndex.close) getOrElse IO.none
-      bloomFilterClosed <- bloomFilter.map(BloomFilter.close(_).map(Some(_))) getOrElse IO(bloomFilter)
+      bloomFilterClosed <- bloomFilter.map(BloomFilter.close) getOrElse IO.none
     } yield
       ClosedBlocks(
         sortedIndex = sortedIndexClosed,
@@ -637,7 +639,8 @@ private[core] object SegmentBlock {
           Block.create(
             headerSize = closedSegment.segmentBytes.head.size,
             closedSegment = closedSegment,
-            compressions = segmentCompressions
+            compressions = segmentCompressions,
+            blockName = blockName
           )
         closed
     }

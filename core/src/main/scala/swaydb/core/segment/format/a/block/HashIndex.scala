@@ -38,6 +38,8 @@ import scala.collection.mutable
   */
 private[core] object HashIndex extends LazyLogging {
 
+  val blockName = this.getClass.getSimpleName.dropRight(1)
+
   object Config {
     val disabled =
       Config(
@@ -173,26 +175,30 @@ private[core] object HashIndex extends LazyLogging {
     }
   }
 
-  def close(state: State): IO[State] =
-    Block.create(
-      headerSize = state.headerSize,
-      bytes = state.bytes,
-      compressions = state.compressions
-    ) flatMap {
-      compressedOrUncompressedBytes =>
-        IO {
-          val allocatedBytes = state.bytes.allocatedSize
-          state.bytes = compressedOrUncompressedBytes
-          state.bytes addInt allocatedBytes //allocated bytes
-          state.bytes addInt state.maxProbe
-          state.bytes addIntUnsigned state.hit
-          state.bytes addIntUnsigned state.miss
-          state.bytes addIntUnsigned state.writeAbleLargestValueSize
-          if (state.bytes.currentWritePosition > state.headerSize)
-            throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
-          state
-        }
-    }
+  def close(state: State): IO[Option[State]] =
+    if (state.bytes.isEmpty)
+      IO.none
+    else
+      Block.create(
+        headerSize = state.headerSize,
+        bytes = state.bytes,
+        compressions = state.compressions,
+        blockName = blockName
+      ) flatMap {
+        compressedOrUncompressedBytes =>
+          IO {
+            val allocatedBytes = state.bytes.allocatedSize
+            state.bytes = compressedOrUncompressedBytes
+            state.bytes addInt allocatedBytes //allocated bytes
+            state.bytes addInt state.maxProbe
+            state.bytes addIntUnsigned state.hit
+            state.bytes addIntUnsigned state.miss
+            state.bytes addIntUnsigned state.writeAbleLargestValueSize
+            if (state.bytes.currentWritePosition > state.headerSize)
+              throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+            Some(state)
+          }
+      }
 
   def read(offset: Offset, reader: BlockReader[SegmentBlock]): IO[HashIndex] =
     for {

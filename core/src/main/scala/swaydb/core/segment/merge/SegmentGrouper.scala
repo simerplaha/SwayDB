@@ -155,11 +155,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                           sortedIndexConfig: SortedIndex.Config,
                           binarySearchIndexConfig: BinarySearchIndex.Config,
                           hashIndexConfig: HashIndex.Config,
-                          bloomFilterConfig: BloomFilter.Config): IO[Option[Group]] =
+                          bloomFilterConfig: BloomFilter.Config): IO[Group] =
     Transient.Group(
       keyValues = keyValuesToGroup,
       previous = lastGroup,
-      groupCompression = groupingStrategy.groupCompressions,
+      groupCompressions = groupingStrategy.groupCompressions,
       valuesConfig = valuesConfig,
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
@@ -167,18 +167,15 @@ private[merge] object SegmentGrouper extends LazyLogging {
       bloomFilterConfig = bloomFilterConfig
     ) map {
       newGroup =>
-        newGroup map {
-          newGroup =>
-            if (lastGroup.isEmpty) { //if there was no last group, simply clear and add group.
-              segmentKeyValues.clear()
-            } else {
-              //remove all key-values that were added to the new Group.
-              val removeFromIndex = lastGroup.map(_.stats.chainPosition).getOrElse(0)
-              segmentKeyValues.remove(removeFromIndex, newGroup.keyValues.last.stats.chainPosition)
-            }
-            segmentKeyValues += newGroup
-            newGroup
+        if (lastGroup.isEmpty) { //if there was no last group, simply clear and add group.
+          segmentKeyValues.clear()
+        } else {
+          //remove all key-values that were added to the new Group.
+          val removeFromIndex = lastGroup.map(_.stats.chainPosition).getOrElse(0)
+          segmentKeyValues.remove(removeFromIndex, newGroup.keyValues.last.stats.chainPosition)
         }
+        segmentKeyValues += newGroup
+        newGroup
     }
 
   private[segment] def groupKeyValues(segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
@@ -205,7 +202,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
           bloomFilterConfig = bloomFilterConfig
-        )
+        ) map (Some(_))
+
       case None =>
         IO.none
     }
@@ -234,7 +232,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
           bloomFilterConfig = bloomFilterConfig
-        )
+        ) map (Some(_))
     } getOrElse IO.none
 
   /**

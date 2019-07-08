@@ -29,6 +29,9 @@ import swaydb.data.{IO, MaxKey}
 
 private[core] object GroupCompressor extends LazyLogging {
 
+  def cannotGroupEmptyValues =
+    IO.Failure(new Exception("Cannot compress empty key-values"))
+
   /**
     * Returns (fromKey, toKey, fullKey) where fullKey is compressed fromKey and toKey.
     *
@@ -39,15 +42,15 @@ private[core] object GroupCompressor extends LazyLogging {
 
   def compress(keyValues: Slice[KeyValue.WriteOnly],
                previous: Option[KeyValue.WriteOnly],
-               groupCompression: Seq[CompressionInternal],
+               groupCompressions: Seq[CompressionInternal],
                valuesConfig: Values.Config,
                sortedIndexConfig: SortedIndex.Config,
                binarySearchIndexConfig: BinarySearchIndex.Config,
                hashIndexConfig: HashIndex.Config,
-               bloomFilterConfig: BloomFilter.Config): IO[Option[Transient.Group]] =
+               bloomFilterConfig: BloomFilter.Config): IO[Transient.Group] =
     if (keyValues.isEmpty) {
       logger.error(s"Ignoring compression. Cannot compress on empty key-values")
-      IO.none
+      GroupCompressor.cannotGroupEmptyValues
     } else if (keyValues.head.stats.chainPosition != 1) {
       //Cannot write key-values that belong to another Group or Segment. Groups key-values should have stats reset.
       val message = InvalidGroupKeyValuesHeadPosition(keyValues.head.stats.chainPosition)
@@ -58,27 +61,25 @@ private[core] object GroupCompressor extends LazyLogging {
       SegmentBlock.write(
         keyValues = keyValues,
         createdInLevel = 0,
-        segmentCompressions = groupCompression
+        segmentCompressions = groupCompressions
       ) flatMap {
         result =>
           IO {
             val (minKey, maxKey, fullKey) = buildCompressedKey(keyValues)
-            Some(
-              Transient.Group(
-                minKey = minKey,
-                maxKey = maxKey,
-                minMaxFunctionId = result.minMaxFunctionId,
-                key = fullKey,
-                result = result,
-                deadline = result.nearestDeadline,
-                keyValues = keyValues,
-                valuesConfig = valuesConfig,
-                sortedIndexConfig = sortedIndexConfig,
-                binarySearchIndexConfig = binarySearchIndexConfig,
-                hashIndexConfig = hashIndexConfig,
-                bloomFilterConfig = bloomFilterConfig,
-                previous = previous
-              )
+            Transient.Group(
+              minKey = minKey,
+              maxKey = maxKey,
+              minMaxFunctionId = result.minMaxFunctionId,
+              key = fullKey,
+              result = result,
+              deadline = result.nearestDeadline,
+              keyValues = keyValues,
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig,
+              previous = previous
             )
           }
       }

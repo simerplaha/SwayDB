@@ -32,6 +32,8 @@ import swaydb.data.util.ByteSizeOf
 
 object BloomFilter extends LazyLogging {
 
+  val blockName = this.getClass.getSimpleName.dropRight(1)
+
   object Config {
     val disabled =
       Config(
@@ -152,22 +154,26 @@ object BloomFilter extends LazyLogging {
     else
       math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
 
-  def close(state: State): IO[State] =
-    Block.create(
-      headerSize = state.headerSize,
-      bytes = state.bytes,
-      compressions = state.compressions
-    ) flatMap {
-      compressedOrUncompressedBytes =>
-        IO {
-          state.bytes = compressedOrUncompressedBytes
-          state.bytes addIntUnsigned state.numberOfBits
-          state.bytes addIntUnsigned state.maxProbe
-          if (state.bytes.currentWritePosition > state.headerSize)
-            throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
-          state
-        }
-    }
+  def close(state: State): IO[Option[State]] =
+    if (state.bytes.isEmpty)
+      IO.none
+    else
+      Block.create(
+        headerSize = state.headerSize,
+        bytes = state.bytes,
+        compressions = state.compressions,
+        blockName = blockName
+      ) flatMap {
+        compressedOrUncompressedBytes =>
+          IO {
+            state.bytes = compressedOrUncompressedBytes
+            state.bytes addIntUnsigned state.numberOfBits
+            state.bytes addIntUnsigned state.maxProbe
+            if (state.bytes.currentWritePosition > state.headerSize)
+              throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+            Some(state)
+          }
+      }
 
   def read(offset: Offset,
            segmentReader: BlockReader[SegmentBlock]): IO[BloomFilter] =

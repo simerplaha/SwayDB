@@ -22,7 +22,7 @@ package swaydb.compression
 import net.jpountz.lz4.{LZ4Factory, LZ4FastDecompressor, LZ4SafeDecompressor}
 import org.xerial.snappy
 import swaydb.data.IO
-import swaydb.data.compression.LZ4Decompressor.{FastDecompressor, SafeDecompressor}
+import swaydb.data.compression.LZ4Decompressor.{Fast, Safe}
 import swaydb.data.compression.LZ4Instance._
 import swaydb.data.compression.{DecompressorId, LZ4Decompressor, LZ4Instance}
 import swaydb.data.slice.Slice
@@ -59,16 +59,16 @@ private[swaydb] object DecompressorInternal {
                              lZ4Decompressor: LZ4Decompressor): DecompressorId.LZ4DecompressorId =
     (lz4Instance, lZ4Decompressor) match {
       //@formatter:off
-      case (FastestInstance, FastDecompressor) =>     DecompressorId.LZ4FastestInstance.FastDecompressor
-      case (FastestInstance, SafeDecompressor) =>     DecompressorId.LZ4FastestInstance.SafeDecompressor
-      case (FastestJavaInstance, FastDecompressor) => DecompressorId.LZ4FastestJavaInstance.FastDecompressor
-      case (FastestJavaInstance, SafeDecompressor) => DecompressorId.LZ4FastestJavaInstance.SafeDecompressor
-      case (NativeInstance, FastDecompressor) =>      DecompressorId.LZ4NativeInstance.FastDecompressor
-      case (NativeInstance, SafeDecompressor) =>      DecompressorId.LZ4NativeInstance.SafeDecompressor
-      case (SafeInstance, FastDecompressor) =>        DecompressorId.LZ4SafeInstance.FastDecompressor
-      case (SafeInstance, SafeDecompressor) =>        DecompressorId.LZ4SafeInstance.SafeDecompressor
-      case (UnsafeInstance, FastDecompressor) =>      DecompressorId.LZ4UnsafeInstance.FastDecompressor
-      case (UnsafeInstance, SafeDecompressor) =>      DecompressorId.LZ4UnsafeInstance.SafeDecompressor
+      case (LZ4Instance.Fastest, LZ4Decompressor.Fast) =>     DecompressorId.LZ4FastestInstance.FastDecompressor
+      case (LZ4Instance.Fastest, LZ4Decompressor.Safe) =>     DecompressorId.LZ4FastestInstance.SafeDecompressor
+      case (LZ4Instance.FastestJava, LZ4Decompressor.Fast) => DecompressorId.LZ4FastestJavaInstance.FastDecompressor
+      case (LZ4Instance.FastestJava, LZ4Decompressor.Safe) => DecompressorId.LZ4FastestJavaInstance.SafeDecompressor
+      case (LZ4Instance.Native, LZ4Decompressor.Fast) =>      DecompressorId.LZ4NativeInstance.FastDecompressor
+      case (LZ4Instance.Native, LZ4Decompressor.Safe) =>      DecompressorId.LZ4NativeInstance.SafeDecompressor
+      case (LZ4Instance.Safe, LZ4Decompressor.Fast) =>        DecompressorId.LZ4SafeInstance.FastDecompressor
+      case (LZ4Instance.Safe, LZ4Decompressor.Safe) =>        DecompressorId.LZ4SafeInstance.SafeDecompressor
+      case (LZ4Instance.Unsafe, LZ4Decompressor.Fast) =>      DecompressorId.LZ4UnsafeInstance.FastDecompressor
+      case (LZ4Instance.Unsafe, LZ4Decompressor.Safe) =>      DecompressorId.LZ4UnsafeInstance.SafeDecompressor
       //@formatter:on
     }
 

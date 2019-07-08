@@ -47,7 +47,7 @@ object PutReader extends EntryReader[Persistent.Put] {
           valueOffsetAndLength =>
             timeReader.read(indexReader, previous) flatMap {
               time =>
-                KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Put) map {
+                KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Put) flatMap {
                   case (key, isKeyPrefixCompressed) =>
                     val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                     val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
@@ -60,32 +60,32 @@ object PutReader extends EntryReader[Persistent.Put] {
                             offset = valueOffset,
                             length = valueLength
                           )
-                      } getOrElse {
-                        if (valueLength > 0)
-                          return Values.valueNotFound
-                        else
-                          LazyValueReader.empty
                       }
 
-                    Persistent.Put(
-                      _key = key,
-                      deadline = deadline,
-                      lazyValueReader = lazyValueReader,
-                      _time = time,
-                      nextIndexOffset = nextIndexOffset,
-                      nextIndexSize = nextIndexSize,
-                      indexOffset = indexOffset,
-                      valueOffset = valueOffset,
-                      valueLength = valueLength,
-                      accessPosition = accessPosition,
-                      isPrefixCompressed =
-                        isKeyPrefixCompressed ||
-                          timeReader.isPrefixCompressed ||
-                          deadlineReader.isPrefixCompressed ||
-                          valueOffsetReader.isPrefixCompressed ||
-                          valueLengthReader.isPrefixCompressed ||
-                          valueBytesReader.isPrefixCompressed
-                    )
+                    if (valueLength > 0 && lazyValueReader.isEmpty)
+                      Values.valueNotFound
+                    else
+                      IO {
+                        Persistent.Put(
+                          _key = key,
+                          deadline = deadline,
+                          lazyValueReader = lazyValueReader getOrElse LazyValueReader.empty,
+                          _time = time,
+                          nextIndexOffset = nextIndexOffset,
+                          nextIndexSize = nextIndexSize,
+                          indexOffset = indexOffset,
+                          valueOffset = valueOffset,
+                          valueLength = valueLength,
+                          accessPosition = accessPosition,
+                          isPrefixCompressed =
+                            isKeyPrefixCompressed ||
+                              timeReader.isPrefixCompressed ||
+                              deadlineReader.isPrefixCompressed ||
+                              valueOffsetReader.isPrefixCompressed ||
+                              valueLengthReader.isPrefixCompressed ||
+                              valueBytesReader.isPrefixCompressed
+                        )
+                      }
                 }
             }
         }

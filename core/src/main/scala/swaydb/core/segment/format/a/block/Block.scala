@@ -100,7 +100,8 @@ object Block extends LazyLogging {
     */
   def create(headerSize: Int,
              bytes: Slice[Byte],
-             compressions: Seq[CompressionInternal]): IO[Slice[Byte]] =
+             compressions: Seq[CompressionInternal],
+             blockName: String): IO[Slice[Byte]] =
     compressions.untilSome(_.compressor.compress(headerSize, bytes.drop(headerSize))) flatMap {
       case Some((compressedBytes, compression)) =>
         IO {
@@ -115,9 +116,9 @@ object Block extends LazyLogging {
       case None =>
         logger.debug {
           if (compressions.isEmpty)
-            s"No compression strategies provided. Storing ${bytes.size}.bytes uncompressed."
+            s"No compression strategies provided for $blockName. Storing ${bytes.size}.bytes uncompressed."
           else
-            s"Unable to satisfy compression requirement from ${compressions.size} compression strategies. Storing ${bytes.size}.bytes uncompressed."
+            s"Unable to satisfy compression requirement from ${compressions.size} compression strategies for $blockName. Storing ${bytes.size}.bytes uncompressed."
         }
         IO {
           bytes moveWritePosition 0
@@ -128,9 +129,10 @@ object Block extends LazyLogging {
 
   def create(headerSize: Int,
              closedSegment: SegmentBlock.ClosedSegment,
-             compressions: Seq[CompressionInternal]): IO[SegmentBlock.ClosedSegment] =
+             compressions: Seq[CompressionInternal],
+             blockName: String): IO[SegmentBlock.ClosedSegment] =
     if (compressions.isEmpty) {
-      logger.debug(s"No compression strategies provided for Segment level compression. Storing ${closedSegment.segmentSize}.bytes uncompressed.")
+      logger.debug(s"No compression strategies provided for Segment level compression for $blockName. Storing ${closedSegment.segmentSize}.bytes uncompressed.")
       IO {
         closedSegment.segmentBytes.head moveWritePosition 0
         closedSegment.segmentBytes.head addIntUnsigned headerSize
@@ -141,7 +143,8 @@ object Block extends LazyLogging {
       create(
         headerSize = headerSize,
         bytes = closedSegment.flattenSegmentBytes,
-        compressions = compressions
+        compressions = compressions,
+        blockName = blockName
       ) map {
         bytes =>
           SegmentBlock.ClosedSegment(

@@ -33,24 +33,24 @@ private[core] object GroupKeyCompressor {
                last: KeyValue.WriteOnly): (Slice[Byte], MaxKey[Slice[Byte]], Slice[Byte]) =
     (head, last) match {
       case (Some(keyValue), fixed: KeyValue.WriteOnly.Fixed) =>
-        val fullKey = Bytes.compressJoin(keyValue.key, fixed.key, 0.toByte)
-        (keyValue.key, MaxKey.Fixed(fixed.key), fullKey)
+        val fullKey = Bytes.compressJoin(keyValue.minKey, fixed.key, 0.toByte)
+        (keyValue.minKey, MaxKey.Fixed(fixed.key), fullKey)
 
       case (Some(keyValue), range: KeyValue.WriteOnly.Range) =>
         val maxKey = Bytes.compressJoin(range.fromKey, range.toKey)
-        val fullKey = Bytes.compressJoin(keyValue.key, maxKey, 1.toByte)
-        (keyValue.key, MaxKey.Range(range.fromKey, range.toKey), fullKey)
+        val fullKey = Bytes.compressJoin(keyValue.minKey, maxKey, 1.toByte)
+        (keyValue.minKey, MaxKey.Range(range.fromKey, range.toKey), fullKey)
 
       case (Some(keyValue), group: KeyValue.WriteOnly.Group) =>
         group.maxKey match {
           case fixed @ MaxKey.Fixed(maxKey) =>
-            val fullKey = Bytes.compressJoin(keyValue.key, maxKey, 0.toByte)
-            (keyValue.key, fixed, fullKey)
+            val fullKey = Bytes.compressJoin(keyValue.minKey, maxKey, 0.toByte)
+            (keyValue.minKey, fixed, fullKey)
 
           case maxKeyRange @ MaxKey.Range(fromKey, maxKey) =>
             val maxKeyCompressed = Bytes.compressJoin(fromKey, maxKey)
-            val fullKey = Bytes.compressJoin(keyValue.key, maxKeyCompressed, 1.toByte)
-            (keyValue.key, maxKeyRange, fullKey)
+            val fullKey = Bytes.compressJoin(keyValue.minKey, maxKeyCompressed, 1.toByte)
+            (keyValue.minKey, maxKeyRange, fullKey)
         }
 
       case (None, fixed: KeyValue.WriteOnly.Fixed) =>

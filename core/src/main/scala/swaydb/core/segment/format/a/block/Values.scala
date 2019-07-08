@@ -30,6 +30,8 @@ import swaydb.data.slice.Slice
 
 object Values {
 
+  val blockName = this.getClass.getSimpleName.dropRight(1)
+
   object Config {
 
     val disabled =
@@ -121,7 +123,8 @@ object Values {
     Block.create(
       headerSize = state.headerSize,
       bytes = state.bytes,
-      compressions = state.compressions
+      compressions = state.compressions,
+      blockName = blockName
     ) flatMap {
       compressedOrUncompressedBytes =>
         IO {

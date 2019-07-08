@@ -1,358 +1,139 @@
-///*
-// * Copyright (c) 2019 Simer Plaha (@simerplaha)
-// *
-// * This file is a part of SwayDB.
-// *
-// * SwayDB is free software: you can redistribute it and/or modify
-// * it under the terms of the GNU Affero General Public License as
-// * published by the Free Software Foundation, either version 3 of the
-// * License, or (at your option) any later version.
-// *
-// * SwayDB is distributed in the hope that it will be useful,
-// * but WITHOUT ANY WARRANTY; without even the implied warranty of
-// * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// * GNU Affero General Public License for more details.
-// *
-// * You should have received a copy of the GNU Affero General Public License
-// * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
-// */
-//
-//package swaydb.core.group.compression
-//
-//import swaydb.compression.CompressionInternal
-//import swaydb.core.{TestBase, TestData, TestTimer}
-//import swaydb.core.data._
-//import swaydb.data.slice.Slice
-//import swaydb.data.order.KeyOrder
-//import swaydb.serializers.Default._
-//import swaydb.serializers._
-//import swaydb.core.TestData._
-//import swaydb.core.CommonAssertions._
-//import swaydb.core.RunThis._
-//import swaydb.core.IOAssert._
-//import scala.util.Random
-//
-///**
-//  * [[swaydb.core.group.compression.GroupCompressor]] is always invoked directly from [[Transient.Group]] there these test cases initialise the Group
-//  * to find full code coverage.
-//  *
-//  */
-//class GroupCompressorSpec extends TestBase {
-//
-//  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-//  implicit def testTimer: TestTimer = TestTimer.random
-//
-//  val keyValueCount = 100
-//
-//  "GroupCompressor" should {
-//    "return no Group if key-values are empty" in {
-//      Transient.Group(
-//        keyValues = Slice.empty,
-//        segmentCompressions = randomSegmentLZ4OrSnappyCompression(Random.nextInt()),
-//        falsePositiveRate = TestData.falsePositiveRate,
-//        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-//        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-//        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-//        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//        allocateSpace = TestData.allocateSpace,
-//        previous = None,
-//        maxProbe = TestData.maxProbe
-//      ).assertGetOpt shouldBe empty
-//    }
-//
-//    "create a group on single key-value" when {
-//      "compression does not satisfy min compression requirement" in {
-//        runThis(10.times) {
-//          val keyValue =
-//            eitherOne(
-//              randomFixedKeyValue(1, eitherOne(None, Some(2))),
-//              randomRangeKeyValue(1, 2, randomFromValueOption(), rangeValue = Value.update(2, randomDeadlineOption))
-//            )
-//
-//          //println("Testing for key-values: " + keyValue)
-//
-//          Transient.Group(
-//            keyValues = Seq(keyValue).toTransient,
-//            segmentCompressions = randomSegmentLZ4OrSnappyCompression(12),
-//            falsePositiveRate = TestData.falsePositiveRate,
-//            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-//            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-//            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-//            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//            allocateSpace = TestData.allocateSpace,
-//            previous = None,
-//            maxProbe = TestData.maxProbe
-//          ).assertGetOpt shouldBe empty
-//        }
-//      }
-//
-//      "compression satisfies min compression requirement" in {
-////        runThis(10.times) {
-////          val keyValue =
-////            eitherOne(
-////              randomFixedKeyValue("12345" * 20, eitherOne(None, Some("12345" * 20))),
-////              randomRangeKeyValue("12345", "12345" * 20, randomFromValueOption(), rangeValue = Value.update("12345" * 30, randomDeadlineOption))
-////            )
-////
-////          //println("Testing for key-values: " + keyValue)
-////
-////          val indexCompression = randomCompressionLZ4OrSnappy(12)
-////          val valuesCompression = randomCompressionLZ4OrSnappy(12)
-////
-////          assertGroup(
-////            group =
-////              Transient.Group(
-////                keyValues = Seq(keyValue).toTransient,
-////                indexCompression = indexCompression,
-////                valueCompression = valuesCompression,
-////                falsePositiveRate = TestData.falsePositiveRate,
-////                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-////                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-////                resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-////                minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-////                allocateSpace = TestData.allocateSpace,
-////                previous = None,
-////                maxProbe = TestData.maxProbe
-////              ).assertGet,
-////            expectedIndexCompressionUsed = indexCompression,
-////            expectedValueCompressionUsed =
-////              //if either a Range of if the value is not None, then the compression will be used.
-////              if (keyValue.isInstanceOf[Memory.Range] || keyValue.getOrFetchValue.isDefined)
-////                Some(valuesCompression)
-////              else
-////                None
-////          )
-////        }
-//        ???
-//      }
-//    }
-//
-//    "create a group on multiple key-values" when {
-//      "compression does not satisfy min compression requirement" in {
-//        runThis(10.times) {
-//          val keyValues = randomKeyValues(keyValueCount)
-//
-//          Transient.Group(
-//            keyValues = keyValues,
-//            segmentCompressions = randomSegmentLZ4OrSnappyCompression(12),
-//            falsePositiveRate = TestData.falsePositiveRate,
-//            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-//            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-//            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-//            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//            allocateSpace = TestData.allocateSpace,
-//            previous = None,
-//            maxProbe = TestData.maxProbe
-//          ).assertGetOpt shouldBe empty
-//        }
-//      }
-//
-//      "compression satisfies min compression requirement" in {
-//        runThis(10.times) {
-//          val keyValues =
-//            eitherOne(
-//              left = randomKeyValues(keyValueCount),
-//              right = randomizedKeyValues(keyValueCount)
-//            )
-//
-//          val indexCompression = randomCompression()
-//          val valuesCompression = randomCompression()
-//
-//          assertGroup(
-//            group =
-//              Transient.Group(
-//                keyValues = keyValues,
-//                indexCompression = indexCompression,
-//                valueCompression = valuesCompression,
-//                falsePositiveRate = TestData.falsePositiveRate,
-//                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-//                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-//                resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-//                minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//                allocateSpace = TestData.allocateSpace,
-//                previous = None,
-//                maxProbe = TestData.maxProbe
-//              ).assertGet,
-//            expectedIndexCompressionUsed = indexCompression,
-//            expectedValueCompressionUsed =
-//              //if either a Range of if the value is not None, then the compression will be used.
-//              if (keyValues.exists(keyValue => keyValue.isRange || keyValue.getOrFetchValue.isDefined))
-//                Some(valuesCompression)
-//              else
-//                None
-//          )
-//        }
-//      }
-//
-//      "compression does not satisfies min compression requirement & the last compression is UnCompressedGroup" in {
-//        runThis(10.times) {
-//          val keyValues =
-//            eitherOne(
-//              left = randomKeyValues(keyValueCount),
-//              right = randomizedKeyValues(keyValueCount)
-//            )
-//
-//          val indexCompressions = Seq(randomCompressionLZ4OrSnappy(80), randomCompressionLZ4OrSnappy(60), CompressionInternal.UnCompressedGroup)
-//          val valueCompressions = Seq(randomCompressionLZ4OrSnappy(80), randomCompressionLZ4OrSnappy(60), CompressionInternal.UnCompressedGroup)
-//
-//          assertGroup(
-//            group =
-//              Transient.Group(
-//                keyValues = keyValues,
-//                indexCompressions = indexCompressions,
-//                valueCompressions = valueCompressions,
-//                falsePositiveRate = TestData.falsePositiveRate,
-//                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-//                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-//                resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-//                minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//                allocateSpace = TestData.allocateSpace,
-//                previous = None,
-//                maxProbe = TestData.maxProbe
-//              ).assertGet,
-//            expectedIndexCompressionUsed = indexCompressions.last,
-//            expectedValueCompressionUsed =
-//              //if either a Range of if the value is not None, then the compression will be used.
-//              if (keyValues.exists(keyValue => keyValue.isRange || keyValue.getOrFetchValue.isDefined))
-//                Some(valueCompressions.last)
-//              else
-//                None
-//          )
-//        }
-//      }
-//    }
-//
-//    "create a group on multiple Group key-values" when {
-//      "compression does not satisfy min compression requirement" in {
-//        runThis(10.times) {
-//          //create an exiting Group
-//          val existingGroup =
-//            Transient.Group(
-//              keyValues = randomKeyValues(keyValueCount),
-//              indexCompression = randomCompression(),
-//              valueCompression = randomCompression(),
-//              falsePositiveRate = TestData.falsePositiveRate,
-//              enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-//              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-//              resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-//              minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//              allocateSpace = TestData.allocateSpace,
-//              previous = None,
-//              maxProbe = TestData.maxProbe
-//            ).assertGet
-//
-//          //add more key-values to existing group.
-//          val keyValues: Slice[KeyValue.WriteOnly] =
-//            (Seq(existingGroup) ++ randomKeyValues(keyValueCount, startId = Some(existingGroup.keyValues.last.key.readInt() + 100000))).updateStats
-//
-//          //create a new Group from key-values that already has an existing Group.
-//          Transient.Group(
-//            keyValues = keyValues,
-//            indexCompression = randomCompressionLZ4OrSnappy(12),
-//            valueCompression = randomCompressionLZ4OrSnappy(12),
-//            falsePositiveRate = TestData.falsePositiveRate,
-//            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-//            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-//            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-//            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//            allocateSpace = TestData.allocateSpace,
-//            previous = None,
-//            maxProbe = TestData.maxProbe
-//          ).assertGetOpt shouldBe empty
-//        }
-//      }
-//
-//      "compression satisfies min compression requirement" in {
-//        runThis(10.times) {
-//
-//          //create an exiting Group
-//          val existingGroup =
-//            Transient.Group(
-//              keyValues = randomKeyValues(keyValueCount),
-//              indexCompression = randomCompression(),
-//              valueCompression = randomCompression(),
-//              falsePositiveRate = TestData.falsePositiveRate,
-//              enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-//              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-//              resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-//              minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//              allocateSpace = TestData.allocateSpace,
-//              previous = None,
-//              maxProbe = TestData.maxProbe
-//            ).assertGet
-//
-//          //add more key-values to existing group.
-//          val keyValues: Slice[KeyValue.WriteOnly] =
-//            eitherOne(
-//              left = (Seq(existingGroup) ++ randomKeyValues(keyValueCount, startId = Some(existingGroup.keyValues.last.key.readInt() + 100000))).updateStats,
-//              right = (Seq(existingGroup) ++ randomizedKeyValues(keyValueCount, startId = Some(existingGroup.keyValues.last.key.readInt() + 100000))).updateStats
-//            )
-//
-//          val indexCompression = randomCompression()
-//          val valueCompression = randomCompression()
-//
-//          assertGroup(
-//            group =
-//              Transient.Group(
-//                keyValues = keyValues,
-//                indexCompression = indexCompression,
-//                valueCompression = valueCompression,
-//                falsePositiveRate = TestData.falsePositiveRate,
-//                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-//                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-//                resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-//                minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//                allocateSpace = TestData.allocateSpace,
-//                previous = None,
-//                maxProbe = TestData.maxProbe
-//              ).assertGet,
-//            expectedIndexCompressionUsed = indexCompression,
-//            expectedValueCompressionUsed =
-//              //if either a Range of if the value is not None, then the compression will be used.
-//              if (keyValues.exists(keyValue => keyValue.isRange || keyValue.getOrFetchValue.isDefined))
-//                Some(valueCompression)
-//              else
-//                None
-//          )
-//        }
-//      }
-//
-//      "compression does not satisfies min compression requirement & the last compression is UnCompressedGroup" in {
-//        runThis(10.times) {
-//          val keyValues =
-//            eitherOne(
-//              left = randomKeyValues(keyValueCount),
-//              right = randomizedKeyValues(keyValueCount)
-//            )
-//
-//          val indexCompressions = Seq(randomCompressionLZ4OrSnappy(80), randomCompressionLZ4OrSnappy(60), CompressionInternal.UnCompressedGroup)
-//          val valueCompressions = Seq(randomCompressionLZ4OrSnappy(80), randomCompressionLZ4OrSnappy(60), CompressionInternal.UnCompressedGroup)
-//
-//          assertGroup(
-//            group =
-//              Transient.Group(
-//                keyValues = keyValues,
-//                indexCompressions = indexCompressions,
-//                valueCompressions = valueCompressions,
-//                falsePositiveRate = TestData.falsePositiveRate,
-//                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-//                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-//                resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-//                minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//                allocateSpace = TestData.allocateSpace,
-//                previous = None,
-//                maxProbe = TestData.maxProbe
-//              ).assertGet,
-//            expectedIndexCompressionUsed = indexCompressions.last,
-//            expectedValueCompressionUsed =
-//              //if either a Range of if the value is not None, then the compression will be used.
-//              if (keyValues.exists(keyValue => keyValue.isRange || keyValue.getOrFetchValue.isDefined))
-//                valueCompressions.lastOption
-//              else
-//                None
-//          )
-//        }
-//      }
-//    }
-//  }
-//}
+/*
+ * Copyright (c) 2019 Simer Plaha (@simerplaha)
+ *
+ * This file is a part of SwayDB.
+ *
+ * SwayDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * SwayDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package swaydb.core.group.compression
+
+import swaydb.compression.CompressionInternal
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.data._
+import swaydb.core.segment.format.a.block._
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
+import swaydb.serializers.Default._
+import swaydb.serializers._
+
+/**
+  * [[swaydb.core.group.compression.GroupCompressor]] is always invoked directly from [[Transient.Group]] there these test cases initialise the Group
+  * to find full code coverage.
+  *
+  */
+class GroupCompressorSpec extends TestBase {
+
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit def testTimer: TestTimer = TestTimer.random
+  implicit val limiter = TestLimitQueues.keyValueLimiter
+
+  val keyValueCount = 100
+
+  def genKeyValuesWithCompression(compressions: Seq[CompressionInternal]) =
+    eitherOne(
+      //either one key-value
+      left =
+        eitherOne(
+          Slice(randomFixedKeyValue(1, eitherOne(None, Some(2)))),
+          Slice(randomRangeKeyValue(1, 2, randomFromValueOption(), rangeValue = Value.update(2, randomDeadlineOption)))
+        ).toTransient,
+      right =
+        //multiple key-values
+        randomizedKeyValues(keyValueCount, startId = Some(1), addPut = true)
+    ).updateStats(
+      valuesConfig = Values.Config.random.copy(compressions = compressions),
+      sortedIndexConfig = SortedIndex.Config.random.copy(compressions = compressions),
+      binarySearchIndexConfig = BinarySearchIndex.Config.random.copy(compressions = compressions),
+      hashIndexConfig = HashIndex.Config.random.copy(compressions = compressions),
+      bloomFilterConfig = BloomFilter.Config.random.copy(compressions = compressions)
+    )
+
+  "GroupCompressor" should {
+    "return no Group if key-values are empty" in {
+      Transient.Group(
+        keyValues = Slice.empty,
+        previous = None,
+        groupCompressions = randomCompressionsOrEmpty(),
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random
+      ).failed.get.exception.getMessage shouldBe GroupCompressor.cannotGroupEmptyValues.exception.getMessage
+    }
+
+    "create a group" when {
+      "key-values are un-compressible" in {
+        runThis(100.times) {
+          val compressions = randomCompressionsLZ4OrSnappy(Int.MaxValue)
+
+          val keyValues = genKeyValuesWithCompression(compressions)
+
+          val group =
+            Transient.Group(
+              keyValues = keyValues,
+              previous = None,
+              groupCompressions = randomCompressionsOrEmpty(),
+              valuesConfig = Values.Config.random,
+              sortedIndexConfig = SortedIndex.Config.random,
+              binarySearchIndexConfig = BinarySearchIndex.Config.random,
+              hashIndexConfig = HashIndex.Config.random,
+              bloomFilterConfig = BloomFilter.Config.random
+            ).get
+
+          //none of the group's blocks are compressed.
+          val persistedGroup = assertGroup(group)
+          persistedGroup.segment.blockCache.createSortedIndexReader().get.block.compressionInfo shouldBe empty
+          persistedGroup.segment.blockCache.createBinarySearchReader().get foreach (_.block.compressionInfo shouldBe empty)
+          persistedGroup.segment.blockCache.createHashIndexReader().get foreach (_.block.compressionInfo shouldBe empty)
+          persistedGroup.segment.blockCache.createBloomFilterReader().get foreach (_.block.compressionInfo shouldBe empty)
+          persistedGroup.segment.blockCache.createValuesReader().get foreach (_.block.compressionInfo shouldBe empty)
+        }
+      }
+
+      "key-values are compressible" in {
+        runThis(100.times) {
+
+          val compressions = randomCompressionsLZ4OrSnappy(Int.MinValue)
+
+          val keyValues = genKeyValuesWithCompression(compressions)
+
+          val group =
+            Transient.Group(
+              keyValues = keyValues,
+              previous = None,
+              groupCompressions = randomCompressionsOrEmpty(),
+              valuesConfig = Values.Config.random,
+              sortedIndexConfig = SortedIndex.Config.random,
+              binarySearchIndexConfig = BinarySearchIndex.Config.random,
+              hashIndexConfig = HashIndex.Config.random,
+              bloomFilterConfig = BloomFilter.Config.random
+            ).get
+
+          //none of the group's blocks are compressed.
+          val persistedGroup = assertGroup(group)
+          persistedGroup.segment.blockCache.createSortedIndexReader().get.block.compressionInfo shouldBe defined
+          persistedGroup.segment.blockCache.createBinarySearchReader().get foreach (_.block.compressionInfo shouldBe defined)
+          persistedGroup.segment.blockCache.createHashIndexReader().get foreach (_.block.compressionInfo shouldBe defined)
+          persistedGroup.segment.blockCache.createBloomFilterReader().get foreach (_.block.compressionInfo shouldBe defined)
+          persistedGroup.segment.blockCache.createValuesReader().get foreach (_.block.compressionInfo shouldBe defined)
+        }
+      }
+    }
+  }
+}

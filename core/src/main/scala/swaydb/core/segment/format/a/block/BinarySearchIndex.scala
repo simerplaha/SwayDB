@@ -32,6 +32,8 @@ import scala.annotation.tailrec
 
 object BinarySearchIndex {
 
+  val blockName = this.getClass.getSimpleName.dropRight(1)
+
   object Config {
     val disabled =
       Config(
@@ -197,11 +199,14 @@ object BinarySearchIndex {
   }
 
   def close(state: State): IO[Option[State]] =
-    if (state.hasMinimumKeys)
+    if (state.bytes.isEmpty)
+      IO.none
+    else if (state.hasMinimumKeys)
       Block.create(
         headerSize = state.headerSize,
         bytes = state.bytes,
-        compressions = state.compressions
+        compressions = state.compressions,
+        blockName = blockName
       ) flatMap {
         compressedOrUncompressedBytes =>
           IO {

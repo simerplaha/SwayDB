@@ -35,6 +35,8 @@ import scala.annotation.tailrec
 
 private[core] object SortedIndex {
 
+  val blockName = this.getClass.getSimpleName.dropRight(1)
+
   object Config {
     val disabled =
       Config(
@@ -57,13 +59,6 @@ private[core] object SortedIndex {
         prefixCompressionResetCount = config.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0),
         compressions = config.compression map CompressionInternal.apply
       )
-
-    def enablePrefixCompression(keyValue: KeyValue.WriteOnly): Boolean =
-      keyValue.sortedIndexConfig.prefixCompressionResetCount > 0 &&
-        keyValue.previous.exists {
-          previous =>
-            (previous.stats.chainPosition + 1) % keyValue.sortedIndexConfig.prefixCompressionResetCount == 0
-        }
   }
 
   case class Config(cacheOnAccess: Boolean,
@@ -119,7 +114,8 @@ private[core] object SortedIndex {
     Block.create(
       headerSize = state.headerSize,
       bytes = state.bytes,
-      compressions = state.compressions
+      compressions = state.compressions,
+      blockName = blockName
     ) flatMap {
       compressedOrUncompressedBytes =>
         state.bytes = compressedOrUncompressedBytes

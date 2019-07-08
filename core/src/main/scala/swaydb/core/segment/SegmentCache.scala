@@ -58,8 +58,8 @@ private[core] class SegmentCache(id: String,
                                  minKey: Slice[Byte],
                                  cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
                                  unsliceKey: Boolean,
-                                 blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                keyValueLimiter: KeyValueLimiter) extends LazyLogging {
+                                 val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                    keyValueLimiter: KeyValueLimiter) extends LazyLogging {
 
 
   import keyOrder._
@@ -91,7 +91,7 @@ private[core] class SegmentCache(id: String,
       hashIndex <- blockCache.createHashIndexReader()
       binarySearchIndex <- blockCache.createBinarySearchReader()
       sortedIndex <- blockCache.createSortedIndexReader()
-      values <- blockCache.valuesReader()
+      values <- blockCache.createValuesReader()
       result <- f(footer, hashIndex, binarySearchIndex, sortedIndex, values)
     } yield {
       result
@@ -105,7 +105,7 @@ private[core] class SegmentCache(id: String,
     for {
       footer <- blockCache.footer
       sortedIndex <- blockCache.createSortedIndexReader()
-      values <- blockCache.valuesReader()
+      values <- blockCache.createValuesReader()
       result <- f(footer, sortedIndex, values)
     } yield {
       result
@@ -120,7 +120,7 @@ private[core] class SegmentCache(id: String,
       footer <- blockCache.footer
       binarySearchIndex <- blockCache.createBinarySearchReader()
       sortedIndex <- blockCache.createSortedIndexReader()
-      values <- blockCache.valuesReader()
+      values <- blockCache.createValuesReader()
       result <- f(footer, binarySearchIndex, sortedIndex, values)
     } yield {
       result

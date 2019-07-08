@@ -22,7 +22,7 @@ package swaydb.core.data
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
-import swaydb.core.io.reader.Reader
+import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
@@ -202,6 +202,7 @@ private[core] object KeyValue {
     val isRange: Boolean
     val isGroup: Boolean
     val previous: Option[KeyValue.WriteOnly]
+    def minKey: Slice[Byte]
     def values: Slice[Slice[Byte]]
     def valuesConfig: Values.Config
     def sortedIndexConfig: SortedIndex.Config
@@ -627,6 +628,13 @@ private[core] object Transient {
         None
     }
 
+  def enablePrefixCompression(keyValue: KeyValue.WriteOnly): Boolean =
+    keyValue.sortedIndexConfig.prefixCompressionResetCount > 0 &&
+      keyValue.previous.exists {
+        previous =>
+          (previous.stats.chainPosition + 1) % keyValue.sortedIndexConfig.prefixCompressionResetCount != 0
+      }
+
   private[core] sealed trait SegmentResponse extends Transient {
     def value: Option[Slice[Byte]]
   }
@@ -677,6 +685,7 @@ private[core] object Transient {
     override val isRange: Boolean = false
     override val isGroup: Boolean = false
     override val isRemoveRangeMayBe = false
+    override def minKey = key
     override def value: Option[Slice[Byte]] = None
     override def values: Slice[Slice[Byte]] = Slice.emptyEmptyBytes
 
@@ -685,7 +694,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = false,
-        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(this)
+        enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -743,6 +752,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
+    override def minKey = key
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
@@ -750,7 +760,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
-        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(this)
+        enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean =
@@ -809,6 +819,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
+    override def minKey = key
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
@@ -816,7 +827,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
-        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(this)
+        enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -873,6 +884,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
+    override def minKey = key
     override def value: Option[Slice[Byte]] = Some(function)
     override def values: Slice[Slice[Byte]] = Slice(function)
     override def deadline: Option[Deadline] = None
@@ -882,7 +894,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
-        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(this)
+        enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -938,6 +950,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
+    override def minKey = key
     override val deadline: Option[Deadline] = Segment.getNearestDeadline(None, applies)
     override val value: Option[Slice[Byte]] = Some(ValueSerializer.writeBytes(applies))
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
@@ -967,7 +980,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
-        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(this)
+        enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -1083,6 +1096,7 @@ private[core] object Transient {
     override val isGroup: Boolean = false
     override val isRange: Boolean = true
     override val deadline: Option[Deadline] = None
+    override def minKey = fromKey
     override def value = valueSerialiser()
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
@@ -1092,7 +1106,7 @@ private[core] object Transient {
         currentTime = Time.empty,
         //It's highly likely that two sequential key-values within the same range have the different value after the range split occurs so this is always set to true.
         compressDuplicateValues = valuesConfig.compressDuplicateRangeValues,
-        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(this)
+        enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -1148,17 +1162,17 @@ private[core] object Transient {
     def apply(keyValues: Slice[KeyValue.WriteOnly],
               previous: Option[KeyValue.WriteOnly],
               //compression is for the group's key-values.
-              groupCompression: Seq[CompressionInternal],
+              groupCompressions: Seq[CompressionInternal],
               //these configs are for the Group itself and not the key-values within the group.
               valuesConfig: Values.Config,
               sortedIndexConfig: SortedIndex.Config,
               binarySearchIndexConfig: BinarySearchIndex.Config,
               hashIndexConfig: HashIndex.Config,
-              bloomFilterConfig: BloomFilter.Config): IO[Option[Transient.Group]] =
+              bloomFilterConfig: BloomFilter.Config): IO[Transient.Group] =
       GroupCompressor.compress(
         keyValues = keyValues,
         previous = previous,
-        groupCompression = groupCompression,
+        groupCompressions = groupCompressions,
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
@@ -1194,7 +1208,7 @@ private[core] object Transient {
         //it's highly unlikely that 2 groups after compression will have duplicate values.
         //compressDuplicateValues check is unnecessary since the value bytes of a group can be large.
         compressDuplicateValues = false,
-        enablePrefixCompression = SortedIndex.Config.enablePrefixCompression(this)
+        enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -1662,7 +1676,7 @@ private[core] object Persistent {
 
   object Group {
     def apply(key: Slice[Byte],
-              valueReader: Reader,
+              valueReader: BlockReader[Values],
               nextIndexOffset: Int,
               nextIndexSize: Int,
               indexOffset: Int,
@@ -1698,7 +1712,7 @@ private[core] object Persistent {
 
   case class Group(private var _minKey: Slice[Byte],
                    private var _maxKey: MaxKey[Slice[Byte]],
-                   valueReader: Reader,
+                   valueReader: BlockReader[Values],
                    nextIndexOffset: Int,
                    nextIndexSize: Int,
                    indexOffset: Int,

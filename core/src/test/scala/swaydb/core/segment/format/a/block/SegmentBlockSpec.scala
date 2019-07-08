@@ -17,29 +17,17 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a
+package swaydb.core.segment.format.a.block
 
-import java.util.concurrent.TimeUnit
-
-import scala.concurrent.duration._
-import scala.util.Random
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.group.compression.GroupCompressor
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SegmentBlock, SortedIndex, Values}
-import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
-import swaydb.data.IO
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
-import swaydb.serializers.Default._
-import swaydb.serializers._
 
 class SegmentBlockSpec extends TestBase {
 
@@ -64,38 +52,6 @@ class SegmentBlockSpec extends TestBase {
       closedSegment.nearestDeadline shouldBe empty
     }
 
-    "assert blocks" in {
-      def test(keyValues: Slice[KeyValue.WriteOnly]) = {
-        val createdInLevel = randomNextInt(10)
-
-        val closedSegment =
-          SegmentBlock.write(
-            keyValues = keyValues,
-            segmentCompressions = randomCompressions(),
-            createdInLevel = randomNextInt(10)
-          ).assertGet
-
-        val segmentBlock = SegmentBlock.read(SegmentBlock.Offset(0, closedSegment.flattenSegmentBytes.size), Reader(closedSegment.flattenSegmentBytes))
-
-        SegmentBlock.write(
-          keyValues = keyValues,
-          segmentCompressions = Seq.empty,
-          createdInLevel = randomNextInt(10)
-        ).assertGet
-
-        //in memory
-        //        //on disk
-        //        assertReads(keyValues, createFileChannelReader(closedSegment.flattenSegmentBytes))
-      }
-
-      runThis(1.times) {
-        //        val count = randomIntMax(4) + 1
-        //        val keyValues = randomizedKeyValues(count, addRandomGroups = false)
-        val keyValues = randomPutKeyValues(1, startId = Some(0)).toTransient
-        if (keyValues.nonEmpty) test(keyValues)
-      }
-    }
-
     "converting KeyValues to bytes and execute readAll and find on the bytes" in {
       def test(keyValues: Slice[KeyValue.WriteOnly]) = {
         val closedSegment =
@@ -112,7 +68,7 @@ class SegmentBlockSpec extends TestBase {
       }
 
       runThis(100.times) {
-        val count = randomIntMax(10) max 1
+        val count = randomIntMax(100) max 1
         val keyValues = randomizedKeyValues(count, addRandomGroups = false)
         if (keyValues.nonEmpty) test(keyValues)
       }
