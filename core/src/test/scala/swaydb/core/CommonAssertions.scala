@@ -792,8 +792,9 @@ object CommonAssertions {
     keyValues foreach {
       keyValue =>
         SegmentSearcher.get(
-          matcher = KeyMatcher.Get(keyValue.minKey),
-          startFrom = None,
+          key = keyValue.minKey,
+          start = None,
+          end = None,
           hashIndex = hashIndex,
           binarySearchIndex = binarySearchIndex,
           sortedIndex = sortedIndex,
@@ -906,11 +907,11 @@ object CommonAssertions {
                   reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
 
     //read fullIndex
-    readAll(reader.copy()).assertGet shouldBe keyValues
-    //find each KeyValue using all Matchers
-    assertGet(keyValues, reader.copy())
+//    readAll(reader.copy()).assertGet shouldBe keyValues
+//    //find each KeyValue using all Matchers
+//    assertGet(keyValues, reader.copy())
     //    assertLower(keyValues, reader.copy())
-    //    assertHigher(keyValues, reader.copy())
+    assertHigher(keyValues, reader.copy())
   }
 
   def assertGet(keyValues: Iterable[KeyValue],
@@ -1155,14 +1156,22 @@ object CommonAssertions {
   }
 
   def assertHigher(keyValues: Slice[KeyValue],
-                   reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): Unit =
-  //    assertHigher(
-  //      keyValues,
-  //      getHigher =
-  //        key =>
-  //          SegmentReader.higher(KeyMatcher.Higher(key), None, reader.copy())
-  //    )
-    ???
+                   reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): Unit = {
+    val (footer, values, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(reader).get
+    assertHigher(
+      keyValues,
+      getHigher =
+        key =>
+          SegmentSearcher.higher(
+            key = key,
+            start = None,
+            end = None,
+            binarySearch = binarySearchIndex,
+            sortedIndex = sortedIndex,
+            values = values
+          )
+    )
+  }
 
   def assertLower(_keyValues: Slice[KeyValue],
                   segment: Segment) = {

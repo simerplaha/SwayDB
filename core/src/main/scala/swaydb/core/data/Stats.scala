@@ -89,6 +89,9 @@ private[core] object Stats {
       else
         0
 
+    val hasPrefixCompressed =
+      isPrefixCompressed || previousStats.exists(_.hasPrefixCompression)
+
     val thisKeyValueAccessIndexPositionByteSize =
       if (sortedIndex.enableAccessPositionIndex)
         Bytes.sizeOf(thisKeyValueAccessIndexPosition)
@@ -281,6 +284,7 @@ private[core] object Stats {
       segmentHasRemoveRange = hasRemoveRange,
       segmentHasRange = segmentHasRange,
       segmentHasPut = segmentHasPut,
+      hasPrefixCompression = hasPrefixCompressed,
       isGroup = isGroup
     )
   }
@@ -313,6 +317,7 @@ private[core] case class Stats(valueLength: Int,
                                segmentHasRemoveRange: Boolean,
                                segmentHasRange: Boolean,
                                segmentHasPut: Boolean,
+                               hasPrefixCompression: Boolean,
                                isGroup: Boolean) {
   def segmentHasGroup: Boolean =
     groupsCount > 0

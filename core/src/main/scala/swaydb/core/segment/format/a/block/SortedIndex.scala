@@ -70,6 +70,7 @@ private[core] object SortedIndex {
 
   case class State(var _bytes: Slice[Byte],
                    headerSize: Int,
+                   hasPrefixCompression: Boolean,
                    enableAccessPositionIndex: Boolean,
                    compressions: Seq[CompressionInternal]) {
     def bytes = _bytes
@@ -82,6 +83,7 @@ private[core] object SortedIndex {
     val size = Block.headerSize(true)
     Bytes.sizeOf(size) +
       ByteSizeOf.boolean + //enablePositionIndex
+      ByteSizeOf.boolean + //hasPrefixCompression
       size
   }
 
@@ -89,6 +91,7 @@ private[core] object SortedIndex {
     val size = Block.headerSize(false)
     Bytes.sizeOf(size) +
       ByteSizeOf.boolean + //enablePositionIndex
+      ByteSizeOf.boolean + //hasPrefixCompression
       size
   }
 
@@ -106,6 +109,7 @@ private[core] object SortedIndex {
       _bytes = bytes,
       headerSize = headSize,
       enableAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
+      hasPrefixCompression = keyValues.last.stats.hasPrefixCompression,
       compressions = keyValues.last.sortedIndexConfig.compressions
     )
   }
@@ -120,6 +124,7 @@ private[core] object SortedIndex {
       compressedOrUncompressedBytes =>
         state.bytes = compressedOrUncompressedBytes
         state.bytes addBoolean state.enableAccessPositionIndex
+        state.bytes addBoolean state.hasPrefixCompression
         if (state.bytes.currentWritePosition > state.headerSize)
           IO.Failure(IO.Error.Fatal(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}"))
         else
@@ -145,18 +150,18 @@ private[core] object SortedIndex {
       reader = segmentReader
     ) flatMap {
       header =>
-        header
-          .headerReader
-          .readBoolean()
-          .map {
-            enableAccessPositionIndex =>
-              SortedIndex(
-                offset = offset,
-                enableAccessPositionIndex = enableAccessPositionIndex,
-                headerSize = header.headerSize,
-                compressionInfo = header.compressionInfo
-              )
-          }
+        for {
+          enableAccessPositionIndex <- header.headerReader.readBoolean()
+          hasPrefixCompression <- header.headerReader.readBoolean()
+        } yield {
+          SortedIndex(
+            offset = offset,
+            enableAccessPositionIndex = enableAccessPositionIndex,
+            hasPrefixCompression = hasPrefixCompression,
+            headerSize = header.headerSize,
+            compressionInfo = header.compressionInfo
+          )
+        }
     }
 
   private def readNextKeyValue(previous: Persistent,
@@ -352,10 +357,10 @@ private[core] object SortedIndex {
         }
     }
 
-  def findAndMatchOrNext(matcher: KeyMatcher,
-                         fromOffset: Int,
-                         indexReader: BlockReader[SortedIndex],
-                         valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+  def findAndMatchOrNextPersistent(matcher: KeyMatcher,
+                                   fromOffset: Int,
+                                   indexReader: BlockReader[SortedIndex],
+                                   valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
     readNextKeyValue(
       fromPosition = fromOffset,
       indexReader = indexReader,
@@ -371,10 +376,10 @@ private[core] object SortedIndex {
         )
     }
 
-  def findAndMatch(matcher: KeyMatcher,
-                   fromOffset: Int,
-                   sortedIndex: BlockReader[SortedIndex],
-                   values: Option[BlockReader[Values]]): IO[MatchResult] =
+  def findAndMatchOrNextMatch(matcher: KeyMatcher,
+                              fromOffset: Int,
+                              sortedIndex: BlockReader[SortedIndex],
+                              values: Option[BlockReader[Values]]): IO[MatchResult] =
     readNextKeyValue(
       fromPosition = fromOffset,
       indexReader = sortedIndex,
@@ -421,7 +426,7 @@ private[core] object SortedIndex {
             IO.Failure(exception)
         }
 
-      case result @ (MatchResult.Matched(_) | MatchResult.BehindStopped | MatchResult.AheadOrEnd) =>
+      case result @ (MatchResult.Matched(_) | MatchResult.BehindStopped | MatchResult.AheadOrNoneOrEnd) =>
         result.asIO
     }
 
@@ -450,7 +455,7 @@ private[core] object SortedIndex {
       case IO.Success(MatchResult.Matched(keyValue)) =>
         IO.Success(Some(keyValue))
 
-      case IO.Success(MatchResult.AheadOrEnd | MatchResult.BehindStopped) =>
+      case IO.Success(MatchResult.AheadOrNoneOrEnd | MatchResult.BehindStopped) =>
         IO.none
 
       case IO.Failure(error) =>
@@ -463,6 +468,7 @@ private[core] object SortedIndex {
 
 case class SortedIndex(offset: SortedIndex.Offset,
                        enableAccessPositionIndex: Boolean,
+                       hasPrefixCompression: Boolean,
                        headerSize: Int,
                        compressionInfo: Option[Block.CompressionInfo]) extends Block {
 

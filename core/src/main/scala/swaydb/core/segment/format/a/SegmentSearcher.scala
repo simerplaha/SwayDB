@@ -24,6 +24,8 @@ import swaydb.core.data.Persistent
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.format.a.block.{BinarySearchIndex, HashIndex, SortedIndex, Values}
 import swaydb.data.IO
+import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
 
 /**
   * All public APIs are wrapped around a try catch block because eager fetches on IO's results (.get).
@@ -33,56 +35,138 @@ import swaydb.data.IO
   */
 private[core] object SegmentSearcher extends LazyLogging {
 
-  def lower(matcher: KeyMatcher.Lower,
-            startFrom: Option[Persistent],
+  def lower(key: Slice[Byte],
+            start: Option[Persistent],
+            end: Option[Persistent],
             binarySearch: Option[BlockReader[BinarySearchIndex]],
             sortedIndex: BlockReader[SortedIndex],
-            values: Option[BlockReader[Values]]): IO[Option[Persistent]] =
-  //    SortedIndex.find(
-  //      matcher = matcher,
-  //      startFrom = startFrom,
-  //      segmentReader = reader,
-  //      index = index
-  //    )
-    ???
+            values: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    binarySearch map {
+      binarySearchIndex =>
+        BinarySearchIndex.search(
+          matcher =
+            if (sortedIndex.block.hasPrefixCompression)
+              KeyMatcher.Lower.WhilePrefixCompressed(key)
+            else
+              KeyMatcher.Lower.MatchOnly(key),
+          start = start,
+          end = end,
+          binarySearchIndex = binarySearchIndex,
+          sortedIndex = sortedIndex,
+          values = values
+        ) flatMap {
+          case some @ Some(_) =>
+            IO.Success(some)
 
-  def higher(matcher: KeyMatcher.Higher,
-             startFrom: Option[Persistent],
+          case None =>
+            if (binarySearchIndex.block.isFullBinarySearchIndex)
+              IO.none
+            else
+              SortedIndex.find(
+                matcher = KeyMatcher.Lower(key),
+                startFrom = start,
+                indexReader = sortedIndex,
+                valuesReader = values
+              )
+        }
+    } getOrElse {
+      SortedIndex.find(
+        matcher = KeyMatcher.Lower(key),
+        startFrom = start,
+        indexReader = sortedIndex,
+        valuesReader = values
+      )
+    }
+
+  def higher(key: Slice[Byte],
+             start: Option[Persistent],
+             end: Option[Persistent],
              binarySearch: Option[BlockReader[BinarySearchIndex]],
              sortedIndex: BlockReader[SortedIndex],
-             values: Option[BlockReader[Values]]): IO[Option[Persistent]] =
-  //    SortedIndex.find(
-  //      matcher = matcher,
-  //      startFrom = startFrom,
-  //      segmentReader = reader,
-  //      index = index
-  //    )
-    ???
+             values: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
+    if (start.isEmpty)
+      IO.none
+    else
+      SortedIndex.find(
+        matcher = KeyMatcher.Higher.MatchOnly(key),
+        startFrom = start,
+        indexReader = sortedIndex,
+        valuesReader = values
+      )
+  } flatMap {
+    found =>
+      if (found.isDefined)
+        IO.Success(found)
+      else
+        binarySearch map {
+          binarySearchIndex =>
+            BinarySearchIndex.search(
+              matcher =
+                if (sortedIndex.block.hasPrefixCompression)
+                  KeyMatcher.Higher.WhilePrefixCompressed(key)
+                else
+                  KeyMatcher.Higher.MatchOnly(key),
+              start = start,
+              end = end,
+              binarySearchIndex = binarySearchIndex,
+              sortedIndex = sortedIndex,
+              values = values
+            ) flatMap {
+              case some @ Some(_) =>
+                IO.Success(some)
 
-  def get(matcher: KeyMatcher.Get,
-          startFrom: Option[Persistent],
+              case None =>
+                if (binarySearchIndex.block.isFullBinarySearchIndex)
+                  IO.none
+                else
+                  SortedIndex.find(
+                    matcher = KeyMatcher.Higher(key),
+                    startFrom = start,
+                    indexReader = sortedIndex,
+                    valuesReader = values
+                  )
+            }
+        } getOrElse {
+          SortedIndex.find(
+            matcher = KeyMatcher.Higher(key),
+            startFrom = start,
+            indexReader = sortedIndex,
+            valuesReader = values
+          )
+        }
+  }
+
+  def get(key: Slice[Byte],
+          start: Option[Persistent],
+          end: Option[Persistent],
           hashIndex: Option[BlockReader[HashIndex]],
           binarySearchIndex: Option[BlockReader[BinarySearchIndex]],
           sortedIndex: BlockReader[SortedIndex],
           valuesReader: Option[BlockReader[Values]],
-          hasRange: Boolean): IO[Option[Persistent]] =
+          hasRange: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
     hashIndex map {
       hashIndex =>
         HashIndex.get(
-          matcher = matcher.whilePrefixCompressed,
+          matcher =
+            if (sortedIndex.block.hasPrefixCompression)
+              KeyMatcher.Get.WhilePrefixCompressed(key)
+            else
+              KeyMatcher.Get.MatchOnly(key),
           hashIndex = hashIndex,
           sortedIndex = sortedIndex,
           values = valuesReader
         ) flatMap {
           case some @ Some(_) =>
             IO.Success(some)
+
           case None =>
             if (hashIndex.block.miss == 0 && !hasRange)
               IO.none
             else
               get(
-                matcher = matcher,
-                start = startFrom,
+                key = key,
+                start = start,
+                end = end,
                 binarySearchIndex = binarySearchIndex,
                 sortedIndex = sortedIndex,
                 valuesReader = valuesReader
@@ -90,25 +174,32 @@ private[core] object SegmentSearcher extends LazyLogging {
         }
     } getOrElse {
       get(
-        matcher = matcher,
-        start = startFrom,
+        key = key,
+        start = start,
+        end = end,
         binarySearchIndex = binarySearchIndex,
         sortedIndex = sortedIndex,
         valuesReader = valuesReader
       )
     }
+  }
 
-  private def get(matcher: KeyMatcher.Get,
+  private def get(key: Slice[Byte],
                   start: Option[Persistent],
+                  end: Option[Persistent],
                   binarySearchIndex: Option[BlockReader[BinarySearchIndex]],
                   sortedIndex: BlockReader[SortedIndex],
-                  valuesReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+                  valuesReader: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     binarySearchIndex map {
       binarySearchIndex =>
-        BinarySearchIndex.get(
-          matcher = matcher.whilePrefixCompressed,
+        BinarySearchIndex.search(
+          matcher =
+            if (sortedIndex.block.hasPrefixCompression)
+              KeyMatcher.Get.WhilePrefixCompressed(key)
+            else
+              KeyMatcher.Get.MatchOnly(key),
           start = start,
-          end = None,
+          end = end,
           binarySearchIndex = binarySearchIndex,
           sortedIndex = sortedIndex,
           values = valuesReader
@@ -121,7 +212,7 @@ private[core] object SegmentSearcher extends LazyLogging {
               IO.none
             else
               SortedIndex.find(
-                matcher = matcher,
+                matcher = KeyMatcher.Get(key),
                 startFrom = start,
                 indexReader = sortedIndex,
                 valuesReader = valuesReader
@@ -129,7 +220,7 @@ private[core] object SegmentSearcher extends LazyLogging {
         }
     } getOrElse {
       SortedIndex.find(
-        matcher = matcher,
+        matcher = KeyMatcher.Get(key),
         startFrom = start,
         indexReader = sortedIndex,
         valuesReader = valuesReader

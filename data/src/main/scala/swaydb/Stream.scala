@@ -300,7 +300,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamer[A, T] { se
     * Converts the current Stream with Future API. If the current stream is blocking,
     * the output stream will still return blocking stream but wrapped as future APIs.
     */
-  def toFutureStream(implicit ec: ExecutionContext): Stream[A, Future] =
+  def toFuture(implicit ec: ExecutionContext): Stream[A, Future] =
     new Stream[A, Future]()(Tag.future) {
       override def headOption: Future[Option[A]] = self.tag.toFuture(self.headOption)
       override private[swaydb] def next(previous: A): Future[Option[A]] = self.tag.toFuture(self.next(previous))
@@ -311,7 +311,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamer[A, T] { se
     *
     * @param timeout If the current stream is async/future based then the timeout is used else it's ignored.
     */
-  def toIOStream(timeout: FiniteDuration): Stream[A, IO] =
+  def toIO(timeout: FiniteDuration): Stream[A, IO] =
     new Stream[A, IO] {
       override def headOption: IO[Option[A]] = self.tag.toIO(self.headOption, timeout)
       override private[swaydb] def next(previous: A): IO[Option[A]] = self.tag.toIO(self.next(previous), timeout)
@@ -322,7 +322,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamer[A, T] { se
     *
     * @param timeout If the current stream is async/future based then the timeout is used else it's ignored.
     */
-  def toTryStream(timeout: FiniteDuration): Stream[A, Try] =
+  def toTry(timeout: FiniteDuration): Stream[A, Try] =
     new Stream[A, Try] {
       override def headOption: Try[Option[A]] = self.tag.toIO(self.headOption, timeout).toTry
       override private[swaydb] def next(previous: A): Try[Option[A]] = self.tag.toIO(self.next(previous), timeout).toTry

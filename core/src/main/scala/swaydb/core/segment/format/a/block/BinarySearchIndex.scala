@@ -289,7 +289,7 @@ object BinarySearchIndex {
               case MatchResult.Behind | MatchResult.BehindStopped =>
                 hop(start = mid + 1, end = end)
 
-              case MatchResult.AheadOrEnd =>
+              case MatchResult.AheadOrNoneOrEnd =>
                 hop(start = start, end = mid - 1)
             }
           case IO.Failure(error) =>
@@ -301,19 +301,19 @@ object BinarySearchIndex {
     hop(start = start.getOrElse(0), end = end.getOrElse(reader.block.valuesCount - 1))
   }
 
-  def get(matcher: KeyMatcher.Get.WhilePrefixCompressed,
-          start: Option[Persistent],
-          end: Option[Persistent],
-          binarySearchIndex: BlockReader[BinarySearchIndex],
-          sortedIndex: BlockReader[SortedIndex],
-          values: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+  def search(matcher: KeyMatcher.Bounded,
+             start: Option[Persistent],
+             end: Option[Persistent],
+             binarySearchIndex: BlockReader[BinarySearchIndex],
+             sortedIndex: BlockReader[SortedIndex],
+             values: Option[BlockReader[Values]]): IO[Option[Persistent]] =
     search(
       reader = binarySearchIndex,
       start = start.map(_.accessPosition),
       end = end.map(_.accessPosition),
       assertValue =
         sortedIndexOffsetValue =>
-          SortedIndex.findAndMatch(
+          SortedIndex.findAndMatchOrNextMatch(
             matcher = matcher,
             fromOffset = sortedIndexOffsetValue,
             sortedIndex = sortedIndex,

@@ -37,7 +37,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           if (valueToFind == valueFound)
             MatchResult.Matched(null)
           else if (valueToFind < valueFound)
-            MatchResult.AheadOrEnd
+            MatchResult.AheadOrNoneOrEnd
           else
             MatchResult.Behind
         }
@@ -69,131 +69,100 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
       }
     }
 
-  "it" should {
-    "write full index" when {
-      "all values have the same size" in {
-        runThis(10.times) {
-          Seq(0 to 127, 128 to 300, 16384 to 16384 + 200, Int.MaxValue - 5000 to Int.MaxValue - 1000) foreach {
-            values =>
-              val valuesCount = values.size
-              val largestValue = values.last
-              val state =
-                BinarySearchIndex.State(
-                  largestValue = largestValue,
-                  uniqueValuesCount = valuesCount,
-                  isFullIndex = true,
-                  minimumNumberOfKeys = 0,
-                  compressions = eitherOne(Seq.empty, Seq(randomCompression()))
-                ).get
+  "write full index" when {
+    "all values have the same size" in {
+      runThis(10.times) {
+        Seq(0 to 127, 128 to 300, 16384 to 16384 + 200, Int.MaxValue - 5000 to Int.MaxValue - 1000) foreach {
+          values =>
+            val valuesCount = values.size
+            val largestValue = values.last
+            val state =
+              BinarySearchIndex.State(
+                largestValue = largestValue,
+                uniqueValuesCount = valuesCount,
+                isFullIndex = true,
+                minimumNumberOfKeys = 0,
+                compressions = eitherOne(Seq.empty, Seq(randomCompression()))
+              ).get
 
-              values foreach {
-                offset =>
-                  BinarySearchIndex.write(value = offset, state = state).get
-              }
+            values foreach {
+              offset =>
+                BinarySearchIndex.write(value = offset, state = state).get
+            }
 
-              BinarySearchIndex.close(state).get
+            BinarySearchIndex.close(state).get
 
-              state.writtenValues shouldBe values.size
+            state.writtenValues shouldBe values.size
 
-              state.bytes.isFull shouldBe true
+            state.bytes.isFull shouldBe true
 
-              val index =
-                BinarySearchIndex.read(
-                  offset = BinarySearchIndex.Offset(0, state.bytes.size),
-                  reader = SegmentBlock.createUnblockedReader(state.bytes).get
-                ).get
+            val index =
+              BinarySearchIndex.read(
+                offset = BinarySearchIndex.Offset(0, state.bytes.size),
+                reader = SegmentBlock.createUnblockedReader(state.bytes).get
+              ).get
 
-              index.valuesCount shouldBe state.writtenValues
+            index.valuesCount shouldBe state.writtenValues
 
-              //byte size of Int.MaxValue is 5, but the index will switch to using 4 byte ints.
-              index.bytesPerValue should be <= 4
+            //byte size of Int.MaxValue is 5, but the index will switch to using 4 byte ints.
+            index.bytesPerValue should be <= 4
 
-              assertSearch(
-                bytes = state.bytes,
-                values = values,
-                unAlteredIndex = index
-              )
-          }
-        }
-      }
-    }
-  }
-
-  "it" should {
-    "write full index" when {
-      "all values have unique size" in {
-        runThis(10.times) {
-          val values = (126 to 130) ++ (16384 - 2 to 16384)
-          val valuesCount = values.size
-          val largestValue = values.last
-          val compression = eitherOne(Seq.empty, Seq(randomCompression()))
-          val state =
-            BinarySearchIndex.State(
-              largestValue = largestValue,
-              uniqueValuesCount = valuesCount,
-              isFullIndex = true,
-              minimumNumberOfKeys = 0,
-              compressions = compression
-            ).get
-
-          values foreach {
-            value =>
-              BinarySearchIndex.write(value = value, state = state).get
-          }
-          BinarySearchIndex.close(state).get
-
-          state.writtenValues shouldBe values.size
-
-          val index =
-            BinarySearchIndex.read(
-              offset = BinarySearchIndex.Offset(0, state.bytes.size),
-              reader = SegmentBlock.createUnblockedReader(state.bytes).get
-            ).get
-
-          index.bytesPerValue shouldBe Bytes.sizeOf(largestValue)
-
-          val headerSize =
-            BinarySearchIndex.optimalHeaderSize(
-              largestValue = largestValue,
-              valuesCount = values.size,
-              hasCompression = compression.nonEmpty
+            assertSearch(
+              bytes = state.bytes,
+              values = values,
+              unAlteredIndex = index
             )
-
-          index.headerSize shouldBe headerSize
-          index.valuesCount shouldBe values.size
-
-          assertSearch(
-            bytes = state.bytes,
-            values = values,
-            unAlteredIndex = index
-          )
         }
       }
     }
-  }
 
-  //  "searching a segment" should {
-  //    "value" in {
-  //      val keyValues =
-  //        randomizedKeyValues(
-  //          count = 100,
-  //          startId = Some(1),
-  //          addRandomGroups = false,
-  //          compressDuplicateValues = randomBoolean(),
-  //          enableBinarySearchIndex = true,
-  //          buildFullBinarySearchIndex = true,
-  //          resetPrefixCompressionEvery = 2
-  //        )
-  //
-  //      val segment = SegmentWriter.write(keyValues, segmentCompressions = randomSegmentCompression(), 0, 5).get.flattenSegmentBytes
-  //      val indexes = readBlocks(Reader(segment)).get
-  //
-  //      keyValues foreach {
-  //        keyValue =>
-  //          indexes._5 shouldBe defined
-  //          val got = BinarySearchIndex.get(KeyMatcher.Get.WhilePrefixCompressed(keyValue.key), indexes._5.get, indexes._3, indexes._2).get.get
-  //          got shouldBe keyValue
-  //      }
-  //    }
-  //  }
+    "all values have unique size" in {
+      runThis(10.times) {
+        val values = (126 to 130) ++ (16384 - 2 to 16384)
+        val valuesCount = values.size
+        val largestValue = values.last
+        val compression = eitherOne(Seq.empty, Seq(randomCompression()))
+        val state =
+          BinarySearchIndex.State(
+            largestValue = largestValue,
+            uniqueValuesCount = valuesCount,
+            isFullIndex = true,
+            minimumNumberOfKeys = 0,
+            compressions = compression
+          ).get
+
+        values foreach {
+          value =>
+            BinarySearchIndex.write(value = value, state = state).get
+        }
+        BinarySearchIndex.close(state).get
+
+        state.writtenValues shouldBe values.size
+
+        val index =
+          BinarySearchIndex.read(
+            offset = BinarySearchIndex.Offset(0, state.bytes.size),
+            reader = SegmentBlock.createUnblockedReader(state.bytes).get
+          ).get
+
+        index.bytesPerValue shouldBe Bytes.sizeOf(largestValue)
+
+        val headerSize =
+          BinarySearchIndex.optimalHeaderSize(
+            largestValue = largestValue,
+            valuesCount = values.size,
+            hasCompression = compression.nonEmpty
+          )
+
+        index.headerSize shouldBe headerSize
+        index.valuesCount shouldBe values.size
+
+        assertSearch(
+          bytes = state.bytes,
+          values = values,
+          unAlteredIndex = index
+        )
+      }
+    }
+  }
 }

@@ -315,7 +315,7 @@ private[core] object HashIndex extends LazyLogging {
             .read(hashIndex.bytesToReadPerIndex) match {
             case IO.Success(possibleValueBytes) =>
               //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe. sortedIndex bytes: $possibleValueBytes")
-              if (possibleValueBytes.head != 0) { //head should never be empty because the hash adjusts it.
+              if (possibleValueBytes.head != 0) { //head will never return None because the hash is adjusted to the size of allocated space.
                 //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe = failure - invalid start offset.")
                 doFind(probe + 1, checkedHashIndexes)
               } else {
@@ -355,7 +355,7 @@ private[core] object HashIndex extends LazyLogging {
     )
   }
 
-  def get(matcher: KeyMatcher.Get.WhilePrefixCompressed,
+  def get(matcher: KeyMatcher.Get.Bounded,
           hashIndex: BlockReader[HashIndex],
           sortedIndex: BlockReader[SortedIndex],
           values: Option[BlockReader[Values]]): IO[Option[Persistent]] =
@@ -364,7 +364,7 @@ private[core] object HashIndex extends LazyLogging {
       blockReader = hashIndex,
       assertValue =
         sortedIndexOffsetValue =>
-          SortedIndex.findAndMatchOrNext(
+          SortedIndex.findAndMatchOrNextPersistent(
             matcher = matcher,
             fromOffset = sortedIndexOffsetValue,
             indexReader = sortedIndex,
@@ -381,7 +381,7 @@ case class HashIndex(offset: HashIndex.Offset,
                      writeAbleLargestValueSize: Int,
                      headerSize: Int,
                      allocatedBytes: Int) extends Block {
-  val bytesToReadPerIndex = writeAbleLargestValueSize + 1 //+1 to read header 0 byte.
+  val bytesToReadPerIndex = writeAbleLargestValueSize + 1 //+1 to read header/marker 0 byte.
 
   val isCompressed = compressionInfo.isDefined
 

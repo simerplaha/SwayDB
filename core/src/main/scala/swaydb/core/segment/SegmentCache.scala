@@ -171,8 +171,9 @@ private[core] class SegmentCache(id: String,
                   prepareGet {
                     (footer, hashIndex, binarySearchIndex, sortedIndex, values) =>
                       SegmentSearcher.get(
-                        matcher = KeyMatcher.Get(key),
-                        startFrom = floorValue,
+                        key = key,
+                        start = floorValue,
+                        end = None,
                         hashIndex = hashIndex,
                         binarySearchIndex = binarySearchIndex,
                         sortedIndex = sortedIndex,
@@ -244,8 +245,9 @@ private[core] class SegmentCache(id: String,
             prepareIteration {
               (footer, binarySearchIndex, sortedIndex, valuesReader) =>
                 SegmentSearcher.lower(
-                  matcher = KeyMatcher.Lower(key),
-                  startFrom = lowerKeyValue,
+                  key = key,
+                  start = lowerKeyValue,
+                  end = None,
                   binarySearch = binarySearchIndex,
                   sortedIndex = sortedIndex,
                   valuesReader
@@ -325,27 +327,28 @@ private[core] class SegmentCache(id: String,
                 else
                   get(key)
 
-              //              startFrom flatMap {
-              //                startFrom =>
-              //                  SegmentReader.higher(
-              //                    matcher = KeyMatcher.Higher(key),
-              //                    startFrom = startFrom,
-              //                    reader = reader,
-              //                    index = footer.sortedIndexOffset
-              //                  ) flatMap {
-              //                    case Some(response: Persistent.SegmentResponse) =>
-              //                      addToCache(response)
-              //                      IO.Success(Some(response))
-              //
-              //                    case Some(group: Persistent.Group) =>
-              //                      addToCache(group)
-              //                      group.segment.higher(key)
-              //
-              //                    case None =>
-              //                      IO.none
-              //                  }
-              //              }
-              ???
+              startFrom flatMap {
+                startFrom =>
+                  SegmentSearcher.higher(
+                    key = key,
+                    start = startFrom,
+                    end = None,
+                    binarySearch = binarySearchIndex,
+                    sortedIndex = sortedIndex,
+                    values = values
+                  ) flatMap {
+                    case Some(response: Persistent.SegmentResponse) =>
+                      addToCache(response)
+                      IO.Success(Some(response))
+
+                    case Some(group: Persistent.Group) =>
+                      addToCache(group)
+                      group.segment.higher(key)
+
+                    case None =>
+                      IO.none
+                  }
+              }
           }
         }
     }

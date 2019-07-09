@@ -65,7 +65,7 @@ object Tag {
       override def failure[A](exception: Throwable): Try[A] = scala.util.Failure(exception)
 
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Try], drop: Int, take: Option[Int])(operation: (U, A) => U): Try[U] =
-        io.foldLeft(initial, after, stream.toIOStream(10.seconds), drop, take)(operation).toTry //use ioWrap and convert that result to try.
+        io.foldLeft(initial, after, stream.toIO(10.seconds), drop, take)(operation).toTry //use ioWrap and convert that result to try.
 
       @tailrec
       override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Try])(condition: A => Boolean): Try[Option[A]] =
