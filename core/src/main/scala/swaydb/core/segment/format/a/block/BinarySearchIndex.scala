@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
+import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.{Bytes, Options}
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
@@ -266,7 +266,7 @@ object BinarySearchIndex {
              start: Option[Int],
              end: Option[Int],
              higherOrLower: Option[Boolean],
-             matchValue: Int => IO[MatchResult]) = {
+             matchValue: Int => IO[KeyMatcher.Result]) = {
 
     @tailrec
     def hop(start: Int, end: Int, lastKnown: Option[Persistent]): IO[Option[Persistent]] = {
@@ -288,7 +288,7 @@ object BinarySearchIndex {
         value.flatMap(matchValue) match {
           case IO.Success(value) =>
             value match {
-              case matched: MatchResult.Matched =>
+              case matched: KeyMatcher.Result.Matched =>
                 higherOrLower match {
                   case None =>
                     IO.Success(Some(matched.result))
@@ -308,10 +308,10 @@ object BinarySearchIndex {
                     }
                 }
 
-              case MatchResult.BehindFetchNext | MatchResult.BehindStopped =>
+              case KeyMatcher.Result.BehindFetchNext | KeyMatcher.Result.BehindStopped =>
                 hop(start = mid + 1, end = end, lastKnown = lastKnown)
 
-              case MatchResult.AheadOrNoneOrEnd =>
+              case KeyMatcher.Result.AheadOrNoneOrEnd =>
                 hop(start = start, end = mid - 1, lastKnown = lastKnown)
             }
           case IO.Failure(error) =>

@@ -23,7 +23,7 @@ import swaydb.core.TestBase
 import swaydb.core.data.Persistent._
 import swaydb.core.data.{Persistent, Time}
 import swaydb.core.io.reader.{BlockReader, Reader}
-import swaydb.core.segment.format.a.MatchResult._
+import swaydb.core.segment.format.a.KeyMatcher.Result._
 import swaydb.core.segment.format.a.block.{SegmentBlock, Values}
 import swaydb.core.segment.format.a.entry.reader.value.{LazyFunctionReader, LazyPendingApplyValueReader, LazyRangeValueReader, LazyValueReader}
 import swaydb.core.util.cache.Cache

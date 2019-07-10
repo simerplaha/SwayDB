@@ -24,7 +24,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.KeyValue.WriteOnly
 import swaydb.core.data.Persistent
-import swaydb.core.segment.format.a.{KeyMatcher, MatchResult}
+import swaydb.core.segment.format.a.KeyMatcher
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
@@ -52,14 +52,14 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
       val largestValue = values.last
 
-      def matcher(valueToFind: Int)(valueFound: Int): IO[MatchResult] =
+      def matcher(valueToFind: Int)(valueFound: Int): IO[KeyMatcher.Result] =
         IO {
           if (valueToFind == valueFound)
-            MatchResult.Matched(None, null, None)
+            KeyMatcher.Result.Matched(None, null, None)
           else if (valueToFind < valueFound)
-            MatchResult.AheadOrNoneOrEnd
+            KeyMatcher.Result.AheadOrNoneOrEnd
           else
-            MatchResult.BehindFetchNext
+            KeyMatcher.Result.BehindFetchNext
         }
 
       val alteredIndex =

@@ -20,40 +20,17 @@
 package swaydb.core.segment.format.a
 
 import swaydb.core.data.Persistent
-import swaydb.core.segment.format.a.MatchResult.{Matched, _}
+import swaydb.core.segment.format.a.KeyMatcher.Result.{Matched, _}
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-
-sealed trait MatchResult {
-  def asIO: IO.Success[MatchResult]
-}
-sealed trait FinishedMatchResult extends MatchResult {
-  def asIO: IO.Success[FinishedMatchResult]
-}
-
-object MatchResult {
-  case class Matched(previous: Option[Persistent], result: Persistent, next: Option[Persistent]) extends FinishedMatchResult {
-    override def asIO: IO.Success[FinishedMatchResult] =
-      IO.Success(this)
-  }
-  case object BehindFetchNext extends MatchResult {
-    val asIO = IO.Success(this)
-  }
-  case object BehindStopped extends FinishedMatchResult {
-    val asIO = IO.Success(this)
-  }
-  case object AheadOrNoneOrEnd extends FinishedMatchResult {
-    val asIO = IO.Success(this)
-  }
-}
 
 private[core] sealed trait KeyMatcher {
   def key: Slice[Byte]
 
   def apply(previous: Persistent,
             next: Option[Persistent],
-            hasMore: => Boolean): MatchResult
+            hasMore: => Boolean): KeyMatcher.Result
 
   def keyOrder: KeyOrder[Slice[Byte]]
 
@@ -66,6 +43,35 @@ private[core] sealed trait KeyMatcher {
 }
 
 private[core] object KeyMatcher {
+
+  sealed trait Result {
+    def asIO: IO.Success[Result]
+  }
+
+  object Result {
+
+    sealed trait Complete extends Result {
+      def asIO: IO.Success[Complete]
+    }
+
+    sealed trait InComplete extends Result {
+      def asIO: IO.Success[InComplete]
+    }
+
+    case class Matched(previous: Option[Persistent], result: Persistent, next: Option[Persistent]) extends Complete {
+      override def asIO: IO.Success[Complete] =
+        IO.Success(this)
+    }
+    case object BehindFetchNext extends InComplete {
+      val asIO = IO.Success(this)
+    }
+    case object BehindStopped extends Complete {
+      val asIO = IO.Success(this)
+    }
+    case object AheadOrNoneOrEnd extends Complete {
+      val asIO = IO.Success(this)
+    }
+  }
 
   def shouldFetchNext(matcher: KeyMatcher, next: Option[Persistent]) =
     !matcher.matchOnly && (!matcher.whileNextIsPrefixCompressed || next.forall(_.isPrefixCompressed))
@@ -131,7 +137,7 @@ private[core] object KeyMatcher {
 
     override def apply(previous: Persistent,
                        next: Option[Persistent],
-                       hasMore: => Boolean): MatchResult =
+                       hasMore: => Boolean): KeyMatcher.Result =
       next.getOrElse(previous) match {
         case fixed: Persistent.Fixed =>
           val matchResult = keyOrder.compare(key, fixed.key)
@@ -231,7 +237,7 @@ private[core] object KeyMatcher {
 
     override def apply(previous: Persistent,
                        next: Option[Persistent],
-                       hasMore: => Boolean): MatchResult =
+                       hasMore: => Boolean): KeyMatcher.Result =
       next match {
         case someNext @ Some(next) =>
           val nextCompare = keyOrder.compare(next.key, key)
@@ -344,7 +350,7 @@ private[core] object KeyMatcher {
 
     override def apply(previous: Persistent,
                        next: Option[Persistent],
-                       hasMore: => Boolean): MatchResult = {
+                       hasMore: => Boolean): KeyMatcher.Result = {
       val keyValue = next getOrElse previous
       val nextCompare = keyOrder.compare(keyValue.key, key)
       if (nextCompare > 0)

@@ -24,7 +24,7 @@ import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.segment.format.a.{FinishedMatchResult, KeyMatcher, MatchResult, OffsetBase}
+import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
@@ -413,7 +413,7 @@ private[core] object SortedIndex {
   def findAndMatchOrNextMatch(matcher: KeyMatcher,
                               fromOffset: Int,
                               sortedIndex: BlockReader[SortedIndex],
-                              values: Option[BlockReader[Values]]): IO[MatchResult] =
+                              values: Option[BlockReader[Values]]): IO[KeyMatcher.Result] =
     readNextKeyValue(
       fromPosition = fromOffset,
       indexReader = sortedIndex,
@@ -434,13 +434,13 @@ private[core] object SortedIndex {
                   next: Option[Persistent],
                   matcher: KeyMatcher,
                   indexReader: BlockReader[SortedIndex],
-                  valueReader: Option[BlockReader[Values]]): IO[FinishedMatchResult] =
+                  valueReader: Option[BlockReader[Values]]): IO[KeyMatcher.Result.Complete] =
     matcher(
       previous = previous,
       next = next,
       hasMore = hasMore(next getOrElse previous)
     ) match {
-      case MatchResult.BehindFetchNext =>
+      case KeyMatcher.Result.BehindFetchNext =>
         val readFrom = next getOrElse previous
         readNextKeyValue(
           previous = readFrom,
@@ -460,7 +460,7 @@ private[core] object SortedIndex {
             IO.Failure(exception)
         }
 
-      case result: FinishedMatchResult =>
+      case result: KeyMatcher.Result.Complete =>
         result.asIO
     }
 
@@ -476,10 +476,10 @@ private[core] object SortedIndex {
       indexReader = indexReader,
       valueReader = valueReader
     ) match {
-      case IO.Success(MatchResult.Matched(_, keyValue, _)) =>
+      case IO.Success(KeyMatcher.Result.Matched(_, keyValue, _)) =>
         IO.Success(Some(keyValue))
 
-      case IO.Success(MatchResult.AheadOrNoneOrEnd | MatchResult.BehindStopped) =>
+      case IO.Success(KeyMatcher.Result.AheadOrNoneOrEnd | KeyMatcher.Result.BehindStopped) =>
         IO.none
 
       case IO.Failure(error) =>
