@@ -26,7 +26,7 @@ import swaydb.core.data.{Persistent, _}
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.{KeyMatcher, SegmentSearcher}
+import swaydb.core.segment.format.a.KeyMatcher
 import swaydb.core.util._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -170,7 +170,7 @@ private[core] class SegmentCache(id: String,
                 if (contains)
                   prepareGet {
                     (footer, hashIndex, binarySearchIndex, sortedIndex, values) =>
-                      SegmentSearcher.get(
+                      SegmentBlockSearcher.search(
                         key = key,
                         start = floorValue,
                         end = None,
@@ -244,7 +244,7 @@ private[core] class SegmentCache(id: String,
           } getOrElse {
             prepareIteration {
               (footer, binarySearchIndex, sortedIndex, valuesReader) =>
-                SegmentSearcher.lower(
+                SegmentBlockSearcher.searchLower(
                   key = key,
                   start = lowerKeyValue,
                   end = None,
@@ -329,7 +329,7 @@ private[core] class SegmentCache(id: String,
 
               startFrom flatMap {
                 startFrom =>
-                  SegmentSearcher.higher(
+                  SegmentBlockSearcher.searchHigher(
                     key = key,
                     start = startFrom,
                     end = None,

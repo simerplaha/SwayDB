@@ -402,7 +402,7 @@ private[core] object SortedIndex {
         }
     }
 
-  private def findAndMatchOrNextPersistent(matcher: KeyMatcher,
+  def findAndMatchOrNextPersistent(matcher: KeyMatcher,
                                            fromOffset: Int,
                                            indexReader: BlockReader[SortedIndex],
                                            valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =

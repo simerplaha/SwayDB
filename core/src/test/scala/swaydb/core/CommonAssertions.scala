@@ -43,7 +43,7 @@ import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.{KeyMatcher, SegmentSearcher}
+import swaydb.core.segment.format.a.KeyMatcher
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.IO
@@ -791,7 +791,7 @@ object CommonAssertions {
 
     keyValues foreach {
       keyValue =>
-        SegmentSearcher.get(
+        SegmentBlockSearcher.search(
           key = keyValue.minKey,
           start = None,
           end = None,
@@ -1162,7 +1162,7 @@ object CommonAssertions {
       keyValues,
       getHigher =
         key =>
-          SegmentSearcher.higher(
+          SegmentBlockSearcher.searchHigher(
             key = key,
             start = None,
             end = None,

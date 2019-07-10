@@ -252,7 +252,7 @@ class HashIndexSpec extends TestBase {
         keyValues foreach {
           keyValue =>
             val found =
-              HashIndex.find(
+              HashIndex.search(
                 key = keyValue.key,
                 blockReader = hashIndex.createBlockReader(SegmentBlock.createUnblockedReader(alteredBytes).get),
                 assertValue = findKey(_, keyValue.key)

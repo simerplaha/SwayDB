@@ -272,7 +272,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
           //get the persistent key-value for the next higher assert.
           SortedIndex.search(
-            matcher = KeyMatcher.Get(keyValue.minKey),
+            key = keyValue.minKey,
             startFrom = None,
             indexReader = sortedIndex,
             valuesReader = values
@@ -317,7 +317,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
           //get the persistent key-value for the next higher assert.
           SortedIndex.search(
-            matcher = KeyMatcher.Get(keyValue.minKey),
+            key = keyValue.minKey,
             startFrom = None,
             indexReader = sortedIndex,
             valuesReader = values

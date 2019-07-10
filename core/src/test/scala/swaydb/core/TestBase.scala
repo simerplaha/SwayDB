@@ -263,7 +263,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         Segment.persistent(
           path = path,
           createdInLevel = 0,
-          maxProbe = ???,
           segmentCompressions = segmentCompressions,
           mmapReads = levelStorage.mmapSegmentsOnRead,
           mmapWrites = levelStorage.mmapSegmentsOnWrite,

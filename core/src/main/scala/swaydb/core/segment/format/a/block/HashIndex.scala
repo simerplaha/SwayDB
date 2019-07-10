@@ -27,6 +27,7 @@ import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.config.RandomKeyIndex
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -284,9 +285,9 @@ private[core] object HashIndex extends LazyLogging {
     *
     * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
     */
-  private[block] def find[V](key: Slice[Byte],
-                             blockReader: BlockReader[HashIndex],
-                             assertValue: Int => IO[Option[V]]): IO[Option[V]] = {
+  private[block] def search[R](key: Slice[Byte],
+                               blockReader: BlockReader[HashIndex],
+                               assertValue: Int => IO[Option[R]]): IO[Option[R]] = {
 
     val hash = key.##
     val hash1 = hash >>> 32
@@ -295,7 +296,7 @@ private[core] object HashIndex extends LazyLogging {
     val hashIndex = blockReader.block
 
     @tailrec
-    def doFind(probe: Int, checkedHashIndexes: mutable.HashSet[Int]): IO[Option[V]] =
+    def doFind(probe: Int, checkedHashIndexes: mutable.HashSet[Int]): IO[Option[R]] =
       if (probe >= hashIndex.maxProbe) {
         IO.none
       } else {
@@ -355,12 +356,18 @@ private[core] object HashIndex extends LazyLogging {
     )
   }
 
-  def get(matcher: KeyMatcher.Get.Bounded,
-          hashIndex: BlockReader[HashIndex],
-          sortedIndex: BlockReader[SortedIndex],
-          values: Option[BlockReader[Values]]): IO[Option[Persistent]] =
-    find(
-      key = matcher.key,
+  def search(key: Slice[Byte],
+             hashIndex: BlockReader[HashIndex],
+             sortedIndex: BlockReader[SortedIndex],
+             values: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
+    val matcher =
+      if (sortedIndex.block.hasPrefixCompression)
+        KeyMatcher.Get.WhilePrefixCompressed(key)
+      else
+        KeyMatcher.Get.MatchOnly(key)
+
+    search(
+      key = key,
       blockReader = hashIndex,
       assertValue =
         sortedIndexOffsetValue =>
@@ -371,6 +378,7 @@ private[core] object HashIndex extends LazyLogging {
             valueReader = values
           )
     )
+  }
 }
 
 case class HashIndex(offset: HashIndex.Offset,
