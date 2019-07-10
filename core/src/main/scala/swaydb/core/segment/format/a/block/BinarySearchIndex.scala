@@ -333,6 +333,7 @@ object BinarySearchIndex {
     val matcher =
       higherOrLower map {
         higher =>
+          //if the sortedIndex has compression disabled do not fetch the next key-value. Let binary search find the next one to seek to.
           if (higher)
             if (sortedIndex.block.hasPrefixCompression)
               KeyMatcher.Higher.WhilePrefixCompressed(key)

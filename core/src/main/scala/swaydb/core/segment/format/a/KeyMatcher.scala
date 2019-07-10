@@ -28,19 +28,22 @@ import swaydb.data.slice.Slice
 sealed trait MatchResult {
   def asIO: IO.Success[MatchResult]
 }
+sealed trait FinishedMatchResult extends MatchResult {
+  def asIO: IO.Success[FinishedMatchResult]
+}
 
 object MatchResult {
-  case class Matched(previous: Option[Persistent], result: Persistent, next: Option[Persistent]) extends MatchResult {
-    override def asIO: IO.Success[MatchResult] =
+  case class Matched(previous: Option[Persistent], result: Persistent, next: Option[Persistent]) extends FinishedMatchResult {
+    override def asIO: IO.Success[FinishedMatchResult] =
       IO.Success(this)
   }
   case object BehindFetchNext extends MatchResult {
     val asIO = IO.Success(this)
   }
-  case object BehindStopped extends MatchResult {
+  case object BehindStopped extends FinishedMatchResult {
     val asIO = IO.Success(this)
   }
-  case object AheadOrNoneOrEnd extends MatchResult {
+  case object AheadOrNoneOrEnd extends FinishedMatchResult {
     val asIO = IO.Success(this)
   }
 }

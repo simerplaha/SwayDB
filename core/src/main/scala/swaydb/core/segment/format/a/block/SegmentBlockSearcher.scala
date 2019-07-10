@@ -31,8 +31,8 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
           sortedIndex = sortedIndex,
           values = values
         ) flatMap {
-          case someLower @ Some(_) =>
-            if (binarySearchIndex.block.isFullIndex)
+          case someLower @ Some(lower) =>
+            if (binarySearchIndex.block.isFullIndex || lower.nextIndexSize == 0)
               IO.Success(someLower)
             else
               SortedIndex.searchLower(
@@ -92,8 +92,8 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
               sortedIndex = sortedIndex,
               values = values
             ) flatMap {
-              case someHigher @ Some(_) =>
-                if (binarySearchIndex.block.isFullIndex)
+              case someHigher @ Some(higher) =>
+                if (binarySearchIndex.block.isFullIndex || higher.nextIndexSize == 0)
                   IO.Success(someHigher)
                 else
                   SortedIndex.searchHigher(

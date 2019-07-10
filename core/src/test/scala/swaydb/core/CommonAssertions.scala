@@ -904,14 +904,14 @@ object CommonAssertions {
     ).runThisRandomlyInParallel
 
   def assertReads(keyValues: Slice[KeyValue.WriteOnly],
-                  reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
+                  segmentReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
 
     //read fullIndex
-//    readAll(reader.copy()).assertGet shouldBe keyValues
-//    //find each KeyValue using all Matchers
-//    assertGet(keyValues, reader.copy())
-    //    assertLower(keyValues, reader.copy())
-    assertHigher(keyValues, reader.copy())
+    readAll(segmentReader.copy()).assertGet shouldBe keyValues
+    //    //find each KeyValue using all Matchers
+    assertGet(keyValues, segmentReader.copy())
+    assertLower(keyValues, segmentReader.copy())
+    assertHigher(keyValues, segmentReader.copy())
   }
 
   def assertGet(keyValues: Iterable[KeyValue],
@@ -1120,39 +1120,45 @@ object CommonAssertions {
 
   def assertLower(keyValues: Slice[KeyValue.WriteOnly],
                   reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
-    //
-    //    @tailrec
-    //    def assertLowers(index: Int) {
-    //      //      println(s"assertLowers : ${index}")
-    //      if (index > keyValues.size - 1) {
-    //        //end
-    //      } else if (index == 0) {
-    //        keyValues(index) match {
-    //          case range: KeyValue.WriteOnly.Range =>
-    //            SegmentReader.lower(KeyMatcher.Lower(range.fromKey), None, reader.copy()).assertGetOpt shouldBe empty
-    //            SegmentReader.lower(KeyMatcher.Lower(range.toKey), None, reader.copy()).assertGetOpt shouldBe range
-    //
-    //          case _ =>
-    //            SegmentReader.lower(KeyMatcher.Lower(keyValues(index).key), None, reader.copy()).assertGetOpt shouldBe empty
-    //        }
-    //        assertLowers(index + 1)
-    //      } else {
-    //        val expectedLowerKeyValue = keyValues(index - 1)
-    //        keyValues(index) match {
-    //          case range: KeyValue.WriteOnly.Range =>
-    //            SegmentReader.lower(KeyMatcher.Lower(range.fromKey), None, reader.copy()).assertGet shouldBe expectedLowerKeyValue
-    //            SegmentReader.lower(KeyMatcher.Lower(range.toKey), None, reader.copy()).assertGet shouldBe range
-    //
-    //          case _ =>
-    //            SegmentReader.lower(KeyMatcher.Lower(keyValues(index).key), None, reader.copy()).assertGet shouldBe expectedLowerKeyValue
-    //        }
-    //
-    //        assertLowers(index + 1)
-    //      }
-    //    }
-    //
-    //    assertLowers(0)
-    ???
+    val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(reader.copy()).get
+
+    @tailrec
+    def assertLowers(index: Int) {
+      //      println(s"assertLowers : ${index}")
+      if (index > keyValues.size - 1) {
+        //end
+      } else if (index == 0) {
+        keyValues(index) match {
+          case range: KeyValue.WriteOnly.Range =>
+            SegmentBlockSearcher.searchLower(range.fromKey, None, None, binarySearchIndex, sortedIndex, valuesReader).assertGetOpt shouldBe empty
+            (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
+              key =>
+                SegmentBlockSearcher.searchLower(Slice.writeInt(key), None, None, binarySearchIndex, sortedIndex, valuesReader).assertGetOpt shouldBe range
+            }
+
+          case _ =>
+            SegmentBlockSearcher.searchLower(keyValues(index).key, None, None, binarySearchIndex, sortedIndex, valuesReader).assertGetOpt shouldBe empty
+        }
+        assertLowers(index + 1)
+      } else {
+        val expectedLowerKeyValue = keyValues(index - 1)
+        keyValues(index) match {
+          case range: KeyValue.WriteOnly.Range =>
+            SegmentBlockSearcher.searchLower(range.fromKey, None, None, binarySearchIndex, sortedIndex, valuesReader).assertGet shouldBe expectedLowerKeyValue
+            (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
+              key =>
+                SegmentBlockSearcher.searchLower(Slice.writeInt(key), None, None, binarySearchIndex, sortedIndex, valuesReader).assertGetOpt shouldBe range
+            }
+
+          case _ =>
+            SegmentBlockSearcher.searchLower(keyValues(index).key, None, None, binarySearchIndex, sortedIndex, valuesReader).assertGet shouldBe expectedLowerKeyValue
+        }
+
+        assertLowers(index + 1)
+      }
+    }
+
+    assertLowers(0)
   }
 
   def assertHigher(keyValues: Slice[KeyValue],

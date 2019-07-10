@@ -24,7 +24,7 @@ import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
+import swaydb.core.segment.format.a.{FinishedMatchResult, KeyMatcher, MatchResult, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
@@ -365,24 +365,13 @@ private[core] object SortedIndex {
                      valuesReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
     startFrom match {
       case Some(startFrom) =>
-        //if startFrom is the last index entry, return None.
-        if (startFrom.nextIndexSize == 0)
-          IO.none
-        else
-          readNextKeyValue(
-            previous = startFrom,
-            indexReader = indexReader,
-            valueReader = valuesReader
-          ) flatMap {
-            keyValue =>
-              matchOrNextAndPersistent(
-                previous = startFrom,
-                next = Some(keyValue),
-                matcher = matcher,
-                indexReader = indexReader,
-                valueReader = valuesReader
-              )
-          }
+        matchOrNextAndPersistent(
+          previous = startFrom,
+          next = None,
+          matcher = matcher,
+          indexReader = indexReader,
+          valueReader = valuesReader
+        )
 
       //No start from. Get the first index entry from the File and start from there.
       case None =>
@@ -403,9 +392,9 @@ private[core] object SortedIndex {
     }
 
   def findAndMatchOrNextPersistent(matcher: KeyMatcher,
-                                           fromOffset: Int,
-                                           indexReader: BlockReader[SortedIndex],
-                                           valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+                                   fromOffset: Int,
+                                   indexReader: BlockReader[SortedIndex],
+                                   valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
     readNextKeyValue(
       fromPosition = fromOffset,
       indexReader = indexReader,
@@ -445,7 +434,7 @@ private[core] object SortedIndex {
                   next: Option[Persistent],
                   matcher: KeyMatcher,
                   indexReader: BlockReader[SortedIndex],
-                  valueReader: Option[BlockReader[Values]]): IO[MatchResult] =
+                  valueReader: Option[BlockReader[Values]]): IO[FinishedMatchResult] =
     matcher(
       previous = previous,
       next = next,
@@ -471,11 +460,10 @@ private[core] object SortedIndex {
             IO.Failure(exception)
         }
 
-      case result @ (MatchResult.Matched(_, _, _) | MatchResult.BehindStopped | MatchResult.AheadOrNoneOrEnd) =>
+      case result: FinishedMatchResult =>
         result.asIO
     }
 
-  @tailrec
   def matchOrNextAndPersistent(previous: Persistent,
                                next: Option[Persistent],
                                matcher: KeyMatcher,
@@ -488,15 +476,6 @@ private[core] object SortedIndex {
       indexReader = indexReader,
       valueReader = valueReader
     ) match {
-      case IO.Success(MatchResult.BehindFetchNext) =>
-        matchOrNextAndPersistent(
-          previous = previous,
-          next = next,
-          matcher = matcher,
-          indexReader = indexReader,
-          valueReader = valueReader
-        )
-
       case IO.Success(MatchResult.Matched(_, keyValue, _)) =>
         IO.Success(Some(keyValue))
 
