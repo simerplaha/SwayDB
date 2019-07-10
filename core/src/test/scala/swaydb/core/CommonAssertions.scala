@@ -212,6 +212,12 @@ object CommonAssertions {
   def eitherOne[T](one: => T, two: => T, three: => T, four: => T): T =
     Random.shuffle(Seq(() => one, () => two, () => three, () => four)).head()
 
+  def eitherOne[T](one: => T, two: => T, three: => T, four: => T, five: => T): T =
+    Random.shuffle(Seq(() => one, () => two, () => three, () => four, () => five)).head()
+
+  def eitherOne[T](one: => T, two: => T, three: => T, four: => T, five: => T, six: => T): T =
+    Random.shuffle(Seq(() => one, () => two, () => three, () => four, () => five, () => six)).head()
+
   def randomGroupingStrategyOption(keyValuesCount: Int): Option[KeyValueGroupingStrategyInternal] =
     eitherOne(
       left = None,
@@ -787,7 +793,7 @@ object CommonAssertions {
 
   def assertGet(keyValues: Slice[KeyValue.WriteOnly],
                 reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
-    val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(reader.copy()).get
+    val blocks = readBlocks(reader.copy()).get
 
     keyValues foreach {
       keyValue =>
@@ -798,11 +804,11 @@ object CommonAssertions {
           key = keyValue.minKey,
           start = None,
           end = None,
-          hashIndexReader = hashIndex,
-          binarySearchIndexReader = binarySearchIndex,
-          sortedIndexReader = sortedIndex,
-          valuesReaderReader = valuesReader,
-          hasRange = footer.hasRange
+          hashIndexReader = blocks.hashIndexReader,
+          binarySearchIndexReader = blocks.binarySearchIndexReader,
+          sortedIndexReader = blocks.sortedIndexReader,
+          valuesReaderReader = blocks.valuesReader,
+          hasRange = blocks.footer.hasRange
         ).assertGet shouldBe keyValue
     }
   }
@@ -835,9 +841,30 @@ object CommonAssertions {
     assertBloomNotContains(segment)
   }
 
+  def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
+                  bloomFilterReader: BlockReader[BloomFilter]) = {
+    val unzipedKeyValues = unzipGroups(keyValues)
+
+    unzipedKeyValues.count {
+      keyValue =>
+        BloomFilter.mightContain(
+          key = keyValue.key,
+          reader = bloomFilterReader
+        ).get
+    } should be >= (unzipedKeyValues.size * 0.90).toInt
+
+    assertBloomNotContains(bloomFilterReader)
+  }
+
+  def assertBloomNotContains(bloomFilterReader: BlockReader[BloomFilter]) =
+    (1 to 1000).count {
+      _ =>
+        BloomFilter.mightContain(randomBytesSlice(100), bloomFilterReader).get
+    } should be <= 300
+
   def assertBloomNotContains(segment: Segment) =
     runThis(1000.times) {
-      IO(segment.mightContainKey(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false)
+      segment.mightContainKey(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false
     }
 
   def assertBloomNotContains(bloom: BloomFilter.State) =
@@ -912,15 +939,9 @@ object CommonAssertions {
     //read fullIndex
     readAll(segmentReader.copy()).assertGet shouldBe keyValues
     //    //find each KeyValue using all Matchers
-    println("Starting get")
     assertGet(keyValues, segmentReader.copy())
-    println("Finished get")
-    println("Starting lower")
     assertLower(keyValues, segmentReader.copy())
-    println("Finished lower")
-    println("Starting higher")
     assertHigher(keyValues, segmentReader.copy())
-    println("Finished higher")
   }
 
   def assertGet(keyValues: Iterable[KeyValue],
@@ -1129,7 +1150,7 @@ object CommonAssertions {
 
   def assertLower(keyValues: Slice[KeyValue.WriteOnly],
                   reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
-    val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(reader.copy()).get
+    val blocks = readBlocks(reader.copy()).get
 
     @tailrec
     def assertLowers(index: Int) {
@@ -1139,28 +1160,28 @@ object CommonAssertions {
       } else if (index == 0) {
         keyValues(index) match {
           case range: KeyValue.WriteOnly.Range =>
-            SegmentBlockSearcher.searchLower(range.fromKey, None, None, binarySearchIndex, sortedIndex, valuesReader).assertGetOpt shouldBe empty
+            SegmentBlockSearcher.searchLower(range.fromKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe empty
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
               key =>
-                SegmentBlockSearcher.searchLower(Slice.writeInt(key), None, None, binarySearchIndex, sortedIndex, valuesReader).assertGetOpt shouldBe range
+                SegmentBlockSearcher.searchLower(Slice.writeInt(key), None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe range
             }
 
           case _ =>
-            SegmentBlockSearcher.searchLower(keyValues(index).key, None, None, binarySearchIndex, sortedIndex, valuesReader).assertGetOpt shouldBe empty
+            SegmentBlockSearcher.searchLower(keyValues(index).minKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe empty
         }
         assertLowers(index + 1)
       } else {
         val expectedLowerKeyValue = keyValues(index - 1)
         keyValues(index) match {
           case range: KeyValue.WriteOnly.Range =>
-            SegmentBlockSearcher.searchLower(range.fromKey, None, None, binarySearchIndex, sortedIndex, valuesReader).assertGet shouldBe expectedLowerKeyValue
+            SegmentBlockSearcher.searchLower(range.fromKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGet shouldBe expectedLowerKeyValue
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
               key =>
-                SegmentBlockSearcher.searchLower(Slice.writeInt(key), None, None, binarySearchIndex, sortedIndex, valuesReader).assertGetOpt shouldBe range
+                SegmentBlockSearcher.searchLower(Slice.writeInt(key), None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe range
             }
 
           case _ =>
-            SegmentBlockSearcher.searchLower(keyValues(index).key, None, None, binarySearchIndex, sortedIndex, valuesReader).assertGet shouldBe expectedLowerKeyValue
+            SegmentBlockSearcher.searchLower(keyValues(index).minKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGet shouldBe expectedLowerKeyValue
         }
 
         assertLowers(index + 1)
@@ -1172,7 +1193,7 @@ object CommonAssertions {
 
   def assertHigher(keyValues: Slice[KeyValue],
                    reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): Unit = {
-    val (footer, values, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(reader).get
+    val blocks = readBlocks(reader).get
     assertHigher(
       keyValues,
       getHigher =
@@ -1181,9 +1202,9 @@ object CommonAssertions {
             key = key,
             start = None,
             end = None,
-            binarySearchReader = binarySearchIndex,
-            sortedIndexReader = sortedIndex,
-            valuesReader = values
+            binarySearchReader = blocks.binarySearchIndexReader,
+            sortedIndexReader = blocks.sortedIndexReader,
+            valuesReader = blocks.valuesReader
           )
     )
   }
@@ -1269,15 +1290,16 @@ object CommonAssertions {
     def assertNotLast(keyValue: KeyValue,
                       next: KeyValue,
                       nextNext: Option[KeyValue]) = {
-      def shouldBeNextNext(higher: Option[KeyValue]) =
-        if (nextNext.isEmpty) //if there is no 3rd key, higher should be empty
-          higher shouldBe empty
-        else
-          higher.assertGet shouldBe nextNext.assertGet
-
       keyValue match {
         case range: KeyValue.ReadOnly.Range =>
-          getHigher(range.fromKey).assertGet shouldBe range
+          try
+            getHigher(range.fromKey).assertGet shouldBe range
+          catch {
+            case exception: Exception =>
+              exception.printStackTrace()
+              getHigher(range.fromKey).assertGet shouldBe range
+              throw exception
+          }
           val toKeyHigher = getHigher(range.toKey).assertGetOpt
           //suppose this keyValue is Range (1 - 10), second is Put(10), third is Put(11), higher on Range's toKey(10) will return 11 and not 10.
           //but 10 will be return if the second key-value was a range key-value.
@@ -1295,10 +1317,28 @@ object CommonAssertions {
                     toKeyHigher.assertGet shouldBe nextGroup
 
                   case _ =>
-                    shouldBeNextNext(toKeyHigher)
+                    //should be next next
+                    if (nextNext.isEmpty) //if there is no 3rd key, higher should be empty
+                      toKeyHigher shouldBe empty
+                    else
+                      try
+                        toKeyHigher.assertGet shouldBe nextNext.assertGet
+                      catch {
+                        case exception: Exception =>
+                          exception.printStackTrace()
+                          val toKeyHigher = getHigher(range.toKey).assertGetOpt
+                          throw exception
+                      }
                 }
               else
-                toKeyHigher.assertGet shouldBe next
+                try
+                  toKeyHigher.assertGet shouldBe next
+                catch {
+                  case exception: Exception =>
+                    exception.printStackTrace()
+                    val toKeyHigher = getHigher(range.toKey).assertGetOpt
+                    throw exception
+                }
           }
 
         case group: KeyValue.ReadOnly.Group if group.minKey != group.maxKey.maxKey =>
@@ -1338,22 +1378,22 @@ object CommonAssertions {
       Some(expiredDeadline())
 
   def readAll(group: Transient.Group): IO[Slice[KeyValue.ReadOnly]] = {
-    val segment = SegmentBlock.write(Slice(group), 0, Seq.empty).get
+    val segment = SegmentBlock.write(Slice(group).updateStats, 0, randomCompressionsOrEmpty()).get
     readAll(segment)
   }
 
-  def readBlocks(group: Transient.Group): IO[(SegmentBlock.Footer, Option[BlockReader[Values]], BlockReader[SortedIndex], Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], Option[BlockReader[BloomFilter]])] = {
-    val segment = SegmentBlock.write(Slice(group), 0, Seq.empty).get
+  def readBlocks(group: Transient.Group): IO[Blocks] = {
+    val segment = SegmentBlock.write(Slice(group).updateStats, 0, randomCompressionsOrEmpty()).get
     readBlocks(segment)
   }
 
   def readAll(closedSegment: SegmentBlock.ClosedSegment): IO[Slice[KeyValue.ReadOnly]] =
     readAll(closedSegment.flattenSegmentBytes)
 
-  def readBlocks(closedSegment: SegmentBlock.ClosedSegment): IO[(SegmentBlock.Footer, Option[BlockReader[Values]], BlockReader[SortedIndex], Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], Option[BlockReader[BloomFilter]])] =
+  def readBlocks(closedSegment: SegmentBlock.ClosedSegment): IO[Blocks] =
     readBlocks(closedSegment.flattenSegmentBytes)
 
-  def getBlocks(keyValues: Iterable[KeyValue.WriteOnly]): IO[(SegmentBlock.Footer, Option[BlockReader[Values]], BlockReader[SortedIndex], Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], Option[BlockReader[BloomFilter]])] = {
+  def getBlocks(keyValues: Iterable[KeyValue.WriteOnly]): IO[Blocks] = {
     val closedSegment =
       SegmentBlock.write(
         keyValues = keyValues,
@@ -1367,7 +1407,7 @@ object CommonAssertions {
   def readAll(bytes: Slice[Byte]): IO[Slice[KeyValue.ReadOnly]] =
     readAll(Reader(bytes))
 
-  def readBlocks(bytes: Slice[Byte]): IO[(SegmentBlock.Footer, Option[BlockReader[Values]], BlockReader[SortedIndex], Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], Option[BlockReader[BloomFilter]])] =
+  def readBlocks(bytes: Slice[Byte]): IO[Blocks] =
     readBlocks(Reader(bytes))
 
   def readAll(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Slice[KeyValue.ReadOnly]] =
@@ -1386,7 +1426,7 @@ object CommonAssertions {
       }
     } yield all
 
-  def readBlocks(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) =
+  def readBlocks(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Blocks] =
     for {
       segmentBlockReader <- SegmentBlock.read(SegmentBlock.Offset(0, reader.size.get.toInt), reader).map(_.createBlockReader(reader))
       footer <- SegmentBlock.readFooter(segmentBlockReader)
@@ -1395,7 +1435,7 @@ object CommonAssertions {
       hashIndex <- footer.hashIndexOffset.map(HashIndex.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
       binarySearchIndex <- footer.binarySearchIndexOffset.map(BinarySearchIndex.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
       bloomFilter <- footer.bloomFilterOffset.map(BloomFilter.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
-    } yield (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter)
+    } yield Blocks(footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter)
 
   def printGroupHierarchy(keyValues: Slice[KeyValue.ReadOnly], spaces: Int)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                             keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Unit =

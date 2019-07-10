@@ -39,10 +39,10 @@ class SegmentBlockSearcherSpec extends TestBase with MockFactory {
               )
           )
 
-        val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
-        hashIndex shouldBe defined
-        hashIndex.get.block.miss shouldBe 0
-        hashIndex.get.block.hit shouldBe keyValues.last.stats.segmentUniqueKeysCount
+        val blocks = getBlocks(keyValues).get
+        blocks.hashIndexReader shouldBe defined
+        blocks.hashIndexReader.get.block.miss shouldBe 0
+        blocks.hashIndexReader.get.block.hit shouldBe keyValues.last.stats.segmentUniqueKeysCount
 
         keyValues foreach {
           keyValue =>
@@ -50,10 +50,10 @@ class SegmentBlockSearcherSpec extends TestBase with MockFactory {
               key = keyValue.minKey,
               start = None,
               end = None,
-              hashIndexReader = hashIndex,
+              hashIndexReader = blocks.hashIndexReader,
               binarySearchIndexReader = null,
-              sortedIndexReader = sortedIndex,
-              valuesReaderReader = valuesReader,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReaderReader = blocks.valuesReader,
               hasRange = keyValues.last.stats.segmentHasRange
             ).get shouldBe keyValue
         }
@@ -66,10 +66,10 @@ class SegmentBlockSearcherSpec extends TestBase with MockFactory {
               key = key,
               start = None,
               end = None,
-              hashIndexReader = hashIndex,
+              hashIndexReader = blocks.hashIndexReader,
               binarySearchIndexReader = null,
-              sortedIndexReader = sortedIndex,
-              valuesReaderReader = valuesReader,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReaderReader = blocks.valuesReader,
               hasRange = keyValues.last.stats.segmentHasRange
             ).get shouldBe empty
         }

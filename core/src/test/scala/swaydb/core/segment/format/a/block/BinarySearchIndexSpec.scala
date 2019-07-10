@@ -205,14 +205,14 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
     val segment =
       SegmentBlock.write(keyValues, 0, randomCompressionsOrEmpty()).get
 
-    val (_, values, sortedIndex, _, binarySearchIndex, _) =
+    val blocks =
       readBlocks(segment).get
 
-    binarySearchIndex shouldBe defined
-    binarySearchIndex.get.block.isFullIndex shouldBe true
+    blocks.binarySearchIndexReader shouldBe defined
+    blocks.binarySearchIndexReader.get.block.isFullIndex shouldBe true
 
-    if (!sortedIndex.block.hasPrefixCompression)
-      binarySearchIndex.get.block.valuesCount shouldBe keyValues.size
+    if (!blocks.sortedIndexReader.block.hasPrefixCompression)
+      blocks.binarySearchIndexReader.get.block.valuesCount shouldBe keyValues.size
 
     "search key-values over binary search" in {
 
@@ -225,9 +225,9 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
               key = keyValue.minKey,
               start = eitherOne(None, previous),
               end = None,
-              binarySearchIndexReader = binarySearchIndex.get,
-              sortedIndexReader = sortedIndex,
-              valuesReader = values
+              binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReader = blocks.valuesReader
             ).get.get
 
           found shouldBe keyValue
@@ -245,9 +245,9 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
               key = key,
               start = None,
               end = None,
-              binarySearchIndexReader = binarySearchIndex.get,
-              sortedIndexReader = sortedIndex,
-              valuesReader = values
+              binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReader = blocks.valuesReader
             ).get
 
           keyValue match {
@@ -274,8 +274,8 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           SortedIndex.search(
             key = keyValue.minKey,
             startFrom = None,
-            indexReader = sortedIndex,
-            valuesReader = values
+            indexReader = blocks.sortedIndexReader,
+            valuesReader = blocks.valuesReader
           ).get
       }
     }
@@ -290,9 +290,9 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
               key = key,
               start = None,
               end = None,
-              binarySearchIndexReader = binarySearchIndex.get,
-              sortedIndexReader = sortedIndex,
-              valuesReader = values
+              binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReader = blocks.valuesReader
             ).get
 
           keyValue match {
@@ -319,8 +319,8 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           SortedIndex.search(
             key = keyValue.minKey,
             startFrom = None,
-            indexReader = sortedIndex,
-            valuesReader = values
+            indexReader = blocks.sortedIndexReader,
+            valuesReader = blocks.valuesReader
           ).get
       }
     }

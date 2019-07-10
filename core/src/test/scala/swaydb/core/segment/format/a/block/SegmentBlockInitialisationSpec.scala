@@ -57,8 +57,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 )
             )
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
-          binarySearchIndex shouldBe empty
+          val blocks = getBlocks(keyValues).get
+          blocks.binarySearchIndexReader shouldBe empty
         }
       }
 
@@ -83,8 +83,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   )
               )
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
-          binarySearchIndex shouldBe empty
+          val blocks = getBlocks(keyValues).get
+          blocks.binarySearchIndexReader shouldBe empty
         }
       }
     }
@@ -123,13 +123,13 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 )
             )
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
-          hashIndex shouldBe defined
-          hashIndex.get.block.hit shouldBe keyValues.size
-          hashIndex.get.block.miss shouldBe 0
+          val blocks = getBlocks(keyValues).get
+          blocks.hashIndexReader shouldBe defined
+          blocks.hashIndexReader.get.block.hit shouldBe keyValues.size
+          blocks.hashIndexReader.get.block.miss shouldBe 0
 
           if (keyValues.last.stats.segmentTotalNumberOfRanges > 0) {
-            binarySearchIndex shouldBe defined
+            blocks.binarySearchIndexReader shouldBe defined
 
             val expectedBinarySearchValues =
               keyValues
@@ -139,9 +139,9 @@ class SegmentBlockInitialisationSpec extends TestBase {
                     range.previous.forall(_.stats.thisKeyValuesAccessIndexOffset != range.stats.thisKeyValuesAccessIndexOffset)
                 }
 
-            binarySearchIndex.get.block.valuesCount shouldBe expectedBinarySearchValues
+            blocks.binarySearchIndexReader.get.block.valuesCount shouldBe expectedBinarySearchValues
           } else {
-            binarySearchIndex shouldBe empty
+            blocks.binarySearchIndexReader shouldBe empty
           }
         }
       }
@@ -181,19 +181,19 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 )
             )
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
-          hashIndex shouldBe defined
-          hashIndex.get.block.hit shouldBe keyValues.size
-          hashIndex.get.block.miss shouldBe 0
+          val blocks = getBlocks(keyValues).get
+          blocks.hashIndexReader shouldBe defined
+          blocks.hashIndexReader.get.block.hit shouldBe keyValues.size
+          blocks.hashIndexReader.get.block.miss shouldBe 0
 
-          binarySearchIndex shouldBe defined
+          blocks.binarySearchIndexReader shouldBe defined
           val expectedBinarySearchValuesCount =
             keyValues
               .count {
                 range =>
                   range.previous.forall(_.stats.thisKeyValuesAccessIndexOffset != range.stats.thisKeyValuesAccessIndexOffset)
               }
-          binarySearchIndex.get.block.valuesCount shouldBe expectedBinarySearchValuesCount
+          blocks.binarySearchIndexReader.get.block.valuesCount shouldBe expectedBinarySearchValuesCount
         }
       }
 
@@ -230,17 +230,17 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 )
             )
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
-          hashIndex shouldBe empty
+          val blocks = getBlocks(keyValues).get
+          blocks.hashIndexReader shouldBe empty
 
-          binarySearchIndex shouldBe defined
+          blocks.binarySearchIndexReader shouldBe defined
           val expectedBinarySearchValuesCount =
             keyValues
               .count {
                 range =>
                   range.previous.forall(_.stats.thisKeyValuesAccessIndexOffset != range.stats.thisKeyValuesAccessIndexOffset)
               }
-          binarySearchIndex.get.block.valuesCount shouldBe expectedBinarySearchValuesCount
+          blocks.binarySearchIndexReader.get.block.valuesCount shouldBe expectedBinarySearchValuesCount
         }
       }
     }
@@ -265,8 +265,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 )
             )
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
-          bloomFilter shouldBe empty
+          val blocks = getBlocks(keyValues).get
+          blocks.bloomFilterReader shouldBe empty
         }
       }
 
@@ -291,8 +291,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   )
               )
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
-          bloomFilter shouldBe empty
+          val blocks = getBlocks(keyValues).get
+          blocks.bloomFilterReader shouldBe empty
         }
       }
 
@@ -340,8 +340,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
 
           keyValues.last.stats.segmentHasRemoveRange shouldBe true
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
-          bloomFilter shouldBe empty
+          val blocks = getBlocks(keyValues).get
+          blocks.bloomFilterReader shouldBe empty
         }
       }
     }
@@ -379,8 +379,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 )
             )
 
-        val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
-        hashIndex shouldBe empty
+        val blocks = getBlocks(keyValues).get
+        blocks.hashIndexReader shouldBe empty
       }
     }
   }

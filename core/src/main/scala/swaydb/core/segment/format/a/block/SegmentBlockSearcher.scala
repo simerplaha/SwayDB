@@ -31,8 +31,8 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) flatMap {
-          case someLower @ Some(lower) =>
-            if (binarySearchIndexReader.block.isFullIndex || lower.nextIndexSize == 0)
+          case someLower @ Some(_) =>
+            if (binarySearchIndexReader.block.isFullIndex)
               IO.Success(someLower)
             else
               SortedIndex.searchLower(
@@ -67,62 +67,79 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
                    end: Option[Persistent],
                    binarySearchReader: Option[BlockReader[BinarySearchIndex]],
                    sortedIndexReader: BlockReader[SortedIndex],
-                   valuesReader: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
+                   valuesReader: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     if (start.isEmpty)
-      IO.none
+      binarySearchHigher(
+        key = key,
+        start = start,
+        end = end,
+        binarySearchReader = binarySearchReader,
+        sortedIndexReader = sortedIndexReader,
+        valuesReader = valuesReader
+      )
     else
       SortedIndex.searchHigherSeekOne(
         key = key,
         startFrom = start,
         indexReader = sortedIndexReader,
         valuesReader = valuesReader
-      )
-  } flatMap {
-    found =>
-      if (found.isDefined)
-        IO.Success(found)
-      else
-        binarySearchReader map {
-          binarySearchIndexReader =>
-            BinarySearchIndex.searchHigher(
+      ) flatMap {
+        found =>
+          if (found.isDefined)
+            IO.Success(found)
+          else
+            binarySearchHigher(
               key = key,
               start = start,
               end = end,
-              binarySearchIndexReader = binarySearchIndexReader,
+              binarySearchReader = binarySearchReader,
               sortedIndexReader = sortedIndexReader,
               valuesReader = valuesReader
-            ) flatMap {
-              case someHigher @ Some(higher) =>
-                if (binarySearchIndexReader.block.isFullIndex || higher.nextIndexSize == 0)
-                  IO.Success(someHigher)
-                else
-                  SortedIndex.searchHigher(
-                    key = key,
-                    startFrom = someHigher,
-                    sortedIndexReader = sortedIndexReader,
-                    valuesReader = valuesReader
-                  )
+            )
+      }
 
-              case None =>
-                if (binarySearchIndexReader.block.isFullIndex)
-                  IO.none
-                else
-                  SortedIndex.searchHigher(
-                    key = key,
-                    startFrom = start,
-                    sortedIndexReader = sortedIndexReader,
-                    valuesReader = valuesReader
-                  )
-            }
-        } getOrElse {
-          SortedIndex.searchHigher(
+  def binarySearchHigher(key: Slice[Byte],
+                         start: Option[Persistent],
+                         end: Option[Persistent],
+                         binarySearchReader: Option[BlockReader[BinarySearchIndex]],
+                         sortedIndexReader: BlockReader[SortedIndex],
+                         valuesReader: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    binarySearchReader map {
+      binarySearchIndexReader =>
+        if (binarySearchIndexReader.block.isFullIndex)
+          BinarySearchIndex.searchHigher(
             key = key,
-            startFrom = start,
+            start = start,
+            end = end,
+            binarySearchIndexReader = binarySearchIndexReader,
             sortedIndexReader = sortedIndexReader,
             valuesReader = valuesReader
           )
-        }
-  }
+        else
+          BinarySearchIndex.searchLower(
+            key = key,
+            start = start,
+            end = end,
+            binarySearchIndexReader = binarySearchIndexReader,
+            sortedIndexReader = sortedIndexReader,
+            valuesReader = valuesReader
+          ) flatMap {
+            someLowerMayBe =>
+              SortedIndex.searchHigher(
+                key = key,
+                startFrom = someLowerMayBe orElse start,
+                sortedIndexReader = sortedIndexReader,
+                valuesReader = valuesReader
+              )
+          }
+    } getOrElse {
+      SortedIndex.searchHigher(
+        key = key,
+        startFrom = start,
+        sortedIndexReader = sortedIndexReader,
+        valuesReader = valuesReader
+      )
+    }
 
   def search(key: Slice[Byte],
              start: Option[Persistent],

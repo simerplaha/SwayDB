@@ -484,9 +484,9 @@ private[core] object SegmentBlock {
       result =>
         //ensure that all the slices are full.
         if (!sortedIndex.bytes.isFull)
-          IO.Failure(new Exception(s"indexSlice is not full actual: ${sortedIndex.bytes.size} - expected: ${sortedIndex.bytes.size}"))
+          IO.Failure(new Exception(s"indexSlice is not full actual: ${sortedIndex.bytes.size} - expected: ${sortedIndex.bytes.allocatedSize}"))
         else if (values.exists(!_.bytes.isFull))
-          IO.Failure(new Exception(s"valuesSlice is not full actual: ${values.get.bytes.size} - expected: ${values.get.bytes.size}"))
+          IO.Failure(new Exception(s"valuesSlice is not full actual: ${values.get.bytes.size} - expected: ${values.get.bytes.allocatedSize}"))
         else
           IO.Success(result)
     }

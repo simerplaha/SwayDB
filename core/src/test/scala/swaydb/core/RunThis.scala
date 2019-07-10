@@ -77,19 +77,18 @@ object RunThis extends Eventually {
     def time = int
   }
 
-  def runThis(times: Int)(f: => Unit): Unit =
+  def runThis(times: Int, log: Boolean = false)(f: => Unit): Unit =
     (1 to times) foreach {
       i =>
-        //        println(s"Iteration number: $i")
+        if (log) println(s"Iteration number: $i")
         f
     }
 
-  def runThisParallel(times: Int)(f: => Unit): Unit =
+  def runThisParallel(times: Int, log: Boolean = false)(f: => Unit): Unit =
     (1 to times).par foreach {
       i =>
-        //        println(s"Iteration number: $i")
+        if (log) println(s"Iteration number: $i")
         f
-      //        println(s"Iteration done  : $i")
     }
 
   def sleep(time: FiniteDuration): Unit = {
