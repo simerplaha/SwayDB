@@ -28,6 +28,7 @@ import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -314,10 +315,54 @@ private[core] object SortedIndex {
         }
     }
 
-  def find(matcher: KeyMatcher,
-           startFrom: Option[Persistent],
-           indexReader: BlockReader[SortedIndex],
-           valuesReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+  def search(key: Slice[Byte],
+             startFrom: Option[Persistent],
+             indexReader: BlockReader[SortedIndex],
+             valuesReader: Option[BlockReader[Values]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    search(
+      matcher = KeyMatcher.Get(key),
+      startFrom = startFrom,
+      indexReader = indexReader,
+      valuesReader = valuesReader
+    )
+
+  def searchHigher(key: Slice[Byte],
+                   startFrom: Option[Persistent],
+                   indexReader: BlockReader[SortedIndex],
+                   valuesReader: Option[BlockReader[Values]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    search(
+      matcher = KeyMatcher.Higher(key),
+      startFrom = startFrom,
+      indexReader = indexReader,
+      valuesReader = valuesReader
+    )
+
+  def searchHigherSeekOne(key: Slice[Byte],
+                          startFrom: Option[Persistent],
+                          indexReader: BlockReader[SortedIndex],
+                          valuesReader: Option[BlockReader[Values]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    search(
+      matcher = KeyMatcher.Higher.MatchOnly(key),
+      startFrom = startFrom,
+      indexReader = indexReader,
+      valuesReader = valuesReader
+    )
+
+  def searchLower(key: Slice[Byte],
+                  startFrom: Option[Persistent],
+                  indexReader: BlockReader[SortedIndex],
+                  valuesReader: Option[BlockReader[Values]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    search(
+      matcher = KeyMatcher.Lower(key),
+      startFrom = startFrom,
+      indexReader = indexReader,
+      valuesReader = valuesReader
+    )
+
+  private def search(matcher: KeyMatcher,
+                     startFrom: Option[Persistent],
+                     indexReader: BlockReader[SortedIndex],
+                     valuesReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
     startFrom match {
       case Some(startFrom) =>
         //if startFrom is the last index entry, return None.
@@ -330,7 +375,7 @@ private[core] object SortedIndex {
             valueReader = valuesReader
           ) flatMap {
             keyValue =>
-              matchOrNextAndGet(
+              matchOrNextAndPersistent(
                 previous = startFrom,
                 next = Some(keyValue),
                 matcher = matcher,
@@ -347,7 +392,7 @@ private[core] object SortedIndex {
           valueReader = valuesReader
         ) flatMap {
           keyValue =>
-            matchOrNextAndGet(
+            matchOrNextAndPersistent(
               previous = keyValue,
               next = None,
               matcher = matcher,
@@ -357,17 +402,17 @@ private[core] object SortedIndex {
         }
     }
 
-  def findAndMatchOrNextPersistent(matcher: KeyMatcher,
-                                   fromOffset: Int,
-                                   indexReader: BlockReader[SortedIndex],
-                                   valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+  private def findAndMatchOrNextPersistent(matcher: KeyMatcher,
+                                           fromOffset: Int,
+                                           indexReader: BlockReader[SortedIndex],
+                                           valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
     readNextKeyValue(
       fromPosition = fromOffset,
       indexReader = indexReader,
       valueReader = valueReader
     ) flatMap {
       persistent =>
-        matchOrNextAndGet(
+        matchOrNextAndPersistent(
           previous = persistent,
           next = None,
           matcher = matcher,
@@ -406,7 +451,7 @@ private[core] object SortedIndex {
       next = next,
       hasMore = hasMore(next getOrElse previous)
     ) match {
-      case MatchResult.Behind =>
+      case MatchResult.BehindFetchNext =>
         val readFrom = next getOrElse previous
         readNextKeyValue(
           previous = readFrom,
@@ -426,16 +471,16 @@ private[core] object SortedIndex {
             IO.Failure(exception)
         }
 
-      case result @ (MatchResult.Matched(_) | MatchResult.BehindStopped | MatchResult.AheadOrNoneOrEnd) =>
+      case result @ (MatchResult.Matched(_, _, _) | MatchResult.BehindStopped | MatchResult.AheadOrNoneOrEnd) =>
         result.asIO
     }
 
   @tailrec
-  def matchOrNextAndGet(previous: Persistent,
-                        next: Option[Persistent],
-                        matcher: KeyMatcher,
-                        indexReader: BlockReader[SortedIndex],
-                        valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+  def matchOrNextAndPersistent(previous: Persistent,
+                               next: Option[Persistent],
+                               matcher: KeyMatcher,
+                               indexReader: BlockReader[SortedIndex],
+                               valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
     matchOrNext(
       previous = previous,
       next = next,
@@ -443,8 +488,8 @@ private[core] object SortedIndex {
       indexReader = indexReader,
       valueReader = valueReader
     ) match {
-      case IO.Success(MatchResult.Behind) =>
-        matchOrNextAndGet(
+      case IO.Success(MatchResult.BehindFetchNext) =>
+        matchOrNextAndPersistent(
           previous = previous,
           next = next,
           matcher = matcher,
@@ -452,7 +497,7 @@ private[core] object SortedIndex {
           valueReader = valueReader
         )
 
-      case IO.Success(MatchResult.Matched(keyValue)) =>
+      case IO.Success(MatchResult.Matched(_, keyValue, _)) =>
         IO.Success(Some(keyValue))
 
       case IO.Success(MatchResult.AheadOrNoneOrEnd | MatchResult.BehindStopped) =>

@@ -43,12 +43,8 @@ private[core] object SegmentSearcher extends LazyLogging {
             values: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     binarySearch map {
       binarySearchIndex =>
-        BinarySearchIndex.search(
-          matcher =
-            if (sortedIndex.block.hasPrefixCompression)
-              KeyMatcher.Lower.WhilePrefixCompressed(key)
-            else
-              KeyMatcher.Lower.MatchOnly(key),
+        BinarySearchIndex.searchLower(
+          key = key,
           start = start,
           end = end,
           binarySearchIndex = binarySearchIndex,
@@ -59,19 +55,19 @@ private[core] object SegmentSearcher extends LazyLogging {
             IO.Success(some)
 
           case None =>
-            if (binarySearchIndex.block.isFullBinarySearchIndex)
+            if (binarySearchIndex.block.isFullIndex)
               IO.none
             else
-              SortedIndex.find(
-                matcher = KeyMatcher.Lower(key),
+              SortedIndex.searchLower(
+                key = key,
                 startFrom = start,
                 indexReader = sortedIndex,
                 valuesReader = values
               )
         }
     } getOrElse {
-      SortedIndex.find(
-        matcher = KeyMatcher.Lower(key),
+      SortedIndex.searchLower(
+        key = key,
         startFrom = start,
         indexReader = sortedIndex,
         valuesReader = values
@@ -87,8 +83,8 @@ private[core] object SegmentSearcher extends LazyLogging {
     if (start.isEmpty)
       IO.none
     else
-      SortedIndex.find(
-        matcher = KeyMatcher.Higher.MatchOnly(key),
+      SortedIndex.searchHigherSeekOne(
+        key = key,
         startFrom = start,
         indexReader = sortedIndex,
         valuesReader = values
@@ -100,12 +96,8 @@ private[core] object SegmentSearcher extends LazyLogging {
       else
         binarySearch map {
           binarySearchIndex =>
-            BinarySearchIndex.search(
-              matcher =
-                if (sortedIndex.block.hasPrefixCompression)
-                  KeyMatcher.Higher.WhilePrefixCompressed(key)
-                else
-                  KeyMatcher.Higher.MatchOnly(key),
+            BinarySearchIndex.searchHigher(
+              key = key,
               start = start,
               end = end,
               binarySearchIndex = binarySearchIndex,
@@ -116,19 +108,19 @@ private[core] object SegmentSearcher extends LazyLogging {
                 IO.Success(some)
 
               case None =>
-                if (binarySearchIndex.block.isFullBinarySearchIndex)
+                if (binarySearchIndex.block.isFullIndex)
                   IO.none
                 else
-                  SortedIndex.find(
-                    matcher = KeyMatcher.Higher(key),
+                  SortedIndex.searchHigher(
+                    key = key,
                     startFrom = start,
                     indexReader = sortedIndex,
                     valuesReader = values
                   )
             }
         } getOrElse {
-          SortedIndex.find(
-            matcher = KeyMatcher.Higher(key),
+          SortedIndex.searchHigher(
+            key = key,
             startFrom = start,
             indexReader = sortedIndex,
             valuesReader = values
@@ -193,11 +185,7 @@ private[core] object SegmentSearcher extends LazyLogging {
     binarySearchIndex map {
       binarySearchIndex =>
         BinarySearchIndex.search(
-          matcher =
-            if (sortedIndex.block.hasPrefixCompression)
-              KeyMatcher.Get.WhilePrefixCompressed(key)
-            else
-              KeyMatcher.Get.MatchOnly(key),
+          key = key,
           start = start,
           end = end,
           binarySearchIndex = binarySearchIndex,
@@ -208,19 +196,19 @@ private[core] object SegmentSearcher extends LazyLogging {
             IO.Success(some)
 
           case None =>
-            if (binarySearchIndex.block.isFullBinarySearchIndex)
+            if (binarySearchIndex.block.isFullIndex)
               IO.none
             else
-              SortedIndex.find(
-                matcher = KeyMatcher.Get(key),
+              SortedIndex.search(
+                key = key,
                 startFrom = start,
                 indexReader = sortedIndex,
                 valuesReader = valuesReader
               )
         }
     } getOrElse {
-      SortedIndex.find(
-        matcher = KeyMatcher.Get(key),
+      SortedIndex.search(
+        key = key,
         startFrom = start,
         indexReader = sortedIndex,
         valuesReader = valuesReader

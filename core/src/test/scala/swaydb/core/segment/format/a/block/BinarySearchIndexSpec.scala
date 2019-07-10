@@ -1,10 +1,30 @@
+/*
+ * Copyright (c) 2019 Simer Plaha (@simerplaha)
+ *
+ * This file is a part of SwayDB.
+ *
+ * SwayDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * SwayDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
+ */
 package swaydb.core.segment.format.a.block
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.CommonAssertions.eitherOne
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TestData.{randomBytesSlice, randomCompression, randomIntMax}
-import swaydb.core.segment.format.a.MatchResult
+import swaydb.core.TestData._
+import swaydb.core.data.KeyValue.WriteOnly
+import swaydb.core.data.Persistent
+import swaydb.core.segment.format.a.{KeyMatcher, MatchResult}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
@@ -35,11 +55,11 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
       def matcher(valueToFind: Int)(valueFound: Int): IO[MatchResult] =
         IO {
           if (valueToFind == valueFound)
-            MatchResult.Matched(null)
+            MatchResult.Matched(None, null, None)
           else if (valueToFind < valueFound)
             MatchResult.AheadOrNoneOrEnd
           else
-            MatchResult.Behind
+            MatchResult.BehindFetchNext
         }
 
       val alteredIndex =
@@ -51,7 +71,8 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
             reader = alteredIndex.createBlockReader(SegmentBlock.createUnblockedReader(alteredBytes).get),
             start = None,
             end = None,
-            assertValue = matcher(valueToFind = value)
+            higherOrLower = None,
+            matchValue = matcher(valueToFind = value)
           ).get shouldBe defined
       }
 
@@ -64,7 +85,8 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
             reader = alteredIndex.createBlockReader(SegmentBlock.createUnblockedReader(alteredBytes).get),
             start = None,
             end = None,
-            assertValue = matcher(valueToFind = i)
+            higherOrLower = None,
+            matchValue = matcher(valueToFind = i)
           ).get shouldBe empty
       }
     }
@@ -162,6 +184,144 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           values = values,
           unAlteredIndex = index
         )
+      }
+    }
+  }
+
+  "fully indexed search" should {
+    val keyValues =
+      randomizedKeyValues(
+        count = 1000,
+        addPut = true
+      ).updateStats(
+        binarySearchIndexConfig =
+          BinarySearchIndex.Config.random.copy(
+            enabled = true,
+            minimumNumberOfKeys = 0,
+            fullIndex = true
+          )
+      )
+
+    val segment =
+      SegmentBlock.write(keyValues, 0, randomCompressionsOrEmpty()).get
+
+    val (_, values, sortedIndex, _, binarySearchIndex, _) =
+      readBlocks(segment).get
+
+    binarySearchIndex shouldBe defined
+    binarySearchIndex.get.block.isFullIndex shouldBe true
+
+    if (!sortedIndex.block.hasPrefixCompression)
+      binarySearchIndex.get.block.valuesCount shouldBe keyValues.size
+
+    "search key-values over binary search" in {
+
+      //get
+      keyValues.foldLeft(Option.empty[Persistent]) {
+        case (previous, keyValue) =>
+
+          val found =
+            BinarySearchIndex.search(
+              key = keyValue.minKey,
+              start = eitherOne(None, previous),
+              end = None,
+              binarySearchIndex = binarySearchIndex.get,
+              sortedIndex = sortedIndex,
+              values = values
+            ).get.get
+
+          found shouldBe keyValue
+          Some(found)
+      }
+    }
+
+    "search higher key-values over binary search" in {
+      //test higher in reverse order
+      keyValues.foldRight(Option.empty[Persistent]) {
+        case (keyValue, expectedHigher) =>
+
+          def getHigher(key: Slice[Byte]) =
+            BinarySearchIndex.searchHigher(
+              key = key,
+              start = None,
+              end = None,
+              binarySearchIndex = binarySearchIndex.get,
+              sortedIndex = sortedIndex,
+              values = values
+            ).get
+
+          keyValue match {
+            case fixed: WriteOnly.Fixed =>
+              val actualHigher = getHigher(fixed.key)
+              actualHigher.map(_.key) shouldBe expectedHigher.map(_.key)
+
+            case range: WriteOnly.Range =>
+              (range.fromKey.readInt() until range.toKey.readInt()) foreach {
+                key =>
+                  val actualHigher = getHigher(key)
+                  actualHigher shouldBe range
+              }
+
+            case group: WriteOnly.Group =>
+              (group.minKey.readInt() until group.maxKey.maxKey.readInt()) foreach {
+                key =>
+                  val actualHigher = getHigher(key)
+                  actualHigher.map(_.key) should contain(group.minKey)
+              }
+          }
+
+          //get the persistent key-value for the next higher assert.
+          SortedIndex.search(
+            matcher = KeyMatcher.Get(keyValue.minKey),
+            startFrom = None,
+            indexReader = sortedIndex,
+            valuesReader = values
+          ).get
+      }
+    }
+
+    "search lower key-values over binary search" in {
+      //test higher in reverse order
+      keyValues.foldLeft(Option.empty[Persistent]) {
+        case (expectedLower, keyValue) =>
+
+          def getLower(key: Slice[Byte]) =
+            BinarySearchIndex.searchLower(
+              key = key,
+              start = None,
+              end = None,
+              binarySearchIndex = binarySearchIndex.get,
+              sortedIndex = sortedIndex,
+              values = values
+            ).get
+
+          keyValue match {
+            case fixed: WriteOnly.Fixed =>
+              val actualLower = getLower(fixed.key)
+              actualLower.map(_.key) shouldBe expectedLower.map(_.key)
+
+            case range: WriteOnly.Range =>
+              (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
+                key =>
+                  val actualLower = getLower(key)
+                  actualLower shouldBe range
+              }
+
+            case group: WriteOnly.Group =>
+              (group.minKey.readInt() + 1 to group.maxKey.maxKey.readInt()) foreach {
+                key =>
+                  val actualLower = getLower(key)
+                  actualLower.map(_.key) should contain(group.minKey)
+              }
+          }
+
+          //get the persistent key-value for the next higher assert.
+          SortedIndex.search(
+            matcher = KeyMatcher.Get(keyValue.minKey),
+            startFrom = None,
+            indexReader = sortedIndex,
+            valuesReader = values
+          ).get
       }
     }
   }

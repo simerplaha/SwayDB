@@ -30,11 +30,11 @@ sealed trait MatchResult {
 }
 
 object MatchResult {
-  case class Matched(result: Persistent) extends MatchResult {
+  case class Matched(previous: Option[Persistent], result: Persistent, next: Option[Persistent]) extends MatchResult {
     override def asIO: IO.Success[MatchResult] =
       IO.Success(this)
   }
-  case object Behind extends MatchResult {
+  case object BehindFetchNext extends MatchResult {
     val asIO = IO.Success(this)
   }
   case object BehindStopped extends MatchResult {
@@ -133,10 +133,10 @@ private[core] object KeyMatcher {
         case fixed: Persistent.Fixed =>
           val matchResult = keyOrder.compare(key, fixed.key)
           if (matchResult == 0)
-            Matched(fixed)
+            Matched(next map (_ => previous), fixed, None)
           else if (matchResult > 0 && hasMore)
             if (shouldFetchNext(next))
-              Behind
+              BehindFetchNext
             else
               BehindStopped
           else
@@ -146,10 +146,10 @@ private[core] object KeyMatcher {
           val fromKeyMatch = keyOrder.compare(key, group.minKey)
           val toKeyMatch: Int = keyOrder.compare(key, group.maxKey.maxKey)
           if (fromKeyMatch >= 0 && ((group.maxKey.inclusive && toKeyMatch <= 0) || (!group.maxKey.inclusive && toKeyMatch < 0))) //is within the range
-            Matched(group)
+            Matched(next map (_ => previous), group, None)
           else if (toKeyMatch >= 0 && hasMore)
             if (shouldFetchNext(next))
-              Behind
+              BehindFetchNext
             else
               BehindStopped
           else
@@ -159,10 +159,10 @@ private[core] object KeyMatcher {
           val fromKeyMatch = keyOrder.compare(key, range.fromKey)
           val toKeyMatch = keyOrder.compare(key, range.toKey)
           if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
-            Matched(range)
+            Matched(next map (_ => previous), range, None)
           else if (toKeyMatch >= 0 && hasMore)
             if (shouldFetchNext(next))
-              Behind
+              BehindFetchNext
             else
               BehindStopped
           else
@@ -234,26 +234,26 @@ private[core] object KeyMatcher {
           val nextCompare = keyOrder.compare(next.key, key)
           if (nextCompare >= 0)
             if (keyOrder.compare(previous.key, key) < 0)
-              Matched(previous)
+              Matched(None, previous, someNext)
             else
               AheadOrNoneOrEnd
           else if (nextCompare < 0)
             if (hasMore)
               next match {
                 case range: Persistent.Range if keyOrder.compare(key, range.toKey) <= 0 =>
-                  Matched(next)
+                  Matched(Some(previous), next, None)
 
                 case group: Persistent.Group if keyOrder.compare(key, group.minKey) > 0 && keyOrder.compare(key, group.maxKey.maxKey) <= 0 =>
-                  Matched(next)
+                  Matched(Some(previous), next, None)
 
                 case _ =>
                   if (shouldFetchNext(someNext))
-                    Behind
+                    BehindFetchNext
                   else
                     BehindStopped
               }
             else
-              Matched(next)
+              Matched(Some(previous), next, None)
           else
             AheadOrNoneOrEnd
 
@@ -265,19 +265,19 @@ private[core] object KeyMatcher {
             if (hasMore)
               previous match {
                 case range: Persistent.Range if keyOrder.compare(key, range.toKey) <= 0 =>
-                  Matched(previous)
+                  Matched(None, previous, next)
 
                 case group: Persistent.Group if keyOrder.compare(key, group.minKey) > 0 && keyOrder.compare(key, group.maxKey.maxKey) <= 0 =>
-                  Matched(previous)
+                  Matched(None, previous, next)
 
                 case _ =>
                   if (shouldFetchNext(None))
-                    Behind
+                    BehindFetchNext
                   else
-                    BehindStopped
+                    Matched(None, previous, next) //if fetching next is not allowed then lower is the currently known lower.
               }
             else
-              Matched(previous)
+              Matched(None, previous, next)
           else
             AheadOrNoneOrEnd
       }
@@ -345,19 +345,19 @@ private[core] object KeyMatcher {
       val keyValue = next getOrElse previous
       val nextCompare = keyOrder.compare(keyValue.key, key)
       if (nextCompare > 0)
-        Matched(keyValue)
+        Matched(next map (_ => previous), keyValue, None)
       else if (nextCompare <= 0)
         keyValue match {
           case range: Persistent.Range if keyOrder.compare(key, range.toKey) < 0 =>
-            Matched(keyValue)
+            Matched(next map (_ => previous), keyValue, None)
 
           case group: Persistent.Group if keyOrder.compare(key, group.maxKey.maxKey) < 0 =>
-            Matched(keyValue)
+            Matched(next map (_ => previous), keyValue, None)
 
           case _ =>
             if (hasMore)
               if (shouldFetchNext(next))
-                Behind
+                BehindFetchNext
               else
                 BehindStopped
             else

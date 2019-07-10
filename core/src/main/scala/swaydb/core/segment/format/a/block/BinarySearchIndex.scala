@@ -23,8 +23,9 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
-import swaydb.core.util.Bytes
+import swaydb.core.util.{Bytes, Options}
 import swaydb.data.IO
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -228,14 +229,14 @@ object BinarySearchIndex {
       result <- Block.readHeader(offset = offset, reader = reader)
       valuesCount <- result.headerReader.readIntUnsigned()
       bytesPerValue <- result.headerReader.readInt()
-      isFullBinarySearchIndex <- result.headerReader.readBoolean()
+      isFullIndex <- result.headerReader.readBoolean()
     } yield
       BinarySearchIndex(
         offset = offset,
         valuesCount = valuesCount,
         headerSize = result.headerSize,
         bytesPerValue = bytesPerValue,
-        isFullBinarySearchIndex = isFullBinarySearchIndex,
+        isFullIndex = isFullIndex,
         compressionInfo = result.compressionInfo
       )
 
@@ -252,7 +253,7 @@ object BinarySearchIndex {
           state.bytes addIntUnsigned value
           val missedBytes = state.bytesPerValue - (state.bytes.currentWritePosition - writePosition)
           if (missedBytes > 0)
-            state.bytes moveWritePosition (state.bytes.currentWritePosition + missedBytes)
+            state.bytes moveWritePosition (state.bytes.currentWritePosition + missedBytes) //fill in the missing bytes to maintain fixed size for each entry.
         } else {
           state.bytes addInt value
         }
@@ -264,15 +265,19 @@ object BinarySearchIndex {
   def search(reader: BlockReader[BinarySearchIndex],
              start: Option[Int],
              end: Option[Int],
-             assertValue: Int => IO[MatchResult]) = {
+             higherOrLower: Option[Boolean],
+             matchValue: Int => IO[MatchResult]) = {
 
     @tailrec
-    def hop(start: Int, end: Int): IO[Option[Persistent]] = {
+    def hop(start: Int, end: Int, lastKnown: Option[Persistent]): IO[Option[Persistent]] = {
       val mid = start + (end - start) / 2
 
       val valueOffset = mid * reader.block.bytesPerValue
       if (start > end)
-        IO.none
+        if (lastKnown.isDefined)
+          IO.Success(lastKnown)
+        else
+          IO.none
       else {
         val value =
           if (reader.block.isVarInt)
@@ -280,17 +285,34 @@ object BinarySearchIndex {
           else
             reader.moveTo(valueOffset).readInt()
 
-        value.flatMap(assertValue) match {
+        value.flatMap(matchValue) match {
           case IO.Success(value) =>
             value match {
-              case MatchResult.Matched(result) =>
-                IO.Success(Some(result))
+              case matched: MatchResult.Matched =>
+                higherOrLower match {
+                  case None =>
+                    IO.Success(Some(matched.result))
 
-              case MatchResult.Behind | MatchResult.BehindStopped =>
-                hop(start = mid + 1, end = end)
+                  case Some(higher) =>
+                    if (higher) {
+                      if (matched.previous.isDefined)
+                        IO.Success(Some(matched.result))
+                      else
+                        hop(start = start, end = mid - 1, lastKnown = Some(matched.result))
+                    } else {
+                      //is lower
+                      if (matched.next.isDefined)
+                        IO.Success(Some(matched.result))
+                      else
+                        hop(start = mid + 1, end = end, lastKnown = Some(matched.result))
+                    }
+                }
+
+              case MatchResult.BehindFetchNext | MatchResult.BehindStopped =>
+                hop(start = mid + 1, end = end, lastKnown = lastKnown)
 
               case MatchResult.AheadOrNoneOrEnd =>
-                hop(start = start, end = mid - 1)
+                hop(start = start, end = mid - 1, lastKnown = lastKnown)
             }
           case IO.Failure(error) =>
             IO.Failure(error)
@@ -298,20 +320,55 @@ object BinarySearchIndex {
       }
     }
 
-    hop(start = start.getOrElse(0), end = end.getOrElse(reader.block.valuesCount - 1))
+    hop(start = start.getOrElse(0), end = end.getOrElse(reader.block.valuesCount - 1), None)
   }
 
-  def search(matcher: KeyMatcher.Bounded,
-             start: Option[Persistent],
-             end: Option[Persistent],
-             binarySearchIndex: BlockReader[BinarySearchIndex],
-             sortedIndex: BlockReader[SortedIndex],
-             values: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+  private def search(key: Slice[Byte],
+                     higherOrLower: Option[Boolean],
+                     start: Option[Persistent],
+                     end: Option[Persistent],
+                     binarySearchIndex: BlockReader[BinarySearchIndex],
+                     sortedIndex: BlockReader[SortedIndex],
+                     values: Option[BlockReader[Values]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
+    val matcher =
+      higherOrLower map {
+        higher =>
+          if (higher)
+            if (sortedIndex.block.hasPrefixCompression)
+              KeyMatcher.Higher.WhilePrefixCompressed(key)
+            else
+              KeyMatcher.Higher.MatchOnly(key)
+          else if (sortedIndex.block.hasPrefixCompression)
+            KeyMatcher.Lower.WhilePrefixCompressed(key)
+          else
+            KeyMatcher.Lower.MatchOnly(key)
+      } getOrElse {
+        if (sortedIndex.block.hasPrefixCompression)
+          KeyMatcher.Get.WhilePrefixCompressed(key)
+        else
+          KeyMatcher.Get.MatchOnly(key)
+      }
+
     search(
       reader = binarySearchIndex,
-      start = start.map(_.accessPosition),
-      end = end.map(_.accessPosition),
-      assertValue =
+      higherOrLower = higherOrLower,
+      start =
+        start flatMap {
+          keyValue =>
+            if (keyValue.accessPosition <= 0)
+              None
+            else
+              Some(keyValue.accessPosition - 1)
+        },
+      end =
+        end flatMap {
+          keyValue =>
+            if (keyValue.accessPosition <= 0)
+              None
+            else
+              Some(keyValue.accessPosition - 1)
+        },
+      matchValue =
         sortedIndexOffsetValue =>
           SortedIndex.findAndMatchOrNextMatch(
             matcher = matcher,
@@ -320,13 +377,62 @@ object BinarySearchIndex {
             values = values
           )
     )
+  }
+
+  def search(key: Slice[Byte],
+             start: Option[Persistent],
+             end: Option[Persistent],
+             binarySearchIndex: BlockReader[BinarySearchIndex],
+             sortedIndex: BlockReader[SortedIndex],
+             values: Option[BlockReader[Values]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    search(
+      key = key,
+      higherOrLower = None,
+      start = start,
+      end = end,
+      binarySearchIndex = binarySearchIndex,
+      sortedIndex = sortedIndex,
+      values = values
+    )
+
+  def searchHigher(key: Slice[Byte],
+                   start: Option[Persistent],
+                   end: Option[Persistent],
+                   binarySearchIndex: BlockReader[BinarySearchIndex],
+                   sortedIndex: BlockReader[SortedIndex],
+                   values: Option[BlockReader[Values]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    search(
+      key = key,
+      higherOrLower = Options.`true`,
+      start = start,
+      end = end,
+      binarySearchIndex = binarySearchIndex,
+      sortedIndex = sortedIndex,
+      values = values
+    )
+
+  def searchLower(key: Slice[Byte],
+                  start: Option[Persistent],
+                  end: Option[Persistent],
+                  binarySearchIndex: BlockReader[BinarySearchIndex],
+                  sortedIndex: BlockReader[SortedIndex],
+                  values: Option[BlockReader[Values]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    search(
+      key = key,
+      higherOrLower = Options.`false`,
+      start = start,
+      end = end,
+      binarySearchIndex = binarySearchIndex,
+      sortedIndex = sortedIndex,
+      values = values
+    )
 }
 
 case class BinarySearchIndex(offset: BinarySearchIndex.Offset,
                              valuesCount: Int,
                              headerSize: Int,
                              bytesPerValue: Int,
-                             isFullBinarySearchIndex: Boolean,
+                             isFullIndex: Boolean,
                              compressionInfo: Option[Block.CompressionInfo]) extends Block {
   val isVarInt: Boolean =
     BinarySearchIndex.isVarInt(bytesPerValue)
