@@ -99,7 +99,8 @@ object DefaultPersistentConfig {
         randomKeyIndex =
           RandomKeyIndex.Enable(
             tries = 5,
-            minimumNumberOfKeys = 20,
+            minimumNumberOfKeys = 2,
+            minimumNumberOfHits = 2,
             allocateSpace = _.requiredSpace * 2,
             cacheOnAccess = false,
             compression = Seq.empty
@@ -156,7 +157,8 @@ object DefaultPersistentConfig {
         randomKeyIndex =
           RandomKeyIndex.Enable(
             tries = 5,
-            minimumNumberOfKeys = 20,
+            minimumNumberOfKeys = 2,
+            minimumNumberOfHits = 2,
             allocateSpace = _.requiredSpace * 2,
             cacheOnAccess = false,
             compression = Seq.empty
@@ -213,7 +215,8 @@ object DefaultPersistentConfig {
         randomKeyIndex =
           RandomKeyIndex.Enable(
             tries = 5,
-            minimumNumberOfKeys = 20,
+            minimumNumberOfKeys = 2,
+            minimumNumberOfHits = 2,
             allocateSpace = _.requiredSpace * 2,
             cacheOnAccess = false,
             compression = Seq.empty
@@ -270,7 +273,8 @@ object DefaultPersistentConfig {
         randomKeyIndex =
           RandomKeyIndex.Enable(
             tries = 5,
-            minimumNumberOfKeys = 20,
+            minimumNumberOfKeys = 2,
+            minimumNumberOfHits = 2,
             allocateSpace = _.requiredSpace * 2,
             cacheOnAccess = false,
             compression = Seq.empty
@@ -327,7 +331,8 @@ object DefaultPersistentConfig {
         randomKeyIndex =
           RandomKeyIndex.Enable(
             tries = 5,
-            minimumNumberOfKeys = 20,
+            minimumNumberOfKeys = 2,
+            minimumNumberOfHits = 2,
             allocateSpace = _.requiredSpace * 2,
             cacheOnAccess = false,
             compression = Seq.empty
@@ -386,7 +391,8 @@ object DefaultPersistentConfig {
         randomKeyIndex =
           RandomKeyIndex.Enable(
             tries = 5,
-            minimumNumberOfKeys = 20,
+            minimumNumberOfKeys = 2,
+            minimumNumberOfHits = 2,
             allocateSpace = _.requiredSpace * 2,
             cacheOnAccess = false,
             compression = Seq.empty

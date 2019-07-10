@@ -225,7 +225,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
               key = keyValue.minKey,
               start = eitherOne(None, previous),
               end = None,
-              binarySearchIndex = binarySearchIndex.get,
+              binarySearchIndexReader = binarySearchIndex.get,
               sortedIndex = sortedIndex,
               values = values
             ).get.get
@@ -245,9 +245,9 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
               key = key,
               start = None,
               end = None,
-              binarySearchIndex = binarySearchIndex.get,
-              sortedIndex = sortedIndex,
-              values = values
+              binarySearchIndexReader = binarySearchIndex.get,
+              sortedIndexReader = sortedIndex,
+              valuesReader = values
             ).get
 
           keyValue match {
@@ -290,9 +290,9 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
               key = key,
               start = None,
               end = None,
-              binarySearchIndex = binarySearchIndex.get,
-              sortedIndex = sortedIndex,
-              values = values
+              binarySearchIndexReader = binarySearchIndex.get,
+              sortedIndexReader = sortedIndex,
+              valuesReader = values
             ).get
 
           keyValue match {

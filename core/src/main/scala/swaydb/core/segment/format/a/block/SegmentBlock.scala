@@ -321,7 +321,7 @@ private[core] object SegmentBlock {
               )
           } match {
             //if it's a hit and binary search is not configured to be full OR the key-value has same offset as previous then skip writing to binary search.
-            case Some(IO.Success(hit)) if (hit && binarySearchIndex.forall(!_.isFullIndex)) || keyValue.previous.exists(_.stats.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessOffset) =>
+            case Some(IO.Success(hit)) if (!keyValue.isRange && (hit && binarySearchIndex.forall(!_.isFullIndex))) || keyValue.previous.exists(_.stats.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessOffset) =>
               IO.unit
 
             case None | Some(IO.Success(_)) =>

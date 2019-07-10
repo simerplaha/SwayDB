@@ -47,6 +47,7 @@ private[core] object HashIndex extends LazyLogging {
         maxProbe = -1,
         minimumNumberOfKeys = Int.MaxValue,
         allocateSpace = _ => Int.MinValue,
+        minimumNumberOfHits = Int.MaxValue,
         cacheOnAccess = false,
         compressions = Seq.empty
       )
@@ -58,6 +59,7 @@ private[core] object HashIndex extends LazyLogging {
             maxProbe = -1,
             minimumNumberOfKeys = Int.MaxValue,
             allocateSpace = _ => Int.MinValue,
+            minimumNumberOfHits = Int.MaxValue,
             cacheOnAccess = false,
             compressions = Seq.empty
           )
@@ -65,6 +67,7 @@ private[core] object HashIndex extends LazyLogging {
           Config(
             maxProbe = enable.tries,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
+            minimumNumberOfHits = enable.minimumNumberOfHits,
             allocateSpace = enable.allocateSpace,
             cacheOnAccess = enable.cacheOnAccess,
             compressions = enable.compression map CompressionInternal.apply
@@ -74,6 +77,7 @@ private[core] object HashIndex extends LazyLogging {
 
   case class Config(maxProbe: Int,
                     minimumNumberOfKeys: Int,
+                    minimumNumberOfHits: Int,
                     allocateSpace: RandomKeyIndex.RequiredSpace => Int,
                     cacheOnAccess: Boolean,
                     compressions: Seq[CompressionInternal])
@@ -83,6 +87,7 @@ private[core] object HashIndex extends LazyLogging {
   final case class State(var hit: Int,
                          var miss: Int,
                          minimumNumberOfKeys: Int,
+                         minimumNumberOfHits: Int,
                          writeAbleLargestValueSize: Int,
                          headerSize: Int,
                          maxProbe: Int,
@@ -94,8 +99,8 @@ private[core] object HashIndex extends LazyLogging {
     def bytes_=(bytes: Slice[Byte]) =
       this._bytes = bytes
 
-    def hasMinimumKeys =
-      hit >= minimumNumberOfKeys
+    def hasMinimumHits =
+      hit >= minimumNumberOfHits
   }
 
   def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[HashIndex.State] =
@@ -103,26 +108,32 @@ private[core] object HashIndex extends LazyLogging {
       None
     else if (keyValues.last.stats.segmentHashIndexSize <= 0) //formatId, maxProbe, hit, miss, largestValue, allocatedBytes
       None
-    else
-      Some {
-        val writeAbleLargestValueSize = Bytes.sizeOf(keyValues.last.stats.thisKeyValuesAccessIndexOffset + 1)
-        val headSize =
-          headerSize(
-            keyCounts = keyValues.last.stats.segmentUniqueKeysCount,
-            writeAbleLargestValueSize = writeAbleLargestValueSize,
-            hasCompression = keyValues.last.hashIndexConfig.compressions.nonEmpty
-          )
-        HashIndex.State(
-          hit = 0,
-          miss = 0,
-          minimumNumberOfKeys = keyValues.last.hashIndexConfig.minimumNumberOfKeys,
+    else {
+      val writeAbleLargestValueSize = Bytes.sizeOf(keyValues.last.stats.thisKeyValuesAccessIndexOffset + 1)
+      val headSize =
+        headerSize(
+          keyCounts = keyValues.last.stats.segmentUniqueKeysCount,
           writeAbleLargestValueSize = writeAbleLargestValueSize,
-          headerSize = headSize,
-          maxProbe = keyValues.last.hashIndexConfig.maxProbe,
-          _bytes = Slice.create[Byte](keyValues.last.stats.segmentHashIndexSize),
-          compressions = keyValues.last.hashIndexConfig.compressions
+          hasCompression = keyValues.last.hashIndexConfig.compressions.nonEmpty
         )
-      }
+      //if the user allocated
+      if (keyValues.last.stats.segmentHashIndexSize < headSize + ByteSizeOf.varInt)
+        None
+      else
+        Some(
+          HashIndex.State(
+            hit = 0,
+            miss = 0,
+            minimumNumberOfKeys = keyValues.last.hashIndexConfig.minimumNumberOfKeys,
+            minimumNumberOfHits = keyValues.last.hashIndexConfig.minimumNumberOfHits,
+            writeAbleLargestValueSize = writeAbleLargestValueSize,
+            headerSize = headSize,
+            maxProbe = keyValues.last.hashIndexConfig.maxProbe,
+            _bytes = Slice.create[Byte](keyValues.last.stats.segmentHashIndexSize),
+            compressions = keyValues.last.hashIndexConfig.compressions
+          )
+        )
+    }
 
   def headerSize(keyCounts: Int,
                  writeAbleLargestValueSize: Int,
@@ -177,7 +188,7 @@ private[core] object HashIndex extends LazyLogging {
   }
 
   def close(state: State): IO[Option[State]] =
-    if (state.bytes.isEmpty)
+    if (state.bytes.isEmpty || !state.hasMinimumHits)
       IO.none
     else
       Block.create(
@@ -357,25 +368,25 @@ private[core] object HashIndex extends LazyLogging {
   }
 
   def search(key: Slice[Byte],
-             hashIndex: BlockReader[HashIndex],
-             sortedIndex: BlockReader[SortedIndex],
-             values: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
+             hashIndexReader: BlockReader[HashIndex],
+             sortedIndexReader: BlockReader[SortedIndex],
+             valuesReaderReader: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
     val matcher =
-      if (sortedIndex.block.hasPrefixCompression)
+      if (sortedIndexReader.block.hasPrefixCompression)
         KeyMatcher.Get.WhilePrefixCompressed(key)
       else
         KeyMatcher.Get.MatchOnly(key)
 
     search(
       key = key,
-      blockReader = hashIndex,
+      blockReader = hashIndexReader,
       assertValue =
         sortedIndexOffsetValue =>
           SortedIndex.findAndMatchOrNextPersistent(
             matcher = matcher,
             fromOffset = sortedIndexOffsetValue,
-            indexReader = sortedIndex,
-            valueReader = values
+            indexReader = sortedIndexReader,
+            valueReader = valuesReaderReader
           )
     )
   }

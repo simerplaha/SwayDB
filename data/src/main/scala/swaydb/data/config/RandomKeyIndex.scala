@@ -32,6 +32,7 @@ object RandomKeyIndex {
   case object Disable extends RandomKeyIndex
   case class Enable(tries: Int,
                     minimumNumberOfKeys: Int,
+                    minimumNumberOfHits: Int,
                     allocateSpace: RequiredSpace => Int,
                     cacheOnAccess: Boolean,
                     compression: Seq[Compression]) extends RandomKeyIndex

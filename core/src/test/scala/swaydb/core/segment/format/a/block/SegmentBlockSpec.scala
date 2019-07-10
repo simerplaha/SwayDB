@@ -25,9 +25,12 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.io.reader.Reader
+import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+
+import scala.util.Random
 
 class SegmentBlockSpec extends TestBase {
 
@@ -39,7 +42,6 @@ class SegmentBlockSpec extends TestBase {
   implicit def testTimer: TestTimer = TestTimer.random
 
   "SegmentBlock" should {
-
     "convert empty KeyValues and not throw exception but return empty bytes" in {
       val closedSegment =
         SegmentBlock.write(
@@ -50,6 +52,91 @@ class SegmentBlockSpec extends TestBase {
 
       closedSegment.segmentBytes.isEmpty shouldBe true
       closedSegment.nearestDeadline shouldBe empty
+    }
+
+    "not create" in {
+      val keyValues =
+        randomizedKeyValues(
+          count = 100,
+          startId = Some(1),
+          addRandomGroups = false
+        ).updateStats(
+          valuesConfig = Values.Config(randomBoolean(), randomBoolean(), randomBoolean(), randomCompressionsOrEmpty()),
+          sortedIndexConfig =
+            SortedIndex.Config(
+              cacheOnAccess = randomBoolean(),
+              prefixCompressionResetCount = 0,
+              enableAccessPositionIndex = true,
+              compressions = randomCompressionsOrEmpty()
+            ),
+          binarySearchIndexConfig =
+            BinarySearchIndex.Config(
+              enabled = false,
+              minimumNumberOfKeys = 1,
+              fullIndex = true,
+              cacheOnAccess = randomBoolean(),
+              compressions = randomCompressionsOrEmpty()
+            ),
+          hashIndexConfig =
+            HashIndex.Config(
+              maxProbe = 5,
+              minimumNumberOfKeys = 2,
+              minimumNumberOfHits = 2,
+              allocateSpace = _.requiredSpace * 10,
+              cacheOnAccess = randomBoolean(),
+              compressions = randomCompressionsOrEmpty()
+            ),
+          bloomFilterConfig =
+            BloomFilter.Config(
+              falsePositiveRate = 0.001,
+              minimumNumberOfKeys = 2,
+              cacheOnAccess = randomBoolean(),
+              compressions = Seq.empty
+            )
+        )
+
+      val closedSegment =
+        SegmentBlock.write(
+          keyValues = keyValues,
+          segmentCompressions = Seq.empty,
+          createdInLevel = 0
+        ).assertGet
+
+      val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(closedSegment).get
+
+//      binarySearchIndex shouldBe empty
+//      hashIndex shouldBe empty
+
+      val randomKeyValues = Random.shuffle(keyValues)
+
+      Benchmark("Dsads") {
+        randomKeyValues foreach {
+          keyValue =>
+            SegmentBlockSearcher.search(keyValue.minKey, None, None, hashIndex, binarySearchIndex, sortedIndex, valuesReader, false)
+        }
+      }
+    }
+
+    "converting KeyValues to asdadasdasd and execute readAll and find on the bytes" in {
+      def test(keyValues: Slice[KeyValue.WriteOnly]) = {
+        val closedSegment =
+          SegmentBlock.write(
+            keyValues = keyValues,
+            segmentCompressions = randomCompressionsOrEmpty(),
+            createdInLevel = randomNextInt(10)
+          ).assertGet
+
+        val all = readAll(closedSegment).get
+        //        assertGet(keyValues, Reader(closedSegment.flattenSegmentBytes))
+        assertHigher(keyValues, Reader(closedSegment.flattenSegmentBytes))
+        println("assert")
+      }
+
+      runThis(100.times) {
+        val count = 1
+        val keyValues = randomizedKeyValues(count, startId = Some(1), addRandomGroups = false)
+        if (keyValues.nonEmpty) test(keyValues)
+      }
     }
 
     "converting KeyValues to bytes and execute readAll and find on the bytes" in {
@@ -63,15 +150,15 @@ class SegmentBlockSpec extends TestBase {
 
         //in memory
         assertReads(keyValues, Reader(closedSegment.flattenSegmentBytes))
-//        //on disk
-//        assertReads(keyValues, createFileChannelReader(closedSegment.flattenSegmentBytes))
+        //        //on disk
+        //        assertReads(keyValues, createFileChannelReader(closedSegment.flattenSegmentBytes))
       }
 
       runThis(100.times) {
         val count =
           eitherOne(
             randomIntMax(4) max 1,
-            randomIntMax(100) max 1
+            randomIntMax(1000) max 1
           )
         val keyValues = randomizedKeyValues(count, startId = Some(1), addRandomGroups = false)
         if (keyValues.nonEmpty) test(keyValues)

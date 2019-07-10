@@ -58,6 +58,10 @@ import scala.util.Random
 
 object CommonAssertions {
 
+  implicit val hashIndexImpl: HashIndex.type = HashIndex
+  implicit val binarySearchIndexImpl: BinarySearchIndex.type = BinarySearchIndex
+  implicit val sortedIndexImpl: SortedIndex.type = SortedIndex
+
   implicit class RunSafe[T](input: => T) {
     def safeGetBlocking(): T =
       IO.Async.runSafe(input).safeGetBlocking.get
@@ -791,14 +795,17 @@ object CommonAssertions {
 
     keyValues foreach {
       keyValue =>
+        //        val key = keyValue.minKey.readInt()
+        //        if (key % 100 == 0)
+        //          println(s"Key: $key")
         SegmentBlockSearcher.search(
           key = keyValue.minKey,
           start = None,
           end = None,
-          hashIndex = hashIndex,
-          binarySearchIndex = binarySearchIndex,
-          sortedIndex = sortedIndex,
-          valuesReader = valuesReader,
+          hashIndexReader = hashIndex,
+          binarySearchIndexReader = binarySearchIndex,
+          sortedIndexReader = sortedIndex,
+          valuesReaderReader = valuesReader,
           hasRange = footer.hasRange
         ).assertGet shouldBe keyValue
     }
@@ -909,9 +916,15 @@ object CommonAssertions {
     //read fullIndex
     readAll(segmentReader.copy()).assertGet shouldBe keyValues
     //    //find each KeyValue using all Matchers
+    println("Starting get")
     assertGet(keyValues, segmentReader.copy())
+    println("Finished get")
+    println("Starting lower")
     assertLower(keyValues, segmentReader.copy())
+    println("Finished lower")
+    println("Starting higher")
     assertHigher(keyValues, segmentReader.copy())
+    println("Finished higher")
   }
 
   def assertGet(keyValues: Iterable[KeyValue],
@@ -1172,9 +1185,9 @@ object CommonAssertions {
             key = key,
             start = None,
             end = None,
-            binarySearch = binarySearchIndex,
-            sortedIndex = sortedIndex,
-            values = values
+            binarySearchReader = binarySearchIndex,
+            sortedIndexReader = sortedIndex,
+            valuesReader = values
           )
     )
   }
@@ -1343,6 +1356,17 @@ object CommonAssertions {
 
   def readBlocks(closedSegment: SegmentBlock.ClosedSegment): IO[(SegmentBlock.Footer, Option[BlockReader[Values]], BlockReader[SortedIndex], Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], Option[BlockReader[BloomFilter]])] =
     readBlocks(closedSegment.flattenSegmentBytes)
+
+  def readBlocks(keyValues: Iterable[KeyValue.WriteOnly]): IO[(SegmentBlock.Footer, Option[BlockReader[Values]], BlockReader[SortedIndex], Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], Option[BlockReader[BloomFilter]])] = {
+    val closedSegment =
+      SegmentBlock.write(
+        keyValues = keyValues,
+        segmentCompressions = randomCompressionsOrEmpty(),
+        createdInLevel = 0
+      ).assertGet
+
+    readBlocks(closedSegment)
+  }
 
   def readAll(bytes: Slice[Byte]): IO[Slice[KeyValue.ReadOnly]] =
     readAll(Reader(bytes))

@@ -55,8 +55,8 @@ private[core] object MapCodec extends LazyLogging {
     headerSlice addLong (CRC32 forBytes payloadSlice)
     headerSlice addInt payloadSlice.size
 
-    slice moveWritePosition slice.size
-    assert(slice.isFull, "Slice is not full")
+    slice moveWritePosition slice.allocatedSize
+    assert(headerSlice.size + payloadSlice.size == slice.allocatedSize, s"Slice is not full. Actual size: ${headerSlice.size + payloadSlice.size}, allocatedSize: ${slice.allocatedSize}")
     slice
   }
 

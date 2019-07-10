@@ -64,6 +64,10 @@ private[core] class SegmentCache(id: String,
 
   import keyOrder._
 
+  implicit val hashIndexImpl: HashIndex.type = HashIndex
+  implicit val binarySearchIndexImpl: BinarySearchIndex.type = BinarySearchIndex
+  implicit val sortedIndexImpl: SortedIndex.type = SortedIndex
+
   /**
     * Notes for why use putIfAbsent before adding to cache:
     *
@@ -174,10 +178,10 @@ private[core] class SegmentCache(id: String,
                         key = key,
                         start = floorValue,
                         end = None,
-                        hashIndex = hashIndex,
-                        binarySearchIndex = binarySearchIndex,
-                        sortedIndex = sortedIndex,
-                        valuesReader = values,
+                        hashIndexReader = hashIndex,
+                        binarySearchIndexReader = binarySearchIndex,
+                        sortedIndexReader = sortedIndex,
+                        valuesReaderReader = values,
                         hasRange = footer.hasRange
                       ) flatMap {
                         case Some(response: Persistent.SegmentResponse) =>
@@ -248,8 +252,8 @@ private[core] class SegmentCache(id: String,
                   key = key,
                   start = lowerKeyValue,
                   end = None,
-                  binarySearch = binarySearchIndex,
-                  sortedIndex = sortedIndex,
+                  binarySearchReader = binarySearchIndex,
+                  sortedIndexReader = sortedIndex,
                   valuesReader
                 ) flatMap {
                   case Some(response: Persistent.SegmentResponse) =>
@@ -333,9 +337,9 @@ private[core] class SegmentCache(id: String,
                     key = key,
                     start = startFrom,
                     end = None,
-                    binarySearch = binarySearchIndex,
-                    sortedIndex = sortedIndex,
-                    values = values
+                    binarySearchReader = binarySearchIndex,
+                    sortedIndexReader = sortedIndex,
+                    valuesReader = values
                   ) flatMap {
                     case Some(response: Persistent.SegmentResponse) =>
                       addToCache(response)

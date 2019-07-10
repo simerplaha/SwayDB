@@ -383,7 +383,7 @@ object BinarySearchIndex {
   def search(key: Slice[Byte],
              start: Option[Persistent],
              end: Option[Persistent],
-             binarySearchIndex: BlockReader[BinarySearchIndex],
+             binarySearchIndexReader: BlockReader[BinarySearchIndex],
              sortedIndex: BlockReader[SortedIndex],
              values: Option[BlockReader[Values]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
@@ -391,7 +391,7 @@ object BinarySearchIndex {
       higherOrLower = None,
       start = start,
       end = end,
-      binarySearchIndex = binarySearchIndex,
+      binarySearchIndex = binarySearchIndexReader,
       sortedIndex = sortedIndex,
       values = values
     )
@@ -399,33 +399,33 @@ object BinarySearchIndex {
   def searchHigher(key: Slice[Byte],
                    start: Option[Persistent],
                    end: Option[Persistent],
-                   binarySearchIndex: BlockReader[BinarySearchIndex],
-                   sortedIndex: BlockReader[SortedIndex],
-                   values: Option[BlockReader[Values]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                   binarySearchIndexReader: BlockReader[BinarySearchIndex],
+                   sortedIndexReader: BlockReader[SortedIndex],
+                   valuesReader: Option[BlockReader[Values]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       key = key,
       higherOrLower = Options.`true`,
       start = start,
       end = end,
-      binarySearchIndex = binarySearchIndex,
-      sortedIndex = sortedIndex,
-      values = values
+      binarySearchIndex = binarySearchIndexReader,
+      sortedIndex = sortedIndexReader,
+      values = valuesReader
     )
 
   def searchLower(key: Slice[Byte],
                   start: Option[Persistent],
                   end: Option[Persistent],
-                  binarySearchIndex: BlockReader[BinarySearchIndex],
-                  sortedIndex: BlockReader[SortedIndex],
-                  values: Option[BlockReader[Values]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                  binarySearchIndexReader: BlockReader[BinarySearchIndex],
+                  sortedIndexReader: BlockReader[SortedIndex],
+                  valuesReader: Option[BlockReader[Values]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       key = key,
       higherOrLower = Options.`false`,
       start = start,
       end = end,
-      binarySearchIndex = binarySearchIndex,
-      sortedIndex = sortedIndex,
-      values = values
+      binarySearchIndex = binarySearchIndexReader,
+      sortedIndex = sortedIndexReader,
+      values = valuesReader
     )
 }
 

@@ -147,10 +147,13 @@ private[core] object Stats {
 
     //unique keys that do not have prefix compressed keys.
     val segmentUniqueAccessIndexKeyCounts =
-      if (isPrefixCompressed)
-        previousStats.map(_.segmentUniqueAccessIndexKeyCounts) getOrElse 1
-      else
-        previousStats.map(_.segmentUniqueAccessIndexKeyCounts + 1) getOrElse 1
+      previousStats map {
+        previous =>
+          if (previous.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessIndexOffset)
+            previous.thisKeyValuesAccessIndexOffset
+          else
+            previous.thisKeyValuesAccessIndexOffset + 1
+      } getOrElse 1
 
     val segmentHashIndexSize =
       if (segmentUniqueKeysCount < hashIndex.minimumNumberOfKeys)
@@ -163,14 +166,6 @@ private[core] object Stats {
           allocateSpace = hashIndex.allocateSpace,
           hasCompression = hashIndex.compressions.nonEmpty
         )
-
-    //binary search indexes are only created for non-prefix compressed or reset point keys.
-    //size calculation should only account for those entries because duplicates are not allowed.
-    def binarySearchIndexEntriesCount() =
-      if (binarySearch.fullIndex)
-        segmentUniqueAccessIndexKeyCounts
-      else
-        segmentTotalNumberOfRanges
 
     val segmentBinarySearchIndexSize =
       if (binarySearch.enabled)
@@ -185,7 +180,9 @@ private[core] object Stats {
             largestValue = thisKeyValuesAccessIndexOffset,
             hasCompression = binarySearch.compressions.nonEmpty,
             minimNumberOfKeysForBinarySearchIndex = binarySearch.minimumNumberOfKeys,
-            valuesCount = binarySearchIndexEntriesCount()
+            //binary search indexes are only created for non-prefix compressed or reset point keys.
+            //size calculation should only account for those entries because duplicates are not allowed.
+            valuesCount = segmentUniqueAccessIndexKeyCounts
           )
         }
       else

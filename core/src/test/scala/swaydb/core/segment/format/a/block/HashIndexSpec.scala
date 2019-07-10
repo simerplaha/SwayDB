@@ -97,6 +97,7 @@ class HashIndexSpec extends TestBase {
                       compressions = randomCompressionsLZ4OrSnappy(),
                       maxProbe = maxProbe,
                       minimumNumberOfKeys = 0,
+                      minimumNumberOfHits = 0,
                       cacheOnAccess = false
                     )
                 )
@@ -166,6 +167,7 @@ class HashIndexSpec extends TestBase {
                 compressions = compressions,
                 maxProbe = maxProbe,
                 minimumNumberOfKeys = 0,
+                minimumNumberOfHits = 0,
                 cacheOnAccess = false
               )
           )

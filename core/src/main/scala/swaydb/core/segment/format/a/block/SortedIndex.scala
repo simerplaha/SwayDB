@@ -328,12 +328,12 @@ private[core] object SortedIndex {
 
   def searchHigher(key: Slice[Byte],
                    startFrom: Option[Persistent],
-                   indexReader: BlockReader[SortedIndex],
+                   sortedIndexReader: BlockReader[SortedIndex],
                    valuesReader: Option[BlockReader[Values]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       matcher = KeyMatcher.Higher(key),
       startFrom = startFrom,
-      indexReader = indexReader,
+      indexReader = sortedIndexReader,
       valuesReader = valuesReader
     )
 

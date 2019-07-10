@@ -30,7 +30,6 @@ object KeyValueGroupingStrategy {
                    binarySearchIndex: BinarySearchKeyIndex,
                    bloomFilter: MightContainKeyIndex,
                    values: ValuesConfig,
-                   prefixCompression: PrefixCompression,
                    applyGroupingOnCopy: Boolean,
                    groupCompression: Seq[Compression],
                    groupGroupingStrategy: Option[GroupGroupingStrategy]) extends KeyValueGroupingStrategy
@@ -42,7 +41,6 @@ object KeyValueGroupingStrategy {
                   bloomFilter: MightContainKeyIndex,
                   values: ValuesConfig,
                   applyGroupingOnCopy: Boolean,
-                  prefixCompression: PrefixCompression,
                   groupCompression: Seq[Compression],
                   groupGroupingStrategy: Option[GroupGroupingStrategy]) extends KeyValueGroupingStrategy
 }

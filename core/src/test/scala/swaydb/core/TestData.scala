@@ -501,6 +501,7 @@ object TestData {
       HashIndex.Config(
         maxProbe = randomIntMax(10),
         minimumNumberOfKeys = randomIntMax(5),
+        minimumNumberOfHits = randomIntMax(5),
         allocateSpace = _.requiredSpace * randomIntMax(3),
         cacheOnAccess = randomBoolean(),
         compressions = randomCompressionsOrEmpty()
