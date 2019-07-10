@@ -226,8 +226,8 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
               start = eitherOne(None, previous),
               end = None,
               binarySearchIndexReader = binarySearchIndex.get,
-              sortedIndex = sortedIndex,
-              values = values
+              sortedIndexReader = sortedIndex,
+              valuesReader = values
             ).get.get
 
           found shouldBe keyValue

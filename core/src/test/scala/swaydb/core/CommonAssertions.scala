@@ -58,10 +58,6 @@ import scala.util.Random
 
 object CommonAssertions {
 
-  implicit val hashIndexImpl: HashIndex.type = HashIndex
-  implicit val binarySearchIndexImpl: BinarySearchIndex.type = BinarySearchIndex
-  implicit val sortedIndexImpl: SortedIndex.type = SortedIndex
-
   implicit class RunSafe[T](input: => T) {
     def safeGetBlocking(): T =
       IO.Async.runSafe(input).safeGetBlocking.get
@@ -1357,7 +1353,7 @@ object CommonAssertions {
   def readBlocks(closedSegment: SegmentBlock.ClosedSegment): IO[(SegmentBlock.Footer, Option[BlockReader[Values]], BlockReader[SortedIndex], Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], Option[BlockReader[BloomFilter]])] =
     readBlocks(closedSegment.flattenSegmentBytes)
 
-  def readBlocks(keyValues: Iterable[KeyValue.WriteOnly]): IO[(SegmentBlock.Footer, Option[BlockReader[Values]], BlockReader[SortedIndex], Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], Option[BlockReader[BloomFilter]])] = {
+  def getBlocks(keyValues: Iterable[KeyValue.WriteOnly]): IO[(SegmentBlock.Footer, Option[BlockReader[Values]], BlockReader[SortedIndex], Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], Option[BlockReader[BloomFilter]])] = {
     val closedSegment =
       SegmentBlock.write(
         keyValues = keyValues,

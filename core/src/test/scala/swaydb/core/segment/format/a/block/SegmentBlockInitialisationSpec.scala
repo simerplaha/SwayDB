@@ -57,7 +57,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 )
             )
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(keyValues).get
+          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
           binarySearchIndex shouldBe empty
         }
       }
@@ -83,7 +83,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   )
               )
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(keyValues).get
+          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
           binarySearchIndex shouldBe empty
         }
       }
@@ -123,7 +123,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 )
             )
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(keyValues).get
+          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
           hashIndex shouldBe defined
           hashIndex.get.block.hit shouldBe keyValues.size
           hashIndex.get.block.miss shouldBe 0
@@ -181,7 +181,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 )
             )
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(keyValues).get
+          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
           hashIndex shouldBe defined
           hashIndex.get.block.hit shouldBe keyValues.size
           hashIndex.get.block.miss shouldBe 0
@@ -230,7 +230,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 )
             )
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(keyValues).get
+          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
           hashIndex shouldBe empty
 
           binarySearchIndex shouldBe defined
@@ -265,7 +265,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 )
             )
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(keyValues).get
+          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
           bloomFilter shouldBe empty
         }
       }
@@ -291,7 +291,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   )
               )
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(keyValues).get
+          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
           bloomFilter shouldBe empty
         }
       }
@@ -340,7 +340,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
 
           keyValues.last.stats.segmentHasRemoveRange shouldBe true
 
-          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(keyValues).get
+          val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
           bloomFilter shouldBe empty
         }
       }
@@ -379,7 +379,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 )
             )
 
-        val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = readBlocks(keyValues).get
+        val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getBlocks(keyValues).get
         hashIndex shouldBe empty
       }
     }

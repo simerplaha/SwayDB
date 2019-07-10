@@ -278,6 +278,7 @@ private[core] object HashIndex extends LazyLogging {
           true
         } else if (existing.head == 0 && existing.dropHead() == valuePlusOneBytes) { //check if value already exists.
           //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = existing")
+          state.hit += 1
           true
         } else {
           //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = failure")
@@ -327,7 +328,7 @@ private[core] object HashIndex extends LazyLogging {
             .read(hashIndex.bytesToReadPerIndex) match {
             case IO.Success(possibleValueBytes) =>
               //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe. sortedIndex bytes: $possibleValueBytes")
-              if (possibleValueBytes.head != 0) { //head will never return None because the hash is adjusted to the size of allocated space.
+              if (possibleValueBytes.isEmpty || possibleValueBytes.head != 0) {
                 //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe = failure - invalid start offset.")
                 doFind(probe + 1, checkedHashIndexes)
               } else {
@@ -409,6 +410,9 @@ case class HashIndex(offset: HashIndex.Offset,
       reader = segmentReader,
       block = this
     )
+
+  def isPerfect =
+    miss == 0
 
   override def updateOffset(start: Int, size: Int): Block =
     copy(offset = HashIndex.Offset(start = start, size = size))

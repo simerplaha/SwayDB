@@ -384,16 +384,16 @@ object BinarySearchIndex {
              start: Option[Persistent],
              end: Option[Persistent],
              binarySearchIndexReader: BlockReader[BinarySearchIndex],
-             sortedIndex: BlockReader[SortedIndex],
-             values: Option[BlockReader[Values]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+             sortedIndexReader: BlockReader[SortedIndex],
+             valuesReader: Option[BlockReader[Values]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       key = key,
       higherOrLower = None,
       start = start,
       end = end,
       binarySearchIndex = binarySearchIndexReader,
-      sortedIndex = sortedIndex,
-      values = values
+      sortedIndex = sortedIndexReader,
+      values = valuesReader
     )
 
   def searchHigher(key: Slice[Byte],

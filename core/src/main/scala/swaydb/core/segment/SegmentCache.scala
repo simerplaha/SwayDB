@@ -64,10 +64,6 @@ private[core] class SegmentCache(id: String,
 
   import keyOrder._
 
-  implicit val hashIndexImpl: HashIndex.type = HashIndex
-  implicit val binarySearchIndexImpl: BinarySearchIndex.type = BinarySearchIndex
-  implicit val sortedIndexImpl: SortedIndex.type = SortedIndex
-
   /**
     * Notes for why use putIfAbsent before adding to cache:
     *

@@ -20,12 +20,10 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
                   end: Option[Persistent],
                   binarySearchReader: Option[BlockReader[BinarySearchIndex]],
                   sortedIndexReader: BlockReader[SortedIndex],
-                  valuesReader: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             sortedIndex: SortedIndex.type,
-                                                             binarySearchIndex: BinarySearchIndex.type): IO[Option[Persistent]] =
+                  valuesReader: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     binarySearchReader map {
       binarySearchIndexReader =>
-        binarySearchIndex.searchLower(
+        BinarySearchIndex.searchLower(
           key = key,
           start = start,
           end = end,
@@ -37,7 +35,7 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
             if (binarySearchIndexReader.block.isFullIndex || lower.nextIndexSize == 0)
               IO.Success(someLower)
             else
-              sortedIndex.searchLower(
+              SortedIndex.searchLower(
                 key = key,
                 startFrom = someLower,
                 indexReader = sortedIndexReader,
@@ -48,7 +46,7 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
             if (binarySearchIndexReader.block.isFullIndex)
               IO.none
             else
-              sortedIndex.searchLower(
+              SortedIndex.searchLower(
                 key = key,
                 startFrom = start,
                 indexReader = sortedIndexReader,
@@ -56,7 +54,7 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
               )
         }
     } getOrElse {
-      sortedIndex.searchLower(
+      SortedIndex.searchLower(
         key = key,
         startFrom = start,
         indexReader = sortedIndexReader,
@@ -69,13 +67,11 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
                    end: Option[Persistent],
                    binarySearchReader: Option[BlockReader[BinarySearchIndex]],
                    sortedIndexReader: BlockReader[SortedIndex],
-                   valuesReader: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                              sortedIndex: SortedIndex.type,
-                                                              binarySearchIndex: BinarySearchIndex.type): IO[Option[Persistent]] = {
+                   valuesReader: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
     if (start.isEmpty)
       IO.none
     else
-      sortedIndex.searchHigherSeekOne(
+      SortedIndex.searchHigherSeekOne(
         key = key,
         startFrom = start,
         indexReader = sortedIndexReader,
@@ -88,7 +84,7 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
       else
         binarySearchReader map {
           binarySearchIndexReader =>
-            binarySearchIndex.searchHigher(
+            BinarySearchIndex.searchHigher(
               key = key,
               start = start,
               end = end,
@@ -100,7 +96,7 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
                 if (binarySearchIndexReader.block.isFullIndex || higher.nextIndexSize == 0)
                   IO.Success(someHigher)
                 else
-                  sortedIndex.searchHigher(
+                  SortedIndex.searchHigher(
                     key = key,
                     startFrom = someHigher,
                     sortedIndexReader = sortedIndexReader,
@@ -111,7 +107,7 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
                 if (binarySearchIndexReader.block.isFullIndex)
                   IO.none
                 else
-                  sortedIndex.searchHigher(
+                  SortedIndex.searchHigher(
                     key = key,
                     startFrom = start,
                     sortedIndexReader = sortedIndexReader,
@@ -119,7 +115,7 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
                   )
             }
         } getOrElse {
-          sortedIndex.searchHigher(
+          SortedIndex.searchHigher(
             key = key,
             startFrom = start,
             sortedIndexReader = sortedIndexReader,
@@ -135,13 +131,10 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
              binarySearchIndexReader: Option[BlockReader[BinarySearchIndex]],
              sortedIndexReader: BlockReader[SortedIndex],
              valuesReaderReader: Option[BlockReader[Values]],
-             hasRange: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                hashIndex: HashIndex.type,
-                                sortedIndex: SortedIndex.type,
-                                binarySearchIndex: BinarySearchIndex.type): IO[Option[Persistent]] = {
+             hasRange: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     hashIndexReader map {
       hashIndexReader =>
-        hashIndex.search(
+        HashIndex.search(
           key = key,
           hashIndexReader = hashIndexReader,
           sortedIndexReader = sortedIndexReader,
@@ -151,7 +144,7 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
             IO.Success(some)
 
           case None =>
-            if (hashIndexReader.block.miss == 0 && !hasRange)
+            if (hashIndexReader.block.isPerfect && !hasRange)
               IO.none
             else
               search(
@@ -173,25 +166,22 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
         valuesReader = valuesReaderReader
       )
     }
-  }
 
   private def search(key: Slice[Byte],
                      start: Option[Persistent],
                      end: Option[Persistent],
                      binarySearchIndexReader: Option[BlockReader[BinarySearchIndex]],
                      sortedIndexReader: BlockReader[SortedIndex],
-                     valuesReader: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                sortedIndex: SortedIndex.type,
-                                                                binarySearchIndex: BinarySearchIndex.type): IO[Option[Persistent]] =
+                     valuesReader: Option[BlockReader[Values]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     binarySearchIndexReader map {
       binarySearchIndexReader =>
-        binarySearchIndex.search(
+        BinarySearchIndex.search(
           key = key,
           start = start,
           end = end,
           binarySearchIndexReader = binarySearchIndexReader,
-          sortedIndex = sortedIndexReader,
-          values = valuesReader
+          sortedIndexReader = sortedIndexReader,
+          valuesReader = valuesReader
         ) flatMap {
           case some @ Some(_) =>
             IO.Success(some)
@@ -200,7 +190,7 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
             if (binarySearchIndexReader.block.isFullIndex)
               IO.none
             else
-              sortedIndex.search(
+              SortedIndex.search(
                 key = key,
                 startFrom = start,
                 indexReader = sortedIndexReader,
@@ -208,7 +198,7 @@ private[core] object SegmentBlockSearcher extends LazyLogging {
               )
         }
     } getOrElse {
-      sortedIndex.search(
+      SortedIndex.search(
         key = key,
         startFrom = start,
         indexReader = sortedIndexReader,
