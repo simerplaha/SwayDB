@@ -23,7 +23,6 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.SegmentException
-import swaydb.core.segment.format.a.OffsetBase
 import swaydb.data.IO._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
@@ -33,7 +32,7 @@ import swaydb.data.{IO, Reserve}
   * A block is a group of compressed or uncompressed bytes.
   */
 trait Block {
-  def offset: OffsetBase
+  def offset: BlockOffset
   def headerSize: Int
   def compressionInfo: Option[Block.CompressionInfo]
   def updateOffset(start: Int, size: Int): Block
@@ -173,12 +172,6 @@ object Block extends LazyLogging {
             _decompressedBytes = None
           )
         )
-    } recoverWith {
-      case error =>
-        IO.Failure {
-          val message = s"Failed to read Segment block. formatID: $formatID"
-          SegmentException.SegmentCorruptionException(message, error.exception)
-        }
     }
     else if (formatID == Block.uncompressedBlockId)
       IO.none
@@ -188,7 +181,7 @@ object Block extends LazyLogging {
         SegmentException.SegmentCorruptionException(message, new Exception(message))
       }
 
-  def readHeader(offset: OffsetBase,
+  def readHeader(offset: BlockOffset,
                  reader: Reader): IO[Block.Header] = {
     val movedReader = reader.moveTo(offset.start)
     for {
@@ -202,12 +195,19 @@ object Block extends LazyLogging {
           reader = headerReader
         )
       }
-    } yield
+    } yield {
       Header(
         compressionInfo = compressionInfo,
         headerReader = headerReader,
         headerSize = headerSize
       )
+    }
+  } recoverWith {
+    case error =>
+      IO.Failure {
+        val message = s"Failed to read Segment block."
+        SegmentException.SegmentCorruptionException(message, error.exception)
+      }
   }
 
   /**
@@ -215,7 +215,7 @@ object Block extends LazyLogging {
     */
   def decompress(compressionInfo: CompressionInfo,
                  reader: Reader,
-                 offset: OffsetBase): IO[Slice[Byte]] =
+                 offset: BlockOffset): IO[Slice[Byte]] =
     compressionInfo
       .decompressedBytes
       .getOrElse {

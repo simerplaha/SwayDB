@@ -46,37 +46,39 @@ object FunctionReader extends EntryReader[Persistent.Function] {
       valueOffsetAndLength =>
         timeReader.read(indexReader, previous) flatMap {
           time =>
-            KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Function) map {
+            KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Function) flatMap {
               case (key, isKeyPrefixCompressed) =>
                 val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                 val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
                 valueReader map {
                   valueReader =>
-                    Persistent.Function(
-                      _key = key,
-                      lazyFunctionReader =
-                        LazyFunctionReader(
-                          reader = valueReader,
-                          offset = valueOffset,
-                          length = valueLength
-                        ),
-                      _time = time,
-                      nextIndexOffset = nextIndexOffset,
-                      nextIndexSize = nextIndexSize,
-                      indexOffset = indexOffset,
-                      valueOffset = valueOffset,
-                      valueLength = valueLength,
-                      accessPosition = accessPosition,
-                      isPrefixCompressed =
-                        isKeyPrefixCompressed ||
-                          timeReader.isPrefixCompressed ||
-                          deadlineReader.isPrefixCompressed ||
-                          valueOffsetReader.isPrefixCompressed ||
-                          valueLengthReader.isPrefixCompressed ||
-                          valueBytesReader.isPrefixCompressed
-                    )
+                    IO {
+                      Persistent.Function(
+                        _key = key,
+                        lazyFunctionReader =
+                          LazyFunctionReader(
+                            reader = valueReader,
+                            offset = valueOffset,
+                            length = valueLength
+                          ),
+                        _time = time,
+                        nextIndexOffset = nextIndexOffset,
+                        nextIndexSize = nextIndexSize,
+                        indexOffset = indexOffset,
+                        valueOffset = valueOffset,
+                        valueLength = valueLength,
+                        accessPosition = accessPosition,
+                        isPrefixCompressed =
+                          isKeyPrefixCompressed ||
+                            timeReader.isPrefixCompressed ||
+                            deadlineReader.isPrefixCompressed ||
+                            valueOffsetReader.isPrefixCompressed ||
+                            valueLengthReader.isPrefixCompressed ||
+                            valueBytesReader.isPrefixCompressed
+                      )
+                    }
                 } getOrElse {
-                  return Values.valueNotFound
+                  Values.valuesBlockNotInitialised
                 }
             }
         }

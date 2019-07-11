@@ -73,7 +73,7 @@ object RangeReader extends EntryReader[Persistent.Range] {
                       valueLengthReader.isPrefixCompressed ||
                       valueBytesReader.isPrefixCompressed
                 )
-            } getOrElse Values.valueNotFound
+            } getOrElse Values.valuesBlockNotInitialised
         }
     }
 }

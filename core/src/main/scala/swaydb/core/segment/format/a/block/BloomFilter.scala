@@ -23,7 +23,6 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.segment.format.a.OffsetBase
 import swaydb.core.util.{Bytes, MurmurHash3Generic, Options}
 import swaydb.data.IO
 import swaydb.data.IO._
@@ -67,7 +66,10 @@ object BloomFilter extends LazyLogging {
                     cacheOnAccess: Boolean,
                     compressions: Seq[CompressionInternal])
 
-  case class Offset(start: Int, size: Int) extends OffsetBase
+  case class MemoryBlock(bloomFilter: BloomFilter,
+                         bytes: Slice[Byte])
+
+  case class Offset(start: Int, size: Int) extends BlockOffset
 
   case class State(startOffset: Int,
                    numberOfBits: Int,
@@ -154,7 +156,29 @@ object BloomFilter extends LazyLogging {
     else
       math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
 
-  def close(state: State): IO[Option[State]] =
+  def closeForMemory(state: BloomFilter.State): IO[Option[BloomFilter.MemoryBlock]] =
+    BloomFilter.close(state) flatMap {
+      closedBloomFilter =>
+        closedBloomFilter map {
+          closedBloomFilter =>
+            SegmentBlock.createUnblockedReader(closedBloomFilter.bytes) flatMap {
+              segmentBlock =>
+                BloomFilter.read(
+                  BloomFilter.Offset(0, closedBloomFilter.bytes.size),
+                  segmentReader = segmentBlock
+                ) map {
+                  bloomFilterBlock =>
+                    Some(
+                      MemoryBlock(
+                        bloomFilter = bloomFilterBlock,
+                        bytes = closedBloomFilter.bytes.unslice())
+                    )
+                }
+            }
+        } getOrElse IO.none
+    }
+
+  def close(state: State): IO[Option[BloomFilter.State]] =
     if (state.bytes.isEmpty)
       IO.none
     else
@@ -284,6 +308,7 @@ case class BloomFilter(offset: BloomFilter.Offset,
       reader = segmentReader,
       block = this
     )
+
   override def updateOffset(start: Int, size: Int): Block =
     copy(offset = BloomFilter.Offset(start = start, size = size))
 }

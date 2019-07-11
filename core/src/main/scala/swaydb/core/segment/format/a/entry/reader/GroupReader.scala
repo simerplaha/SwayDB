@@ -69,9 +69,9 @@ object GroupReader extends EntryReader[Persistent.Group] {
                               valueLengthReader.isPrefixCompressed ||
                               valueBytesReader.isPrefixCompressed
                         )
-                    } getOrElse Values.valueNotFound
+                    } getOrElse Values.valuesBlockNotInitialised
                 }
-            } getOrElse Values.valueNotFound
+            } getOrElse Values.valuesBlockNotInitialised
         }
     }
 }

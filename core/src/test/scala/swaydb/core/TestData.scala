@@ -391,8 +391,7 @@ object TestData {
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
-                compressedKeyValues = compressedKeyValues.flattenSegmentBytes.unslice(),
-                deadline = deadline
+                result = compressedKeyValues
               )
           }
       }
@@ -405,8 +404,7 @@ object TestData {
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
-                compressedKeyValues = compressedKeyValues.flattenSegmentBytes.unslice(),
-                deadline = deadline
+                result = compressedKeyValues
               )
           }
 
@@ -749,8 +747,12 @@ object TestData {
           Memory.Group(
             minKey = minKey,
             maxKey = maxKey,
-            deadline = deadline,
-            compressedKeyValues = valueReader.moveTo(valueOffset).read(valueLength).get
+            result =
+              SegmentBlock.ClosedSegment(
+                segmentBytes = Slice(valueReader.moveTo(valueOffset).read(valueLength).get.unslice()),
+                minMaxFunctionId = None,
+                nearestDeadline = deadline
+              )
           )
       }
 

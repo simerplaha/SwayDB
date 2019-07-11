@@ -25,8 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.KeyMatcher
+import swaydb.core.segment.format.a.block.{KeyMatcher, _}
 import swaydb.core.util._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -49,14 +48,14 @@ object SegmentCache {
       blockCache =
         SegmentBlockCache(
           id = id,
-          segmentBlock = createSegmentBlockReader
+          segmentBlockReader = createSegmentBlockReader
         )
     )
 }
 private[core] class SegmentCache(id: String,
                                  maxKey: MaxKey[Slice[Byte]],
                                  minKey: Slice[Byte],
-                                 cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
+                                 private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
                                  unsliceKey: Boolean,
                                  val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                     keyValueLimiter: KeyValueLimiter) extends LazyLogging {
@@ -134,10 +133,16 @@ private[core] class SegmentCache(id: String,
     Option(cache.get(key))
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
-    for {
-      bloom <- blockCache.createBloomFilterReader()
-      contains <- bloom.map(BloomFilter.mightContain(key, _)) getOrElse IO.`true`
-    } yield contains
+    blockCache.createBloomFilterReader() flatMap {
+      bloomFilterReaderOption =>
+        bloomFilterReaderOption map {
+          bloomFilterReader =>
+            BloomFilter.mightContain(
+              key = key,
+              reader = bloomFilterReader
+            )
+        } getOrElse IO.`true`
+    }
 
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {

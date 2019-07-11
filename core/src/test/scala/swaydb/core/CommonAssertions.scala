@@ -42,8 +42,7 @@ import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSe
 import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
-import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.KeyMatcher
+import swaydb.core.segment.format.a.block.{KeyMatcher, _}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.IO
@@ -140,7 +139,7 @@ object CommonAssertions {
               Some(bytes)
 
             case keyValue: Memory.Group =>
-              Option(keyValue.compressedKeyValues)
+              Option(keyValue.segmentBytes)
           }
         case keyValue: Transient =>
           keyValue match {
@@ -157,7 +156,7 @@ object CommonAssertions {
             case keyValue: Transient.Range =>
               keyValue.value
             case keyValue: Transient.Group =>
-              Some(keyValue.result.flattenSegmentBytes)
+              Some(keyValue.closedSegment.flattenSegmentBytes)
           }
         case keyValue: Persistent =>
           keyValue match {
@@ -863,9 +862,10 @@ object CommonAssertions {
     } should be <= 300
 
   def assertBloomNotContains(segment: Segment) =
-    runThis(1000.times) {
-      segment.mightContainKey(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false
-    }
+    (1 to 1000).count {
+      _ =>
+        segment.mightContainKey(randomBytesSlice(100)).get
+    } should be <= 300
 
   def assertBloomNotContains(bloom: BloomFilter.State) =
     runThis(1000.times) {

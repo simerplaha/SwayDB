@@ -48,39 +48,41 @@ object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
           valueOffsetAndLength =>
             timeReader.read(indexReader, previous) flatMap {
               time =>
-                KeyReader.read(keyValueId, indexReader, previous, KeyValueId.PendingApply) map {
+                KeyReader.read(keyValueId, indexReader, previous, KeyValueId.PendingApply) flatMap {
                   case (key, isKeyPrefixCompressed) =>
                     valueReader map {
                       valueReader =>
                         val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                         val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                        Persistent.PendingApply(
-                          _key = key,
-                          _time = time,
-                          deadline = deadline,
-                          lazyValueReader =
-                            LazyPendingApplyValueReader(
-                              reader = valueReader,
-                              offset = valueOffset,
-                              length = valueLength
-                            ),
-                          nextIndexOffset = nextIndexOffset,
-                          nextIndexSize = nextIndexSize,
-                          indexOffset = indexOffset,
-                          valueOffset = valueOffset,
-                          valueLength = valueLength,
-                          accessPosition = accessPosition,
-                          isPrefixCompressed =
-                            isKeyPrefixCompressed ||
-                              timeReader.isPrefixCompressed ||
-                              deadlineReader.isPrefixCompressed ||
-                              valueOffsetReader.isPrefixCompressed ||
-                              valueLengthReader.isPrefixCompressed ||
-                              valueBytesReader.isPrefixCompressed
-                        )
+                        IO {
+                          Persistent.PendingApply(
+                            _key = key,
+                            _time = time,
+                            deadline = deadline,
+                            lazyValueReader =
+                              LazyPendingApplyValueReader(
+                                reader = valueReader,
+                                offset = valueOffset,
+                                length = valueLength
+                              ),
+                            nextIndexOffset = nextIndexOffset,
+                            nextIndexSize = nextIndexSize,
+                            indexOffset = indexOffset,
+                            valueOffset = valueOffset,
+                            valueLength = valueLength,
+                            accessPosition = accessPosition,
+                            isPrefixCompressed =
+                              isKeyPrefixCompressed ||
+                                timeReader.isPrefixCompressed ||
+                                deadlineReader.isPrefixCompressed ||
+                                valueOffsetReader.isPrefixCompressed ||
+                                valueLengthReader.isPrefixCompressed ||
+                                valueBytesReader.isPrefixCompressed
+                          )
+                        }
                     } getOrElse {
-                      return Values.valueNotFound
+                      Values.valuesBlockNotInitialised
                     }
                 }
             }

@@ -19,7 +19,10 @@
 
 package swaydb.core.util
 
-import swaydb.core.data.{Transient, Value}
+import swaydb.core.data.KeyValue.ReadOnly
+import swaydb.core.data.{KeyValue, Transient, Value}
+import swaydb.core.function.FunctionStore
+import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -80,7 +83,7 @@ private[core] object MinMax {
   }
 
   def minMaxFunction(function: Option[Value],
-                     current: Option[MinMax[Slice[Byte]]])(implicit functionKeyOrder: Ordering[Slice[Byte]]): Option[MinMax[Slice[Byte]]] =
+                     current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
     function flatMap {
       function =>
         minMaxFunction(
@@ -90,7 +93,7 @@ private[core] object MinMax {
     } orElse current
 
   def minMaxFunction(function: Value,
-                     current: Option[MinMax[Slice[Byte]]])(implicit functionKeyOrder: Ordering[Slice[Byte]]): Option[MinMax[Slice[Byte]]] =
+                     current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
     function match {
       case _: Value.Remove | _: Value.Update | _: Value.Put =>
         current
@@ -111,22 +114,63 @@ private[core] object MinMax {
     }
 
   def minMaxFunction(function: Value.Function,
-                     current: Option[MinMax[Slice[Byte]]])(implicit functionKeyOrder: Ordering[Slice[Byte]]): MinMax[Slice[Byte]] =
+                     current: Option[MinMax[Slice[Byte]]]): MinMax[Slice[Byte]] =
     minMax(
       current = current,
       next = function.function
-    )
+    )(FunctionStore.order)
 
   def minMaxFunction(function: Transient.Function,
-                     current: Option[MinMax[Slice[Byte]]])(implicit functionKeyOrder: Ordering[Slice[Byte]]): MinMax[Slice[Byte]] =
+                     current: Option[MinMax[Slice[Byte]]]): MinMax[Slice[Byte]] =
     minMax(
       current = current,
       next = function.function
+    )(FunctionStore.order)
+
+  def minMaxFunction(function: ReadOnly.Function,
+                     current: Option[MinMax[Slice[Byte]]]): IO[MinMax[Slice[Byte]]] =
+    function.getOrFetchFunction map {
+      function =>
+        minMax(
+          current = current,
+          next = function
+        )(FunctionStore.order)
+    }
+
+  def minMaxFunction(range: Transient.Range,
+                     current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
+    minMaxFunction(
+      fromValue = range.fromValue,
+      rangeValue = range.rangeValue,
+      current = current
     )
+
+  def minMaxFunction(fromValue: Option[Value.FromValue],
+                     rangeValue: Value.RangeValue,
+                     current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
+    minMaxFunction(
+      function = rangeValue,
+      current =
+        minMaxFunction(
+          function = fromValue,
+          current = current
+        )
+    )
+
+  def minMaxFunction(range: KeyValue.ReadOnly.Range,
+                     current: Option[MinMax[Slice[Byte]]]): IO[Option[MinMax[Slice[Byte]]]] =
+    range.fetchFromAndRangeValue map {
+      case (fromValue, rangeValue) =>
+        minMaxFunction(
+          fromValue = fromValue,
+          rangeValue = rangeValue,
+          current = current
+        )
+    }
 
   @tailrec
   def minMaxFunction(functions: Slice[Value],
-                     current: Option[MinMax[Slice[Byte]]])(implicit functionKeyOrder: Ordering[Slice[Byte]]): Option[MinMax[Slice[Byte]]] =
+                     current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
     functions.headOption match {
       case Some(function) =>
         minMaxFunction(

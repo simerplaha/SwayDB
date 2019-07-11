@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
+import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.core.util.{Bytes, Options}
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
@@ -81,7 +81,7 @@ object BinarySearchIndex {
                     cacheOnAccess: Boolean,
                     compressions: Seq[CompressionInternal])
 
-  case class Offset(start: Int, size: Int) extends OffsetBase
+  case class Offset(start: Int, size: Int) extends BlockOffset
 
   object State {
     def apply(largestValue: Int,

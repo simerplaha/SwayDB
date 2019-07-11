@@ -26,12 +26,15 @@ import swaydb.data.IO
 
 object SegmentBlockCache {
   def apply(id: String,
-            segmentBlock: () => IO[BlockReader[SegmentBlock]]): SegmentBlockCache =
-    new SegmentBlockCache(id, segmentBlock)
+            segmentBlockReader: () => IO[BlockReader[SegmentBlock]]): SegmentBlockCache =
+    new SegmentBlockCache(
+      id = id,
+      segmentBlockReader = segmentBlockReader
+    )
 }
 
 class SegmentBlockCache(id: String,
-                        segmentBlock: () => IO[BlockReader[SegmentBlock]]) {
+                        segmentBlockReader: () => IO[BlockReader[SegmentBlock]]) {
 
   private val footerCache = Cache.io[SegmentBlock.Footer](synchronised = true, stored = true)(getFooterInfo())
   private val hashIndexCache = Cache.io[Option[HashIndex]](synchronised = true, stored = true)(getHashIndexInfo())
@@ -88,7 +91,7 @@ class SegmentBlockCache(id: String,
     } getOrElse IO.none
 
   private def createBlockReader[B <: Block](block: B): IO[BlockReader[B]] =
-    segmentBlock() map {
+    segmentBlockReader() map {
       reader =>
         block.createBlockReader(reader).asInstanceOf[BlockReader[B]]
     }
@@ -96,7 +99,7 @@ class SegmentBlockCache(id: String,
   private def getFooterAndSegmentReader(): IO[(SegmentBlock.Footer, BlockReader[SegmentBlock])] =
     for {
       footer <- footerCache.value
-      reader <- segmentBlock()
+      reader <- segmentBlockReader()
     } yield {
       (footer, reader)
     }
@@ -105,7 +108,7 @@ class SegmentBlockCache(id: String,
     * INFOS
     */
   private def getFooterInfo(): IO[SegmentBlock.Footer] =
-    segmentBlock() flatMap SegmentBlock.readFooter
+    segmentBlockReader() flatMap SegmentBlock.readFooter
 
   private def getHashIndexInfo(): IO[Option[HashIndex]] =
     getFooterAndSegmentReader() flatMap {

@@ -19,13 +19,14 @@
 
 package swaydb.core.segment.format.a.block
 
+import java.util.concurrent.ConcurrentSkipListMap
+
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.{KeyValue, Stats, Transient}
+import swaydb.core.data.{KeyValue, Memory, Stats, Transient}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.a.{NearestDeadlineMinMaxFunctionId, OffsetBase}
 import swaydb.core.util.{Bytes, CRC32, MinMax}
 import swaydb.data.IO
 import swaydb.data.IO._
@@ -43,7 +44,7 @@ private[core] object SegmentBlock {
 
   val crcBytes: Int = 7
 
-  case class Offset(start: Int, size: Int) extends OffsetBase
+  case class Offset(start: Int, size: Int) extends BlockOffset
 
   case class Footer(valuesOffset: Option[Values.Offset],
                     sortedIndexOffset: SortedIndex.Offset,
@@ -115,7 +116,7 @@ private[core] object SegmentBlock {
     def flattenSegmentBytes: Slice[Byte] = {
       val size = segmentBytes.foldLeft(0)(_ + _.size)
       val slice = Slice.create[Byte](size)
-      segmentBytes.map(_.unslice()) foreach slice.addAll
+      segmentBytes foreach (slice addAll _.unslice())
       assert(slice.isFull)
       slice
     }
@@ -286,14 +287,13 @@ private[core] object SegmentBlock {
     else
       noCompressionHeaderSize
 
-  private def writeBlocks(keyValue: KeyValue.WriteOnly,
-                          sortedIndex: SortedIndex.State,
-                          values: Option[Values.State],
-                          hashIndex: Option[HashIndex.State],
-                          binarySearchIndex: Option[BinarySearchIndex.State],
-                          bloomFilter: Option[BloomFilter.State],
-                          currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
-                          currentNearestDeadline: Option[Deadline]): IO[NearestDeadlineMinMaxFunctionId] = {
+  def writeIndexBlocks(keyValue: KeyValue.WriteOnly,
+                       memoryMap: Option[ConcurrentSkipListMap[Slice[Byte], Memory]],
+                       hashIndex: Option[HashIndex.State],
+                       binarySearchIndex: Option[BinarySearchIndex.State],
+                       bloomFilter: Option[BloomFilter.State],
+                       currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
+                       currentNearestDeadline: Option[Deadline]): IO[NearestDeadlineMinMaxFunctionId] = {
 
     def writeOne(rootGroup: Option[KeyValue.WriteOnly.Group],
                  keyValue: KeyValue.WriteOnly): IO[Unit] =
@@ -351,12 +351,12 @@ private[core] object SegmentBlock {
       }
 
     @tailrec
-    def write(keyValues: Slice[KeyValue.WriteOnly],
-              currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
-              nearestDeadline: Option[Deadline]): NearestDeadlineMinMaxFunctionId =
+    def writeRoot(keyValues: Slice[KeyValue.WriteOnly],
+                  currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
+                  currentNearestDeadline: Option[Deadline]): NearestDeadlineMinMaxFunctionId =
       keyValues.headOption match {
         case Some(keyValue) =>
-          val nextNearestDeadline = Segment.getNearestDeadline(nearestDeadline, keyValue)
+          val nextNearestDeadline = Segment.getNearestDeadline(currentNearestDeadline, keyValue)
           var nextMinMaxFunctionId = currentMinMaxFunction
 
           keyValue match {
@@ -369,9 +369,21 @@ private[core] object SegmentBlock {
                   keyValues = rootGroup.keyValues
                 ).get
 
+              memoryMap foreach {
+                skipList =>
+                  val minKeyUnsliced = rootGroup.minKey.unslice()
+                  skipList.put(
+                    minKeyUnsliced,
+                    Memory.Group(
+                      minKey = minKeyUnsliced,
+                      maxKey = rootGroup.maxKey.unslice(),
+                      result = rootGroup.closedSegment
+                    )
+                  )
+              }
+
             case range: Transient.Range =>
-              nextMinMaxFunctionId = MinMax.minMaxFunction(range.fromValue, currentMinMaxFunction)(FunctionStore.order)
-              nextMinMaxFunctionId = MinMax.minMaxFunction(range.rangeValue, currentMinMaxFunction)(FunctionStore.order)
+              nextMinMaxFunctionId = MinMax.minMaxFunction(range, currentMinMaxFunction)
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(
@@ -379,8 +391,22 @@ private[core] object SegmentBlock {
                   keyValue = range
                 ).get
 
+              memoryMap foreach {
+                skipList =>
+                  val fromKeyUnsliced = range.fromKey.unslice()
+                  skipList.put(
+                    fromKeyUnsliced,
+                    Memory.Range(
+                      fromKey = fromKeyUnsliced,
+                      toKey = range.toKey.unslice(),
+                      fromValue = range.fromValue.map(_.unslice),
+                      rangeValue = range.rangeValue.unslice
+                    )
+                  )
+              }
+
             case function: Transient.Function =>
-              nextMinMaxFunctionId = Some(MinMax.minMaxFunction(function, currentMinMaxFunction)(FunctionStore.order))
+              nextMinMaxFunctionId = Some(MinMax.minMaxFunction(function, currentMinMaxFunction))
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(
@@ -388,8 +414,21 @@ private[core] object SegmentBlock {
                   keyValue = function
                 ).get
 
+              memoryMap foreach {
+                skipList =>
+                  val keyUnsliced = function.key.unslice()
+                  skipList.put(
+                    keyUnsliced,
+                    Memory.Function(
+                      key = keyUnsliced,
+                      function = function.function.unslice(),
+                      time = function.time.unslice()
+                    )
+                  )
+              }
+
             case pendingApply: Transient.PendingApply =>
-              nextMinMaxFunctionId = MinMax.minMaxFunction(pendingApply.applies, currentMinMaxFunction)(FunctionStore.order)
+              nextMinMaxFunctionId = MinMax.minMaxFunction(pendingApply.applies, currentMinMaxFunction)
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(
@@ -397,35 +436,125 @@ private[core] object SegmentBlock {
                   keyValue = pendingApply
                 ).get
 
-            case others @ (_: Transient.Put | _: Transient.Remove | _: Transient.Update) =>
+              memoryMap foreach {
+                skipList =>
+                  val keyUnsliced = pendingApply.key.unslice()
+                  skipList.put(
+                    keyUnsliced,
+                    Memory.PendingApply(
+                      key = keyUnsliced,
+                      applies = pendingApply.applies.map(_.unslice)
+                    )
+                  )
+              }
+
+            case put: Transient.Put =>
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(
                   rootGroup = None,
-                  keyValue = others
+                  keyValue = put
                 ).get
+
+              memoryMap foreach {
+                skipList =>
+                  val keyUnsliced = put.key.unslice()
+                  val unslicedValue = put.value flatMap (_.unsliceNonEmpty())
+
+                  skipList.put(
+                    keyUnsliced,
+                    Memory.Put(
+                      key = keyUnsliced,
+                      value = unslicedValue,
+                      deadline = put.deadline,
+                      time = put.time.unslice()
+                    )
+                  )
+              }
+
+            case remove: Transient.Remove =>
+              if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
+                writeOne(
+                  rootGroup = None,
+                  keyValue = remove
+                ).get
+
+              memoryMap foreach {
+                skipList =>
+                  val keyUnsliced = remove.key.unslice()
+
+                  skipList.put(
+                    keyUnsliced,
+                    Memory.Remove(
+                      key = keyUnsliced,
+                      deadline = remove.deadline,
+                      time = remove.time.unslice()
+                    )
+                  )
+              }
+
+
+            case update: Transient.Update =>
+              if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
+                writeOne(
+                  rootGroup = None,
+                  keyValue = update
+                ).get
+
+              memoryMap foreach {
+                skipList =>
+                  val keyUnsliced = update.key.unslice()
+                  val unslicedValue = update.value flatMap (_.unsliceNonEmpty())
+
+                  skipList.put(
+                    keyUnsliced,
+                    Memory.Put(
+                      key = keyUnsliced,
+                      value = unslicedValue,
+                      deadline = update.deadline,
+                      time = update.time.unslice()
+                    )
+                  )
+              }
           }
 
-          write(keyValues.drop(1), nextMinMaxFunctionId, nextNearestDeadline)
+          writeRoot(keyValues.drop(1), nextMinMaxFunctionId, nextNearestDeadline)
 
         case None =>
-          NearestDeadlineMinMaxFunctionId(nearestDeadline, currentMinMaxFunction)
+          NearestDeadlineMinMaxFunctionId(currentNearestDeadline, currentMinMaxFunction)
       }
 
-    if (keyValue.valueEntryBytes.nonEmpty && values.isEmpty)
-      Values.valueSliceNotInitialised
-    else
-      SortedIndex
-        .write(keyValue = keyValue, state = sortedIndex)
-        .flatMap(_ => values.map(Values.write(keyValue, _)) getOrElse IO.unit)
-        .map {
-          _ =>
-            write(
-              keyValues = Slice(keyValue),
-              currentMinMaxFunction = currentMinMaxFunction,
-              nearestDeadline = currentNearestDeadline
-            )
-        }
+    IO {
+      writeRoot(
+        keyValues = Slice(keyValue),
+        currentMinMaxFunction = currentMinMaxFunction,
+        currentNearestDeadline = currentNearestDeadline
+      )
+    }
   }
+
+  private def writeBlocks(keyValue: KeyValue.WriteOnly,
+                          sortedIndex: SortedIndex.State,
+                          values: Option[Values.State],
+                          hashIndex: Option[HashIndex.State],
+                          binarySearchIndex: Option[BinarySearchIndex.State],
+                          bloomFilter: Option[BloomFilter.State],
+                          currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
+                          currentNearestDeadline: Option[Deadline]): IO[NearestDeadlineMinMaxFunctionId] =
+    SortedIndex
+      .write(keyValue = keyValue, state = sortedIndex)
+      .flatMap(_ => values.map(Values.write(keyValue, _)) getOrElse IO.unit)
+      .flatMap {
+        _ =>
+          writeIndexBlocks(
+            keyValue = keyValue,
+            memoryMap = None,
+            hashIndex = hashIndex,
+            bloomFilter = bloomFilter,
+            binarySearchIndex = binarySearchIndex,
+            currentMinMaxFunction = currentMinMaxFunction,
+            currentNearestDeadline = currentNearestDeadline
+          )
+      }
 
   private def closeBlocks(sortedIndex: SortedIndex.State,
                           values: Option[Values.State],

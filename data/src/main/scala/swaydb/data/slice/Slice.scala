@@ -419,7 +419,6 @@ class Slice[+T: ClassTag] private(array: Array[T],
     *
     * @param fromOffset start offset
     * @param toOffset   end offset
-    *
     * @return Slice for the given offsets
     */
   override def slice(fromOffset: Int, toOffset: Int): Slice[T] =
@@ -680,6 +679,14 @@ class Slice[+T: ClassTag] private(array: Array[T],
 
   def underlyingArraySize =
     array.length
+
+  def unsliceNonEmpty(): Option[Slice[T]] = {
+    val slice = unslice()
+    if (slice.isEmpty)
+      None
+    else
+      Some(slice)
+  }
 
   private[swaydb] def underlyingWrittenArrayUnsafe[X >: T]: (Array[X], Int, Int) =
     (array.asInstanceOf[Array[X]], fromOffset, size)

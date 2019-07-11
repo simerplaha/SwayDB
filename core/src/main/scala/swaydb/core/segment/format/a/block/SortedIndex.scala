@@ -24,12 +24,11 @@ import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
@@ -67,7 +66,7 @@ private[core] object SortedIndex {
                     enableAccessPositionIndex: Boolean,
                     compressions: Seq[CompressionInternal])
 
-  case class Offset(start: Int, size: Int) extends OffsetBase
+  case class Offset(start: Int, size: Int) extends BlockOffset
 
   case class State(var _bytes: Slice[Byte],
                    headerSize: Int,
@@ -265,6 +264,15 @@ private[core] object SortedIndex {
             IO.Failure(ex)
         }
     }
+
+  def readAll(reader: Reader): IO[Slice[KeyValue.ReadOnly]] =
+    for {
+      segmentBlockReader <- SegmentBlock.read(SegmentBlock.Offset(0, reader.size.get.toInt), reader).map(_.createBlockReader(reader))
+      footer <- SegmentBlock.readFooter(segmentBlockReader)
+      valuesReader <- footer.valuesOffset.map(Values.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
+      sortedIndex <- SortedIndex.read(footer.sortedIndexOffset, segmentBlockReader).map(_.createBlockReader(segmentBlockReader))
+      keyValues <- SortedIndex.readAll(footer.keyValueCount, sortedIndex, valuesReader)
+    } yield keyValues
 
   def readAll(keyValueCount: Int,
               sortedIndexReader: BlockReader[SortedIndex],

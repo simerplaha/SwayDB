@@ -63,7 +63,7 @@ object PutReader extends EntryReader[Persistent.Put] {
                       }
 
                     if (valueLength > 0 && lazyValueReader.isEmpty)
-                      Values.valueNotFound
+                      Values.valuesBlockNotInitialised
                     else
                       IO {
                         Persistent.Put(

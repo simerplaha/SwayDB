@@ -46,12 +46,12 @@ object UpdateReader extends EntryReader[Persistent.Update] {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {
           valueOffsetAndLength =>
-            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
             timeReader.read(indexReader, previous) flatMap {
               time =>
-                KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Update) map {
+                KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Put) flatMap {
                   case (key, isKeyPrefixCompressed) =>
+                    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                    val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
                     val lazyValueReader =
                       valueReader map {
@@ -61,32 +61,32 @@ object UpdateReader extends EntryReader[Persistent.Update] {
                             offset = valueOffset,
                             length = valueLength
                           )
-                      } getOrElse {
-                        if (valueLength > 0)
-                          return Values.valueNotFound
-                        else
-                          LazyValueReader.empty
                       }
 
-                    Persistent.Update(
-                      _key = key,
-                      deadline = deadline,
-                      lazyValueReader = lazyValueReader,
-                      _time = time,
-                      nextIndexOffset = nextIndexOffset,
-                      nextIndexSize = nextIndexSize,
-                      indexOffset = indexOffset,
-                      valueOffset = valueOffset,
-                      valueLength = valueLength,
-                      accessPosition = accessPosition,
-                      isPrefixCompressed =
-                        isKeyPrefixCompressed ||
-                          timeReader.isPrefixCompressed ||
-                          deadlineReader.isPrefixCompressed ||
-                          valueOffsetReader.isPrefixCompressed ||
-                          valueLengthReader.isPrefixCompressed ||
-                          valueBytesReader.isPrefixCompressed
-                    )
+                    if (valueLength > 0 && lazyValueReader.isEmpty)
+                      Values.valuesBlockNotInitialised
+                    else
+                      IO {
+                        Persistent.Update(
+                          _key = key,
+                          deadline = deadline,
+                          lazyValueReader = lazyValueReader getOrElse LazyValueReader.empty,
+                          _time = time,
+                          nextIndexOffset = nextIndexOffset,
+                          nextIndexSize = nextIndexSize,
+                          indexOffset = indexOffset,
+                          valueOffset = valueOffset,
+                          valueLength = valueLength,
+                          accessPosition = accessPosition,
+                          isPrefixCompressed =
+                            isKeyPrefixCompressed ||
+                              timeReader.isPrefixCompressed ||
+                              deadlineReader.isPrefixCompressed ||
+                              valueOffsetReader.isPrefixCompressed ||
+                              valueLengthReader.isPrefixCompressed ||
+                              valueBytesReader.isPrefixCompressed
+                        )
+                      }
                 }
             }
         }

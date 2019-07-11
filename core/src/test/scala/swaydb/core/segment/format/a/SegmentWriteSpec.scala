@@ -1,192 +1,191 @@
-///*
-// * Copyright (c) 2019 Simer Plaha (@simerplaha)
-// *
-// * This file is a part of SwayDB.
-// *
-// * SwayDB is free software: you can redistribute it and/or modify
-// * it under the terms of the GNU Affero General Public License as
-// * published by the Free Software Foundation, either version 3 of the
-// * License, or (at your option) any later version.
-// *
-// * SwayDB is distributed in the hope that it will be useful,
-// * but WITHOUT ANY WARRANTY; without even the implied warranty of
-// * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// * GNU Affero General Public License for more details.
-// *
-// * You should have received a copy of the GNU Affero General Public License
-// * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
-// */
-//
-//package swaydb.core.segment.format.a
-//
-//import java.nio.file._
-//
-//import swaydb.configs.level.DefaultGroupingStrategy
-//import swaydb.core.CommonAssertions._
-//import swaydb.core.IOAssert._
-//import swaydb.core.RunThis._
-//import swaydb.core.TestData._
-//import swaydb.core.data.Transient.Remove
-//import swaydb.core.data.Value.{FromValue, RangeValue}
-//import swaydb.core.data.{Memory, Value, _}
-//import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-//import swaydb.core.io.file.IOEffect._
-//import swaydb.core.io.reader.Reader
-//import swaydb.core.level.PathsDistributor
-//import swaydb.core.queue.FileLimiter
-//import swaydb.core.segment.format.a.block.SortedIndex
-//import swaydb.core.segment.merge.SegmentMerger
-//import swaydb.core.segment.{PersistentSegment, Segment}
-//import swaydb.core.util._
-//import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
-//import swaydb.data.config.Dir
-//import swaydb.data.order.{KeyOrder, TimeOrder}
-//import swaydb.data.slice.Slice
-//import swaydb.data.util.ByteSizeOf
-//import swaydb.data.util.StorageUnits._
-//import swaydb.data.{IO, MaxKey}
-//import swaydb.serializers.Default._
-//import swaydb.serializers._
-//
-//import scala.collection.JavaConverters._
-//import scala.collection.mutable.ListBuffer
-//import scala.concurrent.duration._
-//import scala.util.Random
-//
-//class SegmentWriteSpec0 extends SegmentWriteSpec
-//
-//class SegmentWriteSpec1 extends SegmentWriteSpec {
-//  override def levelFoldersCount = 10
-//  override def mmapSegmentsOnWrite = true
-//  override def mmapSegmentsOnRead = true
-//  override def level0MMAP = true
-//  override def appendixStorageMMAP = true
-//}
-//
-//class SegmentWriteSpec2 extends SegmentWriteSpec {
-//  override def levelFoldersCount = 10
-//  override def mmapSegmentsOnWrite = false
-//  override def mmapSegmentsOnRead = false
-//  override def level0MMAP = false
-//  override def appendixStorageMMAP = false
-//}
-//
-//class SegmentWriteSpec3 extends SegmentWriteSpec {
-//  override def inMemoryStorage = true
-//}
-//
-//sealed trait SegmentWriteSpec extends TestBase with Benchmark {
-//
-//  val keyValuesCount = 100
-//
-//  implicit val testTimer: TestTimer = TestTimer.Incremental()
-//
-//  implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
-//    randomGroupingStrategyOption(keyValuesCount)
-//
-//  implicit val keyOrder = KeyOrder.default
-//  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-//  implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
-//
-//  //  override def deleteFiles = false
-//
-//  implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-//
-//  "Segment" should {
-//
-//    "create a Segment" in {
-//      runThis(100.times) {
-//        assertSegment(
-//          keyValues =
-//            randomizedKeyValues(randomIntMax(keyValuesCount) max 1).toMemory,
-//
-//          assert =
-//            (keyValues, segment) => {
-//              assertReads(keyValues, segment)
-//              segment.minKey shouldBe keyValues.head.key
-//              segment.maxKey shouldBe {
-//                keyValues.last match {
-//                  case _: Memory.Fixed =>
-//                    MaxKey.Fixed[Slice[Byte]](keyValues.last.key)
-//
-//                  case group: Memory.Group =>
-//                    group.maxKey
-//
-//                  case range: Memory.Range =>
-//                    MaxKey.Range[Slice[Byte]](range.fromKey, range.toKey)
-//                }
-//              }
-//
-//              //ensure that min and max keys are slices
-//              segment.minKey.underlyingArraySize shouldBe 4
-//              segment.maxKey match {
-//                case MaxKey.Fixed(maxKey) =>
-//                  maxKey.underlyingArraySize shouldBe 4
-//
-//                case MaxKey.Range(fromKey, maxKey) =>
-//                  fromKey.underlyingArraySize shouldBe 4
-//                  maxKey.underlyingArraySize shouldBe 4
-//              }
-//
-////              assertBloom(keyValues.toTransient, segment.getBloomFilter.assertGet)
-//              ???
-//
-//              segment.close.assertGet
-//            }
-//        )
-//      }
-//    }
-//
-//    "set minKey & maxKey to be Fixed if the last key-value is a Fixed key-value" in {
-//      runThis(100.times) {
-//        assertSegment(
-//          keyValues =
-//            Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)),
-//          assert =
-//            (keyValues, segment) => {
-//              segment.minKey shouldBe (1: Slice[Byte])
-//              segment.maxKey shouldBe MaxKey.Fixed[Slice[Byte]](11)
-//              segment.minKey.underlyingArraySize shouldBe ByteSizeOf.int
-//              segment.maxKey.maxKey.underlyingArraySize shouldBe ByteSizeOf.int
-//              segment.close.assertGet
-//            }
-//        )
-//      }
-//    }
-//
-//    "set minKey & maxKey to be Range if the last key-value is a Range key-value" in {
-//      runThis(100.times) {
-//        assertSegment(
-//          keyValues = Slice(randomFixedKeyValue(0), randomRangeKeyValue(1, 10)),
-//          assert =
-//            (keyValues, segment) => {
-//              segment.minKey shouldBe (0: Slice[Byte])
-//              segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](1, 10)
-//              segment.close.assertGet
-//            }
-//        )
-//      }
-//    }
-//
-//    "set minKey & maxKey to be Range if the last key-value is a Group and the Group's last key-value is Range" in {
-//      runThis(100.times) {
-//        assertSegment(
-//          keyValues = Slice(randomFixedKeyValue(0), randomGroup(Slice(randomFixedKeyValue(2), randomRangeKeyValue(5, 10)).toTransient)).toMemory,
-//          assert =
-//            (keyValues, segment) => {
-//              segment.minKey shouldBe (0: Slice[Byte])
-//              segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](5, 10)
-//              segment.minKey.underlyingArraySize shouldBe ByteSizeOf.int
-//
-//              val rangeMaxKey = segment.maxKey.asInstanceOf[MaxKey.Range[Slice[Byte]]]
-//              rangeMaxKey.maxKey.underlyingArraySize shouldBe ByteSizeOf.int
-//              rangeMaxKey.fromKey.underlyingArraySize shouldBe ByteSizeOf.int
-//
-//              segment.close.assertGet
-//            }
-//        )
-//      }
-//    }
+/*
+ * Copyright (c) 2019 Simer Plaha (@simerplaha)
+ *
+ * This file is a part of SwayDB.
+ *
+ * SwayDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * SwayDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package swaydb.core.segment.format.a
+
+import java.nio.file._
+
+import swaydb.configs.level.DefaultGroupingStrategy
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.data.Transient.Remove
+import swaydb.core.data.Value.{FromValue, RangeValue}
+import swaydb.core.data.{Memory, Value, _}
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.io.file.IOEffect._
+import swaydb.core.io.reader.Reader
+import swaydb.core.level.PathsDistributor
+import swaydb.core.queue.FileLimiter
+import swaydb.core.segment.format.a.block.SortedIndex
+import swaydb.core.segment.merge.SegmentMerger
+import swaydb.core.segment.{PersistentSegment, Segment}
+import swaydb.core.util._
+import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
+import swaydb.data.config.Dir
+import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice
+import swaydb.data.util.ByteSizeOf
+import swaydb.data.util.StorageUnits._
+import swaydb.data.{IO, MaxKey}
+import swaydb.serializers.Default._
+import swaydb.serializers._
+
+import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration._
+import scala.util.Random
+
+class SegmentWriteSpec0 extends SegmentWriteSpec
+
+class SegmentWriteSpec1 extends SegmentWriteSpec {
+  override def levelFoldersCount = 10
+  override def mmapSegmentsOnWrite = true
+  override def mmapSegmentsOnRead = true
+  override def level0MMAP = true
+  override def appendixStorageMMAP = true
+}
+
+class SegmentWriteSpec2 extends SegmentWriteSpec {
+  override def levelFoldersCount = 10
+  override def mmapSegmentsOnWrite = false
+  override def mmapSegmentsOnRead = false
+  override def level0MMAP = false
+  override def appendixStorageMMAP = false
+}
+
+class SegmentWriteSpec3 extends SegmentWriteSpec {
+  override def inMemoryStorage = true
+}
+
+sealed trait SegmentWriteSpec extends TestBase with Benchmark {
+
+  val keyValuesCount = 100
+
+  implicit val testTimer: TestTimer = TestTimer.Incremental()
+
+  implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
+    randomGroupingStrategyOption(keyValuesCount)
+
+  implicit val keyOrder = KeyOrder.default
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
+
+  //  override def deleteFiles = false
+
+  implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
+
+  "Segment" should {
+
+    "create a Segment" in {
+      runThis(100.times) {
+        assertSegment(
+          keyValues =
+            randomizedKeyValues(randomIntMax(keyValuesCount) max 1),
+
+          assert =
+            (keyValues, segment) => {
+              assertReads(keyValues, segment)
+              segment.minKey shouldBe keyValues.head.key
+              segment.maxKey shouldBe {
+                keyValues.last match {
+                  case _: Memory.Fixed =>
+                    MaxKey.Fixed[Slice[Byte]](keyValues.last.key)
+
+                  case group: Memory.Group =>
+                    group.maxKey
+
+                  case range: Memory.Range =>
+                    MaxKey.Range[Slice[Byte]](range.fromKey, range.toKey)
+                }
+              }
+
+              //ensure that min and max keys are slices
+              segment.minKey.underlyingArraySize shouldBe 4
+              segment.maxKey match {
+                case MaxKey.Fixed(maxKey) =>
+                  maxKey.underlyingArraySize shouldBe 4
+
+                case MaxKey.Range(fromKey, maxKey) =>
+                  fromKey.underlyingArraySize shouldBe 4
+                  maxKey.underlyingArraySize shouldBe 4
+              }
+
+              assertBloom(keyValues, segment)
+
+              segment.close.assertGet
+            }
+        )
+      }
+    }
+
+    "set minKey & maxKey to be Fixed if the last key-value is a Fixed key-value" in {
+      runThis(100.times) {
+        assertSegment(
+          keyValues =
+            Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)).toTransient,
+          assert =
+            (keyValues, segment) => {
+              segment.minKey shouldBe (1: Slice[Byte])
+              segment.maxKey shouldBe MaxKey.Fixed[Slice[Byte]](11)
+              segment.minKey.underlyingArraySize shouldBe ByteSizeOf.int
+              segment.maxKey.maxKey.underlyingArraySize shouldBe ByteSizeOf.int
+              segment.close.assertGet
+            }
+        )
+      }
+    }
+
+    "set minKey & maxKey to be Range if the last key-value is a Range key-value" in {
+      runThis(100.times) {
+        assertSegment(
+          keyValues = Slice(randomFixedKeyValue(0), randomRangeKeyValue(1, 10)).toTransient,
+          assert =
+            (keyValues, segment) => {
+              segment.minKey shouldBe (0: Slice[Byte])
+              segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](1, 10)
+              segment.close.assertGet
+            }
+        )
+      }
+    }
+
+    "set minKey & maxKey to be Range if the last key-value is a Group and the Group's last key-value is Range" in {
+      runThis(100.times) {
+        assertSegment(
+          keyValues = Slice(randomFixedKeyValue(0).toTransient, randomGroup(Slice(randomFixedKeyValue(2), randomRangeKeyValue(5, 10)).toTransient)).updateStats,
+          assert =
+            (keyValues, segment) => {
+              segment.minKey shouldBe (0: Slice[Byte])
+              segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](5, 10)
+              segment.minKey.underlyingArraySize shouldBe ByteSizeOf.int
+
+              val rangeMaxKey = segment.maxKey.asInstanceOf[MaxKey.Range[Slice[Byte]]]
+              rangeMaxKey.maxKey.underlyingArraySize shouldBe ByteSizeOf.int
+              rangeMaxKey.fromKey.underlyingArraySize shouldBe ByteSizeOf.int
+
+              segment.close.assertGet
+            }
+        )
+      }
+    }
 //
 //    "set minKey & maxKey to be Range if last key-value is a Group and the Group's last key-value is Fixed" in {
 //      runThis(10.times) {
@@ -228,7 +227,7 @@
 //            }
 //        )
 //      }
-//    }
+    }
 //
 //    "un-slice Segment's minKey & maxKey and also un-slice cache key-values" in {
 //      //assert that all key-values added to cache are not sub-slices.
@@ -309,8 +308,8 @@
 //    "create bloomFilter if the Segment has Remove range key-values or function key-values and set hasRange to true" in {
 //
 //      def doAssert(keyValues: Slice[KeyValue], segment: Segment) = {
-////        segment.getBloomFilter.assertGetOpt shouldBe defined
-////        assertBloom(keyValues.toMemory.toTransient, segment.getBloomFilter.get.get)
+//        //        segment.getBloomFilter.assertGetOpt shouldBe defined
+//        //        assertBloom(keyValues.toMemory.toTransient, segment.getBloomFilter.get.get)
 //        ???
 //        segment.hasRange.assertGet shouldBe true
 //        segment.close.assertGet
@@ -380,7 +379,7 @@
 //        keyValues = Slice(Memory.put(0), Memory.put(1, 1), Memory.remove(2, randomDeadlineOption)),
 //        assert =
 //          (keyValues, segment) => {
-////            segment.getBloomFilter.assertGetOpt shouldBe defined
+//            //            segment.getBloomFilter.assertGetOpt shouldBe defined
 //            ???
 //            segment.hasRange.assertGet shouldBe false
 //            segment.close.assertGet
@@ -391,7 +390,7 @@
 //        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, None, Value.update(10, randomDeadlineOption))),
 //        assert =
 //          (keyValues, segment) => {
-////            segment.getBloomFilter.assertGetOpt shouldBe defined
+//            //            segment.getBloomFilter.assertGetOpt shouldBe defined
 //            ???
 //            segment.hasRange.assertGet shouldBe true
 //            segment.close.assertGet
@@ -406,7 +405,7 @@
 //          ),
 //        assert =
 //          (keyValues, segment) => {
-////            segment.getBloomFilter.assertGetOpt shouldBe defined
+//            //            segment.getBloomFilter.assertGetOpt shouldBe defined
 //            ???
 //            segment.hasRange.assertGet shouldBe true
 //            segment.close.assertGet
@@ -487,7 +486,7 @@
 //                keyValue =>
 //                  segment.get(keyValue.key).assertGetOpt.isEmpty shouldBe true
 //              }
-////              assertBloom(keyValues.toTransient, segment.getBloomFilter.assertGet)
+//              //              assertBloom(keyValues.toTransient, segment.getBloomFilter.assertGet)
 //              ???
 //            }
 //        )
@@ -515,7 +514,7 @@
 //                segment.isFileDefined shouldBe true
 //                segment.isCacheEmpty shouldBe false
 //
-////                segment.getBloomFilter.assertGetOpt.foreach(bloom => assertBloom(keyValues.toTransient, bloom))
+//                //                segment.getBloomFilter.assertGetOpt.foreach(bloom => assertBloom(keyValues.toTransient, bloom))
 //                ???
 //
 //                segment.close.assertGet
@@ -1607,4 +1606,4 @@
 //      readAll(bytes).assertGet shouldBe keyValues
 //    }
 //  }
-//}
+}

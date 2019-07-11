@@ -32,7 +32,7 @@ import swaydb.core.IOAssert._
 import swaydb.core.TestData._
 import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
 import swaydb.core.actor.WiredActor
-import swaydb.core.data.{KeyValue, Memory, Time}
+import swaydb.core.data.{KeyValue, Memory, Time, Transient}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.{BufferCleaner, DBFile, IOEffect}
 import swaydb.core.io.reader.FileReader
@@ -249,10 +249,10 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
               path: Path = testSegmentFile,
               segmentCompressions: Seq[CompressionInternal] = randomCompressions())(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                   keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                                   fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
-                                                                                   timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
+                                                                                    keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                                                    fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+                                                                                    timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                    groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
       if (levelStorage.memory)
         Segment.memory(
           path = path,
@@ -625,12 +625,12 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     ).runThisRandomlyInParallel
   }
 
-  def assertSegment[T](keyValues: Slice[Memory],
-                       assert: (Slice[Memory], Segment) => T,
+  def assertSegment[T](keyValues: Slice[KeyValue.WriteOnly],
+                       assert: (Slice[KeyValue.WriteOnly], Segment) => T,
                        testWithCachePopulated: Boolean = true,
                        closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]) = {
-    val segment = TestSegment(keyValues.toTransient).assertGet
+    val segment = TestSegment(keyValues).assertGet
     if (closeAfterCreate) segment.close.assertGet
 
     assert(keyValues, segment) //first

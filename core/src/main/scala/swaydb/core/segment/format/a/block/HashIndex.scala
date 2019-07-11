@@ -23,7 +23,6 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.config.RandomKeyIndex
@@ -82,7 +81,7 @@ private[core] object HashIndex extends LazyLogging {
                     cacheOnAccess: Boolean,
                     compressions: Seq[CompressionInternal])
 
-  case class Offset(start: Int, size: Int) extends OffsetBase
+  case class Offset(start: Int, size: Int) extends BlockOffset
 
   final case class State(var hit: Int,
                          var miss: Int,

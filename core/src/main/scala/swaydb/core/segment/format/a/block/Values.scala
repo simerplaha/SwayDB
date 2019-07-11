@@ -23,7 +23,6 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.a.OffsetBase
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.slice.Slice
@@ -56,11 +55,8 @@ object Values {
                     cacheOnAccess: Boolean,
                     compressions: Seq[CompressionInternal])
 
-  def valueNotFound: IO.Failure[Nothing] =
-    IO.Failure(IO.Error.Fatal("Value not found."))
-
-  def valueSliceNotInitialised: IO.Failure[Nothing] =
-    IO.Failure(IO.Error.Fatal("Value slice not initialised."))
+  def valuesBlockNotInitialised: IO.Failure[Nothing] =
+    IO.Failure(IO.Error.Fatal("Value block not initialised."))
 
   val empty =
     Values(Values.Offset.zero, 0, None)
@@ -78,7 +74,7 @@ object Values {
     val zero = Offset(0, 0)
   }
 
-  case class Offset(start: Int, size: Int) extends OffsetBase
+  case class Offset(start: Int, size: Int) extends BlockOffset
 
   val hasCompressionHeaderSize = {
     val size = Block.headerSize(true)

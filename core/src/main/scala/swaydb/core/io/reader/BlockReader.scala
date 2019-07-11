@@ -67,7 +67,7 @@ private[core] class BlockReader[B <: Block](reader: Reader,
       }
 
   override val size: IO[Long] =
-    IO {
+    IO.Success {
       block.
         compressionInfo
         .map(_.decompressedLength)

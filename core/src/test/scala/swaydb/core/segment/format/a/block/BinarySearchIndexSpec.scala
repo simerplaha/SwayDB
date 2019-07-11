@@ -24,7 +24,6 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.KeyValue.WriteOnly
 import swaydb.core.data.Persistent
-import swaydb.core.segment.format.a.KeyMatcher
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder

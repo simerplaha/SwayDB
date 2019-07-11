@@ -20,6 +20,7 @@
 package swaydb.core.segment
 
 import java.nio.file.Path
+import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
@@ -69,6 +70,9 @@ private[segment] case class PersistentSegment(file: DBFile,
       unsliceKey = true,
       createSegmentBlockReader = () => segmentBlockCache.map(_.createBlockReader(Reader(file)))
     )
+
+  def cache: ConcurrentSkipListMap[Slice[Byte], Persistent] =
+    segmentCache.cache
 
   def close: IO[Unit] =
     file.close map {

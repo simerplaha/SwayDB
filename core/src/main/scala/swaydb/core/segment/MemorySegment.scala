@@ -29,6 +29,7 @@ import swaydb.core.data.Memory.{Group, SegmentResponse}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block._
@@ -43,6 +44,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration.Deadline
 
+
 private[segment] case class MemorySegment(path: Path,
                                           minKey: Slice[Byte],
                                           maxKey: MaxKey[Slice[Byte]],
@@ -55,7 +57,7 @@ private[segment] case class MemorySegment(path: Path,
                                           _isGrouped: Boolean,
                                           _createdInLevel: Int,
                                           private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
-                                          bloomFilter: Option[(BloomFilter, Slice[Byte])],
+                                          bloomFilter: Option[BloomFilter.MemoryBlock],
                                           nearestExpiryDeadline: Option[Deadline],
                                           busy: Reserve[Unit])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                timeOrder: TimeOrder[Slice[Byte]],
@@ -253,9 +255,15 @@ private[segment] case class MemorySegment(path: Path,
 
   def mightContainKey(key: Slice[Byte]): IO[Boolean] =
     bloomFilter map {
-      case (bloomFilter, bytes) =>
-        //        BloomFilter.mightContain(key, Reader(bytes), bloomFilter)
-        ???
+      memoryBlock =>
+        BloomFilter.mightContain(
+          key = key,
+          reader =
+            BlockReader(
+              reader = Reader(memoryBlock.bytes),
+              block = memoryBlock.bloomFilter
+            )
+        )
     } getOrElse IO.`true`
 
   override def mightContainFunction(key: Slice[Byte]): IO[Boolean] =
