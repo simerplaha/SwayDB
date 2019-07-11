@@ -50,7 +50,7 @@ object SegmentCache {
         SegmentBlockCache(
           id = id,
           segmentBlockOffset = segmentOffset,
-          rawSegmentBlockReader = rawSegmentReader
+          rawSegmentReader = rawSegmentReader
         )
     )
 }

@@ -17,10 +17,9 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment
+package swaydb.core.segment.format.a.block
 
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.segment.format.a.block._
 import swaydb.core.util.cache.Cache
 import swaydb.data.IO
 import swaydb.data.slice.Reader
@@ -28,15 +27,15 @@ import swaydb.data.slice.Reader
 object SegmentBlockCache {
   def apply(id: String,
             segmentBlockOffset: SegmentBlock.Offset,
-            rawSegmentBlockReader: () => Reader): SegmentBlockCache =
+            rawSegmentReader: () => Reader): SegmentBlockCache =
     new SegmentBlockCache(
       id = id,
-      segmentBlockInfo = new SegmentBlockInfo(segmentBlockOffset, rawSegmentBlockReader)
+      segmentBlockInfo = new SegmentBlockInfo(segmentBlockOffset, rawSegmentReader)
     )
 }
 
 protected class SegmentBlockInfo(val segmentBlockOffset: SegmentBlock.Offset,
-                                 val rawSegmentBlockReader: () => Reader)
+                                 val rawSegmentReader: () => Reader)
 
 class SegmentBlockCache(id: String,
                         segmentBlockInfo: SegmentBlockInfo) {
@@ -46,18 +45,18 @@ class SegmentBlockCache(id: String,
       blockInfo =>
         SegmentBlock.read(
           offset = blockInfo.segmentBlockOffset,
-          segmentReader = blockInfo.rawSegmentBlockReader()
+          segmentReader = blockInfo.rawSegmentReader()
         )
     }
 
   val segmentBlockByteCache =
     Cache.io[SegmentBlock, BlockReader[SegmentBlock]](synchronised = true, reserved = false, stored = true) {
       blockInfo =>
-        IO(blockInfo.createBlockReader(segmentBlockInfo.rawSegmentBlockReader()))
+        IO(blockInfo.createBlockReader(segmentBlockInfo.rawSegmentReader()))
     }
 
   val segmentBlockReader =
-    segmentBlockCache.map(segmentBlockInfo)(_.createBlockReader(segmentBlockInfo.rawSegmentBlockReader()))
+    segmentBlockCache.map(segmentBlockInfo)(_.createBlockReader(segmentBlockInfo.rawSegmentReader()))
 
   def getSegmentBlockReader(): IO[BlockReader[SegmentBlock]] =
     segmentBlockReader

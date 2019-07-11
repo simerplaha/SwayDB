@@ -39,13 +39,13 @@ object Cache {
 
   def syncAsyncIO[I, O](synchronised: Boolean, stored: Boolean)(fetch: I => IO[O]): Cache[I, O] =
     new SynchronisedIO[I, O](
-      init = fetch,
+      fetch = fetch,
       lazyIO = Lazy.io(synchronised = synchronised, stored = stored)
     )
 
   def reservedIO[I, O](stored: Boolean, reserveError: IO.Error.Busy)(fetch: I => IO[O]): Cache[I, O] =
     new ReservedIO(
-      init = fetch,
+      fetch = fetch,
       lazyIO = Lazy.io(synchronised = false, stored = stored),
       error = reserveError
     )
@@ -108,11 +108,11 @@ private class DelayedCache[I, O](cache: CacheUnsafe[I, Cache[I, O]]) extends Cac
     cache.clear()
 }
 
-private class SynchronisedIO[I, O](init: I => IO[O],
+private class SynchronisedIO[I, O](fetch: I => IO[O],
                                    lazyIO: LazyIO[O]) extends Cache[I, O] {
 
   override def value(i: => I): IO[O] =
-    lazyIO getOrSet init(i)
+    lazyIO getOrSet fetch(i)
 
   override def getOrElse(f: => IO[O]): IO[O] =
     lazyIO getOrElse f
@@ -128,13 +128,13 @@ private class SynchronisedIO[I, O](init: I => IO[O],
   * Caches a value on read. Used for IO operations where the output does not change.
   * For example: A file's size.
   */
-private class ReservedIO[I, O](init: I => IO[O], lazyIO: LazyIO[O], error: IO.Error.Busy) extends Cache[I, O] {
+private class ReservedIO[I, O](fetch: I => IO[O], lazyIO: LazyIO[O], error: IO.Error.Busy) extends Cache[I, O] {
 
   override def value(i: => I): IO[O] =
     lazyIO getOrElse {
       if (Reserve.setBusyOrGet((), error.reserve).isEmpty)
         try
-          lazyIO set init(i)
+          lazyIO set fetch(i)
         finally
           Reserve.setFree(error.reserve)
       else

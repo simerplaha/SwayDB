@@ -77,7 +77,7 @@ private[segment] case class MemorySegment(path: Path,
     *
     */
   private def addToQueueMayBe(group: Memory.Group): Unit =
-    if (!group.isInitialised) //If the header is already initialised then this Group is already in the Limit queue as the queue always pre-reads the header
+    if (!group.isCached) //If the header is already initialised then this Group is already in the Limit queue as the queue always pre-reads the header
       keyValueLimiter.add(group, cache) //this is a new decompression, add to queue.
 
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],

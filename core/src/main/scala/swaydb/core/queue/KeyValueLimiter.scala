@@ -104,7 +104,7 @@ private class KeyValueLimiterImpl(cacheSize: Long,
               * if it's already uncompressed only then remove or else uncompress and re-add to the queue.
               * Header is not checked here because it's always going to be uncompressed since it's always pre-read before the Group is added to he Queue in [[add]].
               */
-            if (persistentGroup.isInitialised) {
+            if (persistentGroup.isCached) {
               val uncompressedGroup = persistentGroup.copy()
               skipList.asInstanceOf[ConcurrentSkipListMap[Slice[Byte], Persistent]].put(persistentGroup.key, uncompressedGroup)
               add(uncompressedGroup, skipList)
