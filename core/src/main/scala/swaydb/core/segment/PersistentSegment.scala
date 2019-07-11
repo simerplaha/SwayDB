@@ -34,14 +34,12 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
-import swaydb.core.util.cache.Cache
 import swaydb.data.IO._
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, MaxKey, Reserve}
+import swaydb.data.{IO, MaxKey}
 
-import scala.concurrent.Future
 import scala.concurrent.duration.Deadline
 
 private[segment] case class PersistentSegment(file: DBFile,
@@ -51,12 +49,11 @@ private[segment] case class PersistentSegment(file: DBFile,
                                               maxKey: MaxKey[Slice[Byte]],
                                               minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                               segmentSize: Int,
-                                              nearestExpiryDeadline: Option[Deadline],
-                                              compactionReserve: Reserve[Unit])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                                                functionStore: FunctionStore,
-                                                                                keyValueLimiter: KeyValueLimiter,
-                                                                                fileOpenLimiter: FileLimiter) extends Segment with LazyLogging {
+                                              nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                                                       functionStore: FunctionStore,
+                                                                                       keyValueLimiter: KeyValueLimiter,
+                                                                                       fileOpenLimiter: FileLimiter) extends Segment with LazyLogging {
 
   def path = file.path
 
@@ -100,18 +97,6 @@ private[segment] case class PersistentSegment(file: DBFile,
         segmentCache.clear()
     }
   }
-
-  override def reserveForCompactionOrGet(): Option[Unit] =
-    Reserve.setBusyOrGet((), compactionReserve)
-
-  override def freeFromCompaction(): Unit =
-    Reserve.setFree(compactionReserve)
-
-  override def isReserved: Boolean =
-    compactionReserve.isBusy
-
-  override def onRelease: Future[Unit] =
-    Reserve.future(compactionReserve)
 
   def copyTo(toPath: Path): IO[Path] =
     file copyTo toPath

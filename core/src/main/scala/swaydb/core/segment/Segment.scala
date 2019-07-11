@@ -40,11 +40,10 @@ import swaydb.data.IO._
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, MaxKey, Reserve}
+import swaydb.data.{IO, MaxKey}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.Future
 import scala.concurrent.duration.Deadline
 
 private[core] object Segment extends LazyLogging {
@@ -108,8 +107,7 @@ private[core] object Segment extends LazyLogging {
                   _createdInLevel = createdInLevel.toInt,
                   cache = skipList,
                   bloomFilter = bloomFilter,
-                  nearestExpiryDeadline = minMaxDeadline.nearestDeadline,
-                  busy = Reserve()
+                  nearestExpiryDeadline = minMaxDeadline.nearestDeadline
                 )
             }
       }
@@ -182,8 +180,7 @@ private[core] object Segment extends LazyLogging {
                   },
                 segmentSize = result.segmentSize,
                 minMaxFunctionId = result.minMaxFunctionId,
-                nearestExpiryDeadline = result.nearestDeadline,
-                compactionReserve = Reserve()
+                nearestExpiryDeadline = result.nearestDeadline
               )
           }
         }
@@ -404,8 +401,7 @@ private[core] object Segment extends LazyLogging {
           maxKey = maxKey,
           segmentSize = segmentSize,
           minMaxFunctionId = minMaxFunctionId,
-          nearestExpiryDeadline = nearestExpiryDeadline,
-          compactionReserve = Reserve()
+          nearestExpiryDeadline = nearestExpiryDeadline
         )
     }
   }
@@ -464,8 +460,7 @@ private[core] object Segment extends LazyLogging {
                               },
                             minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
                             segmentSize = fileSize.toInt,
-                            nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline,
-                            compactionReserve = Reserve()
+                            nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline
                           )
                       }
                   }
@@ -827,14 +822,6 @@ private[core] trait Segment extends FileLimiterItem {
   def isGrouped: IO[Boolean]
 
   def path: Path
-
-  def reserveForCompactionOrGet(): Option[Unit]
-
-  def freeFromCompaction(): Unit
-
-  def onRelease: Future[Unit]
-
-  def isReserved: Boolean
 
   def put(newKeyValues: Slice[KeyValue.ReadOnly],
           minSegmentSize: Long,

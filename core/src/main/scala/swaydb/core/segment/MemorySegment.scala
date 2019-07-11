@@ -38,10 +38,9 @@ import swaydb.core.util._
 import swaydb.data.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, MaxKey, Reserve}
+import swaydb.data.{IO, MaxKey}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
 import scala.concurrent.duration.Deadline
 
 
@@ -58,12 +57,11 @@ private[segment] case class MemorySegment(path: Path,
                                           _createdInLevel: Int,
                                           private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
                                           bloomFilter: Option[BloomFilter.MemoryBlock],
-                                          nearestExpiryDeadline: Option[Deadline],
-                                          busy: Reserve[Unit])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                               timeOrder: TimeOrder[Slice[Byte]],
-                                                               functionStore: FunctionStore,
-                                                               keyValueLimiter: KeyValueLimiter,
-                                                               fileLimiter: FileLimiter) extends Segment with LazyLogging {
+                                          nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                                                   functionStore: FunctionStore,
+                                                                                   keyValueLimiter: KeyValueLimiter,
+                                                                                   fileLimiter: FileLimiter) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -81,18 +79,6 @@ private[segment] case class MemorySegment(path: Path,
   private def addToQueueMayBe(group: Memory.Group): Unit =
     if (!group.isInitialised) //If the header is already initialised then this Group is already in the Limit queue as the queue always pre-reads the header
       keyValueLimiter.add(group, cache) //this is a new decompression, add to queue.
-
-  override def reserveForCompactionOrGet(): Option[Unit] =
-    Reserve.setBusyOrGet((), busy)
-
-  override def freeFromCompaction(): Unit =
-    Reserve.setFree(busy)
-
-  override def isReserved: Boolean =
-    busy.isBusy
-
-  override def onRelease: Future[Unit] =
-    Reserve.future(busy)
 
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],
                    minSegmentSize: Long,
