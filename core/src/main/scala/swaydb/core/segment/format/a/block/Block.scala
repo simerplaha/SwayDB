@@ -23,10 +23,10 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.SegmentException
+import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.{IO, Reserve}
 
 /**
   * A block is a group of compressed or uncompressed bytes.
@@ -46,29 +46,7 @@ object Block extends LazyLogging {
 
   class CompressionInfo(val decompressor: DecompressorInternal,
                         val decompressedLength: Int,
-                        val headerSize: Int,
-                        private[Block] val reserve: Reserve[Unit],
-                        @volatile private var _decompressedBytes: Option[IO.Success[Slice[Byte]]]) {
-    def decompressedBytes = _decompressedBytes
-
-    def decompressedBytes_=(bytes: Slice[Byte]) =
-      this._decompressedBytes = Some(IO.Success(bytes))
-
-    def isBusy =
-      reserve.isBusy
-
-    def clear() =
-      if (_decompressedBytes.isEmpty)
-        this
-      else
-        new CompressionInfo(
-          decompressor = decompressor,
-          decompressedLength = decompressedLength,
-          headerSize = headerSize,
-          reserve = reserve,
-          _decompressedBytes = None
-        )
-  }
+                        val headerSize: Int)
 
   case class Header(compressionInfo: Option[CompressionInfo],
                     headerReader: Reader,
@@ -167,9 +145,7 @@ object Block extends LazyLogging {
           new CompressionInfo(
             decompressor = decompressor,
             decompressedLength = decompressedLength,
-            reserve = Reserve(),
-            headerSize = headerSize,
-            _decompressedBytes = None
+            headerSize = headerSize
           )
         )
     }
@@ -213,32 +189,18 @@ object Block extends LazyLogging {
   /**
     * Decompresses the block skipping the header bytes.
     */
-  def decompress(compressionInfo: CompressionInfo,
-                 reader: Reader,
-                 offset: BlockOffset): IO[Slice[Byte]] =
-    compressionInfo
-      .decompressedBytes
-      .getOrElse {
-        if (Reserve.setBusyOrGet((), compressionInfo.reserve).isEmpty)
-          try
-            reader
-              .copy()
-              .moveTo(offset.start + compressionInfo.headerSize)
-              .read(offset.size - compressionInfo.headerSize)
-              .flatMap {
-                compressedBytes =>
-                  compressionInfo.decompressor.decompress(
-                    slice = compressedBytes,
-                    decompressLength = compressionInfo.decompressedLength
-                  ) map {
-                    decompressedBytes =>
-                      compressionInfo.decompressedBytes = decompressedBytes
-                      decompressedBytes
-                  }
-              }
-          finally
-            Reserve.setFree(compressionInfo.reserve)
-        else
-          IO.Failure(IO.Error.DecompressingValues(compressionInfo.reserve))
+  private[block] def decompress(compressionInfo: CompressionInfo,
+                                reader: Reader,
+                                offset: BlockOffset): IO[Slice[Byte]] =
+    reader
+      .copy()
+      .moveTo(offset.start + compressionInfo.headerSize)
+      .read(offset.size - compressionInfo.headerSize)
+      .flatMap {
+        compressedBytes =>
+          compressionInfo.decompressor.decompress(
+            slice = compressedBytes,
+            decompressLength = compressionInfo.decompressedLength
+          )
       }
 }

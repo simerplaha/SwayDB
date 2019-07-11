@@ -743,7 +743,7 @@ object TestData {
 
     def toMemoryGroup =
       keyValue match {
-        case Persistent.Group(minKey, maxKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, accessPosition, deadline, _, _) =>
+        case Persistent.Group(minKey, maxKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, accessPosition, deadline, _) =>
           Memory.Group(
             minKey = minKey,
             maxKey = maxKey,

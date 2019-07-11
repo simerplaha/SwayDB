@@ -267,7 +267,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val ioStillBusy = io.safeGet
         ioStillBusy.isSuccess shouldBe false
 
-        Reserve.setFree(busy.busy)
+        Reserve.setFree(busy.reserve)
         io.safeGet.assertGetOpt shouldBe empty
       }
     }

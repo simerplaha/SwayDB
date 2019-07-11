@@ -19,22 +19,20 @@
 
 package swaydb.core.segment.format.a
 
+import swaydb.core.CommonAssertions._
 import swaydb.core.TestBase
+import swaydb.core.TestData._
 import swaydb.core.data.Persistent._
 import swaydb.core.data.{Persistent, Time}
 import swaydb.core.io.reader.{BlockReader, Reader}
-import swaydb.core.segment.format.a.block.KeyMatcher
 import swaydb.core.segment.format.a.block.KeyMatcher.Result._
-import swaydb.core.segment.format.a.block.{SegmentBlock, Values}
+import swaydb.core.segment.format.a.block.{KeyMatcher, Values}
 import swaydb.core.segment.format.a.entry.reader.value.{LazyFunctionReader, LazyPendingApplyValueReader, LazyRangeValueReader, LazyValueReader}
-import swaydb.core.util.cache.Cache
+import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, MaxKey}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
 
 import scala.util.Random
 
@@ -45,7 +43,6 @@ class KeyMatcherSpec extends TestBase {
       IntSerializer.read(a).compareTo(IntSerializer.read(b))
   }
 
-  val nullCache: Cache[SegmentBlock] = Cache.io(false, false)(IO(null))
   val emptyValuesBlockReader = BlockReader(Reader.empty, Values.empty)
 
   /**
@@ -109,8 +106,7 @@ class KeyMatcherSpec extends TestBase {
         valueLength = 0,
         accessPosition = 0,
         deadline = None,
-        isPrefixCompressed = isPrefixCompressed,
-        segmentBlock = nullCache
+        isPrefixCompressed = isPrefixCompressed
       )
 
     implicit def toGroupRange(tuple: (Int, (Int, Int))): Group =
@@ -125,8 +121,7 @@ class KeyMatcherSpec extends TestBase {
         valueLength = 0,
         accessPosition = 0,
         deadline = None,
-        isPrefixCompressed = isPrefixCompressed,
-        segmentBlock = nullCache
+        isPrefixCompressed = isPrefixCompressed
       )
 
     implicit def toSomeGroupFixed(tuple: (Int, Int)): Option[Group] =
@@ -783,7 +778,7 @@ class KeyMatcherSpec extends TestBase {
         KeyMatcher.Lower.MatchOnly(0).apply(previous = 0, next = 2, hasMore = false) shouldBe AheadOrNoneOrEnd
         KeyMatcher.Lower.MatchOnly(0).apply(previous = 0, next = 2, hasMore = true) shouldBe AheadOrNoneOrEnd
 
-        KeyMatcher.Lower.MatchOnly(1).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(None,0, None)
+        KeyMatcher.Lower.MatchOnly(1).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(None, 0, None)
         KeyMatcher.Lower.MatchOnly(1).apply(previous = 0, next = None, hasMore = true) shouldBe BehindStopped
         KeyMatcher.Lower.MatchOnly(1).apply(previous = 1, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
         KeyMatcher.Lower.MatchOnly(1).apply(previous = 1, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd

@@ -791,7 +791,8 @@ private[core] case class SegmentBlock(offset: SegmentBlock.Offset,
     )
 
   def clear(): SegmentBlock =
-    copy(compressionInfo = compressionInfo.map(_.clear()))
+    ???
+  //  copy(compressionInfo = compressionInfo.map(_.clear()))
 
   override def updateOffset(start: Int, size: Int): Block =
     copy(offset = SegmentBlock.Offset(start = start, size = size))

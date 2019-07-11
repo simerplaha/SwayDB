@@ -29,13 +29,11 @@ private[core] class FileReader(file: DBFile) extends Reader with LazyLogging {
 
   private var position: Int = 0
 
-  private val fileSizeCacheValue: Cache[Long] = Cache.io(synchronised = true, stored = true)(file.fileSize)
-
   def isLoaded: IO[Boolean] =
     file.isLoaded
 
   override def size: IO[Long] =
-    fileSizeCacheValue.value
+    file.fileSize
 
   def moveTo(newPosition: Long): Reader = {
     position = newPosition.toInt

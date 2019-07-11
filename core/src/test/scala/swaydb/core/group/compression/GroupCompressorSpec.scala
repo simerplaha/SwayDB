@@ -98,11 +98,12 @@ class GroupCompressorSpec extends TestBase {
 
           //none of the group's blocks are compressed.
           val persistedGroup = assertGroup(group)
-          persistedGroup.segment.blockCache.createSortedIndexReader().get.block.compressionInfo shouldBe empty
-          persistedGroup.segment.blockCache.createBinarySearchReader().get foreach (_.block.compressionInfo shouldBe empty)
-          persistedGroup.segment.blockCache.createHashIndexReader().get foreach (_.block.compressionInfo shouldBe empty)
-          persistedGroup.segment.blockCache.createBloomFilterReader().get foreach (_.block.compressionInfo shouldBe empty)
-          persistedGroup.segment.blockCache.createValuesReader().get foreach (_.block.compressionInfo shouldBe empty)
+//          persistedGroup.segment.blockCache.createSortedIndexReader().get.block.compressionInfo shouldBe empty
+//          persistedGroup.segment.blockCache.createBinarySearchReader().get foreach (_.block.compressionInfo shouldBe empty)
+//          persistedGroup.segment.blockCache.createHashIndexReader().get foreach (_.block.compressionInfo shouldBe empty)
+//          persistedGroup.segment.blockCache.createBloomFilterReader().get foreach (_.block.compressionInfo shouldBe empty)
+//          persistedGroup.segment.blockCache.createValuesReader().get foreach (_.block.compressionInfo shouldBe empty)
+          ???
         }
       }
 
@@ -127,11 +128,12 @@ class GroupCompressorSpec extends TestBase {
 
           //none of the group's blocks are compressed.
           val persistedGroup = assertGroup(group)
-          persistedGroup.segment.blockCache.createSortedIndexReader().get.block.compressionInfo shouldBe defined
-          persistedGroup.segment.blockCache.createBinarySearchReader().get foreach (_.block.compressionInfo shouldBe defined)
-          persistedGroup.segment.blockCache.createHashIndexReader().get foreach (_.block.compressionInfo shouldBe defined)
-          persistedGroup.segment.blockCache.createBloomFilterReader().get foreach (_.block.compressionInfo shouldBe defined)
-          persistedGroup.segment.blockCache.createValuesReader().get foreach (_.block.compressionInfo shouldBe defined)
+//          persistedGroup.segment.blockCache.createSortedIndexReader().get.block.compressionInfo shouldBe defined
+//          persistedGroup.segment.blockCache.createBinarySearchReader().get foreach (_.block.compressionInfo shouldBe defined)
+//          persistedGroup.segment.blockCache.createHashIndexReader().get foreach (_.block.compressionInfo shouldBe defined)
+//          persistedGroup.segment.blockCache.createBloomFilterReader().get foreach (_.block.compressionInfo shouldBe defined)
+//          persistedGroup.segment.blockCache.createValuesReader().get foreach (_.block.compressionInfo shouldBe defined)
+          ???
         }
       }
     }

@@ -77,7 +77,7 @@ class BlockReaderSpec extends WordSpec with Matchers {
     }
 
     //readFullBlockAndGetReader
-    reader.readFullBlockAndGetReader().get.readRemaining().get shouldBe bodyBytes
+    reader.readFullBlockAndGetBlockReader().get.readRemaining().get shouldBe bodyBytes
   }
 
   "read bytes" when {

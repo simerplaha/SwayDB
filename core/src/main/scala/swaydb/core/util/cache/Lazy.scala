@@ -51,10 +51,7 @@ class LazyValue[V](synchronised: Boolean, stored: Boolean) extends Lazy[V] {
   @volatile private var cache: Option[V] = None
 
   override def get(): Option[V] =
-    if (synchronised)
-      this.synchronized(cache)
-    else
-      cache
+    cache
 
   def set(value: => V): V = {
     val got = value
@@ -96,7 +93,7 @@ class LazyValue[V](synchronised: Boolean, stored: Boolean) extends Lazy[V] {
     get().isDefined
 
   def clear(): Unit =
-    this.synchronized(this.cache = None)
+    this.cache = None
 }
 
 class LazyIO[V](lazyValue: LazyValue[IO.Success[V]]) extends Lazy[IO[V]] {
@@ -112,15 +109,10 @@ class LazyIO[V](lazyValue: LazyValue[IO.Success[V]]) extends Lazy[IO[V]] {
     lazyValue.get()
 
   override def getOrSet(value: => IO[V]): IO[V] =
-    lazyValue getOrElse {
-      value match {
-        case success @ IO.Success(_) =>
-          lazyValue set success
-          success
-
-        case failure @ IO.Failure(_) =>
-          failure
-      }
+    IO {
+      //meh! gotta ensure value is not fetched if set is not required.
+      //need a better way.
+      (lazyValue getOrSet IO.Success(value.get)).get
     }
 
   override def getOrElse[T >: IO[V]](f: => T): T =

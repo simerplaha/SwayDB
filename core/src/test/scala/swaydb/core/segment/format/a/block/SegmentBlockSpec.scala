@@ -618,7 +618,7 @@ class SegmentBlockSpec extends TestBase {
 
         val blocks = getBlocks(keyValues).get
 
-        val bytes = blocks.valuesReader.get.readFullBlockAndGetReader().get.readRemaining().get
+        val bytes = blocks.valuesReader.get.readFullBlockAndGetBlockReader().get.readRemaining().get
 
         //only the bytes of the first value should be set and the next byte should be the start of index
         //as values are not duplicated

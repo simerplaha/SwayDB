@@ -311,13 +311,13 @@ object IO {
       }
 
     sealed trait Busy extends Error {
-      def busy: Reserve[Unit]
+      def reserve: Reserve[Unit]
       def isFree: Boolean =
-        !busy.isBusy
+        !reserve.isBusy
     }
 
-    case class OpeningFile(file: Path, busy: Reserve[Unit]) extends Busy {
-      override def exception: IO.Exception.OpeningFile = IO.Exception.OpeningFile(file, busy)
+    case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Busy {
+      override def exception: IO.Exception.OpeningFile = IO.Exception.OpeningFile(file, reserve)
     }
 
     object NoSuchFile {
@@ -328,7 +328,7 @@ object IO {
         new NoSuchFile(Some(path), None)
     }
     case class NoSuchFile(path: Option[Path], exp: Option[NoSuchFileException]) extends Busy {
-      override def busy: Reserve[Unit] = Reserve()
+      override def reserve: Reserve[Unit] = Reserve()
       override def exception: Throwable = exp getOrElse {
         path match {
           case Some(path) =>
@@ -340,39 +340,39 @@ object IO {
     }
 
     case class FileNotFound(exception: FileNotFoundException) extends Busy {
-      override def busy: Reserve[Unit] = Reserve()
+      override def reserve: Reserve[Unit] = Reserve()
     }
 
     case class AsynchronousClose(exception: AsynchronousCloseException) extends Busy {
-      override def busy: Reserve[Unit] = Reserve()
+      override def reserve: Reserve[Unit] = Reserve()
     }
 
     case class ClosedChannel(exception: ClosedChannelException) extends Busy {
-      override def busy: Reserve[Unit] = Reserve()
+      override def reserve: Reserve[Unit] = Reserve()
     }
 
     case class NullPointer(exception: NullPointerException) extends Busy {
-      override def busy: Reserve[Unit] = Reserve()
+      override def reserve: Reserve[Unit] = Reserve()
     }
 
-    case class DecompressingIndex(busy: Reserve[Unit]) extends Busy {
-      override def exception: IO.Exception.DecompressingIndex = IO.Exception.DecompressingIndex(busy)
+    case class DecompressingIndex(reserve: Reserve[Unit]) extends Busy {
+      override def exception: IO.Exception.DecompressingIndex = IO.Exception.DecompressingIndex(reserve)
     }
 
-    case class DecompressingValues(busy: Reserve[Unit]) extends Busy {
-      override def exception: IO.Exception.DecompressionValues = IO.Exception.DecompressionValues(busy)
+    case class DecompressingValues(reserve: Reserve[Unit]) extends Busy {
+      override def exception: IO.Exception.DecompressionValues = IO.Exception.DecompressionValues(reserve)
     }
 
-    case class ReadingHeader(busy: Reserve[Unit]) extends Busy {
-      override def exception: IO.Exception.ReadingHeader = IO.Exception.ReadingHeader(busy)
+    case class ReadingHeader(reserve: Reserve[Unit]) extends Busy {
+      override def exception: IO.Exception.ReadingHeader = IO.Exception.ReadingHeader(reserve)
     }
 
-    case class ReservedValue(busy: Reserve[Unit]) extends Busy {
-      override def exception: IO.Exception.ReservedValue = IO.Exception.ReservedValue(busy)
+    case class ReservedValue(reserve: Reserve[Unit]) extends Busy {
+      override def exception: IO.Exception.ReservedValue = IO.Exception.ReservedValue(reserve)
     }
 
-    case class BusyFuture(busy: Reserve[Unit]) extends Busy {
-      override def exception: IO.Exception.BusyFuture = IO.Exception.BusyFuture(busy)
+    case class BusyFuture(reserve: Reserve[Unit]) extends Busy {
+      override def exception: IO.Exception.BusyFuture = IO.Exception.BusyFuture(reserve)
     }
 
     /**
@@ -546,7 +546,7 @@ object IO {
       val error = IO.Error.BusyFuture(Reserve(()))
       future onComplete {
         _ =>
-          Reserve.setFree(error.busy)
+          Reserve.setFree(error.reserve)
       }
 
       //here value will only be access when the above busy boolean is true
@@ -578,7 +578,7 @@ object IO {
     def isFailure: Boolean = false
     def isSuccess: Boolean = false
     def isLater: Boolean = true
-    def isBusy = error.busy.isBusy
+    def isBusy = error.reserve.isBusy
 
     /**
       * Runs composed functions does not perform any recovery.
@@ -593,7 +593,7 @@ object IO {
     override def safeGetBlockingIfFileExists: IO[T] = {
       @tailrec
       def doGet(later: IO.Later[T]): IO[T] = {
-        Reserve.blockUntilFree(later.error.busy)
+        Reserve.blockUntilFree(later.error.reserve)
         later.safeGetIfFileExists match {
           case success @ IO.Success(_) =>
             success
@@ -616,7 +616,7 @@ object IO {
 
       @tailrec
       def doGet(later: IO.Later[T]): IO[T] = {
-        Reserve.blockUntilFree(later.error.busy)
+        Reserve.blockUntilFree(later.error.reserve)
         later.safeGet match {
           case success @ IO.Success(_) =>
             success
@@ -638,7 +638,7 @@ object IO {
     def safeGetFuture(implicit ec: ExecutionContext): Future[T] = {
 
       def doGet(later: IO.Later[T]): Future[T] =
-        Reserve.future(later.error.busy).map(_ => later.safeGet) flatMap {
+        Reserve.future(later.error.reserve).map(_ => later.safeGet) flatMap {
           case IO.Success(value) =>
             Future.successful(value)
 
@@ -658,7 +658,7 @@ object IO {
     def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = {
 
       def doGet(later: IO.Later[T]): Future[T] =
-        Reserve.future(later.error.busy).map(_ => later.safeGetIfFileExists) flatMap {
+        Reserve.future(later.error.reserve).map(_ => later.safeGetIfFileExists) flatMap {
           case IO.Success(value) =>
             Future.successful(value)
 

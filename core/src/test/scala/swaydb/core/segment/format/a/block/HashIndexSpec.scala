@@ -142,8 +142,9 @@ class HashIndexSpec extends TestBase {
         uncompressedHashIndex.offset.size should be >= compressedHashIndex.offset.size
 
         val blockDecompressor = compressedHashIndex.compressionInfo.get
-        blockDecompressor.decompressedBytes shouldBe empty
-        blockDecompressor.isBusy shouldBe false
+//        blockDecompressor.decompressedBytes shouldBe empty
+//        blockDecompressor.isBusy shouldBe false
+        ???
       }
     }
   }

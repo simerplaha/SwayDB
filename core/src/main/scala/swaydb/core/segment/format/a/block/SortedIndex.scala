@@ -280,7 +280,7 @@ private[core] object SortedIndex {
               addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     try {
       sortedIndexReader moveTo 0
-      val readSortedIndexReader = sortedIndexReader.readFullBlockAndGetReader().get
+      val readSortedIndexReader = sortedIndexReader.readFullBlockAndGetBlockReader().get
 
       val entries = addTo getOrElse Slice.create[Persistent](keyValueCount)
       (1 to keyValueCount).foldLeftIO(Option.empty[Persistent]) {

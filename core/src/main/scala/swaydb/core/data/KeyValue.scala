@@ -30,7 +30,7 @@ import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.{Segment, SegmentCache}
 import swaydb.core.util.CollectionUtil._
-import swaydb.core.util.cache.{Cache, CacheFunctionOutput}
+import swaydb.core.util.cache.{Cache, CacheUnsafe}
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -489,39 +489,30 @@ private[swaydb] object Memory {
   object Group {
     def apply(minKey: Slice[Byte],
               maxKey: MaxKey[Slice[Byte]],
-              result: SegmentBlock.ClosedSegment): Group = {
-      val segmentBytes = result.flattenSegmentBytes.unslice()
+              result: SegmentBlock.ClosedSegment): Group =
       Group(
-        minKey = minKey,
-        maxKey = maxKey,
-        segmentBytes = segmentBytes,
-        deadline = result.nearestDeadline,
-        segmentBlock =
-          Cache.io(synchronised = true, stored = true)(
-            SegmentBlock.read(
-              offset = SegmentBlock.Offset(0, segmentBytes.size),
-              segmentReader = Reader(segmentBytes)
-            )
-          )
+        minKey = minKey.unslice(),
+        maxKey = maxKey.unslice(),
+        segmentBytes = result.flattenSegmentBytes.unslice(),
+        deadline = result.nearestDeadline
       )
-    }
   }
 
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
                    segmentBytes: Slice[Byte],
-                   deadline: Option[Deadline],
-                   segmentBlock: Cache[SegmentBlock]) extends Memory with KeyValue.ReadOnly.Group {
+                   deadline: Option[Deadline]) extends Memory with KeyValue.ReadOnly.Group {
 
-    private val segmentCache: CacheFunctionOutput[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
-      Cache.value(synchronised = true, stored = true) {
+    private val segmentCache: CacheUnsafe[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
+      Cache.unsafe(synchronised = true, stored = true) {
         case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter) =>
           SegmentCache(
             id = "Memory.Group - BinarySegment",
             minKey = minKey,
             maxKey = maxKey,
             unsliceKey = false,
-            createSegmentBlockReader = () => segmentBlock.map(_.createBlockReader(Reader(segmentBytes)))
+            segmentOffset = SegmentBlock.Offset(0, segmentBytes.size),
+            rawSegmentReader = () => Reader(segmentBytes)
           )(keyOrder, limiter)
       }
 
@@ -539,7 +530,7 @@ private[swaydb] object Memory {
       segmentCache.value(keyOrder, keyValueLimiter)
 
     def uncompress(): Memory.Group = {
-      segmentBlock.clear()
+      segmentCache.clear()
       this
     }
   }
@@ -1700,14 +1691,7 @@ private[core] object Persistent {
             valueLength = valueLength,
             accessPosition = accessPosition,
             deadline = deadline,
-            isPrefixCompressed = isPrefixCompressed,
-            segmentBlock =
-              Cache.io(synchronised = true, stored = true)(
-                SegmentBlock.read(
-                  offset = SegmentBlock.Offset(valueOffset, valueLength),
-                  segmentReader = valueReader
-                )
-              )
+            isPrefixCompressed = isPrefixCompressed
           )
       }
   }
@@ -1722,11 +1706,10 @@ private[core] object Persistent {
                    valueLength: Int,
                    accessPosition: Int,
                    deadline: Option[Deadline],
-                   isPrefixCompressed: Boolean,
-                   segmentBlock: Cache[SegmentBlock]) extends Persistent with KeyValue.ReadOnly.Group {
+                   isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group {
 
-    private val segmentCache: CacheFunctionOutput[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
-      Cache.value(synchronised = true, stored = true) {
+    private val segmentCache: CacheUnsafe[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
+      Cache.unsafe(synchronised = true, stored = true) {
         case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter) =>
           SegmentCache(
             id = "Persistent.Group - BinarySegment",
@@ -1736,7 +1719,12 @@ private[core] object Persistent {
             //slicing will just use more memory. On memory overflow the Group itself will find dropped and hence all the
             //key-values inside the group's SegmentCache will also be GC'd.
             unsliceKey = false,
-            createSegmentBlockReader = () => segmentBlock.map(_.createBlockReader(valueReader))
+            segmentOffset =
+              SegmentBlock.Offset(
+                start = valueOffset,
+                size = valueLength
+              ),
+            rawSegmentReader = () => valueReader.copy()
           )(keyOrder, limiter)
       }
 

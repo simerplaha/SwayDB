@@ -47,24 +47,25 @@ private[core] class BlockReader[B <: Block](reader: Reader,
   private var position: Int = 0
 
   private def blockReader: IO[(Int, Reader)] =
-    block
-      .compressionInfo
-      .map {
-        compressionInfo =>
-          Block.decompress(
-            compressionInfo = compressionInfo,
-            //do not copy, decompress already copies if required.
-            reader = reader,
-            offset = block.offset
-          ) map {
-            decompressedBytes =>
-              //decompressed bytes, offsets not required, set to 0.
-              (0, Reader(decompressedBytes))
-          }
-      }
-      .getOrElse {
-        IO.Success((block.offset.start + block.headerSize, reader.copy())) //no compression used. Set the offset.
-      }
+  //    block
+  //      .compressionInfo
+  //      .map {
+  //        compressionInfo =>
+  //          Block.decompress(
+  //            compressionInfo = compressionInfo,
+  //            //do not copy, decompress already copies if required.
+  //            reader = reader,
+  //            offset = block.offset
+  //          ) map {
+  //            decompressedBytes =>
+  //              //decompressed bytes, offsets not required, set to 0.
+  //              (0, Reader(decompressedBytes))
+  //          }
+  //      }
+  //      .getOrElse {
+  //        IO.Success((block.offset.start + block.headerSize, reader.copy())) //no compression used. Set the offset.
+  //      }
+    ???
 
   override val size: IO[Long] =
     IO.Success {
@@ -142,7 +143,7 @@ private[core] class BlockReader[B <: Block](reader: Reader,
       .moveTo(block.offset.start)
       .read(block.offset.size)
 
-  def readFullBlockAndGetReader(): IO[BlockReader[B]] =
+  def readFullBlockAndGetBlockReader(): IO[BlockReader[B]] =
     readFullBlock()
       .map {
         bytes =>

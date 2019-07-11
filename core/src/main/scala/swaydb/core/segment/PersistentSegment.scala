@@ -60,19 +60,20 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def path = file.path
 
-  private val segmentBlockCache = Cache.io[SegmentBlock](synchronised = true, stored = true)(getSegmentBlock())
+  //  private val segmentBlockCache = Cache.io[SegmentBlock](synchronised = true, stored = true)(getSegmentBlock())
 
-  private val segmentCache =
-    SegmentCache(
-      id = file.path.toString,
-      maxKey = maxKey,
-      minKey = minKey,
-      unsliceKey = true,
-      createSegmentBlockReader = () => segmentBlockCache.map(_.createBlockReader(Reader(file)))
-    )
+  private val segmentCache: SegmentCache =
+  //    SegmentCache(
+  //      id = file.path.toString,
+  //      maxKey = maxKey,
+  //      minKey = minKey,
+  //      unsliceKey = true,
+  //      rawSegmentReader = () => segmentBlockCache.map(_.createBlockReader(Reader(file)))
+  //    )
+    ???
 
   def cache: ConcurrentSkipListMap[Slice[Byte], Persistent] =
-    segmentCache.cache
+    segmentCache.persistentCache
 
   def close: IO[Unit] =
     file.close map {
