@@ -49,11 +49,17 @@ object EntryReader {
   val readers: List[BaseEntryReader] =
     List(BaseEntryReader1, BaseEntryReader2, BaseEntryReader3, BaseEntryReader4) sortBy (_.minID)
 
-  def findReader(baseId: Int): Option[BaseEntryReader] =
-    readers.find(_.maxID >= baseId)
+  val someUncompressedReader = Some(BaseEntryReaderUncompressed)
+
+  def findReader(baseId: Int, mightBeCompressed: Boolean): Option[BaseEntryReader] =
+    if (mightBeCompressed)
+      readers.find(_.maxID >= baseId)
+    else
+      someUncompressedReader
 
   def read[T](baseId: Int,
               keyValueId: Int,
+              mightBeCompressed: Boolean,
               indexReader: Reader,
               valueReader: Option[BlockReader[Values]],
               indexOffset: Int,
@@ -62,7 +68,7 @@ object EntryReader {
               accessPosition: Int,
               previous: Option[Persistent],
               entryReader: EntryReader[T]): IO[T] =
-    findReader(baseId = baseId) flatMap {
+    findReader(baseId = baseId, mightBeCompressed = mightBeCompressed) flatMap {
       entry =>
         entry.read(
           baseId = baseId,
@@ -79,6 +85,7 @@ object EntryReader {
     } getOrElse IO.Failure(IO.Error.Fatal(SegmentException.InvalidKeyValueId(baseId)))
 
   def read(indexReader: Reader,
+           mightBeCompressed: Boolean,
            valueReader: Option[BlockReader[Values]],
            indexOffset: Int,
            nextIndexOffset: Int,
@@ -91,6 +98,7 @@ object EntryReader {
           EntryReader.read(
             baseId = KeyValueId.Put.adjustKeyValueIdToBaseId(keyValueId),
             keyValueId = keyValueId,
+            mightBeCompressed = mightBeCompressed,
             indexReader = indexReader,
             valueReader = valueReader,
             indexOffset = indexOffset,
@@ -104,6 +112,7 @@ object EntryReader {
           EntryReader.read(
             baseId = KeyValueId.Group.adjustKeyValueIdToBaseId(keyValueId),
             keyValueId = keyValueId,
+            mightBeCompressed = mightBeCompressed,
             indexReader = indexReader,
             valueReader = valueReader,
             indexOffset = indexOffset,
@@ -117,6 +126,7 @@ object EntryReader {
           EntryReader.read(
             baseId = KeyValueId.Range.adjustKeyValueIdToBaseId(keyValueId),
             keyValueId = keyValueId,
+            mightBeCompressed = mightBeCompressed,
             indexReader = indexReader,
             valueReader = valueReader,
             indexOffset = indexOffset,
@@ -130,6 +140,7 @@ object EntryReader {
           EntryReader.read(
             baseId = KeyValueId.Remove.adjustKeyValueIdToBaseId(keyValueId),
             keyValueId = keyValueId,
+            mightBeCompressed = mightBeCompressed,
             indexReader = indexReader,
             valueReader = valueReader,
             indexOffset = indexOffset,
@@ -143,6 +154,7 @@ object EntryReader {
           EntryReader.read(
             baseId = KeyValueId.Update.adjustKeyValueIdToBaseId(keyValueId),
             keyValueId = keyValueId,
+            mightBeCompressed = mightBeCompressed,
             indexReader = indexReader,
             valueReader = valueReader,
             indexOffset = indexOffset,
@@ -156,6 +168,7 @@ object EntryReader {
           EntryReader.read(
             baseId = KeyValueId.Function.adjustKeyValueIdToBaseId(keyValueId),
             keyValueId = keyValueId,
+            mightBeCompressed = mightBeCompressed,
             indexReader = indexReader,
             valueReader = valueReader,
             indexOffset = indexOffset,
@@ -169,6 +182,7 @@ object EntryReader {
           EntryReader.read(
             baseId = KeyValueId.PendingApply.adjustKeyValueIdToBaseId(keyValueId),
             keyValueId = keyValueId,
+            mightBeCompressed = mightBeCompressed,
             indexReader = indexReader,
             valueReader = valueReader,
             indexOffset = indexOffset,

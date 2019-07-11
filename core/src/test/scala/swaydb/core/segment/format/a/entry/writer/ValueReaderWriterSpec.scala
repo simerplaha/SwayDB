@@ -79,6 +79,7 @@ class ValueReaderWriterSpec extends TestBase {
     val readHeadKeyValue =
       EntryReader.read(
         indexReader = Reader(keyValues.head.indexEntryBytes),
+        mightBeCompressed = randomBoolean(),
         valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = keyValues.head.indexEntryBytes.size,
@@ -104,6 +105,7 @@ class ValueReaderWriterSpec extends TestBase {
     val readNextKeyValue =
       EntryReader.read(
         indexReader = Reader(keyValues(1).indexEntryBytes),
+        mightBeCompressed = true,
         valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = keyValues(1).indexEntryBytes.size,
@@ -129,6 +131,7 @@ class ValueReaderWriterSpec extends TestBase {
     val readLastKeyValue =
       EntryReader.read(
         indexReader = Reader(keyValues(2).indexEntryBytes),
+        mightBeCompressed = true,
         valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = 0,
@@ -175,6 +178,7 @@ class ValueReaderWriterSpec extends TestBase {
     val readHeadKeyValue =
       EntryReader.read(
         indexReader = Reader(keyValues.head.indexEntryBytes),
+        mightBeCompressed = randomBoolean(),
         valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = keyValues.head.indexEntryBytes.size,
@@ -200,6 +204,7 @@ class ValueReaderWriterSpec extends TestBase {
     val readNextKeyValue =
       EntryReader.read(
         indexReader = Reader(keyValues(1).indexEntryBytes),
+        mightBeCompressed = true,
         valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = keyValues(1).indexEntryBytes.size,
@@ -225,6 +230,7 @@ class ValueReaderWriterSpec extends TestBase {
     val readLastKeyValue =
       EntryReader.read(
         indexReader = Reader(keyValues(2).indexEntryBytes),
+        mightBeCompressed = true,
         valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = 0,
@@ -271,6 +277,7 @@ class ValueReaderWriterSpec extends TestBase {
     val readHeadKeyValue =
       EntryReader.read(
         indexReader = Reader(keyValues.head.indexEntryBytes),
+        mightBeCompressed = randomBoolean(),
         valueReader = None,
         indexOffset = 0,
         nextIndexOffset = keyValues.head.indexEntryBytes.size,
@@ -296,6 +303,7 @@ class ValueReaderWriterSpec extends TestBase {
     val readNextKeyValue =
       EntryReader.read(
         indexReader = Reader(keyValues(1).indexEntryBytes),
+        mightBeCompressed = randomBoolean(),
         valueReader = None,
         indexOffset = 0,
         nextIndexOffset = keyValues(1).indexEntryBytes.size,
@@ -321,6 +329,7 @@ class ValueReaderWriterSpec extends TestBase {
     val readLastKeyValue =
       EntryReader.read(
         indexReader = Reader(keyValues(2).indexEntryBytes),
+        mightBeCompressed = randomBoolean(),
         valueReader = None,
         indexOffset = 0,
         nextIndexOffset = 0,

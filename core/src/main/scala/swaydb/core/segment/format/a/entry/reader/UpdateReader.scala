@@ -48,7 +48,7 @@ object UpdateReader extends EntryReader[Persistent.Update] {
           valueOffsetAndLength =>
             timeReader.read(indexReader, previous) flatMap {
               time =>
-                KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Put) flatMap {
+                KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Update) flatMap {
                   case (key, isKeyPrefixCompressed) =>
                     val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                     val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)

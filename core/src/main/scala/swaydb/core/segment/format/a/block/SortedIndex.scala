@@ -239,6 +239,7 @@ private[core] object SortedIndex {
       EntryReader.read(
         //take only the bytes required for this in entry and submit it for parsing/reading.
         indexReader = sortedIndexReader,
+        mightBeCompressed = indexReader.block.hasPrefixCompression,
         valueReader = valueReader,
         indexOffset = positionBeforeRead,
         nextIndexOffset = nextIndexOffset,
