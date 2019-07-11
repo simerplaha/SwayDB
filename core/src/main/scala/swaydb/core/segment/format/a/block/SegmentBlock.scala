@@ -25,7 +25,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Memory, Stats, Transient}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.reader.{BlockReader, Reader}
-import swaydb.core.segment.Segment
+import swaydb.core.segment.{Segment, DeadlineAndFunctionId}
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.util.{Bytes, CRC32, MinMax}
 import swaydb.data.IO
@@ -293,7 +293,7 @@ private[core] object SegmentBlock {
                        binarySearchIndex: Option[BinarySearchIndex.State],
                        bloomFilter: Option[BloomFilter.State],
                        currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
-                       currentNearestDeadline: Option[Deadline]): IO[NearestDeadlineMinMaxFunctionId] = {
+                       currentNearestDeadline: Option[Deadline]): IO[DeadlineAndFunctionId] = {
 
     def writeOne(rootGroup: Option[KeyValue.WriteOnly.Group],
                  keyValue: KeyValue.WriteOnly): IO[Unit] =
@@ -353,7 +353,7 @@ private[core] object SegmentBlock {
     @tailrec
     def writeRoot(keyValues: Slice[KeyValue.WriteOnly],
                   currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
-                  currentNearestDeadline: Option[Deadline]): NearestDeadlineMinMaxFunctionId =
+                  currentNearestDeadline: Option[Deadline]): DeadlineAndFunctionId =
       keyValues.headOption match {
         case Some(keyValue) =>
           val nextNearestDeadline = Segment.getNearestDeadline(currentNearestDeadline, keyValue)
@@ -520,7 +520,7 @@ private[core] object SegmentBlock {
           writeRoot(keyValues.drop(1), nextMinMaxFunctionId, nextNearestDeadline)
 
         case None =>
-          NearestDeadlineMinMaxFunctionId(currentNearestDeadline, currentMinMaxFunction)
+          DeadlineAndFunctionId(currentNearestDeadline, currentMinMaxFunction)
       }
 
     IO {
@@ -539,7 +539,7 @@ private[core] object SegmentBlock {
                           binarySearchIndex: Option[BinarySearchIndex.State],
                           bloomFilter: Option[BloomFilter.State],
                           currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
-                          currentNearestDeadline: Option[Deadline]): IO[NearestDeadlineMinMaxFunctionId] =
+                          currentNearestDeadline: Option[Deadline]): IO[DeadlineAndFunctionId] =
     SortedIndex
       .write(keyValue = keyValue, state = sortedIndex)
       .flatMap(_ => values.map(Values.write(keyValue, _)) getOrElse IO.unit)
@@ -586,7 +586,7 @@ private[core] object SegmentBlock {
                     hashIndex: Option[HashIndex.State],
                     binarySearchIndex: Option[BinarySearchIndex.State],
                     bloomFilter: Option[BloomFilter.State]): IO[ClosedBlocks] =
-    keyValues.foldLeftIO(NearestDeadlineMinMaxFunctionId(None, None)) {
+    keyValues.foldLeftIO(DeadlineAndFunctionId(None, None)) {
       case (nearestDeadlineMinMaxFunctionId, keyValue) =>
         writeBlocks(
           keyValue = keyValue,

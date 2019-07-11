@@ -17,33 +17,33 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.block
+package swaydb.core.segment
 
 import swaydb.core.data.KeyValue
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment.getNearestDeadline
 import swaydb.core.util.{FiniteDurationUtil, MinMax}
 import swaydb.data.IO
+import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import IO._
 
 import scala.concurrent.duration.Deadline
 
-object NearestDeadlineMinMaxFunctionId {
-  val empty: NearestDeadlineMinMaxFunctionId =
+object DeadlineAndFunctionId {
+  val empty: DeadlineAndFunctionId =
     apply(None, None)
 
   def apply(deadline: Option[Deadline],
-            minMaxFunctionId: Option[MinMax[Slice[Byte]]]): NearestDeadlineMinMaxFunctionId =
-    new NearestDeadlineMinMaxFunctionId(
+            minMaxFunctionId: Option[MinMax[Slice[Byte]]]): DeadlineAndFunctionId =
+    new DeadlineAndFunctionId(
       nearestDeadline = deadline,
       minMaxFunctionId = minMaxFunctionId
     )
 
   def apply(keyValues: Iterable[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                    keyValueLimiter: KeyValueLimiter): IO[NearestDeadlineMinMaxFunctionId] =
-    keyValues.foldLeftIO(NearestDeadlineMinMaxFunctionId.empty) {
+                                                    keyValueLimiter: KeyValueLimiter): IO[DeadlineAndFunctionId] =
+    keyValues.foldLeftIO(DeadlineAndFunctionId.empty) {
       case (minMax, keyValue) =>
         apply(
           deadline = minMax.nearestDeadline,
@@ -55,11 +55,11 @@ object NearestDeadlineMinMaxFunctionId {
   def apply(deadline: Option[Deadline],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             next: KeyValue.ReadOnly)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                     keyValueLimiter: KeyValueLimiter): IO[NearestDeadlineMinMaxFunctionId] =
+                                     keyValueLimiter: KeyValueLimiter): IO[DeadlineAndFunctionId] =
     next match {
       case readOnly: KeyValue.ReadOnly.Put =>
         IO {
-          NearestDeadlineMinMaxFunctionId(
+          DeadlineAndFunctionId(
             deadline = FiniteDurationUtil.getNearestDeadline(deadline, readOnly.deadline),
             minMaxFunctionId = minMaxFunctionId
           )
@@ -67,7 +67,7 @@ object NearestDeadlineMinMaxFunctionId {
 
       case readOnly: KeyValue.ReadOnly.Remove =>
         IO {
-          NearestDeadlineMinMaxFunctionId(
+          DeadlineAndFunctionId(
             deadline = FiniteDurationUtil.getNearestDeadline(deadline, readOnly.deadline),
             minMaxFunctionId = minMaxFunctionId
           )
@@ -75,7 +75,7 @@ object NearestDeadlineMinMaxFunctionId {
 
       case readOnly: KeyValue.ReadOnly.Update =>
         IO {
-          NearestDeadlineMinMaxFunctionId(
+          DeadlineAndFunctionId(
             deadline = FiniteDurationUtil.getNearestDeadline(deadline, readOnly.deadline),
             minMaxFunctionId = minMaxFunctionId
           )
@@ -84,7 +84,7 @@ object NearestDeadlineMinMaxFunctionId {
       case readOnly: KeyValue.ReadOnly.PendingApply =>
         readOnly.getOrFetchApplies map {
           applies =>
-            NearestDeadlineMinMaxFunctionId(
+            DeadlineAndFunctionId(
               deadline = FiniteDurationUtil.getNearestDeadline(deadline, readOnly.deadline),
               minMaxFunctionId = MinMax.minMaxFunction(applies, minMaxFunctionId)
             )
@@ -93,7 +93,7 @@ object NearestDeadlineMinMaxFunctionId {
       case readOnly: KeyValue.ReadOnly.Function =>
         MinMax.minMaxFunction(readOnly, minMaxFunctionId) map {
           function =>
-            NearestDeadlineMinMaxFunctionId(
+            DeadlineAndFunctionId(
               deadline = deadline,
               minMaxFunctionId = Some(function)
             )
@@ -103,13 +103,13 @@ object NearestDeadlineMinMaxFunctionId {
         range.fetchFromAndRangeValue map {
           case (someFromValue @ Some(fromValue), rangeValue) =>
             val fromValueDeadline = getNearestDeadline(deadline, fromValue)
-            NearestDeadlineMinMaxFunctionId(
+            DeadlineAndFunctionId(
               deadline = getNearestDeadline(fromValueDeadline, rangeValue),
               minMaxFunctionId = MinMax.minMaxFunction(someFromValue, rangeValue, minMaxFunctionId)
             )
 
           case (None, rangeValue) =>
-            NearestDeadlineMinMaxFunctionId(
+            DeadlineAndFunctionId(
               deadline = getNearestDeadline(deadline, rangeValue),
               minMaxFunctionId = MinMax.minMaxFunction(None, rangeValue, minMaxFunctionId)
             )
@@ -123,7 +123,7 @@ object NearestDeadlineMinMaxFunctionId {
           .getAll()
           .flatMap {
             keyValues =>
-              keyValues.foldLeftIO(NearestDeadlineMinMaxFunctionId(nextDeadline, minMaxFunctionId)) {
+              keyValues.foldLeftIO(DeadlineAndFunctionId(nextDeadline, minMaxFunctionId)) {
                 case (minMax, keyValue) =>
                   apply(
                     deadline = minMax.nearestDeadline,
@@ -135,5 +135,5 @@ object NearestDeadlineMinMaxFunctionId {
     }
 }
 
-class NearestDeadlineMinMaxFunctionId(val nearestDeadline: Option[Deadline],
-                                      val minMaxFunctionId: Option[MinMax[Slice[Byte]]])
+class DeadlineAndFunctionId(val nearestDeadline: Option[Deadline],
+                            val minMaxFunctionId: Option[MinMax[Slice[Byte]]])

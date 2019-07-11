@@ -631,6 +631,14 @@ class Slice[+T: ClassTag] private(array: Array[T],
   def unslice(): Slice[T] =
     Slice(toArray)
 
+  def unsliceNonEmpty(): Option[Slice[T]] = {
+    val slice = unslice()
+    if (slice.isEmpty)
+      None
+    else
+      Some(slice)
+  }
+
   override def iterator = new Iterator[T] {
     private val writtenPosition = fromOffset + self.size - 1
     private var index = fromOffset
@@ -679,14 +687,6 @@ class Slice[+T: ClassTag] private(array: Array[T],
 
   def underlyingArraySize =
     array.length
-
-  def unsliceNonEmpty(): Option[Slice[T]] = {
-    val slice = unslice()
-    if (slice.isEmpty)
-      None
-    else
-      Some(slice)
-  }
 
   private[swaydb] def underlyingWrittenArrayUnsafe[X >: T]: (Array[X], Int, Int) =
     (array.asInstanceOf[Array[X]], fromOffset, size)

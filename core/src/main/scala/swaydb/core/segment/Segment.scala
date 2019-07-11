@@ -67,7 +67,7 @@ private[core] object Segment extends LazyLogging {
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](keyOrder)
       //Note: WriteOnly key-values can be received from Persistent Segments in which case it's important that
       //all byte arrays are unsliced before writing them to Memory Segment.
-      keyValues.foldLeftIO(NearestDeadlineMinMaxFunctionId.empty) {
+      keyValues.foldLeftIO(DeadlineAndFunctionId.empty) {
         case (deadline, keyValue) =>
           SegmentBlock.writeIndexBlocks(
             keyValue = keyValue,
@@ -444,7 +444,7 @@ private[core] object Segment extends LazyLogging {
                 keyValues =>
                   file.close flatMap {
                     _ =>
-                      NearestDeadlineMinMaxFunctionId(keyValues) map {
+                      DeadlineAndFunctionId(keyValues) map {
                         deadlineMinMaxFunctionId =>
                           PersistentSegment(
                             file = file,
