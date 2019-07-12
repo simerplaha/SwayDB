@@ -18,9 +18,11 @@
  */
 package swaydb.data.config
 
-sealed trait BlockIO
+sealed trait BlockIO {
+  def cacheOnAccess: Boolean
+}
 object BlockIO {
   case class ConcurrentIO(cacheOnAccess: Boolean) extends BlockIO
   case class SynchronisedIO(cacheOnAccess: Boolean) extends BlockIO
-  case class ReservedIO(cacheOnAccess: Boolean) extends BlockIO
+  case class AsynchronousIO(cacheOnAccess: Boolean) extends BlockIO
 }

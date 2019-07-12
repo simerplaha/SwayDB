@@ -19,25 +19,15 @@
 
 package swaydb.core.util.cache
 
+import swaydb.core.util.FunctionUtil
+import swaydb.data.config.BlockIO
 import swaydb.data.{IO, Reserve}
 
 import scala.util.Try
 
 object Cache {
 
-  def io[I, O](synchronised: Boolean, reserved: Boolean, stored: Boolean)(fetch: I => IO[O]): Cache[I, O] =
-    if (synchronised || !reserved)
-      synchronisedIO(
-        synchronised = synchronised,
-        stored = stored
-      )(fetch)
-    else
-      reservedIO(
-        stored = stored,
-        reserveError = IO.Error.ReservedValue(Reserve())
-      )(fetch)
-
-  def synchronisedIO[I, O](synchronised: Boolean, stored: Boolean)(fetch: I => IO[O]): Cache[I, O] =
+  def concurrentIO[I, O](synchronised: Boolean, stored: Boolean)(fetch: I => IO[O]): Cache[I, O] =
     new SynchronisedIO[I, O](
       fetch = fetch,
       lazyIO = Lazy.io(synchronised = synchronised, stored = stored)
@@ -50,24 +40,38 @@ object Cache {
       error = reserveError
     )
 
-  def unsafe[I, O](synchronised: Boolean, stored: Boolean)(f: I => O): CacheUnsafe[I, O] =
+  def unsafe[I, O](synchronised: Boolean, stored: Boolean)(fetch: I => O): CacheUnsafe[I, O] =
     new CacheUnsafe[I, O](
-      f = f,
+      fetch = fetch,
       lazyValue = Lazy.value(
         synchronised = synchronised,
         stored = stored
       )
     )
 
-  def delayedIO[I, O](synchronised: I => Boolean, reserved: I => Boolean, stored: I => Boolean)(fetch: I => IO[O]): Cache[I, O] =
+  def blockIO[I, O](blockIO: I => BlockIO, reserveError: IO.Error.Busy)(fetch: I => IO[O]): Cache[I, O] =
     new DelayedCache[I, O](
       Cache.unsafe[I, Cache[I, O]](synchronised = false, stored = true) {
         i =>
-          Cache.io[I, O](
-            synchronised = Try(synchronised(i)).getOrElse(false),
-            reserved = Try(reserved(i)).getOrElse(false),
-            stored = Try(stored(i)).getOrElse(true)
-          )(fetch)
+          FunctionUtil.safe((_: I) => BlockIO.ConcurrentIO(false), blockIO)(i) match {
+            case BlockIO.ConcurrentIO(cacheOnAccess) =>
+              Cache.concurrentIO[I, O](
+                synchronised = false,
+                stored = cacheOnAccess
+              )(fetch)
+
+            case BlockIO.SynchronisedIO(cacheOnAccess) =>
+              Cache.concurrentIO[I, O](
+                synchronised = true,
+                stored = cacheOnAccess
+              )(fetch)
+
+            case BlockIO.AsynchronousIO(cacheOnAccess) =>
+              Cache.reservedIO[I, O](
+                stored = cacheOnAccess,
+                reserveError = reserveError
+              )(fetch)
+          }
       }
     )
 }
@@ -161,10 +165,10 @@ private class ReservedIO[I, O](fetch: I => IO[O], lazyIO: LazyIO[O], error: IO.E
   * Caches a value on read. Used for IO operations where the output does not change.
   * For example: A file's size.
   */
-class CacheUnsafe[I, O](f: I => O, lazyValue: LazyValue[O]) {
+class CacheUnsafe[I, O](fetch: I => O, lazyValue: LazyValue[O]) {
 
   def value(input: => I): O =
-    lazyValue getOrSet f(input)
+    lazyValue getOrSet fetch(input)
 
   def isCached: Boolean =
     lazyValue.isDefined

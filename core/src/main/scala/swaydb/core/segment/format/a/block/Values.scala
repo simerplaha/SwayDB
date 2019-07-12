@@ -51,7 +51,7 @@ private[core] object Values {
         compressions =
           FunctionUtil.safe(
             default = _ => Seq.empty[CompressionInternal],
-            f = enable.compression(_) map CompressionInternal.apply
+            function = enable.compression(_) map CompressionInternal.apply
           )
       )
   }

@@ -62,7 +62,7 @@ private[core] object SortedIndex {
         compressions =
           FunctionUtil.safe(
             default = _ => Seq.empty[CompressionInternal],
-            f = enable.compressions(_) map CompressionInternal.apply
+            function = enable.compressions(_) map CompressionInternal.apply
           )
       )
   }

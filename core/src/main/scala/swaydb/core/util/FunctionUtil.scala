@@ -23,12 +23,21 @@ import com.typesafe.scalalogging.LazyLogging
 
 object FunctionUtil extends LazyLogging {
 
-  def safe[T](default: T, f: => T): T =
+  def safe[T](default: => T, function: => T): T =
     try
-      f
+      function
     catch {
       case exception: Throwable =>
         logger.error("Please make sure your functions do not throw exceptions. Using default value.", exception)
         default
+    }
+
+  def safeBoolean[T](function: => Boolean): Boolean =
+    try
+      function
+    catch {
+      case exception: Throwable =>
+        logger.error("Please make sure your functions do not throw exceptions. Using default value 'false'.", exception)
+        false
     }
 }

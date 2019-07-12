@@ -21,13 +21,7 @@ package swaydb.data.config
 
 import swaydb.data.api.grouping.Compression
 
-sealed trait SortedKeyIndex {
-  def toOption =
-    this match {
-      case enable: SortedKeyIndex.Enable =>
-        Some(enable)
-    }
-}
+sealed trait SortedKeyIndex
 object SortedKeyIndex {
   case class Enable(prefixCompression: PrefixCompression,
                     enablePositionIndex: Boolean,

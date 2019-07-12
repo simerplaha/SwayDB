@@ -26,6 +26,7 @@ import swaydb.core.segment.SegmentException
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
+import swaydb.data.config.BlockInfo
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -37,6 +38,12 @@ private[core] trait Block {
   def headerSize: Int
   def compressionInfo: Option[Block.CompressionInfo]
   def updateOffset(start: Int, size: Int): Block
+  def blockInfo: BlockInfo =
+    BlockInfo(
+      _isCompressed = compressionInfo.isDefined,
+      _compressedSize = compressionInfo.map(_.decompressedLength).getOrElse(offset.size),
+      _decompressedSize = offset.size
+    )
 }
 
 private[core] object Block extends LazyLogging {
