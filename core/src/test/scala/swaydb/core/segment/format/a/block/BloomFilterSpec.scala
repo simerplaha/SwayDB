@@ -29,6 +29,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.core.CommonAssertions._
 
 import scala.util.Random
 

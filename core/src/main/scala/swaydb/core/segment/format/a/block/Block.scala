@@ -37,7 +37,6 @@ private[core] trait Block {
   def headerSize: Int
   def compressionInfo: Option[Block.CompressionInfo]
   def updateOffset(start: Int, size: Int): Block
-  def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[_ <: Block]
 }
 
 private[core] object Block extends LazyLogging {
@@ -100,25 +99,32 @@ private[core] object Block extends LazyLogging {
           else
             s"Unable to satisfy compression requirement from ${compressions.size} compression strategies for $blockName. Storing ${bytes.size}.bytes uncompressed."
         }
-        IO {
-          bytes moveWritePosition 0
-          bytes addIntUnsigned headerSize
-          bytes add uncompressedBlockId
-          assert(bytes.currentWritePosition <= headerSize, s"Uncompressed header bytes written over to data bytes. CurrentPosition: ${bytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${bytes.size}")
-          bytes
-        }
+        writeUncompressedBlock(
+          headerSize = headerSize,
+          bytes = bytes
+        )
+    }
+
+  def writeUncompressedBlock(headerSize: Int,
+                             bytes: Slice[Byte]): IO[Slice[Byte]] =
+    IO {
+      bytes moveWritePosition 0
+      bytes addIntUnsigned headerSize
+      bytes add uncompressedBlockId
+      assert(bytes.currentWritePosition <= headerSize, s"Uncompressed header bytes written over to data bytes. CurrentPosition: ${bytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${bytes.size}")
+      bytes
     }
 
   def create(openSegment: SegmentBlock.Open,
              compressions: Seq[CompressionInternal],
-             blockName: String): IO[SegmentBlock.Blocked] =
+             blockName: String): IO[SegmentBlock.Closed] =
     if (compressions.isEmpty) {
       logger.debug(s"No compression strategies provided for Segment level compression for $blockName. Storing ${openSegment.segmentSize}.bytes uncompressed.")
       IO {
         openSegment.headerBytes moveWritePosition 0
         openSegment.headerBytes addIntUnsigned openSegment.headerBytes.size
         openSegment.headerBytes add uncompressedBlockId
-        SegmentBlock.Blocked(
+        SegmentBlock.Closed(
           segmentBytes = openSegment.segmentBytes,
           minMaxFunctionId = openSegment.functionMinMax,
           nearestDeadline = openSegment.nearestDeadline
@@ -132,7 +138,7 @@ private[core] object Block extends LazyLogging {
         blockName = blockName
       ) map {
         bytes =>
-          SegmentBlock.Blocked(
+          SegmentBlock.Closed(
             segmentBytes = Slice(bytes),
             minMaxFunctionId = openSegment.functionMinMax,
             nearestDeadline = openSegment.nearestDeadline
@@ -217,7 +223,11 @@ private[core] object Block extends LazyLogging {
       case Some(compressionInfo) =>
         Block.decompress(
           compressionInfo = compressionInfo,
-          reader = block createBlockReader segmentReader
+          reader =
+            BlockReader(
+              reader = segmentReader,
+              block = block
+            )
         ) flatMap {
           decompressedBytes =>
             if (decompressedBytes.size == compressionInfo.decompressedLength)

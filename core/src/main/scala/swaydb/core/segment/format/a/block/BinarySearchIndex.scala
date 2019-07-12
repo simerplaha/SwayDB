@@ -437,12 +437,6 @@ private[core] case class BinarySearchIndex(offset: BinarySearchIndex.Offset,
   val isVarInt: Boolean =
     BinarySearchIndex.isVarInt(bytesPerValue)
 
-  def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[BinarySearchIndex] =
-    BlockReader(
-      reader = segmentReader,
-      block = this
-    )
-
   override def updateOffset(start: Int, size: Int): Block =
     copy(offset = BinarySearchIndex.Offset(start = start, size = size))
 }

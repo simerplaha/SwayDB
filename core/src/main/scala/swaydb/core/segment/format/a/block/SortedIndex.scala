@@ -266,15 +266,6 @@ private[core] object SortedIndex {
         }
     }
 
-  def readAll(reader: Reader): IO[Slice[KeyValue.ReadOnly]] =
-    for {
-      segmentBlockReader <- SegmentBlock.read(SegmentBlock.Offset(0, reader.size.get.toInt), reader).map(_.createBlockReader(SegmentBlock.createUnblockedReader(reader).get))
-      footer <- SegmentBlock.readFooter(segmentBlockReader)
-      valuesReader <- footer.valuesOffset.map(Values.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
-      sortedIndex <- SortedIndex.read(footer.sortedIndexOffset, segmentBlockReader).map(_.createBlockReader(segmentBlockReader))
-      keyValues <- SortedIndex.readAll(footer.keyValueCount, sortedIndex, valuesReader)
-    } yield keyValues
-
   def readAll(keyValueCount: Int,
               sortedIndexReader: BlockReader[SortedIndex],
               valuesReader: Option[BlockReader[Values]],
@@ -504,12 +495,6 @@ private[core] case class SortedIndex(offset: SortedIndex.Offset,
                                      hasPrefixCompression: Boolean,
                                      headerSize: Int,
                                      compressionInfo: Option[Block.CompressionInfo]) extends Block {
-
-  def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[SortedIndex] =
-    BlockReader(
-      reader = segmentReader,
-      block = this
-    )
 
   override def updateOffset(start: Int, size: Int): Block =
     copy(offset = SortedIndex.Offset(start = start, size = size))

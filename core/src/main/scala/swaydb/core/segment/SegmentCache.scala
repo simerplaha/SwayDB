@@ -425,5 +425,5 @@ private[core] class SegmentCache(id: String,
   }
 
   def isInitialised() =
-    blockCache.isOpen
+    blockCache.isCached
 }

@@ -19,10 +19,11 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.util.cache.Cache
 import swaydb.data.IO
-import swaydb.data.slice.Reader
+import swaydb.data.slice.{Reader, Slice}
 
 object SegmentBlockCache {
   def apply(id: String,
@@ -33,7 +34,7 @@ object SegmentBlockCache {
       segmentBlockInfo =
         new SegmentBlockInfo(
           segmentBlockOffset = segmentBlockOffset,
-          rawSegmentReader = rawSegmentReader
+          segmentReader = rawSegmentReader
         )
     )
 
@@ -53,7 +54,7 @@ object SegmentBlockCache {
   private[block] def segmentBlock(blockInfo: SegmentBlockInfo): IO[SegmentBlock] =
     SegmentBlock.read(
       offset = blockInfo.segmentBlockOffset,
-      segmentReader = blockInfo.rawSegmentReader()
+      segmentReader = blockInfo.segmentReader()
     )
 
   private[block] def hashIndex(footer: SegmentBlock.Footer,
@@ -121,7 +122,7 @@ object SegmentBlockCache {
 }
 
 protected class SegmentBlockInfo(val segmentBlockOffset: SegmentBlock.Offset,
-                                 val rawSegmentReader: () => Reader)
+                                 val segmentReader: () => Reader)
 
 class SegmentBlockCache(id: String,
                         segmentBlockInfo: SegmentBlockInfo) {
@@ -130,7 +131,7 @@ class SegmentBlockCache(id: String,
     Cache.io[SegmentBlockInfo, SegmentBlock](
       synchronised = true,
       reserved = false,
-      stored = false
+      stored = true
     )(SegmentBlockCache.segmentBlock)
 
   private[block] val footerCache: Cache[BlockReader[SegmentBlock], SegmentBlock.Footer] =
@@ -177,7 +178,7 @@ class SegmentBlockCache(id: String,
 
   private[block] val segmentBlockReaderCache: Cache[SegmentBlock, BlockReader[SegmentBlock]] =
     SegmentBlockCache.createBlockReaderCache[SegmentBlock](
-      segmentBlockReader = SegmentBlock.createUnblockedReader(segmentBlockInfo.rawSegmentReader())
+      segmentBlockReader = SegmentBlock.createUnblockedReader(segmentBlockInfo.segmentReader())
     )
 
   private[block] val hashIndexReaderCache: Cache[HashIndex, BlockReader[HashIndex]] =
@@ -325,10 +326,27 @@ class SegmentBlockCache(id: String,
           } getOrElse IO.none
       }
 
+  def readAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None) =
+    getFooter() flatMap {
+      footer =>
+        createSortedIndexReader() flatMap {
+          sortedIndexReader =>
+            createValuesReader() flatMap {
+              valuesReader =>
+                SortedIndex.readAll(
+                  keyValueCount = footer.keyValueCount,
+                  sortedIndexReader = sortedIndexReader,
+                  valuesReader = valuesReader,
+                  addTo = addTo
+                )
+            }
+        }
+    }
+
   def clear(): Unit =
     allCaches.foreach(_.clear())
 
-  def isOpen: Boolean =
+  def isCached: Boolean =
     allCaches.exists(_.isCached)
 
   def isFooterDefined =

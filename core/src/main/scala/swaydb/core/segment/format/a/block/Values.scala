@@ -173,12 +173,6 @@ private[core] case class Values(offset: Values.Offset,
                                 headerSize: Int,
                                 compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
-  def createBlockReader(segmentBlock: BlockReader[SegmentBlock]): BlockReader[Values] =
-    BlockReader(
-      reader = segmentBlock,
-      block = this
-    )
-
   override def updateOffset(start: Int, size: Int): Block =
     copy(offset = Values.Offset(start = start, size = size))
 }

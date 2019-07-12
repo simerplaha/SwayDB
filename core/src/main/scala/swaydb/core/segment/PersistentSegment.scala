@@ -209,11 +209,11 @@ private[segment] case class PersistentSegment(file: DBFile,
   def getSegmentBlockOffset(): IO[SegmentBlock.Offset] =
     file.fileSize map (fileSize => SegmentBlock.Offset(0, fileSize.toInt))
 
-  def getSegmentBlock() =
-    for {
-      offset <- getSegmentBlockOffset()
-      block <- SegmentBlock.read(offset, Reader(file))
-    } yield block
+//  def getSegmentBlock() =
+//    for {
+//      offset <- getSegmentBlockOffset()
+//      block <- SegmentBlock.readBlocked(offset, Reader(file))
+//    } yield block
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     segmentCache getFromCache key

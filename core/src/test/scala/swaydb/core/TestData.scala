@@ -748,7 +748,7 @@ object TestData {
             minKey = minKey,
             maxKey = maxKey,
             blockedSegment =
-              SegmentBlock.Blocked(
+              SegmentBlock.Closed(
                 segmentBytes = Slice(valueReader.moveTo(valueOffset).read(valueLength).get.unslice()),
                 minMaxFunctionId = None,
                 nearestDeadline = deadline

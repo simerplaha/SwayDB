@@ -123,7 +123,7 @@ private[core] object Segment extends LazyLogging {
                                                           functionStore: FunctionStore,
                                                           keyValueLimiter: KeyValueLimiter,
                                                           fileOpenLimiter: FileLimiter): IO[Segment] =
-    SegmentBlock.writeBlocked(
+    SegmentBlock.writeClosed(
       keyValues = keyValues,
       createdInLevel = createdInLevel,
       segmentCompressions = segmentCompressions
@@ -434,37 +434,38 @@ private[core] object Segment extends LazyLogging {
       file =>
         file.fileSize flatMap {
           fileSize =>
-            SortedIndex
-              .readAll(Reader(file))
-              .flatMap {
-                keyValues =>
-                  file.close flatMap {
-                    _ =>
-                      DeadlineAndFunctionId(keyValues) map {
-                        deadlineMinMaxFunctionId =>
-                          PersistentSegment(
-                            file = file,
-                            mmapReads = mmapReads,
-                            mmapWrites = mmapWrites,
-                            minKey = keyValues.head.key.unslice(),
-                            maxKey =
-                              keyValues.last match {
-                                case fixed: KeyValue.ReadOnly.Fixed =>
-                                  MaxKey.Fixed(fixed.key.unslice())
-
-                                case group: KeyValue.ReadOnly.Group =>
-                                  group.maxKey.unslice()
-
-                                case range: KeyValue.ReadOnly.Range =>
-                                  MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
-                              },
-                            minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
-                            segmentSize = fileSize.toInt,
-                            nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline
-                          )
-                      }
-                  }
-              }
+            //            SortedIndex
+            //              .readAll(Reader(file))
+            //              .flatMap {
+            //                keyValues =>
+            //                  file.close flatMap {
+            //                    _ =>
+            //                      DeadlineAndFunctionId(keyValues) map {
+            //                        deadlineMinMaxFunctionId =>
+            //                          PersistentSegment(
+            //                            file = file,
+            //                            mmapReads = mmapReads,
+            //                            mmapWrites = mmapWrites,
+            //                            minKey = keyValues.head.key.unslice(),
+            //                            maxKey =
+            //                              keyValues.last match {
+            //                                case fixed: KeyValue.ReadOnly.Fixed =>
+            //                                  MaxKey.Fixed(fixed.key.unslice())
+            //
+            //                                case group: KeyValue.ReadOnly.Group =>
+            //                                  group.maxKey.unslice()
+            //
+            //                                case range: KeyValue.ReadOnly.Range =>
+            //                                  MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+            //                              },
+            //                            minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
+            //                            segmentSize = fileSize.toInt,
+            //                            nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline
+            //                          )
+            //                      }
+            //                  }
+            //              }
+            ???
         }
     }
   }

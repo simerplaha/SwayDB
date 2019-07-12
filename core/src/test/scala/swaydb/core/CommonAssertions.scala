@@ -791,8 +791,8 @@ object CommonAssertions {
   }
 
   def assertGet(keyValues: Slice[KeyValue.WriteOnly],
-                reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
-    val blocks = readBlocks(reader.copy()).get
+                rawSegmentReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
+    val blocks = readBlocks(rawSegmentReader.copy()).get
 
     keyValues foreach {
       keyValue =>
@@ -1378,24 +1378,24 @@ object CommonAssertions {
       Some(expiredDeadline())
 
   def readAll(group: Transient.Group): IO[Slice[KeyValue.ReadOnly]] = {
-    val segment = SegmentBlock.writeBlocked(Slice(group).updateStats, 0, randomCompressionsOrEmpty()).get
+    val segment = SegmentBlock.writeClosed(Slice(group).updateStats, 0, randomCompressionsOrEmpty()).get
     readAll(segment)
   }
 
   def readBlocks(group: Transient.Group): IO[Blocks] = {
-    val segment = SegmentBlock.writeBlocked(Slice(group).updateStats, 0, randomCompressionsOrEmpty()).get
+    val segment = SegmentBlock.writeClosed(Slice(group).updateStats, 0, randomCompressionsOrEmpty()).get
     readBlocks(segment)
   }
 
-  def readAll(closedSegment: SegmentBlock.Blocked): IO[Slice[KeyValue.ReadOnly]] =
+  def readAll(closedSegment: SegmentBlock.Closed): IO[Slice[KeyValue.ReadOnly]] =
     readAll(closedSegment.flattenSegmentBytes)
 
-  def readBlocks(closedSegment: SegmentBlock.Blocked): IO[Blocks] =
+  def readBlocks(closedSegment: SegmentBlock.Closed): IO[Blocks] =
     readBlocks(closedSegment.flattenSegmentBytes)
 
   def getBlocks(keyValues: Iterable[KeyValue.WriteOnly]): IO[Blocks] = {
     val closedSegment =
-      SegmentBlock.writeBlocked(
+      SegmentBlock.writeClosed(
         keyValues = keyValues,
         segmentCompressions = randomCompressionsOrEmpty(),
         createdInLevel = 0
@@ -1411,11 +1411,11 @@ object CommonAssertions {
     readBlocks(Reader(bytes))
 
   def getSegmentBlockCache(keyValues: Slice[KeyValue.WriteOnly]): SegmentBlockCache = {
-    val segment = SegmentBlock.writeBlocked(keyValues, Int.MaxValue, Seq.empty).get
+    val segment = SegmentBlock.writeClosed(keyValues, Int.MaxValue, Seq.empty).get
     getSegmentBlockCache(segment)
   }
 
-  def getSegmentBlockCache(segment: SegmentBlock.Blocked): SegmentBlockCache =
+  def getSegmentBlockCache(segment: SegmentBlock.Closed): SegmentBlockCache =
     SegmentBlockCache(
       id = "test",
       segmentBlockOffset = SegmentBlock.Offset(0, segment.segmentSize),
@@ -1663,4 +1663,15 @@ object CommonAssertions {
     ???
     persistedGroup
   }
+
+  implicit class BlockTestImplicits[B <: Block](block: B) {
+    def createBlockReader(reader: BlockReader[SegmentBlock],
+                          readFullBlockIfUncompressed: Boolean = randomBoolean()) =
+      Block.createDecompressedBlockReader(
+        block = block,
+        readFullBlockIfUncompressed = readFullBlockIfUncompressed,
+        segmentReader = reader
+      ).get
+  }
+
 }

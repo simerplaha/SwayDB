@@ -58,7 +58,7 @@ private[core] object SegmentBlock {
                     hasGroup: Boolean,
                     hasPut: Boolean)
 
-  object Blocked {
+  object Closed {
 
     def empty =
       apply(Open.empty)
@@ -66,17 +66,17 @@ private[core] object SegmentBlock {
     def emptyIO =
       IO(empty)
 
-    def apply(openSegment: Open): Blocked =
-      Blocked(
+    def apply(openSegment: Open): Closed =
+      Closed(
         segmentBytes = openSegment.segmentBytes,
         minMaxFunctionId = openSegment.functionMinMax,
         nearestDeadline = openSegment.nearestDeadline
       )
   }
 
-  case class Blocked(segmentBytes: Slice[Slice[Byte]],
-                     minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                     nearestDeadline: Option[Deadline]) {
+  case class Closed(segmentBytes: Slice[Slice[Byte]],
+                    minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+                    nearestDeadline: Option[Deadline]) {
 
     def isEmpty: Boolean =
       segmentBytes.exists(_.isEmpty)
@@ -671,21 +671,24 @@ private[core] object SegmentBlock {
           IO.Success(result)
     }
 
-  def writeBlocked(keyValues: Iterable[KeyValue.WriteOnly],
-                   createdInLevel: Int,
-                   segmentCompressions: Seq[CompressionInternal]): IO[SegmentBlock.Blocked] =
-    writeOpen(
-      keyValues = keyValues,
-      createdInLevel = createdInLevel,
-      segmentCompressions = segmentCompressions
-    ) flatMap {
-      openSegment =>
-        Block.create(
-          openSegment = openSegment,
-          compressions = segmentCompressions,
-          blockName = blockName
-        )
-    }
+  def writeClosed(keyValues: Iterable[KeyValue.WriteOnly],
+                  createdInLevel: Int,
+                  segmentCompressions: Seq[CompressionInternal]): IO[SegmentBlock.Closed] =
+    if (keyValues.isEmpty)
+      SegmentBlock.Closed.emptyIO
+    else
+      writeOpen(
+        keyValues = keyValues,
+        createdInLevel = createdInLevel,
+        segmentCompressions = segmentCompressions
+      ) flatMap {
+        openSegment =>
+          Block.create(
+            openSegment = openSegment,
+            compressions = segmentCompressions,
+            blockName = blockName
+          )
+      }
 
   def writeOpen(keyValues: Iterable[KeyValue.WriteOnly],
                 createdInLevel: Int,
@@ -819,15 +822,21 @@ private[core] object SegmentBlock {
         functionMinMax = closedBlocks.minMaxFunction,
         nearestDeadline = closedBlocks.nearestDeadline
       )
+    } flatMap {
+      segmentBlock =>
+        Block.writeUncompressedBlock(
+          headerSize = segmentBlock.headerBytes.size,
+          bytes = segmentBlock.headerBytes
+        ) map {
+          _ =>
+            segmentBlock
+        }
     }
 }
 
 private[core] case class SegmentBlock(offset: SegmentBlock.Offset,
                                       headerSize: Int,
                                       compressionInfo: Option[Block.CompressionInfo]) extends Block {
-
-  override def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[SegmentBlock] =
-    segmentReader
 
   override def updateOffset(start: Int, size: Int): SegmentBlock =
     copy(offset = SegmentBlock.Offset(start = start, size = size))

@@ -295,7 +295,7 @@ private[core] object KeyValue {
       def maxKey: MaxKey[Slice[Byte]]
       def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
       def keyValues: Slice[KeyValue.WriteOnly]
-      def blockedSegment: SegmentBlock.Blocked
+      def blockedSegment: SegmentBlock.Closed
     }
   }
 
@@ -489,7 +489,7 @@ private[swaydb] object Memory {
   object Group {
     def apply(minKey: Slice[Byte],
               maxKey: MaxKey[Slice[Byte]],
-              blockedSegment: SegmentBlock.Blocked): Group =
+              blockedSegment: SegmentBlock.Closed): Group =
       Group(
         minKey = minKey.unslice(),
         maxKey = maxKey.unslice(),
@@ -1177,7 +1177,7 @@ private[core] object Transient {
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
                    key: Slice[Byte],
-                   blockedSegment: SegmentBlock.Blocked,
+                   blockedSegment: SegmentBlock.Closed,
                    //the deadline is the nearest deadline in the Group's key-values.
                    minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                    deadline: Option[Deadline],

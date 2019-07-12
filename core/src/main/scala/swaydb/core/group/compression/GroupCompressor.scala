@@ -58,7 +58,7 @@ private[core] object GroupCompressor extends LazyLogging {
       IO.Failure(message)
     } else {
       logger.debug(s"Compressing ${keyValues.size} key-values with previous key-value as ${previous.map(_.getClass.getSimpleName)}.")
-      SegmentBlock.writeBlocked(
+      SegmentBlock.writeClosed(
         keyValues = keyValues,
         createdInLevel = 0,
         segmentCompressions = groupCompressions

@@ -404,12 +404,6 @@ private[core] case class HashIndex(offset: HashIndex.Offset,
 
   val isCompressed = compressionInfo.isDefined
 
-  def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[HashIndex] =
-    BlockReader(
-      reader = segmentReader,
-      block = this
-    )
-
   def isPerfect =
     miss == 0
 

@@ -303,12 +303,6 @@ private[core] case class BloomFilter(offset: BloomFilter.Offset,
                                      headerSize: Int,
                                      compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
-  def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[BloomFilter] =
-    new BlockReader(
-      reader = segmentReader,
-      block = this
-    )
-
   override def updateOffset(start: Int, size: Int): Block =
     copy(offset = BloomFilter.Offset(start = start, size = size))
 }

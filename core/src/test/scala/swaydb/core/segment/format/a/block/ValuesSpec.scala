@@ -26,6 +26,7 @@ import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.core.CommonAssertions._
 
 class ValuesSpec extends TestBase {
 
@@ -58,7 +59,10 @@ class ValuesSpec extends TestBase {
 
         keyValues foreach {
           keyValue =>
-            Values.write(keyValue, state).get
+            Values.write(
+              keyValue = keyValue,
+              state = state
+            ).get
         }
 
         Values.close(state).get
