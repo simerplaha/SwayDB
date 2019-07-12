@@ -34,7 +34,7 @@ object SegmentBlockCache {
     )
 
   def createBlockReaderCache[B <: Block](segmentBlockReader: => IO[BlockReader[SegmentBlock]]) =
-    Cache.ioDelayed[B, BlockReader[B]](synchronised = _.compressionInfo.isDefined, reserved = _ => false, stored = _.compressionInfo.isDefined) {
+    Cache.delayedIO[B, BlockReader[B]](synchronised = _.compressionInfo.isDefined, reserved = _ => false, stored = _.compressionInfo.isDefined) {
       block =>
         segmentBlockReader flatMap {
           segmentBlockReader =>

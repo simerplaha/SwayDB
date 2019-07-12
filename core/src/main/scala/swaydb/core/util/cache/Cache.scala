@@ -59,7 +59,7 @@ object Cache {
       )
     )
 
-  def ioDelayed[I, O](synchronised: I => Boolean, reserved: I => Boolean, stored: I => Boolean)(fetch: I => IO[O]): Cache[I, O] =
+  def delayedIO[I, O](synchronised: I => Boolean, reserved: I => Boolean, stored: I => Boolean)(fetch: I => IO[O]): Cache[I, O] =
     new DelayedCache[I, O](
       Cache.unsafe[I, Cache[I, O]](synchronised = false, stored = true) {
         i =>
@@ -99,13 +99,19 @@ private class DelayedCache[I, O](cache: CacheUnsafe[I, Cache[I, O]]) extends Cac
     cache.value(i).value(i)
 
   override def isCached: Boolean =
-    cache.isCached && Try(cache.value(???).isCached).getOrElse(false)
+    Try(cache.value(???).isCached).getOrElse(false)
 
   override def getOrElse(f: => IO[O]): IO[O] =
-    Try(cache.value(???).value(???)) getOrElse f
+    IO(cache.value(???).value(???).get) recoverWith {
+      case _ =>
+        f
+    }
 
+  //clear the inner cache first, it unsuccessful then clear the outer cache.
+  //why? outer cache is just an initialisation cache it does not do io/computation.
+  //if it's called the second file
   override def clear(): Unit =
-    cache.clear()
+    Try(cache.value(???).clear()) getOrElse cache.clear()
 }
 
 private class SynchronisedIO[I, O](fetch: I => IO[O],
