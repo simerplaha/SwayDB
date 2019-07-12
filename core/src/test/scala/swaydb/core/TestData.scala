@@ -470,7 +470,7 @@ object TestData {
         compressDuplicateValues = randomBoolean(),
         compressDuplicateRangeValues = randomBoolean(),
         blockIO = _ => randomIOAccess(),
-        compressions = randomCompressionsOrEmpty()
+        compressions = _ => randomCompressionsOrEmpty()
       )
   }
 
@@ -480,7 +480,7 @@ object TestData {
         blockIO = _ => randomIOAccess(),
         prefixCompressionResetCount = randomIntMax(5),
         enableAccessPositionIndex = randomBoolean(),
-        compressions = randomCompressionsOrEmpty()
+        compressions = _ => randomCompressionsOrEmpty()
       )
   }
 
@@ -491,7 +491,7 @@ object TestData {
         minimumNumberOfKeys = randomIntMax(5),
         fullIndex = randomBoolean(),
         blockIO = _ => randomIOAccess(),
-        compressions = randomCompressionsOrEmpty()
+        compressions = _ => randomCompressionsOrEmpty()
       )
   }
 
@@ -503,7 +503,7 @@ object TestData {
         minimumNumberOfHits = randomIntMax(5),
         allocateSpace = _.requiredSpace * randomIntMax(3),
         blockIO = _ => randomIOAccess(),
-        compressions = randomCompressionsOrEmpty()
+        compressions = _ => randomCompressionsOrEmpty()
       )
   }
 
@@ -513,7 +513,7 @@ object TestData {
         falsePositiveRate = Random.nextDouble(),
         minimumNumberOfKeys = randomIntMax(5),
         blockIO = _ => randomIOAccess(),
-        compressions = randomCompressionsOrEmpty()
+        compressions = _ => randomCompressionsOrEmpty()
       )
   }
 

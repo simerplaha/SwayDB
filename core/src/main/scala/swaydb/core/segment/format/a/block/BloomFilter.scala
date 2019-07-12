@@ -23,10 +23,11 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.util.{Bytes, MurmurHash3Generic, Options}
+import swaydb.core.segment.format.a.block.BinarySearchIndex.Config.defaultBlockIO
+import swaydb.core.util.{Bytes, FunctionUtil, MurmurHash3Generic, Options}
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.config.{BlockInfo, BlockIO}
+import swaydb.data.config.{BlockIO, BlockInfo, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -40,7 +41,7 @@ private[core] object BloomFilter extends LazyLogging {
         falsePositiveRate = 0.0,
         minimumNumberOfKeys = Int.MaxValue,
         blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-        compressions = Seq.empty
+        compressions = _ => Seq.empty
       )
 
     def apply(config: swaydb.data.config.MightContainIndex): Config =
@@ -50,14 +51,18 @@ private[core] object BloomFilter extends LazyLogging {
             falsePositiveRate = 0.0,
             minimumNumberOfKeys = Int.MaxValue,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compressions = Seq.empty
+            compressions = _ => Seq.empty
           )
         case enable: swaydb.data.config.MightContainIndex.Enable =>
           Config(
             falsePositiveRate = enable.falsePositiveRate,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
-            blockIO = enable.blockIO,
-            compressions = enable.compression map CompressionInternal.apply
+            blockIO = FunctionUtil.safe(defaultBlockIO, enable.blockIO),
+            compressions =
+              FunctionUtil.safe(
+                default = _ => Seq.empty[CompressionInternal],
+                f = enable.compression(_) map CompressionInternal.apply
+              )
           )
       }
   }
@@ -65,7 +70,7 @@ private[core] object BloomFilter extends LazyLogging {
   case class Config(falsePositiveRate: Double,
                     minimumNumberOfKeys: Int,
                     blockIO: BlockInfo => BlockIO,
-                    compressions: Seq[CompressionInternal])
+                    compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class MemoryBlock(bloomFilter: BloomFilter,
                          bytes: Slice[Byte])
@@ -77,7 +82,7 @@ private[core] object BloomFilter extends LazyLogging {
                    maxProbe: Int,
                    headerSize: Int,
                    var _bytes: Slice[Byte],
-                   compressions: Seq[CompressionInternal]) {
+                   compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
 
     def bytes = _bytes
 
@@ -117,7 +122,7 @@ private[core] object BloomFilter extends LazyLogging {
 
   private def apply(numberOfKeys: Int,
                     falsePositiveRate: Double,
-                    compressions: Seq[CompressionInternal]): BloomFilter.State = {
+                    compressions: UncompressedBlockInfo => Seq[CompressionInternal]): BloomFilter.State = {
     val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
     val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits)
 
@@ -125,7 +130,7 @@ private[core] object BloomFilter extends LazyLogging {
     val maxProbeSize = Bytes.sizeOf(maxProbe)
 
     val headerBytesSize =
-      Block.headerSize(compressions.nonEmpty) +
+      Block.headerSize(compressions(UncompressedBlockInfo(numberOfBits)).nonEmpty) +
         numberOfBitsSize +
         maxProbeSize
 
@@ -186,7 +191,7 @@ private[core] object BloomFilter extends LazyLogging {
       Block.create(
         headerSize = state.headerSize,
         bytes = state.bytes,
-        compressions = state.compressions,
+        compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
         blockName = blockName
       ) flatMap {
         compressedOrUncompressedBytes =>
@@ -239,7 +244,7 @@ private[core] object BloomFilter extends LazyLogging {
     */
   def init(numberOfKeys: Int,
            falsePositiveRate: Double,
-           compressions: Seq[CompressionInternal]): Option[BloomFilter.State] =
+           compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Option[BloomFilter.State] =
     if (numberOfKeys <= 0 || falsePositiveRate <= 0.0)
       None
     else

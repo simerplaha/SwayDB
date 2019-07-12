@@ -104,7 +104,7 @@ private[core] object Stats {
         indexEntry.size
 
     val thisKeyValuesSortedIndexSizeWithoutFooter =
-      SortedIndex.headerSize(sortedIndex.compressions.nonEmpty) +
+      SortedIndex.headerSize(false) +
         thisKeyValuesSortedIndexSize
 
     val thisKeyValuesRealIndexOffset =
@@ -124,7 +124,7 @@ private[core] object Stats {
       if (valueLength == 0)
         0
       else
-        Values.headerSize(values.compressions.nonEmpty) +
+        Values.headerSize(false) +
           valueLength
 
     val thisKeyValuesSegmentSortedIndexAndValueSize =
@@ -164,7 +164,7 @@ private[core] object Stats {
           minimumNumberOfKeys = hashIndex.minimumNumberOfKeys,
           largestValue = thisKeyValuesAccessIndexOffset,
           allocateSpace = hashIndex.allocateSpace,
-          hasCompression = hashIndex.compressions.nonEmpty
+          hasCompression = true
         )
 
     val segmentBinarySearchIndexSize =
@@ -178,7 +178,7 @@ private[core] object Stats {
         } getOrElse {
           BinarySearchIndex.optimalBytesRequired(
             largestValue = thisKeyValuesAccessIndexOffset,
-            hasCompression = binarySearch.compressions.nonEmpty,
+            hasCompression = true,
             minimNumberOfKeysForBinarySearchIndex = binarySearch.minimumNumberOfKeys,
             //binary search indexes are only created for non-prefix compressed or reset point keys.
             //size calculation should only account for those entries because duplicates are not allowed.
@@ -194,10 +194,10 @@ private[core] object Stats {
 
     val segmentValuesSize: Int =
       if (segmentValuesSizeWithoutHeader != 0)
-        Values.headerSize(values.compressions.nonEmpty) +
+        Values.headerSize(false) +
           segmentValuesSizeWithoutHeader
       else if (valueLength != 0)
-        Values.headerSize(values.compressions.nonEmpty) +
+        Values.headerSize(false) +
           segmentValuesSizeWithoutHeader
       else
         0
@@ -207,18 +207,18 @@ private[core] object Stats {
         thisKeyValuesSortedIndexSize
 
     val segmentSortedIndexSize =
-      SortedIndex.headerSize(sortedIndex.compressions.nonEmpty) +
+      SortedIndex.headerSize(false) +
         segmentSortedIndexSizeWithoutHeader
 
     val segmentValueAndSortedIndexEntrySize =
       if (segmentValuesSizeWithoutHeader == 0)
         segmentSortedIndexSizeWithoutHeader +
-          SortedIndex.headerSize(sortedIndex.compressions.nonEmpty)
+          SortedIndex.headerSize(false)
       else
         segmentValuesSizeWithoutHeader +
           segmentSortedIndexSizeWithoutHeader +
-          SortedIndex.headerSize(sortedIndex.compressions.nonEmpty) +
-          Values.headerSize(values.compressions.nonEmpty)
+          SortedIndex.headerSize(false) +
+          Values.headerSize(false)
 
     val segmentBloomFilterSize =
       if (bloomFilter.falsePositiveRate <= 0.0 || hasRemoveRange || segmentUniqueKeysCount < bloomFilter.minimumNumberOfKeys)
@@ -227,7 +227,7 @@ private[core] object Stats {
         BloomFilter.optimalSize(
           numberOfKeys = segmentUniqueKeysCount,
           falsePositiveRate = bloomFilter.falsePositiveRate,
-          hasCompression = bloomFilter.compressions.nonEmpty,
+          hasCompression = true,
           minimumNumberOfKeys = bloomFilter.minimumNumberOfKeys
         )
 

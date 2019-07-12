@@ -103,7 +103,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
                 uniqueValuesCount = valuesCount,
                 isFullIndex = true,
                 minimumNumberOfKeys = 0,
-                compressions = Seq.empty
+                compressions = _ => Seq.empty
               ).get
 
             values foreach {
@@ -149,7 +149,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
             uniqueValuesCount = valuesCount,
             isFullIndex = true,
             minimumNumberOfKeys = 0,
-            compressions = compression
+            compressions = _ => compression
           ).get
 
         values foreach {

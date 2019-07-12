@@ -57,7 +57,7 @@ class ValueReaderWriterSpec extends TestBase {
             compressDuplicateValues = true,
             compressDuplicateRangeValues = true,
             blockIO = _ => randomIOAccess(),
-            compressions = randomCompressionsOrEmpty()
+            compressions = _ => randomCompressionsOrEmpty()
           ),
         sortedIndexConfig =
           SortedIndex.Config.random.copy(
@@ -156,7 +156,7 @@ class ValueReaderWriterSpec extends TestBase {
             compressDuplicateValues = true,
             compressDuplicateRangeValues = true,
             blockIO = _ => randomIOAccess(),
-            compressions = randomCompressionsOrEmpty()
+            compressions = _ => randomCompressionsOrEmpty()
           ),
         sortedIndexConfig =
           SortedIndex.Config.random.copy(
@@ -255,7 +255,7 @@ class ValueReaderWriterSpec extends TestBase {
             compressDuplicateValues = randomBoolean(),
             compressDuplicateRangeValues = randomBoolean(),
             blockIO = _ => randomIOAccess(),
-            compressions = randomCompressionsOrEmpty()
+            compressions = _ => randomCompressionsOrEmpty()
           ),
         sortedIndexConfig =
           SortedIndex.Config.random.copy(

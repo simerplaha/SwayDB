@@ -35,7 +35,7 @@ object RandomKeyIndex {
                     minimumNumberOfHits: Int,
                     allocateSpace: RequiredSpace => Int,
                     blockIO: BlockInfo => BlockIO,
-                    compression: Seq[Compression]) extends RandomKeyIndex
+                    compression: UncompressedBlockInfo => Seq[Compression]) extends RandomKeyIndex
 
   object RequiredSpace {
     def apply(_requiredSpace: Int, _numberOfKeys: Int): RequiredSpace =

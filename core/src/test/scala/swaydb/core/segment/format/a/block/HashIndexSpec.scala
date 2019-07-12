@@ -76,7 +76,7 @@ class HashIndexSpec extends TestBase {
             hashIndexConfig =
               HashIndex.Config.random.copy(
                 allocateSpace = allocateMoreSpace,
-                compressions = Seq.empty,
+                compressions = _ => Seq.empty,
                 maxProbe = maxProbe
               )
           )
@@ -94,7 +94,7 @@ class HashIndexSpec extends TestBase {
                   hashIndexConfig =
                     HashIndex.Config(
                       allocateSpace = allocateMoreSpace,
-                      compressions = randomCompressionsLZ4OrSnappy(),
+                      compressions = _ => randomCompressionsLZ4OrSnappy(),
                       maxProbe = maxProbe,
                       minimumNumberOfKeys = 0,
                       minimumNumberOfHits = 0,
@@ -181,7 +181,7 @@ class HashIndexSpec extends TestBase {
             hashIndexConfig =
               HashIndex.Config(
                 allocateSpace = _.requiredSpace * 5,
-                compressions = compressions,
+                compressions = _ => compressions,
                 maxProbe = maxProbe,
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,

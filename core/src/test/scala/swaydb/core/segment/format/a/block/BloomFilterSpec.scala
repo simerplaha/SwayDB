@@ -46,7 +46,7 @@ class BloomFilterSpec extends TestBase {
           BloomFilter.init(
             numberOfKeys = 10,
             falsePositiveRate = 0.01,
-            compressions = eitherOne(Seq.empty, Seq(randomCompression()))
+            compressions = _ => randomCompressionsOrEmpty()
           ).get
 
         (1 to 10) foreach (BloomFilter.add(_, filter))
@@ -75,13 +75,13 @@ class BloomFilterSpec extends TestBase {
         i =>
           val numberOfItems = i * 10
           val falsePositiveRate = 0.0 + (0 + "." + i.toString).toDouble
-          val compression = eitherOne(Seq.empty, Seq(randomCompression()))
+          val compression = randomCompressionsOrEmpty()
 
           val bloomFilter =
             BloomFilter.init(
               numberOfKeys = numberOfItems,
               falsePositiveRate = falsePositiveRate,
-              compressions = compression
+              compressions = _ => compression
             ).get
 
           bloomFilter.bytes.size should be <=
@@ -100,7 +100,7 @@ class BloomFilterSpec extends TestBase {
       BloomFilter.init(
         numberOfKeys = 0,
         falsePositiveRate = randomFalsePositiveRate(),
-        compressions = eitherOne(Seq.empty, Seq(randomCompression()))
+        compressions = _ => randomCompressionsOrEmpty()
       ) shouldBe empty
     }
 
@@ -108,7 +108,7 @@ class BloomFilterSpec extends TestBase {
       BloomFilter.init(
         numberOfKeys = 100,
         falsePositiveRate = 0.0,
-        compressions = eitherOne(Seq.empty, Seq(randomCompression()))
+        compressions = _ => randomCompressionsOrEmpty()
       ) shouldBe empty
     }
 
@@ -226,7 +226,7 @@ class BloomFilterSpec extends TestBase {
         BloomFilter.init(
           numberOfKeys = 10000,
           falsePositiveRate = 0.001,
-          compressions = eitherOne(Seq.empty, Seq(randomCompression()))
+          compressions = _ => randomCompressionsOrEmpty()
         ).get
 
       val data: Seq[String] =

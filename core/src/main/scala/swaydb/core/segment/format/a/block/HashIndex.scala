@@ -23,9 +23,10 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.util.Bytes
+import swaydb.core.segment.format.a.block.BinarySearchIndex.Config.defaultBlockIO
+import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
-import swaydb.data.config.{BlockInfo, BlockIO, RandomKeyIndex}
+import swaydb.data.config.{BlockIO, BlockInfo, RandomKeyIndex, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -48,7 +49,7 @@ private[core] object HashIndex extends LazyLogging {
         allocateSpace = _ => Int.MinValue,
         minimumNumberOfHits = Int.MaxValue,
         blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-        compressions = Seq.empty
+        compressions = _ => Seq.empty
       )
 
     def apply(config: swaydb.data.config.RandomKeyIndex): Config =
@@ -60,7 +61,7 @@ private[core] object HashIndex extends LazyLogging {
             allocateSpace = _ => Int.MinValue,
             minimumNumberOfHits = Int.MaxValue,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compressions = Seq.empty
+            compressions = _ => Seq.empty
           )
         case enable: swaydb.data.config.RandomKeyIndex.Enable =>
           Config(
@@ -68,8 +69,12 @@ private[core] object HashIndex extends LazyLogging {
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             minimumNumberOfHits = enable.minimumNumberOfHits,
             allocateSpace = enable.allocateSpace,
-            blockIO = enable.blockIO,
-            compressions = enable.compression map CompressionInternal.apply
+            blockIO = FunctionUtil.safe(defaultBlockIO, enable.blockIO),
+            compressions =
+              FunctionUtil.safe(
+                default = _ => Seq.empty[CompressionInternal],
+                f = enable.compression(_) map CompressionInternal.apply
+              )
           )
       }
   }
@@ -79,7 +84,7 @@ private[core] object HashIndex extends LazyLogging {
                     minimumNumberOfHits: Int,
                     allocateSpace: RandomKeyIndex.RequiredSpace => Int,
                     blockIO: BlockInfo => BlockIO,
-                    compressions: Seq[CompressionInternal])
+                    compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
@@ -91,7 +96,7 @@ private[core] object HashIndex extends LazyLogging {
                          headerSize: Int,
                          maxProbe: Int,
                          var _bytes: Slice[Byte],
-                         compressions: Seq[CompressionInternal]) {
+                         compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
 
     def bytes = _bytes
 
@@ -113,7 +118,7 @@ private[core] object HashIndex extends LazyLogging {
         headerSize(
           keyCounts = keyValues.last.stats.segmentUniqueKeysCount,
           writeAbleLargestValueSize = writeAbleLargestValueSize,
-          hasCompression = keyValues.last.hashIndexConfig.compressions.nonEmpty
+          hasCompression = keyValues.last.hashIndexConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentHashIndexSize)).nonEmpty
         )
       //if the user allocated
       if (keyValues.last.stats.segmentHashIndexSize < headSize + ByteSizeOf.varInt)
@@ -193,7 +198,7 @@ private[core] object HashIndex extends LazyLogging {
       Block.create(
         headerSize = state.headerSize,
         bytes = state.bytes,
-        compressions = state.compressions,
+        compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
         blockName = blockName
       ) flatMap {
         compressedOrUncompressedBytes =>

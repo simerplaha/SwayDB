@@ -68,7 +68,7 @@ object DefaultMemoryConfig {
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 100,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         keyValueGroupingStrategy = keyValueGroupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Shared,

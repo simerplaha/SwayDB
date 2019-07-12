@@ -34,14 +34,14 @@ class SegmentBlockCacheSpec extends TestBase {
                 minimumNumberOfKeys = 0,
                 fullIndex = true,
                 blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-                compressions = randomCompressions()
+                compressions = _ => randomCompressions()
               ),
             sortedIndexConfig =
               SortedIndex.Config(
                 blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
                 prefixCompressionResetCount = 3,
                 enableAccessPositionIndex = true,
-                compressions = randomCompressions()
+                compressions = _ => randomCompressions()
               )
           )
 

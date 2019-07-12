@@ -24,10 +24,12 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.data.util.StorageUnits._
 
 class SegmentBlockInitialisationSpec extends TestBase {
 
@@ -53,7 +55,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfKeys = 0,
                   fullIndex = randomBoolean(),
                   blockIO = _ => randomIOAccess(),
-                  compressions = randomCompressionsOrEmpty()
+                  compressions = _ => randomCompressionsOrEmpty()
                 )
             )
 
@@ -79,7 +81,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                     minimumNumberOfKeys = generatedKeyValues.size + 1,
                     fullIndex = randomBoolean(),
                     blockIO = _ => randomIOAccess(),
-                    compressions = randomCompressionsOrEmpty()
+                    compressions = _ => randomCompressionsOrEmpty()
                   )
               )
 
@@ -110,7 +112,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfKeys = 0,
                   fullIndex = false,
                   blockIO = _ => randomIOAccess(),
-                  compressions = randomCompressionsOrEmpty()
+                  compressions = _ => randomCompressionsOrEmpty()
                 ),
               hashIndexConfig =
                 HashIndex.Config(
@@ -119,7 +121,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfKeys = 0,
                   minimumNumberOfHits = 0,
                   blockIO = _ => randomIOAccess(),
-                  compressions = randomCompressionsOrEmpty()
+                  compressions = _ => randomCompressionsOrEmpty()
                 )
             )
 
@@ -168,7 +170,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfKeys = 0,
                   fullIndex = true,
                   blockIO = _ => randomIOAccess(),
-                  compressions = randomCompressionsOrEmpty()
+                  compressions = _ => randomCompressionsOrEmpty()
                 ),
               hashIndexConfig =
                 HashIndex.Config(
@@ -177,7 +179,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfHits = 0,
                   allocateSpace = _.requiredSpace * 10,
                   blockIO = _ => randomIOAccess(),
-                  compressions = randomCompressionsOrEmpty()
+                  compressions = _ => randomCompressionsOrEmpty()
                 )
             )
 
@@ -217,7 +219,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfKeys = 0,
                   fullIndex = false,
                   blockIO = _ => randomIOAccess(),
-                  compressions = randomCompressionsOrEmpty()
+                  compressions = _ => randomCompressionsOrEmpty()
                 ),
               hashIndexConfig =
                 HashIndex.Config(
@@ -226,7 +228,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfHits = 0,
                   allocateSpace = _.requiredSpace * 0,
                   blockIO = _ => randomIOAccess(),
-                  compressions = randomCompressionsOrEmpty()
+                  compressions = _ => randomCompressionsOrEmpty()
                 )
             )
 
@@ -261,7 +263,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   falsePositiveRate = 1,
                   minimumNumberOfKeys = 0,
                   blockIO = _ => randomIOAccess(),
-                  compressions = randomCompressionsOrEmpty()
+                  compressions = _ => randomCompressionsOrEmpty()
                 )
             )
 
@@ -287,7 +289,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                     falsePositiveRate = 0.001,
                     minimumNumberOfKeys = generatedKeyValues.size + 1,
                     blockIO = _ => randomIOAccess(),
-                    compressions = randomCompressionsOrEmpty()
+                    compressions = _ => randomCompressionsOrEmpty()
                   )
               )
 
@@ -334,7 +336,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                     falsePositiveRate = 0.001,
                     minimumNumberOfKeys = 0,
                     blockIO = _ => randomIOAccess(),
-                    compressions = randomCompressionsOrEmpty()
+                    compressions = _ => randomCompressionsOrEmpty()
                   )
               )
 
@@ -371,11 +373,11 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       keyCounts = 1, //allocate space enough for 1
                       minimumNumberOfKeys = 0,
                       largestValue = Int.MaxValue,
-                      hasCompression = generatedKeyValues.last.hashIndexConfig.compressions.nonEmpty,
+                      hasCompression = generatedKeyValues.last.hashIndexConfig.compressions(UncompressedBlockInfo(randomIntMax(1.mb))).nonEmpty,
                       allocateSpace = _.requiredSpace
                     ),
                   blockIO = _ => randomIOAccess(),
-                  compressions = randomCompressionsOrEmpty()
+                  compressions = _ => randomCompressionsOrEmpty()
                 )
             )
 

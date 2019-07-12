@@ -26,6 +26,7 @@ import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.segment.format.a.block._
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -44,7 +45,7 @@ class GroupCompressorSpec extends TestBase {
 
   val keyValueCount = 100
 
-  def genKeyValuesWithCompression(compressions: Seq[CompressionInternal]) =
+  def genKeyValuesWithCompression(compressions: UncompressedBlockInfo => Seq[CompressionInternal]) =
     eitherOne(
       //either one key-value
       left =
@@ -82,7 +83,7 @@ class GroupCompressorSpec extends TestBase {
         runThis(100.times) {
           val compressions = randomCompressionsLZ4OrSnappy(Int.MaxValue)
 
-          val keyValues = genKeyValuesWithCompression(compressions)
+          val keyValues = genKeyValuesWithCompression(_ => compressions)
 
           val group =
             Transient.Group(
@@ -112,7 +113,7 @@ class GroupCompressorSpec extends TestBase {
 
           val compressions = randomCompressionsLZ4OrSnappy(Int.MinValue)
 
-          val keyValues = genKeyValuesWithCompression(compressions)
+          val keyValues = genKeyValuesWithCompression(_ => compressions)
 
           val group =
             Transient.Group(

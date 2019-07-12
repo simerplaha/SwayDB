@@ -41,7 +41,7 @@ object BloomFilterMemoryUsage extends App {
     BloomFilter.init(
       numberOfKeys = 1000000,
       falsePositiveRate = 0.01,
-      compressions = Seq.empty
+      compressions = _ => Seq.empty
     ).get
 
   keys.foreach(BloomFilter.add(_, bloomFilter))

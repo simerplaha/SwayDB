@@ -35,5 +35,5 @@ object MightContainIndex {
   case class Enable(falsePositiveRate: Double,
                     minimumNumberOfKeys: Int,
                     blockIO: BlockInfo => BlockIO,
-                    compression: Seq[Compression]) extends MightContainIndex
+                    compression: UncompressedBlockInfo => Seq[Compression]) extends MightContainIndex
 }

@@ -70,14 +70,14 @@ class SegmentBlockSpec extends TestBase {
               compressDuplicateValues = randomBoolean(),
               compressDuplicateRangeValues = randomBoolean(),
               blockIO = _ => randomIOAccess(),
-              compressions = randomCompressionsOrEmpty()
+              compressions = _ => randomCompressionsOrEmpty()
             ),
           sortedIndexConfig =
             SortedIndex.Config(
               blockIO = _ => randomIOAccess(),
               prefixCompressionResetCount = 0,
               enableAccessPositionIndex = true,
-              compressions = randomCompressionsOrEmpty()
+              compressions = _ => randomCompressionsOrEmpty()
             ),
           binarySearchIndexConfig =
             BinarySearchIndex.Config(
@@ -85,7 +85,7 @@ class SegmentBlockSpec extends TestBase {
               minimumNumberOfKeys = 1,
               fullIndex = true,
               blockIO = _ => randomIOAccess(),
-              compressions = randomCompressionsOrEmpty()
+              compressions = _ => randomCompressionsOrEmpty()
             ),
           hashIndexConfig =
             HashIndex.Config(
@@ -94,14 +94,14 @@ class SegmentBlockSpec extends TestBase {
               minimumNumberOfHits = 2,
               allocateSpace = _.requiredSpace * 10,
               blockIO = _ => randomIOAccess(),
-              compressions = randomCompressionsOrEmpty()
+              compressions = _ => randomCompressionsOrEmpty()
             ),
           bloomFilterConfig =
             BloomFilter.Config(
               falsePositiveRate = 0.001,
               minimumNumberOfKeys = 2,
               blockIO = _ => randomIOAccess(),
-              compressions = Seq.empty
+              compressions = _ => Seq.empty
             )
         )
 
@@ -650,7 +650,7 @@ class SegmentBlockSpec extends TestBase {
                 compressDuplicateValues = true,
                 compressDuplicateRangeValues = randomBoolean(),
                 blockIO = _ => randomIOAccess(),
-                compressions = Seq.empty
+                compressions = _ => Seq.empty
               )
           )
 

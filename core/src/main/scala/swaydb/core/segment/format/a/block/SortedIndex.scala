@@ -23,11 +23,12 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
+import swaydb.core.segment.format.a.block.BinarySearchIndex.Config.defaultBlockIO
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.util.Bytes
+import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.config.{BlockInfo, BlockIO}
+import swaydb.data.config.{BlockIO, BlockInfo, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
@@ -44,7 +45,7 @@ private[core] object SortedIndex {
         blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
         enableAccessPositionIndex = false,
         prefixCompressionResetCount = 0,
-        compressions = Seq.empty
+        compressions = _ => Seq.empty
       )
 
     def apply(config: swaydb.data.config.SortedKeyIndex): Config =
@@ -53,19 +54,23 @@ private[core] object SortedIndex {
           apply(config)
       }
 
-    def apply(config: swaydb.data.config.SortedKeyIndex.Enable): Config =
+    def apply(enable: swaydb.data.config.SortedKeyIndex.Enable): Config =
       Config(
-        blockIO = config.blockIO,
-        enableAccessPositionIndex = config.enablePositionIndex,
-        prefixCompressionResetCount = config.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0),
-        compressions = config.compression map CompressionInternal.apply
+        enableAccessPositionIndex = enable.enablePositionIndex,
+        prefixCompressionResetCount = enable.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0),
+        blockIO = FunctionUtil.safe(defaultBlockIO, enable.blockIO),
+        compressions =
+          FunctionUtil.safe(
+            default = _ => Seq.empty[CompressionInternal],
+            f = enable.compressions(_) map CompressionInternal.apply
+          )
       )
   }
 
   case class Config(blockIO: BlockInfo => BlockIO,
                     prefixCompressionResetCount: Int,
                     enableAccessPositionIndex: Boolean,
-                    compressions: Seq[CompressionInternal])
+                    compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
@@ -73,7 +78,7 @@ private[core] object SortedIndex {
                    headerSize: Int,
                    hasPrefixCompression: Boolean,
                    enableAccessPositionIndex: Boolean,
-                   compressions: Seq[CompressionInternal]) {
+                   compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
     def bytes = _bytes
 
     def bytes_=(bytes: Slice[Byte]) =
@@ -104,7 +109,7 @@ private[core] object SortedIndex {
 
   def init(keyValues: Iterable[KeyValue.WriteOnly]): SortedIndex.State = {
     val bytes = Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize)
-    val headSize = headerSize(keyValues.last.sortedIndexConfig.compressions.nonEmpty)
+    val headSize = headerSize(keyValues.last.sortedIndexConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentSortedIndexSize)).nonEmpty)
     bytes moveWritePosition headSize
     State(
       _bytes = bytes,
@@ -119,7 +124,7 @@ private[core] object SortedIndex {
     Block.create(
       headerSize = state.headerSize,
       bytes = state.bytes,
-      compressions = state.compressions,
+      compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
       blockName = blockName
     ) flatMap {
       compressedOrUncompressedBytes =>

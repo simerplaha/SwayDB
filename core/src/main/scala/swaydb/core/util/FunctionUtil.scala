@@ -17,20 +17,18 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.config
+package swaydb.core.util
 
-import swaydb.data.api.grouping.Compression
+import com.typesafe.scalalogging.LazyLogging
 
-sealed trait SortedKeyIndex {
-  def toOption =
-    this match {
-      case enable: SortedKeyIndex.Enable =>
-        Some(enable)
+object FunctionUtil extends LazyLogging {
+
+  def safe[T](default: T, f: => T): T =
+    try
+      f
+    catch {
+      case exception: Throwable =>
+        logger.error("Please make sure your functions do not throw exceptions. Using default value.", exception)
+        default
     }
-}
-object SortedKeyIndex {
-  case class Enable(prefixCompression: PrefixCompression,
-                    enablePositionIndex: Boolean,
-                    blockIO: BlockInfo => BlockIO,
-                    compressions: UncompressedBlockInfo => Seq[Compression]) extends SortedKeyIndex
 }

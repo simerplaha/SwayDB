@@ -22,9 +22,9 @@ package swaydb.core.segment.format.a.block
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.util.{Bytes, Options}
+import swaydb.core.util.{Bytes, FunctionUtil, Options}
 import swaydb.data.IO
-import swaydb.data.config.{BlockInfo, BlockIO}
+import swaydb.data.config.{BlockIO, BlockInfo, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -36,13 +36,16 @@ private[core] object BinarySearchIndex {
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
   object Config {
+    def defaultBlockIO(blockInfo: BlockInfo) =
+      BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed)
+
     val disabled =
       Config(
         enabled = false,
         minimumNumberOfKeys = 0,
         fullIndex = false,
         blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-        compressions = Seq.empty
+        compressions = _ => Seq.empty
       )
 
     def apply(config: swaydb.data.config.BinarySearchKeyIndex): Config =
@@ -53,15 +56,19 @@ private[core] object BinarySearchIndex {
             minimumNumberOfKeys = Int.MaxValue,
             fullIndex = false,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compressions = Seq.empty
+            compressions = _ => Seq.empty
           )
         case enable: swaydb.data.config.BinarySearchKeyIndex.FullIndex =>
           Config(
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             fullIndex = true,
-            blockIO = enable.blockIO,
-            compressions = enable.compression map CompressionInternal.apply
+            blockIO = FunctionUtil.safe(defaultBlockIO, enable.blockIO),
+            compressions =
+              FunctionUtil.safe(
+                default = _ => Seq.empty[CompressionInternal],
+                f = enable.compression(_) map CompressionInternal.apply
+              )
           )
 
         case enable: swaydb.data.config.BinarySearchKeyIndex.SecondaryIndex =>
@@ -69,8 +76,12 @@ private[core] object BinarySearchIndex {
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             fullIndex = false,
-            blockIO = enable.blockIO,
-            compressions = enable.compression map CompressionInternal.apply
+            blockIO = FunctionUtil.safe(defaultBlockIO, enable.blockIO),
+            compressions =
+              FunctionUtil.safe(
+                default = _ => Seq.empty[CompressionInternal],
+                f = enable.compression(_) map CompressionInternal.apply
+              )
           )
       }
   }
@@ -79,7 +90,7 @@ private[core] object BinarySearchIndex {
                     minimumNumberOfKeys: Int,
                     fullIndex: Boolean,
                     blockIO: BlockInfo => BlockIO,
-                    compressions: Seq[CompressionInternal])
+                    compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
@@ -88,7 +99,7 @@ private[core] object BinarySearchIndex {
               uniqueValuesCount: Int,
               isFullIndex: Boolean,
               minimumNumberOfKeys: Int,
-              compressions: Seq[CompressionInternal]): Option[State] =
+              compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Option[State] =
       if (uniqueValuesCount < minimumNumberOfKeys) {
         None
       } else {
@@ -96,13 +107,13 @@ private[core] object BinarySearchIndex {
           optimalHeaderSize(
             largestValue = largestValue,
             valuesCount = uniqueValuesCount,
-            hasCompression = compressions.nonEmpty
+            hasCompression = true
           )
         val bytes: Int =
           optimalBytesRequired(
             largestValue = largestValue,
             valuesCount = uniqueValuesCount,
-            hasCompression = compressions.nonEmpty,
+            hasCompression = true,
             minimNumberOfKeysForBinarySearchIndex = minimumNumberOfKeys
           )
         Some(
@@ -129,7 +140,7 @@ private[core] object BinarySearchIndex {
               val headerSize: Int,
               val isFullIndex: Boolean,
               var _bytes: Slice[Byte],
-              val compressions: Seq[CompressionInternal]) {
+              val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
 
     def incrementWrittenValuesCount() =
       writtenValues += 1
@@ -206,7 +217,7 @@ private[core] object BinarySearchIndex {
       Block.create(
         headerSize = state.headerSize,
         bytes = state.bytes,
-        compressions = state.compressions,
+        compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
         blockName = blockName
       ) flatMap {
         compressedOrUncompressedBytes =>

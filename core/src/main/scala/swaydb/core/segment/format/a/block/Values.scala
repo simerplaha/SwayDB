@@ -23,9 +23,10 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.util.Bytes
+import swaydb.core.segment.format.a.block.BinarySearchIndex.Config.defaultBlockIO
+import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
-import swaydb.data.config.{BlockInfo, BlockIO}
+import swaydb.data.config.{BlockIO, BlockInfo, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 
 private[core] object Values {
@@ -39,22 +40,26 @@ private[core] object Values {
         compressDuplicateValues = false,
         compressDuplicateRangeValues = false,
         blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-        compressions = Seq.empty
+        compressions = _ => Seq.empty
       )
 
-    def apply(config: swaydb.data.config.ValuesConfig): Config =
+    def apply(enable: swaydb.data.config.ValuesConfig): Config =
       Config(
-        compressDuplicateValues = config.compressDuplicateValues,
-        compressDuplicateRangeValues = config.compressDuplicateRangeValues,
-        blockIO = config.blockIO,
-        compressions = config.compression map CompressionInternal.apply
+        compressDuplicateValues = enable.compressDuplicateValues,
+        compressDuplicateRangeValues = enable.compressDuplicateRangeValues,
+        blockIO = FunctionUtil.safe(defaultBlockIO, enable.blockIO),
+        compressions =
+          FunctionUtil.safe(
+            default = _ => Seq.empty[CompressionInternal],
+            f = enable.compression(_) map CompressionInternal.apply
+          )
       )
   }
 
   case class Config(compressDuplicateValues: Boolean,
                     compressDuplicateRangeValues: Boolean,
                     blockIO: BlockInfo => BlockIO,
-                    compressions: Seq[CompressionInternal])
+                    compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   def valuesBlockNotInitialised: IO.Failure[Nothing] =
     IO.Failure(IO.Error.Fatal("Value block not initialised."))
@@ -64,7 +69,7 @@ private[core] object Values {
 
   case class State(var _bytes: Slice[Byte],
                    headerSize: Int,
-                   compressions: Seq[CompressionInternal]) {
+                   compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
     def bytes = _bytes
 
     def bytes_=(bytes: Slice[Byte]) =
@@ -97,7 +102,7 @@ private[core] object Values {
 
   def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[Values.State] =
     if (keyValues.last.stats.segmentValuesSize > 0) {
-      val headSize = headerSize(keyValues.last.valuesConfig.compressions.nonEmpty)
+      val headSize = headerSize(keyValues.last.valuesConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentValuesSize)).nonEmpty)
       val bytes = Slice.create[Byte](keyValues.last.stats.segmentValuesSize)
       bytes moveWritePosition headSize
       Some(
@@ -120,7 +125,7 @@ private[core] object Values {
     Block.create(
       headerSize = state.headerSize,
       bytes = state.bytes,
-      compressions = state.compressions,
+      compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
       blockName = blockName
     ) flatMap {
       compressedOrUncompressedBytes =>

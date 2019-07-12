@@ -94,7 +94,7 @@ object DefaultPersistentConfig {
               ),
             enablePositionIndex = true,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compressions = _ => Seq.empty
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
@@ -103,27 +103,27 @@ object DefaultPersistentConfig {
             minimumNumberOfHits = 2,
             allocateSpace = _.requiredSpace * 2,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         binarySearchIndex =
           BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         mightContainIndex =
           MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         valuesConfig =
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         segmentIO =
           blockInfo =>
@@ -155,7 +155,7 @@ object DefaultPersistentConfig {
               ),
             enablePositionIndex = true,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compressions = _ => Seq.empty
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
@@ -164,27 +164,27 @@ object DefaultPersistentConfig {
             minimumNumberOfHits = 2,
             allocateSpace = _.requiredSpace * 2,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         binarySearchIndex =
           BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         mightContainIndex =
           MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         valuesConfig =
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         segmentIO =
           blockInfo =>
@@ -216,7 +216,7 @@ object DefaultPersistentConfig {
               ),
             enablePositionIndex = true,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compressions = _ => Seq.empty
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
@@ -225,27 +225,27 @@ object DefaultPersistentConfig {
             minimumNumberOfHits = 2,
             allocateSpace = _.requiredSpace * 2,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         binarySearchIndex =
           BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         mightContainIndex =
           MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         valuesConfig =
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         segmentIO =
           blockInfo =>
@@ -277,7 +277,7 @@ object DefaultPersistentConfig {
               ),
             enablePositionIndex = true,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compressions = _ => Seq.empty
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
@@ -286,27 +286,27 @@ object DefaultPersistentConfig {
             minimumNumberOfHits = 2,
             allocateSpace = _.requiredSpace * 2,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         binarySearchIndex =
           BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         mightContainIndex =
           MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         valuesConfig =
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         segmentIO =
           blockInfo =>
@@ -338,7 +338,7 @@ object DefaultPersistentConfig {
               ),
             enablePositionIndex = true,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compressions = _ => Seq.empty
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
@@ -347,27 +347,27 @@ object DefaultPersistentConfig {
             minimumNumberOfHits = 2,
             allocateSpace = _.requiredSpace * 2,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         binarySearchIndex =
           BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         mightContainIndex =
           MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         valuesConfig =
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         segmentIO =
           blockInfo =>
@@ -401,7 +401,7 @@ object DefaultPersistentConfig {
               ),
             enablePositionIndex = true,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compressions = _ => Seq.empty
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
@@ -410,27 +410,27 @@ object DefaultPersistentConfig {
             minimumNumberOfHits = 2,
             allocateSpace = _.requiredSpace * 2,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         binarySearchIndex =
           BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         mightContainIndex =
           MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         valuesConfig =
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-            compression = Seq.empty
+            compression = _ => Seq.empty
           ),
         segmentIO =
           blockInfo =>
