@@ -159,7 +159,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
     Transient.Group(
       keyValues = keyValuesToGroup,
       previous = lastGroup,
-      groupCompressions = groupingStrategy.groupCompressions,
+      groupConfig = groupingStrategy.groupConfig,
       valuesConfig = valuesConfig,
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,

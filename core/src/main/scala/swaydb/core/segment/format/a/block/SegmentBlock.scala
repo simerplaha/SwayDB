@@ -30,6 +30,7 @@ import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.util.{Bytes, CRC32, MinMax}
 import swaydb.data.IO
 import swaydb.data.IO._
+import swaydb.data.api.grouping.Compression
 import swaydb.data.config.{BlockIO, BlockInfo}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
@@ -45,8 +46,24 @@ private[core] object SegmentBlock {
 
   val crcBytes: Int = 7
 
+  object Config {
+
+    def default =
+      new Config(
+        blockIO = _ => BlockIO.ConcurrentIO(false),
+        compressions = Seq.empty
+      )
+
+    def apply(segmentIO: BlockInfo => BlockIO,
+              compressions: Iterable[Compression]): Config =
+      new Config(
+        blockIO = segmentIO,
+        compressions = (compressions map CompressionInternal.apply).toSeq
+      )
+  }
+
   case class Config(blockIO: BlockInfo => BlockIO,
-                    compression: Seq[CompressionInternal])
+                    compressions: Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
@@ -677,26 +694,26 @@ private[core] object SegmentBlock {
 
   def writeClosed(keyValues: Iterable[KeyValue.WriteOnly],
                   createdInLevel: Int,
-                  segmentCompressions: Seq[CompressionInternal]): IO[SegmentBlock.Closed] =
+                  segmentConfig: SegmentBlock.Config): IO[SegmentBlock.Closed] =
     if (keyValues.isEmpty)
       SegmentBlock.Closed.emptyIO
     else
       writeOpen(
         keyValues = keyValues,
         createdInLevel = createdInLevel,
-        segmentCompressions = segmentCompressions
+        segmentConfig = segmentConfig
       ) flatMap {
         openSegment =>
           Block.create(
             openSegment = openSegment,
-            compressions = segmentCompressions,
+            compressions = segmentConfig.compressions,
             blockName = blockName
           )
       }
 
   def writeOpen(keyValues: Iterable[KeyValue.WriteOnly],
                 createdInLevel: Int,
-                segmentCompressions: Seq[CompressionInternal]): IO[SegmentBlock.Open] =
+                segmentConfig: SegmentBlock.Config): IO[SegmentBlock.Open] =
     if (keyValues.isEmpty)
       Open.emptyIO
     else {
@@ -729,7 +746,7 @@ private[core] object SegmentBlock {
             closedBlocks = closedBlocks,
             keyValues = keyValues,
             createdInLevel = createdInLevel,
-            segmentCompressions = segmentCompressions
+            segmentConfig = segmentConfig
           )
       }
     }
@@ -737,7 +754,7 @@ private[core] object SegmentBlock {
   private def writeFooter(closedBlocks: ClosedBlocks,
                           keyValues: Iterable[KeyValue.WriteOnly],
                           createdInLevel: Int,
-                          segmentCompressions: Seq[CompressionInternal]): IO[SegmentBlock.Open] =
+                          segmentConfig: SegmentBlock.Config): IO[SegmentBlock.Open] =
     IO {
       val lastStats: Stats = keyValues.last.stats
 
@@ -810,7 +827,7 @@ private[core] object SegmentBlock {
 
       segmentFooterSlice addInt footerOffset
 
-      val headerSize = SegmentBlock.headerSize(segmentCompressions.nonEmpty)
+      val headerSize = SegmentBlock.headerSize(segmentConfig.compressions.nonEmpty)
       val headerBytes = Slice.create[Byte](headerSize)
       //set header bytes to be fully written so that it does not closed when compression.
       headerBytes moveWritePosition headerBytes.allocatedSize

@@ -125,6 +125,9 @@ object DefaultPersistentConfig {
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compression = Seq.empty
           ),
+        segmentIO =
+          blockInfo =>
+            BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
         segmentCompressions = Seq.empty,
         keyValueGroupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
@@ -183,6 +186,9 @@ object DefaultPersistentConfig {
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compression = Seq.empty
           ),
+        segmentIO =
+          blockInfo =>
+            BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
         segmentCompressions = Seq.empty,
         groupingStrategy = keyValueGroupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
@@ -241,6 +247,9 @@ object DefaultPersistentConfig {
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compression = Seq.empty
           ),
+        segmentIO =
+          blockInfo =>
+            BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
         segmentCompressions = Seq.empty,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
@@ -299,6 +308,9 @@ object DefaultPersistentConfig {
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compression = Seq.empty
           ),
+        segmentIO =
+          blockInfo =>
+            BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
         segmentCompressions = Seq.empty,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
@@ -357,6 +369,9 @@ object DefaultPersistentConfig {
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compression = Seq.empty
           ),
+        segmentIO =
+          blockInfo =>
+            BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
         segmentCompressions = Seq.empty,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
@@ -417,6 +432,9 @@ object DefaultPersistentConfig {
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compression = Seq.empty
           ),
+        segmentIO =
+          blockInfo =>
+            BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
         segmentCompressions = Seq.empty,
         groupingStrategy = keyValueGroupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),

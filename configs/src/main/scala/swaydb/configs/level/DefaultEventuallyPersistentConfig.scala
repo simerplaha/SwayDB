@@ -138,6 +138,9 @@ object DefaultEventuallyPersistentConfig {
             blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compression = Seq.empty
           ),
+        segmentIO =
+          blockInfo =>
+            BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
         segmentCompressions = Seq.empty,
         groupingStrategy = groupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),

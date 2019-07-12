@@ -42,7 +42,7 @@ private[core] object GroupCompressor extends LazyLogging {
 
   def compress(keyValues: Slice[KeyValue.WriteOnly],
                previous: Option[KeyValue.WriteOnly],
-               groupCompressions: Seq[CompressionInternal],
+               groupConfig: SegmentBlock.Config,
                valuesConfig: Values.Config,
                sortedIndexConfig: SortedIndex.Config,
                binarySearchIndexConfig: BinarySearchIndex.Config,
@@ -61,7 +61,7 @@ private[core] object GroupCompressor extends LazyLogging {
       SegmentBlock.writeClosed(
         keyValues = keyValues,
         createdInLevel = 0,
-        segmentCompressions = groupCompressions
+        segmentConfig = groupConfig
       ) flatMap {
         blockedSegment =>
           IO {

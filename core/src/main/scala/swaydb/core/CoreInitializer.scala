@@ -164,7 +164,7 @@ private[core] object CoreInitializer extends LazyLogging {
             binarySearchIndexConfig = block.BinarySearchIndex.Config.disabled,
             sortedIndexConfig = block.SortedIndex.Config.disabled,
             valuesConfig = block.Values.Config.disabled,
-            segmentCompressions = Seq.empty,
+            segmentConfig = block.SegmentBlock.Config.default,
             levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
             appendixStorage = AppendixStorage.Memory,
             nextLevel = nextLevel,
@@ -182,7 +182,7 @@ private[core] object CoreInitializer extends LazyLogging {
             binarySearchIndexConfig = block.BinarySearchIndex.Config(config = config.binarySearchIndex),
             sortedIndexConfig = block.SortedIndex.Config(config.sortedIndex),
             valuesConfig = block.Values.Config(config.values),
-            segmentCompressions = config.segmentCompressions map CompressionInternal.apply,
+            segmentConfig = block.SegmentBlock.Config(config.segmentIO, config.segmentCompressions),
             levelStorage =
               LevelStorage.Persistent(
                 mmapSegmentsOnWrite = config.mmapSegment.mmapWrite,

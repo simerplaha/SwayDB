@@ -49,8 +49,8 @@ class SegmentBlockCacheSpec extends TestBase {
 
       //create an open block and a closed block. SegmentBlockCache cannot be created on opened block.
       //Open block is used to assert the decompressed bytes got from closed block.
-      val openSegment: SegmentBlock.Open = SegmentBlock.writeOpen(keyValues, Int.MaxValue, segmentCompression).get
-      val closedSegment: SegmentBlock.Closed = SegmentBlock.writeClosed(keyValues, Int.MaxValue, segmentCompression).get
+      val openSegment: SegmentBlock.Open = SegmentBlock.writeOpen(keyValues, Int.MaxValue, SegmentBlock.Config.random).get
+      val closedSegment: SegmentBlock.Closed = SegmentBlock.writeClosed(keyValues, Int.MaxValue, SegmentBlock.Config.random).get
 
       //closedSegments are compressed and the sizes will not match
       if (segmentCompression.isEmpty)

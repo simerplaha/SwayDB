@@ -190,7 +190,7 @@ object TestData {
           mmapSegmentsOnWrite = randomBoolean(),
           removeDeletes = false,
           minSegmentSize = 1000.mb,
-          segmentCompressions = level.segmentCompressions,
+          segmentConfig = level.segmentConfig,
           valuesConfig = level.valuesConfig,
           sortedIndexConfig = level.sortedIndexConfig,
           binarySearchIndexConfig = level.binarySearchIndexConfig,
@@ -243,7 +243,7 @@ object TestData {
                 nextLevel = nextLevel,
                 pushForward = level.pushForward,
                 throttle = throttle,
-                segmentCompressions = level.segmentCompressions,
+                segmentConfig = level.segmentConfig,
                 deleteSegmentsEventually = level.deleteSegmentsEventually,
                 valuesConfig = level.valuesConfig,
                 sortedIndexConfig = level.sortedIndexConfig,
@@ -512,6 +512,14 @@ object TestData {
       BloomFilter.Config(
         falsePositiveRate = Random.nextDouble(),
         minimumNumberOfKeys = randomIntMax(5),
+        blockIO = _ => randomIOAccess(),
+        compressions = randomCompressionsOrEmpty()
+      )
+  }
+
+  implicit class SegmentConfig(values: SegmentBlock.Config.type) {
+    def random =
+      SegmentBlock.Config(
         blockIO = _ => randomIOAccess(),
         compressions = randomCompressionsOrEmpty()
       )
@@ -1717,7 +1725,7 @@ object TestData {
             Transient.Group(
               keyValues = groupKeyValues,
               previous = slice.lastOption,
-              groupCompressions = randomCompressions(),
+              groupConfig = SegmentBlock.Config.random,
               valuesConfig = valuesConfig,
               sortedIndexConfig = sortedIndexConfig,
               binarySearchIndexConfig = binarySearchIndexConfig,
@@ -1863,7 +1871,7 @@ object TestData {
       addRandomRemoveDeadlines = addRandomRemoveDeadlines)
 
   def randomGroup(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.random, KeyOrder.default, TestLimitQueues.keyValueLimiter),
-                  groupCompression: Seq[CompressionInternal] = randomCompressions(),
+                  groupConfig: SegmentBlock.Config = SegmentBlock.Config.random,
                   valuesConfig: Values.Config = Values.Config.random,
                   sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
                   binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
@@ -1873,7 +1881,7 @@ object TestData {
     Transient.Group(
       keyValues = keyValues,
       previous = previous,
-      groupCompressions = groupCompression,
+      groupConfig = groupConfig,
       valuesConfig = valuesConfig,
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,

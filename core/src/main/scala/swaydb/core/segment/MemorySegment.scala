@@ -89,7 +89,7 @@ private[segment] case class MemorySegment(path: Path,
                    binarySearchIndexConfig: BinarySearchIndex.Config,
                    hashIndexConfig: HashIndex.Config,
                    bloomFilterConfig: BloomFilter.Config,
-                   segmentCompressions: Seq[CompressionInternal],
+                   segmentConfig: SegmentBlock.Config,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     if (deleted)
@@ -140,7 +140,7 @@ private[segment] case class MemorySegment(path: Path,
                        binarySearchIndexConfig: BinarySearchIndex.Config,
                        hashIndexConfig: HashIndex.Config,
                        bloomFilterConfig: BloomFilter.Config,
-                       segmentCompressions: Seq[CompressionInternal],
+                       segmentConfig: SegmentBlock.Config,
                        targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     if (deleted)

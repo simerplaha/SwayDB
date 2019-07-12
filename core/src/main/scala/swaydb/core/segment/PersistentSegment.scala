@@ -113,7 +113,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           binarySearchIndexConfig: BinarySearchIndex.Config,
           hashIndexConfig: HashIndex.Config,
           bloomFilterConfig: BloomFilter.Config,
-          segmentCompressions: Seq[CompressionInternal],
+          segmentConfig: SegmentBlock.Config,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
@@ -136,7 +136,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                 keyValues =>
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
-                    segmentCompressions = segmentCompressions,
+                    segmentConfig = segmentConfig,
                     createdInLevel = createdInLevel,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
@@ -164,7 +164,7 @@ private[segment] case class PersistentSegment(file: DBFile,
               binarySearchIndexConfig: BinarySearchIndex.Config,
               hashIndexConfig: HashIndex.Config,
               bloomFilterConfig: BloomFilter.Config,
-              segmentCompressions: Seq[CompressionInternal],
+              segmentConfig: SegmentBlock.Config,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
@@ -187,7 +187,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                     createdInLevel = createdInLevel,
-                    segmentCompressions = segmentCompressions,
+                    segmentConfig = segmentConfig,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
                     keyValues = keyValues
@@ -209,11 +209,11 @@ private[segment] case class PersistentSegment(file: DBFile,
   def getSegmentBlockOffset(): IO[SegmentBlock.Offset] =
     file.fileSize map (fileSize => SegmentBlock.Offset(0, fileSize.toInt))
 
-//  def getSegmentBlock() =
-//    for {
-//      offset <- getSegmentBlockOffset()
-//      block <- SegmentBlock.readBlocked(offset, Reader(file))
-//    } yield block
+  //  def getSegmentBlock() =
+  //    for {
+  //      offset <- getSegmentBlockOffset()
+  //      block <- SegmentBlock.readBlocked(offset, Reader(file))
+  //    } yield block
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     segmentCache getFromCache key

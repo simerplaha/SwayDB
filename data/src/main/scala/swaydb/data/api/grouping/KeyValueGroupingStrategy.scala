@@ -31,7 +31,8 @@ object KeyValueGroupingStrategy {
                    bloomFilter: MightContainIndex,
                    values: ValuesConfig,
                    applyGroupingOnCopy: Boolean,
-                   groupCompression: Seq[Compression],
+                   groupIO: BlockInfo => BlockIO,
+                   groupCompressions: Seq[Compression],
                    groupGroupingStrategy: Option[GroupGroupingStrategy]) extends KeyValueGroupingStrategy
 
   case class Size(size: Int,
@@ -41,6 +42,7 @@ object KeyValueGroupingStrategy {
                   bloomFilter: MightContainIndex,
                   values: ValuesConfig,
                   applyGroupingOnCopy: Boolean,
-                  groupCompression: Seq[Compression],
+                  groupIO: BlockInfo => BlockIO,
+                  groupCompressions: Seq[Compression],
                   groupGroupingStrategy: Option[GroupGroupingStrategy]) extends KeyValueGroupingStrategy
 }

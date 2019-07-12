@@ -248,11 +248,11 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   object TestSegment {
     def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
               path: Path = testSegmentFile,
-              segmentCompressions: Seq[CompressionInternal] = randomCompressions())(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                    keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                                    fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
-                                                                                    timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                    groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
+              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                               keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                                               fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+                                                                               timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
       if (levelStorage.memory)
         Segment.memory(
           path = path,
@@ -263,7 +263,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         Segment.persistent(
           path = path,
           createdInLevel = 0,
-          segmentCompressions = segmentCompressions,
+          segmentConfig = segmentConfig,
           mmapReads = levelStorage.mmapSegmentsOnRead,
           mmapWrites = levelStorage.mmapSegmentsOnWrite,
           keyValues = keyValues
@@ -309,7 +309,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
               hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
               bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random,
-              segmentCompressions: Seq[CompressionInternal] = randomCompressions(),
+              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random,
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
@@ -328,7 +328,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         hashIndexConfig = hashIndexConfig,
         bloomFilterConfig = bloomFilterConfig,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        segmentCompressions = segmentCompressions
+        segmentConfig = segmentConfig
       ) flatMap {
         level =>
           level.putKeyValuesTest(keyValues) map {

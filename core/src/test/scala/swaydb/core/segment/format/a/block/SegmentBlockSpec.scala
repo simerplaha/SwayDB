@@ -28,6 +28,7 @@ import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.config.BlockIO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -49,7 +50,7 @@ class SegmentBlockSpec extends TestBase {
       val closedSegment =
         SegmentBlock.writeClosed(
           keyValues = Seq.empty,
-          segmentCompressions = randomCompressions(),
+          segmentConfig = SegmentBlock.Config.random,
           createdInLevel = randomIntMax()
         ).assertGet
 
@@ -107,7 +108,11 @@ class SegmentBlockSpec extends TestBase {
       val closedSegment =
         SegmentBlock.writeClosed(
           keyValues = keyValues,
-          segmentCompressions = Seq.empty,
+          segmentConfig =
+            SegmentBlock.Config(
+              blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+              compressions = Seq.empty
+            ),
           createdInLevel = 0
         ).assertGet
 
@@ -138,7 +143,11 @@ class SegmentBlockSpec extends TestBase {
         val closedSegment =
           SegmentBlock.writeClosed(
             keyValues = keyValues,
-            segmentCompressions = randomCompressionsOrEmpty(),
+            segmentConfig =
+              SegmentBlock.Config(
+                blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+                compressions = Seq.empty
+              ),
             createdInLevel = randomNextInt(10)
           ).assertGet
 
@@ -160,7 +169,7 @@ class SegmentBlockSpec extends TestBase {
         val group =
           Transient.Group(
             keyValues = keyValues,
-            groupCompressions = randomCompressionsOrEmpty(),
+            groupConfig = SegmentBlock.Config.random,
             valuesConfig = Values.Config.random,
             sortedIndexConfig = SortedIndex.Config.random,
             binarySearchIndexConfig = BinarySearchIndex.Config.random,
@@ -172,7 +181,11 @@ class SegmentBlockSpec extends TestBase {
         val bytes =
           SegmentBlock.writeClosed(
             keyValues = Seq(group),
-            segmentCompressions = randomCompressionsOrEmpty(),
+            segmentConfig =
+              SegmentBlock.Config(
+                blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+                compressions = Seq.empty
+              ),
             createdInLevel = 0
           ).assertGet.flattenSegmentBytes
 
@@ -196,7 +209,11 @@ class SegmentBlockSpec extends TestBase {
         val segmentBytes =
           SegmentBlock.writeClosed(
             keyValues = Seq(group1, group2).updateStats,
-            segmentCompressions = randomCompressionsOrEmpty(),
+            segmentConfig =
+              SegmentBlock.Config(
+                blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+                compressions = Seq.empty
+              ),
             createdInLevel = 0
           ).assertGet.flattenSegmentBytes
 
@@ -226,7 +243,11 @@ class SegmentBlockSpec extends TestBase {
         val bytes =
           SegmentBlock.writeClosed(
             keyValues = Seq(group4),
-            segmentCompressions = randomCompressionsOrEmpty(),
+            segmentConfig =
+              SegmentBlock.Config(
+                blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+                compressions = Seq.empty
+              ),
             createdInLevel = 0
           ).assertGet.flattenSegmentBytes
 
@@ -252,7 +273,11 @@ class SegmentBlockSpec extends TestBase {
         val bytes =
           SegmentBlock.writeClosed(
             keyValues = keyValues,
-            segmentCompressions = randomCompressionsOrEmpty(),
+            segmentConfig =
+              SegmentBlock.Config(
+                blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+                compressions = Seq.empty
+              ),
             createdInLevel = 0
           ).assertGet.flattenSegmentBytes
 
@@ -269,7 +294,11 @@ class SegmentBlockSpec extends TestBase {
       val (bytes, deadline) =
         SegmentBlock.writeClosed(
           keyValues = keyValues,
-          segmentCompressions = randomCompressionsOrEmpty(),
+          segmentConfig =
+            SegmentBlock.Config(
+              blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+              compressions = Seq.empty
+            ),
           createdInLevel = 0
         ).assertGet.flattenSegment
 
@@ -293,7 +322,11 @@ class SegmentBlockSpec extends TestBase {
       val (bytes, deadline) =
         SegmentBlock.writeClosed(
           keyValues = keyValues,
-          segmentCompressions = randomCompressionsOrEmpty(),
+          segmentConfig =
+            SegmentBlock.Config(
+              blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+              compressions = Seq.empty
+            ),
           createdInLevel = 0
         ).assertGet.flattenSegment
 
@@ -314,7 +347,11 @@ class SegmentBlockSpec extends TestBase {
       //        val (bytes, _) =
       //          SegmentBlock.write(
       //            keyValues = keyValues,
-      //            segmentCompressions = randomCompressionsOrEmpty(),
+      //            segmentConfig =
+      //      SegmentBlock.Config(
+      //        blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+      //        compressions = Seq.empty
+      //      ),
       //            createdInLevel = 0
       //          ).assertGet.flattenSegment
       //

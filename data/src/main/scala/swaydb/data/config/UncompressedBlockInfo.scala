@@ -16,21 +16,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
+
 package swaydb.data.config
 
-sealed trait BlockInfo {
-  def isCompressed: Boolean
-  def compressedSize: Int
-  def decompressedSize: Int
+sealed trait UncompressedBlockInfo {
+  def uncompressedSize: Int
 }
 
-private[swaydb] object BlockInfo {
-  def apply(_isCompressed: Boolean,
-            _compressedSize: Int,
-            _decompressedSize: Int): BlockInfo =
-    new BlockInfo {
-      override def isCompressed: Boolean = _isCompressed
-      override def compressedSize: Int = _compressedSize
-      override def decompressedSize: Int = _decompressedSize
+object UncompressedBlockInfo {
+  def apply(_uncompressedSize: Int): UncompressedBlockInfo =
+    new UncompressedBlockInfo {
+      override def uncompressedSize: Int =
+        _uncompressedSize
     }
 }

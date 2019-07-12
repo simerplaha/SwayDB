@@ -19,7 +19,6 @@
 
 package swaydb.core.group.compression.data
 
-import swaydb.compression.CompressionInternal
 import swaydb.core.segment.format.a.block._
 
 private[swaydb] sealed trait GroupingStrategy {
@@ -28,7 +27,7 @@ private[swaydb] sealed trait GroupingStrategy {
   def binarySearchIndexConfig: BinarySearchIndex.Config
   def sortedIndexConfig: SortedIndex.Config
   def valuesConfig: Values.Config
-  def groupCompressions: Seq[CompressionInternal]
+  def groupConfig: SegmentBlock.Config
 }
 
 private[swaydb] sealed trait KeyValueGroupingStrategyInternal extends GroupingStrategy {
@@ -39,7 +38,7 @@ private[swaydb] sealed trait KeyValueGroupingStrategyInternal extends GroupingSt
   def binarySearchIndexConfig: BinarySearchIndex.Config
   def sortedIndexConfig: SortedIndex.Config
   def valuesConfig: Values.Config
-  def groupCompressions: Seq[CompressionInternal]
+  def groupConfig: SegmentBlock.Config
 }
 
 private[swaydb] object KeyValueGroupingStrategyInternal {
@@ -61,7 +60,7 @@ private[swaydb] object KeyValueGroupingStrategyInternal {
           binarySearchIndexConfig = BinarySearchIndex.Config(grouping.binarySearchIndex),
           sortedIndexConfig = SortedIndex.Config(grouping.sortedIndex),
           valuesConfig = Values.Config(grouping.values),
-          groupCompressions = grouping.groupCompression map CompressionInternal.apply
+          groupConfig = SegmentBlock.Config(grouping.groupIO, grouping.groupCompressions)
         )
 
       case grouping: swaydb.data.api.grouping.KeyValueGroupingStrategy.Size =>
@@ -74,7 +73,7 @@ private[swaydb] object KeyValueGroupingStrategyInternal {
           binarySearchIndexConfig = BinarySearchIndex.Config(grouping.binarySearchIndex),
           sortedIndexConfig = SortedIndex.Config(grouping.sortedIndex),
           valuesConfig = Values.Config(grouping.values),
-          groupCompressions = grouping.groupCompression map CompressionInternal.apply
+          groupConfig = SegmentBlock.Config(grouping.groupIO, grouping.groupCompressions)
         )
     }
 
@@ -86,7 +85,7 @@ private[swaydb] object KeyValueGroupingStrategyInternal {
                    binarySearchIndexConfig: BinarySearchIndex.Config,
                    sortedIndexConfig: SortedIndex.Config,
                    valuesConfig: Values.Config,
-                   groupCompressions: Seq[CompressionInternal]) extends KeyValueGroupingStrategyInternal
+                   groupConfig: SegmentBlock.Config) extends KeyValueGroupingStrategyInternal
 
   case class Size(size: Int,
                   applyGroupingOnCopy: Boolean,
@@ -96,7 +95,7 @@ private[swaydb] object KeyValueGroupingStrategyInternal {
                   binarySearchIndexConfig: BinarySearchIndex.Config,
                   sortedIndexConfig: SortedIndex.Config,
                   valuesConfig: Values.Config,
-                  groupCompressions: Seq[CompressionInternal]) extends KeyValueGroupingStrategyInternal
+                  groupConfig: SegmentBlock.Config) extends KeyValueGroupingStrategyInternal
 }
 
 private[swaydb] sealed trait GroupGroupingStrategyInternal extends GroupingStrategy
@@ -116,7 +115,7 @@ private[swaydb] object GroupGroupingStrategyInternal {
           binarySearchIndexConfig = BinarySearchIndex.Config(grouping.binarySearchIndex),
           sortedIndexConfig = SortedIndex.Config(grouping.sortedIndex),
           valuesConfig = Values.Config(grouping.values),
-          groupCompressions = grouping.groupsCompression map CompressionInternal.apply
+          groupConfig = SegmentBlock.Config(grouping.groupIO, grouping.groupCompressions)
         )
       case grouping: swaydb.data.api.grouping.GroupGroupingStrategy.Size =>
         GroupGroupingStrategyInternal.Size(
@@ -126,7 +125,7 @@ private[swaydb] object GroupGroupingStrategyInternal {
           binarySearchIndexConfig = BinarySearchIndex.Config(grouping.binarySearchIndex),
           sortedIndexConfig = SortedIndex.Config(grouping.sortedIndex),
           valuesConfig = Values.Config(grouping.values),
-          groupCompressions = grouping.groupsCompression map CompressionInternal.apply
+          groupConfig = SegmentBlock.Config(grouping.groupIO, grouping.groupCompressions)
         )
     }
 
@@ -136,7 +135,7 @@ private[swaydb] object GroupGroupingStrategyInternal {
                    binarySearchIndexConfig: BinarySearchIndex.Config,
                    sortedIndexConfig: SortedIndex.Config,
                    valuesConfig: Values.Config,
-                   groupCompressions: Seq[CompressionInternal]) extends GroupGroupingStrategyInternal
+                   groupConfig: SegmentBlock.Config) extends GroupGroupingStrategyInternal
 
   case class Size(size: Int,
                   bloomFilterConfig: BloomFilter.Config,
@@ -144,5 +143,5 @@ private[swaydb] object GroupGroupingStrategyInternal {
                   binarySearchIndexConfig: BinarySearchIndex.Config,
                   sortedIndexConfig: SortedIndex.Config,
                   valuesConfig: Values.Config,
-                  groupCompressions: Seq[CompressionInternal]) extends GroupGroupingStrategyInternal
+                  groupConfig: SegmentBlock.Config) extends GroupGroupingStrategyInternal
 }

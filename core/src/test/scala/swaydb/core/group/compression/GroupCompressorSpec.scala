@@ -68,7 +68,7 @@ class GroupCompressorSpec extends TestBase {
       Transient.Group(
         keyValues = Slice.empty,
         previous = None,
-        groupCompressions = randomCompressionsOrEmpty(),
+        groupConfig = SegmentBlock.Config.random,
         valuesConfig = Values.Config.random,
         sortedIndexConfig = SortedIndex.Config.random,
         binarySearchIndexConfig = BinarySearchIndex.Config.random,
@@ -88,7 +88,7 @@ class GroupCompressorSpec extends TestBase {
             Transient.Group(
               keyValues = keyValues,
               previous = None,
-              groupCompressions = randomCompressionsOrEmpty(),
+              groupConfig = SegmentBlock.Config.random,
               valuesConfig = Values.Config.random,
               sortedIndexConfig = SortedIndex.Config.random,
               binarySearchIndexConfig = BinarySearchIndex.Config.random,
@@ -118,7 +118,7 @@ class GroupCompressorSpec extends TestBase {
             Transient.Group(
               keyValues = keyValues,
               previous = None,
-              groupCompressions = randomCompressionsOrEmpty(),
+              groupConfig = SegmentBlock.Config.random,
               valuesConfig = Values.Config.random,
               sortedIndexConfig = SortedIndex.Config.random,
               binarySearchIndexConfig = BinarySearchIndex.Config.random,

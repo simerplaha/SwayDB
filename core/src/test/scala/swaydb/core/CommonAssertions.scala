@@ -239,7 +239,7 @@ object CommonAssertions {
                     binarySearchIndexConfig = BinarySearchIndex.Config.random,
                     hashIndexConfig = HashIndex.Config.random,
                     bloomFilterConfig = BloomFilter.Config.random,
-                    groupCompressions = randomCompressions()
+                    groupConfig = SegmentBlock.Config.random
                   )
                 ),
               mid =
@@ -251,7 +251,7 @@ object CommonAssertions {
                     binarySearchIndexConfig = BinarySearchIndex.Config.random,
                     hashIndexConfig = HashIndex.Config.random,
                     bloomFilterConfig = BloomFilter.Config.random,
-                    groupCompressions = randomCompressions()
+                    groupConfig = SegmentBlock.Config.random
                   )
                 ),
               right =
@@ -262,7 +262,7 @@ object CommonAssertions {
           binarySearchIndexConfig = BinarySearchIndex.Config.random,
           hashIndexConfig = HashIndex.Config.random,
           bloomFilterConfig = BloomFilter.Config.random,
-          groupCompressions = randomCompressions(),
+          groupConfig = SegmentBlock.Config.random,
           applyGroupingOnCopy = randomBoolean()
         ),
       right =
@@ -279,7 +279,7 @@ object CommonAssertions {
                     binarySearchIndexConfig = BinarySearchIndex.Config.random,
                     hashIndexConfig = HashIndex.Config.random,
                     bloomFilterConfig = BloomFilter.Config.random,
-                    groupCompressions = randomCompressions()
+                    groupConfig = SegmentBlock.Config.random
                   )
                 ),
               mid =
@@ -291,7 +291,7 @@ object CommonAssertions {
                     binarySearchIndexConfig = BinarySearchIndex.Config.random,
                     hashIndexConfig = HashIndex.Config.random,
                     bloomFilterConfig = BloomFilter.Config.random,
-                    groupCompressions = randomCompressions()
+                    groupConfig = SegmentBlock.Config.random
                   )),
               right =
                 None
@@ -301,7 +301,7 @@ object CommonAssertions {
           binarySearchIndexConfig = BinarySearchIndex.Config.random,
           hashIndexConfig = HashIndex.Config.random,
           bloomFilterConfig = BloomFilter.Config.random,
-          groupCompressions = randomCompressions(),
+          groupConfig = SegmentBlock.Config.random,
           applyGroupingOnCopy = randomBoolean()
         )
     )
@@ -1378,12 +1378,12 @@ object CommonAssertions {
       Some(expiredDeadline())
 
   def readAll(group: Transient.Group): IO[Slice[KeyValue.ReadOnly]] = {
-    val segment = SegmentBlock.writeClosed(Slice(group).updateStats, 0, randomCompressionsOrEmpty()).get
+    val segment = SegmentBlock.writeClosed(Slice(group).updateStats, 0, SegmentBlock.Config.random).get
     readAll(segment)
   }
 
   def readBlocks(group: Transient.Group): IO[Blocks] = {
-    val segment = SegmentBlock.writeClosed(Slice(group).updateStats, 0, randomCompressionsOrEmpty()).get
+    val segment = SegmentBlock.writeClosed(Slice(group).updateStats, 0, SegmentBlock.Config.random).get
     readBlocks(segment)
   }
 
@@ -1397,7 +1397,7 @@ object CommonAssertions {
     val closedSegment =
       SegmentBlock.writeClosed(
         keyValues = keyValues,
-        segmentCompressions = randomCompressionsOrEmpty(),
+        segmentConfig = SegmentBlock.Config.random,
         createdInLevel = 0
       ).assertGet
 
@@ -1411,7 +1411,7 @@ object CommonAssertions {
     readBlocks(Reader(bytes))
 
   def getSegmentBlockCache(keyValues: Slice[KeyValue.WriteOnly]): SegmentBlockCache = {
-    val segment = SegmentBlock.writeClosed(keyValues, Int.MaxValue, Seq.empty).get
+    val segment = SegmentBlock.writeClosed(keyValues, Int.MaxValue, segmentConfig = SegmentBlock.Config.random).get
     getSegmentBlockCache(segment)
   }
 

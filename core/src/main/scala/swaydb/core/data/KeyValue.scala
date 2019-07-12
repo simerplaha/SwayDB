@@ -1155,7 +1155,7 @@ private[core] object Transient {
     def apply(keyValues: Slice[KeyValue.WriteOnly],
               previous: Option[KeyValue.WriteOnly],
               //compression is for the group's key-values.
-              groupCompressions: Seq[CompressionInternal],
+              groupConfig: SegmentBlock.Config,
               //these configs are for the Group itself and not the key-values within the group.
               valuesConfig: Values.Config,
               sortedIndexConfig: SortedIndex.Config,
@@ -1165,7 +1165,7 @@ private[core] object Transient {
       GroupCompressor.compress(
         keyValues = keyValues,
         previous = previous,
-        groupCompressions = groupCompressions,
+        groupConfig = groupConfig,
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
