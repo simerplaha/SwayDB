@@ -25,7 +25,7 @@ import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.segment.format.a.block.Values
 import swaydb.data.IO
 
-object LazyRangeValueReader {
+private[core] object LazyRangeValueReader {
 
   def apply(reader: BlockReader[Values],
             offset: Int,
@@ -40,7 +40,7 @@ object LazyRangeValueReader {
 }
 
 //GAH! Inheritance Yuk! Need to update this code.
-trait LazyRangeValueReader extends LazyValueReader {
+private[core] trait LazyRangeValueReader extends LazyValueReader {
 
   @volatile private var fromValue: Option[Value.FromValue] = _
   @volatile private var rangeValue: Value.RangeValue = _

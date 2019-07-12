@@ -27,7 +27,7 @@ import swaydb.data.slice.Slice
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-object RangeFilter {
+private[core] object RangeFilter {
 
   case class State(uncommonBytesToTake: Int,
                    filters: mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]])

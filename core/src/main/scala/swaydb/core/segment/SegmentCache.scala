@@ -31,7 +31,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{IO, MaxKey}
 
-object SegmentCache {
+private[core] object SegmentCache {
 
   def apply(id: String,
             maxKey: MaxKey[Slice[Byte]],

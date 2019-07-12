@@ -26,7 +26,7 @@ import swaydb.data.IO
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
-object RemoveMerger {
+private[core] object RemoveMerger {
 
   def apply(newKeyValue: ReadOnly.Remove,
             oldKeyValue: ReadOnly.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]]): ReadOnly.Remove =

@@ -392,14 +392,14 @@ private[core] object HashIndex extends LazyLogging {
   }
 }
 
-case class HashIndex(offset: HashIndex.Offset,
-                     compressionInfo: Option[Block.CompressionInfo],
-                     maxProbe: Int,
-                     hit: Int,
-                     miss: Int,
-                     writeAbleLargestValueSize: Int,
-                     headerSize: Int,
-                     allocatedBytes: Int) extends Block {
+private[core] case class HashIndex(offset: HashIndex.Offset,
+                                   compressionInfo: Option[Block.CompressionInfo],
+                                   maxProbe: Int,
+                                   hit: Int,
+                                   miss: Int,
+                                   writeAbleLargestValueSize: Int,
+                                   headerSize: Int,
+                                   allocatedBytes: Int) extends Block {
   val bytesToReadPerIndex = writeAbleLargestValueSize + 1 //+1 to read header/marker 0 byte.
 
   val isCompressed = compressionInfo.isDefined

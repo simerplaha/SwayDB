@@ -27,7 +27,7 @@ import swaydb.data.IO._
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
-object FixedMerger {
+private[core] object FixedMerger {
 
   def apply(newer: ReadOnly.Fixed,
             older: ReadOnly.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],

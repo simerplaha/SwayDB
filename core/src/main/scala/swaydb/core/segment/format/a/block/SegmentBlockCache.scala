@@ -30,7 +30,11 @@ object SegmentBlockCache {
             rawSegmentReader: () => Reader): SegmentBlockCache =
     new SegmentBlockCache(
       id = id,
-      segmentBlockInfo = new SegmentBlockInfo(segmentBlockOffset, rawSegmentReader)
+      segmentBlockInfo =
+        new SegmentBlockInfo(
+          segmentBlockOffset = segmentBlockOffset,
+          rawSegmentReader = rawSegmentReader
+        )
     )
 
   def createBlockReaderCache[B <: Block](segmentBlockReader: => IO[BlockReader[SegmentBlock]]): Cache[B, BlockReader[B]] =

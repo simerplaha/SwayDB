@@ -27,7 +27,7 @@ import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.slice.Slice
 
-object Values {
+private[core] object Values {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
@@ -169,9 +169,9 @@ object Values {
         }
 }
 
-case class Values(offset: Values.Offset,
-                  headerSize: Int,
-                  compressionInfo: Option[Block.CompressionInfo]) extends Block {
+private[core] case class Values(offset: Values.Offset,
+                                headerSize: Int,
+                                compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
   def createBlockReader(segmentBlock: BlockReader[SegmentBlock]): BlockReader[Values] =
     BlockReader(

@@ -30,7 +30,7 @@ import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
 
-object BinarySearchIndex {
+private[core] object BinarySearchIndex {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
@@ -428,12 +428,12 @@ object BinarySearchIndex {
     )
 }
 
-case class BinarySearchIndex(offset: BinarySearchIndex.Offset,
-                             valuesCount: Int,
-                             headerSize: Int,
-                             bytesPerValue: Int,
-                             isFullIndex: Boolean,
-                             compressionInfo: Option[Block.CompressionInfo]) extends Block {
+private[core] case class BinarySearchIndex(offset: BinarySearchIndex.Offset,
+                                           valuesCount: Int,
+                                           headerSize: Int,
+                                           bytesPerValue: Int,
+                                           isFullIndex: Boolean,
+                                           compressionInfo: Option[Block.CompressionInfo]) extends Block {
   val isVarInt: Boolean =
     BinarySearchIndex.isVarInt(bytesPerValue)
 

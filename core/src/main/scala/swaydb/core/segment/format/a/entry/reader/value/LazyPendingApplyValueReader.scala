@@ -26,7 +26,7 @@ import swaydb.core.segment.format.a.block.Values
 import swaydb.data.IO
 import swaydb.data.slice.Slice
 
-object LazyPendingApplyValueReader {
+private[core] object LazyPendingApplyValueReader {
   def apply(reader: BlockReader[Values],
             offset: Int,
             length: Int): LazyPendingApplyValueReader =
@@ -40,7 +40,7 @@ object LazyPendingApplyValueReader {
 }
 
 //GAH! Inheritance Yuk! Need to update this code.
-trait LazyPendingApplyValueReader extends LazyValueReader {
+private[core] trait LazyPendingApplyValueReader extends LazyValueReader {
 
   @volatile private var applyFunctions: Slice[Value.Apply] = _
 

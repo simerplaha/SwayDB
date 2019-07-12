@@ -25,7 +25,7 @@ import swaydb.data.IO
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
-object ValueMerger {
+private[core] object ValueMerger {
 
   def apply(key: Slice[Byte],
             newRangeValue: Value.RangeValue,

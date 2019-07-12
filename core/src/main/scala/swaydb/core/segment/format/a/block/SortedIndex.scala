@@ -499,11 +499,11 @@ private[core] object SortedIndex {
     keyValue.nextIndexSize > 0
 }
 
-case class SortedIndex(offset: SortedIndex.Offset,
-                       enableAccessPositionIndex: Boolean,
-                       hasPrefixCompression: Boolean,
-                       headerSize: Int,
-                       compressionInfo: Option[Block.CompressionInfo]) extends Block {
+private[core] case class SortedIndex(offset: SortedIndex.Offset,
+                                     enableAccessPositionIndex: Boolean,
+                                     hasPrefixCompression: Boolean,
+                                     headerSize: Int,
+                                     compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
   def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[SortedIndex] =
     BlockReader(

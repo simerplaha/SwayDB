@@ -93,7 +93,7 @@ private[core] object FileLimiter extends LazyLogging {
       override def close(file: FileLimiterItem): Unit =
         queue ! Action.Close(new WeakReference[FileLimiterItem](file))
 
-      //Delete should not be a WeakReference because Levels can
+      //Delete cannot be a WeakReference because Levels can
       //remove references to the file after eventualDelete is invoked.
       //If the file gets garbage collected due to it being WeakReference before
       //delete on the file is triggered, the physical file will remain on disk.

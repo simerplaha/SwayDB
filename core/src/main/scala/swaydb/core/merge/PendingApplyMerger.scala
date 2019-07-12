@@ -26,7 +26,7 @@ import swaydb.data.IO
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
-object PendingApplyMerger {
+private[core] object PendingApplyMerger {
 
   /**
     * PendingApply

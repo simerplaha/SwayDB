@@ -29,7 +29,7 @@ import swaydb.data.IO._
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
-object BloomFilter extends LazyLogging {
+private[core] object BloomFilter extends LazyLogging {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
@@ -297,11 +297,11 @@ object BloomFilter extends LazyLogging {
   }
 }
 
-case class BloomFilter(offset: BloomFilter.Offset,
-                       maxProbe: Int,
-                       numberOfBits: Int,
-                       headerSize: Int,
-                       compressionInfo: Option[Block.CompressionInfo]) extends Block {
+private[core] case class BloomFilter(offset: BloomFilter.Offset,
+                                     maxProbe: Int,
+                                     numberOfBits: Int,
+                                     headerSize: Int,
+                                     compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
   def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[BloomFilter] =
     new BlockReader(

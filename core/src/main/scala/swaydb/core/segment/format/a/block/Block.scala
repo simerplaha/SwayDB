@@ -32,7 +32,7 @@ import swaydb.data.util.ByteSizeOf
 /**
   * A block is a group of compressed or uncompressed bytes.
   */
-trait Block {
+private[core] trait Block {
   def offset: BlockOffset
   def headerSize: Int
   def compressionInfo: Option[Block.CompressionInfo]
@@ -40,7 +40,7 @@ trait Block {
   def createBlockReader(segmentReader: BlockReader[SegmentBlock]): BlockReader[_ <: Block]
 }
 
-object Block extends LazyLogging {
+private[core] object Block extends LazyLogging {
 
   val uncompressedBlockId: Byte = 0.toByte
   val compressedBlockID: Byte = 1.toByte

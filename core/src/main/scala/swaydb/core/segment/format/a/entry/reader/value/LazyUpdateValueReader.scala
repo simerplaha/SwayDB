@@ -24,7 +24,7 @@ import swaydb.core.segment.format.a.block.Values
 import swaydb.data.IO
 import swaydb.data.slice.Slice
 
-object LazyUpdateValueReader {
+private[core] object LazyUpdateValueReader {
   def apply(reader: BlockReader[Values],
             offset: Int,
             length: Int): LazyUpdateValueReader =
@@ -37,7 +37,7 @@ object LazyUpdateValueReader {
     }
 }
 
-trait LazyUpdateValueReader extends LazyValueReader {
+private[core] trait LazyUpdateValueReader extends LazyValueReader {
 
   override def getOrFetchValue: IO[Option[Slice[Byte]]] =
     super.getOrFetchValue

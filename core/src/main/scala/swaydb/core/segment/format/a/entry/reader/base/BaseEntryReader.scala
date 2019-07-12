@@ -26,7 +26,7 @@ import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.data.IO
 import swaydb.data.slice.Reader
 
-trait BaseEntryReader {
+private[core] trait BaseEntryReader {
 
   def minID: Int
 

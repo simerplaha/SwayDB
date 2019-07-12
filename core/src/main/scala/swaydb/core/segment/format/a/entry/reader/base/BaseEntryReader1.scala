@@ -27,7 +27,7 @@ import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.data.IO
 import swaydb.data.slice.Reader
 
-object BaseEntryReader1 extends BaseEntryReader {
+private[core] object BaseEntryReader1 extends BaseEntryReader {
 
   def read[T](baseId: Int,
               keyValueId: Int,

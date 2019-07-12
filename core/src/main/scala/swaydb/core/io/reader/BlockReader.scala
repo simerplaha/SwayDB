@@ -27,7 +27,7 @@ import swaydb.data.slice.{Reader, Slice}
 /**
   * Reader for the [[Block.CompressionInfo]] that skips [[Block.Header]] bytes.
   */
-object BlockReader {
+private[core] object BlockReader {
   def apply[B <: Block](reader: Reader, block: B): BlockReader[B] =
     new BlockReader[B](
       reader = reader,

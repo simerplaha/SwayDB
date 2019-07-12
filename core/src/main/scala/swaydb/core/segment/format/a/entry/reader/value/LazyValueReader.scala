@@ -24,7 +24,7 @@ import swaydb.core.segment.format.a.block.Values
 import swaydb.data.IO
 import swaydb.data.slice.Slice
 
-object LazyValueReader {
+private[core] object LazyValueReader {
 
   val empty =
     new LazyValueReader {
@@ -46,7 +46,7 @@ object LazyValueReader {
     }
 }
 
-trait LazyValueReader {
+private[core] trait LazyValueReader {
 
   @volatile var valueOption: Option[Slice[Byte]] = _
 

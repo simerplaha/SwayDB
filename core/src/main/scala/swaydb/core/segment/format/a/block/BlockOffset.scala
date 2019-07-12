@@ -1,6 +1,6 @@
 package swaydb.core.segment.format.a.block
 
-trait BlockOffset {
+private[core] trait BlockOffset {
   def start: Int
   def size: Int
   def end: Int =
