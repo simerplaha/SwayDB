@@ -141,7 +141,7 @@ object DefaultEventuallyPersistentConfig {
         segmentIO =
           blockInfo =>
             BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-        segmentCompressions = Seq.empty,
+        segmentCompressions = _ => Seq.empty,
         groupingStrategy = groupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         throttle =

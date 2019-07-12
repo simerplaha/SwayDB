@@ -32,7 +32,7 @@ object GroupGroupingStrategy {
                    prefixCompression: PrefixCompression,
                    values: ValuesConfig,
                    groupIO: BlockInfo => BlockIO,
-                   groupCompressions: Seq[Compression]) extends GroupGroupingStrategy
+                   groupCompressions: UncompressedBlockInfo => Seq[Compression]) extends GroupGroupingStrategy
 
   case class Size(size: Int,
                   sortedIndex: SortedKeyIndex,
@@ -42,5 +42,5 @@ object GroupGroupingStrategy {
                   prefixCompression: PrefixCompression,
                   values: ValuesConfig,
                   groupIO: BlockInfo => BlockIO,
-                  groupCompressions: Seq[Compression]) extends GroupGroupingStrategy
+                  groupCompressions: UncompressedBlockInfo => Seq[Compression]) extends GroupGroupingStrategy
 }

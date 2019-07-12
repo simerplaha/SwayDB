@@ -32,7 +32,7 @@ object KeyValueGroupingStrategy {
                    values: ValuesConfig,
                    applyGroupingOnCopy: Boolean,
                    groupIO: BlockInfo => BlockIO,
-                   groupCompressions: Seq[Compression],
+                   groupCompressions: UncompressedBlockInfo => Seq[Compression],
                    groupGroupingStrategy: Option[GroupGroupingStrategy]) extends KeyValueGroupingStrategy
 
   case class Size(size: Int,
@@ -43,6 +43,6 @@ object KeyValueGroupingStrategy {
                   values: ValuesConfig,
                   applyGroupingOnCopy: Boolean,
                   groupIO: BlockInfo => BlockIO,
-                  groupCompressions: Seq[Compression],
+                  groupCompressions: UncompressedBlockInfo => Seq[Compression],
                   groupGroupingStrategy: Option[GroupGroupingStrategy]) extends KeyValueGroupingStrategy
 }

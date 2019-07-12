@@ -128,7 +128,7 @@ object DefaultPersistentConfig {
         segmentIO =
           blockInfo =>
             BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-        segmentCompressions = Seq.empty,
+        segmentCompressions = _ => Seq.empty,
         keyValueGroupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -189,7 +189,7 @@ object DefaultPersistentConfig {
         segmentIO =
           blockInfo =>
             BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-        segmentCompressions = Seq.empty,
+        segmentCompressions = _ => Seq.empty,
         groupingStrategy = keyValueGroupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
@@ -250,7 +250,7 @@ object DefaultPersistentConfig {
         segmentIO =
           blockInfo =>
             BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-        segmentCompressions = Seq.empty,
+        segmentCompressions = _ => Seq.empty,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -311,7 +311,7 @@ object DefaultPersistentConfig {
         segmentIO =
           blockInfo =>
             BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-        segmentCompressions = Seq.empty,
+        segmentCompressions = _ => Seq.empty,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -372,7 +372,7 @@ object DefaultPersistentConfig {
         segmentIO =
           blockInfo =>
             BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-        segmentCompressions = Seq.empty,
+        segmentCompressions = _ => Seq.empty,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -435,7 +435,7 @@ object DefaultPersistentConfig {
         segmentIO =
           blockInfo =>
             BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-        segmentCompressions = Seq.empty,
+        segmentCompressions = _ => Seq.empty,
         groupingStrategy = keyValueGroupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =

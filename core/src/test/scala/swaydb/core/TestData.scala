@@ -519,9 +519,9 @@ object TestData {
 
   implicit class SegmentConfig(values: SegmentBlock.Config.type) {
     def random =
-      SegmentBlock.Config(
+      new SegmentBlock.Config(
         blockIO = _ => randomIOAccess(),
-        compressions = randomCompressionsOrEmpty()
+        compressions = _ => randomCompressionsOrEmpty()
       )
   }
 

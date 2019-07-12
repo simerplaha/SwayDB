@@ -109,9 +109,9 @@ class SegmentBlockSpec extends TestBase {
         SegmentBlock.writeClosed(
           keyValues = keyValues,
           segmentConfig =
-            SegmentBlock.Config(
+            new SegmentBlock.Config(
               blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-              compressions = Seq.empty
+              compressions = _ => Seq.empty
             ),
           createdInLevel = 0
         ).assertGet
@@ -144,9 +144,9 @@ class SegmentBlockSpec extends TestBase {
           SegmentBlock.writeClosed(
             keyValues = keyValues,
             segmentConfig =
-              SegmentBlock.Config(
+              new SegmentBlock.Config(
                 blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-                compressions = Seq.empty
+                compressions = _ => Seq.empty
               ),
             createdInLevel = randomNextInt(10)
           ).assertGet
@@ -182,9 +182,9 @@ class SegmentBlockSpec extends TestBase {
           SegmentBlock.writeClosed(
             keyValues = Seq(group),
             segmentConfig =
-              SegmentBlock.Config(
+              new SegmentBlock.Config(
                 blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-                compressions = Seq.empty
+                compressions = _ => Seq.empty
               ),
             createdInLevel = 0
           ).assertGet.flattenSegmentBytes
@@ -210,9 +210,9 @@ class SegmentBlockSpec extends TestBase {
           SegmentBlock.writeClosed(
             keyValues = Seq(group1, group2).updateStats,
             segmentConfig =
-              SegmentBlock.Config(
+              new SegmentBlock.Config(
                 blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-                compressions = Seq.empty
+                compressions = _ => Seq.empty
               ),
             createdInLevel = 0
           ).assertGet.flattenSegmentBytes
@@ -244,9 +244,9 @@ class SegmentBlockSpec extends TestBase {
           SegmentBlock.writeClosed(
             keyValues = Seq(group4),
             segmentConfig =
-              SegmentBlock.Config(
+              new SegmentBlock.Config(
                 blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-                compressions = Seq.empty
+                compressions = _ => Seq.empty
               ),
             createdInLevel = 0
           ).assertGet.flattenSegmentBytes
@@ -274,9 +274,9 @@ class SegmentBlockSpec extends TestBase {
           SegmentBlock.writeClosed(
             keyValues = keyValues,
             segmentConfig =
-              SegmentBlock.Config(
+              new SegmentBlock.Config(
                 blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-                compressions = Seq.empty
+                compressions = _ => Seq.empty
               ),
             createdInLevel = 0
           ).assertGet.flattenSegmentBytes
@@ -295,9 +295,9 @@ class SegmentBlockSpec extends TestBase {
         SegmentBlock.writeClosed(
           keyValues = keyValues,
           segmentConfig =
-            SegmentBlock.Config(
+            new SegmentBlock.Config(
               blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-              compressions = Seq.empty
+              compressions = _ => Seq.empty
             ),
           createdInLevel = 0
         ).assertGet.flattenSegment
@@ -323,9 +323,9 @@ class SegmentBlockSpec extends TestBase {
         SegmentBlock.writeClosed(
           keyValues = keyValues,
           segmentConfig =
-            SegmentBlock.Config(
+            new SegmentBlock.Config(
               blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-              compressions = Seq.empty
+              compressions = _ => Seq.empty
             ),
           createdInLevel = 0
         ).assertGet.flattenSegment

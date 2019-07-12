@@ -31,12 +31,13 @@ import swaydb.core.util.{Bytes, CRC32, MinMax}
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.api.grouping.Compression
-import swaydb.data.config.{BlockIO, BlockInfo}
+import swaydb.data.config.{BlockIO, BlockInfo, UncompressedBlockInfo}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Deadline
+import scala.util.Try
 
 private[core] object SegmentBlock {
 
@@ -51,19 +52,24 @@ private[core] object SegmentBlock {
     def default =
       new Config(
         blockIO = _ => BlockIO.ConcurrentIO(false),
-        compressions = Seq.empty
+        compressions = _ => Seq.empty
       )
 
     def apply(segmentIO: BlockInfo => BlockIO,
-              compressions: Iterable[Compression]): Config =
+              compressions: UncompressedBlockInfo => Iterable[Compression]): Config =
       new Config(
         blockIO = segmentIO,
-        compressions = (compressions map CompressionInternal.apply).toSeq
+        compressions =
+          uncompressedBlockInfo =>
+            Try(compressions(uncompressedBlockInfo))
+              .getOrElse(Seq.empty)
+              .map(CompressionInternal.apply)
+              .toSeq
       )
   }
 
-  case class Config(blockIO: BlockInfo => BlockIO,
-                    compressions: Seq[CompressionInternal])
+  class Config(val blockIO: BlockInfo => BlockIO,
+               val compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
@@ -706,7 +712,7 @@ private[core] object SegmentBlock {
         openSegment =>
           Block.create(
             openSegment = openSegment,
-            compressions = segmentConfig.compressions,
+            compressions = segmentConfig.compressions(UncompressedBlockInfo(openSegment.segmentSize)),
             blockName = blockName
           )
       }
@@ -827,7 +833,7 @@ private[core] object SegmentBlock {
 
       segmentFooterSlice addInt footerOffset
 
-      val headerSize = SegmentBlock.headerSize(segmentConfig.compressions.nonEmpty)
+      val headerSize = SegmentBlock.headerSize(true)
       val headerBytes = Slice.create[Byte](headerSize)
       //set header bytes to be fully written so that it does not closed when compression.
       headerBytes moveWritePosition headerBytes.allocatedSize

@@ -87,7 +87,7 @@ object DefaultGroupingStrategy {
         ),
       applyGroupingOnCopy = false,
       groupIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
-      groupCompressions = Seq.empty,
+      groupCompressions = _ => Seq.empty,
       groupGroupingStrategy = None
     )
 }
