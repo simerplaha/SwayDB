@@ -203,4 +203,39 @@ object Block extends LazyLogging {
             decompressLength = compressionInfo.decompressedLength
           )
       }
+
+  def createBlockReader[B <: Block](block: B,
+                                    segmentReader: BlockReader[SegmentBlock]): IO[BlockReader[B]] =
+    block.compressionInfo match {
+      case Some(compressionInfo) =>
+        Block.decompress(
+          compressionInfo = compressionInfo,
+          reader = block createBlockReader segmentReader,
+          offset = block.offset
+        ).map {
+          decompressedBytes =>
+            assert(decompressedBytes.size == compressionInfo.decompressedLength)
+
+            BlockReader(
+              reader = Reader(decompressedBytes),
+              block =
+                block.updateOffset(
+                  start = 0,
+                  size = decompressedBytes.size
+                ).asInstanceOf[B]
+            )
+        }
+
+      case None =>
+        IO {
+          BlockReader(
+            reader = segmentReader,
+            block =
+              block.updateOffset(
+                start = block.offset.start + block.headerSize,
+                size = block.offset.size - block.headerSize
+              ).asInstanceOf[B]
+          )
+        }
+    }
 }

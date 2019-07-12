@@ -37,7 +37,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         val mock = mockFunction[IO[Int]]
         val cache =
           if (delayedIO)
-            Cache.io[Unit, Int](synchronised = (_: Unit) => isSynchronised, reserved = (_: Unit) => isReserved, stored = (_: Unit) => true)(_ => mock.apply())
+            Cache.ioDelayed[Unit, Int](synchronised = (_: Unit) => isSynchronised, reserved = (_: Unit) => isReserved, stored = (_: Unit) => true)(_ => mock.apply())
           else
             Cache.io[Unit, Int](synchronised = isSynchronised, reserved = isReserved, stored = true)(_ => mock.apply())
 
@@ -74,7 +74,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
         val cache =
           if (delayedIO)
-            Cache.io[Unit, Int](synchronised = (_: Unit) => isSynchronised, reserved = (_: Unit) => isReserved, stored = (_: Unit) => true)(_ => mock.apply())
+            Cache.ioDelayed[Unit, Int](synchronised = (_: Unit) => isSynchronised, reserved = (_: Unit) => isReserved, stored = (_: Unit) => true)(_ => mock.apply())
           else
             Cache.io[Unit, Int](synchronised = isSynchronised, reserved = isReserved, stored = true)(_ => mock.apply())
 
@@ -111,7 +111,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
         val cache =
           if (delayedIO)
-            Cache.io[Unit, Int](synchronised = (_: Unit) => isSynchronised, reserved = (_: Unit) => isReserved, stored = (_: Unit) => true)(_ => mock.apply())
+            Cache.ioDelayed[Unit, Int](synchronised = (_: Unit) => isSynchronised, reserved = (_: Unit) => isReserved, stored = (_: Unit) => true)(_ => mock.apply())
           else
             Cache.io[Unit, Int](synchronised = isSynchronised, reserved = isReserved, stored = true)(_ => mock.apply())
 
@@ -144,7 +144,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
         val cache =
           if (delayedIO)
-            Cache.io[Unit, Int](synchronised = (_: Unit) => isSynchronised, reserved = (_: Unit) => isReserved, stored = (_: Unit) => true)(_ => mock.apply())
+            Cache.ioDelayed[Unit, Int](synchronised = (_: Unit) => isSynchronised, reserved = (_: Unit) => isReserved, stored = (_: Unit) => true)(_ => mock.apply())
           else
             Cache.io[Unit, Int](synchronised = isSynchronised, reserved = isReserved, stored = true)(_ => mock.apply())
 

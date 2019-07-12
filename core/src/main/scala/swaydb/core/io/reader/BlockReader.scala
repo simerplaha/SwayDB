@@ -41,31 +41,10 @@ object BlockReader {
     )
 }
 
-private[core] class BlockReader[B <: Block](reader: Reader,
-                                            val block: B) extends Reader with LazyLogging {
+private[core] class BlockReader[+B <: Block](reader: Reader,
+                                             val block: B) extends Reader with LazyLogging {
 
   private var position: Int = 0
-
-  private def blockReader: IO[(Int, Reader)] =
-  //    block
-  //      .compressionInfo
-  //      .map {
-  //        compressionInfo =>
-  //          Block.decompress(
-  //            compressionInfo = compressionInfo,
-  //            //do not copy, decompress already copies if required.
-  //            reader = reader,
-  //            offset = block.offset
-  //          ) map {
-  //            decompressedBytes =>
-  //              //decompressed bytes, offsets not required, set to 0.
-  //              (0, Reader(decompressedBytes))
-  //          }
-  //      }
-  //      .getOrElse {
-  //        IO.Success((block.offset.start + block.headerSize, reader.copy())) //no compression used. Set the offset.
-  //      }
-    ???
 
   override val size: IO[Long] =
     IO.Success {
@@ -106,36 +85,30 @@ private[core] class BlockReader[B <: Block](reader: Reader,
     hasMore flatMap {
       hasMore =>
         if (hasMore)
-          blockReader flatMap {
-            case (offset, reader) =>
-              reader
-                .moveTo(offset + position)
-                .get()
-                .map {
-                  got =>
-                    position += 1
-                    got
-                }
-          }
+          reader
+            .moveTo(block.offset.start + position)
+            .get()
+            .map {
+              got =>
+                position += 1
+                got
+            }
         else
           IO.Failure(IO.Error.Fatal(s"Has no more bytes. Position: $getPosition"))
     }
 
   override def read(size: Int): IO[Slice[Byte]] =
-    blockReader flatMap {
-      case (offset, reader) =>
-        remaining flatMap {
-          remaining =>
-            val minimum = size min remaining.toInt
-            reader
-              .moveTo(offset + position)
-              .read(minimum)
-              .map {
-                bytes =>
-                  position += minimum
-                  bytes
-              }
-        }
+    remaining flatMap {
+      remaining =>
+        val minimum = size min remaining.toInt
+        reader
+          .moveTo(block.offset.start + position)
+          .read(minimum)
+          .map {
+            bytes =>
+              position += minimum
+              bytes
+          }
     }
 
   def readFullBlock(): IO[Slice[Byte]] =

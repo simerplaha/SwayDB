@@ -27,7 +27,7 @@ object Cache {
 
   def io[I, O](synchronised: Boolean, reserved: Boolean, stored: Boolean)(fetch: I => IO[O]): Cache[I, O] =
     if (synchronised || !reserved)
-      syncAsyncIO(
+      synchronisedIO(
         synchronised = synchronised,
         stored = stored
       )(fetch)
@@ -37,7 +37,7 @@ object Cache {
         reserveError = IO.Error.ReservedValue(Reserve())
       )(fetch)
 
-  def syncAsyncIO[I, O](synchronised: Boolean, stored: Boolean)(fetch: I => IO[O]): Cache[I, O] =
+  def synchronisedIO[I, O](synchronised: Boolean, stored: Boolean)(fetch: I => IO[O]): Cache[I, O] =
     new SynchronisedIO[I, O](
       fetch = fetch,
       lazyIO = Lazy.io(synchronised = synchronised, stored = stored)
@@ -59,7 +59,7 @@ object Cache {
       )
     )
 
-  def io[I, O](synchronised: I => Boolean, reserved: I => Boolean, stored: I => Boolean)(fetch: I => IO[O]): Cache[I, O] =
+  def ioDelayed[I, O](synchronised: I => Boolean, reserved: I => Boolean, stored: I => Boolean)(fetch: I => IO[O]): Cache[I, O] =
     new DelayedCache[I, O](
       Cache.unsafe[I, Cache[I, O]](synchronised = false, stored = true) {
         i =>

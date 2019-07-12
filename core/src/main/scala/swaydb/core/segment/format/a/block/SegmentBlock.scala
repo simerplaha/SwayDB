@@ -790,10 +790,6 @@ private[core] case class SegmentBlock(offset: SegmentBlock.Offset,
       block = this
     )
 
-  def clear(): SegmentBlock =
-    ???
-  //  copy(compressionInfo = compressionInfo.map(_.clear()))
-
-  override def updateOffset(start: Int, size: Int): Block =
+  override def updateOffset(start: Int, size: Int): SegmentBlock =
     copy(offset = SegmentBlock.Offset(start = start, size = size))
 }
