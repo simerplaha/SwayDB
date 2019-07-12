@@ -306,7 +306,6 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
 
   /**
     * @param entry entry to add
-    *
     * @return IO.Success(true) when new map gets added to maps. This return value is currently used
     *         in LevelZero to determine if there is a map that should be converted Segment.
     */

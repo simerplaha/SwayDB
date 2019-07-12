@@ -35,5 +35,4 @@ private[core] object ExceptionUtil extends LazyLogging {
       case _: IO.Error =>
         if (logger.underlying.isTraceEnabled) logger.trace(message, error.exception)
     }
-
 }
