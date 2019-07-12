@@ -44,6 +44,7 @@ class BlockSpec extends TestBase {
         def blockReader =
           Block.createDecompressedBlockReader(
             block = Values(Values.Offset(0, uncompressedBytes.size), headerSize, None),
+            readFullBlockIfUncompressed = randomBoolean(),
             segmentReader = SegmentBlock.createUnblockedReader(uncompressedBytes).get
           ).get
 
@@ -58,7 +59,7 @@ class BlockSpec extends TestBase {
       runThis(100.times) {
         val headerSize = Block.headerSize(false) + 1 //+1 for Bytes.sizeOf(headerSize) that is calculated by the block itself.
         val segment =
-          SegmentBlock.ClosedSegment(
+          SegmentBlock.Open(
             headerBytes = Slice.fill(headerSize)(0.toByte),
             values = randomBytesSliceOption(2),
             sortedIndex = randomBytesSlice(2),
@@ -72,7 +73,7 @@ class BlockSpec extends TestBase {
 
         val uncompressedBytes = segment.flattenSegmentBytes
 
-        val compressedSegment = Block.create(headerSize, segment, Seq.empty, "test-segment-block").get
+        val compressedSegment = Block.create(segment, Seq.empty, "test-segment-block").get
 
         compressedSegment.hashCode() shouldBe segment.hashCode() //same object - mutated!
 
@@ -100,6 +101,7 @@ class BlockSpec extends TestBase {
         def decompressedBlockReader =
           Block.createDecompressedBlockReader(
             block = Values(Values.Offset(0, uncompressedBytes.size), headerSize, None),
+            readFullBlockIfUncompressed = randomBoolean(),
             segmentReader = SegmentBlock.createUnblockedReader(uncompressedBytes).get
           ).get
 
@@ -144,6 +146,7 @@ class BlockSpec extends TestBase {
           def blockReader =
             Block.createDecompressedBlockReader(
               block = Values(Values.Offset(0, compressedBytes.size), headerSize, header.compressionInfo),
+              readFullBlockIfUncompressed = randomBoolean(),
               segmentReader = SegmentBlock.createUnblockedReader(compressedBytes).get
             ).get
 
@@ -158,7 +161,7 @@ class BlockSpec extends TestBase {
         runThis(100.times) {
           val headerSize = Block.headerSize(true) + 1 //+1 for Bytes.sizeOf(headerSize) that is calculated by the block itself.
           val uncompressedSegment =
-            SegmentBlock.ClosedSegment(
+            SegmentBlock.Open(
               headerBytes = Slice.fill(headerSize)(0.toByte),
               values = randomBytesSliceOption(randomIntMax(100) + 1),
               sortedIndex = randomBytesSlice(randomIntMax(100) + 1),
@@ -172,7 +175,7 @@ class BlockSpec extends TestBase {
 
           val compression = randomCompressions().head
 
-          val compressedSegment = Block.create(headerSize, uncompressedSegment, Seq(compression), "test-segment-block").get
+          val compressedSegment = Block.create(uncompressedSegment, Seq(compression), "test-segment-block").get
 
           compressedSegment.hashCode() should not be uncompressedSegment.hashCode() //different object, because it's compressed.
           compressedSegment.segmentBytes should have size 1 //compressed
@@ -198,6 +201,7 @@ class BlockSpec extends TestBase {
           def decompressedBlockReader =
             Block.createDecompressedBlockReader(
               block = Values(Values.Offset(0, compressedSegment.segmentSize), headerSize, header.compressionInfo),
+              readFullBlockIfUncompressed = randomBoolean(),
               segmentReader = SegmentBlock.createUnblockedReader(compressedSegment.flattenSegmentBytes).get
             ).get
 

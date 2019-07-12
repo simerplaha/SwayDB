@@ -22,7 +22,6 @@ package swaydb.core.segment.format.a.block
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.core.util.{Bytes, Options}
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder

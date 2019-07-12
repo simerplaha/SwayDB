@@ -26,58 +26,59 @@ import swaydb.data.slice.Slice
 
 class BlockReaderSpec extends WordSpec with Matchers {
 
-  def assertReader(bodyBytes: Slice[Byte], reader: BlockReader[_]) = {
+  def assertReader(expectedBlockBytes: Slice[Byte],
+                   reader: BlockReader[Block]) = {
     //size
-    reader.size.get shouldBe bodyBytes.size
+    reader.size.get shouldBe reader.block.offset.size
 
     //moveTo and value
-    (0 until bodyBytes.size) foreach {
+    (0 until expectedBlockBytes.size) foreach {
       index =>
-        reader.moveTo(index).get().get shouldBe bodyBytes(index)
+        reader.moveTo(index).get().get shouldBe expectedBlockBytes(index)
     }
 
     //hasMore
-    (0 to bodyBytes.size) foreach {
+    (0 to expectedBlockBytes.size) foreach {
       index =>
         reader.moveTo(index)
 
-        if (index < bodyBytes.size)
+        if (index < expectedBlockBytes.size)
           reader.hasMore.get shouldBe true
         else
           reader.hasMore.get shouldBe false
     }
 
     //hasAtLeast
-    (0 to bodyBytes.size) foreach {
+    (0 to expectedBlockBytes.size) foreach {
       index =>
         reader.moveTo(index)
 
-        if (index < bodyBytes.size)
+        if (index < expectedBlockBytes.size)
           reader.hasAtLeast(1).get shouldBe true
         else
           reader.hasAtLeast(1).get shouldBe false
     }
 
     //remaining
-    (0 until bodyBytes.size) foreach {
+    (0 until expectedBlockBytes.size) foreach {
       index =>
         reader.moveTo(index)
-        reader.remaining.get shouldBe bodyBytes.size - index
+        reader.remaining.get shouldBe expectedBlockBytes.size - index
         reader.get().get
-        reader.remaining.get shouldBe bodyBytes.size - index - 1
+        reader.remaining.get shouldBe expectedBlockBytes.size - index - 1
         reader.readRemaining().get
         reader.remaining.get shouldBe 0
     }
 
     //readRemaining
-    (0 until bodyBytes.size) foreach {
+    (0 until expectedBlockBytes.size) foreach {
       index =>
-        reader.moveTo(index).get().get shouldBe bodyBytes(index)
-        reader.readRemaining().get shouldBe bodyBytes.drop(index + 1)
+        reader.moveTo(index).get().get shouldBe expectedBlockBytes(index)
+        reader.readRemaining().get shouldBe expectedBlockBytes.drop(index + 1)
     }
 
     //readFullBlockAndGetReader
-    reader.readFullBlockAndGetBlockReader().get.readRemaining().get shouldBe bodyBytes
+    reader.readFullBlockAndGetBlockReader().get.readRemaining().get shouldBe expectedBlockBytes
   }
 
   "read bytes" when {
@@ -86,32 +87,6 @@ class BlockReaderSpec extends WordSpec with Matchers {
       val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
       val block = Values(Values.Offset(0, bodyBytes.size), 0, None)
       val reader = BlockReader(Reader(bodyBytes), block)
-      assertReader(bodyBytes, reader)
-    }
-
-    "there is header and no compression" in {
-      val header = Slice.fill(10)(6.toByte)
-      val bodyBytes = (1 to 10).flatMap(Slice.writeLong(_)).toSlice
-      val segmentBytes = header ++ bodyBytes
-      val block = Values(Values.Offset(0, segmentBytes.size), header.size, None)
-      val reader = new BlockReader(Reader(segmentBytes), block)
-
-      assertReader(bodyBytes, reader)
-    }
-
-    "there is compression" in {
-      val headerBytes = Slice.fill(10)(0.toByte)
-      val bodyBytes = (1 to 10).flatMap(Slice.writeLong(_)).toSlice
-      val segmentBytes = headerBytes ++ bodyBytes
-      val compression = Seq(randomCompression())
-      val compressedSegmentBytes = Block.create(headerBytes.size, segmentBytes, compression, "testblock").get
-      val blockOffset = Values.Offset(0, compressedSegmentBytes.size)
-      val blockHeader = Block.readHeader(blockOffset, Reader(compressedSegmentBytes)).get
-      blockHeader.compressionInfo shouldBe defined
-      blockHeader.headerSize shouldBe headerBytes.size
-
-      val reader = new BlockReader(Reader(compressedSegmentBytes), Values(blockOffset, blockHeader.headerSize, blockHeader.compressionInfo))
-
       assertReader(bodyBytes, reader)
     }
 
@@ -128,12 +103,16 @@ class BlockReaderSpec extends WordSpec with Matchers {
       val innerBlock2 = Values(Values.Offset(3, 2), 0, None)
       val innerBlockReader2 = BlockReader(innerBlockReader, innerBlock2)
       assertReader(bodyBytes.drop(8).unslice(), innerBlockReader2)
+
+      val innerBlock3 = Values(Values.Offset(2, 0), 0, None)
+      val innerBlockReader3 = BlockReader(innerBlockReader, innerBlock3)
+      assertReader(bodyBytes.drop(10).unslice(), innerBlockReader3)
     }
   }
 
   "reading bytes outside the block" should {
     "not be allowed" when {
-      "there is no header and no compression" in {
+      "there is no header" in {
         val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
         val block = Values(Values.Offset(0, bodyBytes.size - 5), 0, None)
         val reader = BlockReader(Reader(bodyBytes), block)

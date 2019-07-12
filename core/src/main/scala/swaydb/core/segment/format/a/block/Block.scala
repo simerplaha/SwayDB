@@ -109,30 +109,33 @@ object Block extends LazyLogging {
         }
     }
 
-  def create(headerSize: Int,
-             closedSegment: SegmentBlock.ClosedSegment,
+  def create(openSegment: SegmentBlock.Open,
              compressions: Seq[CompressionInternal],
-             blockName: String): IO[SegmentBlock.ClosedSegment] =
+             blockName: String): IO[SegmentBlock.Blocked] =
     if (compressions.isEmpty) {
-      logger.debug(s"No compression strategies provided for Segment level compression for $blockName. Storing ${closedSegment.segmentSize}.bytes uncompressed.")
+      logger.debug(s"No compression strategies provided for Segment level compression for $blockName. Storing ${openSegment.segmentSize}.bytes uncompressed.")
       IO {
-        closedSegment.segmentBytes.head moveWritePosition 0
-        closedSegment.segmentBytes.head addIntUnsigned headerSize
-        closedSegment.segmentBytes.head add uncompressedBlockId
-        closedSegment
+        openSegment.headerBytes moveWritePosition 0
+        openSegment.headerBytes addIntUnsigned openSegment.headerBytes.size
+        openSegment.headerBytes add uncompressedBlockId
+        SegmentBlock.Blocked(
+          segmentBytes = openSegment.segmentBytes,
+          minMaxFunctionId = openSegment.functionMinMax,
+          nearestDeadline = openSegment.nearestDeadline
+        )
       }
     } else {
       Block.create(
-        headerSize = headerSize,
-        bytes = closedSegment.flattenSegmentBytes,
+        headerSize = openSegment.headerBytes.size,
+        bytes = openSegment.flattenSegmentBytes,
         compressions = compressions,
         blockName = blockName
       ) map {
         bytes =>
-          SegmentBlock.ClosedSegment(
+          SegmentBlock.Blocked(
             segmentBytes = Slice(bytes),
-            minMaxFunctionId = closedSegment.minMaxFunctionId,
-            nearestDeadline = closedSegment.nearestDeadline
+            minMaxFunctionId = openSegment.functionMinMax,
+            nearestDeadline = openSegment.nearestDeadline
           )
       }
     }
@@ -208,6 +211,7 @@ object Block extends LazyLogging {
       }
 
   def createDecompressedBlockReader[B <: Block](block: B,
+                                                readFullBlockIfUncompressed: Boolean,
                                                 segmentReader: BlockReader[SegmentBlock]): IO[BlockReader[B]] =
     block.compressionInfo match {
       case Some(compressionInfo) =>
@@ -232,7 +236,7 @@ object Block extends LazyLogging {
         }
 
       case None =>
-        IO {
+        val reader =
           BlockReader(
             reader = segmentReader,
             block =
@@ -241,6 +245,10 @@ object Block extends LazyLogging {
                 size = block.offset.size - block.headerSize
               ).asInstanceOf[B]
           )
-        }
+
+        if (readFullBlockIfUncompressed)
+          reader.readFullBlockAndGetBlockReader()
+        else
+          IO.Success(reader)
     }
 }

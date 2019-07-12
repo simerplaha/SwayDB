@@ -156,7 +156,7 @@ object CommonAssertions {
             case keyValue: Transient.Range =>
               keyValue.value
             case keyValue: Transient.Group =>
-              Some(keyValue.closedSegment.flattenSegmentBytes)
+              Some(keyValue.blockedSegment.flattenSegmentBytes)
           }
         case keyValue: Persistent =>
           keyValue match {
@@ -1378,24 +1378,24 @@ object CommonAssertions {
       Some(expiredDeadline())
 
   def readAll(group: Transient.Group): IO[Slice[KeyValue.ReadOnly]] = {
-    val segment = SegmentBlock.write(Slice(group).updateStats, 0, randomCompressionsOrEmpty()).get
+    val segment = SegmentBlock.writeBlocked(Slice(group).updateStats, 0, randomCompressionsOrEmpty()).get
     readAll(segment)
   }
 
   def readBlocks(group: Transient.Group): IO[Blocks] = {
-    val segment = SegmentBlock.write(Slice(group).updateStats, 0, randomCompressionsOrEmpty()).get
+    val segment = SegmentBlock.writeBlocked(Slice(group).updateStats, 0, randomCompressionsOrEmpty()).get
     readBlocks(segment)
   }
 
-  def readAll(closedSegment: SegmentBlock.ClosedSegment): IO[Slice[KeyValue.ReadOnly]] =
+  def readAll(closedSegment: SegmentBlock.Blocked): IO[Slice[KeyValue.ReadOnly]] =
     readAll(closedSegment.flattenSegmentBytes)
 
-  def readBlocks(closedSegment: SegmentBlock.ClosedSegment): IO[Blocks] =
+  def readBlocks(closedSegment: SegmentBlock.Blocked): IO[Blocks] =
     readBlocks(closedSegment.flattenSegmentBytes)
 
   def getBlocks(keyValues: Iterable[KeyValue.WriteOnly]): IO[Blocks] = {
     val closedSegment =
-      SegmentBlock.write(
+      SegmentBlock.writeBlocked(
         keyValues = keyValues,
         segmentCompressions = randomCompressionsOrEmpty(),
         createdInLevel = 0
@@ -1410,32 +1410,49 @@ object CommonAssertions {
   def readBlocks(bytes: Slice[Byte]): IO[Blocks] =
     readBlocks(Reader(bytes))
 
-  def readAll(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Slice[KeyValue.ReadOnly]] =
-    for {
-      segmentBlockReader <- SegmentBlock.read(SegmentBlock.Offset(0, reader.size.get.toInt), reader).map(_.createBlockReader(reader))
-      footer <- SegmentBlock.readFooter(segmentBlockReader)
-      valuesReader <- footer.valuesOffset.map(Values.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
-      sortedIndex <- SortedIndex.read(footer.sortedIndexOffset, segmentBlockReader).map(_.createBlockReader(segmentBlockReader))
-      all <- {
-        SortedIndex
-          .readAll(
-            keyValueCount = footer.keyValueCount,
-            sortedIndexReader = sortedIndex,
-            valuesReader = valuesReader
-          )
-      }
-    } yield all
+  def getSegmentBlockCache(keyValues: Slice[KeyValue.WriteOnly]): SegmentBlockCache = {
+    val segment = SegmentBlock.writeBlocked(keyValues, Int.MaxValue, Seq.empty).get
+    getSegmentBlockCache(segment)
+  }
 
-  def readBlocks(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Blocks] =
-    for {
-      segmentBlockReader <- SegmentBlock.read(SegmentBlock.Offset(0, reader.size.get.toInt), reader).map(_.createBlockReader(reader))
-      footer <- SegmentBlock.readFooter(segmentBlockReader)
-      valuesReader <- footer.valuesOffset.map(Values.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
-      sortedIndex <- SortedIndex.read(footer.sortedIndexOffset, segmentBlockReader).map(_.createBlockReader(segmentBlockReader))
-      hashIndex <- footer.hashIndexOffset.map(HashIndex.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
-      binarySearchIndex <- footer.binarySearchIndexOffset.map(BinarySearchIndex.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
-      bloomFilter <- footer.bloomFilterOffset.map(BloomFilter.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
-    } yield Blocks(footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter)
+  def getSegmentBlockCache(segment: SegmentBlock.Blocked): SegmentBlockCache =
+    SegmentBlockCache(
+      id = "test",
+      segmentBlockOffset = SegmentBlock.Offset(0, segment.segmentSize),
+      rawSegmentReader = () => Reader(segment.flattenSegmentBytes)
+    )
+
+  def getSegmentBlockCache(reader: Reader): SegmentBlockCache =
+    SegmentBlockCache(
+      id = "test-cache",
+      segmentBlockOffset = SegmentBlock.Offset(0, reader.size.get.toInt),
+      rawSegmentReader = () => reader
+    )
+
+  def readAll(reader: Reader): IO[Slice[KeyValue.ReadOnly]] = {
+    val blockCache = getSegmentBlockCache(reader)
+
+    SortedIndex
+      .readAll(
+        keyValueCount = blockCache.getFooter().get.keyValueCount,
+        sortedIndexReader = blockCache.createSortedIndexReader().get,
+        valuesReader = blockCache.createValuesReader().get
+      )
+  }
+
+  def readBlocks(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Blocks] = {
+    val blockCache = getSegmentBlockCache(reader)
+    IO {
+      Blocks(
+        footer = blockCache.getFooter().get,
+        valuesReader = blockCache.createValuesReader().get,
+        sortedIndexReader = blockCache.createSortedIndexReader().get,
+        hashIndexReader = blockCache.createHashIndexReader().get,
+        binarySearchIndexReader = blockCache.createBinarySearchIndexReader().get,
+        bloomFilterReader = blockCache.createBloomFilterReader().get
+      )
+    }
+  }
 
   def printGroupHierarchy(keyValues: Slice[KeyValue.ReadOnly], spaces: Int)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                             keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Unit =

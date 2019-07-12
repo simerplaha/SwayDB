@@ -103,7 +103,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
                 uniqueValuesCount = valuesCount,
                 isFullIndex = true,
                 minimumNumberOfKeys = 0,
-                compressions = eitherOne(Seq.empty, Seq(randomCompression()))
+                compressions = Seq.empty
               ).get
 
             values foreach {
@@ -201,11 +201,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           )
       )
 
-    val segment =
-      SegmentBlock.write(keyValues, 0, randomCompressionsOrEmpty()).get
-
-    val blocks =
-      readBlocks(segment).get
+    val blocks = getBlocks(keyValues).get
 
     blocks.binarySearchIndexReader shouldBe defined
     blocks.binarySearchIndexReader.get.block.isFullIndex shouldBe true

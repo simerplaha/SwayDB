@@ -47,7 +47,7 @@ private[core] class BlockReader[+B <: Block](reader: Reader,
   private var position: Int = 0
 
   override val size: IO[Long] =
-    reader.size
+    IO(block.offset.size)
 
   def moveTo(newPosition: Long): BlockReader[B] = {
     position = newPosition.toInt

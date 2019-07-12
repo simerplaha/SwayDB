@@ -58,21 +58,21 @@ private[core] object GroupCompressor extends LazyLogging {
       IO.Failure(message)
     } else {
       logger.debug(s"Compressing ${keyValues.size} key-values with previous key-value as ${previous.map(_.getClass.getSimpleName)}.")
-      SegmentBlock.write(
+      SegmentBlock.writeBlocked(
         keyValues = keyValues,
         createdInLevel = 0,
         segmentCompressions = groupCompressions
       ) flatMap {
-        result =>
+        blockedSegment =>
           IO {
             val (minKey, maxKey, fullKey) = buildCompressedKey(keyValues)
             Transient.Group(
               minKey = minKey,
               maxKey = maxKey,
-              minMaxFunctionId = result.minMaxFunctionId,
+              minMaxFunctionId = blockedSegment.minMaxFunctionId,
               key = fullKey,
-              closedSegment = result,
-              deadline = result.nearestDeadline,
+              blockedSegment = blockedSegment,
+              deadline = blockedSegment.nearestDeadline,
               keyValues = keyValues,
               valuesConfig = valuesConfig,
               sortedIndexConfig = sortedIndexConfig,

@@ -391,7 +391,7 @@ object TestData {
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
-                result = compressedKeyValues
+                blockedSegment = compressedKeyValues
               )
           }
       }
@@ -404,7 +404,7 @@ object TestData {
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
-                result = compressedKeyValues
+                blockedSegment = compressedKeyValues
               )
           }
 
@@ -747,8 +747,8 @@ object TestData {
           Memory.Group(
             minKey = minKey,
             maxKey = maxKey,
-            result =
-              SegmentBlock.ClosedSegment(
+            blockedSegment =
+              SegmentBlock.Blocked(
                 segmentBytes = Slice(valueReader.moveTo(valueOffset).read(valueLength).get.unslice()),
                 minMaxFunctionId = None,
                 nearestDeadline = deadline

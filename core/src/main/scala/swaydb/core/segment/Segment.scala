@@ -123,7 +123,7 @@ private[core] object Segment extends LazyLogging {
                                                           functionStore: FunctionStore,
                                                           keyValueLimiter: KeyValueLimiter,
                                                           fileOpenLimiter: FileLimiter): IO[Segment] =
-    SegmentBlock.write(
+    SegmentBlock.writeBlocked(
       keyValues = keyValues,
       createdInLevel = createdInLevel,
       segmentCompressions = segmentCompressions

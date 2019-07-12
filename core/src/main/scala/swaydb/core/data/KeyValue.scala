@@ -295,7 +295,7 @@ private[core] object KeyValue {
       def maxKey: MaxKey[Slice[Byte]]
       def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
       def keyValues: Slice[KeyValue.WriteOnly]
-      def closedSegment: SegmentBlock.ClosedSegment
+      def blockedSegment: SegmentBlock.Blocked
     }
   }
 
@@ -489,12 +489,12 @@ private[swaydb] object Memory {
   object Group {
     def apply(minKey: Slice[Byte],
               maxKey: MaxKey[Slice[Byte]],
-              result: SegmentBlock.ClosedSegment): Group =
+              blockedSegment: SegmentBlock.Blocked): Group =
       Group(
         minKey = minKey.unslice(),
         maxKey = maxKey.unslice(),
-        segmentBytes = result.flattenSegmentBytes.unslice(),
-        deadline = result.nearestDeadline
+        segmentBytes = blockedSegment.flattenSegmentBytes.unslice(),
+        deadline = blockedSegment.nearestDeadline
       )
   }
 
@@ -1177,7 +1177,7 @@ private[core] object Transient {
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
                    key: Slice[Byte],
-                   closedSegment: SegmentBlock.ClosedSegment,
+                   blockedSegment: SegmentBlock.Blocked,
                    //the deadline is the nearest deadline in the Group's key-values.
                    minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                    deadline: Option[Deadline],
@@ -1192,7 +1192,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe: Boolean = keyValues.last.stats.segmentHasRemoveRange
     override val isRange: Boolean = keyValues.last.stats.segmentHasRange
     override val isGroup: Boolean = true
-    override def values: Slice[Slice[Byte]] = closedSegment.segmentBytes
+    override def values: Slice[Slice[Byte]] = blockedSegment.segmentBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(

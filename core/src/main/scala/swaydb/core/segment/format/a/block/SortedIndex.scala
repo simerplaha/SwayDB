@@ -268,7 +268,7 @@ private[core] object SortedIndex {
 
   def readAll(reader: Reader): IO[Slice[KeyValue.ReadOnly]] =
     for {
-      segmentBlockReader <- SegmentBlock.read(SegmentBlock.Offset(0, reader.size.get.toInt), reader).map(_.createBlockReader(reader))
+      segmentBlockReader <- SegmentBlock.read(SegmentBlock.Offset(0, reader.size.get.toInt), reader).map(_.createBlockReader(SegmentBlock.createUnblockedReader(reader).get))
       footer <- SegmentBlock.readFooter(segmentBlockReader)
       valuesReader <- footer.valuesOffset.map(Values.read(_, segmentBlockReader).map(_.createBlockReader(segmentBlockReader)).map(Some(_))) getOrElse IO.none
       sortedIndex <- SortedIndex.read(footer.sortedIndexOffset, segmentBlockReader).map(_.createBlockReader(segmentBlockReader))

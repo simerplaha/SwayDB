@@ -47,7 +47,7 @@ class SegmentBlockSpec extends TestBase {
   "SegmentBlock" should {
     "convert empty KeyValues and not throw exception but return empty bytes" in {
       val closedSegment =
-        SegmentBlock.write(
+        SegmentBlock.writeBlocked(
           keyValues = Seq.empty,
           segmentCompressions = randomCompressions(),
           createdInLevel = randomIntMax()
@@ -99,7 +99,7 @@ class SegmentBlockSpec extends TestBase {
         )
 
       val closedSegment =
-        SegmentBlock.write(
+        SegmentBlock.writeBlocked(
           keyValues = keyValues,
           segmentCompressions = Seq.empty,
           createdInLevel = 0
@@ -130,7 +130,7 @@ class SegmentBlockSpec extends TestBase {
     "converting KeyValues to bytes and execute readAll and find on the bytes" in {
       def test(keyValues: Slice[KeyValue.WriteOnly]) = {
         val closedSegment =
-          SegmentBlock.write(
+          SegmentBlock.writeBlocked(
             keyValues = keyValues,
             segmentCompressions = randomCompressionsOrEmpty(),
             createdInLevel = randomNextInt(10)
@@ -140,7 +140,7 @@ class SegmentBlockSpec extends TestBase {
         assertReads(keyValues, reader)
       }
 
-      runThis(50.times, log = true) {
+      runThis(1.times, log = true) {
         val count = eitherOne(randomIntMax(20) max 1, 100, 500, 700, 1000)
         val keyValues = randomizedKeyValues(count, startId = Some(1))
         if (keyValues.nonEmpty) test(keyValues)
@@ -164,7 +164,7 @@ class SegmentBlockSpec extends TestBase {
           ).assertGet
 
         val bytes =
-          SegmentBlock.write(
+          SegmentBlock.writeBlocked(
             keyValues = Seq(group),
             segmentCompressions = randomCompressionsOrEmpty(),
             createdInLevel = 0
@@ -188,7 +188,7 @@ class SegmentBlockSpec extends TestBase {
         val group2 = randomGroup(group2KeyValues)
 
         val segmentBytes =
-          SegmentBlock.write(
+          SegmentBlock.writeBlocked(
             keyValues = Seq(group1, group2).updateStats,
             segmentCompressions = randomCompressionsOrEmpty(),
             createdInLevel = 0
@@ -218,7 +218,7 @@ class SegmentBlockSpec extends TestBase {
         val group4 = randomGroup(group4KeyValues, previous = None)
 
         val bytes =
-          SegmentBlock.write(
+          SegmentBlock.writeBlocked(
             keyValues = Seq(group4),
             segmentCompressions = randomCompressionsOrEmpty(),
             createdInLevel = 0
@@ -244,7 +244,7 @@ class SegmentBlockSpec extends TestBase {
         val keyValues = randomPutKeyValues(count = 100, valueSize = 100000, startId = Some(0)).toTransient
 
         val bytes =
-          SegmentBlock.write(
+          SegmentBlock.writeBlocked(
             keyValues = keyValues,
             segmentCompressions = randomCompressionsOrEmpty(),
             createdInLevel = 0
@@ -261,7 +261,7 @@ class SegmentBlockSpec extends TestBase {
       val keyValues = Slice(Transient.put(Int.MaxValue, Int.MinValue), Transient.put(Int.MinValue, Int.MaxValue)).updateStats
 
       val (bytes, deadline) =
-        SegmentBlock.write(
+        SegmentBlock.writeBlocked(
           keyValues = keyValues,
           segmentCompressions = randomCompressionsOrEmpty(),
           createdInLevel = 0
@@ -285,7 +285,7 @@ class SegmentBlockSpec extends TestBase {
       }
 
       val (bytes, deadline) =
-        SegmentBlock.write(
+        SegmentBlock.writeBlocked(
           keyValues = keyValues,
           segmentCompressions = randomCompressionsOrEmpty(),
           createdInLevel = 0
