@@ -29,8 +29,8 @@ sealed trait SortedKeyIndex {
     }
 }
 object SortedKeyIndex {
-  case class Enable(cacheOnAccess: Boolean,
-                    prefixCompression: PrefixCompression,
+  case class Enable(prefixCompression: PrefixCompression,
                     enablePositionIndex: Boolean,
+                    blockIO: BlockInfo => BlockIO,
                     compression: Seq[Compression]) extends SortedKeyIndex
 }

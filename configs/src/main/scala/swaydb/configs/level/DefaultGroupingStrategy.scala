@@ -47,12 +47,12 @@ object DefaultGroupingStrategy {
       size = groupKeyValuesAtSize,
       sortedIndex =
         SortedKeyIndex.Enable(
-          cacheOnAccess = false,
-          enablePositionIndex = true,
           prefixCompression =
             PrefixCompression.Enable(
               resetCount = Some(10)
             ),
+          enablePositionIndex = true,
+          blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
           compression =
             Seq.empty
         ),
@@ -62,27 +62,27 @@ object DefaultGroupingStrategy {
           minimumNumberOfKeys = 2,
           minimumNumberOfHits = 2,
           allocateSpace = _.requiredSpace * 2,
-          cacheOnAccess = false,
+          blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
           compression = Seq.empty
         ),
       binarySearchIndex =
         BinarySearchKeyIndex.FullIndex(
           minimumNumberOfKeys = 5,
-          cacheOnAccess = false,
+          blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
           compression = Seq.empty
         ),
       bloomFilter =
-        MightContainKeyIndex.Enable(
+        MightContainIndex.Enable(
           falsePositiveRate = 0.001,
           minimumNumberOfKeys = 10,
-          cacheOnAccess = false,
+          blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
           compression = Seq.empty
         ),
       values =
         ValuesConfig(
           compressDuplicateValues = true,
           compressDuplicateRangeValues = true,
-          cacheOnAccess = false,
+          blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
           compression = Seq.empty
         ),
       applyGroupingOnCopy = false,

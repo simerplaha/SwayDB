@@ -98,7 +98,7 @@ class HashIndexSpec extends TestBase {
                       maxProbe = maxProbe,
                       minimumNumberOfKeys = 0,
                       minimumNumberOfHits = 0,
-                      cacheOnAccess = false
+                      blockIO = _ => randomIOAccess()
                     )
                 )
           ).get
@@ -185,7 +185,7 @@ class HashIndexSpec extends TestBase {
                 maxProbe = maxProbe,
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
-                cacheOnAccess = false
+                blockIO = _ => randomIOAccess()
               )
           )
 

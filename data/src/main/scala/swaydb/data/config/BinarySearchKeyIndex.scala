@@ -36,14 +36,14 @@ object BinarySearchKeyIndex {
 
   sealed trait Enable extends BinarySearchKeyIndex {
     def minimumNumberOfKeys: Int
-    def cacheOnAccess: Boolean
+    def blockIO: BlockInfo => BlockIO
     def compression: Seq[Compression]
   }
   case class FullIndex(minimumNumberOfKeys: Int,
-                       cacheOnAccess: Boolean,
+                       blockIO: BlockInfo => BlockIO,
                        compression: Seq[Compression]) extends Enable
 
   case class SecondaryIndex(minimumNumberOfKeys: Int,
-                            cacheOnAccess: Boolean,
+                            blockIO: BlockInfo => BlockIO,
                             compression: Seq[Compression]) extends Enable
 }

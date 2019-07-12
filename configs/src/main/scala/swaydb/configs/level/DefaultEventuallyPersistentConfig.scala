@@ -72,7 +72,13 @@ object DefaultEventuallyPersistentConfig {
         segmentSize = memoryLevelSegmentSize,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        mightContainKey = MightContainKeyIndex.Enable(mightContainFalsePositiveRate, 10, false, Seq.empty),
+        mightContainIndex =
+          MightContainIndex.Enable(
+            falsePositiveRate = mightContainFalsePositiveRate,
+            minimumNumberOfKeys = 10,
+            blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+            compression = Seq.empty
+          ),
         keyValueGroupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -94,12 +100,12 @@ object DefaultEventuallyPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedIndex =
           SortedKeyIndex.Enable(
-            cacheOnAccess = false,
-            enablePositionIndex = true,
             prefixCompression =
               PrefixCompression.Enable(
                 resetCount = Some(10)
               ),
+            enablePositionIndex = true,
+            blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compression =
               Seq.empty
           ),
@@ -109,27 +115,27 @@ object DefaultEventuallyPersistentConfig {
             minimumNumberOfKeys = 2,
             minimumNumberOfHits = 2,
             allocateSpace = _.requiredSpace * 2,
-            cacheOnAccess = false,
+            blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compression = Seq.empty
           ),
         binarySearchIndex =
           BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 5,
-            cacheOnAccess = false,
+            blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compression = Seq.empty
           ),
         mightContainKey =
-          MightContainKeyIndex.Enable(
+          MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
-            cacheOnAccess = false,
+            blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compression = Seq.empty
           ),
         values =
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            cacheOnAccess = false,
+            blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compression = Seq.empty
           ),
         segmentCompressions = Seq.empty,

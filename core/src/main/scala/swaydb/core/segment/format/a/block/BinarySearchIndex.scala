@@ -24,6 +24,7 @@ import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.util.{Bytes, Options}
 import swaydb.data.IO
+import swaydb.data.config.{BlockInfo, BlockIO}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -40,7 +41,7 @@ private[core] object BinarySearchIndex {
         enabled = false,
         minimumNumberOfKeys = 0,
         fullIndex = false,
-        cacheOnAccess = false,
+        blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
         compressions = Seq.empty
       )
 
@@ -51,7 +52,7 @@ private[core] object BinarySearchIndex {
             enabled = false,
             minimumNumberOfKeys = Int.MaxValue,
             fullIndex = false,
-            cacheOnAccess = false,
+            blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compressions = Seq.empty
           )
         case enable: swaydb.data.config.BinarySearchKeyIndex.FullIndex =>
@@ -59,7 +60,7 @@ private[core] object BinarySearchIndex {
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             fullIndex = true,
-            cacheOnAccess = enable.cacheOnAccess,
+            blockIO = enable.blockIO,
             compressions = enable.compression map CompressionInternal.apply
           )
 
@@ -68,7 +69,7 @@ private[core] object BinarySearchIndex {
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             fullIndex = false,
-            cacheOnAccess = enable.cacheOnAccess,
+            blockIO = enable.blockIO,
             compressions = enable.compression map CompressionInternal.apply
           )
       }
@@ -77,7 +78,7 @@ private[core] object BinarySearchIndex {
   case class Config(enabled: Boolean,
                     minimumNumberOfKeys: Int,
                     fullIndex: Boolean,
-                    cacheOnAccess: Boolean,
+                    blockIO: BlockInfo => BlockIO,
                     compressions: Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset

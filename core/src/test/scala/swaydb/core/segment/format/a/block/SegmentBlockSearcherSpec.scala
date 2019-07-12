@@ -25,7 +25,7 @@ class SegmentBlockSearcherSpec extends TestBase with MockFactory {
                 enabled = true,
                 minimumNumberOfKeys = 0,
                 fullIndex = randomBoolean(),
-                cacheOnAccess = randomBoolean(),
+                blockIO = _ => randomIOAccess(),
                 compressions = randomCompressionsOrEmpty()
               ),
             hashIndexConfig =
@@ -34,7 +34,7 @@ class SegmentBlockSearcherSpec extends TestBase with MockFactory {
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
                 allocateSpace = _.requiredSpace * 10,
-                cacheOnAccess = randomBoolean(),
+                blockIO = _ => randomIOAccess(),
                 compressions = randomCompressionsLZ4OrSnappy()
               )
           )

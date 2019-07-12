@@ -25,11 +25,12 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Memory, Stats, Transient}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.reader.{BlockReader, Reader}
-import swaydb.core.segment.{Segment, DeadlineAndFunctionId}
+import swaydb.core.segment.{DeadlineAndFunctionId, Segment}
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.util.{Bytes, CRC32, MinMax}
 import swaydb.data.IO
 import swaydb.data.IO._
+import swaydb.data.config.{BlockIO, BlockInfo}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -43,6 +44,9 @@ private[core] object SegmentBlock {
   val formatId: Byte = 1.toByte
 
   val crcBytes: Int = 7
+
+  case class Config(blockIO: BlockInfo => BlockIO,
+                    compression: Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 

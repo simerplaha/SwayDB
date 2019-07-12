@@ -64,10 +64,16 @@ class SegmentBlockSpec extends TestBase {
           startId = Some(1),
           addRandomGroups = false
         ).updateStats(
-          valuesConfig = Values.Config(randomBoolean(), randomBoolean(), randomBoolean(), randomCompressionsOrEmpty()),
+          valuesConfig =
+            Values.Config(
+              compressDuplicateValues = randomBoolean(),
+              compressDuplicateRangeValues = randomBoolean(),
+              blockIO = _ => randomIOAccess(),
+              compressions = randomCompressionsOrEmpty()
+            ),
           sortedIndexConfig =
             SortedIndex.Config(
-              cacheOnAccess = randomBoolean(),
+              blockIO = _ => randomIOAccess(),
               prefixCompressionResetCount = 0,
               enableAccessPositionIndex = true,
               compressions = randomCompressionsOrEmpty()
@@ -77,7 +83,7 @@ class SegmentBlockSpec extends TestBase {
               enabled = true,
               minimumNumberOfKeys = 1,
               fullIndex = true,
-              cacheOnAccess = randomBoolean(),
+              blockIO = _ => randomIOAccess(),
               compressions = randomCompressionsOrEmpty()
             ),
           hashIndexConfig =
@@ -86,14 +92,14 @@ class SegmentBlockSpec extends TestBase {
               minimumNumberOfKeys = 2,
               minimumNumberOfHits = 2,
               allocateSpace = _.requiredSpace * 10,
-              cacheOnAccess = randomBoolean(),
+              blockIO = _ => randomIOAccess(),
               compressions = randomCompressionsOrEmpty()
             ),
           bloomFilterConfig =
             BloomFilter.Config(
               falsePositiveRate = 0.001,
               minimumNumberOfKeys = 2,
-              cacheOnAccess = randomBoolean(),
+              blockIO = _ => randomIOAccess(),
               compressions = Seq.empty
             )
         )
@@ -606,7 +612,7 @@ class SegmentBlockSpec extends TestBase {
               Values.Config(
                 compressDuplicateValues = true,
                 compressDuplicateRangeValues = randomBoolean(),
-                cacheOnAccess = randomBoolean(),
+                blockIO = _ => randomIOAccess(),
                 compressions = Seq.empty
               )
           )

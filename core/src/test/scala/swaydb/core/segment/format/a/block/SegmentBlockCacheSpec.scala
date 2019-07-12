@@ -10,6 +10,7 @@ import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.config.BlockIO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -32,12 +33,12 @@ class SegmentBlockCacheSpec extends TestBase {
                 enabled = true,
                 minimumNumberOfKeys = 0,
                 fullIndex = true,
-                cacheOnAccess = false,
+                blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
                 compressions = randomCompressions()
               ),
             sortedIndexConfig =
               SortedIndex.Config(
-                cacheOnAccess = false,
+                blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
                 prefixCompressionResetCount = 3,
                 enableAccessPositionIndex = true,
                 compressions = randomCompressions()

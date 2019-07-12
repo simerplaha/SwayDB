@@ -52,7 +52,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   enabled = false,
                   minimumNumberOfKeys = 0,
                   fullIndex = randomBoolean(),
-                  cacheOnAccess = randomBoolean(),
+                  blockIO = _ => randomIOAccess(),
                   compressions = randomCompressionsOrEmpty()
                 )
             )
@@ -78,7 +78,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                     enabled = true,
                     minimumNumberOfKeys = generatedKeyValues.size + 1,
                     fullIndex = randomBoolean(),
-                    cacheOnAccess = randomBoolean(),
+                    blockIO = _ => randomIOAccess(),
                     compressions = randomCompressionsOrEmpty()
                   )
               )
@@ -109,7 +109,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   enabled = true,
                   minimumNumberOfKeys = 0,
                   fullIndex = false,
-                  cacheOnAccess = randomBoolean(),
+                  blockIO = _ => randomIOAccess(),
                   compressions = randomCompressionsOrEmpty()
                 ),
               hashIndexConfig =
@@ -118,7 +118,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   allocateSpace = _.requiredSpace * 10,
                   minimumNumberOfKeys = 0,
                   minimumNumberOfHits = 0,
-                  cacheOnAccess = randomBoolean(),
+                  blockIO = _ => randomIOAccess(),
                   compressions = randomCompressionsOrEmpty()
                 )
             )
@@ -167,7 +167,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   enabled = true,
                   minimumNumberOfKeys = 0,
                   fullIndex = true,
-                  cacheOnAccess = randomBoolean(),
+                  blockIO = _ => randomIOAccess(),
                   compressions = randomCompressionsOrEmpty()
                 ),
               hashIndexConfig =
@@ -176,7 +176,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfKeys = 0,
                   minimumNumberOfHits = 0,
                   allocateSpace = _.requiredSpace * 10,
-                  cacheOnAccess = randomBoolean(),
+                  blockIO = _ => randomIOAccess(),
                   compressions = randomCompressionsOrEmpty()
                 )
             )
@@ -216,7 +216,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   enabled = true,
                   minimumNumberOfKeys = 0,
                   fullIndex = false,
-                  cacheOnAccess = randomBoolean(),
+                  blockIO = _ => randomIOAccess(),
                   compressions = randomCompressionsOrEmpty()
                 ),
               hashIndexConfig =
@@ -225,7 +225,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfKeys = Int.MaxValue,
                   minimumNumberOfHits = 0,
                   allocateSpace = _.requiredSpace * 0,
-                  cacheOnAccess = randomBoolean(),
+                  blockIO = _ => randomIOAccess(),
                   compressions = randomCompressionsOrEmpty()
                 )
             )
@@ -260,7 +260,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 BloomFilter.Config(
                   falsePositiveRate = 1,
                   minimumNumberOfKeys = 0,
-                  cacheOnAccess = randomBoolean(),
+                  blockIO = _ => randomIOAccess(),
                   compressions = randomCompressionsOrEmpty()
                 )
             )
@@ -286,7 +286,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   BloomFilter.Config(
                     falsePositiveRate = 0.001,
                     minimumNumberOfKeys = generatedKeyValues.size + 1,
-                    cacheOnAccess = randomBoolean(),
+                    blockIO = _ => randomIOAccess(),
                     compressions = randomCompressionsOrEmpty()
                   )
               )
@@ -333,7 +333,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   BloomFilter.Config(
                     falsePositiveRate = 0.001,
                     minimumNumberOfKeys = 0,
-                    cacheOnAccess = randomBoolean(),
+                    blockIO = _ => randomIOAccess(),
                     compressions = randomCompressionsOrEmpty()
                   )
               )
@@ -374,7 +374,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       hasCompression = generatedKeyValues.last.hashIndexConfig.compressions.nonEmpty,
                       allocateSpace = _.requiredSpace
                     ),
-                  cacheOnAccess = randomBoolean(),
+                  blockIO = _ => randomIOAccess(),
                   compressions = randomCompressionsOrEmpty()
                 )
             )

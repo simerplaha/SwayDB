@@ -63,11 +63,11 @@ object DefaultMemoryConfig {
         segmentSize = segmentSize,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        mightContainKey =
-          MightContainKeyIndex.Enable(
+        mightContainIndex =
+          MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 100,
-            cacheOnAccess = false,
+            blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compression = Seq.empty
           ),
         keyValueGroupingStrategy = keyValueGroupingStrategy,

@@ -27,6 +27,7 @@ import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
+import swaydb.data.config.{BlockInfo, BlockIO}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
@@ -40,7 +41,7 @@ private[core] object SortedIndex {
   object Config {
     val disabled =
       Config(
-        cacheOnAccess = false,
+        blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
         enableAccessPositionIndex = false,
         prefixCompressionResetCount = 0,
         compressions = Seq.empty
@@ -54,14 +55,14 @@ private[core] object SortedIndex {
 
     def apply(config: swaydb.data.config.SortedKeyIndex.Enable): Config =
       Config(
-        cacheOnAccess = config.cacheOnAccess,
+        blockIO = config.blockIO,
         enableAccessPositionIndex = config.enablePositionIndex,
         prefixCompressionResetCount = config.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0),
         compressions = config.compression map CompressionInternal.apply
       )
   }
 
-  case class Config(cacheOnAccess: Boolean,
+  case class Config(blockIO: BlockInfo => BlockIO,
                     prefixCompressionResetCount: Int,
                     enableAccessPositionIndex: Boolean,
                     compressions: Seq[CompressionInternal])

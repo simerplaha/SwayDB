@@ -23,7 +23,7 @@ import swaydb.data.api.grouping.Compression
 
 case class ValuesConfig(compressDuplicateValues: Boolean,
                         compressDuplicateRangeValues: Boolean,
-                        cacheOnAccess: Boolean,
+                        blockIO: BlockInfo => BlockIO,
                         compression: Seq[Compression]) {
   def toOption: Option[ValuesConfig] =
     Some(this)

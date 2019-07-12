@@ -25,6 +25,7 @@ import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.util.Bytes
 import swaydb.data.IO
+import swaydb.data.config.{BlockInfo, BlockIO}
 import swaydb.data.slice.Slice
 
 private[core] object Values {
@@ -37,7 +38,7 @@ private[core] object Values {
       Values.Config(
         compressDuplicateValues = false,
         compressDuplicateRangeValues = false,
-        cacheOnAccess = false,
+        blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
         compressions = Seq.empty
       )
 
@@ -45,14 +46,14 @@ private[core] object Values {
       Config(
         compressDuplicateValues = config.compressDuplicateValues,
         compressDuplicateRangeValues = config.compressDuplicateRangeValues,
-        cacheOnAccess = config.cacheOnAccess,
+        blockIO = config.blockIO,
         compressions = config.compression map CompressionInternal.apply
       )
   }
 
   case class Config(compressDuplicateValues: Boolean,
                     compressDuplicateRangeValues: Boolean,
-                    cacheOnAccess: Boolean,
+                    blockIO: BlockInfo => BlockIO,
                     compressions: Seq[CompressionInternal])
 
   def valuesBlockNotInitialised: IO.Failure[Nothing] =

@@ -42,12 +42,13 @@ import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.util.UUIDUtil
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.{Dir, RecoveryMode}
+import swaydb.data.config.{Dir, BlockIO, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{IO, MaxKey}
+import swaydb.macros.SealedList
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -468,7 +469,7 @@ object TestData {
       Values.Config(
         compressDuplicateValues = randomBoolean(),
         compressDuplicateRangeValues = randomBoolean(),
-        cacheOnAccess = randomBoolean(),
+        blockIO = _ => randomIOAccess(),
         compressions = randomCompressionsOrEmpty()
       )
   }
@@ -476,7 +477,7 @@ object TestData {
   implicit class SortedIndexConfig(values: SortedIndex.Config.type) {
     def random =
       SortedIndex.Config(
-        cacheOnAccess = randomBoolean(),
+        blockIO = _ => randomIOAccess(),
         prefixCompressionResetCount = randomIntMax(5),
         enableAccessPositionIndex = randomBoolean(),
         compressions = randomCompressionsOrEmpty()
@@ -489,7 +490,7 @@ object TestData {
         enabled = randomBoolean(),
         minimumNumberOfKeys = randomIntMax(5),
         fullIndex = randomBoolean(),
-        cacheOnAccess = randomBoolean(),
+        blockIO = _ => randomIOAccess(),
         compressions = randomCompressionsOrEmpty()
       )
   }
@@ -501,7 +502,7 @@ object TestData {
         minimumNumberOfKeys = randomIntMax(5),
         minimumNumberOfHits = randomIntMax(5),
         allocateSpace = _.requiredSpace * randomIntMax(3),
-        cacheOnAccess = randomBoolean(),
+        blockIO = _ => randomIOAccess(),
         compressions = randomCompressionsOrEmpty()
       )
   }
@@ -511,7 +512,7 @@ object TestData {
       BloomFilter.Config(
         falsePositiveRate = Random.nextDouble(),
         minimumNumberOfKeys = randomIntMax(5),
-        cacheOnAccess = randomBoolean(),
+        blockIO = _ => randomIOAccess(),
         compressions = randomCompressionsOrEmpty()
       )
   }
@@ -2591,5 +2592,14 @@ object TestData {
 
   def randomFalsePositiveRate() =
     Random.nextDouble()
+
+  def randomIOAccess() =
+    Random.shuffle(
+      Seq(
+        BlockIO.ConcurrentIO(randomBoolean()),
+        BlockIO.SynchronisedIO(randomBoolean()),
+        BlockIO.ReservedIO(randomBoolean())
+      )
+    ).head
 }
 

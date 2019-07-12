@@ -25,7 +25,7 @@ import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.util.Bytes
 import swaydb.data.IO
-import swaydb.data.config.RandomKeyIndex
+import swaydb.data.config.{BlockInfo, BlockIO, RandomKeyIndex}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -47,7 +47,7 @@ private[core] object HashIndex extends LazyLogging {
         minimumNumberOfKeys = Int.MaxValue,
         allocateSpace = _ => Int.MinValue,
         minimumNumberOfHits = Int.MaxValue,
-        cacheOnAccess = false,
+        blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
         compressions = Seq.empty
       )
 
@@ -59,7 +59,7 @@ private[core] object HashIndex extends LazyLogging {
             minimumNumberOfKeys = Int.MaxValue,
             allocateSpace = _ => Int.MinValue,
             minimumNumberOfHits = Int.MaxValue,
-            cacheOnAccess = false,
+            blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compressions = Seq.empty
           )
         case enable: swaydb.data.config.RandomKeyIndex.Enable =>
@@ -68,7 +68,7 @@ private[core] object HashIndex extends LazyLogging {
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             minimumNumberOfHits = enable.minimumNumberOfHits,
             allocateSpace = enable.allocateSpace,
-            cacheOnAccess = enable.cacheOnAccess,
+            blockIO = enable.blockIO,
             compressions = enable.compression map CompressionInternal.apply
           )
       }
@@ -78,7 +78,7 @@ private[core] object HashIndex extends LazyLogging {
                     minimumNumberOfKeys: Int,
                     minimumNumberOfHits: Int,
                     allocateSpace: RandomKeyIndex.RequiredSpace => Int,
-                    cacheOnAccess: Boolean,
+                    blockIO: BlockInfo => BlockIO,
                     compressions: Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset

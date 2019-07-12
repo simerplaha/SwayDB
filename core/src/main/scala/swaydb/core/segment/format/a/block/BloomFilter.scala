@@ -26,6 +26,7 @@ import swaydb.core.io.reader.BlockReader
 import swaydb.core.util.{Bytes, MurmurHash3Generic, Options}
 import swaydb.data.IO
 import swaydb.data.IO._
+import swaydb.data.config.{BlockInfo, BlockIO}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -38,24 +39,24 @@ private[core] object BloomFilter extends LazyLogging {
       Config(
         falsePositiveRate = 0.0,
         minimumNumberOfKeys = Int.MaxValue,
-        cacheOnAccess = false,
+        blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
         compressions = Seq.empty
       )
 
-    def apply(config: swaydb.data.config.MightContainKeyIndex): Config =
+    def apply(config: swaydb.data.config.MightContainIndex): Config =
       config match {
-        case swaydb.data.config.MightContainKeyIndex.Disable =>
+        case swaydb.data.config.MightContainIndex.Disable =>
           Config(
             falsePositiveRate = 0.0,
             minimumNumberOfKeys = Int.MaxValue,
-            cacheOnAccess = false,
+            blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
             compressions = Seq.empty
           )
-        case enable: swaydb.data.config.MightContainKeyIndex.Enable =>
+        case enable: swaydb.data.config.MightContainIndex.Enable =>
           Config(
             falsePositiveRate = enable.falsePositiveRate,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
-            cacheOnAccess = enable.cacheOnAccess,
+            blockIO = enable.blockIO,
             compressions = enable.compression map CompressionInternal.apply
           )
       }
@@ -63,7 +64,7 @@ private[core] object BloomFilter extends LazyLogging {
 
   case class Config(falsePositiveRate: Double,
                     minimumNumberOfKeys: Int,
-                    cacheOnAccess: Boolean,
+                    blockIO: BlockInfo => BlockIO,
                     compressions: Seq[CompressionInternal])
 
   case class MemoryBlock(bloomFilter: BloomFilter,
