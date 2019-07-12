@@ -47,13 +47,7 @@ private[core] class BlockReader[+B <: Block](reader: Reader,
   private var position: Int = 0
 
   override val size: IO[Long] =
-    IO.Success {
-      block.
-        compressionInfo
-        .map(_.decompressedLength)
-        .getOrElse(block.offset.size - block.headerSize)
-        .toLong
-    }
+    reader.size
 
   def moveTo(newPosition: Long): BlockReader[B] = {
     position = newPosition.toInt

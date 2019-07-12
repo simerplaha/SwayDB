@@ -1525,6 +1525,12 @@ object TestData {
 
   def randomBytesSlice(size: Int = 10) = Slice(randomBytes(size))
 
+  def randomBytesSliceOption(size: Int = 10): Option[Slice[Byte]] =
+    if (randomBoolean())
+      None
+    else
+      Some(randomBytesSlice(size))
+
   def randomByte() = (Random.nextInt(256) - 128).toByte
 
   def ints(numbers: Int): Int =

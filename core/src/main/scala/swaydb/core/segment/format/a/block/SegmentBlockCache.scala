@@ -38,7 +38,7 @@ object SegmentBlockCache {
       block =>
         segmentBlockReader flatMap {
           segmentBlockReader =>
-            Block.createBlockReader(
+            Block.createDecompressedBlockReader(
               block = block,
               segmentReader = segmentBlockReader
             )
