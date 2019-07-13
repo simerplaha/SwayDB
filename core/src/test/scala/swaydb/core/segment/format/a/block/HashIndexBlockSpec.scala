@@ -33,7 +33,7 @@ import swaydb.data.slice.Slice
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-class HashIndexSpec extends TestBase {
+class HashIndexBlockSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
 
@@ -43,14 +43,14 @@ class HashIndexSpec extends TestBase {
 
   "optimalBytesRequired" should {
     "allocate optimal byte" in {
-      HashIndex.optimalBytesRequired(
+      HashIndexBlock.optimalBytesRequired(
         keyCounts = 1,
         largestValue = 1,
         allocateSpace = _.requiredSpace,
         hasCompression = false,
         minimumNumberOfKeys = 0
       ) shouldBe
-        HashIndex.headerSize(
+        HashIndexBlock.headerSize(
           keyCounts = 1,
           hasCompression = false,
           writeAbleLargestValueSize = 1
@@ -74,7 +74,7 @@ class HashIndexSpec extends TestBase {
             addRandomUpdates = true,
             addRandomPendingApply = true,
             hashIndexConfig =
-              HashIndex.Config.random.copy(
+              HashIndexBlock.Config.random.copy(
                 allocateSpace = allocateMoreSpace,
                 compressions = _ => Seq.empty,
                 maxProbe = maxProbe
@@ -84,15 +84,15 @@ class HashIndexSpec extends TestBase {
         keyValues should not be empty
 
         val uncompressedState =
-          HashIndex.init(keyValues = keyValues).get
+          HashIndexBlock.init(keyValues = keyValues).get
 
         val compressedState =
-          HashIndex.init(
+          HashIndexBlock.init(
             keyValues =
               keyValues
                 .updateStats(
                   hashIndexConfig =
-                    HashIndex.Config(
+                    HashIndexBlock.Config(
                       allocateSpace = allocateMoreSpace,
                       compressions = _ => randomCompressionsLZ4OrSnappy(),
                       maxProbe = maxProbe,
@@ -105,30 +105,30 @@ class HashIndexSpec extends TestBase {
 
         keyValues foreach {
           keyValue =>
-            HashIndex.write(
+            HashIndexBlock.write(
               key = keyValue.key,
               value = keyValue.stats.thisKeyValuesAccessIndexOffset,
               state = uncompressedState
             ).get
 
-            HashIndex.write(
+            HashIndexBlock.write(
               key = keyValue.key,
               value = keyValue.stats.thisKeyValuesAccessIndexOffset,
               state = compressedState
             ).get
         }
 
-        HashIndex.close(uncompressedState).get
-        HashIndex.close(compressedState).get
+        HashIndexBlock.close(uncompressedState).get
+        HashIndexBlock.close(compressedState).get
 
         //compressed bytes should be smaller
         compressedState.bytes.size should be <= uncompressedState.bytes.size
 
-        val uncompressedOffset = HashIndex.Offset(0, uncompressedState.bytes.size)
-        val compressedOffset = HashIndex.Offset(0, compressedState.bytes.size)
+        val uncompressedOffset = HashIndexBlock.Offset(0, uncompressedState.bytes.size)
+        val compressedOffset = HashIndexBlock.Offset(0, compressedState.bytes.size)
 
         val uncompressedHashIndex =
-          HashIndex.read(
+          HashIndexBlock.read(
             uncompressedOffset,
             SegmentBlock(
               offset = SegmentBlock.Offset(0, uncompressedState.bytes.size),
@@ -137,7 +137,7 @@ class HashIndexSpec extends TestBase {
             ).createBlockReader(SegmentBlock.createUnblockedReader(uncompressedState.bytes).get)
           ).get
         val compressedHashIndex =
-          HashIndex.read(
+          HashIndexBlock.read(
             compressedOffset,
             SegmentBlock(
               offset = SegmentBlock.Offset(0, compressedState.bytes.size),
@@ -179,7 +179,7 @@ class HashIndexSpec extends TestBase {
             startId = startId,
             addPut = true,
             hashIndexConfig =
-              HashIndex.Config(
+              HashIndexBlock.Config(
                 allocateSpace = _.requiredSpace * 5,
                 compressions = _ => compressions,
                 maxProbe = maxProbe,
@@ -192,13 +192,13 @@ class HashIndexSpec extends TestBase {
         keyValues should not be empty
 
         val state =
-          HashIndex.init(keyValues = keyValues).get
+          HashIndexBlock.init(keyValues = keyValues).get
 
         val allocatedBytes = state.bytes.allocatedSize
 
         keyValues foreach {
           keyValue =>
-            HashIndex.write(
+            HashIndexBlock.write(
               key = keyValue.key,
               value = keyValue.stats.thisKeyValuesAccessIndexOffset,
               state = state
@@ -209,7 +209,7 @@ class HashIndexSpec extends TestBase {
         println(s"miss: ${state.miss}")
         println
 
-        HashIndex.close(state).get
+        HashIndexBlock.close(state).get
 
         println(s"Bytes allocated: ${state.bytes.allocatedSize}")
         println(s"Bytes written: ${state.bytes.size}")
@@ -218,7 +218,7 @@ class HashIndexSpec extends TestBase {
         state.miss shouldBe 0
         state.hit + state.miss shouldBe keyValues.size
 
-        val offset = HashIndex.Offset(0, state.bytes.size)
+        val offset = HashIndexBlock.Offset(0, state.bytes.size)
 
         val randomBytes = randomBytesSlice(randomIntMax(100))
 
@@ -230,10 +230,10 @@ class HashIndexSpec extends TestBase {
             (offset.copy(start = randomBytes.size), randomBytes ++ state.bytes ++ randomBytesSlice(randomIntMax(100)))
           )
 
-        val hashIndex = HashIndex.read(adjustedOffset, SegmentBlock.createUnblockedReader(alteredBytes).get).get
+        val hashIndex = HashIndexBlock.read(adjustedOffset, SegmentBlock.createUnblockedReader(alteredBytes).get).get
 
         hashIndex shouldBe
-          HashIndex(
+          HashIndexBlock(
             offset = adjustedOffset,
             compressionInfo = hashIndex.compressionInfo,
             maxProbe = state.maxProbe,
@@ -241,7 +241,7 @@ class HashIndexSpec extends TestBase {
             miss = state.miss,
             writeAbleLargestValueSize = state.writeAbleLargestValueSize,
             headerSize =
-              HashIndex.headerSize(
+              HashIndexBlock.headerSize(
                 keyCounts = keyValues.last.stats.segmentUniqueKeysCount,
                 writeAbleLargestValueSize = state.writeAbleLargestValueSize,
                 hasCompression = compressions.nonEmpty
@@ -271,7 +271,7 @@ class HashIndexSpec extends TestBase {
         keyValues foreach {
           keyValue =>
             val found =
-              HashIndex.search(
+              HashIndexBlock.search(
                 key = keyValue.key,
                 blockReader = hashIndex.createBlockReader(SegmentBlock.createUnblockedReader(alteredBytes).get),
                 assertValue = findKey(_, keyValue.key)

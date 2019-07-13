@@ -23,20 +23,20 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.a.block.BinarySearchIndex.Config.defaultBlockIO
+import swaydb.core.segment.format.a.block.BinarySearchIndexBlock.Config.defaultBlockIO
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
 import swaydb.data.config.{BlockIO, BlockInfo, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 
-private[core] object Values {
+private[core] object ValuesBlock {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
   object Config {
 
     val disabled =
-      Values.Config(
+      ValuesBlock.Config(
         compressDuplicateValues = false,
         compressDuplicateRangeValues = false,
         blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
@@ -65,7 +65,7 @@ private[core] object Values {
     IO.Failure(IO.Error.Fatal("Value block not initialised."))
 
   val empty =
-    Values(Values.Offset.zero, 0, None)
+    ValuesBlock(ValuesBlock.Offset.zero, 0, None)
 
   case class State(var _bytes: Slice[Byte],
                    headerSize: Int,
@@ -100,13 +100,13 @@ private[core] object Values {
     else
       noCompressionHeaderSize
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[Values.State] =
+  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[ValuesBlock.State] =
     if (keyValues.last.stats.segmentValuesSize > 0) {
       val headSize = headerSize(keyValues.last.valuesConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentValuesSize)).nonEmpty)
       val bytes = Slice.create[Byte](keyValues.last.stats.segmentValuesSize)
       bytes moveWritePosition headSize
       Some(
-        Values.State(
+        ValuesBlock.State(
           _bytes = bytes,
           headerSize = headSize,
           compressions = keyValues.last.valuesConfig.compressions
@@ -116,7 +116,7 @@ private[core] object Values {
     else
       None
 
-  def write(keyValue: KeyValue.WriteOnly, state: Values.State) =
+  def write(keyValue: KeyValue.WriteOnly, state: ValuesBlock.State) =
     IO {
       keyValue.valueEntryBytes foreach state.bytes.addAll
     }
@@ -137,18 +137,18 @@ private[core] object Values {
         }
     }
 
-  def read(offset: Values.Offset,
-           segmentReader: BlockReader[SegmentBlock]): IO[Values] =
+  def read(offset: ValuesBlock.Offset,
+           segmentReader: BlockReader[SegmentBlock]): IO[ValuesBlock] =
     Block.readHeader(offset = offset, reader = segmentReader) map {
       result =>
-        Values(
+        ValuesBlock(
           offset = offset,
           headerSize = result.headerSize,
           compressionInfo = result.compressionInfo
         )
     }
 
-  def read(fromOffset: Int, length: Int, reader: BlockReader[Values]): IO[Option[Slice[Byte]]] =
+  def read(fromOffset: Int, length: Int, reader: BlockReader[ValuesBlock]): IO[Option[Slice[Byte]]] =
     if (length == 0)
       IO.none
     else
@@ -175,10 +175,10 @@ private[core] object Values {
         }
 }
 
-private[core] case class Values(offset: Values.Offset,
-                                headerSize: Int,
-                                compressionInfo: Option[Block.CompressionInfo]) extends Block {
+private[core] case class ValuesBlock(offset: ValuesBlock.Offset,
+                                     headerSize: Int,
+                                     compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
   override def updateOffset(start: Int, size: Int): Block =
-    copy(offset = Values.Offset(start = start, size = size))
+    copy(offset = ValuesBlock.Offset(start = start, size = size))
 }

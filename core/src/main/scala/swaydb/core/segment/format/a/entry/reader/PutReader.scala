@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.segment.format.a.block.Values
+import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyValueReader
 import swaydb.data.IO
@@ -31,7 +31,7 @@ object PutReader extends EntryReader[Persistent.Put] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Option[BlockReader[Values]],
+                              valueReader: Option[BlockReader[ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -63,7 +63,7 @@ object PutReader extends EntryReader[Persistent.Put] {
                       }
 
                     if (valueLength > 0 && lazyValueReader.isEmpty)
-                      Values.valuesBlockNotInitialised
+                      ValuesBlock.valuesBlockNotInitialised
                     else
                       IO {
                         Persistent.Put(

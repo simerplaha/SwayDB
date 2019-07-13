@@ -84,11 +84,11 @@ private[core] object Level extends LazyLogging {
     }
 
   def apply(segmentSize: Long,
-            bloomFilterConfig: BloomFilter.Config,
-            hashIndexConfig: HashIndex.Config,
-            binarySearchIndexConfig: BinarySearchIndex.Config,
-            sortedIndexConfig: SortedIndex.Config,
-            valuesConfig: Values.Config,
+            bloomFilterConfig: BloomFilterBlock.Config,
+            hashIndexConfig: HashIndexBlock.Config,
+            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+            sortedIndexConfig: SortedIndexBlock.Config,
+            valuesConfig: ValuesBlock.Config,
             segmentConfig: SegmentBlock.Config,
             levelStorage: LevelStorage,
             appendixStorage: AppendixStorage,
@@ -310,11 +310,11 @@ private[core] object Level extends LazyLogging {
 }
 
 private[core] case class Level(dirs: Seq[Dir],
-                               bloomFilterConfig: BloomFilter.Config,
-                               hashIndexConfig: HashIndex.Config,
-                               binarySearchIndexConfig: BinarySearchIndex.Config,
-                               sortedIndexConfig: SortedIndex.Config,
-                               valuesConfig: Values.Config,
+                               bloomFilterConfig: BloomFilterBlock.Config,
+                               hashIndexConfig: HashIndexBlock.Config,
+                               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                               sortedIndexConfig: SortedIndexBlock.Config,
+                               valuesConfig: ValuesBlock.Config,
                                segmentConfig: SegmentBlock.Config,
                                mmapSegmentsOnWrite: Boolean,
                                mmapSegmentsOnRead: Boolean,

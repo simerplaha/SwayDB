@@ -23,7 +23,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.a.block.BinarySearchIndex.Config.defaultBlockIO
+import swaydb.core.segment.format.a.block.BinarySearchIndexBlock.Config.defaultBlockIO
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
@@ -35,7 +35,7 @@ import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
 
-private[core] object SortedIndex {
+private[core] object SortedIndexBlock {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
@@ -107,7 +107,7 @@ private[core] object SortedIndex {
     else
       noCompressionHeaderSize
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly]): SortedIndex.State = {
+  def init(keyValues: Iterable[KeyValue.WriteOnly]): SortedIndexBlock.State = {
     val bytes = Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize)
     val headSize = headerSize(keyValues.last.sortedIndexConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentSortedIndexSize)).nonEmpty)
     bytes moveWritePosition headSize
@@ -137,7 +137,7 @@ private[core] object SortedIndex {
           IO.Success(state)
     }
 
-  def write(keyValue: KeyValue.WriteOnly, state: SortedIndex.State) =
+  def write(keyValue: KeyValue.WriteOnly, state: SortedIndexBlock.State) =
     IO {
       if (state.enableAccessPositionIndex) {
         state.bytes addIntUnsigned (keyValue.indexEntryBytes.size + keyValue.stats.thisKeyValueAccessIndexPositionByteSize)
@@ -149,8 +149,8 @@ private[core] object SortedIndex {
       }
     }
 
-  def read(offset: SortedIndex.Offset,
-           segmentReader: BlockReader[SegmentBlock]): IO[SortedIndex] =
+  def read(offset: SortedIndexBlock.Offset,
+           segmentReader: BlockReader[SegmentBlock]): IO[SortedIndexBlock] =
     Block.readHeader(
       offset = offset,
       reader = segmentReader
@@ -160,7 +160,7 @@ private[core] object SortedIndex {
           enableAccessPositionIndex <- header.headerReader.readBoolean()
           hasPrefixCompression <- header.headerReader.readBoolean()
         } yield {
-          SortedIndex(
+          SortedIndexBlock(
             offset = offset,
             enableAccessPositionIndex = enableAccessPositionIndex,
             hasPrefixCompression = hasPrefixCompression,
@@ -171,8 +171,8 @@ private[core] object SortedIndex {
     }
 
   private def readNextKeyValue(previous: Persistent,
-                               indexReader: BlockReader[SortedIndex],
-                               valueReader: Option[BlockReader[Values]]): IO[Persistent] =
+                               indexReader: BlockReader[SortedIndexBlock],
+                               valueReader: Option[BlockReader[ValuesBlock]]): IO[Persistent] =
     readNextKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
       indexReader = indexReader moveTo previous.nextIndexOffset,
@@ -181,8 +181,8 @@ private[core] object SortedIndex {
     )
 
   private def readNextKeyValue(fromPosition: Int,
-                               indexReader: BlockReader[SortedIndex],
-                               valueReader: Option[BlockReader[Values]]): IO[Persistent] =
+                               indexReader: BlockReader[SortedIndexBlock],
+                               valueReader: Option[BlockReader[ValuesBlock]]): IO[Persistent] =
     readNextKeyValue(
       indexEntrySizeMayBe = None,
       indexReader = indexReader moveTo fromPosition,
@@ -192,8 +192,8 @@ private[core] object SortedIndex {
 
   //Pre-requisite: The position of the index on the reader should be set.
   private def readNextKeyValue(indexEntrySizeMayBe: Option[Int],
-                               indexReader: BlockReader[SortedIndex],
-                               valueReader: Option[BlockReader[Values]],
+                               indexReader: BlockReader[SortedIndexBlock],
+                               valueReader: Option[BlockReader[ValuesBlock]],
                                previous: Option[Persistent]): IO[Persistent] =
     try {
       val positionBeforeRead = indexReader.getPosition
@@ -273,8 +273,8 @@ private[core] object SortedIndex {
     }
 
   def readAll(keyValueCount: Int,
-              sortedIndexReader: BlockReader[SortedIndex],
-              valuesReader: Option[BlockReader[Values]],
+              sortedIndexReader: BlockReader[SortedIndexBlock],
+              valuesReader: Option[BlockReader[ValuesBlock]],
               addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     try {
       sortedIndexReader moveTo 0
@@ -323,8 +323,8 @@ private[core] object SortedIndex {
 
   def search(key: Slice[Byte],
              startFrom: Option[Persistent],
-             indexReader: BlockReader[SortedIndex],
-             valuesReader: Option[BlockReader[Values]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+             indexReader: BlockReader[SortedIndexBlock],
+             valuesReader: Option[BlockReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       matcher = KeyMatcher.Get(key),
       startFrom = startFrom,
@@ -334,8 +334,8 @@ private[core] object SortedIndex {
 
   def searchHigher(key: Slice[Byte],
                    startFrom: Option[Persistent],
-                   sortedIndexReader: BlockReader[SortedIndex],
-                   valuesReader: Option[BlockReader[Values]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                   sortedIndexReader: BlockReader[SortedIndexBlock],
+                   valuesReader: Option[BlockReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       matcher = KeyMatcher.Higher(key),
       startFrom = startFrom,
@@ -345,8 +345,8 @@ private[core] object SortedIndex {
 
   def searchHigherSeekOne(key: Slice[Byte],
                           startFrom: Option[Persistent],
-                          indexReader: BlockReader[SortedIndex],
-                          valuesReader: Option[BlockReader[Values]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                          indexReader: BlockReader[SortedIndexBlock],
+                          valuesReader: Option[BlockReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       matcher = KeyMatcher.Higher.MatchOnly(key),
       startFrom = startFrom,
@@ -356,8 +356,8 @@ private[core] object SortedIndex {
 
   def searchLower(key: Slice[Byte],
                   startFrom: Option[Persistent],
-                  indexReader: BlockReader[SortedIndex],
-                  valuesReader: Option[BlockReader[Values]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                  indexReader: BlockReader[SortedIndexBlock],
+                  valuesReader: Option[BlockReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       matcher = KeyMatcher.Lower(key),
       startFrom = startFrom,
@@ -367,8 +367,8 @@ private[core] object SortedIndex {
 
   private def search(matcher: KeyMatcher,
                      startFrom: Option[Persistent],
-                     indexReader: BlockReader[SortedIndex],
-                     valuesReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+                     indexReader: BlockReader[SortedIndexBlock],
+                     valuesReader: Option[BlockReader[ValuesBlock]]): IO[Option[Persistent]] =
     startFrom match {
       case Some(startFrom) =>
         matchOrNextAndPersistent(
@@ -399,8 +399,8 @@ private[core] object SortedIndex {
 
   def findAndMatchOrNextPersistent(matcher: KeyMatcher,
                                    fromOffset: Int,
-                                   indexReader: BlockReader[SortedIndex],
-                                   valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+                                   indexReader: BlockReader[SortedIndexBlock],
+                                   valueReader: Option[BlockReader[ValuesBlock]]): IO[Option[Persistent]] =
     readNextKeyValue(
       fromPosition = fromOffset,
       indexReader = indexReader,
@@ -418,8 +418,8 @@ private[core] object SortedIndex {
 
   def findAndMatchOrNextMatch(matcher: KeyMatcher,
                               fromOffset: Int,
-                              sortedIndex: BlockReader[SortedIndex],
-                              values: Option[BlockReader[Values]]): IO[KeyMatcher.Result] =
+                              sortedIndex: BlockReader[SortedIndexBlock],
+                              values: Option[BlockReader[ValuesBlock]]): IO[KeyMatcher.Result] =
     readNextKeyValue(
       fromPosition = fromOffset,
       indexReader = sortedIndex,
@@ -439,8 +439,8 @@ private[core] object SortedIndex {
   def matchOrNext(previous: Persistent,
                   next: Option[Persistent],
                   matcher: KeyMatcher,
-                  indexReader: BlockReader[SortedIndex],
-                  valueReader: Option[BlockReader[Values]]): IO[KeyMatcher.Result.Complete] =
+                  indexReader: BlockReader[SortedIndexBlock],
+                  valueReader: Option[BlockReader[ValuesBlock]]): IO[KeyMatcher.Result.Complete] =
     matcher(
       previous = previous,
       next = next,
@@ -473,8 +473,8 @@ private[core] object SortedIndex {
   def matchOrNextAndPersistent(previous: Persistent,
                                next: Option[Persistent],
                                matcher: KeyMatcher,
-                               indexReader: BlockReader[SortedIndex],
-                               valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+                               indexReader: BlockReader[SortedIndexBlock],
+                               valueReader: Option[BlockReader[ValuesBlock]]): IO[Option[Persistent]] =
     matchOrNext(
       previous = previous,
       next = next,
@@ -496,12 +496,12 @@ private[core] object SortedIndex {
     keyValue.nextIndexSize > 0
 }
 
-private[core] case class SortedIndex(offset: SortedIndex.Offset,
-                                     enableAccessPositionIndex: Boolean,
-                                     hasPrefixCompression: Boolean,
-                                     headerSize: Int,
-                                     compressionInfo: Option[Block.CompressionInfo]) extends Block {
+private[core] case class SortedIndexBlock(offset: SortedIndexBlock.Offset,
+                                          enableAccessPositionIndex: Boolean,
+                                          hasPrefixCompression: Boolean,
+                                          headerSize: Int,
+                                          compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
   override def updateOffset(start: Int, size: Int): Block =
-    copy(offset = SortedIndex.Offset(start = start, size = size))
+    copy(offset = SortedIndexBlock.Offset(start = start, size = size))
 }

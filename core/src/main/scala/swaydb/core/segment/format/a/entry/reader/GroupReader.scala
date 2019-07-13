@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.segment.format.a.block.Values
+import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.data.IO
 import swaydb.data.slice.Reader
@@ -31,7 +31,7 @@ object GroupReader extends EntryReader[Persistent.Group] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Option[BlockReader[Values]],
+                              valueReader: Option[BlockReader[ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -69,9 +69,9 @@ object GroupReader extends EntryReader[Persistent.Group] {
                               valueLengthReader.isPrefixCompressed ||
                               valueBytesReader.isPrefixCompressed
                         )
-                    } getOrElse Values.valuesBlockNotInitialised
+                    } getOrElse ValuesBlock.valuesBlockNotInitialised
                 }
-            } getOrElse Values.valuesBlockNotInitialised
+            } getOrElse ValuesBlock.valuesBlockNotInitialised
         }
     }
 }

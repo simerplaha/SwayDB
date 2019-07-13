@@ -33,7 +33,7 @@ import swaydb.core.CommonAssertions._
 
 import scala.util.Random
 
-class BloomFilterSpec extends TestBase {
+class BloomFilterBlockSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
 
@@ -43,20 +43,20 @@ class BloomFilterSpec extends TestBase {
     "write bloom filter to bytes" in {
       runThis(10.times) {
         val filter =
-          BloomFilter.init(
+          BloomFilterBlock.init(
             numberOfKeys = 10,
             falsePositiveRate = 0.01,
             compressions = _ => randomCompressionsOrEmpty()
           ).get
 
-        (1 to 10) foreach (BloomFilter.add(_, filter))
+        (1 to 10) foreach (BloomFilterBlock.add(_, filter))
 
-        BloomFilter.close(filter).get
+        BloomFilterBlock.close(filter).get
 
         val segmentBlock = SegmentBlock.createUnblockedReader(filter.bytes).get
-        val bloom = BloomFilter.read(BloomFilter.Offset(0, filter.bytes.size), segmentBlock).get
-        (1 to 10) foreach (key => BloomFilter.mightContain(key, bloom.createBlockReader(segmentBlock)).get shouldBe true)
-        (11 to 20) foreach (key => BloomFilter.mightContain(key, bloom.createBlockReader(segmentBlock)).get shouldBe false)
+        val bloom = BloomFilterBlock.read(BloomFilterBlock.Offset(0, filter.bytes.size), segmentBlock).get
+        (1 to 10) foreach (key => BloomFilterBlock.mightContain(key, bloom.createBlockReader(segmentBlock)).get shouldBe true)
+        (11 to 20) foreach (key => BloomFilterBlock.mightContain(key, bloom.createBlockReader(segmentBlock)).get shouldBe false)
 
         println("numberOfBits: " + filter.numberOfBits)
         println("written: " + filter.written)
@@ -66,8 +66,8 @@ class BloomFilterSpec extends TestBase {
 
   "optimalSegmentBloomFilterByteSize" should {
     "return empty if false positive rate is 0.0 or number of keys is 0" in {
-      BloomFilter.optimalSize(1000, 0.0, randomBoolean(), minimumNumberOfKeys = 0) shouldBe 0
-      BloomFilter.optimalSize(0, 0.001, randomBoolean(), minimumNumberOfKeys = 0) shouldBe 0
+      BloomFilterBlock.optimalSize(1000, 0.0, randomBoolean(), minimumNumberOfKeys = 0) shouldBe 0
+      BloomFilterBlock.optimalSize(0, 0.001, randomBoolean(), minimumNumberOfKeys = 0) shouldBe 0
     }
 
     "return the number of bytes required to store the Bloom filter" in {
@@ -78,14 +78,14 @@ class BloomFilterSpec extends TestBase {
           val compression = randomCompressionsOrEmpty()
 
           val bloomFilter =
-            BloomFilter.init(
+            BloomFilterBlock.init(
               numberOfKeys = numberOfItems,
               falsePositiveRate = falsePositiveRate,
               compressions = _ => compression
             ).get
 
           bloomFilter.bytes.size should be <=
-            BloomFilter.optimalSize(
+            BloomFilterBlock.optimalSize(
               numberOfKeys = numberOfItems,
               falsePositiveRate = falsePositiveRate,
               hasCompression = compression.nonEmpty,
@@ -97,7 +97,7 @@ class BloomFilterSpec extends TestBase {
 
   "init" should {
     "not initialise if keyValues are empty" in {
-      BloomFilter.init(
+      BloomFilterBlock.init(
         numberOfKeys = 0,
         falsePositiveRate = randomFalsePositiveRate(),
         compressions = _ => randomCompressionsOrEmpty()
@@ -105,7 +105,7 @@ class BloomFilterSpec extends TestBase {
     }
 
     "not initialise if false positive range is 0.0 are empty" in {
-      BloomFilter.init(
+      BloomFilterBlock.init(
         numberOfKeys = 100,
         falsePositiveRate = 0.0,
         compressions = _ => randomCompressionsOrEmpty()
@@ -116,11 +116,11 @@ class BloomFilterSpec extends TestBase {
       runThisParallel(10.times) {
         implicit val time = TestTimer.random
 
-        BloomFilter.init(
+        BloomFilterBlock.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(None, time.next)))
         ) shouldBe empty
 
-        BloomFilter.init(
+        BloomFilterBlock.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(Some(randomDeadline()), time.next)))
         ) shouldBe empty
       }
@@ -131,7 +131,7 @@ class BloomFilterSpec extends TestBase {
         implicit val time = TestTimer.random
 
         //range functions can also contain Remove so BloomFilter should not be created
-        BloomFilter.init(
+        BloomFilterBlock.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Function(Slice.emptyBytes, time.next)))
         ) shouldBe empty
       }
@@ -142,11 +142,11 @@ class BloomFilterSpec extends TestBase {
         implicit val time = TestTimer.random
 
         //range functions can also contain Remove so BloomFilter should not be created
-        BloomFilter.init(
+        BloomFilterBlock.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Remove(randomDeadlineOption(), time.next)))))
         ) shouldBe empty
 
-        BloomFilter.init(
+        BloomFilterBlock.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Function(randomFunctionId(), time.next)))))
         ) shouldBe empty
       }
@@ -157,7 +157,7 @@ class BloomFilterSpec extends TestBase {
         implicit val time = TestTimer.random
 
         //pending apply should allow to create bloomFilter if it does not have remove or function.
-        BloomFilter.init(
+        BloomFilterBlock.init(
           keyValues =
             Slice(
               Transient.Range.create[FromValue, RangeValue](
@@ -165,7 +165,7 @@ class BloomFilterSpec extends TestBase {
                 toKey = 2,
                 fromValue = None,
                 rangeValue = Value.PendingApply(Slice(Value.Update(randomStringOption, randomDeadlineOption(), time.next))),
-                bloomFilterConfig = BloomFilter.Config.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
+                bloomFilterConfig = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
               )
             )
         ) shouldBe defined
@@ -176,7 +176,7 @@ class BloomFilterSpec extends TestBase {
       runThisParallel(10.times) {
         implicit val time = TestTimer.random
         //fromValue is remove but it's not a remove range.
-        BloomFilter.init(
+        BloomFilterBlock.init(
           keyValues =
             Slice(
               Transient.Range.create[FromValue, RangeValue](
@@ -184,7 +184,7 @@ class BloomFilterSpec extends TestBase {
                 toKey = 2,
                 fromValue = Some(Value.Remove(None, time.next)),
                 rangeValue = Value.update(100),
-                bloomFilterConfig = BloomFilter.Config.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
+                bloomFilterConfig = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
               )
             )
         ) shouldBe defined
@@ -194,20 +194,20 @@ class BloomFilterSpec extends TestBase {
 
   "bloomFilter error check" in {
     def runAssert(data: Seq[String],
-                  bloom: BloomFilter,
+                  bloom: BloomFilterBlock,
                   bytes: Slice[Byte]) = {
 
       val segmentBlock = SegmentBlock.createUnblockedReader(bytes).get
 
       val positives =
         data collect {
-          case data if !BloomFilter.mightContain(data, bloom.createBlockReader(segmentBlock)).get =>
+          case data if !BloomFilterBlock.mightContain(data, bloom.createBlockReader(segmentBlock)).get =>
             data
         }
 
       val falsePositives =
         data collect {
-          case data if BloomFilter.mightContain(Random.alphanumeric.take(2000).mkString.getBytes(), bloom.createBlockReader(segmentBlock)).get =>
+          case data if BloomFilterBlock.mightContain(Random.alphanumeric.take(2000).mkString.getBytes(), bloom.createBlockReader(segmentBlock)).get =>
             data
         }
 
@@ -223,7 +223,7 @@ class BloomFilterSpec extends TestBase {
 
     runThis(5.times) {
       val state =
-        BloomFilter.init(
+        BloomFilterBlock.init(
           numberOfKeys = 10000,
           falsePositiveRate = 0.001,
           compressions = _ => randomCompressionsOrEmpty()
@@ -233,15 +233,15 @@ class BloomFilterSpec extends TestBase {
         (1 to 10000) map {
           _ =>
             val string = Random.alphanumeric.take(2000).mkString
-            BloomFilter.add(string.getBytes(), state)
+            BloomFilterBlock.add(string.getBytes(), state)
             string
         }
 
-      BloomFilter.close(state).get
+      BloomFilterBlock.close(state).get
 
       val segmentBlock = SegmentBlock.createUnblockedReader(state.bytes).get
 
-      val bloom: BloomFilter = BloomFilter.read(BloomFilter.Offset(0, state.bytes.size), segmentBlock).get
+      val bloom: BloomFilterBlock = BloomFilterBlock.read(BloomFilterBlock.Offset(0, state.bytes.size), segmentBlock).get
       val bytes = state.bytes
 
       runAssert(data, bloom, bytes)

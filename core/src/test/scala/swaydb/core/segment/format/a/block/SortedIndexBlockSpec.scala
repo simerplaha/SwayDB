@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.block
 
 import swaydb.core.TestBase
 
-class SortedIndexSpec extends TestBase {
+class SortedIndexBlockSpec extends TestBase {
 
   ""
 }

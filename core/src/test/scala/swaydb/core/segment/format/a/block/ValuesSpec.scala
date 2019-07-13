@@ -39,14 +39,14 @@ class ValuesSpec extends TestBase {
         keyValues.last.stats.segmentValuesSize shouldBe 0
         keyValues.last.stats.segmentValuesSizeWithoutHeader shouldBe 0
         keyValues.last.stats.valueLength shouldBe 0
-        Values.init(keyValues) shouldBe empty
+        ValuesBlock.init(keyValues) shouldBe empty
       }
     }
 
     "initialise values exists" in {
       runThis(10.times) {
         val keyValues = Slice(Transient.put(key = 1, value = Slice.writeInt(1), removeAfter = None), randomFixedTransientKeyValue(2, Some(3))).updateStats
-        Values.init(keyValues) shouldBe defined
+        ValuesBlock.init(keyValues) shouldBe defined
       }
     }
   }
@@ -55,20 +55,20 @@ class ValuesSpec extends TestBase {
     "prepare for persisting" in {
       runThis(10.times) {
         val keyValues = randomizedKeyValues(count = 1000, addPut = true)
-        val state = Values.init(keyValues).get
+        val state = ValuesBlock.init(keyValues).get
 
         keyValues foreach {
           keyValue =>
-            Values.write(
+            ValuesBlock.write(
               keyValue = keyValue,
               state = state
             ).get
         }
 
-        Values.close(state).get
+        ValuesBlock.close(state).get
 
         val segmentBlock = SegmentBlock.createUnblockedReader(state.bytes).get
-        val values = Values.read(Values.Offset(0, state.bytes.size), segmentBlock).get
+        val values = ValuesBlock.read(ValuesBlock.Offset(0, state.bytes.size), segmentBlock).get
         val valuesBlockReader = values.createBlockReader(segmentBlock)
 
         keyValues.foldLeft(0) {
@@ -77,7 +77,7 @@ class ValuesSpec extends TestBase {
             if (valueBytes.isEmpty) {
               offset
             } else {
-              Values.read(offset, valueBytes.size, valuesBlockReader).get should contain(valueBytes)
+              ValuesBlock.read(offset, valueBytes.size, valuesBlockReader).get should contain(valueBytes)
               offset + valueBytes.size
             }
         }

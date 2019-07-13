@@ -43,11 +43,11 @@ private[core] object GroupCompressor extends LazyLogging {
   def compress(keyValues: Slice[KeyValue.WriteOnly],
                previous: Option[KeyValue.WriteOnly],
                groupConfig: SegmentBlock.Config,
-               valuesConfig: Values.Config,
-               sortedIndexConfig: SortedIndex.Config,
-               binarySearchIndexConfig: BinarySearchIndex.Config,
-               hashIndexConfig: HashIndex.Config,
-               bloomFilterConfig: BloomFilter.Config): IO[Transient.Group] =
+               valuesConfig: ValuesBlock.Config,
+               sortedIndexConfig: SortedIndexBlock.Config,
+               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+               hashIndexConfig: HashIndexBlock.Config,
+               bloomFilterConfig: BloomFilterBlock.Config): IO[Transient.Group] =
     if (keyValues.isEmpty) {
       logger.error(s"Ignoring compression. Cannot compress on empty key-values")
       GroupCompressor.cannotGroupEmptyValues

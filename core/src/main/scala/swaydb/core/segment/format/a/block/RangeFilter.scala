@@ -97,7 +97,7 @@ private[core] object RangeFilter {
 
   def find(key: Slice[Byte],
            rangeFilterState: RangeFilter.State,
-           hashIndex: HashIndex)(implicit ordering: KeyOrder[Slice[Byte]]): Option[Slice[Byte]] = {
+           hashIndex: HashIndexBlock)(implicit ordering: KeyOrder[Slice[Byte]]): Option[Slice[Byte]] = {
     import ordering._
     //todo - binary search.
     rangeFilterState.filters foreach {

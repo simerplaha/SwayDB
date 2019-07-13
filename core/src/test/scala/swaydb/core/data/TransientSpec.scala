@@ -21,7 +21,7 @@ package swaydb.core.data
 
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.segment.format.a.block.SortedIndex
+import swaydb.core.segment.format.a.block.SortedIndexBlock
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -84,7 +84,7 @@ class TransientSpec extends TestBase {
             .toTransient(
               previous = None,
               sortedIndexConfig =
-                SortedIndex.Config.random.copy(prefixCompressionResetCount = 0)
+                SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0)
             )
         ) shouldBe false
       }
@@ -100,7 +100,7 @@ class TransientSpec extends TestBase {
             randomFixedKeyValue(4)
           ).toTransient(
             sortedIndexConfig =
-              SortedIndex.Config.random.copy(prefixCompressionResetCount = 2)
+              SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 2)
           )
 
         Transient.enablePrefixCompression(keyValues.head) shouldBe false //there is no previous

@@ -34,7 +34,7 @@ import swaydb.core.io.file.IOEffect._
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.FileLimiter
-import swaydb.core.segment.format.a.block.SortedIndex
+import swaydb.core.segment.format.a.block.SortedIndexBlock
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util._

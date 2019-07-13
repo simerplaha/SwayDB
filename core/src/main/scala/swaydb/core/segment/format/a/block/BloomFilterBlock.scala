@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.segment.format.a.block.BinarySearchIndex.Config.defaultBlockIO
+import swaydb.core.segment.format.a.block.BinarySearchIndexBlock.Config.defaultBlockIO
 import swaydb.core.util.{Bytes, FunctionUtil, MurmurHash3Generic, Options}
 import swaydb.data.IO
 import swaydb.data.IO._
@@ -31,7 +31,7 @@ import swaydb.data.config.{BlockIO, BlockInfo, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
-private[core] object BloomFilter extends LazyLogging {
+private[core] object BloomFilterBlock extends LazyLogging {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
@@ -72,7 +72,7 @@ private[core] object BloomFilter extends LazyLogging {
                     blockIO: BlockInfo => BlockIO,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
-  case class MemoryBlock(bloomFilter: BloomFilter,
+  case class MemoryBlock(bloomFilter: BloomFilterBlock,
                          bytes: Slice[Byte])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
@@ -122,7 +122,7 @@ private[core] object BloomFilter extends LazyLogging {
 
   private def apply(numberOfKeys: Int,
                     falsePositiveRate: Double,
-                    compressions: UncompressedBlockInfo => Seq[CompressionInternal]): BloomFilter.State = {
+                    compressions: UncompressedBlockInfo => Seq[CompressionInternal]): BloomFilterBlock.State = {
     val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
     val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits)
 
@@ -140,7 +140,7 @@ private[core] object BloomFilter extends LazyLogging {
 
     val bytes = Slice.create[Byte](headerSize + numberOfBits)
 
-    BloomFilter.State(
+    BloomFilterBlock.State(
       startOffset = headerSize,
       numberOfBits = numberOfBits,
       headerSize = headerSize,
@@ -162,15 +162,15 @@ private[core] object BloomFilter extends LazyLogging {
     else
       math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
 
-  def closeForMemory(state: BloomFilter.State): IO[Option[BloomFilter.MemoryBlock]] =
-    BloomFilter.close(state) flatMap {
+  def closeForMemory(state: BloomFilterBlock.State): IO[Option[BloomFilterBlock.MemoryBlock]] =
+    BloomFilterBlock.close(state) flatMap {
       closedBloomFilter =>
         closedBloomFilter map {
           closedBloomFilter =>
             SegmentBlock.createUnblockedReader(closedBloomFilter.bytes) flatMap {
               segmentBlock =>
-                BloomFilter.read(
-                  BloomFilter.Offset(0, closedBloomFilter.bytes.size),
+                BloomFilterBlock.read(
+                  BloomFilterBlock.Offset(0, closedBloomFilter.bytes.size),
                   segmentReader = segmentBlock
                 ) map {
                   bloomFilterBlock =>
@@ -184,7 +184,7 @@ private[core] object BloomFilter extends LazyLogging {
         } getOrElse IO.none
     }
 
-  def close(state: State): IO[Option[BloomFilter.State]] =
+  def close(state: State): IO[Option[BloomFilterBlock.State]] =
     if (state.bytes.isEmpty)
       IO.none
     else
@@ -206,13 +206,13 @@ private[core] object BloomFilter extends LazyLogging {
       }
 
   def read(offset: Offset,
-           segmentReader: BlockReader[SegmentBlock]): IO[BloomFilter] =
+           segmentReader: BlockReader[SegmentBlock]): IO[BloomFilterBlock] =
     for {
       blockHeader <- Block.readHeader(offset = offset, reader = segmentReader)
       numberOfBits <- blockHeader.headerReader.readIntUnsigned()
       maxProbe <- blockHeader.headerReader.readIntUnsigned()
     } yield
-      BloomFilter(
+      BloomFilterBlock(
         offset = offset,
         headerSize = blockHeader.headerSize,
         maxProbe = maxProbe,
@@ -229,7 +229,7 @@ private[core] object BloomFilter extends LazyLogging {
   def shouldCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =
     !shouldNotCreateBloomFilter(keyValues)
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[BloomFilter.State] =
+  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[BloomFilterBlock.State] =
     if (shouldCreateBloomFilter(keyValues))
       init(
         numberOfKeys = keyValues.last.stats.segmentUniqueKeysCount,
@@ -244,12 +244,12 @@ private[core] object BloomFilter extends LazyLogging {
     */
   def init(numberOfKeys: Int,
            falsePositiveRate: Double,
-           compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Option[BloomFilter.State] =
+           compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Option[BloomFilterBlock.State] =
     if (numberOfKeys <= 0 || falsePositiveRate <= 0.0)
       None
     else
       Some(
-        BloomFilter(
+        BloomFilterBlock(
           numberOfKeys = numberOfKeys,
           falsePositiveRate = falsePositiveRate,
           compressions = compressions
@@ -257,7 +257,7 @@ private[core] object BloomFilter extends LazyLogging {
       )
 
   def add(key: Slice[Byte],
-          state: BloomFilter.State): Unit = {
+          state: BloomFilterBlock.State): Unit = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
@@ -277,7 +277,7 @@ private[core] object BloomFilter extends LazyLogging {
   }
 
   def mightContain(key: Slice[Byte],
-                   reader: BlockReader[BloomFilter]): IO[Boolean] = {
+                   reader: BlockReader[BloomFilterBlock]): IO[Boolean] = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
@@ -303,12 +303,12 @@ private[core] object BloomFilter extends LazyLogging {
   }
 }
 
-private[core] case class BloomFilter(offset: BloomFilter.Offset,
-                                     maxProbe: Int,
-                                     numberOfBits: Int,
-                                     headerSize: Int,
-                                     compressionInfo: Option[Block.CompressionInfo]) extends Block {
+private[core] case class BloomFilterBlock(offset: BloomFilterBlock.Offset,
+                                          maxProbe: Int,
+                                          numberOfBits: Int,
+                                          headerSize: Int,
+                                          compressionInfo: Option[Block.CompressionInfo]) extends Block {
 
   override def updateOffset(start: Int, size: Int): Block =
-    copy(offset = BloomFilter.Offset(start = start, size = size))
+    copy(offset = BloomFilterBlock.Offset(start = start, size = size))
 }

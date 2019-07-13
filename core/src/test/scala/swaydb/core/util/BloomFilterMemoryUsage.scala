@@ -19,7 +19,7 @@
 
 package swaydb.core.util
 
-import swaydb.core.segment.format.a.block.BloomFilter
+import swaydb.core.segment.format.a.block.BloomFilterBlock
 import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default.LongSerializer
 
@@ -38,13 +38,13 @@ object BloomFilterMemoryUsage extends App {
     }
 
   val bloomFilter =
-    BloomFilter.init(
+    BloomFilterBlock.init(
       numberOfKeys = 1000000,
       falsePositiveRate = 0.01,
       compressions = _ => Seq.empty
     ).get
 
-  keys.foreach(BloomFilter.add(_, bloomFilter))
+  keys.foreach(BloomFilterBlock.add(_, bloomFilter))
 
   val freeAfter = Runtime.getRuntime.freeMemory()
   println("freeMemory after creating bloomFilter: " + freeAfter)

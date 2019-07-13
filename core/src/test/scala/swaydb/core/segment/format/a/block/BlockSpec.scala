@@ -43,7 +43,7 @@ class BlockSpec extends TestBase {
         //create block reader
         def blockReader =
           Block.createDecompressedBlockReader(
-            block = Values(Values.Offset(0, uncompressedBytes.size), headerSize, None),
+            block = ValuesBlock(ValuesBlock.Offset(0, uncompressedBytes.size), headerSize, None),
             readFullBlockIfUncompressed = randomBoolean(),
             segmentReader = SegmentBlock.createUnblockedReader(uncompressedBytes).get
           ).get
@@ -100,7 +100,7 @@ class BlockSpec extends TestBase {
         //create block reader
         def decompressedBlockReader =
           Block.createDecompressedBlockReader(
-            block = Values(Values.Offset(0, uncompressedBytes.size), headerSize, None),
+            block = ValuesBlock(ValuesBlock.Offset(0, uncompressedBytes.size), headerSize, None),
             readFullBlockIfUncompressed = randomBoolean(),
             segmentReader = SegmentBlock.createUnblockedReader(uncompressedBytes).get
           ).get
@@ -145,7 +145,7 @@ class BlockSpec extends TestBase {
           //create block reader
           def blockReader =
             Block.createDecompressedBlockReader(
-              block = Values(Values.Offset(0, compressedBytes.size), headerSize, header.compressionInfo),
+              block = ValuesBlock(ValuesBlock.Offset(0, compressedBytes.size), headerSize, header.compressionInfo),
               readFullBlockIfUncompressed = randomBoolean(),
               segmentReader = SegmentBlock.createUnblockedReader(compressedBytes).get
             ).get
@@ -200,7 +200,7 @@ class BlockSpec extends TestBase {
           //create block reader
           def decompressedBlockReader =
             Block.createDecompressedBlockReader(
-              block = Values(Values.Offset(0, compressedSegment.segmentSize), headerSize, header.compressionInfo),
+              block = ValuesBlock(ValuesBlock.Offset(0, compressedSegment.segmentSize), headerSize, header.compressionInfo),
               readFullBlockIfUncompressed = randomBoolean(),
               segmentReader = SegmentBlock.createUnblockedReader(compressedSegment.flattenSegmentBytes).get
             ).get

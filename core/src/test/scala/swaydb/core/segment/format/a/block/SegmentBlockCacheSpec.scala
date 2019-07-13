@@ -29,7 +29,7 @@ class SegmentBlockCacheSpec extends TestBase {
         randomizedKeyValues(100, addPut = true, addRandomGroups = false)
           .updateStats(
             binarySearchIndexConfig =
-              BinarySearchIndex.Config(
+              BinarySearchIndexBlock.Config(
                 enabled = true,
                 minimumNumberOfKeys = 0,
                 fullIndex = true,
@@ -37,7 +37,7 @@ class SegmentBlockCacheSpec extends TestBase {
                 compressions = _ => randomCompressions()
               ),
             sortedIndexConfig =
-              SortedIndex.Config(
+              SortedIndexBlock.Config(
                 blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
                 prefixCompressionResetCount = 3,
                 enableAccessPositionIndex = true,

@@ -62,62 +62,62 @@ object SegmentBlockCache {
     )
 
   private[block] def hashIndex(footer: SegmentBlock.Footer,
-                               blockReader: BlockReader[SegmentBlock]): IO[Option[HashIndex]] =
+                               blockReader: BlockReader[SegmentBlock]): IO[Option[HashIndexBlock]] =
     footer.hashIndexOffset map {
       hashIndexOffset =>
-        HashIndex
+        HashIndexBlock
           .read(hashIndexOffset, blockReader)
           .map(Some(_))
     } getOrElse IO.none
 
   private[block] def hashIndex(footer: Cache[BlockReader[SegmentBlock], SegmentBlock.Footer],
-                               blockReader: BlockReader[SegmentBlock]): IO[Option[HashIndex]] =
+                               blockReader: BlockReader[SegmentBlock]): IO[Option[HashIndexBlock]] =
     footer.value(blockReader) flatMap (hashIndex(_, blockReader))
 
   private[block] def bloomFilter(footer: SegmentBlock.Footer,
-                                 blockReader: BlockReader[SegmentBlock]): IO[Option[BloomFilter]] =
+                                 blockReader: BlockReader[SegmentBlock]): IO[Option[BloomFilterBlock]] =
     footer.bloomFilterOffset map {
       bloomFilterOffset =>
-        BloomFilter
+        BloomFilterBlock
           .read(bloomFilterOffset, blockReader)
           .map(Some(_))
     } getOrElse IO.none
 
   private[block] def bloomFilter(footer: Cache[BlockReader[SegmentBlock], SegmentBlock.Footer],
-                                 blockReader: BlockReader[SegmentBlock]): IO[Option[BloomFilter]] =
+                                 blockReader: BlockReader[SegmentBlock]): IO[Option[BloomFilterBlock]] =
     footer.value(blockReader) flatMap (bloomFilter(_, blockReader))
 
   private[block] def binarySearchIndex(footer: SegmentBlock.Footer,
-                                       blockReader: BlockReader[SegmentBlock]): IO[Option[BinarySearchIndex]] =
+                                       blockReader: BlockReader[SegmentBlock]): IO[Option[BinarySearchIndexBlock]] =
     footer.binarySearchIndexOffset map {
       binarySearchIndexOffset =>
-        BinarySearchIndex
+        BinarySearchIndexBlock
           .read(binarySearchIndexOffset, blockReader)
           .map(Some(_))
     } getOrElse IO.none
 
   private[block] def binarySearchIndex(footer: Cache[BlockReader[SegmentBlock], SegmentBlock.Footer],
-                                       blockReader: BlockReader[SegmentBlock]): IO[Option[BinarySearchIndex]] =
+                                       blockReader: BlockReader[SegmentBlock]): IO[Option[BinarySearchIndexBlock]] =
     footer.value(blockReader) flatMap (binarySearchIndex(_, blockReader))
 
   private[block] def values(footer: SegmentBlock.Footer,
-                            blockReader: BlockReader[SegmentBlock]): IO[Option[Values]] =
+                            blockReader: BlockReader[SegmentBlock]): IO[Option[ValuesBlock]] =
     footer.valuesOffset map {
       valuesOffset =>
-        Values
+        ValuesBlock
           .read(valuesOffset, blockReader)
           .map(Some(_))
     } getOrElse IO.none
 
   private[block] def values(footer: Cache[BlockReader[SegmentBlock], SegmentBlock.Footer],
-                            blockReader: BlockReader[SegmentBlock]): IO[Option[Values]] =
+                            blockReader: BlockReader[SegmentBlock]): IO[Option[ValuesBlock]] =
     footer.value(blockReader) flatMap (values(_, blockReader))
 
   private[block] def sortedIndex(footer: Cache[BlockReader[SegmentBlock], SegmentBlock.Footer],
-                                 blockReader: BlockReader[SegmentBlock]): IO[SortedIndex] =
+                                 blockReader: BlockReader[SegmentBlock]): IO[SortedIndexBlock] =
     footer.value(blockReader) flatMap {
       footer =>
-        SortedIndex
+        SortedIndexBlock
           .read(
             offset = footer.sortedIndexOffset,
             segmentReader = blockReader
@@ -147,7 +147,7 @@ class SegmentBlockCache(id: String,
   //    )(SegmentBlock.readFooter)
     ???
 
-  private[block] val hashIndexCache: Cache[BlockReader[SegmentBlock], Option[HashIndex]] =
+  private[block] val hashIndexCache: Cache[BlockReader[SegmentBlock], Option[HashIndexBlock]] =
   //    Cache.io[BlockReader[SegmentBlock], Option[HashIndex]](
   //      synchronised = true,
   //      reserved = false,
@@ -155,7 +155,7 @@ class SegmentBlockCache(id: String,
   //    )(SegmentBlockCache.hashIndex(footerCache, _))
     ???
 
-  private[block] val bloomFilterCache: Cache[BlockReader[SegmentBlock], Option[BloomFilter]] =
+  private[block] val bloomFilterCache: Cache[BlockReader[SegmentBlock], Option[BloomFilterBlock]] =
   //    Cache.io[BlockReader[SegmentBlock], Option[BloomFilter]](
   //      synchronised = true,
   //      reserved = false,
@@ -163,7 +163,7 @@ class SegmentBlockCache(id: String,
   //    )(SegmentBlockCache.bloomFilter(footerCache, _))
     ???
 
-  private[block] val binarySearchIndexCache: Cache[BlockReader[SegmentBlock], Option[BinarySearchIndex]] =
+  private[block] val binarySearchIndexCache: Cache[BlockReader[SegmentBlock], Option[BinarySearchIndexBlock]] =
   //    Cache.io[BlockReader[SegmentBlock], Option[BinarySearchIndex]](
   //      synchronised = true,
   //      reserved = false,
@@ -171,7 +171,7 @@ class SegmentBlockCache(id: String,
   //    )(SegmentBlockCache.binarySearchIndex(footerCache, _))
     ???
 
-  private[block] val sortedIndexCache: Cache[BlockReader[SegmentBlock], SortedIndex] =
+  private[block] val sortedIndexCache: Cache[BlockReader[SegmentBlock], SortedIndexBlock] =
   //    Cache.io[BlockReader[SegmentBlock], SortedIndex](
   //      synchronised = true,
   //      reserved = false,
@@ -179,7 +179,7 @@ class SegmentBlockCache(id: String,
   //    )(SegmentBlockCache.sortedIndex(footerCache, _))
     ???
 
-  private[block] val valuesCache: Cache[BlockReader[SegmentBlock], Option[Values]] =
+  private[block] val valuesCache: Cache[BlockReader[SegmentBlock], Option[ValuesBlock]] =
   //    Cache.io[BlockReader[SegmentBlock], Option[Values]](
   //      synchronised = true,
   //      reserved = false,
@@ -194,36 +194,36 @@ class SegmentBlockCache(id: String,
       segmentBlockReader = SegmentBlock.createUnblockedReader(segmentBlockInfo.segmentReader())
     )
 
-  private[block] val hashIndexReaderCache: Cache[HashIndex, BlockReader[HashIndex]] =
-    SegmentBlockCache.createBlockReaderCache[HashIndex](
+  private[block] val hashIndexReaderCache: Cache[HashIndexBlock, BlockReader[HashIndexBlock]] =
+    SegmentBlockCache.createBlockReaderCache[HashIndexBlock](
       reserveError = IO.Error.DecompressingValues(Reserve()),
       blockIO = ???,
       segmentBlockReader = createSegmentBlockReader()
     )
 
-  private[block] val bloomFilterReaderCache: Cache[BloomFilter, BlockReader[BloomFilter]] =
-    SegmentBlockCache.createBlockReaderCache[BloomFilter](
+  private[block] val bloomFilterReaderCache: Cache[BloomFilterBlock, BlockReader[BloomFilterBlock]] =
+    SegmentBlockCache.createBlockReaderCache[BloomFilterBlock](
       reserveError = IO.Error.DecompressingValues(Reserve()),
       blockIO = ???,
       segmentBlockReader = createSegmentBlockReader()
     )
 
-  private[block] val binarySearchIndexReaderCache: Cache[BinarySearchIndex, BlockReader[BinarySearchIndex]] =
-    SegmentBlockCache.createBlockReaderCache[BinarySearchIndex](
+  private[block] val binarySearchIndexReaderCache: Cache[BinarySearchIndexBlock, BlockReader[BinarySearchIndexBlock]] =
+    SegmentBlockCache.createBlockReaderCache[BinarySearchIndexBlock](
       reserveError = IO.Error.DecompressingValues(Reserve()),
       blockIO = ???,
       segmentBlockReader = createSegmentBlockReader()
     )
 
-  private[block] val sortedIndexReaderCache: Cache[SortedIndex, BlockReader[SortedIndex]] =
-    SegmentBlockCache.createBlockReaderCache[SortedIndex](
+  private[block] val sortedIndexReaderCache: Cache[SortedIndexBlock, BlockReader[SortedIndexBlock]] =
+    SegmentBlockCache.createBlockReaderCache[SortedIndexBlock](
       reserveError = IO.Error.DecompressingValues(Reserve()),
       blockIO = ???,
       segmentBlockReader = createSegmentBlockReader()
     )
 
-  private[block] val valuesReaderCache: Cache[Values, BlockReader[Values]] =
-    SegmentBlockCache.createBlockReaderCache[Values](
+  private[block] val valuesReaderCache: Cache[ValuesBlock, BlockReader[ValuesBlock]] =
+    SegmentBlockCache.createBlockReaderCache[ValuesBlock](
       reserveError = IO.Error.DecompressingValues(Reserve()),
       blockIO = ???,
       segmentBlockReader = createSegmentBlockReader()
@@ -252,13 +252,13 @@ class SegmentBlockCache(id: String,
         footerCache.value(segmentBlock)
     }
 
-  def getHashIndex(): IO[Option[HashIndex]] =
+  def getHashIndex(): IO[Option[HashIndexBlock]] =
     createSegmentBlockReader() flatMap {
       segmentBlockReader =>
         hashIndexCache.value(segmentBlockReader)
     }
 
-  def createHashIndexReader(): IO[Option[BlockReader[HashIndex]]] =
+  def createHashIndexReader(): IO[Option[BlockReader[HashIndexBlock]]] =
     getHashIndex()
       .flatMap {
         block =>
@@ -273,13 +273,13 @@ class SegmentBlockCache(id: String,
           } getOrElse IO.none
       }
 
-  def getBloomFilter(): IO[Option[BloomFilter]] =
+  def getBloomFilter(): IO[Option[BloomFilterBlock]] =
     createSegmentBlockReader() flatMap {
       segmentBlockReader =>
         bloomFilterCache.value(segmentBlockReader)
     }
 
-  def createBloomFilterReader(): IO[Option[BlockReader[BloomFilter]]] =
+  def createBloomFilterReader(): IO[Option[BlockReader[BloomFilterBlock]]] =
     getBloomFilter()
       .flatMap {
         block =>
@@ -294,14 +294,14 @@ class SegmentBlockCache(id: String,
           } getOrElse IO.none
       }
 
-  def getBinarySearchIndex(): IO[Option[BinarySearchIndex]] =
+  def getBinarySearchIndex(): IO[Option[BinarySearchIndexBlock]] =
     createSegmentBlockReader() flatMap {
       segmentBlockReader =>
         binarySearchIndexCache
           .value(segmentBlockReader)
     }
 
-  def createBinarySearchIndexReader(): IO[Option[BlockReader[BinarySearchIndex]]] =
+  def createBinarySearchIndexReader(): IO[Option[BlockReader[BinarySearchIndexBlock]]] =
     getBinarySearchIndex()
       .flatMap {
         block =>
@@ -313,13 +313,13 @@ class SegmentBlockCache(id: String,
           } getOrElse IO.none
       }
 
-  def getSortedIndex(): IO[SortedIndex] =
+  def getSortedIndex(): IO[SortedIndexBlock] =
     createSegmentBlockReader() flatMap {
       segmentBlockReader =>
         sortedIndexCache.value(segmentBlockReader)
     }
 
-  def createSortedIndexReader(): IO[BlockReader[SortedIndex]] =
+  def createSortedIndexReader(): IO[BlockReader[SortedIndexBlock]] =
     getSortedIndex()
       .flatMap {
         block =>
@@ -328,13 +328,13 @@ class SegmentBlockCache(id: String,
             .map(_.copy())
       }
 
-  def getValues(): IO[Option[Values]] =
+  def getValues(): IO[Option[ValuesBlock]] =
     createSegmentBlockReader() flatMap {
       segmentBlockReader =>
         valuesCache.value(segmentBlockReader)
     }
 
-  def createValuesReader(): IO[Option[BlockReader[Values]]] =
+  def createValuesReader(): IO[Option[BlockReader[ValuesBlock]]] =
     getValues()
       .flatMap {
         block =>
@@ -356,7 +356,7 @@ class SegmentBlockCache(id: String,
           sortedIndexReader =>
             createValuesReader() flatMap {
               valuesReader =>
-                SortedIndex.readAll(
+                SortedIndexBlock.readAll(
                   keyValueCount = footer.keyValueCount,
                   sortedIndexReader = sortedIndexReader,
                   valuesReader = valuesReader,

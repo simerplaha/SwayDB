@@ -21,7 +21,7 @@ class SegmentBlockSearcherSpec extends TestBase with MockFactory {
         val keyValues =
           _keyValues.updateStats(
             binarySearchIndexConfig =
-              BinarySearchIndex.Config(
+              BinarySearchIndexBlock.Config(
                 enabled = true,
                 minimumNumberOfKeys = 0,
                 fullIndex = randomBoolean(),
@@ -29,7 +29,7 @@ class SegmentBlockSearcherSpec extends TestBase with MockFactory {
                 compressions = _ => randomCompressionsOrEmpty()
               ),
             hashIndexConfig =
-              HashIndex.Config(
+              HashIndexBlock.Config(
                 maxProbe = 100,
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,

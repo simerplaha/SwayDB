@@ -151,11 +151,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                           lastGroup: Option[Transient.Group],
                           segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
                           groupingStrategy: GroupingStrategy,
-                          valuesConfig: Values.Config,
-                          sortedIndexConfig: SortedIndex.Config,
-                          binarySearchIndexConfig: BinarySearchIndex.Config,
-                          hashIndexConfig: HashIndex.Config,
-                          bloomFilterConfig: BloomFilter.Config): IO[Group] =
+                          valuesConfig: ValuesBlock.Config,
+                          sortedIndexConfig: SortedIndexBlock.Config,
+                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                          hashIndexConfig: HashIndexBlock.Config,
+                          bloomFilterConfig: BloomFilterBlock.Config): IO[Group] =
     Transient.Group(
       keyValues = keyValuesToGroup,
       previous = lastGroup,
@@ -180,11 +180,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
   private[segment] def groupKeyValues(segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
                                       groupingStrategy: KeyValueGroupingStrategyInternal,
-                                      valuesConfig: Values.Config,
-                                      sortedIndexConfig: SortedIndex.Config,
-                                      binarySearchIndexConfig: BinarySearchIndex.Config,
-                                      hashIndexConfig: HashIndex.Config,
-                                      bloomFilterConfig: BloomFilter.Config,
+                                      valuesConfig: ValuesBlock.Config,
+                                      sortedIndexConfig: SortedIndexBlock.Config,
+                                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                      hashIndexConfig: HashIndexBlock.Config,
+                                      bloomFilterConfig: BloomFilterBlock.Config,
                                       force: Boolean): IO[Option[Group]] =
     keyValuesToGroup(
       segmentKeyValues = segmentKeyValues,
@@ -210,11 +210,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
   private[segment] def groupGroups(groupKeyValues: ListBuffer[KeyValue.WriteOnly],
                                    groupingStrategy: GroupGroupingStrategyInternal,
-                                   valuesConfig: Values.Config,
-                                   sortedIndexConfig: SortedIndex.Config,
-                                   binarySearchIndexConfig: BinarySearchIndex.Config,
-                                   hashIndexConfig: HashIndex.Config,
-                                   bloomFilterConfig: BloomFilter.Config,
+                                   valuesConfig: ValuesBlock.Config,
+                                   sortedIndexConfig: SortedIndexBlock.Config,
+                                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                   hashIndexConfig: HashIndexBlock.Config,
+                                   bloomFilterConfig: BloomFilterBlock.Config,
                                    force: Boolean): IO[Option[Group]] =
     groupsToGroup(
       keyValues = groupKeyValues,
@@ -242,11 +242,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
     */
   private[segment] def group(segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
                              groupingStrategy: KeyValueGroupingStrategyInternal,
-                             valuesConfig: Values.Config,
-                             sortedIndexConfig: SortedIndex.Config,
-                             binarySearchIndexConfig: BinarySearchIndex.Config,
-                             hashIndexConfig: HashIndex.Config,
-                             bloomFilterConfig: BloomFilter.Config,
+                             valuesConfig: ValuesBlock.Config,
+                             sortedIndexConfig: SortedIndexBlock.Config,
+                             binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                             hashIndexConfig: HashIndexBlock.Config,
+                             bloomFilterConfig: BloomFilterBlock.Config,
                              force: Boolean): IO[Option[Group]] =
     for {
       keyValuesGroup <- {
@@ -289,12 +289,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
                    minSegmentSize: Long,
                    forInMemory: Boolean,
                    isLastLevel: Boolean,
-                   valuesConfig: Values.Config,
-                   sortedIndexConfig: SortedIndex.Config,
-                   binarySearchIndexConfig: BinarySearchIndex.Config,
-                   hashIndexConfig: HashIndex.Config,
-                   bloomFilterConfig: BloomFilter.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                          keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] =
+                   valuesConfig: ValuesBlock.Config,
+                   sortedIndexConfig: SortedIndexBlock.Config,
+                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                   hashIndexConfig: HashIndexBlock.Config,
+                   bloomFilterConfig: BloomFilterBlock.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                               keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] =
     keyValues.headOption match {
       case Some(keyValue) =>
         keyValue match {
@@ -356,12 +356,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   minSegmentSize: Long,
                   forInMemory: Boolean,
                   isLastLevel: Boolean,
-                  valuesConfig: Values.Config,
-                  sortedIndexConfig: SortedIndex.Config,
-                  binarySearchIndexConfig: BinarySearchIndex.Config,
-                  hashIndexConfig: HashIndex.Config,
-                  bloomFilterConfig: BloomFilter.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                         keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] = {
+                  valuesConfig: ValuesBlock.Config,
+                  sortedIndexConfig: SortedIndexBlock.Config,
+                  binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                  hashIndexConfig: HashIndexBlock.Config,
+                  bloomFilterConfig: BloomFilterBlock.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                              keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] = {
 
     def doAdd(keyValueToAdd: Option[KeyValue.WriteOnly] => KeyValue.WriteOnly): IO[Unit] = {
 

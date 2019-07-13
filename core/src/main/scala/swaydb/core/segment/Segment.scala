@@ -62,7 +62,7 @@ private[core] object Segment extends LazyLogging {
     if (keyValues.isEmpty) {
       IO.Failure(new Exception("Empty key-values submitted to memory Segment."))
     } else {
-      val bloomFilter: Option[BloomFilter.State] = BloomFilter.init(keyValues = keyValues)
+      val bloomFilter: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](keyOrder)
       //Note: WriteOnly key-values can be received from Persistent Segments in which case it's important that
       //all byte arrays are unsliced before writing them to Memory Segment.
@@ -80,7 +80,7 @@ private[core] object Segment extends LazyLogging {
       } flatMap {
         minMaxDeadline =>
           bloomFilter
-            .map(BloomFilter.closeForMemory)
+            .map(BloomFilterBlock.closeForMemory)
             .getOrElse(IO.none)
             .map {
               bloomFilter =>
@@ -194,16 +194,16 @@ private[core] object Segment extends LazyLogging {
                     mmapSegmentsOnWrite: Boolean,
                     removeDeletes: Boolean,
                     minSegmentSize: Long,
-                    valuesConfig: Values.Config,
-                    sortedIndexConfig: SortedIndex.Config,
-                    binarySearchIndexConfig: BinarySearchIndex.Config,
-                    hashIndexConfig: HashIndex.Config,
-                    bloomFilterConfig: BloomFilter.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                           timeOrder: TimeOrder[Slice[Byte]],
-                                                           functionStore: FunctionStore,
-                                                           keyValueLimiter: KeyValueLimiter,
-                                                           fileOpenLimiter: FileLimiter,
-                                                           compression: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
+                    valuesConfig: ValuesBlock.Config,
+                    sortedIndexConfig: SortedIndexBlock.Config,
+                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                    hashIndexConfig: HashIndexBlock.Config,
+                    bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                                functionStore: FunctionStore,
+                                                                keyValueLimiter: KeyValueLimiter,
+                                                                fileOpenLimiter: FileLimiter,
+                                                                compression: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     segment match {
       case segment: PersistentSegment =>
         val nextPath = fetchNextPath
@@ -257,16 +257,16 @@ private[core] object Segment extends LazyLogging {
                     mmapSegmentsOnWrite: Boolean,
                     removeDeletes: Boolean,
                     minSegmentSize: Long,
-                    valuesConfig: Values.Config,
-                    sortedIndexConfig: SortedIndex.Config,
-                    binarySearchIndexConfig: BinarySearchIndex.Config,
-                    hashIndexConfig: HashIndex.Config,
-                    bloomFilterConfig: BloomFilter.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                           timeOrder: TimeOrder[Slice[Byte]],
-                                                           functionStore: FunctionStore,
-                                                           keyValueLimiter: KeyValueLimiter,
-                                                           fileOpenLimiter: FileLimiter,
-                                                           compression: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
+                    valuesConfig: ValuesBlock.Config,
+                    sortedIndexConfig: SortedIndexBlock.Config,
+                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                    hashIndexConfig: HashIndexBlock.Config,
+                    bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                                functionStore: FunctionStore,
+                                                                keyValueLimiter: KeyValueLimiter,
+                                                                fileOpenLimiter: FileLimiter,
+                                                                compression: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
       minSegmentSize = minSegmentSize,
@@ -308,16 +308,16 @@ private[core] object Segment extends LazyLogging {
                    fetchNextPath: => Path,
                    removeDeletes: Boolean,
                    minSegmentSize: Long,
-                   valuesConfig: Values.Config,
-                   sortedIndexConfig: SortedIndex.Config,
-                   binarySearchIndexConfig: BinarySearchIndex.Config,
-                   hashIndexConfig: HashIndex.Config,
-                   bloomFilterConfig: BloomFilter.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                          functionStore: FunctionStore,
-                                                          fileLimiter: FileLimiter,
-                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                          keyValueLimiter: KeyValueLimiter): IO[Slice[Segment]] =
+                   valuesConfig: ValuesBlock.Config,
+                   sortedIndexConfig: SortedIndexBlock.Config,
+                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                   hashIndexConfig: HashIndexBlock.Config,
+                   bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                               timeOrder: TimeOrder[Slice[Byte]],
+                                                               functionStore: FunctionStore,
+                                                               fileLimiter: FileLimiter,
+                                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                               keyValueLimiter: KeyValueLimiter): IO[Slice[Segment]] =
     segment.getAll() flatMap {
       keyValues =>
         copyToMemory(
@@ -339,16 +339,16 @@ private[core] object Segment extends LazyLogging {
                    removeDeletes: Boolean,
                    minSegmentSize: Long,
                    createdInLevel: Long,
-                   valuesConfig: Values.Config,
-                   sortedIndexConfig: SortedIndex.Config,
-                   binarySearchIndexConfig: BinarySearchIndex.Config,
-                   hashIndexConfig: HashIndex.Config,
-                   bloomFilterConfig: BloomFilter.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                          functionStore: FunctionStore,
-                                                          fileLimiter: FileLimiter,
-                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                          keyValueLimiter: KeyValueLimiter): IO[Slice[Segment]] =
+                   valuesConfig: ValuesBlock.Config,
+                   sortedIndexConfig: SortedIndexBlock.Config,
+                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                   hashIndexConfig: HashIndexBlock.Config,
+                   bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                               timeOrder: TimeOrder[Slice[Byte]],
+                                                               functionStore: FunctionStore,
+                                                               fileLimiter: FileLimiter,
+                                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                               keyValueLimiter: KeyValueLimiter): IO[Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
       minSegmentSize = minSegmentSize,
@@ -828,11 +828,11 @@ private[core] trait Segment extends FileLimiterItem {
           minSegmentSize: Long,
           removeDeletes: Boolean,
           createdInLevel: Int,
-          valuesConfig: Values.Config,
-          sortedIndexConfig: SortedIndex.Config,
-          binarySearchIndexConfig: BinarySearchIndex.Config,
-          hashIndexConfig: HashIndex.Config,
-          bloomFilterConfig: BloomFilter.Config,
+          valuesConfig: ValuesBlock.Config,
+          sortedIndexConfig: SortedIndexBlock.Config,
+          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+          hashIndexConfig: HashIndexBlock.Config,
+          bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
@@ -840,11 +840,11 @@ private[core] trait Segment extends FileLimiterItem {
   def refresh(minSegmentSize: Long,
               removeDeletes: Boolean,
               createdInLevel: Int,
-              valuesConfig: Values.Config,
-              sortedIndexConfig: SortedIndex.Config,
-              binarySearchIndexConfig: BinarySearchIndex.Config,
-              hashIndexConfig: HashIndex.Config,
-              bloomFilterConfig: BloomFilter.Config,
+              valuesConfig: ValuesBlock.Config,
+              sortedIndexConfig: SortedIndexBlock.Config,
+              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+              hashIndexConfig: HashIndexBlock.Config,
+              bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]

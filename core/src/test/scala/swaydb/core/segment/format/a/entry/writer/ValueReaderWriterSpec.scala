@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.entry.writer
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, Time, Transient}
 import swaydb.core.io.reader.{BlockReader, Reader}
-import swaydb.core.segment.format.a.block.{SortedIndex, Values}
+import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, BaseEntryIdFormatA, TransientToKeyValueIdBinder}
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.{TestBase, TestTimer}
@@ -53,14 +53,14 @@ class ValueReaderWriterSpec extends TestBase {
         Memory.Function(3, 100, Time.empty)
       ).toTransient(
         valuesConfig =
-          Values.Config(
+          ValuesBlock.Config(
             compressDuplicateValues = true,
             compressDuplicateRangeValues = true,
             blockIO = _ => randomIOAccess(),
             compressions = _ => randomCompressionsOrEmpty()
           ),
         sortedIndexConfig =
-          SortedIndex.Config.random.copy(
+          SortedIndexBlock.Config.random.copy(
             prefixCompressionResetCount = 0
           )
       )
@@ -80,7 +80,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues.head.indexEntryBytes),
         mightBeCompressed = randomBoolean(),
-        valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head)),
+        valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head).get),
         indexOffset = 0,
         nextIndexOffset = keyValues.head.indexEntryBytes.size,
         nextIndexSize = keyValues(1).indexEntryBytes.size,
@@ -106,7 +106,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues(1).indexEntryBytes),
         mightBeCompressed = true,
-        valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head)),
+        valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head).get),
         indexOffset = 0,
         nextIndexOffset = keyValues(1).indexEntryBytes.size,
         nextIndexSize = keyValues(2).indexEntryBytes.size,
@@ -132,7 +132,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues(2).indexEntryBytes),
         mightBeCompressed = true,
-        valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head)),
+        valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head).get),
         indexOffset = 0,
         nextIndexOffset = 0,
         nextIndexSize = 0,
@@ -152,14 +152,14 @@ class ValueReaderWriterSpec extends TestBase {
         Memory.Function(3, 100, Time.empty)
       ).toTransient(
         valuesConfig =
-          Values.Config(
+          ValuesBlock.Config(
             compressDuplicateValues = true,
             compressDuplicateRangeValues = true,
             blockIO = _ => randomIOAccess(),
             compressions = _ => randomCompressionsOrEmpty()
           ),
         sortedIndexConfig =
-          SortedIndex.Config.random.copy(
+          SortedIndexBlock.Config.random.copy(
             prefixCompressionResetCount = Int.MaxValue
           )
       )
@@ -179,7 +179,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues.head.indexEntryBytes),
         mightBeCompressed = randomBoolean(),
-        valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head)),
+        valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head).get),
         indexOffset = 0,
         nextIndexOffset = keyValues.head.indexEntryBytes.size,
         nextIndexSize = keyValues(1).indexEntryBytes.size,
@@ -205,7 +205,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues(1).indexEntryBytes),
         mightBeCompressed = true,
-        valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head)),
+        valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head).get),
         indexOffset = 0,
         nextIndexOffset = keyValues(1).indexEntryBytes.size,
         nextIndexSize = keyValues(2).indexEntryBytes.size,
@@ -231,7 +231,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues(2).indexEntryBytes),
         mightBeCompressed = true,
-        valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head)),
+        valueReader = Some(BlockReader.unblockedValues(keyValues.head.valueEntryBytes.head).get),
         indexOffset = 0,
         nextIndexOffset = 0,
         nextIndexSize = 0,
@@ -251,14 +251,14 @@ class ValueReaderWriterSpec extends TestBase {
         Memory.remove(3)
       ).toTransient(
         valuesConfig =
-          Values.Config(
+          ValuesBlock.Config(
             compressDuplicateValues = randomBoolean(),
             compressDuplicateRangeValues = randomBoolean(),
             blockIO = _ => randomIOAccess(),
             compressions = _ => randomCompressionsOrEmpty()
           ),
         sortedIndexConfig =
-          SortedIndex.Config.random.copy(
+          SortedIndexBlock.Config.random.copy(
             prefixCompressionResetCount = 0
           )
       )

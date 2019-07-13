@@ -57,11 +57,11 @@ class GroupCompressorSpec extends TestBase {
         //multiple key-values
         randomizedKeyValues(keyValueCount, startId = Some(1), addPut = true)
     ).updateStats(
-      valuesConfig = Values.Config.random.copy(compressions = compressions),
-      sortedIndexConfig = SortedIndex.Config.random.copy(compressions = compressions),
-      binarySearchIndexConfig = BinarySearchIndex.Config.random.copy(compressions = compressions),
-      hashIndexConfig = HashIndex.Config.random.copy(compressions = compressions),
-      bloomFilterConfig = BloomFilter.Config.random.copy(compressions = compressions)
+      valuesConfig = ValuesBlock.Config.random.copy(compressions = compressions),
+      sortedIndexConfig = SortedIndexBlock.Config.random.copy(compressions = compressions),
+      binarySearchIndexConfig = BinarySearchIndexBlock.Config.random.copy(compressions = compressions),
+      hashIndexConfig = HashIndexBlock.Config.random.copy(compressions = compressions),
+      bloomFilterConfig = BloomFilterBlock.Config.random.copy(compressions = compressions)
     )
 
   "GroupCompressor" should {
@@ -70,11 +70,11 @@ class GroupCompressorSpec extends TestBase {
         keyValues = Slice.empty,
         previous = None,
         groupConfig = SegmentBlock.Config.random,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random
       ).failed.get.exception.getMessage shouldBe GroupCompressor.cannotGroupEmptyValues.exception.getMessage
     }
 
@@ -90,11 +90,11 @@ class GroupCompressorSpec extends TestBase {
               keyValues = keyValues,
               previous = None,
               groupConfig = SegmentBlock.Config.random,
-              valuesConfig = Values.Config.random,
-              sortedIndexConfig = SortedIndex.Config.random,
-              binarySearchIndexConfig = BinarySearchIndex.Config.random,
-              hashIndexConfig = HashIndex.Config.random,
-              bloomFilterConfig = BloomFilter.Config.random
+              valuesConfig = ValuesBlock.Config.random,
+              sortedIndexConfig = SortedIndexBlock.Config.random,
+              binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+              hashIndexConfig = HashIndexBlock.Config.random,
+              bloomFilterConfig = BloomFilterBlock.Config.random
             ).get
 
           //none of the group's blocks are compressed.
@@ -120,11 +120,11 @@ class GroupCompressorSpec extends TestBase {
               keyValues = keyValues,
               previous = None,
               groupConfig = SegmentBlock.Config.random,
-              valuesConfig = Values.Config.random,
-              sortedIndexConfig = SortedIndex.Config.random,
-              binarySearchIndexConfig = BinarySearchIndex.Config.random,
-              hashIndexConfig = HashIndex.Config.random,
-              bloomFilterConfig = BloomFilter.Config.random
+              valuesConfig = ValuesBlock.Config.random,
+              sortedIndexConfig = SortedIndexBlock.Config.random,
+              binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+              hashIndexConfig = HashIndexBlock.Config.random,
+              bloomFilterConfig = BloomFilterBlock.Config.random
             ).get
 
           //none of the group's blocks are compressed.

@@ -73,11 +73,11 @@ private[core] object SegmentBlock {
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
-  case class Footer(valuesOffset: Option[Values.Offset],
-                    sortedIndexOffset: SortedIndex.Offset,
-                    hashIndexOffset: Option[HashIndex.Offset],
-                    binarySearchIndexOffset: Option[BinarySearchIndex.Offset],
-                    bloomFilterOffset: Option[BloomFilter.Offset],
+  case class Footer(valuesOffset: Option[ValuesBlock.Offset],
+                    sortedIndexOffset: SortedIndexBlock.Offset,
+                    hashIndexOffset: Option[HashIndexBlock.Offset],
+                    binarySearchIndexOffset: Option[BinarySearchIndexBlock.Offset],
+                    bloomFilterOffset: Option[BloomFilterBlock.Offset],
                     keyValueCount: Int,
                     createdInLevel: Int,
                     bloomFilterItemsCount: Int,
@@ -203,11 +203,11 @@ private[core] object SegmentBlock {
       (flattenSegmentBytes, nearestDeadline)
   }
 
-  private case class ClosedBlocks(sortedIndex: SortedIndex.State,
-                                  values: Option[Values.State],
-                                  hashIndex: Option[HashIndex.State],
-                                  binarySearchIndex: Option[BinarySearchIndex.State],
-                                  bloomFilter: Option[BloomFilter.State],
+  private case class ClosedBlocks(sortedIndex: SortedIndexBlock.State,
+                                  values: Option[ValuesBlock.State],
+                                  hashIndex: Option[HashIndexBlock.State],
+                                  binarySearchIndex: Option[BinarySearchIndexBlock.State],
+                                  bloomFilter: Option[BloomFilterBlock.State],
                                   minMaxFunction: Option[MinMax[Slice[Byte]]],
                                   nearestDeadline: Option[Deadline])
 
@@ -268,7 +268,7 @@ private[core] object SegmentBlock {
         IO.Failure(SegmentCorruptionException(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
       } else {
         val sortedIndexOffset =
-          SortedIndex.Offset(
+          SortedIndexBlock.Offset(
             size = footerReader.readIntUnsigned().get,
             start = footerReader.readIntUnsigned().get
           )
@@ -279,7 +279,7 @@ private[core] object SegmentBlock {
             None
           else
             Some(
-              HashIndex.Offset(
+              HashIndexBlock.Offset(
                 start = footerReader.readIntUnsigned().get,
                 size = hashIndexSize
               )
@@ -291,7 +291,7 @@ private[core] object SegmentBlock {
             None
           else
             Some(
-              BinarySearchIndex.Offset(
+              BinarySearchIndexBlock.Offset(
                 start = footerReader.readIntUnsigned().get,
                 size = binarySearchIndexSize
               )
@@ -303,7 +303,7 @@ private[core] object SegmentBlock {
             None
           else
             Some(
-              BloomFilter.Offset(
+              BloomFilterBlock.Offset(
                 start = footerReader.readIntUnsigned().get,
                 size = bloomFilterSize
               )
@@ -313,7 +313,7 @@ private[core] object SegmentBlock {
           if (sortedIndexOffset.start == 0)
             None
           else
-            Some(Values.Offset(0, sortedIndexOffset.start))
+            Some(ValuesBlock.Offset(0, sortedIndexOffset.start))
 
         IO.Success(
           Footer(
@@ -367,9 +367,9 @@ private[core] object SegmentBlock {
 
   def writeIndexBlocks(keyValue: KeyValue.WriteOnly,
                        memoryMap: Option[ConcurrentSkipListMap[Slice[Byte], Memory]],
-                       hashIndex: Option[HashIndex.State],
-                       binarySearchIndex: Option[BinarySearchIndex.State],
-                       bloomFilter: Option[BloomFilter.State],
+                       hashIndex: Option[HashIndexBlock.State],
+                       binarySearchIndex: Option[BinarySearchIndexBlock.State],
+                       bloomFilter: Option[BloomFilterBlock.State],
                        currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
                        currentNearestDeadline: Option[Deadline]): IO[DeadlineAndFunctionId] = {
 
@@ -388,11 +388,11 @@ private[core] object SegmentBlock {
               .map(_.stats.thisKeyValuesAccessIndexOffset)
               .getOrElse(keyValue.stats.thisKeyValuesAccessIndexOffset)
 
-          bloomFilter foreach (BloomFilter.add(keyValue.minKey, _))
+          bloomFilter foreach (BloomFilterBlock.add(keyValue.minKey, _))
 
           hashIndex map {
             hashIndexState =>
-              HashIndex.write(
+              HashIndexBlock.write(
                 key = keyValue.minKey,
                 value = thisKeyValuesAccessOffset,
                 state = hashIndexState
@@ -405,7 +405,7 @@ private[core] object SegmentBlock {
             case None | Some(IO.Success(_)) =>
               binarySearchIndex map {
                 state =>
-                  BinarySearchIndex.write(
+                  BinarySearchIndexBlock.write(
                     value = thisKeyValuesAccessOffset,
                     state = state
                   )
@@ -611,16 +611,16 @@ private[core] object SegmentBlock {
   }
 
   private def writeBlocks(keyValue: KeyValue.WriteOnly,
-                          sortedIndex: SortedIndex.State,
-                          values: Option[Values.State],
-                          hashIndex: Option[HashIndex.State],
-                          binarySearchIndex: Option[BinarySearchIndex.State],
-                          bloomFilter: Option[BloomFilter.State],
+                          sortedIndex: SortedIndexBlock.State,
+                          values: Option[ValuesBlock.State],
+                          hashIndex: Option[HashIndexBlock.State],
+                          binarySearchIndex: Option[BinarySearchIndexBlock.State],
+                          bloomFilter: Option[BloomFilterBlock.State],
                           currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
                           currentNearestDeadline: Option[Deadline]): IO[DeadlineAndFunctionId] =
-    SortedIndex
+    SortedIndexBlock
       .write(keyValue = keyValue, state = sortedIndex)
-      .flatMap(_ => values.map(Values.write(keyValue, _)) getOrElse IO.unit)
+      .flatMap(_ => values.map(ValuesBlock.write(keyValue, _)) getOrElse IO.unit)
       .flatMap {
         _ =>
           writeIndexBlocks(
@@ -634,19 +634,19 @@ private[core] object SegmentBlock {
           )
       }
 
-  private def closeBlocks(sortedIndex: SortedIndex.State,
-                          values: Option[Values.State],
-                          hashIndex: Option[HashIndex.State],
-                          binarySearchIndex: Option[BinarySearchIndex.State],
-                          bloomFilter: Option[BloomFilter.State],
+  private def closeBlocks(sortedIndex: SortedIndexBlock.State,
+                          values: Option[ValuesBlock.State],
+                          hashIndex: Option[HashIndexBlock.State],
+                          binarySearchIndex: Option[BinarySearchIndexBlock.State],
+                          bloomFilter: Option[BloomFilterBlock.State],
                           minMaxFunction: Option[MinMax[Slice[Byte]]],
                           nearestDeadline: Option[Deadline]): IO[ClosedBlocks] =
     for {
-      sortedIndexClosed <- SortedIndex.close(sortedIndex)
-      valuesClosed <- values.map(values => Values.close(values).map(Some(_))) getOrElse IO.none
-      hashIndexClosed <- hashIndex.map(HashIndex.close) getOrElse IO.none
-      binarySearchIndexClosed <- binarySearchIndex.map(BinarySearchIndex.close) getOrElse IO.none
-      bloomFilterClosed <- bloomFilter.map(BloomFilter.close) getOrElse IO.none
+      sortedIndexClosed <- SortedIndexBlock.close(sortedIndex)
+      valuesClosed <- values.map(values => ValuesBlock.close(values).map(Some(_))) getOrElse IO.none
+      hashIndexClosed <- hashIndex.map(HashIndexBlock.close) getOrElse IO.none
+      binarySearchIndexClosed <- binarySearchIndex.map(BinarySearchIndexBlock.close) getOrElse IO.none
+      bloomFilterClosed <- bloomFilter.map(BloomFilterBlock.close) getOrElse IO.none
     } yield
       ClosedBlocks(
         sortedIndex = sortedIndexClosed,
@@ -659,11 +659,11 @@ private[core] object SegmentBlock {
       )
 
   private def write(keyValues: Iterable[KeyValue.WriteOnly],
-                    sortedIndex: SortedIndex.State,
-                    values: Option[Values.State],
-                    hashIndex: Option[HashIndex.State],
-                    binarySearchIndex: Option[BinarySearchIndex.State],
-                    bloomFilter: Option[BloomFilter.State]): IO[ClosedBlocks] =
+                    sortedIndex: SortedIndexBlock.State,
+                    values: Option[ValuesBlock.State],
+                    hashIndex: Option[HashIndexBlock.State],
+                    binarySearchIndex: Option[BinarySearchIndexBlock.State],
+                    bloomFilter: Option[BloomFilterBlock.State]): IO[ClosedBlocks] =
     keyValues.foldLeftIO(DeadlineAndFunctionId(None, None)) {
       case (nearestDeadlineMinMaxFunctionId, keyValue) =>
         writeBlocks(
@@ -723,11 +723,11 @@ private[core] object SegmentBlock {
     if (keyValues.isEmpty)
       Open.emptyIO
     else {
-      val sortedIndex = SortedIndex.init(keyValues = keyValues)
-      val values = Values.init(keyValues = keyValues)
-      val hashIndex = HashIndex.init(keyValues = keyValues)
-      val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues)
-      val bloomFilter = BloomFilter.init(keyValues = keyValues)
+      val sortedIndex = SortedIndexBlock.init(keyValues = keyValues)
+      val values = ValuesBlock.init(keyValues = keyValues)
+      val hashIndex = HashIndexBlock.init(keyValues = keyValues)
+      val binarySearchIndex = BinarySearchIndexBlock.init(keyValues = keyValues)
+      val bloomFilter = BloomFilterBlock.init(keyValues = keyValues)
 
       bloomFilter foreach {
         bloomFilter =>

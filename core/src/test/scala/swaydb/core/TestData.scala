@@ -86,11 +86,11 @@ object TestData {
         bloomFilterConfig = keyValues.last.bloomFilterConfig
       )
 
-    def updateStats(valuesConfig: Values.Config = keyValues.last.valuesConfig,
-                    sortedIndexConfig: SortedIndex.Config = keyValues.last.sortedIndexConfig,
-                    binarySearchIndexConfig: BinarySearchIndex.Config = keyValues.last.binarySearchIndexConfig,
-                    hashIndexConfig: HashIndex.Config = keyValues.last.hashIndexConfig,
-                    bloomFilterConfig: BloomFilter.Config = keyValues.last.bloomFilterConfig) = {
+    def updateStats(valuesConfig: ValuesBlock.Config = keyValues.last.valuesConfig,
+                    sortedIndexConfig: SortedIndexBlock.Config = keyValues.last.sortedIndexConfig,
+                    binarySearchIndexConfig: BinarySearchIndexBlock.Config = keyValues.last.binarySearchIndexConfig,
+                    hashIndexConfig: HashIndexBlock.Config = keyValues.last.hashIndexConfig,
+                    bloomFilterConfig: BloomFilterBlock.Config = keyValues.last.bloomFilterConfig) = {
       val slice = Slice.create[KeyValue.WriteOnly](keyValues.size)
       keyValues foreach {
         keyValue =>
@@ -430,12 +430,12 @@ object TestData {
     def toTransient: Slice[Transient] =
       toTransient()
 
-    def toTransient(valuesConfig: Values.Config = Values.Config.random,
-                    sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
-                    binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
-                    hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
-                    bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
+    def toTransient(valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                    sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                    binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                    hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                    bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                 keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
       val slice = Slice.create[Transient](keyValues.size)
 
       keyValues foreach {
@@ -464,9 +464,9 @@ object TestData {
     }
   }
 
-  implicit class ValuesConfig(values: Values.Config.type) {
+  implicit class ValuesConfig(values: ValuesBlock.Config.type) {
     def random =
-      Values.Config(
+      ValuesBlock.Config(
         compressDuplicateValues = randomBoolean(),
         compressDuplicateRangeValues = randomBoolean(),
         blockIO = _ => randomIOAccess(),
@@ -474,9 +474,9 @@ object TestData {
       )
   }
 
-  implicit class SortedIndexConfig(values: SortedIndex.Config.type) {
+  implicit class SortedIndexConfig(values: SortedIndexBlock.Config.type) {
     def random =
-      SortedIndex.Config(
+      SortedIndexBlock.Config(
         blockIO = _ => randomIOAccess(),
         prefixCompressionResetCount = randomIntMax(5),
         enableAccessPositionIndex = randomBoolean(),
@@ -484,9 +484,9 @@ object TestData {
       )
   }
 
-  implicit class BinarySearchIndexConfig(values: BinarySearchIndex.Config.type) {
+  implicit class BinarySearchIndexConfig(values: BinarySearchIndexBlock.Config.type) {
     def random =
-      BinarySearchIndex.Config(
+      BinarySearchIndexBlock.Config(
         enabled = randomBoolean(),
         minimumNumberOfKeys = randomIntMax(5),
         fullIndex = randomBoolean(),
@@ -495,9 +495,9 @@ object TestData {
       )
   }
 
-  implicit class HashIndexConfig(values: HashIndex.Config.type) {
+  implicit class HashIndexConfig(values: HashIndexBlock.Config.type) {
     def random =
-      HashIndex.Config(
+      HashIndexBlock.Config(
         maxProbe = randomIntMax(10),
         minimumNumberOfKeys = randomIntMax(5),
         minimumNumberOfHits = randomIntMax(5),
@@ -507,9 +507,9 @@ object TestData {
       )
   }
 
-  implicit class BloomFilterConfig(values: BloomFilter.Config.type) {
+  implicit class BloomFilterConfig(values: BloomFilterBlock.Config.type) {
     def random =
-      BloomFilter.Config(
+      BloomFilterBlock.Config(
         falsePositiveRate = Random.nextDouble(),
         minimumNumberOfKeys = randomIntMax(5),
         blockIO = _ => randomIOAccess(),
@@ -532,11 +532,11 @@ object TestData {
       toTransient(None)
 
     def toTransient(previous: Option[Transient],
-                    valuesConfig: Values.Config = Values.Config.random,
-                    sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
-                    binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
-                    hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
-                    bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random): Transient = {
+                    valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                    sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                    binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                    hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                    bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random): Transient = {
       keyValue match {
         case memory: Memory =>
           memory match {
@@ -1187,11 +1187,11 @@ object TestData {
                               time: Time = Time.empty,
                               previous: Option[KeyValue.WriteOnly] = None,
                               maxGroupKeyValues: Int = randomIntMax(50) + 1, //+1 to avoid empty groups
-                              valuesConfig: Values.Config = Values.Config.random,
-                              sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
-                              binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
-                              hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
-                              bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random,
+                              valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                              sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                              binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                              hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                              bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                               functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                               includePendingApply: Boolean = true,
                               includeFunctions: Boolean = true,
@@ -1265,11 +1265,11 @@ object TestData {
                                    deadline: Option[Deadline] = randomDeadlineOption,
                                    time: Time = Time.empty,
                                    previous: Option[KeyValue.WriteOnly] = None,
-                                   valuesConfig: Values.Config = Values.Config.random,
-                                   sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
-                                   binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
-                                   hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
-                                   bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random,
+                                   valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                                   sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                                   binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                                   hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                                   bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                                    functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                                    includePendingApply: Boolean = true,
                                    includeFunctions: Boolean = true,
@@ -1596,13 +1596,13 @@ object TestData {
                           addRandomExpiredPutDeadlines: Boolean = randomBoolean(),
                           addRandomUpdateDeadlines: Boolean = randomBoolean(),
                           addRandomGroups: Boolean = randomBoolean(),
-                          valuesConfig: Values.Config = Values.Config.random,
-                          sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
-                          binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
-                          hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
-                          bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random)(implicit testTimer: TestTimer = TestTimer.Incremental(),
-                                                                                             keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                             keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
+                          valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                          sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                          binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                          hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                          bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                                       keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1674,13 +1674,13 @@ object TestData {
                       addRandomUpdateDeadlines: Boolean = false,
                       addRandomRanges: Boolean = false,
                       addRandomGroups: Boolean = false,
-                      valuesConfig: Values.Config = Values.Config.random,
-                      sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
-                      binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
-                      hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
-                      bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random)(implicit testTimer: TestTimer = TestTimer.Incremental(),
-                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                         keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
+                      valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                      sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                      binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                      hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                      bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                                   keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                   keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
     val slice = Slice.create[Transient](count * 50) //extra space because addRandomRanges and random Groups can be added for Fixed and Range key-values in the same iteration.
     //            var key = 1
     var key = startId getOrElse randomInt(minus = count)
@@ -1872,11 +1872,11 @@ object TestData {
 
   def randomGroup(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.random, KeyOrder.default, TestLimitQueues.keyValueLimiter),
                   groupConfig: SegmentBlock.Config = SegmentBlock.Config.random,
-                  valuesConfig: Values.Config = Values.Config.random,
-                  sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
-                  binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
-                  hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
-                  bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random,
+                  valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                  sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                  binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                  hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                  bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                   previous: Option[KeyValue.WriteOnly] = None)(implicit testTimer: TestTimer = TestTimer.Incremental()): Transient.Group =
     Transient.Group(
       keyValues = keyValues,
@@ -2006,11 +2006,11 @@ object TestData {
         key = key,
         deadline = None,
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
         previous = None
       )
 
@@ -2020,11 +2020,11 @@ object TestData {
         key = key,
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
         previous = None
       )
 
@@ -2034,11 +2034,11 @@ object TestData {
         key = key,
         deadline = None,
         time = testTimer.next,
-        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.random),
-        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.random),
-        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.random),
-        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.random),
-        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.random),
+        valuesConfig = previous.map(_.valuesConfig).getOrElse(ValuesBlock.Config.random),
+        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndexBlock.Config.random),
+        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndexBlock.Config.random),
+        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndexBlock.Config.random),
+        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilterBlock.Config.random),
         previous = previous
       )
 
@@ -2050,11 +2050,11 @@ object TestData {
         deadline = deadline,
         time = testTimer.next,
         previous = previous,
-        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.random),
-        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.random),
-        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.random),
-        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.random),
-        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.random)
+        valuesConfig = previous.map(_.valuesConfig).getOrElse(ValuesBlock.Config.random),
+        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndexBlock.Config.random),
+        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndexBlock.Config.random),
+        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndexBlock.Config.random),
+        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilterBlock.Config.random)
       )
 
     def put(key: Slice[Byte],
@@ -2065,11 +2065,11 @@ object TestData {
         value = value,
         deadline = None,
         time = testTimer.next,
-        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.random),
-        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.random),
-        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.random),
-        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.random),
-        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.random),
+        valuesConfig = previous.map(_.valuesConfig).getOrElse(ValuesBlock.Config.random),
+        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndexBlock.Config.random),
+        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndexBlock.Config.random),
+        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndexBlock.Config.random),
+        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilterBlock.Config.random),
         previous = previous
       )
 
@@ -2083,11 +2083,11 @@ object TestData {
         value = value,
         deadline = deadline,
         time = testTimer.next,
-        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.random),
-        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.random),
-        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.random),
-        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.random),
-        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.random),
+        valuesConfig = previous.map(_.valuesConfig).getOrElse(ValuesBlock.Config.random),
+        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndexBlock.Config.random),
+        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndexBlock.Config.random),
+        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndexBlock.Config.random),
+        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilterBlock.Config.random),
         previous = previous
       )
 
@@ -2097,11 +2097,11 @@ object TestData {
         value = None,
         deadline = None,
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
         previous = None
       )
 
@@ -2112,11 +2112,11 @@ object TestData {
         value = Some(value),
         deadline = None,
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
         previous = None
       )
 
@@ -2128,11 +2128,11 @@ object TestData {
         value = Some(value),
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
         previous = None
       )
 
@@ -2144,11 +2144,11 @@ object TestData {
         value = Some(value),
         deadline = Some(deadline),
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
         previous = None
       )
 
@@ -2159,11 +2159,11 @@ object TestData {
         value = None,
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
         previous = None
       )
 
@@ -2175,11 +2175,11 @@ object TestData {
         value = Some(value),
         deadline = removeAfter.map(_.fromNow),
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
         previous = None
       )
 
@@ -2191,11 +2191,11 @@ object TestData {
         value = value,
         deadline = None,
         time = testTimer.next,
-        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.random),
-        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.random),
-        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.random),
-        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.random),
-        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.random),
+        valuesConfig = previous.map(_.valuesConfig).getOrElse(ValuesBlock.Config.random),
+        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndexBlock.Config.random),
+        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndexBlock.Config.random),
+        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndexBlock.Config.random),
+        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilterBlock.Config.random),
         previous = previous
       )
 
@@ -2208,11 +2208,11 @@ object TestData {
         value = value,
         deadline = deadline,
         time = testTimer.next,
-        valuesConfig = previous.map(_.valuesConfig).getOrElse(Values.Config.random),
-        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndex.Config.random),
-        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndex.Config.random),
-        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndex.Config.random),
-        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilter.Config.random),
+        valuesConfig = previous.map(_.valuesConfig).getOrElse(ValuesBlock.Config.random),
+        sortedIndexConfig = previous.map(_.sortedIndexConfig).getOrElse(SortedIndexBlock.Config.random),
+        binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig).getOrElse(BinarySearchIndexBlock.Config.random),
+        hashIndexConfig = previous.map(_.hashIndexConfig).getOrElse(HashIndexBlock.Config.random),
+        bloomFilterConfig = previous.map(_.bloomFilterConfig).getOrElse(BloomFilterBlock.Config.random),
         previous = previous
       )
 
@@ -2222,11 +2222,11 @@ object TestData {
         value = None,
         deadline = None,
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
         previous = None
       )
 
@@ -2238,11 +2238,11 @@ object TestData {
         deadline = None,
         previous = None,
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random
       )
 
     def update(key: Slice[Byte],
@@ -2253,11 +2253,11 @@ object TestData {
         value = Some(value),
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
         previous = None
       )
 
@@ -2269,11 +2269,11 @@ object TestData {
         value = Some(value),
         deadline = Some(deadline),
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
         previous = None
       )
 
@@ -2284,11 +2284,11 @@ object TestData {
         value = None,
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
         previous = None
       )
 
@@ -2300,11 +2300,11 @@ object TestData {
         value = Some(value),
         deadline = removeAfter.map(_.fromNow),
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
         previous = None
       )
 
@@ -2314,11 +2314,11 @@ object TestData {
         key = key,
         function = function,
         time = testTimer.next,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
         previous = None
       )
   }
@@ -2390,16 +2390,16 @@ object TestData {
                                                             toKey: Slice[Byte],
                                                             fromValue: Option[F],
                                                             rangeValue: R,
-                                                            bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random)(implicit rangeValueSerializer: RangeValueSerializer[Option[F], R]): Range =
+                                                            bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit rangeValueSerializer: RangeValueSerializer[Option[F], R]): Range =
       Range(
         fromKey = fromKey,
         toKey = toKey,
         fromValue = fromValue,
         rangeValue = rangeValue,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
         bloomFilterConfig = bloomFilterConfig,
         previous = None
       )
@@ -2571,11 +2571,11 @@ object TestData {
                   isPrefixCompressed: Boolean = randomBoolean(),
                   numberOfRanges: Int = randomIntMax(10000000),
                   thisKeyValuesUniqueKeys: Int = randomIntMax(10000000),
-                  sortedIndex: SortedIndex.Config = SortedIndex.Config.random,
-                  bloomFilter: BloomFilter.Config = BloomFilter.Config.random,
-                  hashIndex: HashIndex.Config = HashIndex.Config.random,
-                  binarySearch: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
-                  values: Values.Config = Values.Config.random,
+                  sortedIndex: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                  bloomFilter: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+                  hashIndex: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                  binarySearch: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                  values: ValuesBlock.Config = ValuesBlock.Config.random,
                   previousStats: Option[Stats] = None,
                   deadline: Option[Deadline] = randomDeadlineOption()): Stats =
     Stats.apply(

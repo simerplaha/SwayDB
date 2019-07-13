@@ -50,7 +50,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               startId = Some(1),
             ).updateStats(
               binarySearchIndexConfig =
-                BinarySearchIndex.Config(
+                BinarySearchIndexBlock.Config(
                   enabled = false,
                   minimumNumberOfKeys = 0,
                   fullIndex = randomBoolean(),
@@ -76,7 +76,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
             generatedKeyValues
               .updateStats(
                 binarySearchIndexConfig =
-                  BinarySearchIndex.Config(
+                  BinarySearchIndexBlock.Config(
                     enabled = true,
                     minimumNumberOfKeys = generatedKeyValues.size + 1,
                     fullIndex = randomBoolean(),
@@ -107,7 +107,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               addRandomPendingApply = false
             ).updateStats(
               binarySearchIndexConfig =
-                BinarySearchIndex.Config(
+                BinarySearchIndexBlock.Config(
                   enabled = true,
                   minimumNumberOfKeys = 0,
                   fullIndex = false,
@@ -115,7 +115,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   compressions = _ => randomCompressionsOrEmpty()
                 ),
               hashIndexConfig =
-                HashIndex.Config(
+                HashIndexBlock.Config(
                   maxProbe = 5,
                   allocateSpace = _.requiredSpace * 10,
                   minimumNumberOfKeys = 0,
@@ -165,7 +165,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               addRandomPendingApply = false
             ).updateStats(
               binarySearchIndexConfig =
-                BinarySearchIndex.Config(
+                BinarySearchIndexBlock.Config(
                   enabled = true,
                   minimumNumberOfKeys = 0,
                   fullIndex = true,
@@ -173,7 +173,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   compressions = _ => randomCompressionsOrEmpty()
                 ),
               hashIndexConfig =
-                HashIndex.Config(
+                HashIndexBlock.Config(
                   maxProbe = 5,
                   minimumNumberOfKeys = 0,
                   minimumNumberOfHits = 0,
@@ -214,7 +214,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               addRandomPendingApply = false
             ).updateStats(
               binarySearchIndexConfig =
-                BinarySearchIndex.Config(
+                BinarySearchIndexBlock.Config(
                   enabled = true,
                   minimumNumberOfKeys = 0,
                   fullIndex = false,
@@ -222,7 +222,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   compressions = _ => randomCompressionsOrEmpty()
                 ),
               hashIndexConfig =
-                HashIndex.Config(
+                HashIndexBlock.Config(
                   maxProbe = 5,
                   minimumNumberOfKeys = Int.MaxValue,
                   minimumNumberOfHits = 0,
@@ -259,7 +259,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               startId = Some(1)
             ).updateStats(
               bloomFilterConfig =
-                BloomFilter.Config(
+                BloomFilterBlock.Config(
                   falsePositiveRate = 1,
                   minimumNumberOfKeys = 0,
                   blockIO = _ => randomIOAccess(),
@@ -285,7 +285,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
             generatedKeyValues
               .toTransient(
                 bloomFilterConfig =
-                  BloomFilter.Config(
+                  BloomFilterBlock.Config(
                     falsePositiveRate = 0.001,
                     minimumNumberOfKeys = generatedKeyValues.size + 1,
                     blockIO = _ => randomIOAccess(),
@@ -332,7 +332,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
             (Slice(range) ++ generatedKeyValues)
               .toTransient(
                 bloomFilterConfig =
-                  BloomFilter.Config(
+                  BloomFilterBlock.Config(
                     falsePositiveRate = 0.001,
                     minimumNumberOfKeys = 0,
                     blockIO = _ => randomIOAccess(),
@@ -364,12 +364,12 @@ class SegmentBlockInitialisationSpec extends TestBase {
           generatedKeyValues
             .updateStats(
               hashIndexConfig =
-                HashIndex.Config(
+                HashIndexBlock.Config(
                   maxProbe = 5,
                   minimumNumberOfKeys = 0, //set miminimum to be 10 for hash to be created.
                   minimumNumberOfHits = 10,
                   allocateSpace = _ =>
-                    HashIndex.optimalBytesRequired(
+                    HashIndexBlock.optimalBytesRequired(
                       keyCounts = 1, //allocate space enough for 1
                       minimumNumberOfKeys = 0,
                       largestValue = Int.MaxValue,

@@ -234,11 +234,11 @@ object CommonAssertions {
                 Some(
                   GroupGroupingStrategyInternal.Count(
                     count = randomIntMax(5) max 1,
-                    valuesConfig = Values.Config.random,
-                    sortedIndexConfig = SortedIndex.Config.random,
-                    binarySearchIndexConfig = BinarySearchIndex.Config.random,
-                    hashIndexConfig = HashIndex.Config.random,
-                    bloomFilterConfig = BloomFilter.Config.random,
+                    valuesConfig = ValuesBlock.Config.random,
+                    sortedIndexConfig = SortedIndexBlock.Config.random,
+                    binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+                    hashIndexConfig = HashIndexBlock.Config.random,
+                    bloomFilterConfig = BloomFilterBlock.Config.random,
                     groupConfig = SegmentBlock.Config.random
                   )
                 ),
@@ -246,22 +246,22 @@ object CommonAssertions {
                 Some(
                   GroupGroupingStrategyInternal.Size(
                     size = randomIntMax(keyValuesCount max 1000).bytes * 2,
-                    valuesConfig = Values.Config.random,
-                    sortedIndexConfig = SortedIndex.Config.random,
-                    binarySearchIndexConfig = BinarySearchIndex.Config.random,
-                    hashIndexConfig = HashIndex.Config.random,
-                    bloomFilterConfig = BloomFilter.Config.random,
+                    valuesConfig = ValuesBlock.Config.random,
+                    sortedIndexConfig = SortedIndexBlock.Config.random,
+                    binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+                    hashIndexConfig = HashIndexBlock.Config.random,
+                    bloomFilterConfig = BloomFilterBlock.Config.random,
                     groupConfig = SegmentBlock.Config.random
                   )
                 ),
               right =
                 None
             ),
-          valuesConfig = Values.Config.random,
-          sortedIndexConfig = SortedIndex.Config.random,
-          binarySearchIndexConfig = BinarySearchIndex.Config.random,
-          hashIndexConfig = HashIndex.Config.random,
-          bloomFilterConfig = BloomFilter.Config.random,
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
           groupConfig = SegmentBlock.Config.random,
           applyGroupingOnCopy = randomBoolean()
         ),
@@ -274,11 +274,11 @@ object CommonAssertions {
                 Some(
                   GroupGroupingStrategyInternal.Count(
                     count = randomIntMax(5) max 1,
-                    valuesConfig = Values.Config.random,
-                    sortedIndexConfig = SortedIndex.Config.random,
-                    binarySearchIndexConfig = BinarySearchIndex.Config.random,
-                    hashIndexConfig = HashIndex.Config.random,
-                    bloomFilterConfig = BloomFilter.Config.random,
+                    valuesConfig = ValuesBlock.Config.random,
+                    sortedIndexConfig = SortedIndexBlock.Config.random,
+                    binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+                    hashIndexConfig = HashIndexBlock.Config.random,
+                    bloomFilterConfig = BloomFilterBlock.Config.random,
                     groupConfig = SegmentBlock.Config.random
                   )
                 ),
@@ -286,21 +286,21 @@ object CommonAssertions {
                 Some(
                   GroupGroupingStrategyInternal.Size(
                     size = randomIntMax(500).kb,
-                    valuesConfig = Values.Config.random,
-                    sortedIndexConfig = SortedIndex.Config.random,
-                    binarySearchIndexConfig = BinarySearchIndex.Config.random,
-                    hashIndexConfig = HashIndex.Config.random,
-                    bloomFilterConfig = BloomFilter.Config.random,
+                    valuesConfig = ValuesBlock.Config.random,
+                    sortedIndexConfig = SortedIndexBlock.Config.random,
+                    binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+                    hashIndexConfig = HashIndexBlock.Config.random,
+                    bloomFilterConfig = BloomFilterBlock.Config.random,
                     groupConfig = SegmentBlock.Config.random
                   )),
               right =
                 None
             ),
-          valuesConfig = Values.Config.random,
-          sortedIndexConfig = SortedIndex.Config.random,
-          binarySearchIndexConfig = BinarySearchIndex.Config.random,
-          hashIndexConfig = HashIndex.Config.random,
-          bloomFilterConfig = BloomFilter.Config.random,
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
           groupConfig = SegmentBlock.Config.random,
           applyGroupingOnCopy = randomBoolean()
         )
@@ -426,11 +426,11 @@ object CommonAssertions {
         minSegmentSize = 10.mb,
         isLastLevel = isLastLevel,
         forInMemory = false,
-        valuesConfig = Values.Config.random,
-        sortedIndexConfig = SortedIndex.Config.random,
-        binarySearchIndexConfig = BinarySearchIndex.Config.random,
-        hashIndexConfig = HashIndex.Config.random,
-        bloomFilterConfig = BloomFilter.Config.random
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random
       ).assertGet
 
     if (expected.size == 0) {
@@ -813,13 +813,13 @@ object CommonAssertions {
   }
 
   def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
-                  bloom: BloomFilter.State) = {
+                  bloom: BloomFilterBlock.State) = {
     val unzipedKeyValues = unzipGroups(keyValues)
-    val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), SegmentBlock.createUnblockedReader(bloom.bytes).get).get
+    val bloomFilter = BloomFilterBlock.read(BloomFilterBlock.Offset(0, bloom.startOffset), SegmentBlock.createUnblockedReader(bloom.bytes).get).get
 
     unzipedKeyValues.par.count {
       keyValue =>
-        BloomFilter.mightContain(
+        BloomFilterBlock.mightContain(
           key = keyValue.key,
           reader = bloomFilter.createBlockReader(SegmentBlock.createUnblockedReader(bloom.bytes).get)
         ).get
@@ -841,12 +841,12 @@ object CommonAssertions {
   }
 
   def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
-                  bloomFilterReader: BlockReader[BloomFilter]) = {
+                  bloomFilterReader: BlockReader[BloomFilterBlock]) = {
     val unzipedKeyValues = unzipGroups(keyValues)
 
     unzipedKeyValues.count {
       keyValue =>
-        BloomFilter.mightContain(
+        BloomFilterBlock.mightContain(
           key = keyValue.key,
           reader = bloomFilterReader
         ).get
@@ -855,10 +855,10 @@ object CommonAssertions {
     assertBloomNotContains(bloomFilterReader)
   }
 
-  def assertBloomNotContains(bloomFilterReader: BlockReader[BloomFilter]) =
+  def assertBloomNotContains(bloomFilterReader: BlockReader[BloomFilterBlock]) =
     (1 to 1000).count {
       _ =>
-        BloomFilter.mightContain(randomBytesSlice(100), bloomFilterReader).get
+        BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader).get
     } should be <= 300
 
   def assertBloomNotContains(segment: Segment) =
@@ -867,10 +867,10 @@ object CommonAssertions {
         segment.mightContainKey(randomBytesSlice(100)).get
     } should be <= 300
 
-  def assertBloomNotContains(bloom: BloomFilter.State) =
+  def assertBloomNotContains(bloom: BloomFilterBlock.State) =
     runThis(1000.times) {
-      val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), SegmentBlock.createUnblockedReader(bloom.bytes).get).get
-      BloomFilter.mightContain(
+      val bloomFilter = BloomFilterBlock.read(BloomFilterBlock.Offset(0, bloom.startOffset), SegmentBlock.createUnblockedReader(bloom.bytes).get).get
+      BloomFilterBlock.mightContain(
         key = randomBytesSlice(randomIntMax(1000) min 100),
         reader = bloomFilter.createBlockReader(SegmentBlock.createUnblockedReader(bloom.bytes).get)
       ).get shouldBe false
@@ -1432,7 +1432,7 @@ object CommonAssertions {
   def readAll(reader: Reader): IO[Slice[KeyValue.ReadOnly]] = {
     val blockCache = getSegmentBlockCache(reader)
 
-    SortedIndex
+    SortedIndexBlock
       .readAll(
         keyValueCount = blockCache.getFooter().get.keyValueCount,
         sortedIndexReader = blockCache.createSortedIndexReader().get,

@@ -159,11 +159,11 @@ private[core] object CoreInitializer extends LazyLogging {
           implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
           Level(
             segmentSize = config.segmentSize,
-            bloomFilterConfig = block.BloomFilter.Config.disabled,
-            hashIndexConfig = block.HashIndex.Config.disabled,
-            binarySearchIndexConfig = block.BinarySearchIndex.Config.disabled,
-            sortedIndexConfig = block.SortedIndex.Config.disabled,
-            valuesConfig = block.Values.Config.disabled,
+            bloomFilterConfig = block.BloomFilterBlock.Config.disabled,
+            hashIndexConfig = block.HashIndexBlock.Config.disabled,
+            binarySearchIndexConfig = block.BinarySearchIndexBlock.Config.disabled,
+            sortedIndexConfig = block.SortedIndexBlock.Config.disabled,
+            valuesConfig = block.ValuesBlock.Config.disabled,
             segmentConfig = block.SegmentBlock.Config.default,
             levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
             appendixStorage = AppendixStorage.Memory,
@@ -177,11 +177,11 @@ private[core] object CoreInitializer extends LazyLogging {
           implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
           Level(
             segmentSize = config.segmentSize,
-            bloomFilterConfig = block.BloomFilter.Config(config = config.mightContainKey),
-            hashIndexConfig = block.HashIndex.Config(config = config.hashIndex),
-            binarySearchIndexConfig = block.BinarySearchIndex.Config(config = config.binarySearchIndex),
-            sortedIndexConfig = block.SortedIndex.Config(config.sortedIndex),
-            valuesConfig = block.Values.Config(config.values),
+            bloomFilterConfig = block.BloomFilterBlock.Config(config = config.mightContainKey),
+            hashIndexConfig = block.HashIndexBlock.Config(config = config.hashIndex),
+            binarySearchIndexConfig = block.BinarySearchIndexBlock.Config(config = config.binarySearchIndex),
+            sortedIndexConfig = block.SortedIndexBlock.Config(config.sortedIndex),
+            valuesConfig = block.ValuesBlock.Config(config.values),
             segmentConfig = block.SegmentBlock.Config(config.segmentIO, config.segmentCompressions),
             levelStorage =
               LevelStorage.Persistent(

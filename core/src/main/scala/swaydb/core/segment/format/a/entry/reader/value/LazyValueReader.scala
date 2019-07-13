@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.reader.value
 
 import swaydb.core.io.reader.{BlockReader, Reader}
-import swaydb.core.segment.format.a.block.Values
+import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.data.IO
 import swaydb.data.slice.Slice
 
@@ -28,17 +28,17 @@ private[core] object LazyValueReader {
 
   val empty =
     new LazyValueReader {
-      override val valueReader: BlockReader[Values] =
-        BlockReader(Reader.empty, Values.empty)
+      override val valueReader: BlockReader[ValuesBlock] =
+        BlockReader(Reader.empty, ValuesBlock.empty)
       override val valueLength: Int = 0
       override val valueOffset: Int = 0
     }
 
-  def apply(reader: BlockReader[Values],
+  def apply(reader: BlockReader[ValuesBlock],
             offset: Int,
             length: Int): LazyValueReader =
     new LazyValueReader {
-      override val valueReader: BlockReader[Values] = reader
+      override val valueReader: BlockReader[ValuesBlock] = reader
 
       override def valueLength: Int = length
 
@@ -50,16 +50,16 @@ private[core] trait LazyValueReader {
 
   @volatile var valueOption: Option[Slice[Byte]] = _
 
-  def valueReader: BlockReader[Values]
+  def valueReader: BlockReader[ValuesBlock]
 
   def valueLength: Int
 
   def valueOffset: Int
 
   //tries fetching the value from the given reader
-  private def fetchValue(reader: BlockReader[Values]): IO[Option[Slice[Byte]]] =
+  private def fetchValue(reader: BlockReader[ValuesBlock]): IO[Option[Slice[Byte]]] =
     if (valueOption == null)
-      Values.read(
+      ValuesBlock.read(
         fromOffset = valueOffset,
         length = valueLength,
         reader = reader

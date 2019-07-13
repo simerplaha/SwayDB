@@ -31,13 +31,13 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class BinarySearchIndexSpec extends WordSpec with Matchers {
+class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
 
   def assertSearch(bytes: Slice[Byte],
                    values: Seq[Int],
-                   unAlteredIndex: BinarySearchIndex) =
+                   unAlteredIndex: BinarySearchIndexBlock) =
     runThis(10.times) {
       val randomBytes = randomBytesSlice(randomIntMax(100))
 
@@ -66,7 +66,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
       values foreach {
         value =>
-          BinarySearchIndex.search(
+          BinarySearchIndexBlock.search(
             reader = alteredIndex.createBlockReader(SegmentBlock.createUnblockedReader(alteredBytes).get),
             start = None,
             end = None,
@@ -80,7 +80,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
       notInIndex foreach {
         i =>
-          BinarySearchIndex.search(
+          BinarySearchIndexBlock.search(
             reader = alteredIndex.createBlockReader(SegmentBlock.createUnblockedReader(alteredBytes).get),
             start = None,
             end = None,
@@ -98,7 +98,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
             val valuesCount = values.size
             val largestValue = values.last
             val state =
-              BinarySearchIndex.State(
+              BinarySearchIndexBlock.State(
                 largestValue = largestValue,
                 uniqueValuesCount = valuesCount,
                 isFullIndex = true,
@@ -108,18 +108,18 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
             values foreach {
               offset =>
-                BinarySearchIndex.write(value = offset, state = state).get
+                BinarySearchIndexBlock.write(value = offset, state = state).get
             }
 
-            BinarySearchIndex.close(state).get
+            BinarySearchIndexBlock.close(state).get
 
             state.writtenValues shouldBe values.size
 
             state.bytes.isFull shouldBe true
 
             val index =
-              BinarySearchIndex.read(
-                offset = BinarySearchIndex.Offset(0, state.bytes.size),
+              BinarySearchIndexBlock.read(
+                offset = BinarySearchIndexBlock.Offset(0, state.bytes.size),
                 reader = SegmentBlock.createUnblockedReader(state.bytes).get
               ).get
 
@@ -144,7 +144,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
         val largestValue = values.last
         val compression = eitherOne(Seq.empty, Seq(randomCompression()))
         val state =
-          BinarySearchIndex.State(
+          BinarySearchIndexBlock.State(
             largestValue = largestValue,
             uniqueValuesCount = valuesCount,
             isFullIndex = true,
@@ -154,22 +154,22 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
         values foreach {
           value =>
-            BinarySearchIndex.write(value = value, state = state).get
+            BinarySearchIndexBlock.write(value = value, state = state).get
         }
-        BinarySearchIndex.close(state).get
+        BinarySearchIndexBlock.close(state).get
 
         state.writtenValues shouldBe values.size
 
         val index =
-          BinarySearchIndex.read(
-            offset = BinarySearchIndex.Offset(0, state.bytes.size),
+          BinarySearchIndexBlock.read(
+            offset = BinarySearchIndexBlock.Offset(0, state.bytes.size),
             reader = SegmentBlock.createUnblockedReader(state.bytes).get
           ).get
 
         index.bytesPerValue shouldBe Bytes.sizeOf(largestValue)
 
         val headerSize =
-          BinarySearchIndex.optimalHeaderSize(
+          BinarySearchIndexBlock.optimalHeaderSize(
             largestValue = largestValue,
             valuesCount = values.size,
             hasCompression = compression.nonEmpty
@@ -194,7 +194,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
         addPut = true
       ).updateStats(
         binarySearchIndexConfig =
-          BinarySearchIndex.Config.random.copy(
+          BinarySearchIndexBlock.Config.random.copy(
             enabled = true,
             minimumNumberOfKeys = 0,
             fullIndex = true
@@ -216,7 +216,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
         case (previous, keyValue) =>
 
           val found =
-            BinarySearchIndex.search(
+            BinarySearchIndexBlock.search(
               key = keyValue.minKey,
               start = eitherOne(None, previous),
               end = None,
@@ -236,7 +236,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
         case (keyValue, expectedHigher) =>
 
           def getHigher(key: Slice[Byte]) =
-            BinarySearchIndex.searchHigher(
+            BinarySearchIndexBlock.searchHigher(
               key = key,
               start = None,
               end = None,
@@ -266,7 +266,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           }
 
           //get the persistent key-value for the next higher assert.
-          SortedIndex.search(
+          SortedIndexBlock.search(
             key = keyValue.minKey,
             startFrom = None,
             indexReader = blocks.sortedIndexReader,
@@ -281,7 +281,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
         case (expectedLower, keyValue) =>
 
           def getLower(key: Slice[Byte]) =
-            BinarySearchIndex.searchLower(
+            BinarySearchIndexBlock.searchLower(
               key = key,
               start = None,
               end = None,
@@ -311,7 +311,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           }
 
           //get the persistent key-value for the next higher assert.
-          SortedIndex.search(
+          SortedIndexBlock.search(
             key = keyValue.minKey,
             startFrom = None,
             indexReader = blocks.sortedIndexReader,

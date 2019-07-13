@@ -66,21 +66,21 @@ class SegmentBlockSpec extends TestBase {
           addRandomGroups = false
         ).updateStats(
           valuesConfig =
-            Values.Config(
+            ValuesBlock.Config(
               compressDuplicateValues = randomBoolean(),
               compressDuplicateRangeValues = randomBoolean(),
               blockIO = _ => randomIOAccess(),
               compressions = _ => randomCompressionsOrEmpty()
             ),
           sortedIndexConfig =
-            SortedIndex.Config(
+            SortedIndexBlock.Config(
               blockIO = _ => randomIOAccess(),
               prefixCompressionResetCount = 0,
               enableAccessPositionIndex = true,
               compressions = _ => randomCompressionsOrEmpty()
             ),
           binarySearchIndexConfig =
-            BinarySearchIndex.Config(
+            BinarySearchIndexBlock.Config(
               enabled = true,
               minimumNumberOfKeys = 1,
               fullIndex = true,
@@ -88,7 +88,7 @@ class SegmentBlockSpec extends TestBase {
               compressions = _ => randomCompressionsOrEmpty()
             ),
           hashIndexConfig =
-            HashIndex.Config(
+            HashIndexBlock.Config(
               maxProbe = 5,
               minimumNumberOfKeys = 2,
               minimumNumberOfHits = 2,
@@ -97,7 +97,7 @@ class SegmentBlockSpec extends TestBase {
               compressions = _ => randomCompressionsOrEmpty()
             ),
           bloomFilterConfig =
-            BloomFilter.Config(
+            BloomFilterBlock.Config(
               falsePositiveRate = 0.001,
               minimumNumberOfKeys = 2,
               blockIO = _ => randomIOAccess(),
@@ -170,11 +170,11 @@ class SegmentBlockSpec extends TestBase {
           Transient.Group(
             keyValues = keyValues,
             groupConfig = SegmentBlock.Config.random,
-            valuesConfig = Values.Config.random,
-            sortedIndexConfig = SortedIndex.Config.random,
-            binarySearchIndexConfig = BinarySearchIndex.Config.random,
-            hashIndexConfig = HashIndex.Config.random,
-            bloomFilterConfig = BloomFilter.Config.random,
+            valuesConfig = ValuesBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
             previous = None
           ).assertGet
 
@@ -472,7 +472,7 @@ class SegmentBlockSpec extends TestBase {
         val keyValues =
           _keyValues.updateStats(
             bloomFilterConfig =
-              BloomFilter.Config.random.copy(
+              BloomFilterBlock.Config.random.copy(
                 falsePositiveRate = 0.0001,
                 minimumNumberOfKeys = 0
               )
@@ -508,7 +508,7 @@ class SegmentBlockSpec extends TestBase {
         val keyValues =
           _keyValues.updateStats(
             bloomFilterConfig =
-              BloomFilter.Config.random.copy(
+              BloomFilterBlock.Config.random.copy(
                 falsePositiveRate = 0.0001,
                 minimumNumberOfKeys = 0
               )
@@ -559,7 +559,7 @@ class SegmentBlockSpec extends TestBase {
             randomGroup(Slice(randomPutKeyValue(10, Some("val")), randomRangeKeyValue(from = 12, to = 15, rangeValue = Value.update(1))).toTransient)
           ).updateStats(
             bloomFilterConfig =
-              BloomFilter.Config.random.copy(
+              BloomFilterBlock.Config.random.copy(
                 falsePositiveRate = 0.0001,
                 minimumNumberOfKeys = 0
               )
@@ -597,7 +597,7 @@ class SegmentBlockSpec extends TestBase {
             randomGroup(Slice(randomPutKeyValue(10, Some("val")), randomRangeKeyValue(12, 15, rangeValue = Value.remove(None))).toTransient)
           ).updateStats(
             bloomFilterConfig =
-              BloomFilter.Config.random.copy(
+              BloomFilterBlock.Config.random.copy(
                 falsePositiveRate = 0.0001,
                 minimumNumberOfKeys = 0
               )
@@ -646,7 +646,7 @@ class SegmentBlockSpec extends TestBase {
             right = pendingApply
           ).updateStats(
             valuesConfig =
-              Values.Config(
+              ValuesBlock.Config(
                 compressDuplicateValues = true,
                 compressDuplicateRangeValues = randomBoolean(),
                 blockIO = _ => randomIOAccess(),
@@ -669,7 +669,7 @@ class SegmentBlockSpec extends TestBase {
         //drop the first value bytes that are value bytes and the next value bytes (value of the next key-value) should not be value bytes.
         bytes.drop(value.size).take(value.size) should not be value
 
-        val readKeyValues = SortedIndex.readAll(blocks.footer.keyValueCount, blocks.sortedIndexReader, blocks.valuesReader).get
+        val readKeyValues = SortedIndexBlock.readAll(blocks.footer.keyValueCount, blocks.sortedIndexReader, blocks.valuesReader).get
         readKeyValues should have size keyValues.size
 
         //assert that all valueOffsets of all key-values are the same
