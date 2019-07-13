@@ -23,7 +23,7 @@ import swaydb.core.io.file.DBFile
 import swaydb.core.segment.format.a.block.Block
 import swaydb.data.slice.{Reader, Slice, SliceReaderSafe}
 
-private[core] object Reader {
+private[swaydb] object Reader {
 
   val empty = Reader(Slice.emptyBytes)
 
