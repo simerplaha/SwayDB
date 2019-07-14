@@ -101,9 +101,16 @@ private[core] object ValuesBlock {
 
   def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[ValuesBlock.State] =
     if (keyValues.last.stats.segmentValuesSize > 0) {
-      val headSize = headerSize(keyValues.last.valuesConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentValuesSize)).nonEmpty)
-      val bytes = Slice.create[Byte](keyValues.last.stats.segmentValuesSize)
+      val hasCompression = keyValues.last.valuesConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentValuesSize)).nonEmpty
+      val headSize = headerSize(hasCompression)
+      val bytes =
+        if (hasCompression) //stats calculate size with no compression if there is compression add remaining bytes.
+          Slice.create[Byte](keyValues.last.stats.segmentValuesSize + (hasCompressionHeaderSize - noCompressionHeaderSize))
+        else
+          Slice.create[Byte](keyValues.last.stats.segmentValuesSize)
+
       bytes moveWritePosition headSize
+
       Some(
         ValuesBlock.State(
           _bytes = bytes,

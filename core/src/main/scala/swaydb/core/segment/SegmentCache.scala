@@ -182,7 +182,7 @@ private[core] class SegmentCache(id: String,
                 if (contains)
                   prepareGet {
                     (footer, hashIndex, binarySearchIndex, sortedIndex, values) =>
-                      SegmentBlockSearcher.search(
+                      SegmentSearcher.search(
                         key = key,
                         start = floorValue,
                         end = None,
@@ -256,7 +256,7 @@ private[core] class SegmentCache(id: String,
           } getOrElse {
             prepareIteration {
               (footer, binarySearchIndex, sortedIndex, valuesReader) =>
-                SegmentBlockSearcher.searchLower(
+                SegmentSearcher.searchLower(
                   key = key,
                   start = lowerKeyValue,
                   end = None,
@@ -341,7 +341,7 @@ private[core] class SegmentCache(id: String,
 
               startFrom flatMap {
                 startFrom =>
-                  SegmentBlockSearcher.searchHigher(
+                  SegmentSearcher.searchHigher(
                     key = key,
                     start = startFrom,
                     end = None,

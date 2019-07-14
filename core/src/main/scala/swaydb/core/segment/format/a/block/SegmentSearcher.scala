@@ -13,7 +13,7 @@ import swaydb.data.slice.Slice
   *
   * Leaving as it is now because it's easier to read.
   */
-private[core] object SegmentBlockSearcher extends LazyLogging {
+private[core] object SegmentSearcher extends LazyLogging {
 
   def searchLower(key: Slice[Byte],
                   start: Option[Persistent],

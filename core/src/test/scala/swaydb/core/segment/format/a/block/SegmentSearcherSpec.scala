@@ -11,7 +11,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class SegmentBlockSearcherSpec extends TestBase with MockFactory {
+class SegmentSearcherSpec extends TestBase with MockFactory {
   implicit val order = KeyOrder.default
 
   "search" should {
@@ -46,7 +46,7 @@ class SegmentBlockSearcherSpec extends TestBase with MockFactory {
 
         keyValues foreach {
           keyValue =>
-            SegmentBlockSearcher.search(
+            SegmentSearcher.search(
               key = keyValue.minKey,
               start = None,
               end = None,
@@ -62,7 +62,7 @@ class SegmentBlockSearcherSpec extends TestBase with MockFactory {
         //check keys that do not exist return none. This will also not hit binary search index since HashIndex is perfect.
         (1000000 to 1000000 + 100) foreach {
           key =>
-            SegmentBlockSearcher.search(
+            SegmentSearcher.search(
               key = key,
               start = None,
               end = None,

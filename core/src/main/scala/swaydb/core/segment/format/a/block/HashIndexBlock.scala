@@ -113,14 +113,26 @@ private[core] object HashIndexBlock extends LazyLogging {
       None
     else {
       val writeAbleLargestValueSize = Bytes.sizeOf(keyValues.last.stats.thisKeyValuesAccessIndexOffset + 1)
+      val hasCompression = keyValues.last.hashIndexConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentHashIndexSize)).nonEmpty
+
       val headSize =
         headerSize(
           keyCounts = keyValues.last.stats.segmentUniqueKeysCount,
           writeAbleLargestValueSize = writeAbleLargestValueSize,
-          hasCompression = keyValues.last.hashIndexConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentHashIndexSize)).nonEmpty
+          hasCompression = hasCompression
         )
+
+      val optimalBytes =
+        optimalBytesRequired(
+          keyCounts = keyValues.last.stats.segmentUniqueKeysCount,
+          minimumNumberOfKeys = keyValues.last.hashIndexConfig.minimumNumberOfKeys,
+          largestValue = writeAbleLargestValueSize,
+          allocateSpace = keyValues.last.hashIndexConfig.allocateSpace,
+          hasCompression = hasCompression
+        )
+
       //if the user allocated
-      if (keyValues.last.stats.segmentHashIndexSize < headSize + ByteSizeOf.varInt)
+      if (optimalBytes < headSize + ByteSizeOf.varInt)
         None
       else
         Some(
@@ -132,7 +144,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             writeAbleLargestValueSize = writeAbleLargestValueSize,
             headerSize = headSize,
             maxProbe = keyValues.last.hashIndexConfig.maxProbe,
-            _bytes = Slice.create[Byte](keyValues.last.stats.segmentHashIndexSize),
+            _bytes = Slice.create[Byte](optimalBytes),
             compressions = keyValues.last.hashIndexConfig.compressions
           )
         )

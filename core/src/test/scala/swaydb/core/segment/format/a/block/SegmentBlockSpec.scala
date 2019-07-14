@@ -124,7 +124,7 @@ class SegmentBlockSpec extends TestBase {
       Benchmark("search performance") {
         randomKeyValues foreach {
           keyValue =>
-            SegmentBlockSearcher.search(
+            SegmentSearcher.search(
               key = keyValue.minKey,
               start = None,
               end = None,

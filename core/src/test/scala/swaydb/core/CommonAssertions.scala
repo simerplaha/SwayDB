@@ -799,7 +799,7 @@ object CommonAssertions {
         //        val key = keyValue.minKey.readInt()
         //        if (key % 100 == 0)
         //          println(s"Key: $key")
-        SegmentBlockSearcher.search(
+        SegmentSearcher.search(
           key = keyValue.minKey,
           start = None,
           end = None,
@@ -1160,28 +1160,28 @@ object CommonAssertions {
       } else if (index == 0) {
         keyValues(index) match {
           case range: KeyValue.WriteOnly.Range =>
-            SegmentBlockSearcher.searchLower(range.fromKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe empty
+            SegmentSearcher.searchLower(range.fromKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe empty
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
               key =>
-                SegmentBlockSearcher.searchLower(Slice.writeInt(key), None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe range
+                SegmentSearcher.searchLower(Slice.writeInt(key), None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe range
             }
 
           case _ =>
-            SegmentBlockSearcher.searchLower(keyValues(index).minKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe empty
+            SegmentSearcher.searchLower(keyValues(index).minKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe empty
         }
         assertLowers(index + 1)
       } else {
         val expectedLowerKeyValue = keyValues(index - 1)
         keyValues(index) match {
           case range: KeyValue.WriteOnly.Range =>
-            SegmentBlockSearcher.searchLower(range.fromKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGet shouldBe expectedLowerKeyValue
+            SegmentSearcher.searchLower(range.fromKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGet shouldBe expectedLowerKeyValue
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
               key =>
-                SegmentBlockSearcher.searchLower(Slice.writeInt(key), None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe range
+                SegmentSearcher.searchLower(Slice.writeInt(key), None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe range
             }
 
           case _ =>
-            SegmentBlockSearcher.searchLower(keyValues(index).minKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGet shouldBe expectedLowerKeyValue
+            SegmentSearcher.searchLower(keyValues(index).minKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGet shouldBe expectedLowerKeyValue
         }
 
         assertLowers(index + 1)
@@ -1198,7 +1198,7 @@ object CommonAssertions {
       keyValues,
       getHigher =
         key =>
-          SegmentBlockSearcher.searchHigher(
+          SegmentSearcher.searchHigher(
             key = key,
             start = None,
             end = None,

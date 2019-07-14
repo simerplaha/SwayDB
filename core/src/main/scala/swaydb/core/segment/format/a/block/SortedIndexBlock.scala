@@ -90,19 +90,21 @@ private[core] object SortedIndexBlock {
   }
 
   val hasCompressionHeaderSize = {
-    val size = Block.headerSize(true)
-    Bytes.sizeOf(size) +
-      ByteSizeOf.boolean + //enablePositionIndex
-      ByteSizeOf.boolean + //hasPrefixCompression
-      size
+    val size =
+      Block.headerSize(true) +
+        ByteSizeOf.boolean + //enablePositionIndex
+        ByteSizeOf.boolean //hasPrefixCompression
+
+    Bytes.sizeOf(size) + size
   }
 
   val noCompressionHeaderSize = {
-    val size = Block.headerSize(false)
-    Bytes.sizeOf(size) +
-      ByteSizeOf.boolean + //enablePositionIndex
-      ByteSizeOf.boolean + //hasPrefixCompression
-      size
+    val size =
+      Block.headerSize(false) +
+        ByteSizeOf.boolean + //enablePositionIndex
+        ByteSizeOf.boolean //hasPrefixCompression
+
+    Bytes.sizeOf(size) + size
   }
 
   def headerSize(hasCompression: Boolean): Int =
@@ -112,8 +114,14 @@ private[core] object SortedIndexBlock {
       noCompressionHeaderSize
 
   def init(keyValues: Iterable[KeyValue.WriteOnly]): SortedIndexBlock.State = {
-    val bytes = Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize)
-    val headSize = headerSize(keyValues.last.sortedIndexConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentSortedIndexSize)).nonEmpty)
+    val hasCompression = keyValues.last.sortedIndexConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentSortedIndexSize)).nonEmpty
+    val headSize = headerSize(hasCompression)
+    val bytes =
+      if (hasCompression) //stats calculate size with no compression if there is compression add remaining bytes.
+        Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize + (hasCompressionHeaderSize - noCompressionHeaderSize))
+      else
+        Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize)
+
     bytes moveWritePosition headSize
     State(
       _bytes = bytes,
