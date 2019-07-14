@@ -116,7 +116,7 @@ class SegmentBlockSpec extends TestBase {
           createdInLevel = 0
         ).assertGet
 
-      val fileReader = createFileChannelReader(closedSegment.flattenSegmentBytes)
+      val fileReader = createRandomFileReader(closedSegment.flattenSegmentBytes)
       val blocks = readBlocks(fileReader).get
 
       val randomKeyValues = Random.shuffle(keyValues)
@@ -284,7 +284,7 @@ class SegmentBlockSpec extends TestBase {
         //in memory
         assertReads(keyValues, Reader(bytes.unslice()))
         //on disk
-        assertReads(keyValues, createFileChannelReader(bytes))
+        assertReads(keyValues, createRandomFileReader(bytes))
       }
     }
 
@@ -307,7 +307,7 @@ class SegmentBlockSpec extends TestBase {
       //in memory
       assertReads(keyValues, Reader(bytes))
       //on disk
-      assertReads(keyValues, createFileChannelReader(bytes))
+      assertReads(keyValues, createRandomFileReader(bytes))
     }
 
     "write and read Keys with None value to a Slice[Byte]" in {
@@ -335,7 +335,7 @@ class SegmentBlockSpec extends TestBase {
       //in memory
       assertReads(keyValues, Reader(bytes))
       //on disk
-      assertReads(keyValues, createFileChannelReader(bytes))
+      assertReads(keyValues, createRandomFileReader(bytes))
     }
 
     "report Segment corruption if CRC check does not match when reading the footer" in {

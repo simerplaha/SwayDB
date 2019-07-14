@@ -87,7 +87,7 @@ private[core] class SegmentCache(id: String,
       keyValueLimiter.add(group, persistentCache)
   }
 
-  private def prepareGet[T](f: (SegmentBlock.Footer, Option[BlockReader[HashIndexBlock]], Option[BlockReader[BinarySearchIndexBlock]], BlockReader[SortedIndexBlock], Option[BlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
+  private def prepareGet[T](f: (SegmentFooterBlock, Option[BlockReader[HashIndexBlock]], Option[BlockReader[BinarySearchIndexBlock]], BlockReader[SortedIndexBlock], Option[BlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
     //    for {
     //      footer <- blockCache.footer
     //      hashIndex <- blockCache.createHashIndexReader()
@@ -104,7 +104,7 @@ private[core] class SegmentCache(id: String,
     ???
   }
 
-  private def prepareGetAll[T](f: (SegmentBlock.Footer, BlockReader[SortedIndexBlock], Option[BlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
+  private def prepareGetAll[T](f: (SegmentFooterBlock, BlockReader[SortedIndexBlock], Option[BlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
     //    for {
     //      footer <- blockCache.footer
     //      sortedIndex <- blockCache.createSortedIndexReader()
@@ -119,7 +119,7 @@ private[core] class SegmentCache(id: String,
     ???
   }
 
-  private def prepareIteration[T](f: (SegmentBlock.Footer, Option[BlockReader[BinarySearchIndexBlock]], BlockReader[SortedIndexBlock], Option[BlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
+  private def prepareIteration[T](f: (SegmentFooterBlock, Option[BlockReader[BinarySearchIndexBlock]], BlockReader[SortedIndexBlock], Option[BlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
     //    for {
     //      footer <- blockCache.footer
     //      binarySearchIndex <- blockCache.createBinarySearchReader()

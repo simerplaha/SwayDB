@@ -22,30 +22,10 @@ package swaydb.core.data
 import swaydb.core.segment.format.a.block._
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
 
 import scala.concurrent.duration.Deadline
 
 private[core] object Stats {
-
-  val segmentFooterSize =
-    ByteSizeOf.byte + //1 byte for format
-      ByteSizeOf.varInt + //created in level
-      ByteSizeOf.boolean + //hasGroup
-      ByteSizeOf.boolean + //hasRange
-      ByteSizeOf.boolean + //hasPut
-      ByteSizeOf.varInt + //key-values count
-      ByteSizeOf.varInt + //uniqueKeysCount
-      ByteSizeOf.long + //CRC. This cannot be unsignedLong because the size of the crc long bytes is not fixed.
-      ByteSizeOf.varInt + //sorted index offset.
-      ByteSizeOf.varInt + //sorted index size.
-      ByteSizeOf.varInt + //hash index offset. HashIndex offset will never be 0 since that's reserved for index is values are none..
-      ByteSizeOf.varInt + //hash index size.
-      ByteSizeOf.varInt + //binarySearch index
-      ByteSizeOf.varInt + //binary index size.
-      ByteSizeOf.varInt + //bloomFilter
-      ByteSizeOf.varInt + //bloomFilter
-      ByteSizeOf.varInt //footer offset.
 
   def apply(keySize: Int,
             indexEntry: Slice[Byte],
@@ -103,7 +83,7 @@ private[core] object Stats {
         thisKeyValueAccessIndexPositionByteSize +
         indexEntry.size
 
-    val thisKeyValuesSortedIndexSizeWithoutFooter =
+    val thisKeyValuesSortedIndexSizeWithoutBlocksHeadersBlock =
       SortedIndexBlock.headerSize(false) +
         thisKeyValuesSortedIndexSize
 
@@ -129,7 +109,7 @@ private[core] object Stats {
 
     val thisKeyValuesSegmentSortedIndexAndValueSize =
       thisKeyValuesSegmentValueSize +
-        thisKeyValuesSortedIndexSizeWithoutFooter
+        thisKeyValuesSortedIndexSizeWithoutBlocksHeadersBlock
 
     val segmentHasRange =
       hasRemoveRange || previousStats.exists(_.segmentHasRange) || isRange
@@ -164,7 +144,7 @@ private[core] object Stats {
           minimumNumberOfKeys = hashIndex.minimumNumberOfKeys,
           largestValue = thisKeyValuesAccessIndexOffset,
           allocateSpace = hashIndex.allocateSpace,
-          hasCompression = true
+          hasCompression = false
         )
 
     val segmentBinarySearchIndexSize =
@@ -178,7 +158,7 @@ private[core] object Stats {
         } getOrElse {
           BinarySearchIndexBlock.optimalBytesRequired(
             largestValue = thisKeyValuesAccessIndexOffset,
-            hasCompression = true,
+            hasCompression = false,
             minimNumberOfKeysForBinarySearchIndex = binarySearch.minimumNumberOfKeys,
             //binary search indexes are only created for non-prefix compressed or reset point keys.
             //size calculation should only account for those entries because duplicates are not allowed.
@@ -227,11 +207,11 @@ private[core] object Stats {
         BloomFilterBlock.optimalSize(
           numberOfKeys = segmentUniqueKeysCount,
           falsePositiveRate = bloomFilter.falsePositiveRate,
-          hasCompression = true,
+          hasCompression = false,
           minimumNumberOfKeys = bloomFilter.minimumNumberOfKeys
         )
 
-    val segmentSizeWithoutFooter: Int =
+    val segmentSizeWithoutBlocksHeadersBlock: Int =
       segmentValuesSize +
         segmentSortedIndexSize +
         segmentHashIndexSize +
@@ -239,16 +219,16 @@ private[core] object Stats {
         segmentBloomFilterSize
 
     //calculates the size of Segment after the last Group. This is used for size based grouping/compression.
-    val segmentSizeWithoutFooterForNextGroup: Int =
+    val segmentSizeWithoutBlocksHeadersBlockForNextGroup: Int =
       if (previousStats.exists(_.isGroup)) //if previous is a group, restart the size calculation
-        segmentSizeWithoutFooter
+        segmentSizeWithoutBlocksHeadersBlock
       else //if previous is not a group, add previous key-values set segment size since the last group to this key-values Segment size.
-        previousStats.map(_.segmentSizeWithoutFooterForNextGroup).getOrElse(0) +
-          segmentSizeWithoutFooter
+        previousStats.map(_.segmentSizeWithoutBlocksHeadersBlockForNextGroup).getOrElse(0) +
+          segmentSizeWithoutBlocksHeadersBlock
 
     val segmentSize: Int =
-      segmentSizeWithoutFooter +
-        segmentFooterSize
+      segmentSizeWithoutBlocksHeadersBlock +
+        SegmentFooterBlock.optimalBytesRequired
 
     val segmentUncompressedKeysSize: Int =
       previousStats.map(_.segmentUncompressedKeysSize).getOrElse(0) + keySize
@@ -266,8 +246,8 @@ private[core] object Stats {
       segmentValuesSizeWithoutHeader = segmentValuesSizeWithoutHeader,
       segmentSortedIndexSize = segmentSortedIndexSize,
       segmentUncompressedKeysSize = segmentUncompressedKeysSize,
-      segmentSizeWithoutFooter = segmentSizeWithoutFooter,
-      segmentSizeWithoutFooterForNextGroup = segmentSizeWithoutFooterForNextGroup,
+      segmentSizeWithoutBlocksHeadersBlock = segmentSizeWithoutBlocksHeadersBlock,
+      segmentSizeWithoutBlocksHeadersBlockForNextGroup = segmentSizeWithoutBlocksHeadersBlockForNextGroup,
       segmentUniqueAccessIndexKeyCounts = segmentUniqueAccessIndexKeyCounts,
       thisKeyValuesSegmentKeyAndValueSize = thisKeyValuesSegmentSortedIndexAndValueSize,
       thisKeyValuesSortedIndexSize = thisKeyValuesSortedIndexSize,
@@ -298,8 +278,8 @@ private[core] case class Stats(valueLength: Int,
                                segmentValuesSizeWithoutHeader: Int,
                                segmentSortedIndexSize: Int,
                                segmentUncompressedKeysSize: Int,
-                               segmentSizeWithoutFooter: Int,
-                               segmentSizeWithoutFooterForNextGroup: Int,
+                               segmentSizeWithoutBlocksHeadersBlock: Int,
+                               segmentSizeWithoutBlocksHeadersBlockForNextGroup: Int,
                                segmentUniqueAccessIndexKeyCounts: Int,
                                thisKeyValuesSegmentKeyAndValueSize: Int,
                                thisKeyValuesSortedIndexSize: Int,

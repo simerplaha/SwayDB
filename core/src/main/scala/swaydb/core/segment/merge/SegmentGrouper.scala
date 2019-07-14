@@ -52,7 +52,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
     else
       groupingStrategy match {
         case size: GroupGroupingStrategyInternal.Size =>
-          segmentKeyValues.last.stats.segmentSizeWithoutFooter >= size.size
+          segmentKeyValues.last.stats.segmentSizeWithoutBlocksHeadersBlock >= size.size
 
         case count: GroupGroupingStrategyInternal.Count =>
           segmentKeyValues.last.stats.groupsCount >= count.count
@@ -68,7 +68,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
     else
       groupingStrategy match {
         case size: KeyValueGroupingStrategyInternal.Size =>
-          segmentKeyValues.last.stats.segmentSizeWithoutFooterForNextGroup >= size.size
+          segmentKeyValues.last.stats.segmentSizeWithoutBlocksHeadersBlockForNextGroup >= size.size
 
         case count: KeyValueGroupingStrategyInternal.Count =>
           //use segmentKeyValues.last.stats.position instead of segmentKeyValues.size because position is pre-calculated.

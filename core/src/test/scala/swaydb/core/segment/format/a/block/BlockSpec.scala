@@ -61,12 +61,12 @@ class BlockSpec extends TestBase {
         val segment =
           SegmentBlock.Open(
             headerBytes = Slice.fill(headerSize)(0.toByte),
-            values = randomBytesSliceOption(2),
-            sortedIndex = randomBytesSlice(2),
-            hashIndex = randomBytesSliceOption(2),
-            binarySearchIndex = randomBytesSliceOption(2),
-            bloomFilter = randomBytesSliceOption(2),
-            footer = randomBytesSlice(),
+            footerBlock = randomBytesSlice(),
+            valuesBlock = randomBytesSliceOption(2),
+            sortedIndexBlock = randomBytesSlice(2),
+            hashIndexBlock = randomBytesSliceOption(2),
+            binarySearchIndexBlock = randomBytesSliceOption(2),
+            bloomFilterBlock = randomBytesSliceOption(2),
             functionMinMax = None,
             nearestDeadline = randomDeadlineOption()
           )
@@ -163,12 +163,12 @@ class BlockSpec extends TestBase {
           val uncompressedSegment =
             SegmentBlock.Open(
               headerBytes = Slice.fill(headerSize)(0.toByte),
-              values = randomBytesSliceOption(randomIntMax(100) + 1),
-              sortedIndex = randomBytesSlice(randomIntMax(100) + 1),
-              hashIndex = randomBytesSliceOption(randomIntMax(100) + 1),
-              binarySearchIndex = randomBytesSliceOption(randomIntMax(100) + 1),
-              bloomFilter = randomBytesSliceOption(randomIntMax(100) + 1),
-              footer = randomBytesSlice(randomIntMax(100) + 1),
+              valuesBlock = randomBytesSliceOption(randomIntMax(100) + 1),
+              sortedIndexBlock = randomBytesSlice(randomIntMax(100) + 1),
+              hashIndexBlock = randomBytesSliceOption(randomIntMax(100) + 1),
+              binarySearchIndexBlock = randomBytesSliceOption(randomIntMax(100) + 1),
+              bloomFilterBlock = randomBytesSliceOption(randomIntMax(100) + 1),
+              footerBlock = randomBytesSlice(randomIntMax(100) + 1),
               functionMinMax = None,
               nearestDeadline = randomDeadlineOption()
             )

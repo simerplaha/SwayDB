@@ -26,14 +26,12 @@ import swaydb.core.data.{KeyValue, Memory, Stats, Transient}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.{DeadlineAndFunctionId, Segment}
-import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.util.{Bytes, CRC32, MinMax}
+import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.api.grouping.Compression
 import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
 import swaydb.data.slice.{Reader, Slice}
-import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Deadline
@@ -73,18 +71,6 @@ private[core] object SegmentBlock {
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
-  case class Footer(valuesOffset: Option[ValuesBlock.Offset],
-                    sortedIndexOffset: SortedIndexBlock.Offset,
-                    hashIndexOffset: Option[HashIndexBlock.Offset],
-                    binarySearchIndexOffset: Option[BinarySearchIndexBlock.Offset],
-                    bloomFilterOffset: Option[BloomFilterBlock.Offset],
-                    keyValueCount: Int,
-                    createdInLevel: Int,
-                    bloomFilterItemsCount: Int,
-                    hasRange: Boolean,
-                    hasGroup: Boolean,
-                    hasPut: Boolean)
-
   object Closed {
 
     def empty =
@@ -114,7 +100,7 @@ private[core] object SegmentBlock {
     def flattenSegmentBytes: Slice[Byte] = {
       val size = segmentBytes.foldLeft(0)(_ + _.size)
       val slice = Slice.create[Byte](size)
-      segmentBytes foreach (slice addAll _.unslice())
+      segmentBytes foreach (slice addAll _)
       assert(slice.isFull)
       slice
     }
@@ -127,12 +113,12 @@ private[core] object SegmentBlock {
     def empty =
       new Open(
         headerBytes = Slice.emptyBytes,
-        values = None,
-        sortedIndex = Slice.emptyBytes,
-        hashIndex = None,
-        binarySearchIndex = None,
-        bloomFilter = None,
-        footer = Slice.emptyBytes,
+        valuesBlock = None,
+        sortedIndexBlock = Slice.emptyBytes,
+        hashIndexBlock = None,
+        binarySearchIndexBlock = None,
+        bloomFilterBlock = None,
+        footerBlock = Slice.emptyBytes,
         functionMinMax = None,
         nearestDeadline = None
       )
@@ -140,34 +126,34 @@ private[core] object SegmentBlock {
     def emptyIO = IO.Success(empty)
 
     def apply(headerBytes: Slice[Byte],
-              values: Option[Slice[Byte]],
-              sortedIndex: Slice[Byte],
-              hashIndex: Option[Slice[Byte]],
-              binarySearchIndex: Option[Slice[Byte]],
-              bloomFilter: Option[Slice[Byte]],
-              footer: Slice[Byte],
+              valuesBlock: Option[Slice[Byte]],
+              sortedIndexBlock: Slice[Byte],
+              hashIndexBlock: Option[Slice[Byte]],
+              binarySearchIndexBlock: Option[Slice[Byte]],
+              bloomFilterBlock: Option[Slice[Byte]],
+              footerBlock: Slice[Byte],
               functionMinMax: Option[MinMax[Slice[Byte]]],
               nearestDeadline: Option[Deadline]): Open =
       new Open(
         headerBytes = headerBytes,
-        values = values,
-        sortedIndex = sortedIndex,
-        hashIndex = hashIndex,
-        binarySearchIndex = binarySearchIndex,
-        bloomFilter = bloomFilter,
-        footer = footer,
+        valuesBlock = valuesBlock,
+        sortedIndexBlock = sortedIndexBlock,
+        hashIndexBlock = hashIndexBlock,
+        binarySearchIndexBlock = binarySearchIndexBlock,
+        bloomFilterBlock = bloomFilterBlock,
+        footerBlock = footerBlock,
         functionMinMax = functionMinMax,
         nearestDeadline = nearestDeadline
       )
   }
 
   class Open(val headerBytes: Slice[Byte],
-             val values: Option[Slice[Byte]],
-             val sortedIndex: Slice[Byte],
-             val hashIndex: Option[Slice[Byte]],
-             val binarySearchIndex: Option[Slice[Byte]],
-             val bloomFilter: Option[Slice[Byte]],
-             val footer: Slice[Byte],
+             val valuesBlock: Option[Slice[Byte]],
+             val sortedIndexBlock: Slice[Byte],
+             val hashIndexBlock: Option[Slice[Byte]],
+             val binarySearchIndexBlock: Option[Slice[Byte]],
+             val bloomFilterBlock: Option[Slice[Byte]],
+             val footerBlock: Slice[Byte],
              val functionMinMax: Option[MinMax[Slice[Byte]]],
              val nearestDeadline: Option[Deadline]) {
 
@@ -176,12 +162,12 @@ private[core] object SegmentBlock {
     val segmentBytes: Slice[Slice[Byte]] = {
       val allBytes = Slice.create[Slice[Byte]](8)
       allBytes add headerBytes.close()
-      values foreach (allBytes add _)
-      allBytes add sortedIndex
-      hashIndex foreach (allBytes add _)
-      binarySearchIndex foreach (allBytes add _)
-      bloomFilter foreach (allBytes add _)
-      allBytes add footer
+      valuesBlock foreach (allBytes add _)
+      allBytes add sortedIndexBlock
+      hashIndexBlock foreach (allBytes add _)
+      binarySearchIndexBlock foreach (allBytes add _)
+      bloomFilterBlock foreach (allBytes add _)
+      allBytes add footerBlock
       allBytes.filter(_.nonEmpty).close()
     }
 
@@ -194,13 +180,10 @@ private[core] object SegmentBlock {
     def flattenSegmentBytes: Slice[Byte] = {
       val size = segmentBytes.foldLeft(0)(_ + _.size)
       val slice = Slice.create[Byte](size)
-      segmentBytes foreach (slice addAll _.unslice())
+      segmentBytes foreach (slice addAll _)
       assert(slice.isFull)
       slice
     }
-
-    def flattenSegment: (Slice[Byte], Option[Deadline]) =
-      (flattenSegmentBytes, nearestDeadline)
   }
 
   private[block] case class ClosedBlocks(sortedIndex: SortedIndexBlock.State,
@@ -239,114 +222,6 @@ private[core] object SegmentBlock {
             compressionInfo = None
           )
         )
-    }
-
-  //all these functions are wrapper with a try catch block with value only to make it easier to read.
-  def readFooter(reader: BlockReader[SegmentBlock]): IO[Footer] =
-    try {
-      val segmentBlockSize = reader.size.get.toInt
-      val footerStartOffset = reader.moveTo(segmentBlockSize - ByteSizeOf.int).readInt().get
-      val footerSize = segmentBlockSize - footerStartOffset
-      val footerBytes = reader.moveTo(footerStartOffset).read(footerSize - ByteSizeOf.int).get
-      val footerReader = Reader(footerBytes)
-      val formatId = footerReader.readIntUnsigned().get
-      if (formatId != SegmentBlock.formatId) {
-        val message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}"
-        return IO.Failure(IO.Error.Fatal(SegmentCorruptionException(message = message, cause = new Exception(message))))
-      }
-      assert(formatId == SegmentBlock.formatId, s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}")
-      val createdInLevel = footerReader.readIntUnsigned().get
-      val hasGroup = footerReader.readBoolean().get
-      val hasRange = footerReader.readBoolean().get
-      val hasPut = footerReader.readBoolean().get
-      val keyValueCount = footerReader.readIntUnsigned().get
-      val bloomFilterItemsCount = footerReader.readIntUnsigned().get
-      val expectedCRC = footerReader.readLong().get
-      val crcBytes = footerBytes.take(SegmentBlock.crcBytes)
-      val crc = CRC32.forBytes(crcBytes)
-      if (expectedCRC != crc) {
-        IO.Failure(SegmentCorruptionException(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
-      } else {
-        val sortedIndexOffset =
-          SortedIndexBlock.Offset(
-            size = footerReader.readIntUnsigned().get,
-            start = footerReader.readIntUnsigned().get
-          )
-
-        val hashIndexSize = footerReader.readIntUnsigned().get
-        val hashIndexOffset =
-          if (hashIndexSize == 0)
-            None
-          else
-            Some(
-              HashIndexBlock.Offset(
-                start = footerReader.readIntUnsigned().get,
-                size = hashIndexSize
-              )
-            )
-
-        val binarySearchIndexSize = footerReader.readIntUnsigned().get
-        val binarySearchIndexOffset =
-          if (binarySearchIndexSize == 0)
-            None
-          else
-            Some(
-              BinarySearchIndexBlock.Offset(
-                start = footerReader.readIntUnsigned().get,
-                size = binarySearchIndexSize
-              )
-            )
-
-        val bloomFilterSize = footerReader.readIntUnsigned().get
-        val bloomFilterOffset =
-          if (bloomFilterSize == 0)
-            None
-          else
-            Some(
-              BloomFilterBlock.Offset(
-                start = footerReader.readIntUnsigned().get,
-                size = bloomFilterSize
-              )
-            )
-
-        val valuesOffset =
-          if (sortedIndexOffset.start == 0)
-            None
-          else
-            Some(ValuesBlock.Offset(0, sortedIndexOffset.start))
-
-        IO.Success(
-          Footer(
-            valuesOffset = valuesOffset,
-            sortedIndexOffset = sortedIndexOffset,
-            hashIndexOffset = hashIndexOffset,
-            binarySearchIndexOffset = binarySearchIndexOffset,
-            bloomFilterOffset = bloomFilterOffset,
-            keyValueCount = keyValueCount,
-            createdInLevel = createdInLevel,
-            bloomFilterItemsCount = bloomFilterItemsCount,
-            hasRange = hasRange,
-            hasGroup = hasGroup,
-            hasPut = hasPut
-          )
-        )
-      }
-    } catch {
-      case exception: Exception =>
-        exception match {
-          case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
-            IO.Failure(
-              IO.Error.Fatal(
-                SegmentCorruptionException(
-                  message = "Corrupted Segment: Failed to read footer bytes",
-                  cause = exception
-                )
-              )
-            )
-
-          case ex: Exception =>
-            IO.Failure(ex)
-        }
     }
 
   val noCompressionHeaderSize = {
@@ -659,41 +534,41 @@ private[core] object SegmentBlock {
       )
 
   private def write(keyValues: Iterable[KeyValue.WriteOnly],
-                    sortedIndex: SortedIndexBlock.State,
-                    values: Option[ValuesBlock.State],
-                    hashIndex: Option[HashIndexBlock.State],
-                    binarySearchIndex: Option[BinarySearchIndexBlock.State],
-                    bloomFilter: Option[BloomFilterBlock.State]): IO[ClosedBlocks] =
+                    sortedIndexBlock: SortedIndexBlock.State,
+                    valuesBlock: Option[ValuesBlock.State],
+                    hashIndexBlock: Option[HashIndexBlock.State],
+                    binarySearchIndexBlock: Option[BinarySearchIndexBlock.State],
+                    bloomFilterBlock: Option[BloomFilterBlock.State]): IO[ClosedBlocks] =
     keyValues.foldLeftIO(DeadlineAndFunctionId(None, None)) {
       case (nearestDeadlineMinMaxFunctionId, keyValue) =>
         writeBlocks(
           keyValue = keyValue,
-          sortedIndex = sortedIndex,
-          values = values,
-          hashIndex = hashIndex,
-          bloomFilter = bloomFilter,
-          binarySearchIndex = binarySearchIndex,
+          sortedIndex = sortedIndexBlock,
+          values = valuesBlock,
+          hashIndex = hashIndexBlock,
+          bloomFilter = bloomFilterBlock,
+          binarySearchIndex = binarySearchIndexBlock,
           currentMinMaxFunction = nearestDeadlineMinMaxFunctionId.minMaxFunctionId,
           currentNearestDeadline = nearestDeadlineMinMaxFunctionId.nearestDeadline
         )
     } flatMap {
       nearestDeadlineMinMaxFunctionId =>
         closeBlocks(
-          sortedIndex = sortedIndex,
-          values = values,
-          hashIndex = hashIndex,
-          bloomFilter = bloomFilter,
-          binarySearchIndex = binarySearchIndex,
+          sortedIndex = sortedIndexBlock,
+          values = valuesBlock,
+          hashIndex = hashIndexBlock,
+          bloomFilter = bloomFilterBlock,
+          binarySearchIndex = binarySearchIndexBlock,
           minMaxFunction = nearestDeadlineMinMaxFunctionId.minMaxFunctionId,
           nearestDeadline = nearestDeadlineMinMaxFunctionId.nearestDeadline
         )
     } flatMap {
       result =>
         //ensure that all the slices are full.
-        if (!sortedIndex.bytes.isFull)
-          IO.Failure(new Exception(s"indexSlice is not full actual: ${sortedIndex.bytes.size} - expected: ${sortedIndex.bytes.allocatedSize}"))
-        else if (values.exists(!_.bytes.isFull))
-          IO.Failure(new Exception(s"valuesSlice is not full actual: ${values.get.bytes.size} - expected: ${values.get.bytes.allocatedSize}"))
+        if (!sortedIndexBlock.bytes.isFull)
+          IO.Failure(new Exception(s"indexSlice is not full actual: ${sortedIndexBlock.bytes.size} - expected: ${sortedIndexBlock.bytes.allocatedSize}"))
+        else if (valuesBlock.exists(!_.bytes.isFull))
+          IO.Failure(new Exception(s"valuesSlice is not full actual: ${valuesBlock.get.bytes.size} - expected: ${valuesBlock.get.bytes.allocatedSize}"))
         else
           IO.Success(result)
     }
@@ -723,13 +598,14 @@ private[core] object SegmentBlock {
     if (keyValues.isEmpty)
       Open.emptyIO
     else {
-      val sortedIndex = SortedIndexBlock.init(keyValues = keyValues)
-      val values = ValuesBlock.init(keyValues = keyValues)
-      val hashIndex = HashIndexBlock.init(keyValues = keyValues)
-      val binarySearchIndex = BinarySearchIndexBlock.init(keyValues = keyValues)
-      val bloomFilter = BloomFilterBlock.init(keyValues = keyValues)
+      val headerBlock = SegmentFooterBlock.init(keyValues = keyValues, createdInLevel = createdInLevel)
+      val sortedIndexBlock = SortedIndexBlock.init(keyValues = keyValues)
+      val valuesBlock = ValuesBlock.init(keyValues = keyValues)
+      val hashIndexBlock = HashIndexBlock.init(keyValues = keyValues)
+      val binarySearchIndexBlock = BinarySearchIndexBlock.init(keyValues = keyValues)
+      val bloomFilterBlock = BloomFilterBlock.init(keyValues = keyValues)
 
-      bloomFilter foreach {
+      bloomFilterBlock foreach {
         bloomFilter =>
           //temporary check.
           val lastStats: Stats = keyValues.last.stats
@@ -741,98 +617,22 @@ private[core] object SegmentBlock {
 
       write(
         keyValues = keyValues,
-        sortedIndex = sortedIndex,
-        values = values,
-        hashIndex = hashIndex,
-        binarySearchIndex = binarySearchIndex,
-        bloomFilter = bloomFilter
+        sortedIndexBlock = sortedIndexBlock,
+        valuesBlock = valuesBlock,
+        hashIndexBlock = hashIndexBlock,
+        binarySearchIndexBlock = binarySearchIndexBlock,
+        bloomFilterBlock = bloomFilterBlock
       ) flatMap {
         closedBlocks =>
-          writeFooter(
-            closedBlocks = closedBlocks,
-            keyValues = keyValues,
-            createdInLevel = createdInLevel,
-            segmentConfig = segmentConfig
-          )
+          SegmentFooterBlock
+            .writeAndClose(headerBlock, closedBlocks)
+            .flatMap(close(_, closedBlocks))
       }
     }
 
-  private def writeFooter(closedBlocks: ClosedBlocks,
-                          keyValues: Iterable[KeyValue.WriteOnly],
-                          createdInLevel: Int,
-                          segmentConfig: SegmentBlock.Config): IO[SegmentBlock.Open] =
+  private def close(footerBlock: SegmentFooterBlock.State,
+                    closedBlocks: ClosedBlocks): IO[SegmentBlock.Open] =
     IO {
-      val lastStats: Stats = keyValues.last.stats
-
-      val values = closedBlocks.values
-      val sortedIndex = closedBlocks.sortedIndex
-      val hashIndex = closedBlocks.hashIndex
-      val binarySearchIndex = closedBlocks.binarySearchIndex
-      val bloomFilter = closedBlocks.bloomFilter
-
-      val segmentFooterSlice = Slice.create[Byte](Stats.segmentFooterSize)
-      //this is a placeholder to store the format type of the Segment file written.
-      //currently there is only one format. So this is hardcoded but if there are a new file format then
-      //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.
-      //the following group of bytes are also used for CRC check.
-      segmentFooterSlice addIntUnsigned SegmentBlock.formatId
-      segmentFooterSlice addIntUnsigned createdInLevel
-      segmentFooterSlice addBoolean lastStats.segmentHasGroup
-      segmentFooterSlice addBoolean lastStats.segmentHasRange
-      segmentFooterSlice addBoolean lastStats.segmentHasPut
-      //here the top Level key-values are used instead of Group's internal key-values because Group's internal key-values
-      //are read when the Group key-value is read.
-      segmentFooterSlice addIntUnsigned keyValues.size
-      //total number of actual key-values grouped or un-grouped
-      segmentFooterSlice addIntUnsigned lastStats.segmentUniqueKeysCount
-
-      //do CRC
-      val indexBytesToCRC = segmentFooterSlice.take(SegmentBlock.crcBytes)
-      assert(indexBytesToCRC.size == SegmentBlock.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentBlock.crcBytes}")
-      segmentFooterSlice addLong CRC32.forBytes(indexBytesToCRC)
-
-      var segmentOffset = values.map(_.bytes.size) getOrElse 0
-
-      segmentFooterSlice addIntUnsigned sortedIndex.bytes.size
-      segmentFooterSlice addIntUnsigned segmentOffset
-      segmentOffset = segmentOffset + sortedIndex.bytes.size
-
-      hashIndex map {
-        hashIndex =>
-          segmentFooterSlice addIntUnsigned hashIndex.bytes.size
-          segmentFooterSlice addIntUnsigned segmentOffset
-          segmentOffset = segmentOffset + hashIndex.bytes.size
-      } getOrElse {
-        segmentFooterSlice addIntUnsigned 0
-      }
-
-      binarySearchIndex map {
-        binarySearchIndex =>
-          segmentFooterSlice addIntUnsigned binarySearchIndex.bytes.size
-          segmentFooterSlice addIntUnsigned segmentOffset
-          segmentOffset = segmentOffset + binarySearchIndex.bytes.size
-      } getOrElse {
-        segmentFooterSlice addIntUnsigned 0
-      }
-
-      bloomFilter map {
-        bloomFilter =>
-          segmentFooterSlice addIntUnsigned bloomFilter.bytes.size
-          segmentFooterSlice addIntUnsigned segmentOffset
-          segmentOffset = segmentOffset + bloomFilter.bytes.size
-      } getOrElse {
-        segmentFooterSlice addIntUnsigned 0
-      }
-
-      val footerOffset =
-        values.map(_.bytes.size).getOrElse(0) +
-          sortedIndex.bytes.size +
-          hashIndex.map(_.bytes.size).getOrElse(0) +
-          binarySearchIndex.map(_.bytes.size).getOrElse(0) +
-          bloomFilter.map(_.bytes.size).getOrElse(0)
-
-      segmentFooterSlice addInt footerOffset
-
       val headerSize = SegmentBlock.headerSize(true)
       val headerBytes = Slice.create[Byte](headerSize)
       //set header bytes to be fully written so that it does not closed when compression.
@@ -840,23 +640,23 @@ private[core] object SegmentBlock {
 
       Open(
         headerBytes = headerBytes,
-        values = values.map(_.bytes.close()),
-        sortedIndex = sortedIndex.bytes.close(),
-        hashIndex = hashIndex map (_.bytes.close()),
-        binarySearchIndex = binarySearchIndex map (_.bytes.close()),
-        bloomFilter = bloomFilter map (_.bytes.close()),
-        footer = segmentFooterSlice.close(),
+        footerBlock = footerBlock.bytes.close(),
+        valuesBlock = closedBlocks.values.map(_.bytes.close()),
+        sortedIndexBlock = closedBlocks.sortedIndex.bytes.close(),
+        hashIndexBlock = closedBlocks.hashIndex map (_.bytes.close()),
+        binarySearchIndexBlock = closedBlocks.binarySearchIndex map (_.bytes.close()),
+        bloomFilterBlock = closedBlocks.bloomFilter map (_.bytes.close()),
         functionMinMax = closedBlocks.minMaxFunction,
         nearestDeadline = closedBlocks.nearestDeadline
       )
     } flatMap {
-      segmentBlock =>
+      open =>
         Block.createUncompressedBlock(
-          headerSize = segmentBlock.headerBytes.size,
-          bytes = segmentBlock.headerBytes
+          headerSize = open.headerBytes.size,
+          bytes = open.headerBytes
         ) map {
           _ =>
-            segmentBlock
+            open
         }
     }
 

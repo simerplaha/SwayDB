@@ -357,20 +357,38 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   }
 
   def createFile(bytes: Slice[Byte]): Path =
-    IOEffect.write(testDir.resolve(nextSegmentId), Slice(bytes)).assertGet
+    IOEffect.write(testDir.resolve(nextSegmentId), bytes).assertGet
 
-  def createFileReader(path: Path): FileReader = {
+  def createRandomFileReader(path: Path): FileReader = {
+    implicit val limiter = fileOpenLimiter
+    if (Random.nextBoolean())
+      createMMAPFileReader(path)
+    else
+      createFileChannelFileReader(path)
+  }
+
+  def createMMAPFileReader(bytes: Slice[Byte]): FileReader =
+    createMMAPFileReader(createFile(bytes))
+
+  def createMMAPFileReader(path: Path): FileReader = {
     implicit val limiter = fileOpenLimiter
     new FileReader(
-      if (Random.nextBoolean())
-        DBFile.channelRead(path, autoClose = true).assertGet
-      else
-        DBFile.mmapRead(path, autoClose = true).assertGet
+      DBFile.mmapRead(path, autoClose = true).assertGet
     )
   }
 
-  def createFileChannelReader(bytes: Slice[Byte]): FileReader =
-    createFileReader(createFile(bytes))
+  def createFileChannelFileReader(bytes: Slice[Byte]): FileReader =
+    createFileChannelFileReader(createFile(bytes))
+
+  def createFileChannelFileReader(path: Path): FileReader = {
+    implicit val limiter = fileOpenLimiter
+    new FileReader(
+      DBFile.channelRead(path, autoClose = true).assertGet
+    )
+  }
+
+  def createRandomFileReader(bytes: Slice[Byte]): FileReader =
+    createRandomFileReader(createFile(bytes))
 
   /**
     * Runs multiple asserts on individual levels and also one by one merges key-values from upper levels

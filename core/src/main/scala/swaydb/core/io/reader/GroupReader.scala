@@ -40,7 +40,7 @@ private[core] class GroupReader(decompressedValuesSize: Int,
   }
 
   def hasMore: IO[Boolean] =
-    size.map(position <= _)
+    size.map(position < _)
 
   def hasAtLeast(atLeastSize: Long): IO[Boolean] =
     size map {

@@ -23,7 +23,10 @@ import java.nio.file.Paths
 
 import swaydb.core.IOAssert._
 import swaydb.core.TestBase
-import swaydb.core.util.Extension
+import swaydb.core.util.{Benchmark, Extension}
+import swaydb.data.IO
+import swaydb.core.TestData._
+import swaydb.data.util.StorageUnits._
 
 class IOEffectSpec extends TestBase {
 
@@ -195,5 +198,25 @@ class IOEffectSpec extends TestBase {
 
       IOEffect.segmentFilesOnDisk(dirs) shouldBe expect
     }
+  }
+
+  "benchmark" in {
+    val fileSize = 4.mb
+    val flattenBytes = randomBytesSlice(fileSize)
+    val groupBytes = flattenBytes.groupedSlice(8)
+
+    //20.mb
+    //0.067924621 seconds
+    //4.mb
+    //0.057647201 seconds & 0.047565694 seconds
+    val groupedPath = Benchmark("groupBytes")(IOEffect.write(randomFilePath, groupBytes)).get
+    IOEffect.readAll(groupedPath).get shouldBe flattenBytes
+
+    //20.mb
+    //0.077162871 seconds
+    //4.mb
+    //0.05330862 seconds & 0.045989919 seconds
+    val flattenedPath = Benchmark("flattenBytes")(IOEffect.write(randomFilePath, flattenBytes)).get
+    IOEffect.readAll(flattenedPath).get shouldBe flattenBytes
   }
 }

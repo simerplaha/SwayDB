@@ -284,4 +284,7 @@ private[core] object IOEffect extends LazyLogging {
     paths
       .flatMap(_.files(Extension.Seg))
       .sortBy(_.getFileName.fileId.get._1)
+
+  def readAll(path: Path): IO[Slice[Byte]] =
+    IO(Slice(Files.readAllBytes(path)))
 }

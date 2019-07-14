@@ -41,7 +41,7 @@ private[core] class FileReader(file: DBFile) extends Reader with LazyLogging {
   }
 
   def hasMore: IO[Boolean] =
-    file.fileSize.map(position <= _)
+    size.map(position < _)
 
   def hasAtLeast(size: Long): IO[Boolean] =
     file.fileSize map {

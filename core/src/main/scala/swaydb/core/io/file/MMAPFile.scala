@@ -153,11 +153,13 @@ private[file] class MMAPFile(val path: Path,
   def read(position: Int, size: Int): IO[Slice[Byte]] =
     IO {
       val array = new Array[Byte](size)
-      var i = 0
-      while (i < size) {
-        array(i) = buffer.get(i + position)
-        i += 1
-      }
+      buffer position position
+      buffer get array
+      //            var i = 0
+      //            while (i < size) {
+      //              array(i) = buffer.get(i + position)
+      //              i += 1
+      //            }
       Slice(array)
     }
 

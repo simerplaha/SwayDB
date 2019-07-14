@@ -73,7 +73,7 @@ object SegmentBlockCache {
       segmentReader = blockStatus.segmentReader()
     )
 
-  private[block] def hashIndex(footer: SegmentBlock.Footer,
+  private[block] def hashIndex(footer: SegmentFooterBlock,
                                blockReader: BlockReader[SegmentBlock]): IO[Option[HashIndexBlock]] =
     footer.hashIndexOffset map {
       hashIndexOffset =>
@@ -82,11 +82,11 @@ object SegmentBlockCache {
           .map(Some(_))
     } getOrElse IO.none
 
-  private[block] def hashIndex(footer: Cache[BlockReader[SegmentBlock], SegmentBlock.Footer],
+  private[block] def hashIndex(footer: Cache[BlockReader[SegmentBlock], SegmentFooterBlock],
                                blockReader: BlockReader[SegmentBlock]): IO[Option[HashIndexBlock]] =
     footer.value(blockReader) flatMap (hashIndex(_, blockReader))
 
-  private[block] def bloomFilter(footer: SegmentBlock.Footer,
+  private[block] def bloomFilter(footer: SegmentFooterBlock,
                                  blockReader: BlockReader[SegmentBlock]): IO[Option[BloomFilterBlock]] =
     footer.bloomFilterOffset map {
       bloomFilterOffset =>
@@ -95,11 +95,11 @@ object SegmentBlockCache {
           .map(Some(_))
     } getOrElse IO.none
 
-  private[block] def bloomFilter(footer: Cache[BlockReader[SegmentBlock], SegmentBlock.Footer],
+  private[block] def bloomFilter(footer: Cache[BlockReader[SegmentBlock], SegmentFooterBlock],
                                  blockReader: BlockReader[SegmentBlock]): IO[Option[BloomFilterBlock]] =
     footer.value(blockReader) flatMap (bloomFilter(_, blockReader))
 
-  private[block] def binarySearchIndex(footer: SegmentBlock.Footer,
+  private[block] def binarySearchIndex(footer: SegmentFooterBlock,
                                        blockReader: BlockReader[SegmentBlock]): IO[Option[BinarySearchIndexBlock]] =
     footer.binarySearchIndexOffset map {
       binarySearchIndexOffset =>
@@ -108,11 +108,11 @@ object SegmentBlockCache {
           .map(Some(_))
     } getOrElse IO.none
 
-  private[block] def binarySearchIndex(footer: Cache[BlockReader[SegmentBlock], SegmentBlock.Footer],
+  private[block] def binarySearchIndex(footer: Cache[BlockReader[SegmentBlock], SegmentFooterBlock],
                                        blockReader: BlockReader[SegmentBlock]): IO[Option[BinarySearchIndexBlock]] =
     footer.value(blockReader) flatMap (binarySearchIndex(_, blockReader))
 
-  private[block] def values(footer: SegmentBlock.Footer,
+  private[block] def values(footer: SegmentFooterBlock,
                             blockReader: BlockReader[SegmentBlock]): IO[Option[ValuesBlock]] =
     footer.valuesOffset map {
       valuesOffset =>
@@ -121,11 +121,11 @@ object SegmentBlockCache {
           .map(Some(_))
     } getOrElse IO.none
 
-  private[block] def values(footer: Cache[BlockReader[SegmentBlock], SegmentBlock.Footer],
+  private[block] def values(footer: Cache[BlockReader[SegmentBlock], SegmentFooterBlock],
                             blockReader: BlockReader[SegmentBlock]): IO[Option[ValuesBlock]] =
     footer.value(blockReader) flatMap (values(_, blockReader))
 
-  private[block] def sortedIndex(footer: Cache[BlockReader[SegmentBlock], SegmentBlock.Footer],
+  private[block] def sortedIndex(footer: Cache[BlockReader[SegmentBlock], SegmentFooterBlock],
                                  blockReader: BlockReader[SegmentBlock]): IO[SortedIndexBlock] =
     footer.value(blockReader) flatMap {
       footer =>
@@ -155,8 +155,8 @@ class SegmentBlockCache(id: String,
       reserveError = IO.Error.ReservedValue(Reserve())
     )(SegmentBlockCache.segmentBlock)
 
-  private[block] val footerCache: Cache[BlockReader[SegmentBlock], SegmentBlock.Footer] =
-    Cache.blockIO[BlockReader[SegmentBlock], SegmentBlock.Footer](
+  private[block] val footerCache: Cache[BlockReader[SegmentBlock], SegmentFooterBlock] =
+    Cache.blockIO[BlockReader[SegmentBlock], SegmentFooterBlock](
       blockIO =
         blockStatus =>
           //          segmentFooterBlockIO(
@@ -169,7 +169,7 @@ class SegmentBlockCache(id: String,
           //          ),
           ???,
       reserveError = IO.Error.ReservedValue(Reserve())
-    )(SegmentBlock.readFooter)
+    )(SegmentFooterBlock.read)
 
   private[block] val hashIndexCache: Cache[BlockReader[SegmentBlock], Option[HashIndexBlock]] =
   //    Cache.io[BlockReader[SegmentBlock], Option[HashIndex]](
@@ -270,7 +270,7 @@ class SegmentBlockCache(id: String,
           .map(_.copy())
     }
 
-  def getFooter(): IO[SegmentBlock.Footer] =
+  def getFooter(): IO[SegmentFooterBlock] =
     createSegmentBlockReader() flatMap {
       segmentBlock =>
         footerCache.value(segmentBlock)
