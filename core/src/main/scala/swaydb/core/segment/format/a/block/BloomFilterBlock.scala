@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
 import swaydb.core.util.{Bytes, FunctionUtil, MurmurHash3Generic, Options}
 import swaydb.data.IO
@@ -219,16 +219,16 @@ private[core] object BloomFilterBlock extends LazyLogging {
         compressionInfo = blockHeader.compressionInfo
       )
 
-  def shouldNotCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =
+  def shouldNotCreateBloomFilter(keyValues: Iterable[Transient]): Boolean =
     keyValues.last.stats.segmentHasRemoveRange ||
       keyValues.last.stats.segmentBloomFilterSize <= 0 ||
       keyValues.last.bloomFilterConfig.falsePositiveRate <= 0.0 ||
       keyValues.size < keyValues.last.bloomFilterConfig.minimumNumberOfKeys
 
-  def shouldCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =
+  def shouldCreateBloomFilter(keyValues: Iterable[Transient]): Boolean =
     !shouldNotCreateBloomFilter(keyValues)
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[BloomFilterBlock.State] =
+  def init(keyValues: Iterable[Transient]): Option[BloomFilterBlock.State] =
     if (shouldCreateBloomFilter(keyValues))
       init(
         numberOfKeys = keyValues.last.stats.segmentUniqueKeysCount,

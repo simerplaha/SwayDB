@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.{KeyValue, Persistent}
+import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
 import swaydb.core.util.{Bytes, FunctionUtil, Options}
 import swaydb.data.IO
@@ -157,7 +157,7 @@ private[core] object BinarySearchIndexBlock {
       writtenValues >= minimumNumberOfKeys
   }
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[State] =
+  def init(keyValues: Iterable[Transient]): Option[State] =
     if (keyValues.last.stats.segmentBinarySearchIndexSize <= 0)
       None
     else

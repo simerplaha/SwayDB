@@ -116,7 +116,7 @@ class MapCodecSpec extends TestBase {
     }
 
     "only skip entries that are do not pass the CRC check if skipOnCorruption is true" in {
-      def createKeyValueSkipList(keyValues: Slice[KeyValue.WriteOnly]) = {
+      def createKeyValueSkipList(keyValues: Slice[Transient]) = {
         val map = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
         keyValues foreach {
           keyValue =>

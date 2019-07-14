@@ -25,7 +25,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.TestLimitQueues.fileOpenLimiter
-import swaydb.core.data.KeyValue.{ReadOnly, WriteOnly}
+import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.Transient.Range
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
@@ -68,7 +68,7 @@ object TestData {
 
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
-  implicit def toMemory(slice: Slice[KeyValue.WriteOnly])(implicit keyOrder: KeyOrder[Slice[Byte]]) = slice.toMemory
+  implicit def toMemory(slice: Slice[Transient])(implicit keyOrder: KeyOrder[Slice[Byte]]) = slice.toMemory
 
   def randomNextInt(max: Int): Int =
     Math.abs(Random.nextInt(max))
@@ -76,8 +76,8 @@ object TestData {
   def randomBoolean(): Boolean =
     Random.nextBoolean()
 
-  implicit class KeyValuesImplicits(keyValues: Iterable[KeyValue.WriteOnly]) {
-    def updateStats: Slice[KeyValue.WriteOnly] =
+  implicit class KeyValuesImplicits(keyValues: Iterable[Transient]) {
+    def updateStats: Slice[Transient] =
       updateStats(
         valuesConfig = keyValues.last.valuesConfig,
         sortedIndexConfig = keyValues.last.sortedIndexConfig,
@@ -91,7 +91,7 @@ object TestData {
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config = keyValues.last.binarySearchIndexConfig,
                     hashIndexConfig: HashIndexBlock.Config = keyValues.last.hashIndexConfig,
                     bloomFilterConfig: BloomFilterBlock.Config = keyValues.last.bloomFilterConfig) = {
-      val slice = Slice.create[KeyValue.WriteOnly](keyValues.size)
+      val slice = Slice.create[Transient](keyValues.size)
       keyValues foreach {
         keyValue =>
           slice.add(
@@ -328,7 +328,7 @@ object TestData {
       }
   }
 
-  implicit class KeyValueWriteOnlyImplicits(keyValues: Iterable[KeyValue.WriteOnly]) {
+  implicit class KeyValueTransientImplicits(keyValues: Iterable[Transient]) {
 
     def toMemory: Slice[Memory] = {
       val slice = Slice.create[Memory](keyValues.size)
@@ -356,10 +356,10 @@ object TestData {
       Slice.empty ++ items
   }
 
-  implicit class WriteOnlyToMemory(keyValue: KeyValue.WriteOnly) {
+  implicit class TransientToMemory(keyValue: Transient) {
     def toMemoryResponse: Memory.SegmentResponse =
       keyValue match {
-        case fixed: KeyValue.WriteOnly.Fixed =>
+        case fixed: Transient.Fixed =>
           fixed match {
             case Transient.Remove(key, deadline, time, previous, _, _, _, _, _) =>
               Memory.Remove(key, deadline, time)
@@ -377,7 +377,7 @@ object TestData {
               Memory.PendingApply(key, applies)
           }
 
-        case range: KeyValue.WriteOnly.Range =>
+        case range: Transient.Range =>
           range match {
             case Transient.Range(fromKey, toKey, fullKey, fromValue, rangeValue, _, _, _, _, _, _, _) =>
               Memory.Range(fromKey, toKey, fromValue, rangeValue)
@@ -386,7 +386,7 @@ object TestData {
 
     def toMemoryGroup: Memory.Group =
       keyValue match {
-        case group: KeyValue.WriteOnly.Group =>
+        case group: Transient.Group =>
           group match {
             case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, minMaxFunctionId, deadline, _, _, _, _, _, _, _) =>
               Memory.Group(
@@ -399,7 +399,7 @@ object TestData {
 
     def toMemory: Memory = {
       keyValue match {
-        case group: KeyValue.WriteOnly.Group =>
+        case group: Transient.Group =>
           group match {
             case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, minMaxFunctionId, deadline, _, _, _, _, _, _, _) =>
               Memory.Group(
@@ -415,12 +415,12 @@ object TestData {
     }
   }
 
-  implicit class WriteOnlysToMemory(keyValues: Iterable[KeyValue]) {
+  implicit class TransientsToMemory(keyValues: Iterable[KeyValue]) {
     def toMemory: Slice[Memory] = {
       keyValues map {
         case readOnly: ReadOnly =>
           readOnly.toMemory
-        case writeOnly: WriteOnly =>
+        case writeOnly: Transient =>
           writeOnly.toMemory
       } toSlice
     }
@@ -1203,7 +1203,7 @@ object TestData {
                               rangeValue: RangeValue = randomRangeValue(),
                               deadline: Option[Deadline] = randomDeadlineOption,
                               time: Time = Time.empty,
-                              previous: Option[KeyValue.WriteOnly] = None,
+                              previous: Option[Transient] = None,
                               maxGroupKeyValues: Int = randomIntMax(50) + 1, //+1 to avoid empty groups
                               valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                               sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
@@ -1216,7 +1216,7 @@ object TestData {
                               includeRemoves: Boolean = true,
                               includePuts: Boolean = true,
                               includeRanges: Boolean = true,
-                              includeGroups: Boolean = true): KeyValue.WriteOnly =
+                              includeGroups: Boolean = true): Transient =
     if (toKey.isDefined && includeRanges && randomBoolean())
       Transient.Range(
         fromKey = key,
@@ -1282,7 +1282,7 @@ object TestData {
                                    value: Option[Slice[Byte]] = randomStringOption,
                                    deadline: Option[Deadline] = randomDeadlineOption,
                                    time: Time = Time.empty,
-                                   previous: Option[KeyValue.WriteOnly] = None,
+                                   previous: Option[Transient] = None,
                                    valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                                    sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                                    binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
@@ -1292,7 +1292,7 @@ object TestData {
                                    includePendingApply: Boolean = true,
                                    includeFunctions: Boolean = true,
                                    includeRemoves: Boolean = true,
-                                   includePuts: Boolean = true): KeyValue.WriteOnly.Fixed =
+                                   includePuts: Boolean = true): Transient.Fixed =
     if (includePuts && randomBoolean())
       Transient.Put(
         key = key,
@@ -1880,7 +1880,7 @@ object TestData {
                            addRandomRemoves: Boolean = true,
                            addRandomRemoveDeadlines: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                     keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[KeyValue.WriteOnly] =
+                                                                     keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1891,14 +1891,14 @@ object TestData {
       addRandomRemoves = addRandomRemoves,
       addRandomRemoveDeadlines = addRandomRemoveDeadlines)
 
-  def randomGroup(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.random, KeyOrder.default, TestLimitQueues.keyValueLimiter),
+  def randomGroup(keyValues: Slice[Transient] = randomizedKeyValues()(TestTimer.random, KeyOrder.default, TestLimitQueues.keyValueLimiter),
                   groupConfig: SegmentBlock.Config = SegmentBlock.Config.random,
                   valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                   sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                   binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                   hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                   bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-                  previous: Option[KeyValue.WriteOnly] = None)(implicit testTimer: TestTimer = TestTimer.Incremental()): Transient.Group =
+                  previous: Option[Transient] = None)(implicit testTimer: TestTimer = TestTimer.Incremental()): Transient.Group =
     Transient.Group(
       keyValues = keyValues,
       previous = previous,
@@ -2050,7 +2050,7 @@ object TestData {
       )
 
     def remove(key: Slice[Byte],
-               previous: Option[KeyValue.WriteOnly])(implicit testTimer: TestTimer): Transient.Remove =
+               previous: Option[Transient])(implicit testTimer: TestTimer): Transient.Remove =
       Transient.Remove(
         key = key,
         deadline = None,
@@ -2064,7 +2064,7 @@ object TestData {
       )
 
     def remove(key: Slice[Byte],
-               previous: Option[KeyValue.WriteOnly],
+               previous: Option[Transient],
                deadline: Option[Deadline])(implicit testTimer: TestTimer): Transient.Remove =
       Transient.Remove(
         key = key,
@@ -2080,7 +2080,7 @@ object TestData {
 
     def put(key: Slice[Byte],
             value: Option[Slice[Byte]],
-            previous: Option[KeyValue.WriteOnly])(implicit testTimer: TestTimer): Transient.Put =
+            previous: Option[Transient])(implicit testTimer: TestTimer): Transient.Put =
       Transient.Put(
         key = key,
         value = value,
@@ -2096,7 +2096,7 @@ object TestData {
 
     def put(key: Slice[Byte],
             value: Option[Slice[Byte]],
-            previous: Option[KeyValue.WriteOnly],
+            previous: Option[Transient],
             deadline: Option[Deadline],
             compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Put =
       Transient.Put(
@@ -2206,7 +2206,7 @@ object TestData {
 
     def update(key: Slice[Byte],
                value: Option[Slice[Byte]],
-               previous: Option[KeyValue.WriteOnly])(implicit testTimer: TestTimer): Transient.Update =
+               previous: Option[Transient])(implicit testTimer: TestTimer): Transient.Update =
       Transient.Update(
         key = key,
         value = value,
@@ -2222,7 +2222,7 @@ object TestData {
 
     def update(key: Slice[Byte],
                value: Option[Slice[Byte]],
-               previous: Option[KeyValue.WriteOnly],
+               previous: Option[Transient],
                deadline: Option[Deadline])(implicit testTimer: TestTimer): Transient.Update =
       Transient.Update(
         key = key,
@@ -2426,7 +2426,7 @@ object TestData {
       )
   }
 
-  def collectUsedDeadlines(keyValues: Slice[KeyValue.WriteOnly], usedDeadlines: List[Deadline]): List[Deadline] =
+  def collectUsedDeadlines(keyValues: Slice[Transient], usedDeadlines: List[Deadline]): List[Deadline] =
     keyValues.foldLeft(usedDeadlines) {
       case (usedDeadlines, keyValue) =>
         keyValue match {
@@ -2449,7 +2449,7 @@ object TestData {
         }
     }
 
-  def nearestDeadline(keyValues: Slice[KeyValue.WriteOnly]): Option[Deadline] = {
+  def nearestDeadline(keyValues: Slice[Transient]): Option[Deadline] = {
     val usedDeadlines = collectUsedDeadlines(keyValues.toSlice, List.empty)
     if (usedDeadlines.isEmpty)
       None
@@ -2465,11 +2465,11 @@ object TestData {
       )
   }
 
-  def maxKey(keyValues: Slice[KeyValue.WriteOnly]): MaxKey[Slice[Byte]] =
+  def maxKey(keyValues: Slice[Transient]): MaxKey[Slice[Byte]] =
     getMaxKey(keyValues.last)
 
   @tailrec
-  def getMaxKey(transient: KeyValue.WriteOnly): MaxKey[Slice[Byte]] =
+  def getMaxKey(transient: Transient): MaxKey[Slice[Byte]] =
     transient match {
       case last: Transient.Remove =>
         MaxKey.Fixed(last.key)

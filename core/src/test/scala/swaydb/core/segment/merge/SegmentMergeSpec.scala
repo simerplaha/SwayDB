@@ -52,14 +52,14 @@
 //      runThisParallel(10.times) {
 //        implicit val testTimer: TestTimer = TestTimer.Empty
 //
-//        val segment1 = ListBuffer.empty[KeyValue.WriteOnly]
+//        val segment1 = ListBuffer.empty[Transient]
 //        segment1.+=(Transient.put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true))
 //        segment1.+=(Transient.put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 70.bytes
 //
-//        val smallerLastSegment = ListBuffer.empty[KeyValue.WriteOnly]
+//        val smallerLastSegment = ListBuffer.empty[Transient]
 //        smallerLastSegment.+=(Transient.put(key = 1, value = 1, previous = None, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 60.bytes
 //
-//        val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](segment1, smallerLastSegment)
+//        val segments = ListBuffer[ListBuffer[Transient]](segment1, smallerLastSegment)
 //
 //        //minSegmentSize is 70.bytes but lastSegment size is 60.bytes. Expected result should move lastSegment's KeyValues to previous segment
 //        val newSegments =
@@ -86,14 +86,14 @@
 //
 //    "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for memory key-values" in {
 //      runThisParallel(10.times) {
-//        val segment1 = ListBuffer.empty[KeyValue.WriteOnly]
+//        val segment1 = ListBuffer.empty[Transient]
 //        segment1.+=(Transient.put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true))
 //        segment1.+=(Transient.put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 21.bytes
 //
-//        val smallerLastSegment = ListBuffer.empty[KeyValue.WriteOnly]
+//        val smallerLastSegment = ListBuffer.empty[Transient]
 //        smallerLastSegment.+=(Transient.put(key = 1, value = 1, previous = None, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 12.bytes
 //
-//        val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](segment1, smallerLastSegment)
+//        val segments = ListBuffer[ListBuffer[Transient]](segment1, smallerLastSegment)
 //
 //        //minSegmentSize is 21.bytes but lastSegment size is 12.bytes. Expected result should move lastSegment's KeyValues to previous segment
 //        val newSegments =
@@ -121,7 +121,7 @@
 //
 //    "make no change if there is only one segment" in {
 //      runThisParallel(100.times) {
-//        val segment: ListBuffer[KeyValue.WriteOnly] = ListBuffer(randomizedKeyValues(randomIntMax(5) max 1, addRandomGroups = false).toList: _*)
+//        val segment: ListBuffer[Transient] = ListBuffer(randomizedKeyValues(randomIntMax(5) max 1, addRandomGroups = false).toList: _*)
 //
 //        SegmentMerger.completeMerge(
 //          segments = ListBuffer(segment),
@@ -158,7 +158,7 @@
 //      val oldKeyValues: Slice[Memory] = Slice(Memory.put(1, 1), Memory.put(2, 2), Memory.put(3, 3), Memory.put(4, 4))
 //      val newKeyValues: Slice[Memory] = Slice(Memory.put(1, 22), Memory.put(2, 22), Memory.put(3, 22), Memory.put(4, 22))
 //
-//      def assert(segments: Array[Iterable[KeyValue.WriteOnly]]) = {
+//      def assert(segments: Array[Iterable[Transient]]) = {
 //        segments.length shouldBe 4
 //
 //        segments(0).size shouldBe 1

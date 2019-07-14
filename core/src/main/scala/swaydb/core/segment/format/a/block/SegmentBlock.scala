@@ -241,7 +241,7 @@ private[core] object SegmentBlock {
     else
       noCompressionHeaderSize
 
-  def writeIndexBlocks(keyValue: KeyValue.WriteOnly,
+  def writeIndexBlocks(keyValue: Transient,
                        memoryMap: Option[ConcurrentSkipListMap[Slice[Byte], Memory]],
                        hashIndex: Option[HashIndexBlock.State],
                        binarySearchIndex: Option[BinarySearchIndexBlock.State],
@@ -249,16 +249,16 @@ private[core] object SegmentBlock {
                        currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
                        currentNearestDeadline: Option[Deadline]): IO[DeadlineAndFunctionId] = {
 
-    def writeOne(rootGroup: Option[KeyValue.WriteOnly.Group],
-                 keyValue: KeyValue.WriteOnly): IO[Unit] =
+    def writeOne(rootGroup: Option[Transient.Group],
+                 keyValue: Transient): IO[Unit] =
       keyValue match {
-        case childGroup: KeyValue.WriteOnly.Group =>
+        case childGroup: Transient.Group =>
           writeMany(
             rootGroup = rootGroup,
             keyValues = childGroup.keyValues
           )
 
-        case keyValue @ (_: KeyValue.WriteOnly.Range | _: KeyValue.WriteOnly.Fixed) =>
+        case keyValue @ (_: Transient.Range | _: Transient.Fixed) =>
           val thisKeyValuesAccessOffset =
             rootGroup
               .map(_.stats.thisKeyValuesAccessIndexOffset)
@@ -293,8 +293,8 @@ private[core] object SegmentBlock {
       }
 
     @tailrec
-    def writeMany(rootGroup: Option[KeyValue.WriteOnly.Group],
-                  keyValues: Slice[KeyValue.WriteOnly]): IO[Unit] =
+    def writeMany(rootGroup: Option[Transient.Group],
+                  keyValues: Slice[Transient]): IO[Unit] =
       keyValues.headOption match {
         case Some(keyValue) =>
           writeOne(rootGroup, keyValue)
@@ -305,7 +305,7 @@ private[core] object SegmentBlock {
       }
 
     @tailrec
-    def writeRoot(keyValues: Slice[KeyValue.WriteOnly],
+    def writeRoot(keyValues: Slice[Transient],
                   currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
                   currentNearestDeadline: Option[Deadline]): DeadlineAndFunctionId =
       keyValues.headOption match {
@@ -486,7 +486,7 @@ private[core] object SegmentBlock {
     }
   }
 
-  private def writeBlocks(keyValue: KeyValue.WriteOnly,
+  private def writeBlocks(keyValue: Transient,
                           sortedIndex: SortedIndexBlock.State,
                           values: Option[ValuesBlock.State],
                           hashIndex: Option[HashIndexBlock.State],
@@ -534,7 +534,7 @@ private[core] object SegmentBlock {
         nearestDeadline = nearestDeadline
       )
 
-  private def write(keyValues: Iterable[KeyValue.WriteOnly],
+  private def write(keyValues: Iterable[Transient],
                     sortedIndexBlock: SortedIndexBlock.State,
                     valuesBlock: Option[ValuesBlock.State],
                     hashIndexBlock: Option[HashIndexBlock.State],
@@ -574,7 +574,7 @@ private[core] object SegmentBlock {
           IO.Success(result)
     }
 
-  def writeClosed(keyValues: Iterable[KeyValue.WriteOnly],
+  def writeClosed(keyValues: Iterable[Transient],
                   createdInLevel: Int,
                   segmentConfig: SegmentBlock.Config): IO[SegmentBlock.Closed] =
     if (keyValues.isEmpty)
@@ -593,7 +593,7 @@ private[core] object SegmentBlock {
           )
       }
 
-  def writeOpen(keyValues: Iterable[KeyValue.WriteOnly],
+  def writeOpen(keyValues: Iterable[Transient],
                 createdInLevel: Int,
                 segmentConfig: SegmentBlock.Config): IO[SegmentBlock.Open] =
     if (keyValues.isEmpty)

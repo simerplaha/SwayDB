@@ -108,13 +108,13 @@
 //  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
 //  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
 //
-//  lazy val unGroupedKeyValues: Slice[KeyValue.WriteOnly] =
+//  lazy val unGroupedKeyValues: Slice[Transient] =
 //    randomKeyValues(keyValuesCount, startId = Some(1))
 //
-//  //  val unGroupedRandomKeyValues: List[KeyValue.WriteOnly] =
+//  //  val unGroupedRandomKeyValues: List[Transient] =
 //  //    Random.shuffle(unGroupedKeyValues.toList)
 //
-//  lazy val groupedKeyValues: Slice[KeyValue.WriteOnly] = {
+//  lazy val groupedKeyValues: Slice[Transient] = {
 //    val grouped =
 //      SegmentMerger.split(
 //        keyValues = unGroupedKeyValues,

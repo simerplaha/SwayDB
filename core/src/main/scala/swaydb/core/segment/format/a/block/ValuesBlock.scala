@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
 import swaydb.core.util.{Bytes, FunctionUtil}
@@ -99,7 +99,7 @@ private[core] object ValuesBlock {
     else
       noCompressionHeaderSize
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[ValuesBlock.State] =
+  def init(keyValues: Iterable[Transient]): Option[ValuesBlock.State] =
     if (keyValues.last.stats.segmentValuesSize > 0) {
       val hasCompression = keyValues.last.valuesConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentValuesSize)).nonEmpty
       val headSize = headerSize(hasCompression)
@@ -122,7 +122,7 @@ private[core] object ValuesBlock {
     else
       None
 
-  def write(keyValue: KeyValue.WriteOnly, state: ValuesBlock.State) =
+  def write(keyValue: Transient, state: ValuesBlock.State) =
     IO {
       keyValue.valueEntryBytes foreach state.bytes.addAll
     }

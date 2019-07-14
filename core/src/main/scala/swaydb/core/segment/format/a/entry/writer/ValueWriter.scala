@@ -26,7 +26,7 @@ import swaydb.data.slice.Slice
 
 private[writer] object ValueWriter {
 
-  def write[T](current: KeyValue.WriteOnly,
+  def write[T](current: Transient,
                enablePrefixCompression: Boolean,
                compressDuplicateValues: Boolean,
                entryId: BaseEntryId.Time,
@@ -67,8 +67,8 @@ private[writer] object ValueWriter {
         )
       }
 
-  private def compress[T](current: KeyValue.WriteOnly,
-                          previous: KeyValue.WriteOnly,
+  private def compress[T](current: Transient,
+                          previous: Transient,
                           enablePrefixCompression: Boolean,
                           compressDuplicateValues: Boolean,
                           entryId: BaseEntryId.Time,
@@ -106,8 +106,8 @@ private[writer] object ValueWriter {
         hasPrefixCompressed = hasPrefixCompressed
       )
 
-  private def partialCompress[T](current: KeyValue.WriteOnly,
-                                 previous: KeyValue.WriteOnly,
+  private def partialCompress[T](current: Transient,
+                                 previous: Transient,
                                  enablePrefixCompression: Boolean,
                                  entryId: BaseEntryId.Time,
                                  plusSize: Int,
@@ -170,7 +170,7 @@ private[writer] object ValueWriter {
         hasPrefixCompressed = hasPrefixCompressed
       )
 
-  private def uncompressed(current: KeyValue.WriteOnly,
+  private def uncompressed(current: Transient,
                            currentValues: Slice[Slice[Byte]],
                            entryId: BaseEntryId.Time,
                            plusSize: Int,
@@ -207,7 +207,7 @@ private[writer] object ValueWriter {
     )
   }
 
-  private def noValue(current: KeyValue.WriteOnly,
+  private def noValue(current: Transient,
                       entryId: BaseEntryId.Time,
                       plusSize: Int,
                       enablePrefixCompression: Boolean,
@@ -234,8 +234,8 @@ private[writer] object ValueWriter {
     )
   }
 
-  private def duplicateValue(current: KeyValue.WriteOnly,
-                             previous: KeyValue.WriteOnly,
+  private def duplicateValue(current: Transient,
+                             previous: Transient,
                              entryId: BaseEntryId.Time,
                              plusSize: Int,
                              enablePrefixCompression: Boolean,
@@ -290,11 +290,11 @@ private[writer] object ValueWriter {
     else
       None
 
-  private def partialCompress(current: KeyValue.WriteOnly,
+  private def partialCompress(current: Transient,
                               entryId: BaseEntryId.Time,
                               plusSize: Int,
                               currentValue: Slice[Byte],
-                              previous: KeyValue.WriteOnly,
+                              previous: Transient,
                               previousValue: Slice[Byte],
                               isKeyUncompressed: Boolean,
                               hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): KeyValueWriter.WriteResult = {
@@ -325,7 +325,7 @@ private[writer] object ValueWriter {
     }
   }
 
-  private def compressValueLength(current: KeyValue.WriteOnly,
+  private def compressValueLength(current: Transient,
                                   entryId: BaseEntryId.Time,
                                   plusSize: Int,
                                   currentValue: Slice[Byte],
@@ -398,8 +398,8 @@ private[writer] object ValueWriter {
       )
     }
 
-  private def compressValueOffset(current: KeyValue.WriteOnly,
-                                  previous: KeyValue.WriteOnly,
+  private def compressValueOffset(current: Transient,
+                                  previous: Transient,
                                   currentValueOffsetBytes: Slice[Byte],
                                   entryId: BaseEntryId.Time,
                                   plusSize: Int,

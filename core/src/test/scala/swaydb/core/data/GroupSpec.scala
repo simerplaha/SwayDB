@@ -40,9 +40,9 @@
 //  implicit val fileLimiter = TestLimitQueues.fileOpenLimiter
 //  implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
 //
-//  "lastGroup on a list of WriteOnly key-values" should {
+//  "lastGroup on a list of Transient key-values" should {
 //    "return empty if there are no groups" in {
-//      Seq.empty[KeyValue.WriteOnly].lastGroup() shouldBe empty
+//      Seq.empty[Transient].lastGroup() shouldBe empty
 //    }
 //
 //    "return last group if there is only one group" in {

@@ -246,7 +246,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   }
 
   object TestSegment {
-    def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
+    def apply(keyValues: Slice[Transient] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
               path: Path = testSegmentFile,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
@@ -643,8 +643,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     ).runThisRandomlyInParallel
   }
 
-  def assertSegment[T](keyValues: Slice[KeyValue.WriteOnly],
-                       assert: (Slice[KeyValue.WriteOnly], Segment) => T,
+  def assertSegment[T](keyValues: Slice[Transient],
+                       assert: (Slice[Transient], Segment) => T,
                        testWithCachePopulated: Boolean = true,
                        closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]) = {

@@ -42,7 +42,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
   //management of these key-values is not required.
   implicit val keyValueLimiter = KeyValueLimiter.none
 
-  private def shouldGroupGroups(segmentKeyValues: Iterable[KeyValue.WriteOnly],
+  private def shouldGroupGroups(segmentKeyValues: Iterable[Transient],
                                 groupingStrategy: GroupGroupingStrategyInternal,
                                 force: Boolean): Boolean =
     if (segmentKeyValues.isEmpty || segmentKeyValues.last.stats.groupsCount <= 1)
@@ -58,7 +58,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           segmentKeyValues.last.stats.groupsCount >= count.count
       }
 
-  private def shouldGroupKeyValues(segmentKeyValues: Iterable[KeyValue.WriteOnly],
+  private def shouldGroupKeyValues(segmentKeyValues: Iterable[Transient],
                                    groupingStrategy: KeyValueGroupingStrategyInternal,
                                    force: Boolean): Boolean =
     if (segmentKeyValues.isEmpty)
@@ -75,12 +75,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
           segmentKeyValues.last.stats.chainPosition - segmentKeyValues.last.stats.groupsCount >= count.count
       }
 
-  private def groupsToGroup(keyValues: Iterable[KeyValue.WriteOnly],
+  private def groupsToGroup(keyValues: Iterable[Transient],
                             groupingStrategy: GroupGroupingStrategyInternal,
-                            force: Boolean): Option[Slice[KeyValue.WriteOnly]] =
+                            force: Boolean): Option[Slice[Transient]] =
     if (shouldGroupGroups(segmentKeyValues = keyValues, groupingStrategy = groupingStrategy, force = force)) {
       //use segmentKeyValues.last.stats.position instead of keyValues.size because position is pre-calculated.
-      val keyValuesToGroup = Slice.create[KeyValue.WriteOnly](keyValues.last.stats.chainPosition)
+      val keyValuesToGroup = Slice.create[Transient](keyValues.last.stats.chainPosition)
       //do not need to recalculate stats since all key-values are being grouped.
       //      keyValues foreach (keyValuesToGroup add _.updateStats(bloomFilterFalsePositiveRate, keyValuesToGroup.lastOption))
       keyValues foreach (keyValuesToGroup add _)
@@ -95,16 +95,16 @@ private[merge] object SegmentGrouper extends LazyLogging {
     *
     * @return IO.Success key-values to Group and the last Group. IO.Failure if the head of the List does not contain all the Group.
     */
-  private def keyValuesToGroup(segmentKeyValues: Iterable[KeyValue.WriteOnly],
+  private def keyValuesToGroup(segmentKeyValues: Iterable[Transient],
                                groupingStrategy: KeyValueGroupingStrategyInternal,
-                               force: Boolean): IO[Option[(Slice[KeyValue.WriteOnly], Option[Transient.Group])]] =
+                               force: Boolean): IO[Option[(Slice[Transient], Option[Transient.Group])]] =
     if (shouldGroupKeyValues(segmentKeyValues = segmentKeyValues, groupingStrategy = groupingStrategy, force = force)) {
       //create a new list of key-values with stats updated.
       val expectedGroupsKeyValueCount = segmentKeyValues.last.stats.chainPosition - segmentKeyValues.last.stats.groupsCount
       if (expectedGroupsKeyValueCount == 0)
         IO.none
       else {
-        val keyValuesToGroup = Slice.create[KeyValue.WriteOnly](expectedGroupsKeyValueCount)
+        val keyValuesToGroup = Slice.create[Transient](expectedGroupsKeyValueCount)
         segmentKeyValues.foldLeftIO((1, Option.empty[Transient.Group])) {
           case ((count, lastGroup), keyValue) =>
             keyValue match {
@@ -147,9 +147,9 @@ private[merge] object SegmentGrouper extends LazyLogging {
       IO.none
     }
 
-  private def createGroup(keyValuesToGroup: Slice[KeyValue.WriteOnly],
+  private def createGroup(keyValuesToGroup: Slice[Transient],
                           lastGroup: Option[Transient.Group],
-                          segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
+                          segmentKeyValues: ListBuffer[Transient],
                           groupingStrategy: GroupingStrategy,
                           valuesConfig: ValuesBlock.Config,
                           sortedIndexConfig: SortedIndexBlock.Config,
@@ -178,7 +178,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
         newGroup
     }
 
-  private[segment] def groupKeyValues(segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
+  private[segment] def groupKeyValues(segmentKeyValues: ListBuffer[Transient],
                                       groupingStrategy: KeyValueGroupingStrategyInternal,
                                       valuesConfig: ValuesBlock.Config,
                                       sortedIndexConfig: SortedIndexBlock.Config,
@@ -208,7 +208,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
         IO.none
     }
 
-  private[segment] def groupGroups(groupKeyValues: ListBuffer[KeyValue.WriteOnly],
+  private[segment] def groupGroups(groupKeyValues: ListBuffer[Transient],
                                    groupingStrategy: GroupGroupingStrategyInternal,
                                    valuesConfig: ValuesBlock.Config,
                                    sortedIndexConfig: SortedIndexBlock.Config,
@@ -240,7 +240,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
     *
     * @return returns the last group in the List if grouping was successful else None.
     */
-  private[segment] def group(segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
+  private[segment] def group(segmentKeyValues: ListBuffer[Transient],
                              groupingStrategy: KeyValueGroupingStrategyInternal,
                              valuesConfig: ValuesBlock.Config,
                              sortedIndexConfig: SortedIndexBlock.Config,
@@ -285,7 +285,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
   @tailrec
   def addKeyValues(keyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
-                   splits: ListBuffer[ListBuffer[KeyValue.WriteOnly]],
+                   splits: ListBuffer[ListBuffer[Transient]],
                    minSegmentSize: Long,
                    forInMemory: Boolean,
                    isLastLevel: Boolean,
@@ -352,7 +352,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
     }
 
   def addKeyValue(keyValueToAdd: KeyValue.ReadOnly,
-                  splits: ListBuffer[ListBuffer[KeyValue.WriteOnly]],
+                  splits: ListBuffer[ListBuffer[Transient]],
                   minSegmentSize: Long,
                   forInMemory: Boolean,
                   isLastLevel: Boolean,
@@ -363,7 +363,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   bloomFilterConfig: BloomFilterBlock.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                               keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] = {
 
-    def doAdd(keyValueToAdd: Option[KeyValue.WriteOnly] => KeyValue.WriteOnly): IO[Unit] = {
+    def doAdd(keyValueToAdd: Option[Transient] => Transient): IO[Unit] = {
 
       /**
         * Tries adding key-value to the current split/Segment. If force is true then the key-value will value added to
@@ -380,7 +380,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           else
             currentSplitsLastKeyValue.map(_.stats.segmentSize).getOrElse(0)
 
-        val nextKeyValueWithUpdatedStats: KeyValue.WriteOnly = keyValueToAdd(currentSplitsLastKeyValue)
+        val nextKeyValueWithUpdatedStats: Transient = keyValueToAdd(currentSplitsLastKeyValue)
 
         val segmentSizeWithNextKeyValue =
           if (forInMemory)
@@ -416,7 +416,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
         } getOrElse IO.unit
 
       def startNewSegment(): Unit =
-        splits += ListBuffer[KeyValue.WriteOnly]()
+        splits += ListBuffer[Transient]()
 
       //try adding to current split
       if (addToCurrentSplit(force = false))

@@ -194,112 +194,6 @@ private[core] object KeyValue {
     }
   }
 
-  /**
-    * Write-only instances are only created after a successful merge of key-values and are used to write to Persistent
-    * and Memory Segments.
-    */
-  sealed trait WriteOnly extends KeyValue { self =>
-    val isRemoveRangeMayBe: Boolean
-    val isRange: Boolean
-    val isGroup: Boolean
-    val previous: Option[KeyValue.WriteOnly]
-    def minKey: Slice[Byte]
-    def values: Slice[Slice[Byte]]
-    def valuesConfig: ValuesBlock.Config
-    def sortedIndexConfig: SortedIndexBlock.Config
-    def binarySearchIndexConfig: BinarySearchIndexBlock.Config
-    def hashIndexConfig: HashIndexBlock.Config
-    def bloomFilterConfig: BloomFilterBlock.Config
-    def isPrefixCompressed: Boolean
-    def stats: Stats
-    def deadline: Option[Deadline]
-    def indexEntryBytes: Slice[Byte]
-    def valueEntryBytes: Slice[Slice[Byte]]
-    //a flag that returns true if valueBytes are created for this or any of it's previous key-values indicating value slice is required.
-    def hasValueEntryBytes: Boolean
-    //start value offset is carried current value offset position.
-    def currentStartValueOffsetPosition: Int
-    def currentEndValueOffsetPosition: Int
-    def nextStartValueOffsetPosition: Int =
-      if (!hasValueEntryBytes && currentEndValueOffsetPosition == 0)
-        0
-      else
-        currentEndValueOffsetPosition + 1
-
-    def updatePrevious(valuesConfig: ValuesBlock.Config,
-                       sortedIndexConfig: SortedIndexBlock.Config,
-                       binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                       hashIndexConfig: HashIndexBlock.Config,
-                       bloomFilterConfig: BloomFilterBlock.Config,
-                       previous: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly
-
-    def reverseIterator: Iterator[WriteOnly] =
-      new Iterator[WriteOnly] {
-        var currentPrevious: Option[KeyValue.WriteOnly] =
-          Some(self)
-
-        override def hasNext: Boolean =
-          currentPrevious.isDefined
-
-        override def next(): KeyValue.WriteOnly = {
-          val next = currentPrevious.get
-          currentPrevious = next.previous
-          next
-        }
-      }
-  }
-
-  object WriteOnly {
-
-    implicit class WriteOnlyImplicits(keyValues: Iterable[KeyValue.WriteOnly]) {
-      def lastGroup(): Option[Transient.Group] =
-        keyValues.foldLeftWhile(Option.empty[Transient.Group], _.isGroup) {
-          case (_, group: Transient.Group) =>
-            Some(group)
-          case (previousGroup, _) =>
-            previousGroup
-        }
-
-      def maxKey() =
-        keyValues.last match {
-          case range: Range =>
-            MaxKey.Range(range.fromKey, range.toKey)
-          case group: Group =>
-            group.maxKey
-          case fixed: Transient =>
-            MaxKey.Fixed(fixed.key)
-        }
-
-      def minKey: Slice[Byte] =
-        keyValues.head.key
-    }
-
-    sealed trait Fixed extends KeyValue.WriteOnly {
-
-      def hasTimeLeft(): Boolean
-      def isOverdue(): Boolean = !hasTimeLeft()
-      def time: Time
-    }
-
-    sealed trait Range extends KeyValue.WriteOnly {
-      def fromKey: Slice[Byte]
-      def toKey: Slice[Byte]
-      def fromValue: Option[Value.FromValue]
-      def rangeValue: Value.RangeValue
-      def fetchFromValue: IO[Option[Value.FromValue]]
-      def fetchRangeValue: IO[Value.RangeValue]
-      def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)]
-    }
-
-    sealed trait Group extends KeyValue.WriteOnly {
-      def minKey: Slice[Byte]
-      def maxKey: MaxKey[Slice[Byte]]
-      def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
-      def keyValues: Slice[KeyValue.WriteOnly]
-      def blockedSegment: SegmentBlock.Closed
-    }
-  }
-
   type KeyValueTuple = (Slice[Byte], Option[Slice[Byte]])
 }
 
@@ -537,11 +431,90 @@ private[swaydb] object Memory {
   }
 }
 
-private[core] sealed trait Transient extends KeyValue.WriteOnly
+private[core] sealed trait Transient extends KeyValue { self =>
+  val isRemoveRangeMayBe: Boolean
+  val isRange: Boolean
+  val isGroup: Boolean
+  val previous: Option[Transient]
+  def minKey: Slice[Byte]
+  def values: Slice[Slice[Byte]]
+  def valuesConfig: ValuesBlock.Config
+  def sortedIndexConfig: SortedIndexBlock.Config
+  def binarySearchIndexConfig: BinarySearchIndexBlock.Config
+  def hashIndexConfig: HashIndexBlock.Config
+  def bloomFilterConfig: BloomFilterBlock.Config
+  def isPrefixCompressed: Boolean
+  def stats: Stats
+  def deadline: Option[Deadline]
+  def indexEntryBytes: Slice[Byte]
+  def valueEntryBytes: Slice[Slice[Byte]]
+  //a flag that returns true if valueBytes are created for this or any of it's previous key-values indicating value slice is required.
+  def hasValueEntryBytes: Boolean
+  //start value offset is carried current value offset position.
+  def currentStartValueOffsetPosition: Int
+  def currentEndValueOffsetPosition: Int
+  def nextStartValueOffsetPosition: Int =
+    if (!hasValueEntryBytes && currentEndValueOffsetPosition == 0)
+      0
+    else
+      currentEndValueOffsetPosition + 1
+
+  def updatePrevious(valuesConfig: ValuesBlock.Config,
+                     sortedIndexConfig: SortedIndexBlock.Config,
+                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                     hashIndexConfig: HashIndexBlock.Config,
+                     bloomFilterConfig: BloomFilterBlock.Config,
+                     previous: Option[Transient]): Transient
+
+  def reverseIterator: Iterator[Transient] =
+    new Iterator[Transient] {
+      var currentPrevious: Option[Transient] =
+        Some(self)
+
+      override def hasNext: Boolean =
+        currentPrevious.isDefined
+
+      override def next(): Transient = {
+        val next = currentPrevious.get
+        currentPrevious = next.previous
+        next
+      }
+    }
+}
 
 private[core] object Transient {
 
-  def hasSameValue(left: KeyValue.WriteOnly, right: KeyValue.WriteOnly): Boolean =
+  implicit class TransientIterableImplicits(keyValues: Iterable[Transient]) {
+    def lastGroup(): Option[Transient.Group] =
+      keyValues.foldLeftWhile(Option.empty[Transient.Group], _.isGroup) {
+        case (_, group: Transient.Group) =>
+          Some(group)
+        case (previousGroup, _) =>
+          previousGroup
+      }
+
+    def maxKey() =
+      keyValues.last match {
+        case range: Range =>
+          MaxKey.Range(range.fromKey, range.toKey)
+        case group: Group =>
+          group.maxKey
+        case fixed: Transient =>
+          MaxKey.Fixed(fixed.key)
+      }
+
+    def minKey: Slice[Byte] =
+      keyValues.head.key
+  }
+
+  sealed trait Fixed extends Transient {
+
+    def hasTimeLeft(): Boolean
+    def isOverdue(): Boolean = !hasTimeLeft()
+    def time: Time
+  }
+
+  def hasSameValue(left: Transient, right: Transient): Boolean =
     (left, right) match {
       //Groups
       case (_: Transient.Group, right: Transient) => false
@@ -592,7 +565,7 @@ private[core] object Transient {
 
   //do not fetch the value itself as it will be serialised if it is a range.
   //Here we just check the types to determine if a key-value has value.
-  def hasValue(keyValue: KeyValue.WriteOnly): Boolean =
+  def hasValue(keyValue: Transient): Boolean =
     keyValue match {
       case transient: Transient.Put =>
         transient.value.exists(_.nonEmpty)
@@ -607,10 +580,10 @@ private[core] object Transient {
         true
     }
 
-  def hasNoValue(keyValue: KeyValue.WriteOnly): Boolean =
+  def hasNoValue(keyValue: Transient): Boolean =
     !hasValue(keyValue)
 
-  def compressibleValue(keyValue: KeyValue.WriteOnly): Option[Slice[Byte]] =
+  def compressibleValue(keyValue: Transient): Option[Slice[Byte]] =
     keyValue match {
       case transient: Transient.SegmentResponse =>
         //if value is empty byte slice, return None instead of empty Slice.We do not store empty byte arrays.
@@ -622,7 +595,7 @@ private[core] object Transient {
         None
     }
 
-  def enablePrefixCompression(keyValue: KeyValue.WriteOnly): Boolean =
+  def enablePrefixCompression(keyValue: Transient): Boolean =
     keyValue.sortedIndexConfig.prefixCompressionResetCount > 0 &&
       keyValue.previous.exists {
         previous =>
@@ -675,7 +648,7 @@ private[core] object Transient {
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                     hashIndexConfig: HashIndexBlock.Config,
                     bloomFilterConfig: BloomFilterBlock.Config,
-                    previous: Option[KeyValue.WriteOnly]) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                    previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
     override val isRange: Boolean = false
     override val isGroup: Boolean = false
     override val isRemoveRangeMayBe = false
@@ -718,7 +691,7 @@ private[core] object Transient {
                                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                 hashIndexConfig: HashIndexBlock.Config,
                                 bloomFilterConfig: BloomFilterBlock.Config,
-                                previous: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly =
+                                previous: Option[Transient]): Transient =
       this.copy(
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
@@ -741,7 +714,7 @@ private[core] object Transient {
                  binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                  hashIndexConfig: HashIndexBlock.Config,
                  bloomFilterConfig: BloomFilterBlock.Config,
-                 previous: Option[KeyValue.WriteOnly]) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                 previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
 
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
@@ -786,7 +759,7 @@ private[core] object Transient {
                                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                 hashIndexConfig: HashIndexBlock.Config,
                                 bloomFilterConfig: BloomFilterBlock.Config,
-                                previous: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly =
+                                previous: Option[Transient]): Transient =
       this.copy(
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
@@ -809,7 +782,7 @@ private[core] object Transient {
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                     hashIndexConfig: HashIndexBlock.Config,
                     bloomFilterConfig: BloomFilterBlock.Config,
-                    previous: Option[KeyValue.WriteOnly]) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                    previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -852,7 +825,7 @@ private[core] object Transient {
                                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                 hashIndexConfig: HashIndexBlock.Config,
                                 bloomFilterConfig: BloomFilterBlock.Config,
-                                previous: Option[KeyValue.WriteOnly]): Transient.Update =
+                                previous: Option[Transient]): Transient.Update =
       this.copy(
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
@@ -874,7 +847,7 @@ private[core] object Transient {
                       binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                       hashIndexConfig: HashIndexBlock.Config,
                       bloomFilterConfig: BloomFilterBlock.Config,
-                      previous: Option[KeyValue.WriteOnly]) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                      previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -919,7 +892,7 @@ private[core] object Transient {
                                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                 hashIndexConfig: HashIndexBlock.Config,
                                 bloomFilterConfig: BloomFilterBlock.Config,
-                                previous: Option[KeyValue.WriteOnly]): Transient.Function =
+                                previous: Option[Transient]): Transient.Function =
       this.copy(
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
@@ -940,7 +913,7 @@ private[core] object Transient {
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                           hashIndexConfig: HashIndexBlock.Config,
                           bloomFilterConfig: BloomFilterBlock.Config,
-                          previous: Option[KeyValue.WriteOnly]) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                          previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -956,7 +929,7 @@ private[core] object Transient {
                                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                 hashIndexConfig: HashIndexBlock.Config,
                                 bloomFilterConfig: BloomFilterBlock.Config,
-                                previous: Option[KeyValue.WriteOnly]): Transient.PendingApply =
+                                previous: Option[Transient]): Transient.PendingApply =
       this.copy(
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
@@ -1011,7 +984,7 @@ private[core] object Transient {
                                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                      hashIndexConfig: HashIndexBlock.Config,
                                      bloomFilterConfig: BloomFilterBlock.Config,
-                                     previous: Option[KeyValue.WriteOnly])(implicit rangeValueSerializer: RangeValueSerializer[Unit, R]): Range = {
+                                     previous: Option[Transient])(implicit rangeValueSerializer: RangeValueSerializer[Unit, R]): Range = {
 
       def valueSerialiser() = {
         val bytesRequired = rangeValueSerializer.bytesRequired((), rangeValue)
@@ -1046,7 +1019,7 @@ private[core] object Transient {
                                                            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                                            hashIndexConfig: HashIndexBlock.Config,
                                                            bloomFilterConfig: BloomFilterBlock.Config,
-                                                           previous: Option[KeyValue.WriteOnly])(implicit rangeValueSerializer: RangeValueSerializer[Option[F], R]): Range = {
+                                                           previous: Option[Transient])(implicit rangeValueSerializer: RangeValueSerializer[Option[F], R]): Range = {
       def valueSerialiser() = {
         val bytesRequired = rangeValueSerializer.bytesRequired(fromValue, rangeValue)
         val bytes = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
@@ -1084,7 +1057,7 @@ private[core] object Transient {
                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                    hashIndexConfig: HashIndexBlock.Config,
                    bloomFilterConfig: BloomFilterBlock.Config,
-                   previous: Option[KeyValue.WriteOnly]) extends Transient.SegmentResponse with KeyValue.WriteOnly.Range {
+                   previous: Option[Transient]) extends Transient.SegmentResponse {
 
     override val isRemoveRangeMayBe = rangeValue.hasRemoveMayBe
     override val isGroup: Boolean = false
@@ -1131,7 +1104,7 @@ private[core] object Transient {
                                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                 hashIndexConfig: HashIndexBlock.Config,
                                 bloomFilterConfig: BloomFilterBlock.Config,
-                                previous: Option[KeyValue.WriteOnly]): Transient.Range =
+                                previous: Option[Transient]): Transient.Range =
       this.copy(
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
@@ -1140,21 +1113,12 @@ private[core] object Transient {
         bloomFilterConfig = bloomFilterConfig,
         previous = previous
       )
-
-    override def fetchFromValue: IO[Option[Value.FromValue]] =
-      IO.Success(fromValue)
-
-    override def fetchRangeValue: IO[Value.RangeValue] =
-      IO.Success(rangeValue)
-
-    override def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)] =
-      IO.Success(fromValue, rangeValue)
   }
 
   object Group {
 
-    def apply(keyValues: Slice[KeyValue.WriteOnly],
-              previous: Option[KeyValue.WriteOnly],
+    def apply(keyValues: Slice[Transient],
+              previous: Option[Transient],
               //compression is for the group's key-values.
               groupConfig: SegmentBlock.Config,
               //these configs are for the Group itself and not the key-values within the group.
@@ -1182,13 +1146,13 @@ private[core] object Transient {
                    //the deadline is the nearest deadline in the Group's key-values.
                    minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                    deadline: Option[Deadline],
-                   keyValues: Slice[KeyValue.WriteOnly],
+                   keyValues: Slice[Transient],
                    valuesConfig: ValuesBlock.Config,
                    sortedIndexConfig: SortedIndexBlock.Config,
                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                    hashIndexConfig: HashIndexBlock.Config,
                    bloomFilterConfig: BloomFilterBlock.Config,
-                   previous: Option[KeyValue.WriteOnly]) extends Transient with KeyValue.WriteOnly.Group {
+                   previous: Option[Transient]) extends Transient {
 
     override val isRemoveRangeMayBe: Boolean = keyValues.last.stats.segmentHasRemoveRange
     override val isRange: Boolean = keyValues.last.stats.segmentHasRange
@@ -1233,7 +1197,7 @@ private[core] object Transient {
                                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                 hashIndexConfig: HashIndexBlock.Config,
                                 bloomFilterConfig: BloomFilterBlock.Config,
-                                previous: Option[KeyValue.WriteOnly]): Transient.Group =
+                                previous: Option[Transient]): Transient.Group =
       this.copy(
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,

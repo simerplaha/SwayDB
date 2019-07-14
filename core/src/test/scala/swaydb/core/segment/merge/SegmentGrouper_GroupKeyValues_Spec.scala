@@ -95,7 +95,7 @@
 //
 //      "there are not enough key-values" in {
 //        val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
-//        val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+//        val mutableKeyValues = ListBuffer.empty[Transient]
 //        keyValues foreach (mutableKeyValues += _)
 //
 //        val result =
@@ -144,7 +144,7 @@
 //
 //      "there are enough key-values but key compression's minimum requirement is not satisfied" in {
 //        val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
-//        val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+//        val mutableKeyValues = ListBuffer.empty[Transient]
 //        keyValues foreach (mutableKeyValues += _)
 //
 //        SegmentGrouper.groupKeyValues(
@@ -180,7 +180,7 @@
 //
 //      "there are enough key-values but values compression's minimum requirement is not satisfied" in {
 //        val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
-//        val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+//        val mutableKeyValues = ListBuffer.empty[Transient]
 //        keyValues foreach (mutableKeyValues += _)
 //
 //        SegmentGrouper.groupKeyValues(
@@ -218,7 +218,7 @@
 //        Seq(1, 10, 100) foreach {
 //          minCount =>
 //            val keyValue = randomGroup()
-//            val mutableKeyValues = ListBuffer(keyValue: KeyValue.WriteOnly)
+//            val mutableKeyValues = ListBuffer(keyValue: Transient)
 //
 //            SegmentGrouper.groupKeyValues(
 //              segmentKeyValues = mutableKeyValues,
@@ -404,7 +404,7 @@
 //      "randomly generated key-values but grouping limit is not reached" in {
 //        runThis(100.times) {
 //          val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
-//          val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+//          val mutableKeyValues = ListBuffer.empty[Transient]
 //          keyValues foreach (mutableKeyValues += _)
 //
 //          SegmentGrouper.groupKeyValues(
@@ -440,7 +440,7 @@
 //    "return Compressed group (min compression requirement is satisfied - Successfully grouped)" when {
 //      "there are key-values" in {
 //        val keyValues = randomizedKeyValues(20, addRandomGroups = false)
-//        val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+//        val mutableKeyValues = ListBuffer.empty[Transient]
 //        keyValues foreach (mutableKeyValues += _)
 //
 //        SegmentGrouper.groupKeyValues(
@@ -583,7 +583,7 @@
 //      "randomly generated key-values but minimum compression requirement is met" in {
 //        runThis(100.times) {
 //          val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
-//          val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+//          val mutableKeyValues = ListBuffer.empty[Transient]
 //          keyValues foreach (mutableKeyValues += _)
 //
 //          SegmentGrouper.groupKeyValues(

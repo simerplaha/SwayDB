@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.block.SegmentBlock.ClosedBlocks
@@ -74,7 +74,7 @@ object SegmentFooterBlock {
                    hasRange: Boolean,
                    hasPut: Boolean)
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly],
+  def init(keyValues: Iterable[Transient],
            createdInLevel: Int): SegmentFooterBlock.State =
     SegmentFooterBlock.State(
       footerSize = Block.headerSize(false),

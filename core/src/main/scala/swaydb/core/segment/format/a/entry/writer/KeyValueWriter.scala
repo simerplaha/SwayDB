@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
-import swaydb.core.data.{KeyValue, Time}
+import swaydb.core.data.{KeyValue, Time, Transient}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId.BaseEntryIdFormat
 import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, TransientToKeyValueIdBinder}
 import swaydb.core.util.Bytes._
@@ -52,10 +52,10 @@ private[core] object KeyValueWriter {
     * @param compressDuplicateValues Compresses duplicate values if set to true.
     * @return indexEntry, valueBytes, valueOffsetBytes, nextValuesOffsetPosition
     */
-  def write[T <: KeyValue.WriteOnly](current: T,
-                                     currentTime: Time,
-                                     compressDuplicateValues: Boolean,
-                                     enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.WriteResult =
+  def write[T <: Transient](current: T,
+                            currentTime: Time,
+                            compressDuplicateValues: Boolean,
+                            enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.WriteResult =
     current.previous flatMap {
       previous =>
         if (enablePrefixCompression)
@@ -76,10 +76,10 @@ private[core] object KeyValueWriter {
       )
     }
 
-  private def writeCompressed[T <: KeyValue.WriteOnly](current: T,
-                                                       previous: KeyValue.WriteOnly,
-                                                       currentTime: Time,
-                                                       compressDuplicateValues: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
+  private def writeCompressed[T <: Transient](current: T,
+                                              previous: Transient,
+                                              currentTime: Time,
+                                              compressDuplicateValues: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
     compress(key = current.key, previous = previous, minimumCommonBytes = 2) map {
       case (commonBytes, remainingBytes) =>
         val writeResult =
@@ -102,10 +102,10 @@ private[core] object KeyValueWriter {
         writeResult
     }
 
-  private def writeUncompressed[T <: KeyValue.WriteOnly](current: T,
-                                                         currentTime: Time,
-                                                         compressDuplicateValues: Boolean,
-                                                         enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): WriteResult = {
+  private def writeUncompressed[T <: Transient](current: T,
+                                                currentTime: Time,
+                                                compressDuplicateValues: Boolean,
+                                                enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): WriteResult = {
     //no common prefixes or no previous write without compression
     val writeResult =
       TimeWriter.write(

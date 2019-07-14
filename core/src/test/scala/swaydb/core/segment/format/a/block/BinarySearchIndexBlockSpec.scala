@@ -22,7 +22,7 @@
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.RunThis._
 //import swaydb.core.TestData._
-//import swaydb.core.data.KeyValue.WriteOnly
+//import swaydb.core.data.Transient
 //import swaydb.core.data.Persistent
 //import swaydb.core.util.Bytes
 //import swaydb.data.IO
@@ -246,18 +246,18 @@
 //            ).get
 //
 //          keyValue match {
-//            case fixed: WriteOnly.Fixed =>
+//            case fixed: Transient.Fixed =>
 //              val actualHigher = getHigher(fixed.key)
 //              actualHigher.map(_.key) shouldBe expectedHigher.map(_.key)
 //
-//            case range: WriteOnly.Range =>
+//            case range: Transient.Range =>
 //              (range.fromKey.readInt() until range.toKey.readInt()) foreach {
 //                key =>
 //                  val actualHigher = getHigher(key)
 //                  actualHigher shouldBe range
 //              }
 //
-//            case group: WriteOnly.Group =>
+//            case group: Transient.Group =>
 //              (group.minKey.readInt() until group.maxKey.maxKey.readInt()) foreach {
 //                key =>
 //                  val actualHigher = getHigher(key)
@@ -291,18 +291,18 @@
 //            ).get
 //
 //          keyValue match {
-//            case fixed: WriteOnly.Fixed =>
+//            case fixed: Transient.Fixed =>
 //              val actualLower = getLower(fixed.key)
 //              actualLower.map(_.key) shouldBe expectedLower.map(_.key)
 //
-//            case range: WriteOnly.Range =>
+//            case range: Transient.Range =>
 //              (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
 //                key =>
 //                  val actualLower = getLower(key)
 //                  actualLower shouldBe range
 //              }
 //
-//            case group: WriteOnly.Group =>
+//            case group: Transient.Group =>
 //              (group.minKey.readInt() + 1 to group.maxKey.maxKey.readInt()) foreach {
 //                key =>
 //                  val actualLower = getLower(key)

@@ -139,7 +139,7 @@
 //    }
 //
 //    "converting KeyValues to bytes and execute readAll and find on the bytes" in {
-//      def test(keyValues: Slice[KeyValue.WriteOnly]) = {
+//      def test(keyValues: Slice[Transient]) = {
 //        val closedSegment =
 //          SegmentBlock.writeClosed(
 //            keyValues = keyValues,
@@ -385,7 +385,7 @@
 //    }
 //
 //    "set hasRange to true and hasRemoveRange to false when Segment does not contain Remove range or function or pendingApply with function or remove but has other ranges" in {
-//      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
+//      def doAssert(keyValues: Slice[Transient]) = {
 //        val expectedHasRemoveRange =
 //          unzipGroups(keyValues).exists {
 //            case _: Transient.Remove => true
@@ -427,7 +427,7 @@
 //    }
 //
 //    "set hasRange & hasRemoveRange to true and not create bloomFilter when Segment contains Remove range key-value" in {
-//      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
+//      def doAssert(keyValues: Slice[Transient]) = {
 //        keyValues.last.stats.segmentHasRemoveRange shouldBe true
 //
 //        val blocks = getBlocks(keyValues).get
@@ -466,7 +466,7 @@
 //    }
 //
 //    "create bloomFilter when Segment not does contains Remove range key-value but contains a Group" in {
-//      def doAssert(_keyValues: Slice[KeyValue.WriteOnly]) = {
+//      def doAssert(_keyValues: Slice[Transient]) = {
 //        _keyValues.last.stats.segmentHasRemoveRange shouldBe false
 //
 //        val keyValues =
@@ -500,7 +500,7 @@
 //    }
 //
 //    "set hasRange to false when there are no ranges" in {
-//      def doAssert(_keyValues: Slice[KeyValue.WriteOnly]) = {
+//      def doAssert(_keyValues: Slice[Transient]) = {
 //        _keyValues.last.stats.segmentHasRemoveRange shouldBe false
 //
 //        _keyValues.last.stats.segmentHasRemoveRange shouldBe false
@@ -532,7 +532,7 @@
 //    }
 //
 //    "set hasRange to true when only the group contains range" in {
-//      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
+//      def doAssert(keyValues: Slice[Transient]) = {
 //        keyValues.last.stats.segmentHasRemoveRange shouldBe false
 //
 //        val blocks = getBlocks(keyValues).get
@@ -572,7 +572,7 @@
 //      val keyCompression = randomCompression()
 //      val valueCompression = randomCompression()
 //
-//      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
+//      def doAssert(keyValues: Slice[Transient]) = {
 //        keyValues.last.stats.segmentHasRemoveRange shouldBe true
 //
 //        val blocks = getBlocks(keyValues).get

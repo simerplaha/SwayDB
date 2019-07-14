@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.{KeyValue, Persistent}
+import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
@@ -114,7 +114,7 @@ private[core] object SortedIndexBlock {
     else
       noCompressionHeaderSize
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly]): SortedIndexBlock.State = {
+  def init(keyValues: Iterable[Transient]): SortedIndexBlock.State = {
     val hasCompression = keyValues.last.sortedIndexConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentSortedIndexSize)).nonEmpty
     val headSize = headerSize(hasCompression)
     val bytes =
@@ -150,7 +150,7 @@ private[core] object SortedIndexBlock {
           IO.Success(state)
     }
 
-  def write(keyValue: KeyValue.WriteOnly, state: SortedIndexBlock.State) =
+  def write(keyValue: Transient, state: SortedIndexBlock.State) =
     IO {
       if (state.enableAccessPositionIndex) {
         state.bytes addIntUnsigned (keyValue.indexEntryBytes.size + keyValue.stats.thisKeyValueAccessIndexPositionByteSize)

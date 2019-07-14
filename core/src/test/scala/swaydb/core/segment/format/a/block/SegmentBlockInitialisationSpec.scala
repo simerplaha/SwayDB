@@ -44,7 +44,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
     "not be created" when {
       "disabled" in {
         runThis(10.times) {
-          val keyValues: Slice[KeyValue.WriteOnly] =
+          val keyValues: Slice[Transient] =
             randomizedKeyValues(
               count = 100,
               startId = Some(1)
@@ -72,7 +72,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               startId = Some(1)
             )
 
-          val keyValues: Slice[KeyValue.WriteOnly] =
+          val keyValues: Slice[Transient] =
             generatedKeyValues
               .updateStats(
                 binarySearchIndexConfig =
@@ -94,7 +94,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
     "partially created for ranges" when {
       "perfect hashIndex" in {
         runThis(10.times) {
-          val keyValues: Slice[KeyValue.WriteOnly] =
+          val keyValues: Slice[Transient] =
             randomizedKeyValues(
               count = 100,
               startId = Some(1),
@@ -152,7 +152,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
     "fully be created" when {
       "perfect hashIndex" in {
         runThis(10.times) {
-          val keyValues: Slice[KeyValue.WriteOnly] =
+          val keyValues: Slice[Transient] =
             randomizedKeyValues(
               count = 100,
               startId = Some(1),
@@ -201,7 +201,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
 
       "for partial binary search index when hashIndex is completely disabled" in {
         runThis(10.times) {
-          val keyValues: Slice[KeyValue.WriteOnly] =
+          val keyValues: Slice[Transient] =
             randomizedKeyValues(
               count = 100,
               startId = Some(1),
@@ -252,7 +252,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
     "not be created" when {
       "falsePositive is high" in {
         runThis(10.times) {
-          val keyValues: Slice[KeyValue.WriteOnly] =
+          val keyValues: Slice[Transient] =
             randomizedKeyValues(
               count = 100,
               addPut = true,
@@ -281,7 +281,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               startId = Some(1)
             )
 
-          val keyValues: Slice[KeyValue.WriteOnly] =
+          val keyValues: Slice[Transient] =
             generatedKeyValues
               .toTransient(
                 bloomFilterConfig =
@@ -328,7 +328,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 )
             )
 
-          val keyValues: Slice[KeyValue.WriteOnly] =
+          val keyValues: Slice[Transient] =
             (Slice(range) ++ generatedKeyValues)
               .toTransient(
                 bloomFilterConfig =
@@ -360,7 +360,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
             startId = Some(1)
           )
 
-        val keyValues: Slice[KeyValue.WriteOnly] =
+        val keyValues: Slice[Transient] =
           generatedKeyValues
             .updateStats(
               hashIndexConfig =

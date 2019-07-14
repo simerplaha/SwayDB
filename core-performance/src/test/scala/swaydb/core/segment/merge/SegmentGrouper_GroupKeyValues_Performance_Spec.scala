@@ -58,7 +58,7 @@
 //    "benchmark" when {
 //      "there are not enough key-values" in {
 //        val keyValues = randomizedKeyValues(1000000, addRandomGroups = false)
-//        val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+//        val mutableKeyValues = ListBuffer.empty[Transient]
 //        keyValues foreach (mutableKeyValues += _)
 //
 //        Benchmark("there are not enough key-values") {
@@ -95,7 +95,7 @@
 //    "benchmark" when {
 //      "there are enough key-values" in {
 //        val keyValues = randomizedKeyValues(1000000, addRandomGroups = false)
-//        val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+//        val mutableKeyValues = ListBuffer.empty[Transient]
 //        keyValues foreach (mutableKeyValues += _)
 //
 //        Benchmark("there are enough key-values") {

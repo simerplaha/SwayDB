@@ -53,7 +53,7 @@ private[core] object Segment extends LazyLogging {
 
   def memory(path: Path,
              createdInLevel: Long,
-             keyValues: Iterable[KeyValue.WriteOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
+             keyValues: Iterable[Transient])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: FunctionStore,
                                                       fileLimiter: FileLimiter,
@@ -64,7 +64,7 @@ private[core] object Segment extends LazyLogging {
     } else {
       val bloomFilter: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](keyOrder)
-      //Note: WriteOnly key-values can be received from Persistent Segments in which case it's important that
+      //Note: Transient key-values can be received from Persistent Segments in which case it's important that
       //all byte arrays are unsliced before writing them to Memory Segment.
       keyValues.foldLeftIO(DeadlineAndFunctionId.empty) {
         case (deadline, keyValue) =>
@@ -89,13 +89,13 @@ private[core] object Segment extends LazyLogging {
                   minKey = keyValues.head.key.unslice(),
                   maxKey =
                     keyValues.last match {
-                      case range: KeyValue.WriteOnly.Range =>
+                      case range: Transient.Range =>
                         MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
 
-                      case group: KeyValue.WriteOnly.Group =>
+                      case group: Transient.Group =>
                         group.maxKey.unslice()
 
-                      case keyValue: KeyValue.WriteOnly.Fixed =>
+                      case keyValue: Transient.Fixed =>
                         MaxKey.Fixed(keyValue.key.unslice())
                     },
                   minMaxFunctionId = minMaxDeadline.minMaxFunctionId,
@@ -118,7 +118,7 @@ private[core] object Segment extends LazyLogging {
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
                  segmentConfig: SegmentBlock.Config,
-                 keyValues: Iterable[KeyValue.WriteOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                 keyValues: Iterable[Transient])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                           functionStore: FunctionStore,
                                                           keyValueLimiter: KeyValueLimiter,
@@ -169,13 +169,13 @@ private[core] object Segment extends LazyLogging {
                 minKey = keyValues.head.key.unslice(),
                 maxKey =
                   keyValues.last match {
-                    case range: KeyValue.WriteOnly.Range =>
+                    case range: Transient.Range =>
                       MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
 
-                    case group: KeyValue.WriteOnly.Group =>
+                    case group: Transient.Group =>
                       group.maxKey.unslice()
 
-                    case keyValue: KeyValue.WriteOnly.Fixed =>
+                    case keyValue: Transient.Fixed =>
                       MaxKey.Fixed(keyValue.key.unslice())
                   },
                 segmentSize = result.segmentSize,
@@ -690,7 +690,7 @@ private[core] object Segment extends LazyLogging {
       case readOnly: KeyValue.ReadOnly =>
         getNearestDeadline(deadline, readOnly)
 
-      case writeOnly: KeyValue.WriteOnly =>
+      case writeOnly: Transient =>
         IO(getNearestDeadline(deadline, writeOnly))
     }
 
@@ -727,12 +727,12 @@ private[core] object Segment extends LazyLogging {
     }
 
   def getNearestDeadline(deadline: Option[Deadline],
-                         keyValue: KeyValue.WriteOnly): Option[Deadline] =
+                         keyValue: Transient): Option[Deadline] =
     keyValue match {
-      case writeOnly: KeyValue.WriteOnly.Fixed =>
+      case writeOnly: Transient.Fixed =>
         FiniteDurationUtil.getNearestDeadline(deadline, writeOnly.deadline)
 
-      case range: KeyValue.WriteOnly.Range =>
+      case range: Transient.Range =>
         (range.fromValue, range.rangeValue) match {
           case (Some(fromValue), rangeValue) =>
             val fromValueDeadline = getNearestDeadline(deadline, fromValue)
@@ -742,7 +742,7 @@ private[core] object Segment extends LazyLogging {
             getNearestDeadline(deadline, rangeValue)
         }
 
-      case group: KeyValue.WriteOnly.Group =>
+      case group: Transient.Group =>
         FiniteDurationUtil.getNearestDeadline(deadline, group.deadline)
     }
 

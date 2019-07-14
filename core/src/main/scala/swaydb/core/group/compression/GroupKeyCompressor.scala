@@ -19,7 +19,7 @@
 
 package swaydb.core.group.compression
 
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey}
@@ -29,19 +29,19 @@ private[core] object GroupKeyCompressor {
   /**
     * @return (minKey, maxKey, fullKey)
     */
-  def compress(head: Option[KeyValue.WriteOnly],
-               last: KeyValue.WriteOnly): (Slice[Byte], MaxKey[Slice[Byte]], Slice[Byte]) =
+  def compress(head: Option[Transient],
+               last: Transient): (Slice[Byte], MaxKey[Slice[Byte]], Slice[Byte]) =
     (head, last) match {
-      case (Some(keyValue), fixed: KeyValue.WriteOnly.Fixed) =>
+      case (Some(keyValue), fixed: Transient.Fixed) =>
         val fullKey = Bytes.compressJoin(keyValue.minKey, fixed.key, 0.toByte)
         (keyValue.minKey, MaxKey.Fixed(fixed.key), fullKey)
 
-      case (Some(keyValue), range: KeyValue.WriteOnly.Range) =>
+      case (Some(keyValue), range: Transient.Range) =>
         val maxKey = Bytes.compressJoin(range.fromKey, range.toKey)
         val fullKey = Bytes.compressJoin(keyValue.minKey, maxKey, 1.toByte)
         (keyValue.minKey, MaxKey.Range(range.fromKey, range.toKey), fullKey)
 
-      case (Some(keyValue), group: KeyValue.WriteOnly.Group) =>
+      case (Some(keyValue), group: Transient.Group) =>
         group.maxKey match {
           case fixed @ MaxKey.Fixed(maxKey) =>
             val fullKey = Bytes.compressJoin(keyValue.minKey, maxKey, 0.toByte)
@@ -53,14 +53,14 @@ private[core] object GroupKeyCompressor {
             (keyValue.minKey, maxKeyRange, fullKey)
         }
 
-      case (None, fixed: KeyValue.WriteOnly.Fixed) =>
+      case (None, fixed: Transient.Fixed) =>
         (fixed.key, MaxKey.Fixed(fixed.key), fixed.key append 2.toByte)
 
-      case (None, range: KeyValue.WriteOnly.Range) =>
+      case (None, range: Transient.Range) =>
         val fullKey = Bytes.compressJoin(range.fromKey, range.toKey, 3.toByte)
         (range.fromKey, MaxKey.Range(range.fromKey, range.toKey), fullKey)
 
-      case (None, group: KeyValue.WriteOnly.Group) =>
+      case (None, group: Transient.Group) =>
         (group.minKey, group.maxKey, group.key)
     }
 

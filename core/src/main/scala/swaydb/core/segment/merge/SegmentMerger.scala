@@ -44,7 +44,7 @@ private[core] object SegmentMerger extends LazyLogging {
     * It also executes grouping on the last un-grouped key-values if compression type (grouping) is provided.
     */
   @tailrec
-  def completeMerge(segments: ListBuffer[ListBuffer[KeyValue.WriteOnly]],
+  def completeMerge(segments: ListBuffer[ListBuffer[Transient]],
                     minSegmentSize: Long,
                     forMemory: Boolean,
                     groupLastSegment: Boolean,
@@ -52,7 +52,7 @@ private[core] object SegmentMerger extends LazyLogging {
                     sortedIndexConfig: SortedIndexBlock.Config,
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                     hashIndexConfig: HashIndexBlock.Config,
-                    bloomFilterConfig: BloomFilterBlock.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
+                    bloomFilterConfig: BloomFilterBlock.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[Transient]]] = {
     //if there are any small Segments, merge them into previous Segment.
     val noSmallSegments =
       if (segments.length >= 2 && ((forMemory && segments.last.lastOption.map(_.stats.memorySegmentSize).getOrElse(0) < minSegmentSize) || segments.last.lastOption.map(_.stats.segmentSize).getOrElse(0) < minSegmentSize)) {
@@ -129,8 +129,8 @@ private[core] object SegmentMerger extends LazyLogging {
             binarySearchIndexConfig: BinarySearchIndexBlock.Config,
             hashIndexConfig: HashIndexBlock.Config,
             bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                        groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[KeyValue.WriteOnly]]] = {
-    val splits = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer())
+                                                        groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[Transient]]] = {
+    val splits = ListBuffer[ListBuffer[Transient]](ListBuffer())
     keyValues foreachIO {
       keyValue =>
         SegmentGrouper.addKeyValue(
@@ -222,11 +222,11 @@ private[core] object SegmentMerger extends LazyLogging {
             bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         functionStore: FunctionStore,
-                                                        groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[KeyValue.WriteOnly]]] =
+                                                        groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[Transient]]] =
     merge(
       newKeyValues = MergeList(newKeyValues),
       oldKeyValues = MergeList(oldKeyValues),
-      splits = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer.empty),
+      splits = ListBuffer[ListBuffer[Transient]](ListBuffer.empty),
       minSegmentSize = minSegmentSize,
       isLastLevel = isLastLevel,
       forInMemory = forInMemory,
@@ -252,7 +252,7 @@ private[core] object SegmentMerger extends LazyLogging {
 
   private def merge(newKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
                     oldKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
-                    splits: ListBuffer[ListBuffer[KeyValue.WriteOnly]],
+                    splits: ListBuffer[ListBuffer[Transient]],
                     minSegmentSize: Long,
                     isLastLevel: Boolean,
                     forInMemory: Boolean,
@@ -263,7 +263,7 @@ private[core] object SegmentMerger extends LazyLogging {
                     bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                                 functionStore: FunctionStore,
-                                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
+                                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[Transient]]] = {
 
     import keyOrder._
 
@@ -283,7 +283,7 @@ private[core] object SegmentMerger extends LazyLogging {
 
     @tailrec
     def doMerge(newKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
-                oldKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] =
+                oldKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly]): IO[ListBuffer[ListBuffer[Transient]]] =
       (newKeyValues.headOption, oldKeyValues.headOption) match {
 
         case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>

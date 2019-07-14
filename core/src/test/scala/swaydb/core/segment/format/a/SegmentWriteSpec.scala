@@ -250,7 +250,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 //        }
 //      }
 //
-//      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
+//      def doAssert(keyValues: Slice[Transient]) = {
 //        val (bytes, _) =
 //          SegmentWriter.write(
 //            keyValues = keyValues,

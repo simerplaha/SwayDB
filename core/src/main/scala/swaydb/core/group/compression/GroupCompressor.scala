@@ -37,11 +37,11 @@ private[core] object GroupCompressor extends LazyLogging {
     *
     * Pre-requisite: keyValues should be non-empty.
     */
-  def buildCompressedKey(keyValues: Iterable[KeyValue.WriteOnly]): (Slice[Byte], MaxKey[Slice[Byte]], Slice[Byte]) =
+  def buildCompressedKey(keyValues: Iterable[Transient]): (Slice[Byte], MaxKey[Slice[Byte]], Slice[Byte]) =
     GroupKeyCompressor.compress(keyValues.headOption, keyValues.last)
 
-  def compress(keyValues: Slice[KeyValue.WriteOnly],
-               previous: Option[KeyValue.WriteOnly],
+  def compress(keyValues: Slice[Transient],
+               previous: Option[Transient],
                groupConfig: SegmentBlock.Config,
                valuesConfig: ValuesBlock.Config,
                sortedIndexConfig: SortedIndexBlock.Config,

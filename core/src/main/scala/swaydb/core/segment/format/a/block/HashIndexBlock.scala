@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.{KeyValue, Persistent}
+import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
@@ -106,7 +106,7 @@ private[core] object HashIndexBlock extends LazyLogging {
       hit >= minimumNumberOfHits
   }
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[HashIndexBlock.State] =
+  def init(keyValues: Iterable[Transient]): Option[HashIndexBlock.State] =
     if (keyValues.size < keyValues.last.hashIndexConfig.minimumNumberOfKeys)
       None
     else if (keyValues.last.stats.segmentHashIndexSize <= 0) //formatId, maxProbe, hit, miss, largestValue, allocatedBytes

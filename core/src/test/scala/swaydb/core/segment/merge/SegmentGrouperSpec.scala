@@ -50,11 +50,11 @@
 //  "addKeyValue" should {
 //    "add KeyValue to next split and close the split if the new key-value does not fit" in {
 //
-//      val initialSegment = ListBuffer[KeyValue.WriteOnly]()
+//      val initialSegment = ListBuffer[Transient]()
 //      initialSegment += Transient.put(key = 1, value = 1, previous = None, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)
 //      initialSegment += Transient.put(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true) //total segmentSize is 60 bytes
 //
-//      val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](initialSegment)
+//      val segments = ListBuffer[ListBuffer[Transient]](initialSegment)
 //      //this KeyValue's segment size without footer is 13 bytes
 //      val keyValue = Memory.put(3, 3)
 //
@@ -101,7 +101,7 @@
 //          )
 //        )
 //
-//      val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer.empty)
+//      val segments = ListBuffer[ListBuffer[Transient]](ListBuffer.empty)
 //      val keyValues = randomPutKeyValues(1000)
 //
 //      keyValues foreach {
@@ -155,7 +155,7 @@
 //          )
 //        )
 //
-//      val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer.empty)
+//      val segments = ListBuffer[ListBuffer[Transient]](ListBuffer.empty)
 //
 //      keyValues foreach {
 //        keyValue =>
@@ -210,7 +210,7 @@
 //          )
 //        )
 //
-//      val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer.empty)
+//      val segments = ListBuffer[ListBuffer[Transient]](ListBuffer.empty)
 //
 //      keyValues foreach {
 //        keyValue =>

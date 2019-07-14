@@ -19,14 +19,14 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
-import swaydb.core.data.KeyValue.WriteOnly
+import swaydb.core.data.Transient
 import swaydb.core.data.{KeyValue, Time, Transient}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
 import swaydb.core.util.Bytes._
 
 private[writer] object TimeWriter {
 
-  private[writer] def write[T](current: KeyValue.WriteOnly,
+  private[writer] def write[T](current: Transient,
                                currentTime: Time,
                                compressDuplicateValues: Boolean,
                                entryId: BaseEntryId.Key,
@@ -72,9 +72,9 @@ private[writer] object TimeWriter {
         hasPrefixCompressed = hasPrefixCompressed
       )
 
-  private[writer] def getTime(keyValue: KeyValue.WriteOnly): Time =
+  private[writer] def getTime(keyValue: Transient): Time =
     keyValue match {
-      case keyValue: WriteOnly.Fixed =>
+      case keyValue: Transient.Fixed =>
         keyValue match {
           case keyValue: Transient.Remove =>
             keyValue.time
@@ -91,16 +91,16 @@ private[writer] object TimeWriter {
           case _: Transient.PendingApply =>
             keyValue.time
         }
-      case _: WriteOnly.Range =>
+      case _: Transient.Range =>
         Time.empty
 
-      case _: WriteOnly.Group =>
+      case _: Transient.Group =>
         Time.empty
     }
 
   private def writePartiallyCompressed(currentTime: Time,
                                        previousTime: Time,
-                                       current: KeyValue.WriteOnly,
+                                       current: Transient,
                                        compressDuplicateValues: Boolean,
                                        entryId: BaseEntryId.Key,
                                        plusSize: Int,
@@ -133,7 +133,7 @@ private[writer] object TimeWriter {
     }
 
   private def writeUncompressed(currentTime: Time,
-                                current: KeyValue.WriteOnly,
+                                current: Transient,
                                 compressDuplicateValues: Boolean,
                                 entryId: BaseEntryId.Key,
                                 plusSize: Int,
@@ -160,7 +160,7 @@ private[writer] object TimeWriter {
     writeResult
   }
 
-  private def noTime(current: KeyValue.WriteOnly,
+  private def noTime(current: Transient,
                      compressDuplicateValues: Boolean,
                      entryId: BaseEntryId.Key,
                      plusSize: Int,

@@ -188,7 +188,7 @@
 //        Seq(1, 10, 100) foreach {
 //          minCount =>
 //            val group = randomGroup()
-//            val mutableKeyValues = ListBuffer(group: KeyValue.WriteOnly)
+//            val mutableKeyValues = ListBuffer(group: Transient)
 //
 //            SegmentGrouper.groupGroups(
 //              groupKeyValues = mutableKeyValues,
