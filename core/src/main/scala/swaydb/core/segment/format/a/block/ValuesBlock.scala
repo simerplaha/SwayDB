@@ -23,10 +23,9 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.a.block.BinarySearchIndexBlock.Config.defaultBlockIO
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
-import swaydb.data.config.{BlockIO, BlockInfo, UncompressedBlockInfo}
+import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 
 private[core] object ValuesBlock {
@@ -39,7 +38,7 @@ private[core] object ValuesBlock {
       ValuesBlock.Config(
         compressDuplicateValues = false,
         compressDuplicateRangeValues = false,
-        blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+        blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
         compressions = _ => Seq.empty
       )
 
@@ -47,7 +46,7 @@ private[core] object ValuesBlock {
       Config(
         compressDuplicateValues = enable.compressDuplicateValues,
         compressDuplicateRangeValues = enable.compressDuplicateRangeValues,
-        blockIO = FunctionUtil.safe(defaultBlockIO, enable.blockIO),
+        blockIO = FunctionUtil.safe(BlockIO.default, enable.blockIO),
         compressions =
           FunctionUtil.safe(
             default = _ => Seq.empty[CompressionInternal],
@@ -58,7 +57,7 @@ private[core] object ValuesBlock {
 
   case class Config(compressDuplicateValues: Boolean,
                     compressDuplicateRangeValues: Boolean,
-                    blockIO: BlockInfo => BlockIO,
+                    blockIO: BlockStatus => BlockIO,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   def valuesBlockNotInitialised: IO.Failure[Nothing] =
@@ -173,12 +172,14 @@ private[core] object ValuesBlock {
                 IO.Failure(ex)
             }
         }
+
+  implicit object ValuesBlockUpdater extends BlockUpdater[ValuesBlock] {
+    override def updateOffset(block: ValuesBlock, start: Int, size: Int): ValuesBlock =
+      block.copy(offset = ValuesBlock.Offset(start = start, size = size))
+  }
 }
 
 private[core] case class ValuesBlock(offset: ValuesBlock.Offset,
                                      headerSize: Int,
-                                     compressionInfo: Option[Block.CompressionInfo]) extends Block {
+                                     compressionInfo: Option[Block.CompressionInfo]) extends Block
 
-  override def updateOffset(start: Int, size: Int): Block =
-    copy(offset = ValuesBlock.Offset(start = start, size = size))
-}

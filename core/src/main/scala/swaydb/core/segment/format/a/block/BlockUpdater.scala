@@ -17,11 +17,8 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.config
+package swaydb.core.segment.format.a.block
 
-import swaydb.data.api.grouping.Compression
-
-case class ValuesConfig(compressDuplicateValues: Boolean,
-                        compressDuplicateRangeValues: Boolean,
-                        blockIO: BlockStatus => BlockIO,
-                        compression: UncompressedBlockInfo => Seq[Compression])
+trait BlockUpdater[B <: Block] {
+  def updateOffset(block: B, start: Int, size: Int): B
+}

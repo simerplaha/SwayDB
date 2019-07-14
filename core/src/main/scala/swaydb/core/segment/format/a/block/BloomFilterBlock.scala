@@ -23,11 +23,10 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.segment.format.a.block.BinarySearchIndexBlock.Config.defaultBlockIO
 import swaydb.core.util.{Bytes, FunctionUtil, MurmurHash3Generic, Options}
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.config.{BlockIO, BlockInfo, UncompressedBlockInfo}
+import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -40,7 +39,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
       Config(
         falsePositiveRate = 0.0,
         minimumNumberOfKeys = Int.MaxValue,
-        blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+        blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
         compressions = _ => Seq.empty
       )
 
@@ -50,14 +49,14 @@ private[core] object BloomFilterBlock extends LazyLogging {
           Config(
             falsePositiveRate = 0.0,
             minimumNumberOfKeys = Int.MaxValue,
-            blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+            blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
             compressions = _ => Seq.empty
           )
         case enable: swaydb.data.config.MightContainIndex.Enable =>
           Config(
             falsePositiveRate = enable.falsePositiveRate,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
-            blockIO = FunctionUtil.safe(defaultBlockIO, enable.blockIO),
+            blockIO = FunctionUtil.safe(BlockIO.default, enable.blockIO),
             compressions =
               FunctionUtil.safe(
                 default = _ => Seq.empty[CompressionInternal],
@@ -69,7 +68,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
 
   case class Config(falsePositiveRate: Double,
                     minimumNumberOfKeys: Int,
-                    blockIO: BlockInfo => BlockIO,
+                    blockIO: BlockStatus => BlockIO,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class MemoryBlock(bloomFilter: BloomFilterBlock,
@@ -301,14 +300,16 @@ private[core] object BloomFilterBlock extends LazyLogging {
       }
       .map(_.getOrElse(true))
   }
+
+  implicit object BloomFilterBlockUpdater extends BlockUpdater[BloomFilterBlock] {
+    override def updateOffset(block: BloomFilterBlock, start: Int, size: Int): BloomFilterBlock =
+      block.copy(offset = BloomFilterBlock.Offset(start = start, size = size))
+  }
 }
 
 private[core] case class BloomFilterBlock(offset: BloomFilterBlock.Offset,
                                           maxProbe: Int,
                                           numberOfBits: Int,
                                           headerSize: Int,
-                                          compressionInfo: Option[Block.CompressionInfo]) extends Block {
+                                          compressionInfo: Option[Block.CompressionInfo]) extends Block
 
-  override def updateOffset(start: Int, size: Int): Block =
-    copy(offset = BloomFilterBlock.Offset(start = start, size = size))
-}

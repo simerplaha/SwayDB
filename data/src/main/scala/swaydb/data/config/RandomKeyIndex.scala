@@ -34,7 +34,7 @@ object RandomKeyIndex {
                     minimumNumberOfKeys: Int,
                     minimumNumberOfHits: Int,
                     allocateSpace: RequiredSpace => Int,
-                    blockIO: BlockInfo => BlockIO,
+                    blockIO: BlockStatus => BlockIO,
                     compression: UncompressedBlockInfo => Seq[Compression]) extends RandomKeyIndex
 
   object RequiredSpace {

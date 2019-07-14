@@ -18,19 +18,18 @@
  */
 package swaydb.data.config
 
-sealed trait BlockInfo {
+sealed trait BlockStatus {
   def isCompressed: Boolean
-  def compressedSize: Int
-  def decompressedSize: Int
 }
 
-private[swaydb] object BlockInfo {
-  def apply(_isCompressed: Boolean,
-            _compressedSize: Int,
-            _decompressedSize: Int): BlockInfo =
-    new BlockInfo {
-      override def isCompressed: Boolean = _isCompressed
-      override def compressedSize: Int = _compressedSize
-      override def decompressedSize: Int = _decompressedSize
-    }
+object BlockStatus {
+  case class BlockInfo(size: Int) extends BlockStatus {
+    override def isCompressed: Boolean = false
+  }
+  case class CompressedBlock(compressedSize: Int, decompressedSize: Int) extends BlockStatus {
+    override def isCompressed: Boolean = true
+  }
+  case class UncompressedBlock(size: Int) extends BlockStatus {
+    override def isCompressed: Boolean = false
+  }
 }

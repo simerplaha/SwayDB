@@ -67,7 +67,7 @@ object DefaultMemoryConfig {
           MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 100,
-            blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+            blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
             compression = _ => Seq.empty
           ),
         keyValueGroupingStrategy = keyValueGroupingStrategy,

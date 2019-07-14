@@ -24,7 +24,7 @@ import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.BlockReader
 import swaydb.core.util.{Bytes, FunctionUtil, Options}
 import swaydb.data.IO
-import swaydb.data.config.{BlockIO, BlockInfo, UncompressedBlockInfo}
+import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -36,15 +36,13 @@ private[core] object BinarySearchIndexBlock {
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
   object Config {
-    def defaultBlockIO(blockInfo: BlockInfo) =
-      BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed)
 
     val disabled =
       Config(
         enabled = false,
         minimumNumberOfKeys = 0,
         fullIndex = false,
-        blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+        blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
         compressions = _ => Seq.empty
       )
 
@@ -55,7 +53,7 @@ private[core] object BinarySearchIndexBlock {
             enabled = false,
             minimumNumberOfKeys = Int.MaxValue,
             fullIndex = false,
-            blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+            blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
             compressions = _ => Seq.empty
           )
         case enable: swaydb.data.config.BinarySearchKeyIndex.FullIndex =>
@@ -63,7 +61,7 @@ private[core] object BinarySearchIndexBlock {
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             fullIndex = true,
-            blockIO = FunctionUtil.safe(defaultBlockIO, enable.blockIO),
+            blockIO = FunctionUtil.safe(BlockIO.default, enable.blockIO),
             compressions =
               FunctionUtil.safe(
                 default = _ => Seq.empty[CompressionInternal],
@@ -76,7 +74,7 @@ private[core] object BinarySearchIndexBlock {
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             fullIndex = false,
-            blockIO = FunctionUtil.safe(defaultBlockIO, enable.blockIO),
+            blockIO = FunctionUtil.safe(BlockIO.default, enable.blockIO),
             compressions =
               FunctionUtil.safe(
                 default = _ => Seq.empty[CompressionInternal],
@@ -89,7 +87,7 @@ private[core] object BinarySearchIndexBlock {
   case class Config(enabled: Boolean,
                     minimumNumberOfKeys: Int,
                     fullIndex: Boolean,
-                    blockIO: BlockInfo => BlockIO,
+                    blockIO: BlockStatus => BlockIO,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
@@ -438,6 +436,12 @@ private[core] object BinarySearchIndexBlock {
       sortedIndex = sortedIndexReader,
       values = valuesReader
     )
+
+  implicit object BinarySearchIndexBlockUpdater extends BlockUpdater[BinarySearchIndexBlock] {
+    override def updateOffset(block: BinarySearchIndexBlock, start: Int, size: Int): BinarySearchIndexBlock =
+      block.copy(offset = BinarySearchIndexBlock.Offset(start = start, size = size))
+  }
+
 }
 
 private[core] case class BinarySearchIndexBlock(offset: BinarySearchIndexBlock.Offset,
@@ -448,7 +452,4 @@ private[core] case class BinarySearchIndexBlock(offset: BinarySearchIndexBlock.O
                                                 compressionInfo: Option[Block.CompressionInfo]) extends Block {
   val isVarInt: Boolean =
     BinarySearchIndexBlock.isVarInt(bytesPerValue)
-
-  override def updateOffset(start: Int, size: Int): Block =
-    copy(offset = BinarySearchIndexBlock.Offset(start = start, size = size))
 }

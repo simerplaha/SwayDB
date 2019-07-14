@@ -23,10 +23,9 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.BlockReader
-import swaydb.core.segment.format.a.block.BinarySearchIndexBlock.Config.defaultBlockIO
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
-import swaydb.data.config.{BlockIO, BlockInfo, RandomKeyIndex, UncompressedBlockInfo}
+import swaydb.data.config.{BlockIO, BlockStatus, RandomKeyIndex, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -48,7 +47,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         minimumNumberOfKeys = Int.MaxValue,
         allocateSpace = _ => Int.MinValue,
         minimumNumberOfHits = Int.MaxValue,
-        blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+        blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
         compressions = _ => Seq.empty
       )
 
@@ -60,7 +59,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             minimumNumberOfKeys = Int.MaxValue,
             allocateSpace = _ => Int.MinValue,
             minimumNumberOfHits = Int.MaxValue,
-            blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+            blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
             compressions = _ => Seq.empty
           )
         case enable: swaydb.data.config.RandomKeyIndex.Enable =>
@@ -69,7 +68,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             minimumNumberOfHits = enable.minimumNumberOfHits,
             allocateSpace = enable.allocateSpace,
-            blockIO = FunctionUtil.safe(defaultBlockIO, enable.blockIO),
+            blockIO = FunctionUtil.safe(BlockIO.default, enable.blockIO),
             compressions =
               FunctionUtil.safe(
                 default = _ => Seq.empty[CompressionInternal],
@@ -83,7 +82,7 @@ private[core] object HashIndexBlock extends LazyLogging {
                     minimumNumberOfKeys: Int,
                     minimumNumberOfHits: Int,
                     allocateSpace: RandomKeyIndex.RequiredSpace => Int,
-                    blockIO: BlockInfo => BlockIO,
+                    blockIO: BlockStatus => BlockIO,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
@@ -395,6 +394,11 @@ private[core] object HashIndexBlock extends LazyLogging {
           )
     )
   }
+
+  implicit object HashIndexBlockUpdater extends BlockUpdater[HashIndexBlock] {
+    override def updateOffset(block: HashIndexBlock, start: Int, size: Int): HashIndexBlock =
+      block.copy(offset = HashIndexBlock.Offset(start = start, size = size))
+  }
 }
 
 private[core] case class HashIndexBlock(offset: HashIndexBlock.Offset,
@@ -411,7 +415,4 @@ private[core] case class HashIndexBlock(offset: HashIndexBlock.Offset,
 
   def isPerfect =
     miss == 0
-
-  override def updateOffset(start: Int, size: Int): Block =
-    copy(offset = HashIndexBlock.Offset(start = start, size = size))
 }

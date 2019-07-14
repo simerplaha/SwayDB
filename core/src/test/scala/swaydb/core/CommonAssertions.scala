@@ -1416,18 +1416,20 @@ object CommonAssertions {
   }
 
   def getSegmentBlockCache(segment: SegmentBlock.Closed): SegmentBlockCache =
-    SegmentBlockCache(
-      id = "test",
-      segmentBlockOffset = SegmentBlock.Offset(0, segment.segmentSize),
-      rawSegmentReader = () => Reader(segment.flattenSegmentBytes)
-    )
+//    SegmentBlockCache(
+//      id = "test",
+//      segmentBlockOffset = SegmentBlock.Offset(0, segment.segmentSize),
+//      rawSegmentReader = () => Reader(segment.flattenSegmentBytes)
+//    )
+  ???
 
   def getSegmentBlockCache(reader: Reader): SegmentBlockCache =
-    SegmentBlockCache(
-      id = "test-cache",
-      segmentBlockOffset = SegmentBlock.Offset(0, reader.size.get.toInt),
-      rawSegmentReader = () => reader
-    )
+//    SegmentBlockCache(
+//      id = "test-cache",
+//      segmentBlockOffset = SegmentBlock.Offset(0, reader.size.get.toInt),
+//      rawSegmentReader = () => reader
+//    )
+  ???
 
   def readAll(reader: Reader): IO[Slice[KeyValue.ReadOnly]] = {
     val blockCache = getSegmentBlockCache(reader)
@@ -1664,10 +1666,10 @@ object CommonAssertions {
     persistedGroup
   }
 
-  implicit class BlockTestImplicits[B <: Block](block: B) {
+  implicit class BlockTestImplicits[B <: Block](block: B)(implicit blockUpdater: BlockUpdater[B]) {
     def createBlockReader(reader: BlockReader[SegmentBlock],
                           readFullBlockIfUncompressed: Boolean = randomBoolean()) =
-      Block.createDecompressedBlockReader(
+      Block.createBlockDataReader(
         block = block,
         readFullBlockIfUncompressed = readFullBlockIfUncompressed,
         segmentReader = reader

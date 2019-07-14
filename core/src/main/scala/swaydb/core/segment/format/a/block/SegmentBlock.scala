@@ -31,7 +31,7 @@ import swaydb.core.util.{Bytes, CRC32, MinMax}
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.api.grouping.Compression
-import swaydb.data.config.{BlockIO, BlockInfo, UncompressedBlockInfo}
+import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -55,7 +55,7 @@ private[core] object SegmentBlock {
         compressions = _ => Seq.empty
       )
 
-    def apply(segmentIO: BlockInfo => BlockIO,
+    def apply(segmentIO: BlockStatus => BlockIO,
               compressions: UncompressedBlockInfo => Iterable[Compression]): Config =
       new Config(
         blockIO = segmentIO,
@@ -68,7 +68,7 @@ private[core] object SegmentBlock {
       )
   }
 
-  class Config(val blockIO: BlockInfo => BlockIO,
+  class Config(val blockIO: BlockStatus => BlockIO,
                val compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
@@ -203,13 +203,13 @@ private[core] object SegmentBlock {
       (flattenSegmentBytes, nearestDeadline)
   }
 
-  private case class ClosedBlocks(sortedIndex: SortedIndexBlock.State,
-                                  values: Option[ValuesBlock.State],
-                                  hashIndex: Option[HashIndexBlock.State],
-                                  binarySearchIndex: Option[BinarySearchIndexBlock.State],
-                                  bloomFilter: Option[BloomFilterBlock.State],
-                                  minMaxFunction: Option[MinMax[Slice[Byte]]],
-                                  nearestDeadline: Option[Deadline])
+  private[block] case class ClosedBlocks(sortedIndex: SortedIndexBlock.State,
+                                         values: Option[ValuesBlock.State],
+                                         hashIndex: Option[HashIndexBlock.State],
+                                         binarySearchIndex: Option[BinarySearchIndexBlock.State],
+                                         bloomFilter: Option[BloomFilterBlock.State],
+                                         minMaxFunction: Option[MinMax[Slice[Byte]]],
+                                         nearestDeadline: Option[Deadline])
 
   def read(offset: SegmentBlock.Offset,
            segmentReader: Reader): IO[SegmentBlock] =
@@ -851,7 +851,7 @@ private[core] object SegmentBlock {
       )
     } flatMap {
       segmentBlock =>
-        Block.writeUncompressedBlock(
+        Block.createUncompressedBlock(
           headerSize = segmentBlock.headerBytes.size,
           bytes = segmentBlock.headerBytes
         ) map {
@@ -859,12 +859,14 @@ private[core] object SegmentBlock {
             segmentBlock
         }
     }
+
+  implicit object SegmentBlockUpdater extends BlockUpdater[SegmentBlock] {
+    override def updateOffset(block: SegmentBlock, start: Int, size: Int): SegmentBlock =
+      block.copy(offset = SegmentBlock.Offset(start = start, size = size))
+  }
 }
 
 private[core] case class SegmentBlock(offset: SegmentBlock.Offset,
                                       headerSize: Int,
-                                      compressionInfo: Option[Block.CompressionInfo]) extends Block {
+                                      compressionInfo: Option[Block.CompressionInfo]) extends Block
 
-  override def updateOffset(start: Int, size: Int): SegmentBlock =
-    copy(offset = SegmentBlock.Offset(start = start, size = size))
-}

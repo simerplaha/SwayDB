@@ -31,7 +31,7 @@ object GroupGroupingStrategy {
                    bloomFilter: MightContainIndex,
                    prefixCompression: PrefixCompression,
                    values: ValuesConfig,
-                   groupIO: BlockInfo => BlockIO,
+                   groupIO: BlockStatus => BlockIO,
                    groupCompressions: UncompressedBlockInfo => Seq[Compression]) extends GroupGroupingStrategy
 
   case class Size(size: Int,
@@ -41,6 +41,6 @@ object GroupGroupingStrategy {
                   bloomFilter: MightContainIndex,
                   prefixCompression: PrefixCompression,
                   values: ValuesConfig,
-                  groupIO: BlockInfo => BlockIO,
+                  groupIO: BlockStatus => BlockIO,
                   groupCompressions: UncompressedBlockInfo => Seq[Compression]) extends GroupGroupingStrategy
 }

@@ -52,7 +52,7 @@ object DefaultGroupingStrategy {
               resetCount = Some(10)
             ),
           enablePositionIndex = true,
-          blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+          blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
           compressions = _ => Seq.empty
         ),
       hashIndex =
@@ -61,31 +61,31 @@ object DefaultGroupingStrategy {
           minimumNumberOfKeys = 2,
           minimumNumberOfHits = 2,
           allocateSpace = _.requiredSpace * 2,
-          blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+          blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
           compression = _ => Seq.empty
         ),
       binarySearchIndex =
         BinarySearchKeyIndex.FullIndex(
           minimumNumberOfKeys = 5,
-          blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+          blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
           compression = _ => Seq.empty
         ),
       bloomFilter =
         MightContainIndex.Enable(
           falsePositiveRate = 0.001,
           minimumNumberOfKeys = 10,
-          blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+          blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
           compression = _ => Seq.empty
         ),
       values =
         ValuesConfig(
           compressDuplicateValues = true,
           compressDuplicateRangeValues = true,
-          blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+          blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
           compression = _ => Seq.empty
         ),
       applyGroupingOnCopy = false,
-      groupIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+      groupIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
       groupCompressions = _ => Seq.empty,
       groupGroupingStrategy = None
     )

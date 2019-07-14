@@ -40,19 +40,20 @@ private[core] object SegmentCache {
             segmentOffset: SegmentBlock.Offset,
             rawSegmentReader: () => Reader)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                             keyValueLimiter: KeyValueLimiter): SegmentCache =
-    new SegmentCache(
-      id = id,
-      maxKey = maxKey,
-      minKey = minKey,
-      persistentCache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder),
-      unsliceKey = unsliceKey,
-      blockCache =
-        SegmentBlockCache(
-          id = id,
-          segmentBlockOffset = segmentOffset,
-          rawSegmentReader = rawSegmentReader
-        )
-    )
+  //    new SegmentCache(
+  //      id = id,
+  //      maxKey = maxKey,
+  //      minKey = minKey,
+  //      persistentCache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder),
+  //      unsliceKey = unsliceKey,
+  //      blockCache =
+  //        SegmentBlockCache(
+  //          id = id,
+  //          segmentBlockOffset = segmentOffset,
+  //          rawSegmentReader = rawSegmentReader
+  //        )
+  //    )
+    ???
 }
 private[core] class SegmentCache(id: String,
                                  maxKey: MaxKey[Slice[Byte]],

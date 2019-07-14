@@ -21,13 +21,13 @@ package swaydb.core.io.reader
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.TestData._
-import swaydb.core.segment.format.a.block.{Block, ValuesBlock}
+import swaydb.core.segment.format.a.block.{Block, BlockUpdater, ValuesBlock}
 import swaydb.data.slice.Slice
 
 class BlockReaderSpec extends WordSpec with Matchers {
 
-  def assertReader(expectedBlockBytes: Slice[Byte],
-                   reader: BlockReader[Block]) = {
+  def assertReader[B <: Block](expectedBlockBytes: Slice[Byte],
+                               reader: BlockReader[B])(implicit blockUpdater: BlockUpdater[B]) = {
     //size
     reader.size.get shouldBe reader.block.offset.size
 

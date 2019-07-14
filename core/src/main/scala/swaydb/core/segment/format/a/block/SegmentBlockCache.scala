@@ -20,19 +20,31 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.core.data.KeyValue
-import swaydb.core.io.reader.BlockReader
+import swaydb.core.io.reader.{BlockDataReader, BlockReader}
 import swaydb.core.util.FunctionUtil
 import swaydb.core.util.cache.Cache
 import swaydb.data.{IO, Reserve}
-import swaydb.data.config.BlockIO
+import swaydb.data.config.{BlockIO, BlockStatus}
 import swaydb.data.slice.{Reader, Slice}
 
 object SegmentBlockCache {
   def apply(id: String,
+            segmentBlockIO: BlockStatus => BlockIO,
+            hashIndexBlockIO: BlockStatus => BlockIO,
+            binarySearchIndexBlockIO: BlockStatus => BlockIO,
+            sortedIndexBlockIO: BlockStatus => BlockIO,
+            valuesBlockIO: BlockStatus => BlockIO,
+            segmentFooterBlockIO: BlockStatus => BlockIO,
             segmentBlockOffset: SegmentBlock.Offset,
             rawSegmentReader: () => Reader): SegmentBlockCache =
     new SegmentBlockCache(
       id = id,
+      segmentBlockIO = segmentBlockIO,
+      hashIndexBlockIO = hashIndexBlockIO,
+      binarySearchIndexBlockIO = binarySearchIndexBlockIO,
+      sortedIndexBlockIO = sortedIndexBlockIO,
+      valuesBlockIO = valuesBlockIO,
+      segmentFooterBlockIO = segmentFooterBlockIO,
       segmentBlockInfo =
         new SegmentBlockInfo(
           segmentBlockOffset = segmentBlockOffset,
@@ -40,14 +52,14 @@ object SegmentBlockCache {
         )
     )
 
-  def createBlockReaderCache[B <: Block](blockIO: B => BlockIO,
-                                         reserveError: IO.Error.Busy,
-                                         segmentBlockReader: => IO[BlockReader[SegmentBlock]]): Cache[B, BlockReader[B]] =
-    Cache.blockIO[B, BlockReader[B]](blockIO, reserveError) {
+  def createBlockDataReaderCache[B <: Block](blockIO: B => BlockIO,
+                                             reserveError: IO.Error.Busy,
+                                             segmentBlockReader: => IO[BlockReader[SegmentBlock]])(implicit blockUpdater: BlockUpdater[B]): Cache[B, BlockDataReader[B]] =
+    Cache.blockIO[B, BlockDataReader[B]](blockIO, reserveError) {
       block =>
         segmentBlockReader flatMap {
           segmentBlockReader =>
-            Block.createDecompressedBlockReader(
+            Block.createBlockDataReader(
               block = block,
               readFullBlockIfUncompressed = FunctionUtil.safeBoolean(blockIO(block).cacheOnAccess),
               segmentReader = segmentBlockReader
@@ -55,10 +67,10 @@ object SegmentBlockCache {
         }
     }
 
-  private[block] def segmentBlock(blockInfo: SegmentBlockInfo): IO[SegmentBlock] =
+  private[block] def segmentBlock(blockStatus: SegmentBlockInfo): IO[SegmentBlock] =
     SegmentBlock.read(
-      offset = blockInfo.segmentBlockOffset,
-      segmentReader = blockInfo.segmentReader()
+      offset = blockStatus.segmentBlockOffset,
+      segmentReader = blockStatus.segmentReader()
     )
 
   private[block] def hashIndex(footer: SegmentBlock.Footer,
@@ -129,23 +141,35 @@ protected class SegmentBlockInfo(val segmentBlockOffset: SegmentBlock.Offset,
                                  val segmentReader: () => Reader)
 
 class SegmentBlockCache(id: String,
+                        segmentBlockIO: BlockStatus => BlockIO,
+                        hashIndexBlockIO: BlockStatus => BlockIO,
+                        binarySearchIndexBlockIO: BlockStatus => BlockIO,
+                        sortedIndexBlockIO: BlockStatus => BlockIO,
+                        valuesBlockIO: BlockStatus => BlockIO,
+                        segmentFooterBlockIO: BlockStatus => BlockIO,
                         segmentBlockInfo: SegmentBlockInfo) {
 
   private[block] val segmentBlockCache: Cache[SegmentBlockInfo, SegmentBlock] =
-  //    Cache.io[SegmentBlockInfo, SegmentBlock](
-  //      synchronised = true,
-  //      reserved = false,
-  //      stored = true
-  //    )(SegmentBlockCache.segmentBlock)
-    ???
+    Cache.blockIO[SegmentBlockInfo, SegmentBlock](
+      blockIO = _ => segmentBlockIO(BlockStatus.BlockInfo(8)),
+      reserveError = IO.Error.ReservedValue(Reserve())
+    )(SegmentBlockCache.segmentBlock)
 
   private[block] val footerCache: Cache[BlockReader[SegmentBlock], SegmentBlock.Footer] =
-  //    Cache.io[BlockReader[SegmentBlock], SegmentBlock.Footer](
-  //      synchronised = true,
-  //      reserved = false,
-  //      stored = true
-  //    )(SegmentBlock.readFooter)
-    ???
+    Cache.blockIO[BlockReader[SegmentBlock], SegmentBlock.Footer](
+      blockIO =
+        blockStatus =>
+          //          segmentFooterBlockIO(
+          //            BlockStatus(
+          //              _isBlockInfo = true,
+          //              _isCompressed = false,
+          //              _compressedSize = blockStatus.,
+          //              _decompressedSize = blockStatus.segmentBlockOffset.size
+          //            )
+          //          ),
+          ???,
+      reserveError = IO.Error.ReservedValue(Reserve())
+    )(SegmentBlock.readFooter)
 
   private[block] val hashIndexCache: Cache[BlockReader[SegmentBlock], Option[HashIndexBlock]] =
   //    Cache.io[BlockReader[SegmentBlock], Option[HashIndex]](
@@ -187,43 +211,43 @@ class SegmentBlockCache(id: String,
   //    )(SegmentBlockCache.values(footerCache, _))
     ???
 
-  private[block] val segmentBlockReaderCache: Cache[SegmentBlock, BlockReader[SegmentBlock]] =
-    SegmentBlockCache.createBlockReaderCache[SegmentBlock](
+  private[block] val segmentBlockReaderCache: Cache[SegmentBlock, BlockDataReader[SegmentBlock]] =
+    SegmentBlockCache.createBlockDataReaderCache[SegmentBlock](
       reserveError = IO.Error.DecompressingValues(Reserve()),
       blockIO = ???,
       segmentBlockReader = SegmentBlock.createUnblockedReader(segmentBlockInfo.segmentReader())
     )
 
-  private[block] val hashIndexReaderCache: Cache[HashIndexBlock, BlockReader[HashIndexBlock]] =
-    SegmentBlockCache.createBlockReaderCache[HashIndexBlock](
+  private[block] val hashIndexReaderCache: Cache[HashIndexBlock, BlockDataReader[HashIndexBlock]] =
+    SegmentBlockCache.createBlockDataReaderCache[HashIndexBlock](
       reserveError = IO.Error.DecompressingValues(Reserve()),
       blockIO = ???,
       segmentBlockReader = createSegmentBlockReader()
     )
 
-  private[block] val bloomFilterReaderCache: Cache[BloomFilterBlock, BlockReader[BloomFilterBlock]] =
-    SegmentBlockCache.createBlockReaderCache[BloomFilterBlock](
+  private[block] val bloomFilterReaderCache: Cache[BloomFilterBlock, BlockDataReader[BloomFilterBlock]] =
+    SegmentBlockCache.createBlockDataReaderCache[BloomFilterBlock](
       reserveError = IO.Error.DecompressingValues(Reserve()),
       blockIO = ???,
       segmentBlockReader = createSegmentBlockReader()
     )
 
-  private[block] val binarySearchIndexReaderCache: Cache[BinarySearchIndexBlock, BlockReader[BinarySearchIndexBlock]] =
-    SegmentBlockCache.createBlockReaderCache[BinarySearchIndexBlock](
+  private[block] val binarySearchIndexReaderCache: Cache[BinarySearchIndexBlock, BlockDataReader[BinarySearchIndexBlock]] =
+    SegmentBlockCache.createBlockDataReaderCache[BinarySearchIndexBlock](
       reserveError = IO.Error.DecompressingValues(Reserve()),
       blockIO = ???,
       segmentBlockReader = createSegmentBlockReader()
     )
 
-  private[block] val sortedIndexReaderCache: Cache[SortedIndexBlock, BlockReader[SortedIndexBlock]] =
-    SegmentBlockCache.createBlockReaderCache[SortedIndexBlock](
+  private[block] val sortedIndexReaderCache: Cache[SortedIndexBlock, BlockDataReader[SortedIndexBlock]] =
+    SegmentBlockCache.createBlockDataReaderCache[SortedIndexBlock](
       reserveError = IO.Error.DecompressingValues(Reserve()),
       blockIO = ???,
       segmentBlockReader = createSegmentBlockReader()
     )
 
-  private[block] val valuesReaderCache: Cache[ValuesBlock, BlockReader[ValuesBlock]] =
-    SegmentBlockCache.createBlockReaderCache[ValuesBlock](
+  private[block] val valuesReaderCache: Cache[ValuesBlock, BlockDataReader[ValuesBlock]] =
+    SegmentBlockCache.createBlockDataReaderCache[ValuesBlock](
       reserveError = IO.Error.DecompressingValues(Reserve()),
       blockIO = ???,
       segmentBlockReader = createSegmentBlockReader()

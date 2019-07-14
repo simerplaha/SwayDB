@@ -110,7 +110,7 @@ class SegmentBlockSpec extends TestBase {
           keyValues = keyValues,
           segmentConfig =
             new SegmentBlock.Config(
-              blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+              blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0
@@ -145,7 +145,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = keyValues,
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+                blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = randomNextInt(10)
@@ -183,7 +183,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = Seq(group),
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+                blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -211,7 +211,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = Seq(group1, group2).updateStats,
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+                blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -245,7 +245,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = Seq(group4),
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+                blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -275,7 +275,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = keyValues,
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+                blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -296,7 +296,7 @@ class SegmentBlockSpec extends TestBase {
           keyValues = keyValues,
           segmentConfig =
             new SegmentBlock.Config(
-              blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+              blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0
@@ -324,7 +324,7 @@ class SegmentBlockSpec extends TestBase {
           keyValues = keyValues,
           segmentConfig =
             new SegmentBlock.Config(
-              blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+              blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0
@@ -349,7 +349,7 @@ class SegmentBlockSpec extends TestBase {
       //            keyValues = keyValues,
       //            segmentConfig =
       //      SegmentBlock.Config(
-      //        blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+      //        blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
       //        compressions = Seq.empty
       //      ),
       //            createdInLevel = 0

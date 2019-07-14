@@ -21,12 +21,12 @@ package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
-import swaydb.core.io.reader.{BlockReader, Reader}
+import swaydb.core.io.reader.{BlockDataReader, BlockReader, Reader}
 import swaydb.core.segment.SegmentException
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.config.BlockInfo
+import swaydb.data.config.BlockStatus
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -37,13 +37,16 @@ private[core] trait Block {
   def offset: BlockOffset
   def headerSize: Int
   def compressionInfo: Option[Block.CompressionInfo]
-  def updateOffset(start: Int, size: Int): Block
-  def blockInfo: BlockInfo =
-    BlockInfo(
-      _isCompressed = compressionInfo.isDefined,
-      _compressedSize = compressionInfo.map(_.decompressedLength).getOrElse(offset.size),
-      _decompressedSize = offset.size
-    )
+  def blockStatus: BlockStatus =
+    compressionInfo map {
+      compressionInfo =>
+        BlockStatus.CompressedBlock(
+          compressedSize = offset.size - headerSize,
+          decompressedSize = compressionInfo.decompressedLength
+        )
+    } getOrElse {
+      BlockStatus.UncompressedBlock(offset.size - headerSize)
+    }
 }
 
 private[core] object Block extends LazyLogging {
@@ -106,14 +109,14 @@ private[core] object Block extends LazyLogging {
           else
             s"Unable to satisfy compression requirement from ${compressions.size} compression strategies for $blockName. Storing ${bytes.size}.bytes uncompressed."
         }
-        writeUncompressedBlock(
+        createUncompressedBlock(
           headerSize = headerSize,
           bytes = bytes
         )
     }
 
-  def writeUncompressedBlock(headerSize: Int,
-                             bytes: Slice[Byte]): IO[Slice[Byte]] =
+  def createUncompressedBlock(headerSize: Int,
+                              bytes: Slice[Byte]): IO[Slice[Byte]] =
     IO {
       bytes moveWritePosition 0
       bytes addIntUnsigned headerSize
@@ -223,9 +226,9 @@ private[core] object Block extends LazyLogging {
           )
       }
 
-  def createDecompressedBlockReader[B <: Block](block: B,
-                                                readFullBlockIfUncompressed: Boolean,
-                                                segmentReader: BlockReader[SegmentBlock]): IO[BlockReader[B]] =
+  def createBlockDataReader[B <: Block](block: B,
+                                        readFullBlockIfUncompressed: Boolean,
+                                        segmentReader: BlockReader[SegmentBlock])(implicit blockUpdater: BlockUpdater[B]): IO[BlockDataReader[B]] =
     block.compressionInfo match {
       case Some(compressionInfo) =>
         Block.decompress(
@@ -238,15 +241,18 @@ private[core] object Block extends LazyLogging {
         ) flatMap {
           decompressedBytes =>
             if (decompressedBytes.size == compressionInfo.decompressedLength)
-              IO {
-                BlockReader(
-                  reader = Reader(decompressedBytes),
-                  block =
-                    block.updateOffset(
-                      start = 0,
-                      size = decompressedBytes.size
-                    ).asInstanceOf[B]
-                )
+              BlockReader.unblockedSegment(decompressedBytes) map {
+                decompressedBlock =>
+                  new BlockDataReader[B](
+                    parentBlockReader = decompressedBlock,
+                    parentBlock = segmentReader.block,
+                    block =
+                      blockUpdater.updateOffset(
+                        block = block,
+                        start = 0,
+                        size = decompressedBytes.size
+                      )
+                  )
               }
             else
               IO.Failure(s"Decompressed bytes size (${decompressedBytes.size}) != decompressedLength (${compressionInfo.decompressedLength}).")
@@ -257,15 +263,41 @@ private[core] object Block extends LazyLogging {
           BlockReader(
             reader = segmentReader,
             block =
-              block.updateOffset(
+              blockUpdater.updateOffset(
+                block = block,
                 start = block.offset.start + block.headerSize,
                 size = block.offset.size - block.headerSize
-              ).asInstanceOf[B]
+              )
           )
 
         if (readFullBlockIfUncompressed)
-          reader.readFullBlockAndGetBlockReader()
+          reader.readFullBlockAndGetBlockReader() flatMap {
+            blockReader =>
+              blockReader.size map {
+                blockReaderSize =>
+                  new BlockDataReader[B](
+                    parentBlockReader = blockReader,
+                    parentBlock = reader.block,
+                    blockUpdater.updateOffset(
+                      block = block,
+                      start = 0,
+                      size = blockReaderSize.toInt
+                    )
+                  )
+              }
+          }
         else
-          IO.Success(reader)
+          reader.size map {
+            blockReaderSize =>
+              new BlockDataReader[B](
+                parentBlockReader = reader,
+                parentBlock = reader.block,
+                blockUpdater.updateOffset(
+                  block = block,
+                  start = 0,
+                  size = blockReaderSize.toInt
+                )
+              )
+          }
     }
 }

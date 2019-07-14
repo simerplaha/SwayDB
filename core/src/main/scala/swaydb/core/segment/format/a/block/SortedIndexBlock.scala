@@ -23,14 +23,13 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.a.block.BinarySearchIndexBlock.Config.defaultBlockIO
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.config.{BlockIO, BlockInfo, UncompressedBlockInfo}
+import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
@@ -39,10 +38,15 @@ private[core] object SortedIndexBlock {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
+  implicit object SortedIndexBlockUpdater extends BlockUpdater[SortedIndexBlock] {
+    override def updateOffset(block: SortedIndexBlock, start: Int, size: Int): SortedIndexBlock =
+      block.copy(offset = SortedIndexBlock.Offset(start = start, size = size))
+  }
+
   object Config {
     val disabled =
       Config(
-        blockIO = blockInfo => BlockIO.SynchronisedIO(cacheOnAccess = blockInfo.isCompressed),
+        blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
         enableAccessPositionIndex = false,
         prefixCompressionResetCount = 0,
         compressions = _ => Seq.empty
@@ -58,7 +62,7 @@ private[core] object SortedIndexBlock {
       Config(
         enableAccessPositionIndex = enable.enablePositionIndex,
         prefixCompressionResetCount = enable.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0),
-        blockIO = FunctionUtil.safe(defaultBlockIO, enable.blockIO),
+        blockIO = FunctionUtil.safe(BlockIO.default, enable.blockIO),
         compressions =
           FunctionUtil.safe(
             default = _ => Seq.empty[CompressionInternal],
@@ -67,7 +71,7 @@ private[core] object SortedIndexBlock {
       )
   }
 
-  case class Config(blockIO: BlockInfo => BlockIO,
+  case class Config(blockIO: BlockStatus => BlockIO,
                     prefixCompressionResetCount: Int,
                     enableAccessPositionIndex: Boolean,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
@@ -500,8 +504,4 @@ private[core] case class SortedIndexBlock(offset: SortedIndexBlock.Offset,
                                           enableAccessPositionIndex: Boolean,
                                           hasPrefixCompression: Boolean,
                                           headerSize: Int,
-                                          compressionInfo: Option[Block.CompressionInfo]) extends Block {
-
-  override def updateOffset(start: Int, size: Int): Block =
-    copy(offset = SortedIndexBlock.Offset(start = start, size = size))
-}
+                                          compressionInfo: Option[Block.CompressionInfo]) extends Block

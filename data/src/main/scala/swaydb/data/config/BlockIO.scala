@@ -22,6 +22,10 @@ sealed trait BlockIO {
   def cacheOnAccess: Boolean
 }
 object BlockIO {
+
+  def default(blockStatus: BlockStatus) =
+    BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed)
+
   case class ConcurrentIO(cacheOnAccess: Boolean) extends BlockIO
   case class SynchronisedIO(cacheOnAccess: Boolean) extends BlockIO
   case class AsynchronousIO(cacheOnAccess: Boolean) extends BlockIO
