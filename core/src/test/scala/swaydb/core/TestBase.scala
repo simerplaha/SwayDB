@@ -26,13 +26,12 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
-import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.TestData._
 import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
 import swaydb.core.actor.WiredActor
-import swaydb.core.data.{KeyValue, Memory, Time, Transient}
+import swaydb.core.data.{Memory, Time, Transient}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.{BufferCleaner, DBFile, IOEffect}
 import swaydb.core.io.reader.FileReader

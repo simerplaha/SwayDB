@@ -36,7 +36,7 @@ import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
 import swaydb.core.queue.FileLimiter
 import swaydb.core.segment.Segment
-import swaydb.core.util.{MinMax, Options}
+import swaydb.core.util.MinMax
 import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.LevelMeter

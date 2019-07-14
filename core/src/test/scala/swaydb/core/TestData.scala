@@ -42,13 +42,12 @@ import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.util.UUIDUtil
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.{Dir, BlockIO, RecoveryMode}
+import swaydb.data.config.{BlockIO, Dir, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
 import swaydb.data.{IO, MaxKey}
-import swaydb.macros.SealedList
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

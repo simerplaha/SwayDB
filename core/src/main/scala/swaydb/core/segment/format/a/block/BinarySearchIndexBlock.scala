@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.{KeyValue, Persistent, Transient}
+import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
 import swaydb.core.util.{Bytes, FunctionUtil, Options}
 import swaydb.data.IO

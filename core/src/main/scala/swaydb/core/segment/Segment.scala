@@ -23,12 +23,10 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.compression.CompressionInternal
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.{DBFile, IOEffect}
-import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}

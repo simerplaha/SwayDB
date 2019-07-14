@@ -24,12 +24,10 @@ import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.compression.CompressionInternal
 import swaydb.core.data.Memory.{Group, SegmentResponse}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block._

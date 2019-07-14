@@ -20,8 +20,7 @@
 package swaydb.core.group.compression
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.compression.CompressionInternal
-import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.Transient
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.data.slice.Slice

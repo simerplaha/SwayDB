@@ -19,7 +19,7 @@
 
 package swaydb.core.group.compression
 
-import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.Transient
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey}

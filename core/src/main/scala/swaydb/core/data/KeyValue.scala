@@ -19,7 +19,6 @@
 
 package swaydb.core.data
 
-import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
 import swaydb.core.io.reader.Reader

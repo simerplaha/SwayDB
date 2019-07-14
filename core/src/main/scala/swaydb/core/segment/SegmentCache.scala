@@ -26,7 +26,6 @@ import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
-import swaydb.core.util._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{IO, MaxKey}

@@ -22,7 +22,6 @@ package swaydb.core
 import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.compression.CompressionInternal
 import swaydb.core.actor.WiredActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal

@@ -24,7 +24,6 @@ import java.nio.file.{Path, StandardOpenOption}
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore

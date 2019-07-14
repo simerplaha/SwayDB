@@ -2,19 +2,11 @@ package swaydb.core.segment.format.a.block
 
 
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
+import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.data.Value.{FromValue, RangeValue}
-import swaydb.core.data._
-import swaydb.core.io.reader.Reader
-import swaydb.core.util.Benchmark
-import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.config.BlockIO
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
-import swaydb.serializers.Default._
-import swaydb.serializers._
 
 class SegmentBlockCacheSpec extends TestBase {
   implicit val order = KeyOrder.default

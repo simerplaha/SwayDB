@@ -20,7 +20,6 @@
 package swaydb.core.io.reader
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.TestData._
 import swaydb.core.segment.format.a.block.reader.CompressedBlockReader
 import swaydb.core.segment.format.a.block.{Block, BlockUpdater, ValuesBlock}
 import swaydb.data.slice.Slice

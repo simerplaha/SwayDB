@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
-import swaydb.core.CommonAssertions.eitherOne
+import swaydb.core.CommonAssertions.{eitherOne, _}
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
@@ -29,7 +29,6 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.CommonAssertions._
 
 import scala.util.Random
 

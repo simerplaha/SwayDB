@@ -22,10 +22,10 @@ package swaydb.core.segment.format.a.block
 import java.util.concurrent.ConcurrentSkipListMap
 
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.{KeyValue, Memory, Stats, Transient}
+import swaydb.core.data.{Memory, Transient}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
+import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
 import swaydb.core.segment.{DeadlineAndFunctionId, Segment}
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.IO

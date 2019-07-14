@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.{KeyValue, Persistent, Transient}
+import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO

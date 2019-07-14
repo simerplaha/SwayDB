@@ -19,39 +19,21 @@
 
 package swaydb.core.segment.format.a
 
-import java.nio.file._
-
-import swaydb.configs.level.DefaultGroupingStrategy
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.Transient.Remove
-import swaydb.core.data.Value.{FromValue, RangeValue}
-import swaydb.core.data.{Memory, Value, _}
+import swaydb.core.data.Memory
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.IOEffect._
-import swaydb.core.io.reader.Reader
-import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.FileLimiter
-import swaydb.core.segment.format.a.block.SortedIndexBlock
-import swaydb.core.segment.merge.SegmentMerger
-import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util._
-import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
-import swaydb.data.config.Dir
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.util.StorageUnits._
-import swaydb.data.{IO, MaxKey}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-
-import scala.collection.JavaConverters._
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration._
-import scala.util.Random
 
 class SegmentWriteSpec0 extends SegmentWriteSpec
 
