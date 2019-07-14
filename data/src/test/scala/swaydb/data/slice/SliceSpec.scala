@@ -645,7 +645,7 @@ class SliceSpec extends WordSpec with Matchers {
     slice add 4
     slice(3) shouldBe 4
     slice.size shouldBe 4
-    slice addAll Seq(5, 6, 7, 8, 9, 10)
+    slice addAll Slice(5, 6, 7, 8, 9, 10)
     slice.size shouldBe 10
 
     slice.head shouldBe 0
@@ -685,6 +685,32 @@ class SliceSpec extends WordSpec with Matchers {
     slice.slice(6, 7).isEmpty shouldBe true
     slice.slice(7, 8).isEmpty shouldBe true
     slice.slice(9, 9).isEmpty shouldBe true
+  }
+
+  "manually adjusting slice random testing with addAll" in {
+    val slice = Slice.create[Int](10)
+
+    slice moveWritePosition 5
+    slice addAll Slice(1, 2, 3, 4)
+    slice.size shouldBe 9
+    //move the same position and write again. Size should remain the same
+    slice moveWritePosition 5
+    slice addAll Slice(1, 2, 3, 4)
+    slice.size shouldBe 9
+
+    slice add 1
+    slice.size shouldBe 10
+
+    assertThrows[ArrayIndexOutOfBoundsException] {
+      slice add 1
+    }
+    slice.size shouldBe 10
+
+    slice.last shouldBe 1
+    slice moveWritePosition 9
+    slice add 2
+    slice.last shouldBe 2
+    slice.size shouldBe 10
   }
 
   "closing an empty slice" in {

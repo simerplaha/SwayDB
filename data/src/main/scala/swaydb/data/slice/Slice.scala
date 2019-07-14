@@ -22,7 +22,6 @@ package swaydb.data.slice
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
-import java.util
 
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.{ByteSizeOf, ByteUtil}
@@ -30,6 +29,7 @@ import swaydb.data.{IO, MaxKey}
 
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
+import scala.collection.mutable.WrappedArray
 import scala.collection.{IterableLike, mutable}
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
@@ -53,7 +53,7 @@ object Slice {
       array = Array.fill(length)(elem),
       fromOffset = 0,
       toOffset = if (length == 0) -1 else length - 1,
-      _written = length
+      written = length
     )
 
   def create[T: ClassTag](length: Int): Slice[T] =
@@ -61,7 +61,7 @@ object Slice {
       array = new Array[T](length),
       fromOffset = 0,
       toOffset = if (length == 0) -1 else length - 1,
-      _written = 0
+      written = 0
     )
 
   def apply[T: ClassTag](data: Array[T]): Slice[T] =
@@ -72,7 +72,7 @@ object Slice {
         array = data,
         fromOffset = 0,
         toOffset = data.length - 1,
-        _written = data.length
+        written = data.length
       )
 
   def from(byteBuffer: ByteBuffer) =
@@ -80,7 +80,7 @@ object Slice {
       array = byteBuffer.array(),
       fromOffset = byteBuffer.arrayOffset(),
       toOffset = byteBuffer.position() - 1,
-      _written = byteBuffer.position()
+      written = byteBuffer.position()
     )
 
   def from(byteBuffer: ByteBuffer, from: Int, to: Int) =
@@ -88,7 +88,7 @@ object Slice {
       array = byteBuffer.array(),
       fromOffset = from,
       toOffset = to,
-      _written = to - from + 1
+      written = to - from + 1
     )
 
   def apply[T: ClassTag](data: T*): Slice[T] =
@@ -312,12 +312,7 @@ object Slice {
       slice
     }
 
-    def addAll(values: Iterable[T]): Slice[T] = {
-      if (values.nonEmpty) slice.insertAll(values)
-      slice
-    }
-
-    def addAllWithSizeIntUnsigned(values: Iterable[T]): Slice[T] = {
+    def addAll(values: Slice[T]): Slice[T] = {
       if (values.nonEmpty) slice.insertAll(values)
       slice
     }
@@ -390,21 +385,21 @@ object Slice {
   * @param array      Array to create Slices for
   * @param fromOffset start offset
   * @param toOffset   end offset
-  * @param _written   items written
+  * @param written    items written
   * @tparam T The type of this Slice
   */
 class Slice[+T: ClassTag] private(array: Array[T],
                                   val fromOffset: Int,
                                   val toOffset: Int,
-                                  private var _written: Int) extends Iterable[T] with IterableLike[T, Slice[T]] { self =>
+                                  private var written: Int) extends Iterable[T] with IterableLike[T, Slice[T]] { self =>
 
-  private var writePosition = fromOffset + _written
+  private var writePosition = fromOffset + written
 
   val allocatedSize =
     toOffset - fromOffset + 1
 
   override def size: Int =
-    _written
+    written
 
   override def isEmpty =
     size == 0
@@ -439,7 +434,7 @@ class Slice[+T: ClassTag] private(array: Array[T],
       if (fromOffsetAdjusted > toOffsetAdjusted) {
         Slice.empty
       } else {
-        val actualWritePosition = this.fromOffset + _written //in-case the slice was manually moved.
+        val actualWritePosition = this.fromOffset + written //in-case the slice was manually moved.
         val sliceWritePosition =
           if (actualWritePosition <= fromOffsetAdjusted) //not written
             0
@@ -451,7 +446,7 @@ class Slice[+T: ClassTag] private(array: Array[T],
           array = array,
           fromOffset = fromOffsetAdjusted,
           toOffset = toOffsetAdjusted,
-          _written = sliceWritePosition
+          written = sliceWritePosition
         )
       }
     }
@@ -498,7 +493,7 @@ class Slice[+T: ClassTag] private(array: Array[T],
     //+1 because write position can be a step ahead for the next write but cannot over over toOffset.
     if (adjustedPosition > toOffset + 1) throw new ArrayIndexOutOfBoundsException(adjustedPosition)
     this.writePosition = adjustedPosition
-    _written = adjustedPosition max _written
+    written = adjustedPosition max written
   }
 
   override def drop(count: Int): Slice[T] =
@@ -535,16 +530,16 @@ class Slice[+T: ClassTag] private(array: Array[T],
     lastOption.get
 
   override def headOption: Option[T] =
-    if (_written <= 0)
+    if (written <= 0)
       None
     else
       Some(array(fromOffset))
 
   override def lastOption: Option[T] =
-    if (_written <= 0)
+    if (written <= 0)
       None
     else
-      Some(array(fromOffset + _written - 1))
+      Some(array(fromOffset + written - 1))
 
   def headSlice: Slice[T] = slice(0, 0)
 
@@ -558,7 +553,7 @@ class Slice[+T: ClassTag] private(array: Array[T],
   }
 
   /**
-    * Returns a new slice which is not writable.
+    * Returns a new non-writable slice. Unless position is moved manually.
     */
   def close(): Slice[T] =
     if (allocatedSize == size)
@@ -569,28 +564,30 @@ class Slice[+T: ClassTag] private(array: Array[T],
   def apply(index: Int): T =
     get(index)
 
-  def incrementWritten() =
-    if (writePosition >= size)
-      _written = _written + 1
-
   @throws[ArrayIndexOutOfBoundsException]
   private[slice] def insert(item: Any): Unit = {
     if (writePosition < fromOffset || writePosition > toOffset) throw new ArrayIndexOutOfBoundsException(writePosition)
     array(writePosition) = item.asInstanceOf[T]
-    incrementWritten()
     writePosition += 1
+    written = (writePosition - fromOffset) max written
   }
 
   @throws[ArrayIndexOutOfBoundsException]
   private[slice] def insertAll(items: Iterable[Any]): Unit = {
     val futurePosition = writePosition + items.size - 1
     if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
-    items.asInstanceOf[Iterable[T]] foreach {
-      item =>
-        array(writePosition) = item
-        incrementWritten()
-        writePosition += 1
+    items match {
+      case array: mutable.WrappedArray[T] =>
+        System.arraycopy(array.array, 0, this.array, currentWritePosition, items.size)
+
+      case items: Slice[T] =>
+        System.arraycopy(items.unsafeInnerArray, items.fromOffset, this.array, currentWritePosition, items.size)
+
+      case _ =>
+        throw new Exception(s"Iterable is neither an Array or Slice. ${items.getClass.getName}")
     }
+    writePosition += items.size
+    written = (writePosition - fromOffset) max written
   }
 
   private[slice] def toByteBufferWrap: ByteBuffer =
@@ -604,6 +601,9 @@ class Slice[+T: ClassTag] private(array: Array[T],
   private[slice] def toByteArrayInputStream: ByteArrayInputStream =
     new ByteArrayInputStream(array.asInstanceOf[Array[Byte]], fromOffset, size)
 
+  private def unsafeInnerArray: Array[_] =
+    this.array.asInstanceOf[Array[_]]
+
   /**
     * Returns the original Array if Slice is not a sub Slice
     * else returns a new copied Array from the offsets defined for this Slice.
@@ -616,7 +616,7 @@ class Slice[+T: ClassTag] private(array: Array[T],
 
   def toArrayCopy[B >: T](implicit evidence$1: ClassTag[B]): Array[B] = {
     val newArray = new Array[B](size)
-    Array.copy(array, fromOffset, newArray, 0, size)
+    System.arraycopy(array, fromOffset, newArray, 0, size)
     newArray
   }
 
