@@ -465,63 +465,81 @@ object TestData {
   }
 
   implicit class ValuesConfig(values: ValuesBlock.Config.type) {
-    def random =
+    def random: ValuesBlock.Config =
+      random(randomBoolean())
+
+    def random(hasCompression: Boolean): ValuesBlock.Config =
       ValuesBlock.Config(
         compressDuplicateValues = randomBoolean(),
         compressDuplicateRangeValues = randomBoolean(),
         blockIO = _ => randomIOAccess(),
-        compressions = _ => randomCompressionsOrEmpty()
+        compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
 
   implicit class SortedIndexConfig(values: SortedIndexBlock.Config.type) {
-    def random =
+    def random: SortedIndexBlock.Config =
+      random(randomBoolean())
+
+    def random(hasCompression: Boolean): SortedIndexBlock.Config =
       SortedIndexBlock.Config(
         blockIO = _ => randomIOAccess(),
         prefixCompressionResetCount = randomIntMax(5),
         enableAccessPositionIndex = randomBoolean(),
-        compressions = _ => randomCompressionsOrEmpty()
+        compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
 
   implicit class BinarySearchIndexConfig(values: BinarySearchIndexBlock.Config.type) {
-    def random =
+    def random: BinarySearchIndexBlock.Config =
+      random(randomBoolean())
+
+    def random(hasCompression: Boolean): BinarySearchIndexBlock.Config =
       BinarySearchIndexBlock.Config(
         enabled = randomBoolean(),
         minimumNumberOfKeys = randomIntMax(5),
         fullIndex = randomBoolean(),
         blockIO = _ => randomIOAccess(),
-        compressions = _ => randomCompressionsOrEmpty()
+        compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
 
   implicit class HashIndexConfig(values: HashIndexBlock.Config.type) {
-    def random =
+    def random: HashIndexBlock.Config =
+      random(randomBoolean())
+
+    def random(hasCompression: Boolean): HashIndexBlock.Config =
       HashIndexBlock.Config(
         maxProbe = randomIntMax(10),
         minimumNumberOfKeys = randomIntMax(5),
         minimumNumberOfHits = randomIntMax(5),
         allocateSpace = _.requiredSpace * randomIntMax(3),
         blockIO = _ => randomIOAccess(),
-        compressions = _ => randomCompressionsOrEmpty()
+        compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
 
   implicit class BloomFilterConfig(values: BloomFilterBlock.Config.type) {
-    def random =
+    def random: BloomFilterBlock.Config =
+      random(randomBoolean())
+
+    def random(hasCompression: Boolean): BloomFilterBlock.Config =
       BloomFilterBlock.Config(
         falsePositiveRate = Random.nextDouble(),
         minimumNumberOfKeys = randomIntMax(5),
         blockIO = _ => randomIOAccess(),
-        compressions = _ => randomCompressionsOrEmpty()
+        compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
 
   implicit class SegmentConfig(values: SegmentBlock.Config.type) {
-    def random =
+    def random: SegmentBlock.Config =
+      random(randomBoolean())
+
+    def random(hasCompression: Boolean): SegmentBlock.Config =
       new SegmentBlock.Config(
         blockIO = _ => randomIOAccess(),
-        compressions = _ => randomCompressionsOrEmpty()
+        compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
 
@@ -1380,6 +1398,9 @@ object TestData {
 
   def randomCompressionLZ4OrSnappy(minCompressionPercentage: Double = Double.MinValue): CompressionInternal =
     CompressionInternal.randomLZ4OrSnappy(minCompressionPercentage = minCompressionPercentage)
+
+  def randomCompressionSnappy(minCompressionPercentage: Double = Double.MinValue): CompressionInternal =
+    CompressionInternal.randomSnappy(minCompressionPercentage = minCompressionPercentage)
 
   def randomCompressionLZ4(minCompressionPercentage: Double = Double.MinValue): CompressionInternal =
     CompressionInternal.randomLZ4(minCompressionPercentage = minCompressionPercentage)

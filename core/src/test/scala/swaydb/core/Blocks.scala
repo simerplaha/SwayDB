@@ -18,12 +18,12 @@
  */
 package swaydb.core
 
-import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
 
-case class Blocks(valuesReader: Option[BlockReader[ValuesBlock]],
-                  sortedIndexReader: BlockReader[SortedIndexBlock],
-                  hashIndexReader: Option[BlockReader[HashIndexBlock]],
-                  binarySearchIndexReader: Option[BlockReader[BinarySearchIndexBlock]],
-                  bloomFilterReader: Option[BlockReader[BloomFilterBlock]],
+case class Blocks(valuesReader: Option[DecompressedBlockReader[ValuesBlock]],
+                  sortedIndexReader: DecompressedBlockReader[SortedIndexBlock],
+                  hashIndexReader: Option[DecompressedBlockReader[HashIndexBlock]],
+                  binarySearchIndexReader: Option[DecompressedBlockReader[BinarySearchIndexBlock]],
+                  bloomFilterReader: Option[DecompressedBlockReader[BloomFilterBlock]],
                   footer: SegmentFooterBlock)

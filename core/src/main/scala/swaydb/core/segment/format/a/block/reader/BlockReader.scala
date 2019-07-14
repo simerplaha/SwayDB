@@ -17,54 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.io.reader
+package swaydb.core.segment.format.a.block.reader
 
-import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.segment.format.a.block.{Block, BlockUpdater, SegmentBlock, ValuesBlock}
+import swaydb.core.segment.format.a.block.Block
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
-/**
-  * Reader for the [[Block.CompressionInfo]] that skips [[Block.Header]] bytes.
-  */
-private[core] object BlockReader {
-  def apply[B <: Block](reader: Reader, block: B): BlockReader[B] =
-    new BlockReader[B](
-      reader = reader,
-      block = block
-    )
-
-  def unblockedValues(bytes: Slice[Byte]): IO[BlockReader[ValuesBlock]] =
-    unblockedValues(Reader(bytes))
-
-  def unblockedValues(reader: Reader): IO[BlockReader[ValuesBlock]] =
-    reader.size map {
-      readerSize =>
-        new BlockReader(
-          reader = reader,
-          block = ValuesBlock(ValuesBlock.Offset(0, readerSize.toInt), 0, None)
-        )
-    }
-
-  def unblockedSegment(bytes: Slice[Byte]): IO[BlockReader[SegmentBlock]] =
-    unblockedSegment(Reader(bytes))
-
-  def unblockedSegment(segmentReader: Reader): IO[BlockReader[SegmentBlock]] =
-    segmentReader.size map {
-      size =>
-        BlockReader(
-          reader = segmentReader,
-          block = SegmentBlock(
-            offset = SegmentBlock.Offset(0, size.toInt),
-            headerSize = 0,
-            compressionInfo = None
-          )
-        )
-    }
-}
-
-private[core] class BlockReader[B <: Block](reader: Reader,
-                                            val block: B) extends Reader with LazyLogging {
+protected abstract class BlockReader[B <: Block](reader: Reader,
+                                                 val block: B) extends Reader {
 
   private var position: Int = 0
 
@@ -87,12 +47,6 @@ private[core] class BlockReader[B <: Block](reader: Reader,
       size =>
         (size - fromPosition) >= atLeastSize
     }
-
-  override def copy(): BlockReader[B] =
-    new BlockReader(
-      reader = reader.copy(),
-      block = block
-    )
 
   override def getPosition: Int =
     position
@@ -127,20 +81,10 @@ private[core] class BlockReader[B <: Block](reader: Reader,
           }
     }
 
-  def readFullBlock(): IO[Slice[Byte]] =
+  def readAll(): IO[Slice[Byte]] =
     reader
       .moveTo(block.offset.start)
       .read(block.offset.size)
-
-  def readFullBlockAndGetBlockReader()(implicit blockUpdater: BlockUpdater[B]): IO[BlockReader[B]] =
-    readFullBlock()
-      .map {
-        bytes =>
-          BlockReader[B](
-            reader = Reader(bytes),
-            block = blockUpdater.updateOffset(block, 0, bytes.size)
-          )
-      }
 
   override def readRemaining(): IO[Slice[Byte]] =
     remaining flatMap read

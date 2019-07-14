@@ -83,7 +83,7 @@ private[core] object Stats {
         thisKeyValueAccessIndexPositionByteSize +
         indexEntry.size
 
-    val thisKeyValuesSortedIndexSizeWithoutBlocksHeadersBlock =
+    val thisKeyValuesSortedIndexSizeWithoutFooter =
       SortedIndexBlock.headerSize(false) +
         thisKeyValuesSortedIndexSize
 
@@ -109,7 +109,7 @@ private[core] object Stats {
 
     val thisKeyValuesSegmentSortedIndexAndValueSize =
       thisKeyValuesSegmentValueSize +
-        thisKeyValuesSortedIndexSizeWithoutBlocksHeadersBlock
+        thisKeyValuesSortedIndexSizeWithoutFooter
 
     val segmentHasRange =
       hasRemoveRange || previousStats.exists(_.segmentHasRange) || isRange
@@ -211,7 +211,7 @@ private[core] object Stats {
           minimumNumberOfKeys = bloomFilter.minimumNumberOfKeys
         )
 
-    val segmentSizeWithoutBlocksHeadersBlock: Int =
+    val segmentSizeWithoutFooter: Int =
       segmentValuesSize +
         segmentSortedIndexSize +
         segmentHashIndexSize +
@@ -219,15 +219,15 @@ private[core] object Stats {
         segmentBloomFilterSize
 
     //calculates the size of Segment after the last Group. This is used for size based grouping/compression.
-    val segmentSizeWithoutBlocksHeadersBlockForNextGroup: Int =
+    val segmentSizeWithoutFooterForNextGroup: Int =
       if (previousStats.exists(_.isGroup)) //if previous is a group, restart the size calculation
-        segmentSizeWithoutBlocksHeadersBlock
+        segmentSizeWithoutFooter
       else //if previous is not a group, add previous key-values set segment size since the last group to this key-values Segment size.
-        previousStats.map(_.segmentSizeWithoutBlocksHeadersBlockForNextGroup).getOrElse(0) +
-          segmentSizeWithoutBlocksHeadersBlock
+        previousStats.map(_.segmentSizeWithoutFooterForNextGroup).getOrElse(0) +
+          segmentSizeWithoutFooter
 
     val segmentSize: Int =
-      segmentSizeWithoutBlocksHeadersBlock +
+      segmentSizeWithoutFooter +
         SegmentFooterBlock.optimalBytesRequired
 
     val segmentUncompressedKeysSize: Int =
@@ -246,8 +246,8 @@ private[core] object Stats {
       segmentValuesSizeWithoutHeader = segmentValuesSizeWithoutHeader,
       segmentSortedIndexSize = segmentSortedIndexSize,
       segmentUncompressedKeysSize = segmentUncompressedKeysSize,
-      segmentSizeWithoutBlocksHeadersBlock = segmentSizeWithoutBlocksHeadersBlock,
-      segmentSizeWithoutBlocksHeadersBlockForNextGroup = segmentSizeWithoutBlocksHeadersBlockForNextGroup,
+      segmentSizeWithoutFooter = segmentSizeWithoutFooter,
+      segmentSizeWithoutFooterForNextGroup = segmentSizeWithoutFooterForNextGroup,
       segmentUniqueAccessIndexKeyCounts = segmentUniqueAccessIndexKeyCounts,
       thisKeyValuesSegmentKeyAndValueSize = thisKeyValuesSegmentSortedIndexAndValueSize,
       thisKeyValuesSortedIndexSize = thisKeyValuesSortedIndexSize,
@@ -278,8 +278,8 @@ private[core] case class Stats(valueLength: Int,
                                segmentValuesSizeWithoutHeader: Int,
                                segmentSortedIndexSize: Int,
                                segmentUncompressedKeysSize: Int,
-                               segmentSizeWithoutBlocksHeadersBlock: Int,
-                               segmentSizeWithoutBlocksHeadersBlockForNextGroup: Int,
+                               segmentSizeWithoutFooter: Int,
+                               segmentSizeWithoutFooterForNextGroup: Int,
                                segmentUniqueAccessIndexKeyCounts: Int,
                                thisKeyValuesSegmentKeyAndValueSize: Int,
                                thisKeyValuesSortedIndexSize: Int,

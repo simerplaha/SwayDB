@@ -29,7 +29,7 @@ import swaydb.core.data.Memory.{Group, SegmentResponse}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.reader.{BlockReader, Reader}
+import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block._
@@ -242,14 +242,15 @@ private[segment] case class MemorySegment(path: Path,
   def mightContainKey(key: Slice[Byte]): IO[Boolean] =
     bloomFilter map {
       memoryBlock =>
-        BloomFilterBlock.mightContain(
-          key = key,
-          reader =
-            BlockReader(
-              reader = Reader(memoryBlock.bytes),
-              block = memoryBlock.bloomFilter
-            )
-        )
+//        BloomFilterBlock.mightContain(
+//          key = key,
+//          reader =
+//            BlockReader(
+//              reader = Reader(memoryBlock.bytes),
+//              block = memoryBlock.bloomFilter
+//            )
+//        )
+        ???
     } getOrElse IO.`true`
 
   override def mightContainFunction(key: Slice[Byte]): IO[Boolean] =

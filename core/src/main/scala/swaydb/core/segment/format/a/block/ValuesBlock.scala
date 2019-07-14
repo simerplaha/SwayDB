@@ -21,8 +21,8 @@ package swaydb.core.segment.format.a.block
 
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue
-import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
+import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
 import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
@@ -105,7 +105,7 @@ private[core] object ValuesBlock {
       val headSize = headerSize(hasCompression)
       val bytes =
         if (hasCompression) //stats calculate size with no compression if there is compression add remaining bytes.
-          Slice.create[Byte](keyValues.last.stats.segmentValuesSize + (hasCompressionHeaderSize - noCompressionHeaderSize))
+          Slice.create[Byte](keyValues.last.stats.segmentValuesSize - noCompressionHeaderSize + headSize)
         else
           Slice.create[Byte](keyValues.last.stats.segmentValuesSize)
 
@@ -144,8 +144,11 @@ private[core] object ValuesBlock {
     }
 
   def read(offset: ValuesBlock.Offset,
-           segmentReader: BlockReader[SegmentBlock]): IO[ValuesBlock] =
-    Block.readHeader(offset = offset, reader = segmentReader) map {
+           segmentReader: DecompressedBlockReader[SegmentBlock]): IO[ValuesBlock] =
+    Block.readHeader(
+      offset = offset,
+      reader = segmentReader
+    ) map {
       result =>
         ValuesBlock(
           offset = offset,
@@ -154,7 +157,7 @@ private[core] object ValuesBlock {
         )
     }
 
-  def read(fromOffset: Int, length: Int, reader: BlockReader[ValuesBlock]): IO[Option[Slice[Byte]]] =
+  def read(fromOffset: Int, length: Int, reader: DecompressedBlockReader[ValuesBlock]): IO[Option[Slice[Byte]]] =
     if (length == 0)
       IO.none
     else

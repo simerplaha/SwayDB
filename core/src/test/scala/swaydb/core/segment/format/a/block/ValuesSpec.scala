@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
@@ -26,7 +27,6 @@ import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.CommonAssertions._
 
 class ValuesSpec extends TestBase {
 
@@ -53,7 +53,7 @@ class ValuesSpec extends TestBase {
 
   "close" should {
     "prepare for persisting" in {
-      runThis(10.times) {
+      runThis(100.times) {
         val keyValues = randomizedKeyValues(count = 1000, addPut = true)
         val state = ValuesBlock.init(keyValues).get
 
@@ -67,9 +67,9 @@ class ValuesSpec extends TestBase {
 
         ValuesBlock.close(state).get
 
-        val segmentBlock = SegmentBlock.createUnblockedReader(state.bytes).get
+        val segmentBlock = SegmentBlock.createDecompressedBlockReader().get
         val values = ValuesBlock.read(ValuesBlock.Offset(0, state.bytes.size), segmentBlock).get
-        val valuesBlockReader = values.createBlockReader(segmentBlock)
+        val valuesBlockReader = values.decompress(segmentBlock)
 
         keyValues.foldLeft(0) {
           case (offset, keyValue) =>

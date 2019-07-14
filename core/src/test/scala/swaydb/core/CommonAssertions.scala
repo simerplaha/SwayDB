@@ -23,7 +23,6 @@ import java.nio.file.Paths
 import java.util.concurrent.ConcurrentSkipListMap
 
 import org.scalatest.exceptions.TestFailedException
-import swaydb.compression.CompressionInternal
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
@@ -31,10 +30,9 @@ import swaydb.core.data.KeyValue.{ReadOnly, WriteOnly}
 import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{Memory, Value, _}
-import swaydb.core.group.compression.GroupCompressor
 import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
 import swaydb.core.io.file.IOEffect
-import swaydb.core.io.reader.{BlockReader, Reader}
+import swaydb.core.io.reader.Reader
 import swaydb.core.level.zero.{LevelZero, LevelZeroSkipListMerger}
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
@@ -42,7 +40,8 @@ import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSe
 import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
-import swaydb.core.segment.format.a.block.{KeyMatcher, _}
+import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.IO
@@ -624,7 +623,22 @@ object CommonAssertions {
 
     def shouldBeSliced() =
       actual.underlyingArraySize shouldBe actual.toArrayCopy.length
+
+    def createDecompressedReader[B <: Block](block: B): DecompressedBlockReader[B] =
+      new DecompressedBlockReader(
+        Reader(actual),
+        block
+      )
+
+    def createDecompressedSegmentBlockReader(): IO[DecompressedBlockReader[SegmentBlock]] =
+      createDecompressedBlockReader(actual)
   }
+
+  def createDecompressedBlockReader(bytes: Slice[Byte]): IO[DecompressedBlockReader[SegmentBlock]] =
+    createDecompressedBlockReader(Reader(bytes))
+
+  def createDecompressedBlockReader(segmentReader: Reader): IO[DecompressedBlockReader[SegmentBlock]] =
+    SegmentBlock.createDecompressedBlockReader(segmentReader)
 
   implicit class OptionSliceByteImplicits(actual: Option[Slice[Byte]]) {
     def shouldBeSliced() =
@@ -815,13 +829,13 @@ object CommonAssertions {
   def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
                   bloom: BloomFilterBlock.State) = {
     val unzipedKeyValues = unzipGroups(keyValues)
-    val bloomFilter = BloomFilterBlock.read(BloomFilterBlock.Offset(0, bloom.startOffset), SegmentBlock.createUnblockedReader(bloom.bytes).get).get
+    val bloomFilter = BloomFilterBlock.read(BloomFilterBlock.Offset(0, bloom.startOffset), SegmentBlock.createDecompressedBlockReader(bloom.bytes).get).get
 
     unzipedKeyValues.par.count {
       keyValue =>
         BloomFilterBlock.mightContain(
           key = keyValue.key,
-          reader = bloomFilter.createBlockReader(SegmentBlock.createUnblockedReader(bloom.bytes).get)
+          reader = bloomFilter.decompress(SegmentBlock.createDecompressedBlockReader(bloom.bytes).get)
         ).get
     } should be >= (unzipedKeyValues.size * 0.90).toInt
 
@@ -841,24 +855,26 @@ object CommonAssertions {
   }
 
   def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
-                  bloomFilterReader: BlockReader[BloomFilterBlock]) = {
+                  bloomFilterReader: CompressedBlockReader[BloomFilterBlock]) = {
     val unzipedKeyValues = unzipGroups(keyValues)
 
     unzipedKeyValues.count {
       keyValue =>
-        BloomFilterBlock.mightContain(
-          key = keyValue.key,
-          reader = bloomFilterReader
-        ).get
+        //        BloomFilterBlock.mightContain(
+        //          key = keyValue.key,
+        //          reader = bloomFilterReader
+        //        ).get
+        ???
     } should be >= (unzipedKeyValues.size * 0.90).toInt
 
     assertBloomNotContains(bloomFilterReader)
   }
 
-  def assertBloomNotContains(bloomFilterReader: BlockReader[BloomFilterBlock]) =
+  def assertBloomNotContains(bloomFilterReader: CompressedBlockReader[BloomFilterBlock]) =
     (1 to 1000).count {
       _ =>
-        BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader).get
+        //        BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader).get
+        ???
     } should be <= 300
 
   def assertBloomNotContains(segment: Segment) =
@@ -869,10 +885,10 @@ object CommonAssertions {
 
   def assertBloomNotContains(bloom: BloomFilterBlock.State) =
     runThis(1000.times) {
-      val bloomFilter = BloomFilterBlock.read(BloomFilterBlock.Offset(0, bloom.startOffset), SegmentBlock.createUnblockedReader(bloom.bytes).get).get
+      val bloomFilter = BloomFilterBlock.read(BloomFilterBlock.Offset(0, bloom.startOffset), SegmentBlock.createDecompressedBlockReader(bloom.bytes).get).get
       BloomFilterBlock.mightContain(
         key = randomBytesSlice(randomIntMax(1000) min 100),
-        reader = bloomFilter.createBlockReader(SegmentBlock.createUnblockedReader(bloom.bytes).get)
+        reader = bloomFilter.decompress(SegmentBlock.createDecompressedBlockReader(bloom.bytes).get)
       ).get shouldBe false
     }
 
@@ -1416,20 +1432,20 @@ object CommonAssertions {
   }
 
   def getSegmentBlockCache(segment: SegmentBlock.Closed): SegmentBlockCache =
-//    SegmentBlockCache(
-//      id = "test",
-//      segmentBlockOffset = SegmentBlock.Offset(0, segment.segmentSize),
-//      rawSegmentReader = () => Reader(segment.flattenSegmentBytes)
-//    )
-  ???
+  //    SegmentBlockCache(
+  //      id = "test",
+  //      segmentBlockOffset = SegmentBlock.Offset(0, segment.segmentSize),
+  //      rawSegmentReader = () => Reader(segment.flattenSegmentBytes)
+  //    )
+    ???
 
   def getSegmentBlockCache(reader: Reader): SegmentBlockCache =
-//    SegmentBlockCache(
-//      id = "test-cache",
-//      segmentBlockOffset = SegmentBlock.Offset(0, reader.size.get.toInt),
-//      rawSegmentReader = () => reader
-//    )
-  ???
+  //    SegmentBlockCache(
+  //      id = "test-cache",
+  //      segmentBlockOffset = SegmentBlock.Offset(0, reader.size.get.toInt),
+  //      rawSegmentReader = () => reader
+  //    )
+    ???
 
   def readAll(reader: Reader): IO[Slice[KeyValue.ReadOnly]] = {
     val blockCache = getSegmentBlockCache(reader)
@@ -1667,9 +1683,9 @@ object CommonAssertions {
   }
 
   implicit class BlockTestImplicits[B <: Block](block: B)(implicit blockUpdater: BlockUpdater[B]) {
-    def createBlockReader(reader: BlockReader[SegmentBlock],
-                          readFullBlockIfUncompressed: Boolean = randomBoolean()) =
-      Block.createBlockDataReader(
+    def decompress(reader: DecompressedBlockReader[SegmentBlock],
+                   readFullBlockIfUncompressed: Boolean = randomBoolean()): DecompressedBlockReader[B] =
+      Block.decompress(
         block = block,
         readFullBlockIfUncompressed = readFullBlockIfUncompressed,
         segmentReader = reader

@@ -24,7 +24,8 @@ import java.util.concurrent.ConcurrentSkipListMap
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Memory, Stats, Transient}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.reader.{BlockReader, Reader}
+import swaydb.core.io.reader.Reader
+import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
 import swaydb.core.segment.{DeadlineAndFunctionId, Segment}
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.IO
@@ -208,13 +209,13 @@ private[core] object SegmentBlock {
         )
     }
 
-  def createUnblockedReader(bytes: Slice[Byte]): IO[BlockReader[SegmentBlock]] =
-    createUnblockedReader(Reader(bytes))
+  def createDecompressedBlockReader(bytes: Slice[Byte]): IO[DecompressedBlockReader[SegmentBlock]] =
+    createDecompressedBlockReader(Reader(bytes))
 
-  def createUnblockedReader(segmentReader: Reader): IO[BlockReader[SegmentBlock]] =
+  def createDecompressedBlockReader(segmentReader: Reader): IO[DecompressedBlockReader[SegmentBlock]] =
     segmentReader.size map {
       size =>
-        BlockReader(
+        new DecompressedBlockReader(
           reader = segmentReader,
           block = SegmentBlock(
             offset = SegmentBlock.Offset(0, size.toInt),
@@ -598,22 +599,22 @@ private[core] object SegmentBlock {
     if (keyValues.isEmpty)
       Open.emptyIO
     else {
-      val headerBlock = SegmentFooterBlock.init(keyValues = keyValues, createdInLevel = createdInLevel)
+      val footerBlock = SegmentFooterBlock.init(keyValues = keyValues, createdInLevel = createdInLevel)
       val sortedIndexBlock = SortedIndexBlock.init(keyValues = keyValues)
       val valuesBlock = ValuesBlock.init(keyValues = keyValues)
       val hashIndexBlock = HashIndexBlock.init(keyValues = keyValues)
       val binarySearchIndexBlock = BinarySearchIndexBlock.init(keyValues = keyValues)
       val bloomFilterBlock = BloomFilterBlock.init(keyValues = keyValues)
 
-      bloomFilterBlock foreach {
-        bloomFilter =>
-          //temporary check.
-          val lastStats: Stats = keyValues.last.stats
-          assert(
-            bloomFilter.bytes.allocatedSize == lastStats.segmentBloomFilterSize,
-            s"BloomFilter size calculation were incorrect. Actual: ${bloomFilter.bytes.allocatedSize}. Expected: ${lastStats.segmentBloomFilterSize}"
-          )
-      }
+//      bloomFilterBlock foreach {
+//        bloomFilter =>
+//          //temporary check.
+//          val lastStats: Stats = keyValues.last.stats
+//          assert(
+//            bloomFilter.bytes.allocatedSize == lastStats.segmentBloomFilterSize,
+//            s"BloomFilter size calculation were incorrect. Actual: ${bloomFilter.bytes.allocatedSize}. Expected: ${lastStats.segmentBloomFilterSize}"
+//          )
+//      }
 
       write(
         keyValues = keyValues,
@@ -625,7 +626,7 @@ private[core] object SegmentBlock {
       ) flatMap {
         closedBlocks =>
           SegmentFooterBlock
-            .writeAndClose(headerBlock, closedBlocks)
+            .writeAndClose(footerBlock, closedBlocks)
             .flatMap(close(_, closedBlocks))
       }
     }
@@ -653,7 +654,8 @@ private[core] object SegmentBlock {
       open =>
         Block.createUncompressedBlock(
           headerSize = open.headerBytes.size,
-          bytes = open.headerBytes
+          bytes = open.headerBytes,
+          blockName = blockName
         ) map {
           _ =>
             open

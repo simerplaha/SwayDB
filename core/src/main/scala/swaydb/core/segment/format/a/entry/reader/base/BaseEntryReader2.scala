@@ -20,8 +20,8 @@
 package swaydb.core.segment.format.a.entry.reader.base
 
 import swaydb.core.data.Persistent
-import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.format.a.block.ValuesBlock
+import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.data.IO
@@ -32,7 +32,7 @@ private[core] object BaseEntryReader2 extends BaseEntryReader {
   def read[T](baseId: Int,
               keyValueId: Int,
               indexReader: Reader,
-              valueReader: Option[BlockReader[ValuesBlock]],
+              valueReader: Option[DecompressedBlockReader[ValuesBlock]],
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,

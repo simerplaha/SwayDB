@@ -47,7 +47,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
           val keyValues: Slice[KeyValue.WriteOnly] =
             randomizedKeyValues(
               count = 100,
-              startId = Some(1),
+              startId = Some(1)
             ).updateStats(
               binarySearchIndexConfig =
                 BinarySearchIndexBlock.Config(
@@ -69,7 +69,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
           val generatedKeyValues =
             randomizedKeyValues(
               count = 100,
-              startId = Some(1),
+              startId = Some(1)
             )
 
           val keyValues: Slice[KeyValue.WriteOnly] =

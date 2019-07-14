@@ -22,9 +22,10 @@ package swaydb.core.data
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
-import swaydb.core.io.reader.{BlockReader, Reader}
+import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
@@ -1669,7 +1670,7 @@ private[core] object Persistent {
 
   object Group {
     def apply(key: Slice[Byte],
-              valueReader: BlockReader[ValuesBlock],
+              valueReader: DecompressedBlockReader[ValuesBlock],
               nextIndexOffset: Int,
               nextIndexSize: Int,
               indexOffset: Int,
@@ -1698,7 +1699,7 @@ private[core] object Persistent {
 
   case class Group(private var _minKey: Slice[Byte],
                    private var _maxKey: MaxKey[Slice[Byte]],
-                   valueReader: BlockReader[ValuesBlock],
+                   valueReader: DecompressedBlockReader[ValuesBlock],
                    nextIndexOffset: Int,
                    nextIndexSize: Int,
                    indexOffset: Int,

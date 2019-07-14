@@ -23,9 +23,9 @@ import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
-import swaydb.core.io.reader.BlockReader
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
 import swaydb.core.util._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
@@ -87,7 +87,7 @@ private[core] class SegmentCache(id: String,
       keyValueLimiter.add(group, persistentCache)
   }
 
-  private def prepareGet[T](f: (SegmentFooterBlock, Option[BlockReader[HashIndexBlock]], Option[BlockReader[BinarySearchIndexBlock]], BlockReader[SortedIndexBlock], Option[BlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
+  private def prepareGet[T](f: (SegmentFooterBlock, Option[DecompressedBlockReader[HashIndexBlock]], Option[DecompressedBlockReader[BinarySearchIndexBlock]], DecompressedBlockReader[SortedIndexBlock], Option[DecompressedBlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
     //    for {
     //      footer <- blockCache.footer
     //      hashIndex <- blockCache.createHashIndexReader()
@@ -104,7 +104,7 @@ private[core] class SegmentCache(id: String,
     ???
   }
 
-  private def prepareGetAll[T](f: (SegmentFooterBlock, BlockReader[SortedIndexBlock], Option[BlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
+  private def prepareGetAll[T](f: (SegmentFooterBlock, DecompressedBlockReader[SortedIndexBlock], Option[DecompressedBlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
     //    for {
     //      footer <- blockCache.footer
     //      sortedIndex <- blockCache.createSortedIndexReader()
@@ -119,7 +119,7 @@ private[core] class SegmentCache(id: String,
     ???
   }
 
-  private def prepareIteration[T](f: (SegmentFooterBlock, Option[BlockReader[BinarySearchIndexBlock]], BlockReader[SortedIndexBlock], Option[BlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
+  private def prepareIteration[T](f: (SegmentFooterBlock, Option[DecompressedBlockReader[BinarySearchIndexBlock]], DecompressedBlockReader[SortedIndexBlock], Option[DecompressedBlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
     //    for {
     //      footer <- blockCache.footer
     //      binarySearchIndex <- blockCache.createBinarySearchReader()
@@ -368,17 +368,18 @@ private[core] class SegmentCache(id: String,
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     prepareGetAll {
       (footer, sortedIndex, values) =>
-        SortedIndexBlock
-          .readAll(
-            keyValueCount = footer.keyValueCount,
-            sortedIndexReader = sortedIndex,
-            valuesReader = values,
-            addTo = addTo
-          )
-          .onFailureSideEffect {
-            _ =>
-              logger.trace("{}: Reading sorted index block failed.", id)
-          }
+//        SortedIndexBlock
+//          .readAll(
+//            keyValueCount = footer.keyValueCount,
+//            sortedIndexReader = sortedIndex,
+//            valuesReader = values,
+//            addTo = addTo
+//          )
+//          .onFailureSideEffect {
+//            _ =>
+//              logger.trace("{}: Reading sorted index block failed.", id)
+//          }
+        ???
     }
 
   def getHeadKeyValueCount(): IO[Int] =

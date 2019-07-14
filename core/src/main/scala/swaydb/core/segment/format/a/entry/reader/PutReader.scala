@@ -20,8 +20,8 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
-import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.format.a.block.ValuesBlock
+import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyValueReader
 import swaydb.data.IO
@@ -31,7 +31,7 @@ object PutReader extends EntryReader[Persistent.Put] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Option[BlockReader[ValuesBlock]],
+                              valueReader: Option[DecompressedBlockReader[ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,

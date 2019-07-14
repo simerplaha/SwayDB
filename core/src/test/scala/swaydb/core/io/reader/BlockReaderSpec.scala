@@ -21,13 +21,14 @@ package swaydb.core.io.reader
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.TestData._
+import swaydb.core.segment.format.a.block.reader.CompressedBlockReader
 import swaydb.core.segment.format.a.block.{Block, BlockUpdater, ValuesBlock}
 import swaydb.data.slice.Slice
 
 class BlockReaderSpec extends WordSpec with Matchers {
 
   def assertReader[B <: Block](expectedBlockBytes: Slice[Byte],
-                               reader: BlockReader[B])(implicit blockUpdater: BlockUpdater[B]) = {
+                               reader: CompressedBlockReader[B])(implicit blockUpdater: BlockUpdater[B]) = {
     //size
     reader.size.get shouldBe reader.block.offset.size
 
@@ -86,26 +87,26 @@ class BlockReaderSpec extends WordSpec with Matchers {
     "there is no header and no compression" in {
       val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
       val block = ValuesBlock(ValuesBlock.Offset(0, bodyBytes.size), 0, None)
-      val reader = BlockReader(Reader(bodyBytes), block)
+      val reader = CompressedBlockReader(Reader(bodyBytes), block)
       assertReader(bodyBytes, reader)
     }
 
     "nested blocks" in {
       val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
       val block = ValuesBlock(ValuesBlock.Offset(0, bodyBytes.size), 0, None)
-      val reader = BlockReader(Reader(bodyBytes), block)
+      val reader = CompressedBlockReader(Reader(bodyBytes), block)
       assertReader(bodyBytes, reader)
 
       val innerBlock = ValuesBlock(ValuesBlock.Offset(5, 5), 0, None)
-      val innerBlockReader = BlockReader(reader, innerBlock)
+      val innerBlockReader = CompressedBlockReader(reader, innerBlock)
       assertReader(bodyBytes.drop(5).unslice(), innerBlockReader)
 
       val innerBlock2 = ValuesBlock(ValuesBlock.Offset(3, 2), 0, None)
-      val innerBlockReader2 = BlockReader(innerBlockReader, innerBlock2)
+      val innerBlockReader2 = CompressedBlockReader(innerBlockReader, innerBlock2)
       assertReader(bodyBytes.drop(8).unslice(), innerBlockReader2)
 
       val innerBlock3 = ValuesBlock(ValuesBlock.Offset(2, 0), 0, None)
-      val innerBlockReader3 = BlockReader(innerBlockReader, innerBlock3)
+      val innerBlockReader3 = CompressedBlockReader(innerBlockReader, innerBlock3)
       assertReader(bodyBytes.drop(10).unslice(), innerBlockReader3)
     }
   }
@@ -115,7 +116,7 @@ class BlockReaderSpec extends WordSpec with Matchers {
       "there is no header" in {
         val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
         val block = ValuesBlock(ValuesBlock.Offset(0, bodyBytes.size - 5), 0, None)
-        val reader = BlockReader(Reader(bodyBytes), block)
+        val reader = CompressedBlockReader(Reader(bodyBytes), block)
 
         reader.size.get shouldBe 5
         reader.read(100).get should have size 5
