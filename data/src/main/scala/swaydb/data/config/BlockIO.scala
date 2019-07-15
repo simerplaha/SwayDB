@@ -35,7 +35,10 @@ object BlockIO {
     * BlockInfos are never individually unless the entire Segment is compressed.
     */
   val defaultBlockInfo =
-    BlockIO.SynchronisedIO(true)
+    BlockIO.ConcurrentIO(true)
+
+  val defaultBlockReaders =
+    BlockIO.ConcurrentIO(false)
 
   case class ConcurrentIO(cacheOnAccess: Boolean) extends BlockIO
   case class SynchronisedIO(cacheOnAccess: Boolean) extends BlockIO

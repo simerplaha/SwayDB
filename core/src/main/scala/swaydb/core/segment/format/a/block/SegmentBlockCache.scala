@@ -199,8 +199,16 @@ class SegmentBlockCache(id: String,
 
   def buildBlockReaderCacheOptional[B <: Block](blockIO: BlockStatus => BlockIO)(implicit blockUpdater: BlockUpdater[B]) =
     Cache.blockIO[(Option[B], DecompressedBlockReader[SegmentBlock]), Option[DecompressedBlockReader[B]]](
-      blockIO = blockAndReader => blockAndReader._1.map(block => blockIO(block.blockStatus)) getOrElse BlockIO.defaultBlockInfo,
-      reserveError = IO.Error.ReservedValue(Reserve())
+      blockIO =
+        _._1 match {
+          case Some(block) =>
+            blockIO(block.blockStatus)
+
+          case None =>
+            BlockIO.defaultBlockReaders
+        },
+      reserveError =
+        IO.Error.ReservedValue(Reserve())
     ) {
       case (block, segmentReader) =>
         block map {

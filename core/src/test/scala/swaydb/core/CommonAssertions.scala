@@ -45,6 +45,7 @@ import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, Decompr
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.IO
+import swaydb.data.config.BlockIO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.StorageUnits._
@@ -846,7 +847,7 @@ object CommonAssertions {
   }
 
   def assertBloom(keyValues: Slice[Transient],
-                  bloomFilterReader: CompressedBlockReader[BloomFilterBlock]) = {
+                  bloomFilterReader: DecompressedBlockReader[BloomFilterBlock]) = {
     val unzipedKeyValues = unzipGroups(keyValues)
 
     unzipedKeyValues.count {
@@ -861,7 +862,7 @@ object CommonAssertions {
     assertBloomNotContains(bloomFilterReader)
   }
 
-  def assertBloomNotContains(bloomFilterReader: CompressedBlockReader[BloomFilterBlock]) =
+  def assertBloomNotContains(bloomFilterReader: DecompressedBlockReader[BloomFilterBlock]) =
     (1 to 1000).count {
       _ =>
         //        BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader).get
@@ -1422,21 +1423,41 @@ object CommonAssertions {
     getSegmentBlockCache(segment)
   }
 
+  def randomBlockIO(): BlockIO =
+    if (randomBoolean())
+      BlockIO.SynchronisedIO(randomBoolean())
+    else if (randomBoolean())
+      BlockIO.ConcurrentIO(randomBoolean())
+    else
+      BlockIO.ReservedIO(randomBoolean())
+
   def getSegmentBlockCache(segment: SegmentBlock.Closed): SegmentBlockCache =
-  //    SegmentBlockCache(
-  //      id = "test",
-  //      segmentBlockOffset = SegmentBlock.Offset(0, segment.segmentSize),
-  //      rawSegmentReader = () => Reader(segment.flattenSegmentBytes)
-  //    )
-    ???
+    SegmentBlockCache(
+      id = "test",
+      segmentBlockIO = _ => randomBlockIO(),
+      hashIndexBlockIO = _ => randomBlockIO(),
+      bloomFilterBlockIO = _ => randomBlockIO(),
+      binarySearchIndexBlockIO = _ => randomBlockIO(),
+      sortedIndexBlockIO = _ => randomBlockIO(),
+      valuesBlockIO = _ => randomBlockIO(),
+      segmentFooterBlockIO = _ => randomBlockIO(),
+      segmentBlockOffset = SegmentBlock.Offset(0, segment.segmentSize),
+      rawSegmentReader = () => Reader(segment.flattenSegmentBytes)
+    )
 
   def getSegmentBlockCache(reader: Reader): SegmentBlockCache =
-  //    SegmentBlockCache(
-  //      id = "test-cache",
-  //      segmentBlockOffset = SegmentBlock.Offset(0, reader.size.get.toInt),
-  //      rawSegmentReader = () => reader
-  //    )
-    ???
+    SegmentBlockCache(
+      id = "test-cache",
+      segmentBlockIO = _ => randomBlockIO(),
+      hashIndexBlockIO = _ => randomBlockIO(),
+      bloomFilterBlockIO = _ => randomBlockIO(),
+      binarySearchIndexBlockIO = _ => randomBlockIO(),
+      sortedIndexBlockIO = _ => randomBlockIO(),
+      valuesBlockIO = _ => randomBlockIO(),
+      segmentFooterBlockIO = _ => randomBlockIO(),
+      segmentBlockOffset = SegmentBlock.Offset(0, reader.size.get.toInt),
+      rawSegmentReader = () => reader
+    )
 
   def readAll(reader: Reader): IO[Slice[KeyValue.ReadOnly]] = {
     val blockCache = getSegmentBlockCache(reader)

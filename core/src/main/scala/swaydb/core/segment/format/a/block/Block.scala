@@ -247,7 +247,12 @@ private[core] object Block extends LazyLogging {
                 IO {
                   DecompressedBlockReader.decompressed[B](
                     decompressedBytes = decompressedBytes,
-                    block = blockUpdater.updateOffset(childBlock, 0, decompressedBytes.size)
+                    block =
+                      blockUpdater.updateOffset(
+                        block = childBlock,
+                        start = 0,
+                        size = decompressedBytes.size
+                      )
                   )
                 }
               else
@@ -255,6 +260,7 @@ private[core] object Block extends LazyLogging {
           }
 
       case None =>
+        //no compression just skip the header bytes.
         val decompressed =
           DecompressedBlockReader.decompressed(
             reader = parentBlock,

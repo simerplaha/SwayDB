@@ -28,7 +28,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class ValuesSpec extends TestBase {
+class ValuesBlockSpec extends TestBase {
 
   implicit val timer = TestTimer.Empty
 
@@ -67,7 +67,7 @@ class ValuesSpec extends TestBase {
 
         ValuesBlock.close(state).get
 
-        val segmentBlock = SegmentBlock.decompressed(Slice.emptyBytes)
+        val segmentBlock = SegmentBlock.decompressed(state.bytes)
         val values = ValuesBlock.read(ValuesBlock.Offset(0, state.bytes.size), segmentBlock).get
         val valuesBlockReader = values.decompress(segmentBlock)
 
