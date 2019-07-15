@@ -15,7 +15,7 @@ class BlockSpec extends TestBase {
         val dataBytes = randomBytesSlice(randomIntMax(100) + 1)
         val uncompressedBytes = Slice.fill(headerSize)(0.toByte) ++ dataBytes
 
-        val compressedBytes = Block.create(headerSize, uncompressedBytes, Seq.empty, "test-block").get
+        val compressedBytes = Block.compress(headerSize, uncompressedBytes, Seq.empty, "test-block").get
 
         compressedBytes.size shouldBe uncompressedBytes.size
         compressedBytes.underlyingArraySize shouldBe uncompressedBytes.underlyingArraySize
@@ -43,15 +43,15 @@ class BlockSpec extends TestBase {
         //create block reader
         def blockReader =
           Block.decompress(
-            block = ValuesBlock(ValuesBlock.Offset(0, uncompressedBytes.size), headerSize, None),
-            readFullBlockIfUncompressed = randomBoolean(),
-            segmentReader = SegmentBlock.createDecompressedBlockReader(uncompressedBytes).get
+            childBlock = ValuesBlock(ValuesBlock.Offset(0, uncompressedBytes.size), headerSize, None),
+            readAllIfUncompressed = randomBoolean(),
+            parentReader = SegmentBlock.decompressed(uncompressedBytes)
           ).get
 
         blockReader.readRemaining().get shouldBe dataBytes
         blockReader.read(Int.MaxValue).get shouldBe dataBytes
         blockReader.readAll().get shouldBe dataBytes
-        blockReader.readFullBlockAndGetBlockReader().get.readRemaining().get shouldBe dataBytes
+        blockReader.readAllAndGetReader().get.readRemaining().get shouldBe dataBytes
       }
     }
 
@@ -73,7 +73,7 @@ class BlockSpec extends TestBase {
 
         val uncompressedBytes = segment.flattenSegmentBytes
 
-        val compressedSegment = Block.create(segment, Seq.empty, "test-segment-block").get
+        val compressedSegment = Block.compress(segment, Seq.empty, "test-segment-block").get
 
         //first slice gets written
         compressedSegment.segmentBytes.head.exists(_ != 0) shouldBe true
@@ -98,9 +98,9 @@ class BlockSpec extends TestBase {
         //create block reader
         def decompressedBlockReader =
           Block.decompress(
-            block = ValuesBlock(ValuesBlock.Offset(0, uncompressedBytes.size), headerSize, None),
-            readFullBlockIfUncompressed = randomBoolean(),
-            segmentReader = SegmentBlock.createDecompressedBlockReader(uncompressedBytes).get
+            childBlock = ValuesBlock(ValuesBlock.Offset(0, uncompressedBytes.size), headerSize, None),
+            readAllIfUncompressed = randomBoolean(),
+            parentReader = SegmentBlock.decompressed(uncompressedBytes)
           ).get
 
         val dataBytes = segment.segmentBytes.dropHead().flatten.toSlice
@@ -108,7 +108,7 @@ class BlockSpec extends TestBase {
         decompressedBlockReader.readRemaining().get shouldBe dataBytes
         decompressedBlockReader.read(Int.MaxValue).get shouldBe dataBytes
         decompressedBlockReader.readAll().get shouldBe dataBytes
-        decompressedBlockReader.readFullBlockAndGetBlockReader().get.readRemaining().get shouldBe dataBytes
+        decompressedBlockReader.readAllAndGetReader().get.readRemaining().get shouldBe dataBytes
       }
     }
 
@@ -120,7 +120,7 @@ class BlockSpec extends TestBase {
           val uncompressedBytes = Slice.fill(headerSize)(0.toByte) ++ dataBytes
 
           val compression = randomCompressions().head
-          val compressedBytes = Block.create(headerSize, uncompressedBytes, Seq(compression), "test-block").get
+          val compressedBytes = Block.compress(headerSize, uncompressedBytes, Seq(compression), "test-block").get
           compressedBytes.hashCode() should not be uncompressedBytes.hashCode() //different objects
 
           val offset =
@@ -143,15 +143,15 @@ class BlockSpec extends TestBase {
           //create block reader
           def blockReader =
             Block.decompress(
-              block = ValuesBlock(ValuesBlock.Offset(0, compressedBytes.size), headerSize, header.compressionInfo),
-              readFullBlockIfUncompressed = randomBoolean(),
-              segmentReader = SegmentBlock.createDecompressedBlockReader(compressedBytes).get
+              childBlock = ValuesBlock(ValuesBlock.Offset(0, compressedBytes.size), headerSize, header.compressionInfo),
+              readAllIfUncompressed = randomBoolean(),
+              parentReader = SegmentBlock.decompressed(compressedBytes)
             ).get
 
           blockReader.readRemaining().get shouldBe dataBytes
           blockReader.read(Int.MaxValue).get shouldBe dataBytes
           blockReader.readAll().get shouldBe dataBytes
-          blockReader.readFullBlockAndGetBlockReader().get.readRemaining().get shouldBe dataBytes
+          blockReader.readAllAndGetReader().get.readRemaining().get shouldBe dataBytes
         }
       }
 
@@ -173,7 +173,7 @@ class BlockSpec extends TestBase {
 
           val compression = randomCompressions().head
 
-          val compressedSegment = Block.create(uncompressedSegment, Seq(compression), "test-segment-block").get
+          val compressedSegment = Block.compress(uncompressedSegment, Seq(compression), "test-segment-block").get
 
           compressedSegment.hashCode() should not be uncompressedSegment.hashCode() //different object, because it's compressed.
           compressedSegment.segmentBytes should have size 1 //compressed
@@ -198,9 +198,9 @@ class BlockSpec extends TestBase {
           //create block reader
           def decompressedBlockReader =
             Block.decompress(
-              block = ValuesBlock(ValuesBlock.Offset(0, compressedSegment.segmentSize), headerSize, header.compressionInfo),
-              readFullBlockIfUncompressed = randomBoolean(),
-              segmentReader = SegmentBlock.createDecompressedBlockReader(compressedSegment.flattenSegmentBytes).get
+              childBlock = ValuesBlock(ValuesBlock.Offset(0, compressedSegment.segmentSize), headerSize, header.compressionInfo),
+              readAllIfUncompressed = randomBoolean(),
+              parentReader = SegmentBlock.decompressed(compressedSegment.flattenSegmentBytes)
             ).get
 
           val uncompressedSegmentBytesWithoutHeader = uncompressedSegment.segmentBytes.dropHead().flatten.toSlice
@@ -208,7 +208,7 @@ class BlockSpec extends TestBase {
           decompressedBlockReader.readRemaining().get shouldBe uncompressedSegmentBytesWithoutHeader
           decompressedBlockReader.read(Int.MaxValue).get shouldBe uncompressedSegmentBytesWithoutHeader
           decompressedBlockReader.readAll().get shouldBe uncompressedSegmentBytesWithoutHeader
-          decompressedBlockReader.readFullBlockAndGetBlockReader().get.readRemaining().get shouldBe uncompressedSegmentBytesWithoutHeader
+          decompressedBlockReader.readAllAndGetReader().get.readRemaining().get shouldBe uncompressedSegmentBytesWithoutHeader
         }
       }
     }

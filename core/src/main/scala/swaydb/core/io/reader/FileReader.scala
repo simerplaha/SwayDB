@@ -35,7 +35,7 @@ private[core] class FileReader(file: DBFile) extends Reader with LazyLogging {
     file.fileSize
 
   def moveTo(newPosition: Long): Reader = {
-    position = newPosition.toInt
+    position = newPosition.toInt max 0
     this
   }
 
@@ -61,11 +61,14 @@ private[core] class FileReader(file: DBFile) extends Reader with LazyLogging {
     }
 
   override def read(size: Int) =
-    file.read(position, size) map {
-      bytes =>
-        position += size
-        bytes
-    }
+    if (size == 0)
+      IO.emptyBytes
+    else
+      file.read(position, size) map {
+        bytes =>
+          position += size
+          bytes
+      }
 
   override def readRemaining(): IO[Slice[Byte]] =
     remaining flatMap read

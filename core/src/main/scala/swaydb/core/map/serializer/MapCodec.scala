@@ -49,7 +49,7 @@ private[core] object MapCodec extends LazyLogging {
     val totalSize = headerSize + mapEntries.entryBytesSize
 
     val slice = Slice.create[Byte](totalSize.toInt)
-    val (headerSlice, payloadSlice) = slice splitAllocatedAt headerSize
+    val (headerSlice, payloadSlice) = slice splitInnerArrayAt headerSize
     mapEntries writeTo payloadSlice
 
     headerSlice addLong (CRC32 forBytes payloadSlice)

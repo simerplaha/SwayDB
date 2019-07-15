@@ -46,7 +46,7 @@ private[swaydb] case class SliceReaderSafe(slice: Slice[Byte]) extends Reader {
     }
 
   def moveTo(newPosition: Long): Reader = {
-    position = newPosition.toInt
+    position = newPosition.toInt max 0
     this
   }
 

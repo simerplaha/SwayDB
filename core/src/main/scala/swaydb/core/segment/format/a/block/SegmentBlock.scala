@@ -25,7 +25,8 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Memory, Transient}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
+import swaydb.core.segment.format.a.block.Block.CompressionInfo
+import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
 import swaydb.core.segment.{DeadlineAndFunctionId, Segment}
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.IO
@@ -45,6 +46,43 @@ private[core] object SegmentBlock {
   val formatId: Byte = 1.toByte
 
   val crcBytes: Int = 7
+
+  def emptyDecompressedBlock: DecompressedBlockReader[SegmentBlock] =
+    DecompressedBlockReader.empty(
+      SegmentBlock(
+        offset = SegmentBlock.Offset.empty,
+        headerSize = 0,
+        compressionInfo = None
+      )
+    )
+
+  def decompressed(bytes: Slice[Byte])(implicit updater: BlockUpdater[SegmentBlock]): DecompressedBlockReader[SegmentBlock] =
+    DecompressedBlockReader.decompressed(
+      decompressedBytes = bytes,
+      block =
+        SegmentBlock(
+          offset = SegmentBlock.Offset(
+            start = 0,
+            size = bytes.size
+          ),
+          headerSize = 0,
+          compressionInfo = None
+        )
+    )
+
+  def compressed(bytes: Slice[Byte], compressionInfo: Block.CompressionInfo)(implicit updater: BlockUpdater[SegmentBlock]): CompressedBlockReader[SegmentBlock] =
+    CompressedBlockReader.compressed(
+      bytes = bytes,
+      block =
+        SegmentBlock(
+          offset = SegmentBlock.Offset(
+            start = 0,
+            size = bytes.size
+          ),
+          headerSize = compressionInfo.headerSize,
+          compressionInfo = Some(compressionInfo)
+        )
+    )
 
   object Config {
 
@@ -69,6 +107,11 @@ private[core] object SegmentBlock {
 
   class Config(val blockIO: BlockStatus => BlockIO,
                val compressions: UncompressedBlockInfo => Seq[CompressionInternal])
+
+  object Offset {
+    def empty =
+      SegmentBlock.Offset(0, 0)
+  }
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
@@ -209,21 +252,18 @@ private[core] object SegmentBlock {
         )
     }
 
-  def createDecompressedBlockReader(bytes: Slice[Byte]): IO[DecompressedBlockReader[SegmentBlock]] =
-    createDecompressedBlockReader(Reader(bytes))
-
-  def createDecompressedBlockReader(segmentReader: Reader): IO[DecompressedBlockReader[SegmentBlock]] =
-    segmentReader.size map {
-      size =>
-        new DecompressedBlockReader(
-          reader = segmentReader,
-          block = SegmentBlock(
-            offset = SegmentBlock.Offset(0, size.toInt),
-            headerSize = 0,
-            compressionInfo = None
-          )
-        )
-    }
+  //  def createDecompressedBlockReader(segmentReader: Reader): IO[DecompressedBlockReader[SegmentBlock]] =
+  //    segmentReader.size map {
+  //      size =>
+  //        new DecompressedBlockReader(
+  //          reader = segmentReader,
+  //          block = SegmentBlock(
+  //            offset = SegmentBlock.Offset(0, size.toInt),
+  //            headerSize = 0,
+  //            compressionInfo = None
+  //          )
+  //        )
+  //    }
 
   val noCompressionHeaderSize = {
     val size = Block.headerSize(false)
@@ -586,7 +626,7 @@ private[core] object SegmentBlock {
         segmentConfig = segmentConfig
       ) flatMap {
         openSegment =>
-          Block.create(
+          Block.compress(
             openSegment = openSegment,
             compressions = segmentConfig.compressions(UncompressedBlockInfo(openSegment.segmentSize)),
             blockName = blockName
@@ -606,15 +646,15 @@ private[core] object SegmentBlock {
       val binarySearchIndexBlock = BinarySearchIndexBlock.init(keyValues = keyValues)
       val bloomFilterBlock = BloomFilterBlock.init(keyValues = keyValues)
 
-//      bloomFilterBlock foreach {
-//        bloomFilter =>
-//          //temporary check.
-//          val lastStats: Stats = keyValues.last.stats
-//          assert(
-//            bloomFilter.bytes.allocatedSize == lastStats.segmentBloomFilterSize,
-//            s"BloomFilter size calculation were incorrect. Actual: ${bloomFilter.bytes.allocatedSize}. Expected: ${lastStats.segmentBloomFilterSize}"
-//          )
-//      }
+      //      bloomFilterBlock foreach {
+      //        bloomFilter =>
+      //          //temporary check.
+      //          val lastStats: Stats = keyValues.last.stats
+      //          assert(
+      //            bloomFilter.bytes.allocatedSize == lastStats.segmentBloomFilterSize,
+      //            s"BloomFilter size calculation were incorrect. Actual: ${bloomFilter.bytes.allocatedSize}. Expected: ${lastStats.segmentBloomFilterSize}"
+      //          )
+      //      }
 
       write(
         keyValues = keyValues,
@@ -652,7 +692,7 @@ private[core] object SegmentBlock {
       )
     } flatMap {
       open =>
-        Block.createUncompressedBlock(
+        Block.uncompressed(
           headerSize = open.headerBytes.size,
           bytes = open.headerBytes,
           blockName = blockName

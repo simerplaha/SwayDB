@@ -20,14 +20,16 @@
 package swaydb.core.io.reader
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.segment.format.a.block.reader.CompressedBlockReader
-import swaydb.core.segment.format.a.block.{Block, BlockUpdater, ValuesBlock}
+import swaydb.core.TestData._
+import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
+import swaydb.core.segment.format.a.block._
+import swaydb.data.config.BlockStatus.CompressedBlock
 import swaydb.data.slice.Slice
 
 class BlockReaderSpec extends WordSpec with Matchers {
 
-  def assertReader[B <: Block](expectedBlockBytes: Slice[Byte],
-                               reader: CompressedBlockReader[B])(implicit blockUpdater: BlockUpdater[B]) = {
+  def assertDecompressed[B <: Block](reader: DecompressedBlockReader[B],
+                                     expectedBlockBytes: Slice[Byte])(implicit blockUpdater: BlockUpdater[B]) = {
     //size
     reader.size.get shouldBe reader.block.offset.size
 
@@ -78,48 +80,235 @@ class BlockReaderSpec extends WordSpec with Matchers {
     }
 
     //readFullBlockAndGetReader
-    reader.readFullBlockAndGetBlockReader().get.readRemaining().get shouldBe expectedBlockBytes
+    reader.readAll().get shouldBe expectedBlockBytes
+    reader.readAllAndGetReader().get.readRemaining().get shouldBe expectedBlockBytes
   }
 
-  "read bytes" when {
-
-    "there is no header and no compression" in {
-      val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
-      val block = ValuesBlock(ValuesBlock.Offset(0, bodyBytes.size), 0, None)
-      val reader = CompressedBlockReader(Reader(bodyBytes), block)
-      assertReader(bodyBytes, reader)
-    }
-
-    "nested blocks" in {
-      val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
-      val block = ValuesBlock(ValuesBlock.Offset(0, bodyBytes.size), 0, None)
-      val reader = CompressedBlockReader(Reader(bodyBytes), block)
-      assertReader(bodyBytes, reader)
-
-      val innerBlock = ValuesBlock(ValuesBlock.Offset(5, 5), 0, None)
-      val innerBlockReader = CompressedBlockReader(reader, innerBlock)
-      assertReader(bodyBytes.drop(5).unslice(), innerBlockReader)
-
-      val innerBlock2 = ValuesBlock(ValuesBlock.Offset(3, 2), 0, None)
-      val innerBlockReader2 = CompressedBlockReader(innerBlockReader, innerBlock2)
-      assertReader(bodyBytes.drop(8).unslice(), innerBlockReader2)
-
-      val innerBlock3 = ValuesBlock(ValuesBlock.Offset(2, 0), 0, None)
-      val innerBlockReader3 = CompressedBlockReader(innerBlockReader, innerBlock3)
-      assertReader(bodyBytes.drop(10).unslice(), innerBlockReader3)
-    }
-  }
-
-  "reading bytes outside the block" should {
-    "not be allowed" when {
-      "there is no header" in {
+  "reading" when {
+    "decompressed" should {
+      "not allow reading outside the block" in {
         val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
         val block = ValuesBlock(ValuesBlock.Offset(0, bodyBytes.size - 5), 0, None)
-        val reader = CompressedBlockReader(Reader(bodyBytes), block)
+        val reader = DecompressedBlockReader.decompressed(bodyBytes, block)
 
         reader.size.get shouldBe 5
         reader.read(100).get should have size 5
         reader.get().failed.get.exception.getMessage.contains("Has no more bytes") shouldBe true
+      }
+
+      "not allow reading outside the nested block" in {
+        val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
+        val decompressedParentBlock = SegmentBlock.decompressed(bodyBytes)
+        val decompressedChildBlock = DecompressedBlockReader.decompressed(decompressedParentBlock, ValuesBlock(ValuesBlock.Offset(4, 2), 0, None))
+
+        decompressedChildBlock.size.get shouldBe 2
+        decompressedChildBlock.read(100).get should have size 2
+        decompressedChildBlock.copy().read(100).get shouldBe bodyBytes.drop(4).take(2)
+        decompressedChildBlock.moveTo(0).read(100).get shouldBe bodyBytes.drop(4).take(2)
+        decompressedChildBlock.moveTo(-100).read(100).get shouldBe bodyBytes.drop(4).take(2)
+      }
+
+      "read bytes" in {
+        val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
+        assertDecompressed(
+          reader = SegmentBlock.decompressed(bodyBytes),
+          expectedBlockBytes = bodyBytes
+        )
+      }
+
+      "read bytes in nested blocks" in {
+        val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
+        //create a segment block
+        val segmentBlock = SegmentBlock.decompressed(bodyBytes)
+
+        assertDecompressed(
+          reader = segmentBlock,
+          expectedBlockBytes = bodyBytes
+        )
+
+        //first 3 bytes are values block
+        val valuesReader = DecompressedBlockReader.decompressed(segmentBlock, ValuesBlock(ValuesBlock.Offset(0, 3), 0, None))
+        assertDecompressed(
+          reader = valuesReader,
+          expectedBlockBytes = bodyBytes.take(3).unslice()
+        )
+
+        //within the values there is a segment block
+        val valuesReaderNestedSegment = DecompressedBlockReader.decompressed(valuesReader, SegmentBlock(SegmentBlock.Offset(0, 2), 0, None))
+        assertDecompressed(
+          reader = valuesReaderNestedSegment,
+          expectedBlockBytes = bodyBytes.take(2).unslice()
+        )
+
+        //3,4 are index bytes are values block
+        assertDecompressed(
+          reader = DecompressedBlockReader.decompressed(segmentBlock, SortedIndexBlock(SortedIndexBlock.Offset(3, 2), randomBoolean(), randomBoolean(), 0, None)),
+          expectedBlockBytes = bodyBytes.drop(3).take(2).unslice()
+        )
+
+        assertDecompressed(
+          reader = DecompressedBlockReader.decompressed(segmentBlock, HashIndexBlock(HashIndexBlock.Offset(5, 2), None, 0, 0, 0, 0, 0, 0)),
+          expectedBlockBytes = bodyBytes.drop(5).take(2).unslice()
+        )
+
+        assertDecompressed(
+          reader = DecompressedBlockReader.decompressed(segmentBlock, BinarySearchIndexBlock(BinarySearchIndexBlock.Offset(7, 2), 0, 0, 0, randomBoolean(), None)),
+          expectedBlockBytes = bodyBytes.drop(7).take(2).unslice()
+        )
+
+        assertDecompressed(
+          reader = DecompressedBlockReader.decompressed(segmentBlock, BloomFilterBlock(BloomFilterBlock.Offset(8, 2), 0, 0, 0, None)),
+          expectedBlockBytes = bodyBytes.drop(8).take(2).unslice()
+        )
+
+        assertDecompressed(
+          reader =
+            DecompressedBlockReader.decompressed(
+              reader = segmentBlock,
+              block = SegmentFooterBlock(
+                offset = SegmentFooterBlock.Offset(9, 1),
+                headerSize = 0,
+                compressionInfo = None,
+                valuesOffset = None,
+                sortedIndexOffset = SortedIndexBlock.Offset(0, 0),
+                hashIndexOffset = None,
+                binarySearchIndexOffset = None,
+                bloomFilterOffset = None,
+                keyValueCount = 0,
+                createdInLevel = 0,
+                bloomFilterItemsCount = 0,
+                hasRange = randomBoolean(),
+                hasGroup = randomBoolean(),
+                hasPut = randomBoolean()
+              )
+            ),
+          expectedBlockBytes = bodyBytes.drop(9).unslice()
+        )
+      }
+    }
+
+    "compressed" should {
+      "not allow reading outside the block" in {
+        val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
+        val block = ValuesBlock(ValuesBlock.Offset(0, bodyBytes.size - 5), 0, None)
+        val reader = DecompressedBlockReader.decompressed(bodyBytes, block)
+
+        reader.size.get shouldBe 5
+        reader.read(100).get should have size 5
+        reader.get().failed.get.exception.getMessage.contains("Has no more bytes") shouldBe true
+      }
+
+      "not allow reading outside the nested block" in {
+        val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
+        val decompressedParentBlock = SegmentBlock.decompressed(bodyBytes)
+        val decompressedChildBlock = DecompressedBlockReader.decompressed(decompressedParentBlock, ValuesBlock(ValuesBlock.Offset(4, 2), 0, None))
+
+        decompressedChildBlock.size.get shouldBe 2
+        decompressedChildBlock.read(100).get should have size 2
+        decompressedChildBlock.copy().read(100).get shouldBe bodyBytes.drop(4).take(2)
+        decompressedChildBlock.moveTo(0).read(100).get shouldBe bodyBytes.drop(4).take(2)
+        decompressedChildBlock.moveTo(-100).read(100).get shouldBe bodyBytes.drop(4).take(2)
+      }
+
+      "read bytes" in {
+        val headerBytes = Slice.fill[Byte](10)(0)
+        val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
+        val bytes = headerBytes ++ bodyBytes
+        val compression = randomCompressions().head
+        val compressedBlockBytes =
+          Block.compress(
+            headerSize = headerBytes.size,
+            bytes = bytes,
+            compressions = Seq(compression),
+            blockName = "test-block"
+          ).get
+
+        val compressedReader =
+          SegmentBlock.compressed(
+            bytes = compressedBlockBytes,
+            compressionInfo = Block.CompressionInfo(
+              decompressor = compression.decompressor,
+              decompressedLength = bodyBytes.size,
+              headerSize = headerBytes.size
+            )
+          )
+
+        //        Block.decompress()
+
+        //        assertDecompressed(
+        //          reader = Block.decompress(blockBytes, )),
+        //          expectedBlockBytes = bodyBytes
+        //        )
+      }
+
+      "read bytes in nested blocks" in {
+        val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
+        //create a segment block
+        val segmentBlock = SegmentBlock.decompressed(bodyBytes)
+
+        assertDecompressed(
+          reader = segmentBlock,
+          expectedBlockBytes = bodyBytes
+        )
+
+        //first 3 bytes are values block
+        val valuesReader = DecompressedBlockReader.decompressed(segmentBlock, ValuesBlock(ValuesBlock.Offset(0, 3), 0, None))
+        assertDecompressed(
+          reader = valuesReader,
+          expectedBlockBytes = bodyBytes.take(3).unslice()
+        )
+
+        //within the values there is a segment block
+        val valuesReaderNestedSegment = DecompressedBlockReader.decompressed(valuesReader, SegmentBlock(SegmentBlock.Offset(0, 2), 0, None))
+        assertDecompressed(
+          reader = valuesReaderNestedSegment,
+          expectedBlockBytes = bodyBytes.take(2).unslice()
+        )
+
+        //3,4 are index bytes are values block
+        assertDecompressed(
+          reader = DecompressedBlockReader.decompressed(segmentBlock, SortedIndexBlock(SortedIndexBlock.Offset(3, 2), randomBoolean(), randomBoolean(), 0, None)),
+          expectedBlockBytes = bodyBytes.drop(3).take(2).unslice()
+        )
+
+        assertDecompressed(
+          reader = DecompressedBlockReader.decompressed(segmentBlock, HashIndexBlock(HashIndexBlock.Offset(5, 2), None, 0, 0, 0, 0, 0, 0)),
+          expectedBlockBytes = bodyBytes.drop(5).take(2).unslice()
+        )
+
+        assertDecompressed(
+          reader = DecompressedBlockReader.decompressed(segmentBlock, BinarySearchIndexBlock(BinarySearchIndexBlock.Offset(7, 2), 0, 0, 0, randomBoolean(), None)),
+          expectedBlockBytes = bodyBytes.drop(7).take(2).unslice()
+        )
+
+        assertDecompressed(
+          reader = DecompressedBlockReader.decompressed(segmentBlock, BloomFilterBlock(BloomFilterBlock.Offset(8, 2), 0, 0, 0, None)),
+          expectedBlockBytes = bodyBytes.drop(8).take(2).unslice()
+        )
+
+        assertDecompressed(
+          reader =
+            DecompressedBlockReader.decompressed(
+              reader = segmentBlock,
+              block = SegmentFooterBlock(
+                offset = SegmentFooterBlock.Offset(9, 1),
+                headerSize = 0,
+                compressionInfo = None,
+                valuesOffset = None,
+                sortedIndexOffset = SortedIndexBlock.Offset(0, 0),
+                hashIndexOffset = None,
+                binarySearchIndexOffset = None,
+                bloomFilterOffset = None,
+                keyValueCount = 0,
+                createdInLevel = 0,
+                bloomFilterItemsCount = 0,
+                hasRange = randomBoolean(),
+                hasGroup = randomBoolean(),
+                hasPut = randomBoolean()
+              )
+            ),
+          expectedBlockBytes = bodyBytes.drop(9).unslice()
+        )
       }
     }
   }

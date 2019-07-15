@@ -21,9 +21,9 @@ package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.{Block, BlockUpdater, SegmentBlock, ValuesBlock}
+import swaydb.core.segment.format.a.block.{Block, BlockUpdater, SegmentBlock}
 import swaydb.data.IO
-import swaydb.data.slice.Reader
+import swaydb.data.slice.{Reader, Slice}
 
 /**
   * A typed object that indicates that block is already decompressed and now is reading data bytes.
@@ -32,35 +32,59 @@ import swaydb.data.slice.Reader
   */
 
 private[core] object DecompressedBlockReader {
-  def emptyValuesBlock =
-    new DecompressedBlockReader(
+
+  def empty[B <: Block](block: B) =
+    new DecompressedBlockReader[B](
       reader = Reader.empty,
-      block = ValuesBlock.empty
+      block = block
     )
 
-  def apply[B <: Block](block: B,
-                        readFullBlockIfUncompressed: Boolean,
-                        segmentReader: DecompressedBlockReader[SegmentBlock])(implicit updater: BlockUpdater[B]) =
+  /**
+    * Returns reader for decompressed bytes.
+    *
+    * @param block - the offset will get updated to the decompressed bytes.
+    */
+  def decompressed[B <: Block](decompressedBytes: Slice[Byte], block: B): DecompressedBlockReader[B] =
+    new DecompressedBlockReader[B](
+      reader = Reader(decompressedBytes),
+      block = block
+    )
+
+  /**
+    * Returns reader for decompressed bytes.
+    *
+    * @param block - the offset will get updated to the decompressed bytes.
+    */
+  def decompressed[B <: Block](reader: DecompressedBlockReader[_], block: B): DecompressedBlockReader[B] =
+    new DecompressedBlockReader[B](
+      reader = reader,
+      block = block
+    )
+
+  def decompress[B <: Block](block: B,
+                             readAllIfUncompressed: Boolean,
+                             segmentReader: DecompressedBlockReader[SegmentBlock])(implicit updater: BlockUpdater[B]) =
     Block.decompress(
-      block = block,
-      readFullBlockIfUncompressed = readFullBlockIfUncompressed,
-      segmentReader = segmentReader
+      childBlock = block,
+      readAllIfUncompressed = readAllIfUncompressed,
+      parentReader = segmentReader
     )
 }
 
-private[core] class DecompressedBlockReader[B <: Block](reader: Reader,
-                                                        override val block: B) extends BlockReader(reader, block) with LazyLogging {
+private[core] class DecompressedBlockReader[B <: Block] private(reader: Reader,
+                                                                val block: B) extends BlockReader(reader, block) with LazyLogging {
+
   override def moveTo(newPosition: Long): DecompressedBlockReader[B] = {
     super.moveTo(newPosition)
     this
   }
 
-  def readFullBlockAndGetBlockReader()(implicit blockUpdater: BlockUpdater[B]): IO[DecompressedBlockReader[B]] =
+  def readAllAndGetReader()(implicit blockUpdater: BlockUpdater[B]): IO[DecompressedBlockReader[B]] =
     readAll()
       .map {
         bytes =>
-          new DecompressedBlockReader[B](
-            reader = Reader(bytes),
+          DecompressedBlockReader.decompressed[B](
+            decompressedBytes = bytes,
             block = blockUpdater.updateOffset(block, 0, bytes.size)
           )
       }

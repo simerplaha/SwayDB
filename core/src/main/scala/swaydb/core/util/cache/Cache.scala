@@ -50,7 +50,7 @@ object Cache {
     )
 
   def blockIO[I, O](blockIO: I => BlockIO, reserveError: IO.Error.Busy)(fetch: I => IO[O]): Cache[I, O] =
-    new DelayedCache[I, O](
+    new BlockIOCache[I, O](
       Cache.unsafe[I, Cache[I, O]](synchronised = false, stored = true) {
         i =>
           FunctionUtil.safe((_: I) => BlockIO.ConcurrentIO(false), blockIO)(i) match {
@@ -66,7 +66,7 @@ object Cache {
                 stored = cacheOnAccess
               )(fetch)
 
-            case BlockIO.AsynchronousIO(cacheOnAccess) =>
+            case BlockIO.ReservedIO(cacheOnAccess) =>
               Cache.reservedIO[I, O](
                 stored = cacheOnAccess,
                 reserveError = reserveError
@@ -97,7 +97,7 @@ sealed trait Cache[I, O] {
     value(i) flatMap f
 }
 
-private class DelayedCache[I, O](cache: CacheUnsafe[I, Cache[I, O]]) extends Cache[I, O] {
+private class BlockIOCache[I, O](cache: CacheUnsafe[I, Cache[I, O]]) extends Cache[I, O] {
 
   override def value(i: => I): IO[O] =
     cache.value(i).value(i)

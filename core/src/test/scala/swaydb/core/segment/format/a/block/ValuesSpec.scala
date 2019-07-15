@@ -67,7 +67,7 @@ class ValuesSpec extends TestBase {
 
         ValuesBlock.close(state).get
 
-        val segmentBlock = SegmentBlock.createDecompressedBlockReader().get
+        val segmentBlock = SegmentBlock.decompressed(Slice.emptyBytes)
         val values = ValuesBlock.read(ValuesBlock.Offset(0, state.bytes.size), segmentBlock).get
         val valuesBlockReader = values.decompress(segmentBlock)
 

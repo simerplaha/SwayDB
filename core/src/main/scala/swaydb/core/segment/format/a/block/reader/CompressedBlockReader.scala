@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.{Block, BlockUpdater, SegmentBlock, ValuesBlock}
+import swaydb.core.segment.format.a.block.{Block, BlockUpdater}
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
@@ -30,55 +30,34 @@ import swaydb.data.slice.{Reader, Slice}
   */
 private[core] object CompressedBlockReader {
 
-  def apply[B <: Block](reader: Reader, block: B): CompressedBlockReader[B] =
+  def compressed[B <: Block](reader: DecompressedBlockReader[_], block: B): CompressedBlockReader[B] =
     new CompressedBlockReader[B](
       reader = reader,
       block = block
     )
 
-  def unblockedValues(bytes: Slice[Byte]): IO[CompressedBlockReader[ValuesBlock]] =
-    unblockedValues(Reader(bytes))
-
-  def unblockedValues(reader: Reader): IO[CompressedBlockReader[ValuesBlock]] =
-    reader.size map {
-      readerSize =>
-        new CompressedBlockReader(
-          reader = reader,
-          block = ValuesBlock(ValuesBlock.Offset(0, readerSize.toInt), 0, None)
-        )
-    }
-
-  def unblockedSegment(bytes: Slice[Byte]): IO[CompressedBlockReader[SegmentBlock]] =
-    unblockedSegment(Reader(bytes))
-
-  def unblockedSegment(segmentReader: Reader): IO[CompressedBlockReader[SegmentBlock]] =
-    segmentReader.size map {
-      size =>
-        CompressedBlockReader(
-          reader = segmentReader,
-          block = SegmentBlock(
-            offset = SegmentBlock.Offset(0, size.toInt),
-            headerSize = 0,
-            compressionInfo = None
-          )
-        )
-    }
+  def compressed[B <: Block](bytes: Slice[Byte],
+                             block: B) =
+    new CompressedBlockReader[B](
+      reader = Reader(bytes),
+      block = block
+    )
 }
 
-private[core] class CompressedBlockReader[B <: Block](reader: Reader,
-                                                      override val block: B) extends BlockReader[B](reader, block) with LazyLogging {
+private[core] class CompressedBlockReader[B <: Block] private(reader: Reader,
+                                                              val block: B) extends BlockReader[B](reader, block) with LazyLogging {
   override def moveTo(newPosition: Long): CompressedBlockReader[B] = {
     super.moveTo(newPosition)
     this
   }
 
-  def readFullBlockAndGetBlockReader()(implicit blockUpdater: BlockUpdater[B]): IO[CompressedBlockReader[B]] =
+  def readAllAndGetReader()(implicit blockUpdater: BlockUpdater[B]): IO[CompressedBlockReader[B]] =
     readAll()
       .map {
-        bytes =>
-          new CompressedBlockReader[B](
-            reader = Reader(bytes),
-            block = blockUpdater.updateOffset(block, 0, bytes.size)
+        compressedBytes =>
+          CompressedBlockReader.compressed[B](
+            bytes = compressedBytes,
+            block = blockUpdater.updateOffset(block, 0, compressedBytes.size)
           )
       }
 

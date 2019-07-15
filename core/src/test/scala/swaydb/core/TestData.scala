@@ -2626,8 +2626,9 @@ object TestData {
       Seq(
         BlockIO.ConcurrentIO(randomBoolean()),
         BlockIO.SynchronisedIO(randomBoolean()),
-        BlockIO.AsynchronousIO(randomBoolean())
+        BlockIO.ReservedIO(randomBoolean())
       )
     ).head
+
 }
 

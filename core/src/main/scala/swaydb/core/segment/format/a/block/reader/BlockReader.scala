@@ -22,9 +22,11 @@ package swaydb.core.segment.format.a.block.reader
 import swaydb.core.segment.format.a.block.Block
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.util.StorageUnits._
 
 protected abstract class BlockReader[B <: Block](reader: Reader,
-                                                 val block: B) extends Reader {
+                                                 block: B,
+                                                 diskBlockSize: Int = 4096.bytes) extends Reader {
 
   private var position: Int = 0
 
@@ -32,7 +34,7 @@ protected abstract class BlockReader[B <: Block](reader: Reader,
     IO(block.offset.size)
 
   def moveTo(newPosition: Long): BlockReader[B] = {
-    position = newPosition.toInt
+    position = newPosition.toInt max 0
     this
   }
 

@@ -265,7 +265,10 @@ class DBFile(val path: Path,
     openFile() flatMap (_.append(slice))
 
   def read(position: Int, size: Int): IO[Slice[Byte]] =
-    openFile() flatMap (_.read(position, size))
+    if (size == 0)
+      IO.emptyBytes
+    else
+      openFile() flatMap (_.read(position, size))
 
   def get(position: Int) =
     openFile() flatMap (_.get(position))

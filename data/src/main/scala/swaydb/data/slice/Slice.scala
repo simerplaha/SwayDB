@@ -56,12 +56,12 @@ object Slice {
       written = length
     )
 
-  def create[T: ClassTag](length: Int): Slice[T] =
+  def create[T: ClassTag](length: Int, isFull: Boolean = false): Slice[T] =
     new Slice(
       array = new Array[T](length),
       fromOffset = 0,
       toOffset = if (length == 0) -1 else length - 1,
-      written = 0
+      written = if(isFull) length else 0
     )
 
   def apply[T: ClassTag](data: Array[T]): Slice[T] =
@@ -460,7 +460,7 @@ class Slice[+T: ClassTag] private(array: Array[T],
       (split1, split2)
     }
 
-  def splitAllocatedAt(index: Int): (Slice[T], Slice[T]) =
+  def splitInnerArrayAt(index: Int): (Slice[T], Slice[T]) =
     splitAt(index, allocatedSize)
 
   override def splitAt(index: Int): (Slice[T], Slice[T]) =

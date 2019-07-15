@@ -32,6 +32,15 @@ private[core] object ValuesBlock {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
+  def emptyDecompressed: DecompressedBlockReader[ValuesBlock] =
+    DecompressedBlockReader.empty(ValuesBlock.empty)
+
+  def decompressed(bytes: Slice[Byte])(implicit blockUpdater: BlockUpdater[ValuesBlock]): DecompressedBlockReader[ValuesBlock] =
+    DecompressedBlockReader.decompressed(
+      decompressedBytes = bytes,
+      block = ValuesBlock(ValuesBlock.Offset(0, bytes.size), 0, None)
+    )
+
   object Config {
 
     val disabled =
@@ -128,7 +137,7 @@ private[core] object ValuesBlock {
     }
 
   def close(state: State): IO[State] =
-    Block.create(
+    Block.compress(
       headerSize = state.headerSize,
       bytes = state.bytes,
       compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),

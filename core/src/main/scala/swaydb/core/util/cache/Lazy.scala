@@ -53,15 +53,21 @@ class LazyValue[V](synchronised: Boolean, stored: Boolean) extends Lazy[V] {
   override def get(): Option[V] =
     cache
 
-  def set(value: => V): V = {
-    val got = value
+  def set(value: => V): V =
     if (stored)
-      if (synchronised)
-        this.synchronized(this.cache = Some(got))
-      else
+      if (synchronised) {
+        this.synchronized {
+          val got = value
+          this.cache = Some(got)
+          got
+        }
+      } else {
+        val got = value
         cache = Some(got)
-    got
-  }
+        got
+      }
+    else
+      value
 
   def getOrSet(value: => V): V =
     cache getOrElse {
@@ -131,8 +137,8 @@ class LazyIO[V](lazyValue: LazyValue[IO.Success[V]]) extends Lazy[IO[V]] {
       .getOrElse(IO.none)
 
   override def isDefined: Boolean =
-    lazyValue isDefined
+    lazyValue.isDefined
 
   override def clear(): Unit =
-    lazyValue clear()
+    lazyValue.clear()
 }

@@ -29,7 +29,7 @@ private[core] object LazyValueReader {
   val empty =
     new LazyValueReader {
       override val valueReader: DecompressedBlockReader[ValuesBlock] =
-        DecompressedBlockReader.emptyValuesBlock
+        ValuesBlock.emptyDecompressed
 
       override val valueLength: Int = 0
       override val valueOffset: Int = 0

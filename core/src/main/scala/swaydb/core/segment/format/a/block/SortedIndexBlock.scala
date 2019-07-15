@@ -134,7 +134,7 @@ private[core] object SortedIndexBlock {
   }
 
   def close(state: State): IO[State] =
-    Block.create(
+    Block.compress(
       headerSize = state.headerSize,
       bytes = state.bytes,
       compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
@@ -291,7 +291,7 @@ private[core] object SortedIndexBlock {
               addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     try {
       sortedIndexReader moveTo 0
-      val readSortedIndexReader = sortedIndexReader.readFullBlockAndGetBlockReader().get
+      val readSortedIndexReader = sortedIndexReader.readAllAndGetReader().get
 
       val entries = addTo getOrElse Slice.create[Persistent](keyValueCount)
       (1 to keyValueCount).foldLeftIO(Option.empty[Persistent]) {

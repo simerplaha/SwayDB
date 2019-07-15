@@ -166,19 +166,16 @@ private[core] object BloomFilterBlock extends LazyLogging {
       closedBloomFilter =>
         closedBloomFilter map {
           closedBloomFilter =>
-            SegmentBlock.createDecompressedBlockReader(closedBloomFilter.bytes) flatMap {
-              segmentBlock =>
-                BloomFilterBlock.read(
-                  BloomFilterBlock.Offset(0, closedBloomFilter.bytes.size),
-                  segmentReader = segmentBlock
-                ) map {
-                  bloomFilterBlock =>
-                    Some(
-                      MemoryBlock(
-                        bloomFilter = bloomFilterBlock,
-                        bytes = closedBloomFilter.bytes.unslice())
-                    )
-                }
+            BloomFilterBlock.read(
+              BloomFilterBlock.Offset(0, closedBloomFilter.bytes.size),
+              segmentReader = SegmentBlock.decompressed(closedBloomFilter.bytes)
+            ) map {
+              bloomFilterBlock =>
+                Some(
+                  MemoryBlock(
+                    bloomFilter = bloomFilterBlock,
+                    bytes = closedBloomFilter.bytes.unslice())
+                )
             }
         } getOrElse IO.none
     }
@@ -187,7 +184,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
     if (state.bytes.isEmpty)
       IO.none
     else
-      Block.create(
+      Block.compress(
         headerSize = state.headerSize,
         bytes = state.bytes,
         compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),

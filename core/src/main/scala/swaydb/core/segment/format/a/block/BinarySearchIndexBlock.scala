@@ -56,6 +56,7 @@ private[core] object BinarySearchIndexBlock {
             blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
             compressions = _ => Seq.empty
           )
+
         case enable: swaydb.data.config.BinarySearchKeyIndex.FullIndex =>
           Config(
             enabled = true,
@@ -212,7 +213,7 @@ private[core] object BinarySearchIndexBlock {
     if (state.bytes.isEmpty)
       IO.none
     else if (state.hasMinimumKeys)
-      Block.create(
+      Block.compress(
         headerSize = state.headerSize,
         bytes = state.bytes,
         compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
@@ -251,9 +252,9 @@ private[core] object BinarySearchIndexBlock {
 
   def write(value: Int,
             state: State): IO[Unit] =
-    if (value == state.previouslyWritten) //do not write duplicate entries.
+    if (value == state.previouslyWritten) { //do not write duplicate entries.
       IO.unit
-    else
+    } else
       IO {
         if (state.bytes.size == 0) state.bytes moveWritePosition state.headerSize
         //if the size of largest value is less than 4 bytes, write them as unsigned.

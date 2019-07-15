@@ -41,6 +41,14 @@ class SliceSpec extends WordSpec with Matchers {
       slice.toOffset shouldBe 9
     }
 
+    "be created by specifying it's length and isFull" in {
+      val slice = Slice.create[Int](10, isFull = true)
+      slice.allocatedSize shouldBe 10
+      slice.size shouldBe 10
+      slice.fromOffset shouldBe 0
+      slice.toOffset shouldBe 9
+    }
+
     "be created from an Array" in {
       val array = Array.fill[Byte](10)(1)
       val slice = Slice[Byte](array)
@@ -269,7 +277,7 @@ class SliceSpec extends WordSpec with Matchers {
 
     "update original slice with moveWritePosition when splits are updated" in {
       val originalSlice = Slice.create[Int](2)
-      val (split1, split2) = originalSlice.splitAllocatedAt(1)
+      val (split1, split2) = originalSlice.splitInnerArrayAt(1)
       split1.allocatedSize shouldBe 1
       split2.size shouldBe 0
 

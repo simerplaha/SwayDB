@@ -35,7 +35,7 @@ private[core] class GroupReader(decompressedValuesSize: Int,
     indexReader.size map (_ + decompressedValuesSize)
 
   def moveTo(newPosition: Long): Reader = {
-    position = newPosition.toInt
+    position = newPosition.toInt max 0
     this
   }
 

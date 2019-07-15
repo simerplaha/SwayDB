@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a.block
 import swaydb.core.data.Transient
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
+import swaydb.core.segment.format.a.block.Block.CompressionInfo
 import swaydb.core.segment.format.a.block.SegmentBlock.ClosedBlocks
 import swaydb.core.segment.format.a.block.reader.CompressedBlockReader
 import swaydb.core.util.{Bytes, CRC32}
@@ -238,6 +239,9 @@ object SegmentFooterBlock {
 
         IO.Success(
           SegmentFooterBlock(
+            SegmentFooterBlock.Offset(footerStartOffset, footerSize),
+            headerSize = 0,
+            compressionInfo = None,
             valuesOffset = valuesOffset,
             sortedIndexOffset = sortedIndexOffset,
             hashIndexOffset = hashIndexOffset,
@@ -269,9 +273,17 @@ object SegmentFooterBlock {
             IO.Failure(ex)
         }
     }
+
+  implicit object SegmentFooterBlockUpdated extends BlockUpdater[SegmentFooterBlock] {
+    override def updateOffset(block: SegmentFooterBlock, start: Int, size: Int): SegmentFooterBlock =
+      block.copy(offset = SegmentFooterBlock.Offset(start, size))
+  }
 }
 
-case class SegmentFooterBlock(valuesOffset: Option[ValuesBlock.Offset],
+case class SegmentFooterBlock(offset: SegmentFooterBlock.Offset,
+                              headerSize: Int,
+                              compressionInfo: Option[CompressionInfo],
+                              valuesOffset: Option[ValuesBlock.Offset],
                               sortedIndexOffset: SortedIndexBlock.Offset,
                               hashIndexOffset: Option[HashIndexBlock.Offset],
                               binarySearchIndexOffset: Option[BinarySearchIndexBlock.Offset],
@@ -281,4 +293,4 @@ case class SegmentFooterBlock(valuesOffset: Option[ValuesBlock.Offset],
                               bloomFilterItemsCount: Int,
                               hasRange: Boolean,
                               hasGroup: Boolean,
-                              hasPut: Boolean)
+                              hasPut: Boolean) extends Block

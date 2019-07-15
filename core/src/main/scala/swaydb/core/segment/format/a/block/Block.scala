@@ -55,6 +55,13 @@ private[core] object Block extends LazyLogging {
   val uncompressedBlockId: Byte = 0.toByte
   val compressedBlockID: Byte = 1.toByte
 
+  object CompressionInfo {
+    def apply(decompressor: DecompressorInternal,
+              decompressedLength: Int,
+              headerSize: Int): CompressionInfo =
+      new CompressionInfo(decompressor, decompressedLength, headerSize)
+  }
+
   class CompressionInfo(val decompressor: DecompressorInternal,
                         val decompressedLength: Int,
                         val headerSize: Int)
@@ -87,10 +94,10 @@ private[core] object Block extends LazyLogging {
     * Others using this function should ensure that [[headerSize]] is accounted for in the byte size calculations.
     * They should also allocate enough bytes to write the total headerSize.
     */
-  def create(headerSize: Int,
-             bytes: Slice[Byte],
-             compressions: Seq[CompressionInternal],
-             blockName: String): IO[Slice[Byte]] =
+  def compress(headerSize: Int,
+               bytes: Slice[Byte],
+               compressions: Seq[CompressionInternal],
+               blockName: String): IO[Slice[Byte]] =
     compressions.untilSome(_.compressor.compress(headerSize, bytes.drop(headerSize))) flatMap {
       case Some((compressedBytes, compression)) =>
         IO {
@@ -111,16 +118,16 @@ private[core] object Block extends LazyLogging {
           else
             s"Unable to satisfy compression requirement from ${compressions.size} compression strategies for $blockName. Storing ${bytes.size}.bytes uncompressed."
         }
-        createUncompressedBlock(
+        uncompressed(
           headerSize = headerSize,
           bytes = bytes,
           blockName = blockName
         )
     }
 
-  def createUncompressedBlock(headerSize: Int,
-                              bytes: Slice[Byte],
-                              blockName: String): IO[Slice[Byte]] =
+  def uncompressed(headerSize: Int,
+                   bytes: Slice[Byte],
+                   blockName: String): IO[Slice[Byte]] =
     IO {
       bytes moveWritePosition 0
       bytes addIntUnsigned headerSize
@@ -130,9 +137,9 @@ private[core] object Block extends LazyLogging {
       bytes
     }
 
-  def create(openSegment: SegmentBlock.Open,
-             compressions: Seq[CompressionInternal],
-             blockName: String): IO[SegmentBlock.Closed] =
+  def compress(openSegment: SegmentBlock.Open,
+               compressions: Seq[CompressionInternal],
+               blockName: String): IO[SegmentBlock.Closed] =
     if (compressions.isEmpty) {
       logger.debug(s"No compression strategies provided for Segment level compression for $blockName. Storing ${openSegment.segmentSize}.bytes uncompressed.")
       IO {
@@ -146,7 +153,7 @@ private[core] object Block extends LazyLogging {
         )
       }
     } else {
-      Block.create(
+      Block.compress(
         headerSize = openSegment.headerBytes.size,
         bytes = openSegment.flattenSegmentBytes,
         compressions = compressions,
@@ -231,30 +238,25 @@ private[core] object Block extends LazyLogging {
           )
       }
 
-  def decompress[B <: Block](block: B,
-                             readFullBlockIfUncompressed: Boolean,
-                             segmentReader: DecompressedBlockReader[SegmentBlock])(implicit blockUpdater: BlockUpdater[B]): IO[DecompressedBlockReader[B]] =
-    block.compressionInfo match {
+  def decompress[B <: Block](childBlock: B,
+                             parentReader: DecompressedBlockReader[SegmentBlock],
+                             readAllIfUncompressed: Boolean)(implicit blockUpdater: BlockUpdater[B]): IO[DecompressedBlockReader[B]] =
+    childBlock.compressionInfo match {
       case Some(compressionInfo) =>
         Block.decompress(
           compressionInfo = compressionInfo,
           reader =
-            CompressedBlockReader(
-              reader = segmentReader,
-              block = block
+            CompressedBlockReader.compressed(
+              reader = parentReader,
+              block = childBlock
             )
         ) flatMap {
           decompressedBytes =>
             if (decompressedBytes.size == compressionInfo.decompressedLength)
               IO {
-                new DecompressedBlockReader[B](
-                  reader = Reader(decompressedBytes),
-                  block =
-                    blockUpdater.updateOffset(
-                      block = block,
-                      start = 0,
-                      size = decompressedBytes.size
-                    )
+                DecompressedBlockReader.decompressed[B](
+                  decompressedBytes = decompressedBytes,
+                  block = blockUpdater.updateOffset(childBlock, 0, decompressedBytes.size)
                 )
               }
             else
@@ -262,43 +264,20 @@ private[core] object Block extends LazyLogging {
         }
 
       case None =>
-        val reader =
-          CompressedBlockReader(
-            reader = segmentReader,
+        val decompressed =
+          DecompressedBlockReader.decompressed(
+            reader = parentReader,
             block =
               blockUpdater.updateOffset(
-                block = block,
-                start = block.offset.start + block.headerSize,
-                size = block.offset.size - block.headerSize
+                block = childBlock,
+                start = childBlock.offset.start + childBlock.headerSize,
+                size = childBlock.offset.size - childBlock.headerSize
               )
           )
 
-        if (readFullBlockIfUncompressed)
-          reader.readFullBlockAndGetBlockReader() flatMap {
-            blockReader =>
-              blockReader.size map {
-                blockReaderSize =>
-                  new DecompressedBlockReader[B](
-                    reader = blockReader,
-                    blockUpdater.updateOffset(
-                      block = block,
-                      start = 0,
-                      size = blockReaderSize.toInt
-                    )
-                  )
-              }
-          }
+        if (readAllIfUncompressed)
+          decompressed.readAllAndGetReader()
         else
-          reader.size map {
-            blockReaderSize =>
-              new DecompressedBlockReader[B](
-                reader = reader,
-                blockUpdater.updateOffset(
-                  block = block,
-                  start = 0,
-                  size = blockReaderSize.toInt
-                )
-              )
-          }
+          IO(decompressed)
     }
 }

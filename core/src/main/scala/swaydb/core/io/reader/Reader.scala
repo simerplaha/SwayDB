@@ -20,9 +20,7 @@
 package swaydb.core.io.reader
 
 import swaydb.core.io.file.DBFile
-import swaydb.core.segment.format.a.block.Block
-import swaydb.core.segment.format.a.block.reader.CompressedBlockReader
-import swaydb.data.slice.{Reader, Slice, SliceReaderSafe}
+import swaydb.data.slice.{Slice, SliceReaderSafe}
 
 private[swaydb] object Reader {
 
@@ -33,10 +31,4 @@ private[swaydb] object Reader {
 
   def apply(slice: Slice[Byte]): SliceReaderSafe =
     SliceReaderSafe(slice)
-
-  def apply[B <: Block](reader: Reader, block: B): CompressedBlockReader[B] =
-    CompressedBlockReader[B](
-      reader = reader,
-      block = block
-    )
 }
