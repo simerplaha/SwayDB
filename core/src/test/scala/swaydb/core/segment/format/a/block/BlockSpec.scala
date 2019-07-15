@@ -4,6 +4,8 @@ import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
+import swaydb.core.segment.format.a.block.reader.CompressedBlockReader._
+import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
 import swaydb.data.slice.Slice
 
 class BlockSpec extends TestBase {
@@ -45,7 +47,7 @@ class BlockSpec extends TestBase {
           Block.decompress(
             childBlock = ValuesBlock(ValuesBlock.Offset(0, uncompressedBytes.size), headerSize, None),
             readAllIfUncompressed = randomBoolean(),
-            parentReader = SegmentBlock.decompressed(uncompressedBytes)
+            parentBlock = SegmentBlock.decompressed(uncompressedBytes)
           ).get
 
         blockReader.readRemaining().get shouldBe dataBytes
@@ -100,7 +102,7 @@ class BlockSpec extends TestBase {
           Block.decompress(
             childBlock = ValuesBlock(ValuesBlock.Offset(0, uncompressedBytes.size), headerSize, None),
             readAllIfUncompressed = randomBoolean(),
-            parentReader = SegmentBlock.decompressed(uncompressedBytes)
+            parentBlock = SegmentBlock.decompressed(uncompressedBytes)
           ).get
 
         val dataBytes = segment.segmentBytes.dropHead().flatten.toSlice
@@ -145,7 +147,7 @@ class BlockSpec extends TestBase {
             Block.decompress(
               childBlock = ValuesBlock(ValuesBlock.Offset(0, compressedBytes.size), headerSize, header.compressionInfo),
               readAllIfUncompressed = randomBoolean(),
-              parentReader = SegmentBlock.decompressed(compressedBytes)
+              parentBlock = SegmentBlock.decompressed(compressedBytes)
             ).get
 
           blockReader.readRemaining().get shouldBe dataBytes
@@ -200,7 +202,7 @@ class BlockSpec extends TestBase {
             Block.decompress(
               childBlock = ValuesBlock(ValuesBlock.Offset(0, compressedSegment.segmentSize), headerSize, header.compressionInfo),
               readAllIfUncompressed = randomBoolean(),
-              parentReader = SegmentBlock.decompressed(compressedSegment.flattenSegmentBytes)
+              parentBlock = SegmentBlock.decompressed(compressedSegment.flattenSegmentBytes)
             ).get
 
           val uncompressedSegmentBytesWithoutHeader = uncompressedSegment.segmentBytes.dropHead().flatten.toSlice
@@ -212,5 +214,104 @@ class BlockSpec extends TestBase {
         }
       }
     }
+  }
+
+  "decompressing root block" in {
+    val bytes = Slice.create[Byte](30, true)
+    val headerSize = 10
+    val compression = randomCompression()
+    val compressedBytes = Block.compress(headerSize, bytes, Seq(compression), "testBlock").get
+
+    println(compressedBytes)
+    val header =
+      Block.readHeader(
+        offset = ValuesBlock.Offset(0, compressedBytes.size),
+        reader = Reader(compressedBytes)
+      ).get
+
+    val compressedBlockReader =
+      compressed(
+        SegmentBlock(SegmentBlock.Offset(0, compressedBytes.size), headerSize, header.compressionInfo),
+        compressedBytes
+      )
+
+    val decompressedBlock = Block.decompress(compressedBlockReader, randomBoolean()).get
+    decompressedBlock.readAll().get shouldBe bytes.drop(headerSize)
+  }
+
+  "decompressing nested compressed block" in {
+    /**
+      * This test compressed 2 blocks into a root block and then decompresses.
+      * Format: { rootBlock: {childBlock1: header+child1Bytes} {childBlock2: header+child2Bytes} }
+      */
+
+    val child1Bytes = Slice.fill[Byte](20)(1.toByte)
+    val child2Bytes = Slice.fill[Byte](20)(2.toByte)
+
+    val headerSize = 10
+
+    def compression = randomCompression()
+
+    //compress both child blocks
+    val compressedChildBytes1 = Block.compress(headerSize, child1Bytes, Seq(compression), "testBlock1").get
+    val compressedChildBytes2 = Block.compress(headerSize, child2Bytes, Seq(compression), "testBlock2").get
+
+    //merge compressed child blocks and write them to a root block
+    //fill with header bytes.
+    val rootUncompressedBytes = Slice.fill[Byte](headerSize)(3.toByte) ++ compressedChildBytes1 ++ compressedChildBytes2
+    val compressedRootBytes = Block.compress(headerSize, rootUncompressedBytes, Seq(compression), "compressedRootBlocks").get
+
+    //read root block's header
+    val rootHeader =
+      Block.readHeader(
+        offset = ValuesBlock.Offset(0, compressedRootBytes.size),
+        reader = Reader(compressedRootBytes)
+      ).get
+
+    //decompress the root block
+    val decompressedRootBlock: DecompressedBlockReader[SegmentBlock] =
+      Block.decompress(
+        reader = compressed(
+          SegmentBlock(SegmentBlock.Offset(0, compressedRootBytes.size), headerSize, rootHeader.compressionInfo),
+          compressedRootBytes
+        ),
+        readAllIfUncompressed = randomBoolean()
+      ).get
+
+    //got the original rootBlock bytes without the header.
+    val decompressedRootBytes = decompressedRootBlock.readAllAndGetReader().get
+    decompressedRootBytes.readAll().get shouldBe rootUncompressedBytes.drop(headerSize)
+
+    //read child block1 using the same decompressed reader from root block.
+    val child1Header =
+      Block.readHeader(
+        offset = ValuesBlock.Offset(0, compressedChildBytes1.size),
+        reader = decompressedRootBytes.copy()
+      ).get
+
+    val child1DecompressedBytes =
+      Block.decompress(
+        childBlock = ValuesBlock(ValuesBlock.Offset(0, compressedChildBytes1.size), child1Header.headerSize, child1Header.compressionInfo),
+        parentBlock = decompressedRootBlock.copy(),
+        readAllIfUncompressed = randomBoolean()
+      ).get
+
+    child1DecompressedBytes.readAll().get shouldBe child1Bytes.drop(headerSize)
+
+    //read child block2 using the same decompressed reader from root block but set the offset start to be the end of child1's compressed bytes end.
+    val child2Header =
+      Block.readHeader(
+        offset = ValuesBlock.Offset(compressedChildBytes1.size, compressedChildBytes2.size),
+        reader = decompressedRootBytes.copy()
+      ).get
+
+    val child2DecompressedBytes =
+      Block.decompress(
+        childBlock = ValuesBlock(ValuesBlock.Offset(compressedChildBytes1.size, compressedChildBytes2.size), child2Header.headerSize, child2Header.compressionInfo),
+        parentBlock = decompressedRootBlock.copy(),
+        readAllIfUncompressed = randomBoolean()
+      ).get
+
+    child2DecompressedBytes.readAll().get shouldBe child2Bytes.drop(headerSize)
   }
 }

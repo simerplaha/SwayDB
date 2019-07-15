@@ -57,14 +57,12 @@ private[core] object Block extends LazyLogging {
 
   object CompressionInfo {
     def apply(decompressor: DecompressorInternal,
-              decompressedLength: Int,
-              headerSize: Int): CompressionInfo =
-      new CompressionInfo(decompressor, decompressedLength, headerSize)
+              decompressedLength: Int): CompressionInfo =
+      new CompressionInfo(decompressor, decompressedLength)
   }
 
   class CompressionInfo(val decompressor: DecompressorInternal,
-                        val decompressedLength: Int,
-                        val headerSize: Int)
+                        val decompressedLength: Int)
 
   case class Header(compressionInfo: Option[CompressionInfo],
                     headerReader: Reader,
@@ -179,8 +177,7 @@ private[core] object Block extends LazyLogging {
         Some(
           new CompressionInfo(
             decompressor = decompressor,
-            decompressedLength = decompressedLength,
-            headerSize = headerSize
+            decompressedLength = decompressedLength
           )
         )
     }
@@ -221,52 +218,46 @@ private[core] object Block extends LazyLogging {
       }
   }
 
-  /**
-    * Decompresses the block skipping the header bytes.
-    */
-  private def decompress(compressionInfo: CompressionInfo,
-                         reader: CompressedBlockReader[_ <: Block]): IO[Slice[Byte]] =
-    reader
-      .copy()
-      .moveTo(reader.block.offset.start + compressionInfo.headerSize)
-      .read(reader.block.offset.size - compressionInfo.headerSize)
-      .flatMap {
-        compressedBytes =>
-          compressionInfo.decompressor.decompress(
-            slice = compressedBytes,
-            decompressLength = compressionInfo.decompressedLength
-          )
-      }
+  def decompress(reader: CompressedBlockReader[SegmentBlock],
+                 readAllIfUncompressed: Boolean)(implicit blockUpdater: BlockUpdater[SegmentBlock]): IO[DecompressedBlockReader[SegmentBlock]] =
+    Block.decompress(
+      childBlock = reader.block,
+      parentBlock = DecompressedBlockReader.unblocked(reader),
+      readAllIfUncompressed = readAllIfUncompressed
+    )
 
   def decompress[B <: Block](childBlock: B,
-                             parentReader: DecompressedBlockReader[SegmentBlock],
+                             parentBlock: DecompressedBlockReader[SegmentBlock],
                              readAllIfUncompressed: Boolean)(implicit blockUpdater: BlockUpdater[B]): IO[DecompressedBlockReader[B]] =
     childBlock.compressionInfo match {
       case Some(compressionInfo) =>
-        Block.decompress(
-          compressionInfo = compressionInfo,
-          reader =
-            CompressedBlockReader.compressed(
-              reader = parentReader,
-              block = childBlock
-            )
-        ) flatMap {
-          decompressedBytes =>
-            if (decompressedBytes.size == compressionInfo.decompressedLength)
-              IO {
-                DecompressedBlockReader.decompressed[B](
-                  decompressedBytes = decompressedBytes,
-                  block = blockUpdater.updateOffset(childBlock, 0, decompressedBytes.size)
-                )
-              }
-            else
-              IO.Failure(s"Decompressed bytes size (${decompressedBytes.size}) != decompressedLength (${compressionInfo.decompressedLength}).")
-        }
+        parentBlock
+          .moveTo(childBlock.offset.start + childBlock.headerSize)
+          .read(childBlock.offset.size - childBlock.headerSize)
+          .flatMap {
+            compressedBytes =>
+              compressionInfo.decompressor.decompress(
+                slice = compressedBytes,
+                decompressLength = compressionInfo.decompressedLength
+              )
+          }
+          .flatMap {
+            decompressedBytes =>
+              if (decompressedBytes.size == compressionInfo.decompressedLength)
+                IO {
+                  DecompressedBlockReader.decompressed[B](
+                    decompressedBytes = decompressedBytes,
+                    block = blockUpdater.updateOffset(childBlock, 0, decompressedBytes.size)
+                  )
+                }
+              else
+                IO.Failure(s"Decompressed bytes size (${decompressedBytes.size}) != decompressedLength (${compressionInfo.decompressedLength}).")
+          }
 
       case None =>
         val decompressed =
           DecompressedBlockReader.decompressed(
-            reader = parentReader,
+            reader = parentBlock,
             block =
               blockUpdater.updateOffset(
                 block = childBlock,

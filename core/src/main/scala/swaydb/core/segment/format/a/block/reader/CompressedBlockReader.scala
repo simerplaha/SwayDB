@@ -30,16 +30,17 @@ import swaydb.data.slice.{Reader, Slice}
   */
 private[core] object CompressedBlockReader {
 
-  def compressed[B <: Block](reader: DecompressedBlockReader[_], block: B): CompressedBlockReader[B] =
+  def compressed[B <: Block](block: B,
+                             bytes: Slice[Byte]) =
     new CompressedBlockReader[B](
-      reader = reader,
+      reader = Reader(bytes),
       block = block
     )
 
-  def compressed[B <: Block](bytes: Slice[Byte],
-                             block: B) =
+  def compressed[B <: Block](block: B,
+                             reader: Reader): CompressedBlockReader[B] =
     new CompressedBlockReader[B](
-      reader = Reader(bytes),
+      reader = reader.copy(),
       block = block
     )
 }

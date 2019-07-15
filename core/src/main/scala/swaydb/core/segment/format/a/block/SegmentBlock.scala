@@ -24,9 +24,6 @@ import java.util.concurrent.ConcurrentSkipListMap
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Memory, Transient}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.Block.CompressionInfo
-import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
 import swaydb.core.segment.{DeadlineAndFunctionId, Segment}
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.IO
@@ -46,43 +43,6 @@ private[core] object SegmentBlock {
   val formatId: Byte = 1.toByte
 
   val crcBytes: Int = 7
-
-  def emptyDecompressedBlock: DecompressedBlockReader[SegmentBlock] =
-    DecompressedBlockReader.empty(
-      SegmentBlock(
-        offset = SegmentBlock.Offset.empty,
-        headerSize = 0,
-        compressionInfo = None
-      )
-    )
-
-  def decompressed(bytes: Slice[Byte])(implicit updater: BlockUpdater[SegmentBlock]): DecompressedBlockReader[SegmentBlock] =
-    DecompressedBlockReader.decompressed(
-      decompressedBytes = bytes,
-      block =
-        SegmentBlock(
-          offset = SegmentBlock.Offset(
-            start = 0,
-            size = bytes.size
-          ),
-          headerSize = 0,
-          compressionInfo = None
-        )
-    )
-
-  def compressed(bytes: Slice[Byte], compressionInfo: Block.CompressionInfo)(implicit updater: BlockUpdater[SegmentBlock]): CompressedBlockReader[SegmentBlock] =
-    CompressedBlockReader.compressed(
-      bytes = bytes,
-      block =
-        SegmentBlock(
-          offset = SegmentBlock.Offset(
-            start = 0,
-            size = bytes.size
-          ),
-          headerSize = compressionInfo.headerSize,
-          compressionInfo = Some(compressionInfo)
-        )
-    )
 
   object Config {
 
@@ -251,19 +211,6 @@ private[core] object SegmentBlock {
           compressionInfo = header.compressionInfo
         )
     }
-
-  //  def createDecompressedBlockReader(segmentReader: Reader): IO[DecompressedBlockReader[SegmentBlock]] =
-  //    segmentReader.size map {
-  //      size =>
-  //        new DecompressedBlockReader(
-  //          reader = segmentReader,
-  //          block = SegmentBlock(
-  //            offset = SegmentBlock.Offset(0, size.toInt),
-  //            headerSize = 0,
-  //            compressionInfo = None
-  //          )
-  //        )
-  //    }
 
   val noCompressionHeaderSize = {
     val size = Block.headerSize(false)

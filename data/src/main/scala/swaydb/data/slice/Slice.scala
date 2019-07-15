@@ -578,10 +578,10 @@ class Slice[+T: ClassTag] private(array: Array[T],
     if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
     items match {
       case array: mutable.WrappedArray[T] =>
-        System.arraycopy(array.array, 0, this.array, currentWritePosition, items.size)
+        Array.copy(array.array, 0, this.array, currentWritePosition, items.size)
 
       case items: Slice[T] =>
-        System.arraycopy(items.unsafeInnerArray, items.fromOffset, this.array, currentWritePosition, items.size)
+        Array.copy(items.unsafeInnerArray, items.fromOffset, this.array, currentWritePosition, items.size)
 
       case _ =>
         throw new Exception(s"Iterable is neither an Array or Slice. ${items.getClass.getName}")
@@ -616,7 +616,7 @@ class Slice[+T: ClassTag] private(array: Array[T],
 
   def toArrayCopy[B >: T](implicit evidence$1: ClassTag[B]): Array[B] = {
     val newArray = new Array[B](size)
-    System.arraycopy(array, fromOffset, newArray, 0, size)
+    Array.copy(array, fromOffset, newArray, 0, size)
     newArray
   }
 

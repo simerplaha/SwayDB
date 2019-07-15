@@ -49,7 +49,7 @@ object Cache {
       )
     )
 
-  def blockIO[I, O](blockIO: I => BlockIO, reserveError: IO.Error.Busy)(fetch: I => IO[O]): Cache[I, O] =
+  def blockIO[I, O](blockIO: I => BlockIO, reserveError: => IO.Error.Busy)(fetch: I => IO[O]): Cache[I, O] =
     new BlockIOCache[I, O](
       Cache.unsafe[I, Cache[I, O]](synchronised = false, stored = true) {
         i =>

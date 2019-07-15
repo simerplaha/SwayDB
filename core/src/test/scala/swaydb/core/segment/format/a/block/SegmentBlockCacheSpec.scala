@@ -79,9 +79,9 @@ class SegmentBlockCacheSpec extends TestBase {
       segmentBlockCache.segmentBlockCache.isCached shouldBe true
       segmentBlockCache.segmentBlockReaderCache.isCached shouldBe segmentCompression.nonEmpty
 
-      segmentBlockCache.footerCache.isCached shouldBe false
+      segmentBlockCache.footerBlockCache.isCached shouldBe false
       val footer = segmentBlockCache.getFooter().get
-      segmentBlockCache.footerCache.isCached shouldBe true
+      segmentBlockCache.footerBlockCache.isCached shouldBe true
       footer.keyValueCount shouldBe keyValues.size
       footer.createdInLevel shouldBe Int.MaxValue
 

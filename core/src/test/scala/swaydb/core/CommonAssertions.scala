@@ -1679,7 +1679,7 @@ object CommonAssertions {
       Block.decompress(
         childBlock = block,
         readAllIfUncompressed = readFullBlockIfUncompressed,
-        parentReader = reader
+        parentBlock = reader
       ).get
   }
 

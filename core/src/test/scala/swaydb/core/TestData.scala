@@ -38,6 +38,7 @@ import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.util.UUIDUtil
 import swaydb.data.accelerate.Accelerator
@@ -2629,6 +2630,46 @@ object TestData {
         BlockIO.ReservedIO(randomBoolean())
       )
     ).head
+
+  implicit class SegmentBlockImplicts(segmentBlock: SegmentBlock.type) {
+
+    def emptyDecompressedBlock: DecompressedBlockReader[SegmentBlock] =
+      DecompressedBlockReader.empty(
+        SegmentBlock(
+          offset = SegmentBlock.Offset.empty,
+          headerSize = 0,
+          compressionInfo = None
+        )
+      )
+
+    def decompressed(bytes: Slice[Byte])(implicit updater: BlockUpdater[SegmentBlock]): DecompressedBlockReader[SegmentBlock] =
+      DecompressedBlockReader.decompressed(
+        decompressedBytes = bytes,
+        block =
+          SegmentBlock(
+            offset = SegmentBlock.Offset(
+              start = 0,
+              size = bytes.size
+            ),
+            headerSize = 0,
+            compressionInfo = None
+          )
+      )
+
+    def compressed(bytes: Slice[Byte], headerSize: Int, compressionInfo: Block.CompressionInfo)(implicit updater: BlockUpdater[SegmentBlock]): CompressedBlockReader[SegmentBlock] =
+      CompressedBlockReader.compressed(
+        bytes = bytes,
+        block =
+          SegmentBlock(
+            offset = SegmentBlock.Offset(
+              start = 0,
+              size = bytes.size
+            ),
+            headerSize = headerSize,
+            compressionInfo = Some(compressionInfo)
+          )
+      )
+  }
 
 }
 

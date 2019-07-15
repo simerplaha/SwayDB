@@ -33,10 +33,10 @@ import swaydb.data.slice.{Reader, Slice}
 
 private[core] object DecompressedBlockReader {
 
-  def empty[B <: Block](block: B) =
+  def empty[B <: Block](block: B)(implicit blockUpdater: BlockUpdater[B]) =
     new DecompressedBlockReader[B](
       reader = Reader.empty,
-      block = block
+      block = blockUpdater.updateOffset(block, 0, 0)
     )
 
   /**
@@ -44,7 +44,7 @@ private[core] object DecompressedBlockReader {
     *
     * @param block - the offset will get updated to the decompressed bytes.
     */
-  def decompressed[B <: Block](decompressedBytes: Slice[Byte], block: B): DecompressedBlockReader[B] =
+  def decompressed[B <: Block](block: B, decompressedBytes: Slice[Byte]): DecompressedBlockReader[B] =
     new DecompressedBlockReader[B](
       reader = Reader(decompressedBytes),
       block = block
@@ -55,10 +55,22 @@ private[core] object DecompressedBlockReader {
     *
     * @param block - the offset will get updated to the decompressed bytes.
     */
-  def decompressed[B <: Block](reader: DecompressedBlockReader[_], block: B): DecompressedBlockReader[B] =
+  def decompressed[B <: Block](block: B,
+                               reader: DecompressedBlockReader[SegmentBlock]): DecompressedBlockReader[B] =
     new DecompressedBlockReader[B](
-      reader = reader,
+      reader = reader.copy(),
       block = block
+    )
+
+  /**
+    * Decompressed parent readers are always required for child blocks to read from.
+    * But for root readers the parent readers are non-existent so here an unblocked [[DecompressedBlockReader]]
+    * is created where a the parent is itself with the same offsets.
+    **/
+  def unblocked[B <: Block](reader: CompressedBlockReader[B]): DecompressedBlockReader[B] =
+    new DecompressedBlockReader[B](
+      reader = reader.copy(),
+      block = reader.block
     )
 
   def decompress[B <: Block](block: B,
@@ -67,7 +79,7 @@ private[core] object DecompressedBlockReader {
     Block.decompress(
       childBlock = block,
       readAllIfUncompressed = readAllIfUncompressed,
-      parentReader = segmentReader
+      parentBlock = segmentReader
     )
 }
 

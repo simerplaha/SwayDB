@@ -23,8 +23,19 @@ sealed trait BlockIO {
 }
 object BlockIO {
 
+  /**
+    * The default [[BlockIO]] strategy used for all [[BlockStatus.CompressedBlock]]
+    * or [[BlockStatus.UncompressedBlock]] blocks.
+    */
   def default(blockStatus: BlockStatus) =
     BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed)
+
+  /**
+    * The default [[BlockIO]] strategy used for all [[BlockStatus.BlockInfo]].
+    * BlockInfos are never individually unless the entire Segment is compressed.
+    */
+  val defaultBlockInfo =
+    BlockIO.SynchronisedIO(true)
 
   case class ConcurrentIO(cacheOnAccess: Boolean) extends BlockIO
   case class SynchronisedIO(cacheOnAccess: Boolean) extends BlockIO
