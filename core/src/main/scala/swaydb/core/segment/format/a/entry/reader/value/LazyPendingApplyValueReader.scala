@@ -72,9 +72,9 @@ class ActivePendingApplyValueReader(applies: Slice[Value.Apply]) extends LazyPen
 
   override val valueReader: DecompressedBlockReader[ValuesBlock] = {
     val slice = ValueSerializer.writeBytes(applies)
-    new DecompressedBlockReader(
-      reader = Reader(slice),
-      block = ValuesBlock(ValuesBlock.Offset(0, slice.size), 0, None)
+    DecompressedBlockReader.decompressed(
+      block = ValuesBlock(ValuesBlock.Offset(0, slice.size), 0, None),
+      decompressedBytes = slice
     )
   }
 
