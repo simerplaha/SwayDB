@@ -53,11 +53,11 @@
 //        implicit val testTimer: TestTimer = TestTimer.Empty
 //
 //        val segment1 = ListBuffer.empty[Transient]
-//        segment1.+=(Transient.put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true))
-//        segment1.+=(Transient.put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 70.bytes
+//        segment1.+=(Transient.put(key = 1, value = Some(1), previous = segment1.lastOption))
+//        segment1.+=(Transient.put(key = 2, value = Some(2), previous = segment1.lastOption)) //total segmentSize is 70.bytes
 //
 //        val smallerLastSegment = ListBuffer.empty[Transient]
-//        smallerLastSegment.+=(Transient.put(key = 1, value = 1, previous = None, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 60.bytes
+//        smallerLastSegment.+=(Transient.put(key = 1, value = Some(1), previous = None)) //total segmentSize is 60.bytes
 //
 //        val segments = ListBuffer[ListBuffer[Transient]](segment1, smallerLastSegment)
 //
@@ -66,10 +66,10 @@
 //          SegmentMerger.completeMerge(
 //            segments = segments,
 //            minSegmentSize = 70.bytes,
+//            forMemory = false,
 //            maxProbe = TestData.maxProbe,
 //            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-//            forMemory = false,
 //            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
 //            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
 //            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
@@ -87,11 +87,11 @@
 //    "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for memory key-values" in {
 //      runThisParallel(10.times) {
 //        val segment1 = ListBuffer.empty[Transient]
-//        segment1.+=(Transient.put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true))
-//        segment1.+=(Transient.put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 21.bytes
+//        segment1.+=(Transient.put(key = 1, value = Some(1), previous = segment1.lastOption))
+//        segment1.+=(Transient.put(key = 2, value = Some(2), previous = segment1.lastOption)) //total segmentSize is 21.bytes
 //
 //        val smallerLastSegment = ListBuffer.empty[Transient]
-//        smallerLastSegment.+=(Transient.put(key = 1, value = 1, previous = None, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 12.bytes
+//        smallerLastSegment.+=(Transient.put(key = 1, value = Some(1), previous = None)) //total segmentSize is 12.bytes
 //
 //        val segments = ListBuffer[ListBuffer[Transient]](segment1, smallerLastSegment)
 //

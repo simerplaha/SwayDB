@@ -60,10 +60,13 @@ class SegmentBlockSpec extends TestBase {
     }
 
     "performance" in {
+      val compressions = Slice.fill(5)(randomCompressionsOrEmpty())
+
       val keyValues =
         randomizedKeyValues(
           count = 10000,
           startId = Some(1),
+          addPut = true,
           addRandomGroups = false
         ).updateStats(
           valuesConfig =
@@ -71,14 +74,14 @@ class SegmentBlockSpec extends TestBase {
               compressDuplicateValues = randomBoolean(),
               compressDuplicateRangeValues = randomBoolean(),
               blockIO = _ => randomIOAccess(),
-              compressions = _ => randomCompressionsOrEmpty()
+              compressions = _ => compressions.head
             ),
           sortedIndexConfig =
             SortedIndexBlock.Config(
               blockIO = _ => randomIOAccess(),
               prefixCompressionResetCount = 0,
               enableAccessPositionIndex = true,
-              compressions = _ => randomCompressionsOrEmpty()
+              compressions = _ => compressions(1)
             ),
           binarySearchIndexConfig =
             BinarySearchIndexBlock.Config(
@@ -86,7 +89,7 @@ class SegmentBlockSpec extends TestBase {
               minimumNumberOfKeys = 1,
               fullIndex = true,
               blockIO = _ => randomIOAccess(),
-              compressions = _ => randomCompressionsOrEmpty()
+              compressions = _ => compressions(2)
             ),
           hashIndexConfig =
             HashIndexBlock.Config(
@@ -95,14 +98,14 @@ class SegmentBlockSpec extends TestBase {
               minimumNumberOfHits = 2,
               allocateSpace = _.requiredSpace * 10,
               blockIO = _ => randomIOAccess(),
-              compressions = _ => randomCompressionsOrEmpty()
+              compressions = _ => compressions(3)
             ),
           bloomFilterConfig =
             BloomFilterBlock.Config(
               falsePositiveRate = 0.001,
               minimumNumberOfKeys = 2,
               blockIO = _ => randomIOAccess(),
-              compressions = _ => Seq.empty
+              compressions = _ => compressions(4)
             )
         )
 
@@ -146,7 +149,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = keyValues,
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+                blockIO = _ => randomBlockIO(),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = randomNextInt(10)

@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.io.reader.Reader
@@ -35,7 +36,7 @@ import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
 
-private[core] object SortedIndexBlock {
+private[core] object SortedIndexBlock extends LazyLogging {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
 

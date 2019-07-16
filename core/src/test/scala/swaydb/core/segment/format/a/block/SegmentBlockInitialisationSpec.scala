@@ -47,6 +47,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
           val keyValues: Slice[Transient] =
             randomizedKeyValues(
               count = 100,
+              addPut = true,
               startId = Some(1)
             ).updateStats(
               binarySearchIndexConfig =
@@ -69,6 +70,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
           val generatedKeyValues =
             randomizedKeyValues(
               count = 100,
+              addPut = true,
               startId = Some(1)
             )
 
@@ -94,6 +96,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
     "partially created for ranges" when {
       "perfect hashIndex" in {
         runThis(10.times) {
+          val compressions = randomCompressionsOrEmpty()
+
           val keyValues: Slice[Transient] =
             randomizedKeyValues(
               count = 100,
@@ -112,7 +116,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfKeys = 0,
                   fullIndex = false,
                   blockIO = _ => randomIOAccess(),
-                  compressions = _ => randomCompressionsOrEmpty()
+                  compressions = _ => compressions
                 ),
               hashIndexConfig =
                 HashIndexBlock.Config(
@@ -121,9 +125,11 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfKeys = 0,
                   minimumNumberOfHits = 0,
                   blockIO = _ => randomIOAccess(),
-                  compressions = _ => randomCompressionsOrEmpty()
+                  compressions = _ => compressions
                 )
             )
+
+          keyValues should not be empty
 
           val blocks = getBlocks(keyValues).get
           blocks.hashIndexReader shouldBe defined
@@ -152,6 +158,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
     "fully be created" when {
       "perfect hashIndex" in {
         runThis(10.times) {
+          val compressions = randomCompressionsOrEmpty()
+
           val keyValues: Slice[Transient] =
             randomizedKeyValues(
               count = 100,
@@ -170,7 +178,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfKeys = 0,
                   fullIndex = true,
                   blockIO = _ => randomIOAccess(),
-                  compressions = _ => randomCompressionsOrEmpty()
+                  compressions = _ => compressions
                 ),
               hashIndexConfig =
                 HashIndexBlock.Config(
@@ -179,7 +187,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfHits = 0,
                   allocateSpace = _.requiredSpace * 10,
                   blockIO = _ => randomIOAccess(),
-                  compressions = _ => randomCompressionsOrEmpty()
+                  compressions = _ => compressions
                 )
             )
 
@@ -201,6 +209,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
 
       "for partial binary search index when hashIndex is completely disabled" in {
         runThis(10.times) {
+          val compressions = randomCompressionsOrEmpty()
+
           val keyValues: Slice[Transient] =
             randomizedKeyValues(
               count = 100,
@@ -219,7 +229,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfKeys = 0,
                   fullIndex = false,
                   blockIO = _ => randomIOAccess(),
-                  compressions = _ => randomCompressionsOrEmpty()
+                  compressions = _ => compressions
                 ),
               hashIndexConfig =
                 HashIndexBlock.Config(
@@ -228,7 +238,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfHits = 0,
                   allocateSpace = _.requiredSpace * 0,
                   blockIO = _ => randomIOAccess(),
-                  compressions = _ => randomCompressionsOrEmpty()
+                  compressions = _ => compressions
                 )
             )
 

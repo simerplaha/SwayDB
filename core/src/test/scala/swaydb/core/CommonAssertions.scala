@@ -1683,8 +1683,7 @@ object CommonAssertions {
     val groupKeyValues = persistedGroup.segment.getAll().get
     groupKeyValues should have size group.keyValues.size
     groupKeyValues shouldBe group.keyValues
-    //    persistedGroup.segmentBlock.isCached shouldBe true
-    ???
+//    persistedGroup.segment.blockCache.isCached shouldBe false
     persistedGroup
   }
 

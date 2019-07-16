@@ -98,22 +98,33 @@ class GroupCompressorSpec extends TestBase {
             ).get
 
           //none of the group's blocks are compressed.
-          val persistedGroup = assertGroup(group)
-//          persistedGroup.segment.blockCache.createSortedIndexReader().get.block.compressionInfo shouldBe empty
-//          persistedGroup.segment.blockCache.createBinarySearchReader().get foreach (_.block.compressionInfo shouldBe empty)
-//          persistedGroup.segment.blockCache.createHashIndexReader().get foreach (_.block.compressionInfo shouldBe empty)
-//          persistedGroup.segment.blockCache.createBloomFilterReader().get foreach (_.block.compressionInfo shouldBe empty)
-//          persistedGroup.segment.blockCache.createValuesReader().get foreach (_.block.compressionInfo shouldBe empty)
-          ???
+          try
+            assertGroup(group)
+          catch {
+            case exception: Exception =>
+              val persistedGroup = assertGroup(group)
+              throw exception
+          }
+          //          persistedGroup.segment.blockCache.createSortedIndexReader().get.block.compressionInfo shouldBe empty
+          //          persistedGroup.segment.blockCache.createBinarySearchReader().get foreach (_.block.compressionInfo shouldBe empty)
+          //          persistedGroup.segment.blockCache.createHashIndexReader().get foreach (_.block.compressionInfo shouldBe empty)
+          //          persistedGroup.segment.blockCache.createBloomFilterReader().get foreach (_.block.compressionInfo shouldBe empty)
+          //          persistedGroup.segment.blockCache.createValuesReader().get foreach (_.block.compressionInfo shouldBe empty)
         }
       }
 
       "key-values are compressible" in {
-        runThis(100.times) {
+        runThis(100.times, log = true) {
 
+          //          val compressions = randomCompressionsLZ4OrSnappy(Int.MinValue)
           val compressions = randomCompressionsLZ4OrSnappy(Int.MinValue)
 
-          val keyValues = genKeyValuesWithCompression(_ => compressions)
+          //          val keyValues = genKeyValuesWithCompression(_ => compressions)
+          val keyValues =
+            Slice(
+              randomGroup(Slice(randomPutKeyValue(1, value = Some(11)).toTransient)),
+              randomGroup(Slice(randomPutKeyValue(2, value = Some(22)).toTransient))
+            ).updateStats
 
           val group =
             Transient.Group(
@@ -128,13 +139,12 @@ class GroupCompressorSpec extends TestBase {
             ).get
 
           //none of the group's blocks are compressed.
-          val persistedGroup = assertGroup(group)
-//          persistedGroup.segment.blockCache.createSortedIndexReader().get.block.compressionInfo shouldBe defined
-//          persistedGroup.segment.blockCache.createBinarySearchReader().get foreach (_.block.compressionInfo shouldBe defined)
-//          persistedGroup.segment.blockCache.createHashIndexReader().get foreach (_.block.compressionInfo shouldBe defined)
-//          persistedGroup.segment.blockCache.createBloomFilterReader().get foreach (_.block.compressionInfo shouldBe defined)
-//          persistedGroup.segment.blockCache.createValuesReader().get foreach (_.block.compressionInfo shouldBe defined)
-          ???
+          assertGroup(group)
+          //          persistedGroup.segment.blockCache.createSortedIndexReader().get.block.compressionInfo shouldBe defined
+          //          persistedGroup.segment.blockCache.createBinarySearchReader().get foreach (_.block.compressionInfo shouldBe defined)
+          //          persistedGroup.segment.blockCache.createHashIndexReader().get foreach (_.block.compressionInfo shouldBe defined)
+          //          persistedGroup.segment.blockCache.createBloomFilterReader().get foreach (_.block.compressionInfo shouldBe defined)
+          //          persistedGroup.segment.blockCache.createValuesReader().get foreach (_.block.compressionInfo shouldBe defined)
         }
       }
     }
