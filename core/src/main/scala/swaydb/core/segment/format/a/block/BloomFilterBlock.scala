@@ -71,9 +71,6 @@ private[core] object BloomFilterBlock extends LazyLogging {
                     blockIO: BlockStatus => BlockIO,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
-  case class MemoryBlock(bloomFilter: BloomFilterBlock,
-                         bytes: Slice[Byte])
-
   case class Offset(start: Int, size: Int) extends BlockOffset
 
   case class State(startOffset: Int,
@@ -161,7 +158,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
     else
       math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
 
-  def closeForMemory(state: BloomFilterBlock.State): IO[Option[BloomFilterBlock.MemoryBlock]] =
+  def closeForMemory(state: BloomFilterBlock.State): IO[Option[UnblockedReader[BloomFilterBlock]]] =
     BloomFilterBlock.close(state) flatMap {
       closedBloomFilter =>
         closedBloomFilter map {
@@ -176,9 +173,10 @@ private[core] object BloomFilterBlock extends LazyLogging {
             ) map {
               bloomFilterBlock =>
                 Some(
-                  MemoryBlock(
-                    bloomFilter = bloomFilterBlock,
-                    bytes = closedBloomFilter.bytes.unslice())
+                  UnblockedReader[BloomFilterBlock](
+                    block = bloomFilterBlock,
+                    decompressedBytes = state.bytes.unslice()
+                  )
                 )
             }
         } getOrElse IO.none

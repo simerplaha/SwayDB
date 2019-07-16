@@ -105,7 +105,7 @@ private[core] object Segment extends LazyLogging {
                   _isGrouped = groupingStrategy.isDefined,
                   _createdInLevel = createdInLevel.toInt,
                   cache = skipList,
-                  bloomFilter = bloomFilter,
+                  bloomFilterReader = bloomFilter,
                   nearestExpiryDeadline = minMaxDeadline.nearestDeadline
                 )
             }

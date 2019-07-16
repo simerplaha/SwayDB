@@ -26,6 +26,7 @@ import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.util.ExceptionUtil
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{IO, MaxKey}
@@ -89,68 +90,64 @@ private[core] class SegmentCache(id: String,
   }
 
   private def prepareGet[T](f: (SegmentFooterBlock, Option[UnblockedReader[HashIndexBlock]], Option[UnblockedReader[BinarySearchIndexBlock]], UnblockedReader[SortedIndexBlock], Option[UnblockedReader[ValuesBlock]]) => IO[T]): IO[T] = {
-    //    for {
-    //      footer <- blockCache.footer
-    //      hashIndex <- blockCache.createHashIndexReader()
-    //      binarySearchIndex <- blockCache.createBinarySearchReader()
-    //      sortedIndex <- blockCache.createSortedIndexReader()
-    //      values <- blockCache.createValuesReader()
-    //      result <- f(footer, hashIndex, binarySearchIndex, sortedIndex, values)
-    //    } yield {
-    //      result
-    //    }
-    //  } onFailureSideEffect {
-    //    failure: IO.Failure[_] =>
-    //      ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
-    ???
+    for {
+      footer <- blockCache.getFooter()
+      hashIndex <- blockCache.createHashIndexReader()
+      binarySearchIndex <- blockCache.createBinarySearchIndexReader()
+      sortedIndex <- blockCache.createSortedIndexReader()
+      values <- blockCache.createValuesReader()
+      result <- f(footer, hashIndex, binarySearchIndex, sortedIndex, values)
+    } yield {
+      result
+    }
+  } onFailureSideEffect {
+    failure: IO.Failure[_] =>
+      ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
   }
 
   private def prepareGetAll[T](f: (SegmentFooterBlock, UnblockedReader[SortedIndexBlock], Option[UnblockedReader[ValuesBlock]]) => IO[T]): IO[T] = {
-    //    for {
-    //      footer <- blockCache.footer
-    //      sortedIndex <- blockCache.createSortedIndexReader()
-    //      values <- blockCache.createValuesReader()
-    //      result <- f(footer, sortedIndex, values)
-    //    } yield {
-    //      result
-    //    }
-    //  } onFailureSideEffect {
-    //    failure: IO.Failure[_] =>
-    //      ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
-    ???
+    for {
+      footer <- blockCache.getFooter()
+      sortedIndex <- blockCache.createSortedIndexReader()
+      values <- blockCache.createValuesReader()
+      result <- f(footer, sortedIndex, values)
+    } yield {
+      result
+    }
+  } onFailureSideEffect {
+    failure: IO.Failure[_] =>
+      ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
   }
 
   private def prepareIteration[T](f: (SegmentFooterBlock, Option[UnblockedReader[BinarySearchIndexBlock]], UnblockedReader[SortedIndexBlock], Option[UnblockedReader[ValuesBlock]]) => IO[T]): IO[T] = {
-    //    for {
-    //      footer <- blockCache.footer
-    //      binarySearchIndex <- blockCache.createBinarySearchReader()
-    //      sortedIndex <- blockCache.createSortedIndexReader()
-    //      values <- blockCache.createValuesReader()
-    //      result <- f(footer, binarySearchIndex, sortedIndex, values)
-    //    } yield {
-    //      result
-    //    }
-    //  } onFailureSideEffect {
-    //    failure: IO.Failure[_] =>
-    //      ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
-    ???
+    for {
+      footer <- blockCache.getFooter()
+      binarySearchIndex <- blockCache.createBinarySearchIndexReader()
+      sortedIndex <- blockCache.createSortedIndexReader()
+      values <- blockCache.createValuesReader()
+      result <- f(footer, binarySearchIndex, sortedIndex, values)
+    } yield {
+      result
+    }
+  } onFailureSideEffect {
+    failure: IO.Failure[_] =>
+      ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
   }
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     Option(persistentCache.get(key))
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
-  //    blockCache.createBloomFilterReader() flatMap {
-  //      bloomFilterReaderOption =>
-  //        bloomFilterReaderOption map {
-  //          bloomFilterReader =>
-  //            BloomFilter.mightContain(
-  //              key = key,
-  //              reader = bloomFilterReader
-  //            )
-  //        } getOrElse IO.`true`
-  //    }
-    ???
+    blockCache.createBloomFilterReader() flatMap {
+      bloomFilterReaderOption =>
+        bloomFilterReaderOption map {
+          bloomFilterReader =>
+            BloomFilterBlock.mightContain(
+              key = key,
+              reader = bloomFilterReader
+            )
+        } getOrElse IO.`true`
+    }
 
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {

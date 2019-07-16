@@ -31,6 +31,7 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
 import swaydb.data.IO._
@@ -54,7 +55,7 @@ private[segment] case class MemorySegment(path: Path,
                                           _isGrouped: Boolean,
                                           _createdInLevel: Int,
                                           private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
-                                          bloomFilter: Option[BloomFilterBlock.MemoryBlock],
+                                          bloomFilterReader: Option[UnblockedReader[BloomFilterBlock]],
                                           nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore,
@@ -241,17 +242,12 @@ private[segment] case class MemorySegment(path: Path,
       }
 
   def mightContainKey(key: Slice[Byte]): IO[Boolean] =
-    bloomFilter map {
-      memoryBlock =>
-        //        BloomFilterBlock.mightContain(
-        //          key = key,
-        //          reader =
-        //            BlockReader(
-        //              reader = Reader(memoryBlock.bytes),
-        //              block = memoryBlock.bloomFilter
-        //            )
-        //        )
-        ???
+    bloomFilterReader map {
+      reader =>
+        BloomFilterBlock.mightContain(
+          key = key,
+          reader = reader.copy()
+        )
     } getOrElse IO.`true`
 
   override def mightContainFunction(key: Slice[Byte]): IO[Boolean] =
@@ -439,7 +435,7 @@ private[segment] case class MemorySegment(path: Path,
     IO(_isGrouped)
 
   override def isBloomFilterDefined: Boolean =
-    bloomFilter.isDefined
+    bloomFilterReader.isDefined
 
   override def clearCache(): Unit =
     cache.values().asScala foreach {
