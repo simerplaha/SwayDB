@@ -338,45 +338,57 @@ private[core] object SortedIndexBlock {
              startFrom: Option[Persistent],
              indexReader: UnblockedReader[SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    search(
-      matcher = KeyMatcher.Get(key),
-      startFrom = startFrom,
-      indexReader = indexReader,
-      valuesReader = valuesReader
-    )
+    if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+      IO.Failure(IO.Error.Fatal("startFrom key is greater than target key."))
+    else
+      search(
+        matcher = KeyMatcher.Get(key),
+        startFrom = startFrom,
+        indexReader = indexReader,
+        valuesReader = valuesReader
+      )
 
   def searchHigher(key: Slice[Byte],
                    startFrom: Option[Persistent],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    search(
-      matcher = KeyMatcher.Higher(key),
-      startFrom = startFrom,
-      indexReader = sortedIndexReader,
-      valuesReader = valuesReader
-    )
+    if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+      IO.Failure(IO.Error.Fatal("startFrom key is greater than target key."))
+    else
+      search(
+        matcher = KeyMatcher.Higher(key),
+        startFrom = startFrom,
+        indexReader = sortedIndexReader,
+        valuesReader = valuesReader
+      )
 
   def searchHigherSeekOne(key: Slice[Byte],
-                          startFrom: Option[Persistent],
+                          startFrom: Persistent,
                           indexReader: UnblockedReader[SortedIndexBlock],
                           valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    search(
-      matcher = KeyMatcher.Higher.MatchOnly(key),
-      startFrom = startFrom,
-      indexReader = indexReader,
-      valuesReader = valuesReader
-    )
+    if (order.gt(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+      IO.Failure(IO.Error.Fatal("startFrom key is greater than target key."))
+    else
+      search(
+        matcher = KeyMatcher.Higher.SeekOne(key),
+        startFrom = Some(startFrom),
+        indexReader = indexReader,
+        valuesReader = valuesReader
+      )
 
   def searchLower(key: Slice[Byte],
                   startFrom: Option[Persistent],
                   indexReader: UnblockedReader[SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    search(
-      matcher = KeyMatcher.Lower(key),
-      startFrom = startFrom,
-      indexReader = indexReader,
-      valuesReader = valuesReader
-    )
+    if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+      IO.Failure(IO.Error.Fatal("startFrom key is greater than target key."))
+    else
+      search(
+        matcher = KeyMatcher.Lower(key),
+        startFrom = startFrom,
+        indexReader = indexReader,
+        valuesReader = valuesReader
+      )
 
   private def search(matcher: KeyMatcher,
                      startFrom: Option[Persistent],

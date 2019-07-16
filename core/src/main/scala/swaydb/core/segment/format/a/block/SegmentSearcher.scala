@@ -68,7 +68,28 @@ private[core] object SegmentSearcher extends LazyLogging {
                    binarySearchReader: Option[UnblockedReader[BinarySearchIndexBlock]],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    if (start.isEmpty)
+    start map {
+      start =>
+        SortedIndexBlock.searchHigherSeekOne(
+          key = key,
+          startFrom = start,
+          indexReader = sortedIndexReader,
+          valuesReader = valuesReader
+        ) flatMap {
+          found =>
+            if (found.isDefined)
+              IO.Success(found)
+            else
+              binarySearchHigher(
+                key = key,
+                start = Some(start),
+                end = end,
+                binarySearchReader = binarySearchReader,
+                sortedIndexReader = sortedIndexReader,
+                valuesReader = valuesReader
+              )
+        }
+    } getOrElse {
       binarySearchHigher(
         key = key,
         start = start,
@@ -77,26 +98,8 @@ private[core] object SegmentSearcher extends LazyLogging {
         sortedIndexReader = sortedIndexReader,
         valuesReader = valuesReader
       )
-    else
-      SortedIndexBlock.searchHigherSeekOne(
-        key = key,
-        startFrom = start,
-        indexReader = sortedIndexReader,
-        valuesReader = valuesReader
-      ) flatMap {
-        found =>
-          if (found.isDefined)
-            IO.Success(found)
-          else
-            binarySearchHigher(
-              key = key,
-              start = start,
-              end = end,
-              binarySearchReader = binarySearchReader,
-              sortedIndexReader = sortedIndexReader,
-              valuesReader = valuesReader
-            )
-      }
+    }
+
 
   def binarySearchHigher(key: Slice[Byte],
                          start: Option[Persistent],

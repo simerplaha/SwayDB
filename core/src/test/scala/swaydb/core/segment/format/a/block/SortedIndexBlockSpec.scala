@@ -29,6 +29,7 @@ import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
@@ -94,8 +95,8 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
   }
 
   "write, close, readAll & search" in {
-    runThis(50.times, log = true) {
-      val keyValues = randomizedKeyValues(1000, addPut = true)
+    runThis(10.times, log = true) {
+      val keyValues = randomizedKeyValues(1000, startId = Some(1), addPut = true, addRandomGroups = false, addRandomRanges = false)
       val state = SortedIndexBlock.init(keyValues)
       keyValues foreach {
         keyValue =>
@@ -113,10 +114,14 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       val unblockedReader = Block.unblock(block, SegmentBlock.unblocked(closedState.bytes), randomBoolean()).get
       //values are not required for this test. Create an empty reader.
       val testValuesReader = if (keyValues.last.stats.segmentValuesSize == 0) None else Some(ValuesBlock.emptyUnblocked)
-      //read all
+      /**
+        * TEST - READ ALL
+        */
       val readAllKeyValues = SortedIndexBlock.readAll(keyValues.size, unblockedReader, testValuesReader).get
       assetEqual(keyValues, readAllKeyValues)
-      //read one by one
+      /**
+        * TEST - READ ONE BY ONE
+        */
       val searchedKeyValues = ListBuffer.empty[Persistent]
       keyValues.foldLeft(Option.empty[Persistent]) {
         case (previous, keyValue) =>
@@ -129,6 +134,40 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             None
       }
       assetEqual(keyValues, searchedKeyValues)
+
+      /**
+        * TEST - searchHigherSeekOne & seekHigher
+        */
+      val searchedKeyValuesSeekOne = mutable.SortedSet.empty[Persistent](Ordering.by[Persistent, Slice[Byte]](_.key)(order))
+      keyValues.foldLeft((Option.empty[Persistent], Option.empty[Persistent])) {
+        case ((previousPrevious, previous), keyValue) =>
+
+          val searchedKeyValue =
+            previous map {
+              previous =>
+                //previousPrevious is the key that will require 3 seeks to fetch the next highest.
+                //assert that when the next higher key is 2 seeks away it should return none.
+                previousPrevious foreach {
+                  previousPrevious =>
+                    SortedIndexBlock.searchHigherSeekOne(previous.key, previousPrevious, unblockedReader.copy(), testValuesReader).get shouldBe empty
+                }
+                val searchedKeyValue = SortedIndexBlock.searchHigherSeekOne(previous.key, previous, unblockedReader.copy(), testValuesReader).get.get
+
+                //but normal search should return starting from whichever previous.
+                SortedIndexBlock.searchHigher(previous.key, None, unblockedReader.copy(), testValuesReader).get.get shouldBe searchedKeyValue
+                SortedIndexBlock.searchHigher(previous.key, previousPrevious, unblockedReader.copy(), testValuesReader).get.get shouldBe searchedKeyValue
+                SortedIndexBlock.searchHigher(previous.key, Some(previous), unblockedReader.copy(), testValuesReader).get.get shouldBe searchedKeyValue
+
+                searchedKeyValue
+            } getOrElse {
+              //if previous is not defined start with a get
+              SortedIndexBlock.search(keyValue.minKey, previous, unblockedReader.copy(), testValuesReader).get.get
+            }
+
+          searchedKeyValuesSeekOne += searchedKeyValue
+          (previous, Some(searchedKeyValue))
+      }
+      assetEqual(keyValues, searchedKeyValuesSeekOne)
     }
   }
 }

@@ -348,16 +348,16 @@ private[core] object BinarySearchIndexBlock {
             if (sortedIndex.block.hasPrefixCompression)
               KeyMatcher.Higher.WhilePrefixCompressed(key)
             else
-              KeyMatcher.Higher.MatchOnly(key)
+              KeyMatcher.Higher.SeekOne(key)
           else if (sortedIndex.block.hasPrefixCompression)
             KeyMatcher.Lower.WhilePrefixCompressed(key)
           else
-            KeyMatcher.Lower.MatchOnly(key)
+            KeyMatcher.Lower.SeekOne(key)
       } getOrElse {
         if (sortedIndex.block.hasPrefixCompression)
           KeyMatcher.Get.WhilePrefixCompressed(key)
         else
-          KeyMatcher.Get.MatchOnly(key)
+          KeyMatcher.Get.SeekOne(key)
       }
 
     search(

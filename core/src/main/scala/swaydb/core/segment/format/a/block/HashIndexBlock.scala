@@ -391,7 +391,7 @@ private[core] object HashIndexBlock extends LazyLogging {
       if (sortedIndexReader.block.hasPrefixCompression)
         KeyMatcher.Get.WhilePrefixCompressed(key)
       else
-        KeyMatcher.Get.MatchOnly(key)
+        KeyMatcher.Get.SeekOne(key)
 
     search(
       key = key,
