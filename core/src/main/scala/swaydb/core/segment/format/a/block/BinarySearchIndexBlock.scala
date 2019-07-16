@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.block
 
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
-import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil, Options}
 import swaydb.data.IO
 import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
@@ -234,7 +234,7 @@ private[core] object BinarySearchIndexBlock {
       IO.none
 
   def read(offset: Offset,
-           reader: DecompressedBlockReader[SegmentBlock]): IO[BinarySearchIndexBlock] =
+           reader: UnblockedReader[SegmentBlock]): IO[BinarySearchIndexBlock] =
     for {
       result <- Block.readHeader(offset = offset, reader = reader)
       valuesCount <- result.headerReader.readIntUnsigned()
@@ -272,7 +272,7 @@ private[core] object BinarySearchIndexBlock {
         state.previouslyWritten = value
       }
 
-  def search(reader: DecompressedBlockReader[BinarySearchIndexBlock],
+  def search(reader: UnblockedReader[BinarySearchIndexBlock],
              start: Option[Int],
              end: Option[Int],
              higherOrLower: Option[Boolean],
@@ -337,9 +337,9 @@ private[core] object BinarySearchIndexBlock {
                      higherOrLower: Option[Boolean],
                      start: Option[Persistent],
                      end: Option[Persistent],
-                     binarySearchIndex: DecompressedBlockReader[BinarySearchIndexBlock],
-                     sortedIndex: DecompressedBlockReader[SortedIndexBlock],
-                     values: Option[DecompressedBlockReader[ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
+                     binarySearchIndex: UnblockedReader[BinarySearchIndexBlock],
+                     sortedIndex: UnblockedReader[SortedIndexBlock],
+                     values: Option[UnblockedReader[ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
     val matcher =
       higherOrLower map {
         higher =>
@@ -393,9 +393,9 @@ private[core] object BinarySearchIndexBlock {
   def search(key: Slice[Byte],
              start: Option[Persistent],
              end: Option[Persistent],
-             binarySearchIndexReader: DecompressedBlockReader[BinarySearchIndexBlock],
-             sortedIndexReader: DecompressedBlockReader[SortedIndexBlock],
-             valuesReader: Option[DecompressedBlockReader[ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+             binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock],
+             sortedIndexReader: UnblockedReader[SortedIndexBlock],
+             valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       key = key,
       higherOrLower = None,
@@ -409,9 +409,9 @@ private[core] object BinarySearchIndexBlock {
   def searchHigher(key: Slice[Byte],
                    start: Option[Persistent],
                    end: Option[Persistent],
-                   binarySearchIndexReader: DecompressedBlockReader[BinarySearchIndexBlock],
-                   sortedIndexReader: DecompressedBlockReader[SortedIndexBlock],
-                   valuesReader: Option[DecompressedBlockReader[ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                   binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock],
+                   sortedIndexReader: UnblockedReader[SortedIndexBlock],
+                   valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       key = key,
       higherOrLower = Options.`true`,
@@ -425,9 +425,9 @@ private[core] object BinarySearchIndexBlock {
   def searchLower(key: Slice[Byte],
                   start: Option[Persistent],
                   end: Option[Persistent],
-                  binarySearchIndexReader: DecompressedBlockReader[BinarySearchIndexBlock],
-                  sortedIndexReader: DecompressedBlockReader[SortedIndexBlock],
-                  valuesReader: Option[DecompressedBlockReader[ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                  binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock],
+                  sortedIndexReader: UnblockedReader[SortedIndexBlock],
+                  valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       key = key,
       higherOrLower = Options.`false`,

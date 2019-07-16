@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.core.data.KeyValue
-import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
+import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.util.cache.Cache
 import swaydb.data.config.{BlockIO, BlockStatus}
 import swaydb.data.slice.{Reader, Slice}
@@ -86,7 +86,7 @@ class SegmentBlockCache(id: String,
     }
 
   private[block] val footerBlockCache =
-    Cache.blockIO[DecompressedBlockReader[SegmentBlock], SegmentFooterBlock](
+    Cache.blockIO[UnblockedReader[SegmentBlock], SegmentFooterBlock](
       blockIO = _ => segmentFooterBlockIO(BlockStatus.BlockInfo(SegmentFooterBlock.optimalBytesRequired)),
       reserveError = IO.Error.ReservedValue(Reserve())
     )(SegmentFooterBlock.read)
@@ -94,8 +94,8 @@ class SegmentBlockCache(id: String,
   /**
     * Builds a an optional BlockInfo cache. Blocks like [[SortedIndexBlock]], [[BloomFilterBlock]] etc are optional.
     */
-  def buildIndexBlockInfoCacheOptional[O <: BlockOffset, B <: Block](blockIO: BlockStatus => BlockIO)(fetch: (Option[O], DecompressedBlockReader[SegmentBlock]) => IO[Option[B]]) =
-    Cache.blockIO[(Option[O], DecompressedBlockReader[SegmentBlock]), Option[B]](
+  def buildIndexBlockInfoCacheOptional[O <: BlockOffset, B <: Block](blockIO: BlockStatus => BlockIO)(fetch: (Option[O], UnblockedReader[SegmentBlock]) => IO[Option[B]]) =
+    Cache.blockIO[(Option[O], UnblockedReader[SegmentBlock]), Option[B]](
       blockIO =
         _._1 match {
           case Some(blockOffset) =>
@@ -114,8 +114,8 @@ class SegmentBlockCache(id: String,
   /**
     * Builds a required cache for [[SortedIndexBlock]].
     */
-  def buildIndexBlockInfoCache[O <: BlockOffset, B <: Block](blockIO: BlockStatus => BlockIO)(fetch: (O, DecompressedBlockReader[SegmentBlock]) => IO[B]) =
-    Cache.blockIO[(O, DecompressedBlockReader[SegmentBlock]), B](
+  def buildIndexBlockInfoCache[O <: BlockOffset, B <: Block](blockIO: BlockStatus => BlockIO)(fetch: (O, UnblockedReader[SegmentBlock]) => IO[B]) =
+    Cache.blockIO[(O, UnblockedReader[SegmentBlock]), B](
       blockIO = blockOffsetAndReader => blockIO(BlockStatus.BlockInfo(blockOffsetAndReader._1.size)),
       reserveError = IO.Error.ReservedValue(Reserve())
     ) {
@@ -181,14 +181,14 @@ class SegmentBlockCache(id: String,
     }
 
   private[block] val segmentBlockReaderCache =
-    Cache.blockIO[SegmentBlock, DecompressedBlockReader[SegmentBlock]](
+    Cache.blockIO[SegmentBlock, UnblockedReader[SegmentBlock]](
       blockIO = segmentBlock => segmentBlockIO(segmentBlock.blockStatus),
       reserveError = IO.Error.ReservedValue(Reserve())
     ) {
       segmentBlock =>
-        Block.decompress(
+        Block.unblock(
           reader =
-            CompressedBlockReader.compressed(
+            BlockedReader(
               block = segmentBlock,
               reader = segmentBlockInfo.segmentReader()
             ),
@@ -198,7 +198,7 @@ class SegmentBlockCache(id: String,
     }
 
   def buildBlockReaderCacheOptional[B <: Block](blockIO: BlockStatus => BlockIO)(implicit blockUpdater: BlockUpdater[B]) =
-    Cache.blockIO[(Option[B], DecompressedBlockReader[SegmentBlock]), Option[DecompressedBlockReader[B]]](
+    Cache.blockIO[(Option[B], UnblockedReader[SegmentBlock]), Option[UnblockedReader[B]]](
       blockIO =
         _._1 match {
           case Some(block) =>
@@ -213,7 +213,7 @@ class SegmentBlockCache(id: String,
       case (block, segmentReader) =>
         block map {
           block =>
-            Block.decompress(
+            Block.unblock(
               childBlock = block,
               parentBlock = segmentReader,
               readAllIfUncompressed = blockIO(block.blockStatus).cacheOnAccess
@@ -222,12 +222,12 @@ class SegmentBlockCache(id: String,
     }
 
   def buildBlockReaderCache[B <: Block](blockIO: BlockStatus => BlockIO)(implicit blockUpdater: BlockUpdater[B]) =
-    Cache.blockIO[(B, DecompressedBlockReader[SegmentBlock]), DecompressedBlockReader[B]](
+    Cache.blockIO[(B, UnblockedReader[SegmentBlock]), UnblockedReader[B]](
       blockIO = blockAndReader => blockIO(blockAndReader._1.blockStatus),
       reserveError = IO.Error.ReservedValue(Reserve())
     ) {
       case (block, segmentReader) =>
-        Block.decompress(
+        Block.unblock(
           childBlock = block,
           parentBlock = segmentReader,
           readAllIfUncompressed = blockIO(block.blockStatus).cacheOnAccess
@@ -260,7 +260,7 @@ class SegmentBlockCache(id: String,
       segmentBlockCache.value(segmentBlockInfo)
     }
 
-  private[block] def createSegmentBlockReader(): IO[DecompressedBlockReader[SegmentBlock]] =
+  private[block] def createSegmentBlockReader(): IO[UnblockedReader[SegmentBlock]] =
     segmentBlockReaderCache getOrElse {
       getSegmentBlock() flatMap {
         segmentBlock =>
@@ -287,7 +287,7 @@ class SegmentBlockCache(id: String,
       }
     }
 
-  def createHashIndexReader(): IO[Option[DecompressedBlockReader[HashIndexBlock]]] =
+  def createHashIndexReader(): IO[Option[UnblockedReader[HashIndexBlock]]] =
     hashIndexReaderCache getOrElse {
       getHashIndex() flatMap {
         hashIndex =>
@@ -309,7 +309,7 @@ class SegmentBlockCache(id: String,
       }
     }
 
-  def createBloomFilterReader(): IO[Option[DecompressedBlockReader[BloomFilterBlock]]] =
+  def createBloomFilterReader(): IO[Option[UnblockedReader[BloomFilterBlock]]] =
     bloomFilterReaderCache getOrElse {
       getBloomFilter() flatMap {
         bloomFilter =>
@@ -331,7 +331,7 @@ class SegmentBlockCache(id: String,
       }
     }
 
-  def createBinarySearchIndexReader(): IO[Option[DecompressedBlockReader[BinarySearchIndexBlock]]] =
+  def createBinarySearchIndexReader(): IO[Option[UnblockedReader[BinarySearchIndexBlock]]] =
     binarySearchIndexReaderCache getOrElse {
       getBinarySearchIndex() flatMap {
         binarySearchIndex =>
@@ -353,7 +353,7 @@ class SegmentBlockCache(id: String,
       }
     }
 
-  def createSortedIndexReader(): IO[DecompressedBlockReader[SortedIndexBlock]] =
+  def createSortedIndexReader(): IO[UnblockedReader[SortedIndexBlock]] =
     sortedIndexReaderCache getOrElse {
       getSortedIndex() flatMap {
         sortedIndex =>
@@ -375,7 +375,7 @@ class SegmentBlockCache(id: String,
       }
     }
 
-  def createValuesReader(): IO[Option[DecompressedBlockReader[ValuesBlock]]] =
+  def createValuesReader(): IO[Option[UnblockedReader[ValuesBlock]]] =
     valuesReaderCache getOrElse {
       getValues() flatMap {
         values =>

@@ -21,14 +21,14 @@ package swaydb.core.io.reader
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.TestData._
-import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
+import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.block._
 import swaydb.data.config.BlockStatus.CompressedBlock
 import swaydb.data.slice.Slice
 
 class BlockReaderSpec extends WordSpec with Matchers {
 
-  def assertDecompressed[B <: Block](reader: DecompressedBlockReader[B],
+  def assertDecompressed[B <: Block](reader: UnblockedReader[B],
                                      expectedBlockBytes: Slice[Byte])(implicit blockUpdater: BlockUpdater[B]) = {
     //size
     reader.size.get shouldBe reader.block.offset.size
@@ -89,7 +89,7 @@ class BlockReaderSpec extends WordSpec with Matchers {
       "not allow reading outside the block" in {
         val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
         val block = ValuesBlock(ValuesBlock.Offset(0, bodyBytes.size - 5), 0, None)
-        val reader = DecompressedBlockReader.decompressed(block, bodyBytes)
+        val reader = UnblockedReader(block, bodyBytes)
 
         reader.size.get shouldBe 5
         reader.read(100).get should have size 5
@@ -98,9 +98,9 @@ class BlockReaderSpec extends WordSpec with Matchers {
 
       "not allow reading outside the nested block" in {
         val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
-        val decompressedParentBlock = SegmentBlock.decompressed(bodyBytes)
+        val decompressedParentBlock = SegmentBlock.unblocked(bodyBytes)
         val decompressedChildBlock =
-          DecompressedBlockReader.decompressed(
+          UnblockedReader(
             block = ValuesBlock(ValuesBlock.Offset(4, 2), 0, None),
             reader = decompressedParentBlock
           )
@@ -115,7 +115,7 @@ class BlockReaderSpec extends WordSpec with Matchers {
       "read bytes" in {
         val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
         assertDecompressed(
-          reader = SegmentBlock.decompressed(bodyBytes),
+          reader = SegmentBlock.unblocked(bodyBytes),
           expectedBlockBytes = bodyBytes
         )
       }
@@ -123,7 +123,7 @@ class BlockReaderSpec extends WordSpec with Matchers {
       "read bytes in nested blocks" in {
         val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
         //create a segment block
-        val segmentReader = SegmentBlock.decompressed(bodyBytes)
+        val segmentReader = SegmentBlock.unblocked(bodyBytes)
 
         assertDecompressed(
           reader = segmentReader,
@@ -132,7 +132,7 @@ class BlockReaderSpec extends WordSpec with Matchers {
 
         //first 3 bytes are values block
         val valuesReader =
-          DecompressedBlockReader.decompressed(
+          UnblockedReader(
             block = ValuesBlock(ValuesBlock.Offset(0, 3), 0, None),
             reader = segmentReader
           )
@@ -199,7 +199,7 @@ class BlockReaderSpec extends WordSpec with Matchers {
       "not allow reading outside the block" in {
         val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
         val block = ValuesBlock(ValuesBlock.Offset(0, bodyBytes.size - 5), 0, None)
-        val reader = DecompressedBlockReader.decompressed(block, bodyBytes)
+        val reader = UnblockedReader(block, bodyBytes)
 
         reader.size.get shouldBe 5
         reader.read(100).get should have size 5
@@ -208,8 +208,8 @@ class BlockReaderSpec extends WordSpec with Matchers {
 
       "not allow reading outside the nested block" in {
         val bodyBytes = Slice((1 to 10).map(_.toByte).toArray)
-        val decompressedParentBlock = SegmentBlock.decompressed(bodyBytes)
-        val decompressedChildBlock = DecompressedBlockReader.decompressed(ValuesBlock(ValuesBlock.Offset(4, 2), 0, None), decompressedParentBlock)
+        val decompressedParentBlock = SegmentBlock.unblocked(bodyBytes)
+        val decompressedChildBlock = UnblockedReader(ValuesBlock(ValuesBlock.Offset(4, 2), 0, None), decompressedParentBlock)
 
         decompressedChildBlock.size.get shouldBe 2
         decompressedChildBlock.read(100).get should have size 2
@@ -232,7 +232,7 @@ class BlockReaderSpec extends WordSpec with Matchers {
           ).get
 
         val compressedReader =
-          SegmentBlock.compressed(
+          SegmentBlock.blocked(
             headerSize = headerBytes.size,
             bytes = compressedBlockBytes,
             compressionInfo = Block.CompressionInfo(

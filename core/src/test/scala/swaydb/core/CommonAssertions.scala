@@ -41,7 +41,7 @@ import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
+import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.IO
@@ -625,8 +625,8 @@ object CommonAssertions {
     def shouldBeSliced() =
       actual.underlyingArraySize shouldBe actual.toArrayCopy.length
 
-    def createDecompressedReader[B <: Block](block: B)(implicit blockUpdater: BlockUpdater[B]): DecompressedBlockReader[B] =
-      DecompressedBlockReader.decompressed(
+    def createDecompressedReader[B <: Block](block: B)(implicit blockUpdater: BlockUpdater[B]): UnblockedReader[B] =
+      UnblockedReader(
         decompressedBytes = actual,
         block = block
       )
@@ -821,13 +821,13 @@ object CommonAssertions {
   def assertBloom(keyValues: Slice[Transient],
                   bloom: BloomFilterBlock.State) = {
     val unzipedKeyValues = unzipGroups(keyValues)
-    val bloomFilter = BloomFilterBlock.read(BloomFilterBlock.Offset(0, bloom.startOffset), SegmentBlock.decompressed(bloom.bytes)).get
+    val bloomFilter = BloomFilterBlock.read(BloomFilterBlock.Offset(0, bloom.startOffset), SegmentBlock.unblocked(bloom.bytes)).get
 
     unzipedKeyValues.par.count {
       keyValue =>
         BloomFilterBlock.mightContain(
           key = keyValue.key,
-          reader = bloomFilter.decompress(SegmentBlock.decompressed(bloom.bytes))
+          reader = bloomFilter.decompress(SegmentBlock.unblocked(bloom.bytes))
         ).get
     } should be >= (unzipedKeyValues.size * 0.90).toInt
 
@@ -847,7 +847,7 @@ object CommonAssertions {
   }
 
   def assertBloom(keyValues: Slice[Transient],
-                  bloomFilterReader: DecompressedBlockReader[BloomFilterBlock]) = {
+                  bloomFilterReader: UnblockedReader[BloomFilterBlock]) = {
     val unzipedKeyValues = unzipGroups(keyValues)
 
     unzipedKeyValues.count {
@@ -862,7 +862,7 @@ object CommonAssertions {
     assertBloomNotContains(bloomFilterReader)
   }
 
-  def assertBloomNotContains(bloomFilterReader: DecompressedBlockReader[BloomFilterBlock]) =
+  def assertBloomNotContains(bloomFilterReader: UnblockedReader[BloomFilterBlock]) =
     (1 to 1000).count {
       _ =>
         //        BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader).get
@@ -877,10 +877,10 @@ object CommonAssertions {
 
   def assertBloomNotContains(bloom: BloomFilterBlock.State) =
     runThis(1000.times) {
-      val bloomFilter = BloomFilterBlock.read(BloomFilterBlock.Offset(0, bloom.startOffset), SegmentBlock.decompressed(bloom.bytes)).get
+      val bloomFilter = BloomFilterBlock.read(BloomFilterBlock.Offset(0, bloom.startOffset), SegmentBlock.unblocked(bloom.bytes)).get
       BloomFilterBlock.mightContain(
         key = randomBytesSlice(randomIntMax(1000) min 100),
-        reader = bloomFilter.decompress(SegmentBlock.decompressed(bloom.bytes))
+        reader = bloomFilter.decompress(SegmentBlock.unblocked(bloom.bytes))
       ).get shouldBe false
     }
 
@@ -1695,9 +1695,9 @@ object CommonAssertions {
   }
 
   implicit class BlockTestImplicits[B <: Block](block: B)(implicit blockUpdater: BlockUpdater[B]) {
-    def decompress(reader: DecompressedBlockReader[SegmentBlock],
-                   readFullBlockIfUncompressed: Boolean = randomBoolean()): DecompressedBlockReader[B] =
-      Block.decompress(
+    def decompress(reader: UnblockedReader[SegmentBlock],
+                   readFullBlockIfUncompressed: Boolean = randomBoolean()): UnblockedReader[B] =
+      Block.unblock(
         childBlock = block,
         readAllIfUncompressed = readFullBlockIfUncompressed,
         parentBlock = reader

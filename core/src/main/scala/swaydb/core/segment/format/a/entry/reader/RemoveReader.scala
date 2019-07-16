@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.ValuesBlock
-import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.data.IO
 import swaydb.data.slice.Reader
@@ -31,7 +31,7 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Option[DecompressedBlockReader[ValuesBlock]],
+                              valueReader: Option[UnblockedReader[ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,

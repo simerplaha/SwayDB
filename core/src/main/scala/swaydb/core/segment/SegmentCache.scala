@@ -25,7 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{IO, MaxKey}
@@ -86,7 +86,7 @@ private[core] class SegmentCache(id: String,
       keyValueLimiter.add(group, persistentCache)
   }
 
-  private def prepareGet[T](f: (SegmentFooterBlock, Option[DecompressedBlockReader[HashIndexBlock]], Option[DecompressedBlockReader[BinarySearchIndexBlock]], DecompressedBlockReader[SortedIndexBlock], Option[DecompressedBlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
+  private def prepareGet[T](f: (SegmentFooterBlock, Option[UnblockedReader[HashIndexBlock]], Option[UnblockedReader[BinarySearchIndexBlock]], UnblockedReader[SortedIndexBlock], Option[UnblockedReader[ValuesBlock]]) => IO[T]): IO[T] = {
     //    for {
     //      footer <- blockCache.footer
     //      hashIndex <- blockCache.createHashIndexReader()
@@ -103,7 +103,7 @@ private[core] class SegmentCache(id: String,
     ???
   }
 
-  private def prepareGetAll[T](f: (SegmentFooterBlock, DecompressedBlockReader[SortedIndexBlock], Option[DecompressedBlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
+  private def prepareGetAll[T](f: (SegmentFooterBlock, UnblockedReader[SortedIndexBlock], Option[UnblockedReader[ValuesBlock]]) => IO[T]): IO[T] = {
     //    for {
     //      footer <- blockCache.footer
     //      sortedIndex <- blockCache.createSortedIndexReader()
@@ -118,7 +118,7 @@ private[core] class SegmentCache(id: String,
     ???
   }
 
-  private def prepareIteration[T](f: (SegmentFooterBlock, Option[DecompressedBlockReader[BinarySearchIndexBlock]], DecompressedBlockReader[SortedIndexBlock], Option[DecompressedBlockReader[ValuesBlock]]) => IO[T]): IO[T] = {
+  private def prepareIteration[T](f: (SegmentFooterBlock, Option[UnblockedReader[BinarySearchIndexBlock]], UnblockedReader[SortedIndexBlock], Option[UnblockedReader[ValuesBlock]]) => IO[T]): IO[T] = {
     //    for {
     //      footer <- blockCache.footer
     //      binarySearchIndex <- blockCache.createBinarySearchReader()

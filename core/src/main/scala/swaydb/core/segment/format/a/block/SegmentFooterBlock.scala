@@ -24,7 +24,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.block.Block.CompressionInfo
 import swaydb.core.segment.format.a.block.SegmentBlock.ClosedBlocks
-import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
+import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.IO
 import swaydb.data.config.{BlockIO, BlockStatus}
@@ -164,7 +164,7 @@ object SegmentFooterBlock {
     }
 
   //all these functions are wrapper with a try catch block with value only to make it easier to read.
-  def read(reader: DecompressedBlockReader[SegmentBlock]): IO[SegmentFooterBlock] =
+  def read(reader: UnblockedReader[SegmentBlock]): IO[SegmentFooterBlock] =
     try {
       val segmentBlockSize = reader.size.get.toInt
       val footerStartOffset = reader.moveTo(segmentBlockSize - ByteSizeOf.int).readInt().get

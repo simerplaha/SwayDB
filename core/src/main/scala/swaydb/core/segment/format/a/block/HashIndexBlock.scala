@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
-import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
 import swaydb.data.config.{BlockIO, BlockStatus, RandomKeyIndex, UncompressedBlockInfo}
@@ -227,7 +227,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           }
       }
 
-  def read(offset: Offset, reader: DecompressedBlockReader[SegmentBlock]): IO[HashIndexBlock] =
+  def read(offset: Offset, reader: UnblockedReader[SegmentBlock]): IO[HashIndexBlock] =
     for {
       result <- Block.readHeader(offset = offset, reader = reader)
       allocatedBytes <- result.headerReader.readInt()
@@ -313,7 +313,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
     */
   private[block] def search[R](key: Slice[Byte],
-                               blockReader: DecompressedBlockReader[HashIndexBlock],
+                               blockReader: UnblockedReader[HashIndexBlock],
                                assertValue: Int => IO[Option[R]]): IO[Option[R]] = {
 
     val hash = key.##
@@ -384,9 +384,9 @@ private[core] object HashIndexBlock extends LazyLogging {
   }
 
   def search(key: Slice[Byte],
-             hashIndexReader: DecompressedBlockReader[HashIndexBlock],
-             sortedIndexReader: DecompressedBlockReader[SortedIndexBlock],
-             valuesReaderReader: Option[DecompressedBlockReader[ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
+             hashIndexReader: UnblockedReader[HashIndexBlock],
+             sortedIndexReader: UnblockedReader[SortedIndexBlock],
+             valuesReaderReader: Option[UnblockedReader[ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
     val matcher =
       if (sortedIndexReader.block.hasPrefixCompression)
         KeyMatcher.Get.WhilePrefixCompressed(key)

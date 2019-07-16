@@ -28,42 +28,42 @@ import swaydb.data.slice.{Reader, Slice}
 /**
   * Reader for the [[Block.CompressionInfo]] that skips [[Block.Header]] bytes.
   */
-private[core] object CompressedBlockReader {
+private[core] object BlockedReader {
 
-  def compressed[B <: Block](block: B,
-                             bytes: Slice[Byte]) =
-    new CompressedBlockReader[B](
+  def apply[B <: Block](block: B,
+                        bytes: Slice[Byte]) =
+    new BlockedReader[B](
       reader = Reader(bytes),
       block = block
     )
 
-  def compressed[B <: Block](block: B,
-                             reader: Reader): CompressedBlockReader[B] =
-    new CompressedBlockReader[B](
+  def apply[B <: Block](block: B,
+                        reader: Reader): BlockedReader[B] =
+    new BlockedReader[B](
       reader = reader.copy(),
       block = block
     )
 }
 
-private[core] class CompressedBlockReader[B <: Block] private(reader: Reader,
-                                                              val block: B) extends BlockReader[B](reader, block) with LazyLogging {
-  override def moveTo(newPosition: Long): CompressedBlockReader[B] = {
+private[core] class BlockedReader[B <: Block] private(reader: Reader,
+                                                      val block: B) extends BlockReader[B](reader, block) with LazyLogging {
+  override def moveTo(newPosition: Long): BlockedReader[B] = {
     super.moveTo(newPosition)
     this
   }
 
-  def readAllAndGetReader()(implicit blockUpdater: BlockUpdater[B]): IO[CompressedBlockReader[B]] =
+  def readAllAndGetReader()(implicit blockUpdater: BlockUpdater[B]): IO[BlockedReader[B]] =
     readAll()
       .map {
         compressedBytes =>
-          CompressedBlockReader.compressed[B](
+          BlockedReader[B](
             bytes = compressedBytes,
             block = blockUpdater.updateOffset(block, 0, compressedBytes.size)
           )
       }
 
-  override def copy(): CompressedBlockReader[B] =
-    new CompressedBlockReader(
+  override def copy(): BlockedReader[B] =
+    new BlockedReader(
       reader = reader.copy(),
       block = block
     )

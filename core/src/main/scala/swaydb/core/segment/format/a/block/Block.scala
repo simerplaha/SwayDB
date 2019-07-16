@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException
-import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
+import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
@@ -212,23 +212,20 @@ private[core] object Block extends LazyLogging {
     }
   } recoverWith {
     case error =>
-      IO.Failure {
-        val message = s"Failed to read Segment block."
-        SegmentException.SegmentCorruptionException(message, error.exception)
-      }
+      IO.Failure(SegmentException.SegmentCorruptionException(s"Failed to read block header.", error.exception))
   }
 
-  def decompress(reader: CompressedBlockReader[SegmentBlock],
-                 readAllIfUncompressed: Boolean)(implicit blockUpdater: BlockUpdater[SegmentBlock]): IO[DecompressedBlockReader[SegmentBlock]] =
-    Block.decompress(
+  def unblock(reader: BlockedReader[SegmentBlock],
+              readAllIfUncompressed: Boolean)(implicit blockUpdater: BlockUpdater[SegmentBlock]): IO[UnblockedReader[SegmentBlock]] =
+    Block.unblock(
       childBlock = reader.block,
-      parentBlock = DecompressedBlockReader.unblocked(reader),
+      parentBlock = UnblockedReader.careful(reader),
       readAllIfUncompressed = readAllIfUncompressed
     )
 
-  def decompress[B <: Block](childBlock: B,
-                             parentBlock: DecompressedBlockReader[SegmentBlock],
-                             readAllIfUncompressed: Boolean)(implicit blockUpdater: BlockUpdater[B]): IO[DecompressedBlockReader[B]] =
+  def unblock[B <: Block](childBlock: B,
+                          parentBlock: UnblockedReader[SegmentBlock],
+                          readAllIfUncompressed: Boolean)(implicit blockUpdater: BlockUpdater[B]): IO[UnblockedReader[B]] =
     childBlock.compressionInfo match {
       case Some(compressionInfo) =>
         parentBlock
@@ -245,7 +242,7 @@ private[core] object Block extends LazyLogging {
             decompressedBytes =>
               if (decompressedBytes.size == compressionInfo.decompressedLength)
                 IO {
-                  DecompressedBlockReader.decompressed[B](
+                  UnblockedReader[B](
                     decompressedBytes = decompressedBytes,
                     block =
                       blockUpdater.updateOffset(
@@ -261,8 +258,8 @@ private[core] object Block extends LazyLogging {
 
       case None =>
         //no compression just skip the header bytes.
-        val decompressed =
-          DecompressedBlockReader.decompressed(
+        val unblocked =
+          UnblockedReader(
             reader = parentBlock,
             block =
               blockUpdater.updateOffset(
@@ -273,8 +270,8 @@ private[core] object Block extends LazyLogging {
           )
 
         if (readAllIfUncompressed)
-          decompressed.readAllAndGetReader()
+          unblocked.readAllAndGetReader()
         else
-          IO(decompressed)
+          IO(unblocked)
     }
 }

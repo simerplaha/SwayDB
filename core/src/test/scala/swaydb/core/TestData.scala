@@ -38,7 +38,7 @@ import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.reader.{CompressedBlockReader, DecompressedBlockReader}
+import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.util.UUIDUtil
 import swaydb.data.accelerate.Accelerator
@@ -2631,10 +2631,10 @@ object TestData {
       )
     ).head
 
-  implicit class SegmentBlockImplicts(segmentBlock: SegmentBlock.type) {
+  implicit class SegmentBlockImplicits(segmentBlock: SegmentBlock.type) {
 
-    def emptyDecompressedBlock: DecompressedBlockReader[SegmentBlock] =
-      DecompressedBlockReader.empty(
+    def emptyDecompressedBlock: UnblockedReader[SegmentBlock] =
+      UnblockedReader.empty(
         SegmentBlock(
           offset = SegmentBlock.Offset.empty,
           headerSize = 0,
@@ -2642,9 +2642,8 @@ object TestData {
         )
       )
 
-    def decompressed(bytes: Slice[Byte])(implicit updater: BlockUpdater[SegmentBlock]): DecompressedBlockReader[SegmentBlock] =
-      DecompressedBlockReader.decompressed(
-        decompressedBytes = bytes,
+    def unblocked(bytes: Slice[Byte])(implicit updater: BlockUpdater[SegmentBlock]): UnblockedReader[SegmentBlock] =
+      UnblockedReader(
         block =
           SegmentBlock(
             offset = SegmentBlock.Offset(
@@ -2653,11 +2652,12 @@ object TestData {
             ),
             headerSize = 0,
             compressionInfo = None
-          )
+          ),
+        decompressedBytes = bytes
       )
 
-    def compressed(bytes: Slice[Byte], headerSize: Int, compressionInfo: Block.CompressionInfo)(implicit updater: BlockUpdater[SegmentBlock]): CompressedBlockReader[SegmentBlock] =
-      CompressedBlockReader.compressed(
+    def blocked(bytes: Slice[Byte], headerSize: Int, compressionInfo: Block.CompressionInfo)(implicit updater: BlockUpdater[SegmentBlock]): BlockedReader[SegmentBlock] =
+      BlockedReader(
         bytes = bytes,
         block =
           SegmentBlock(

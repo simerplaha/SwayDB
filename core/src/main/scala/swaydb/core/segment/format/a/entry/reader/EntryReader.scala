@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.entry.reader
 import swaydb.core.data.Persistent
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.format.a.block.ValuesBlock
-import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
 import swaydb.data.IO
@@ -32,7 +32,7 @@ trait EntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Option[DecompressedBlockReader[ValuesBlock]],
+                              valueReader: Option[UnblockedReader[ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -61,7 +61,7 @@ object EntryReader {
               keyValueId: Int,
               mightBeCompressed: Boolean,
               indexReader: Reader,
-              valueReader: Option[DecompressedBlockReader[ValuesBlock]],
+              valueReader: Option[UnblockedReader[ValuesBlock]],
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
@@ -86,7 +86,7 @@ object EntryReader {
 
   def read(indexReader: Reader,
            mightBeCompressed: Boolean,
-           valueReader: Option[DecompressedBlockReader[ValuesBlock]],
+           valueReader: Option[UnblockedReader[ValuesBlock]],
            indexOffset: Int,
            nextIndexOffset: Int,
            nextIndexSize: Int,

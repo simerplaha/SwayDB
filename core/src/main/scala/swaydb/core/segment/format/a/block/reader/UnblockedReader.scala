@@ -28,13 +28,13 @@ import swaydb.data.slice.{Reader, Slice}
 /**
   * A typed object that indicates that block is already decompressed and now is reading data bytes.
   *
-  * [[Block.decompress]] creates the object and should be the only function that creates it.
+  * [[Block.unblock]] creates the object and should be the only function that creates it.
   */
 
-private[core] object DecompressedBlockReader {
+private[core] object UnblockedReader {
 
   def empty[B <: Block](block: B)(implicit blockUpdater: BlockUpdater[B]) =
-    new DecompressedBlockReader[B](
+    new UnblockedReader[B](
       reader = Reader.empty,
       block = blockUpdater.updateOffset(block, 0, 0)
     )
@@ -44,8 +44,9 @@ private[core] object DecompressedBlockReader {
     *
     * @param block - the offset will get updated to the decompressed bytes.
     */
-  def decompressed[B <: Block](block: B, decompressedBytes: Slice[Byte]): DecompressedBlockReader[B] =
-    new DecompressedBlockReader[B](
+  def apply[B <: Block](block: B,
+                        decompressedBytes: Slice[Byte]): UnblockedReader[B] =
+    new UnblockedReader[B](
       reader = Reader(decompressedBytes),
       block = block
     )
@@ -55,54 +56,54 @@ private[core] object DecompressedBlockReader {
     *
     * @param block - the offset will get updated to the decompressed bytes.
     */
-  def decompressed[B <: Block](block: B,
-                               reader: DecompressedBlockReader[SegmentBlock]): DecompressedBlockReader[B] =
-    new DecompressedBlockReader[B](
+  def apply[B <: Block](block: B,
+                        reader: UnblockedReader[SegmentBlock]): UnblockedReader[B] =
+    new UnblockedReader[B](
       reader = reader.copy(),
       block = block
     )
 
   /**
     * Decompressed parent readers are always required for child blocks to read from.
-    * But for root readers the parent readers are non-existent so here an unblocked [[DecompressedBlockReader]]
+    * But for root readers the parent readers are non-existent so here an unblocked [[UnblockedReader]]
     * is created where a the parent is itself with the same offsets.
     **/
-  def unblocked[B <: Block](reader: CompressedBlockReader[B]): DecompressedBlockReader[B] =
-    new DecompressedBlockReader[B](
+  def careful[B <: Block](reader: BlockedReader[B]): UnblockedReader[B] =
+    new UnblockedReader[B](
       reader = reader.copy(),
       block = reader.block
     )
 
-  def decompress[B <: Block](block: B,
-                             readAllIfUncompressed: Boolean,
-                             segmentReader: DecompressedBlockReader[SegmentBlock])(implicit updater: BlockUpdater[B]) =
-    Block.decompress(
+  def apply[B <: Block](block: B,
+                        readAllIfUncompressed: Boolean,
+                        segmentReader: UnblockedReader[SegmentBlock])(implicit updater: BlockUpdater[B]) =
+    Block.unblock(
       childBlock = block,
       readAllIfUncompressed = readAllIfUncompressed,
       parentBlock = segmentReader
     )
 }
 
-private[core] class DecompressedBlockReader[B <: Block] private(reader: Reader,
-                                                                val block: B) extends BlockReader(reader, block) with LazyLogging {
+private[core] class UnblockedReader[B <: Block] private(reader: Reader,
+                                                        val block: B) extends BlockReader(reader, block) with LazyLogging {
 
-  override def moveTo(newPosition: Long): DecompressedBlockReader[B] = {
+  override def moveTo(newPosition: Long): UnblockedReader[B] = {
     super.moveTo(newPosition)
     this
   }
 
-  def readAllAndGetReader()(implicit blockUpdater: BlockUpdater[B]): IO[DecompressedBlockReader[B]] =
+  def readAllAndGetReader()(implicit blockUpdater: BlockUpdater[B]): IO[UnblockedReader[B]] =
     readAll()
       .map {
         bytes =>
-          DecompressedBlockReader.decompressed[B](
+          UnblockedReader[B](
             decompressedBytes = bytes,
             block = blockUpdater.updateOffset(block, 0, bytes.size)
           )
       }
 
-  def copy(): DecompressedBlockReader[B] =
-    new DecompressedBlockReader(
+  def copy(): UnblockedReader[B] =
+    new UnblockedReader(
       reader = reader.copy(),
       block = block
     )

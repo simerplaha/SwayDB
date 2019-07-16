@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Transient
-import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil, MurmurHash3Generic, Options}
 import swaydb.data.IO
 import swaydb.data.IO._
@@ -169,7 +169,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
             BloomFilterBlock.read(
               offset = BloomFilterBlock.Offset(0, closedBloomFilter.bytes.size),
               segmentReader =
-                DecompressedBlockReader.decompressed[SegmentBlock](
+                UnblockedReader[SegmentBlock](
                   block = SegmentBlock(SegmentBlock.Offset(0, state.bytes.size), 0, None),
                   decompressedBytes = state.bytes.unslice()
                 )
@@ -206,7 +206,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
       }
 
   def read(offset: Offset,
-           segmentReader: DecompressedBlockReader[SegmentBlock]): IO[BloomFilterBlock] =
+           segmentReader: UnblockedReader[SegmentBlock]): IO[BloomFilterBlock] =
     for {
       blockHeader <- Block.readHeader(offset = offset, reader = segmentReader)
       numberOfBits <- blockHeader.headerReader.readIntUnsigned()
@@ -277,7 +277,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
   }
 
   def mightContain(key: Slice[Byte],
-                   reader: DecompressedBlockReader[BloomFilterBlock]): IO[Boolean] = {
+                   reader: UnblockedReader[BloomFilterBlock]): IO[Boolean] = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32

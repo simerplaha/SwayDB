@@ -20,16 +20,16 @@
 package swaydb.core.segment.format.a.entry.reader.value
 
 import swaydb.core.segment.format.a.block.ValuesBlock
-import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 private[core] object LazyUpdateValueReader {
-  def apply(reader: DecompressedBlockReader[ValuesBlock],
+  def apply(reader: UnblockedReader[ValuesBlock],
             offset: Int,
             length: Int): LazyUpdateValueReader =
     new LazyUpdateValueReader {
-      override val valueReader: DecompressedBlockReader[ValuesBlock] = reader
+      override val valueReader: UnblockedReader[ValuesBlock] = reader
 
       override def valueLength: Int = length
 

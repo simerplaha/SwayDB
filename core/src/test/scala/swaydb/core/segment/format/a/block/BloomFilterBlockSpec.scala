@@ -54,7 +54,7 @@ class BloomFilterBlockSpec extends TestBase {
 
         BloomFilterBlock.close(filter).get
 
-        val segmentBlock = SegmentBlock.decompressed(filter.bytes)
+        val segmentBlock = SegmentBlock.unblocked(filter.bytes)
         val bloom = BloomFilterBlock.read(BloomFilterBlock.Offset(0, filter.bytes.size), segmentBlock).get
         (1 to 10) foreach (key => BloomFilterBlock.mightContain(key, bloom.decompress(segmentBlock)).get shouldBe true)
         (11 to 20) foreach (key => BloomFilterBlock.mightContain(key, bloom.decompress(segmentBlock)).get shouldBe false)
@@ -200,7 +200,7 @@ class BloomFilterBlockSpec extends TestBase {
                   bloom: BloomFilterBlock,
                   bytes: Slice[Byte]) = {
 
-      val segmentBlock = SegmentBlock.decompressed(bytes)
+      val segmentBlock = SegmentBlock.unblocked(bytes)
 
       val positives =
         data collect {
@@ -244,7 +244,7 @@ class BloomFilterBlockSpec extends TestBase {
 
       BloomFilterBlock.close(state).get
 
-      val segmentBlock = SegmentBlock.decompressed(state.bytes)
+      val segmentBlock = SegmentBlock.unblocked(state.bytes)
 
       val bloom: BloomFilterBlock = BloomFilterBlock.read(BloomFilterBlock.Offset(0, state.bytes.size), segmentBlock).get
       val bytes = state.bytes

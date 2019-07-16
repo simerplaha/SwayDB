@@ -67,9 +67,9 @@ class ValuesBlockSpec extends TestBase {
 
         ValuesBlock.close(state).get
 
-        val segmentBlock = SegmentBlock.decompressed(state.bytes)
+        val segmentBlock = SegmentBlock.unblocked(state.bytes)
         val values = ValuesBlock.read(ValuesBlock.Offset(0, state.bytes.size), segmentBlock).get
-        val valuesBlockReader = values.decompress(segmentBlock)
+        val valuesBlockReader = Block.unblock(values, segmentBlock, randomBoolean()).get
 
         keyValues.foldLeft(0) {
           case (offset, keyValue) =>

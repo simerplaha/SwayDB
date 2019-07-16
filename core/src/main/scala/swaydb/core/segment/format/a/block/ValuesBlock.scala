@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Transient
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
 import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
@@ -32,11 +32,11 @@ private[core] object ValuesBlock {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
-  def emptyDecompressed: DecompressedBlockReader[ValuesBlock] =
-    DecompressedBlockReader.empty(ValuesBlock.empty)
+  def emptyDecompressed: UnblockedReader[ValuesBlock] =
+    UnblockedReader.empty(ValuesBlock.empty)(ValuesBlockUpdater)
 
-  def decompressed(bytes: Slice[Byte])(implicit blockUpdater: BlockUpdater[ValuesBlock]): DecompressedBlockReader[ValuesBlock] =
-    DecompressedBlockReader.decompressed(
+  def decompressed(bytes: Slice[Byte])(implicit blockUpdater: BlockUpdater[ValuesBlock]): UnblockedReader[ValuesBlock] =
+    UnblockedReader(
       decompressedBytes = bytes,
       block = ValuesBlock(ValuesBlock.Offset(0, bytes.size), 0, None)
     )
@@ -153,7 +153,7 @@ private[core] object ValuesBlock {
     }
 
   def read(offset: ValuesBlock.Offset,
-           segmentReader: DecompressedBlockReader[SegmentBlock]): IO[ValuesBlock] =
+           segmentReader: UnblockedReader[SegmentBlock]): IO[ValuesBlock] =
     Block.readHeader(
       offset = offset,
       reader = segmentReader
@@ -166,7 +166,7 @@ private[core] object ValuesBlock {
         )
     }
 
-  def read(fromOffset: Int, length: Int, reader: DecompressedBlockReader[ValuesBlock]): IO[Option[Slice[Byte]]] =
+  def read(fromOffset: Int, length: Int, reader: UnblockedReader[ValuesBlock]): IO[Option[Slice[Byte]]] =
     if (length == 0)
       IO.none
     else

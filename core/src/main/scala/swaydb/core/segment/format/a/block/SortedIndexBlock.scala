@@ -23,7 +23,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.a.block.reader.DecompressedBlockReader
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
@@ -163,7 +163,7 @@ private[core] object SortedIndexBlock {
     }
 
   def read(offset: SortedIndexBlock.Offset,
-           segmentReader: DecompressedBlockReader[SegmentBlock]): IO[SortedIndexBlock] =
+           segmentReader: UnblockedReader[SegmentBlock]): IO[SortedIndexBlock] =
     Block.readHeader(
       offset = offset,
       reader = segmentReader
@@ -184,8 +184,8 @@ private[core] object SortedIndexBlock {
     }
 
   private def readNextKeyValue(previous: Persistent,
-                               indexReader: DecompressedBlockReader[SortedIndexBlock],
-                               valueReader: Option[DecompressedBlockReader[ValuesBlock]]): IO[Persistent] =
+                               indexReader: UnblockedReader[SortedIndexBlock],
+                               valueReader: Option[UnblockedReader[ValuesBlock]]): IO[Persistent] =
     readNextKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
       indexReader = indexReader moveTo previous.nextIndexOffset,
@@ -194,8 +194,8 @@ private[core] object SortedIndexBlock {
     )
 
   private def readNextKeyValue(fromPosition: Int,
-                               indexReader: DecompressedBlockReader[SortedIndexBlock],
-                               valueReader: Option[DecompressedBlockReader[ValuesBlock]]): IO[Persistent] =
+                               indexReader: UnblockedReader[SortedIndexBlock],
+                               valueReader: Option[UnblockedReader[ValuesBlock]]): IO[Persistent] =
     readNextKeyValue(
       indexEntrySizeMayBe = None,
       indexReader = indexReader moveTo fromPosition,
@@ -205,8 +205,8 @@ private[core] object SortedIndexBlock {
 
   //Pre-requisite: The position of the index on the reader should be set.
   private def readNextKeyValue(indexEntrySizeMayBe: Option[Int],
-                               indexReader: DecompressedBlockReader[SortedIndexBlock],
-                               valueReader: Option[DecompressedBlockReader[ValuesBlock]],
+                               indexReader: UnblockedReader[SortedIndexBlock],
+                               valueReader: Option[UnblockedReader[ValuesBlock]],
                                previous: Option[Persistent]): IO[Persistent] =
     try {
       val positionBeforeRead = indexReader.getPosition
@@ -286,8 +286,8 @@ private[core] object SortedIndexBlock {
     }
 
   def readAll(keyValueCount: Int,
-              sortedIndexReader: DecompressedBlockReader[SortedIndexBlock],
-              valuesReader: Option[DecompressedBlockReader[ValuesBlock]],
+              sortedIndexReader: UnblockedReader[SortedIndexBlock],
+              valuesReader: Option[UnblockedReader[ValuesBlock]],
               addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     try {
       sortedIndexReader moveTo 0
@@ -336,8 +336,8 @@ private[core] object SortedIndexBlock {
 
   def search(key: Slice[Byte],
              startFrom: Option[Persistent],
-             indexReader: DecompressedBlockReader[SortedIndexBlock],
-             valuesReader: Option[DecompressedBlockReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+             indexReader: UnblockedReader[SortedIndexBlock],
+             valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       matcher = KeyMatcher.Get(key),
       startFrom = startFrom,
@@ -347,8 +347,8 @@ private[core] object SortedIndexBlock {
 
   def searchHigher(key: Slice[Byte],
                    startFrom: Option[Persistent],
-                   sortedIndexReader: DecompressedBlockReader[SortedIndexBlock],
-                   valuesReader: Option[DecompressedBlockReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                   sortedIndexReader: UnblockedReader[SortedIndexBlock],
+                   valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       matcher = KeyMatcher.Higher(key),
       startFrom = startFrom,
@@ -358,8 +358,8 @@ private[core] object SortedIndexBlock {
 
   def searchHigherSeekOne(key: Slice[Byte],
                           startFrom: Option[Persistent],
-                          indexReader: DecompressedBlockReader[SortedIndexBlock],
-                          valuesReader: Option[DecompressedBlockReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                          indexReader: UnblockedReader[SortedIndexBlock],
+                          valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       matcher = KeyMatcher.Higher.MatchOnly(key),
       startFrom = startFrom,
@@ -369,8 +369,8 @@ private[core] object SortedIndexBlock {
 
   def searchLower(key: Slice[Byte],
                   startFrom: Option[Persistent],
-                  indexReader: DecompressedBlockReader[SortedIndexBlock],
-                  valuesReader: Option[DecompressedBlockReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                  indexReader: UnblockedReader[SortedIndexBlock],
+                  valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       matcher = KeyMatcher.Lower(key),
       startFrom = startFrom,
@@ -380,8 +380,8 @@ private[core] object SortedIndexBlock {
 
   private def search(matcher: KeyMatcher,
                      startFrom: Option[Persistent],
-                     indexReader: DecompressedBlockReader[SortedIndexBlock],
-                     valuesReader: Option[DecompressedBlockReader[ValuesBlock]]): IO[Option[Persistent]] =
+                     indexReader: UnblockedReader[SortedIndexBlock],
+                     valuesReader: Option[UnblockedReader[ValuesBlock]]): IO[Option[Persistent]] =
     startFrom match {
       case Some(startFrom) =>
         matchOrNextAndPersistent(
@@ -412,8 +412,8 @@ private[core] object SortedIndexBlock {
 
   def findAndMatchOrNextPersistent(matcher: KeyMatcher,
                                    fromOffset: Int,
-                                   indexReader: DecompressedBlockReader[SortedIndexBlock],
-                                   valueReader: Option[DecompressedBlockReader[ValuesBlock]]): IO[Option[Persistent]] =
+                                   indexReader: UnblockedReader[SortedIndexBlock],
+                                   valueReader: Option[UnblockedReader[ValuesBlock]]): IO[Option[Persistent]] =
     readNextKeyValue(
       fromPosition = fromOffset,
       indexReader = indexReader,
@@ -431,8 +431,8 @@ private[core] object SortedIndexBlock {
 
   def findAndMatchOrNextMatch(matcher: KeyMatcher,
                               fromOffset: Int,
-                              sortedIndex: DecompressedBlockReader[SortedIndexBlock],
-                              values: Option[DecompressedBlockReader[ValuesBlock]]): IO[KeyMatcher.Result] =
+                              sortedIndex: UnblockedReader[SortedIndexBlock],
+                              values: Option[UnblockedReader[ValuesBlock]]): IO[KeyMatcher.Result] =
     readNextKeyValue(
       fromPosition = fromOffset,
       indexReader = sortedIndex,
@@ -452,8 +452,8 @@ private[core] object SortedIndexBlock {
   def matchOrNext(previous: Persistent,
                   next: Option[Persistent],
                   matcher: KeyMatcher,
-                  indexReader: DecompressedBlockReader[SortedIndexBlock],
-                  valueReader: Option[DecompressedBlockReader[ValuesBlock]]): IO[KeyMatcher.Result.Complete] =
+                  indexReader: UnblockedReader[SortedIndexBlock],
+                  valueReader: Option[UnblockedReader[ValuesBlock]]): IO[KeyMatcher.Result.Complete] =
     matcher(
       previous = previous,
       next = next,
@@ -486,8 +486,8 @@ private[core] object SortedIndexBlock {
   def matchOrNextAndPersistent(previous: Persistent,
                                next: Option[Persistent],
                                matcher: KeyMatcher,
-                               indexReader: DecompressedBlockReader[SortedIndexBlock],
-                               valueReader: Option[DecompressedBlockReader[ValuesBlock]]): IO[Option[Persistent]] =
+                               indexReader: UnblockedReader[SortedIndexBlock],
+                               valueReader: Option[UnblockedReader[ValuesBlock]]): IO[Option[Persistent]] =
     matchOrNext(
       previous = previous,
       next = next,
