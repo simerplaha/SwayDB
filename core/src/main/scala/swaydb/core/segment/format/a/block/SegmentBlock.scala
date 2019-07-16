@@ -573,7 +573,7 @@ private[core] object SegmentBlock {
         segmentConfig = segmentConfig
       ) flatMap {
         openSegment =>
-          Block.compress(
+          Block.block(
             openSegment = openSegment,
             compressions = segmentConfig.compressions(UncompressedBlockInfo(openSegment.segmentSize)),
             blockName = blockName
@@ -639,7 +639,7 @@ private[core] object SegmentBlock {
       )
     } flatMap {
       open =>
-        Block.uncompressed(
+        Block.unblock(
           headerSize = open.headerBytes.size,
           bytes = open.headerBytes,
           blockName = blockName

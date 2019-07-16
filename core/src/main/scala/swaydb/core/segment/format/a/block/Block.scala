@@ -92,10 +92,10 @@ private[core] object Block extends LazyLogging {
     * Others using this function should ensure that [[headerSize]] is accounted for in the byte size calculations.
     * They should also allocate enough bytes to write the total headerSize.
     */
-  def compress(headerSize: Int,
-               bytes: Slice[Byte],
-               compressions: Seq[CompressionInternal],
-               blockName: String): IO[Slice[Byte]] =
+  def block(headerSize: Int,
+            bytes: Slice[Byte],
+            compressions: Seq[CompressionInternal],
+            blockName: String): IO[Slice[Byte]] =
     compressions.untilSome(_.compressor.compress(headerSize, bytes.drop(headerSize))) flatMap {
       case Some((compressedBytes, compression)) =>
         IO {
@@ -116,16 +116,16 @@ private[core] object Block extends LazyLogging {
           else
             s"Unable to satisfy compression requirement from ${compressions.size} compression strategies for $blockName. Storing ${bytes.size}.bytes uncompressed."
         }
-        uncompressed(
+        unblock(
           headerSize = headerSize,
           bytes = bytes,
           blockName = blockName
         )
     }
 
-  def uncompressed(headerSize: Int,
-                   bytes: Slice[Byte],
-                   blockName: String): IO[Slice[Byte]] =
+  def unblock(headerSize: Int,
+              bytes: Slice[Byte],
+              blockName: String): IO[Slice[Byte]] =
     IO {
       bytes moveWritePosition 0
       bytes addIntUnsigned headerSize
@@ -135,9 +135,9 @@ private[core] object Block extends LazyLogging {
       bytes
     }
 
-  def compress(openSegment: SegmentBlock.Open,
-               compressions: Seq[CompressionInternal],
-               blockName: String): IO[SegmentBlock.Closed] =
+  def block(openSegment: SegmentBlock.Open,
+            compressions: Seq[CompressionInternal],
+            blockName: String): IO[SegmentBlock.Closed] =
     if (compressions.isEmpty) {
       logger.debug(s"No compression strategies provided for Segment level compression for $blockName. Storing ${openSegment.segmentSize}.bytes uncompressed.")
       IO {
@@ -151,7 +151,7 @@ private[core] object Block extends LazyLogging {
         )
       }
     } else {
-      Block.compress(
+      Block.block(
         headerSize = openSegment.headerBytes.size,
         bytes = openSegment.flattenSegmentBytes,
         compressions = compressions,
@@ -219,7 +219,7 @@ private[core] object Block extends LazyLogging {
               readAllIfUncompressed: Boolean)(implicit blockUpdater: BlockUpdater[SegmentBlock]): IO[UnblockedReader[SegmentBlock]] =
     Block.unblock(
       childBlock = reader.block,
-      parentBlock = UnblockedReader.careful(reader),
+      parentBlock = UnblockedReader.unsafe(reader),
       readAllIfUncompressed = readAllIfUncompressed
     )
 

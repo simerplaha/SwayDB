@@ -213,7 +213,7 @@ private[core] object BinarySearchIndexBlock {
     if (state.bytes.isEmpty)
       IO.none
     else if (state.hasMinimumKeys)
-      Block.compress(
+      Block.block(
         headerSize = state.headerSize,
         bytes = state.bytes,
         compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),

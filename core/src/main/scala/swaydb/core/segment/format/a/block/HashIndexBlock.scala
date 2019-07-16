@@ -206,7 +206,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     if (state.bytes.isEmpty || !state.hasMinimumHits)
       IO.none
     else
-      Block.compress(
+      Block.block(
         headerSize = state.headerSize,
         bytes = state.bytes,
         compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),

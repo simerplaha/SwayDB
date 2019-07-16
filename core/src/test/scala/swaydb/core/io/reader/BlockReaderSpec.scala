@@ -224,7 +224,7 @@ class BlockReaderSpec extends WordSpec with Matchers {
         val bytes = headerBytes ++ bodyBytes
         val compression = randomCompressions().head
         val compressedBlockBytes =
-          Block.compress(
+          Block.block(
             headerSize = headerBytes.size,
             bytes = bytes,
             compressions = Seq(compression),

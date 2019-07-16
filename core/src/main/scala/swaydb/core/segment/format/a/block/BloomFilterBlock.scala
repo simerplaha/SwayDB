@@ -188,7 +188,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
     if (state.bytes.isEmpty)
       IO.none
     else
-      Block.compress(
+      Block.block(
         headerSize = state.headerSize,
         bytes = state.bytes,
         compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),

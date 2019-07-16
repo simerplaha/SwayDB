@@ -68,7 +68,7 @@ private[core] object UnblockedReader {
     * But for root readers the parent readers are non-existent so here an unblocked [[UnblockedReader]]
     * is created where a the parent is itself with the same offsets.
     **/
-  def careful[B <: Block](reader: BlockedReader[B]): UnblockedReader[B] =
+  def unsafe[B <: Block](reader: BlockedReader[B]): UnblockedReader[B] =
     new UnblockedReader[B](
       reader = reader.copy(),
       block = reader.block

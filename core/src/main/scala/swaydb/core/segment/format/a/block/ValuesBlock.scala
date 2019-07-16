@@ -32,10 +32,10 @@ private[core] object ValuesBlock {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
-  def emptyDecompressed: UnblockedReader[ValuesBlock] =
+  def emptyUnblocked: UnblockedReader[ValuesBlock] =
     UnblockedReader.empty(ValuesBlock.empty)(ValuesBlockUpdater)
 
-  def decompressed(bytes: Slice[Byte])(implicit blockUpdater: BlockUpdater[ValuesBlock]): UnblockedReader[ValuesBlock] =
+  def unblocked(bytes: Slice[Byte])(implicit blockUpdater: BlockUpdater[ValuesBlock]): UnblockedReader[ValuesBlock] =
     UnblockedReader(
       decompressedBytes = bytes,
       block = ValuesBlock(ValuesBlock.Offset(0, bytes.size), 0, None)
@@ -137,7 +137,7 @@ private[core] object ValuesBlock {
     }
 
   def close(state: State): IO[State] =
-    Block.compress(
+    Block.block(
       headerSize = state.headerSize,
       bytes = state.bytes,
       compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),

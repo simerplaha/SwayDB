@@ -80,7 +80,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues.head.indexEntryBytes),
         mightBeCompressed = randomBoolean(),
-        valueReader = Some(ValuesBlock.decompressed(keyValues.head.valueEntryBytes.head)),
+        valueReader = Some(ValuesBlock.unblocked(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = keyValues.head.indexEntryBytes.size,
         nextIndexSize = keyValues(1).indexEntryBytes.size,
@@ -106,7 +106,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues(1).indexEntryBytes),
         mightBeCompressed = true,
-        valueReader = Some(ValuesBlock.decompressed(keyValues.head.valueEntryBytes.head)),
+        valueReader = Some(ValuesBlock.unblocked(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = keyValues(1).indexEntryBytes.size,
         nextIndexSize = keyValues(2).indexEntryBytes.size,
@@ -132,7 +132,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues(2).indexEntryBytes),
         mightBeCompressed = true,
-        valueReader = Some(ValuesBlock.decompressed(keyValues.head.valueEntryBytes.head)),
+        valueReader = Some(ValuesBlock.unblocked(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = 0,
         nextIndexSize = 0,
@@ -179,7 +179,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues.head.indexEntryBytes),
         mightBeCompressed = randomBoolean(),
-        valueReader = Some(ValuesBlock.decompressed(keyValues.head.valueEntryBytes.head)),
+        valueReader = Some(ValuesBlock.unblocked(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = keyValues.head.indexEntryBytes.size,
         nextIndexSize = keyValues(1).indexEntryBytes.size,
@@ -205,7 +205,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues(1).indexEntryBytes),
         mightBeCompressed = true,
-        valueReader = Some(ValuesBlock.decompressed(keyValues.head.valueEntryBytes.head)),
+        valueReader = Some(ValuesBlock.unblocked(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = keyValues(1).indexEntryBytes.size,
         nextIndexSize = keyValues(2).indexEntryBytes.size,
@@ -231,7 +231,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues(2).indexEntryBytes),
         mightBeCompressed = true,
-        valueReader = Some(ValuesBlock.decompressed(keyValues.head.valueEntryBytes.head)),
+        valueReader = Some(ValuesBlock.unblocked(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = 0,
         nextIndexSize = 0,

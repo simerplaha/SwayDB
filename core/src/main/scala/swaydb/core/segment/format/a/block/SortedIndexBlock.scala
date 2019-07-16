@@ -133,8 +133,20 @@ private[core] object SortedIndexBlock {
     )
   }
 
+  def write(keyValue: Transient, state: SortedIndexBlock.State): IO[Unit] =
+    IO {
+      if (state.enableAccessPositionIndex) {
+        state.bytes addIntUnsigned (keyValue.indexEntryBytes.size + keyValue.stats.thisKeyValueAccessIndexPositionByteSize)
+        state.bytes addIntUnsigned keyValue.stats.thisKeyValueAccessIndexPosition
+        state.bytes addAll keyValue.indexEntryBytes
+      } else {
+        state.bytes addIntUnsigned keyValue.indexEntryBytes.size
+        state.bytes addAll keyValue.indexEntryBytes
+      }
+    }
+
   def close(state: State): IO[State] =
-    Block.compress(
+    Block.block(
       headerSize = state.headerSize,
       bytes = state.bytes,
       compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
@@ -148,18 +160,6 @@ private[core] object SortedIndexBlock {
           IO.Failure(IO.Error.Fatal(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}"))
         else
           IO.Success(state)
-    }
-
-  def write(keyValue: Transient, state: SortedIndexBlock.State) =
-    IO {
-      if (state.enableAccessPositionIndex) {
-        state.bytes addIntUnsigned (keyValue.indexEntryBytes.size + keyValue.stats.thisKeyValueAccessIndexPositionByteSize)
-        state.bytes addIntUnsigned keyValue.stats.thisKeyValueAccessIndexPosition
-        state.bytes addAll keyValue.indexEntryBytes
-      } else {
-        state.bytes addIntUnsigned keyValue.indexEntryBytes.size
-        state.bytes addAll keyValue.indexEntryBytes
-      }
     }
 
   def read(offset: SortedIndexBlock.Offset,

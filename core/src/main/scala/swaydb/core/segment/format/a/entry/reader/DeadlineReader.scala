@@ -146,7 +146,7 @@ object DeadlineReader {
   }
 
   implicit object DeadlineUncompressedReader extends DeadlineReader[BaseEntryId.Deadline.Uncompressed] {
-    override def isPrefixCompressed: Boolean = true
+    override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
