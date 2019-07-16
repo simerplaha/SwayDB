@@ -27,6 +27,7 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.{DBFile, IOEffect}
+import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
@@ -428,8 +429,9 @@ private[core] object Segment extends LazyLogging {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
                                   keyValueLimiter: KeyValueLimiter,
-                                  fileOpenLimiter: FileLimiter,
-                                  compression: Option[KeyValueGroupingStrategyInternal]): IO[Segment] = {
+                                  fileOpenLimiter: FileLimiter): IO[Segment] = {
+
+    implicit val segmentIO = SegmentIO.defaultSynchronised
 
     val file =
       if (mmapReads)
@@ -441,38 +443,56 @@ private[core] object Segment extends LazyLogging {
       file =>
         file.fileSize flatMap {
           fileSize =>
-            //            SortedIndex
-            //              .readAll(Reader(file))
-            //              .flatMap {
-            //                keyValues =>
-            //                  file.close flatMap {
-            //                    _ =>
-            //                      DeadlineAndFunctionId(keyValues) map {
-            //                        deadlineMinMaxFunctionId =>
-            //                          PersistentSegment(
-            //                            file = file,
-            //                            mmapReads = mmapReads,
-            //                            mmapWrites = mmapWrites,
-            //                            minKey = keyValues.head.key.unslice(),
-            //                            maxKey =
-            //                              keyValues.last match {
-            //                                case fixed: KeyValue.ReadOnly.Fixed =>
-            //                                  MaxKey.Fixed(fixed.key.unslice())
-            //
-            //                                case group: KeyValue.ReadOnly.Group =>
-            //                                  group.maxKey.unslice()
-            //
-            //                                case range: KeyValue.ReadOnly.Range =>
-            //                                  MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
-            //                              },
-            //                            minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
-            //                            segmentSize = fileSize.toInt,
-            //                            nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline
-            //                          )
-            //                      }
-            //                  }
-            //              }
-            ???
+            val segmentBlockCache =
+              SegmentBlockCache(
+                id = "Reading segment",
+                segmentIO = segmentIO,
+                segmentBlockOffset = SegmentBlock.Offset(0, fileSize.toInt),
+                rawSegmentReader = () => Reader(file)
+              )
+
+            segmentBlockCache.getFooter() flatMap {
+              footer =>
+                segmentBlockCache.createSortedIndexReader() flatMap {
+                  sortedIndexReader =>
+                    segmentBlockCache.createValuesReader() flatMap {
+                      valuesReader =>
+                        SortedIndexBlock.readAll(
+                          keyValueCount = footer.keyValueCount,
+                          sortedIndexReader = sortedIndexReader,
+                          valuesReader = valuesReader
+                        ) flatMap {
+                          keyValues =>
+                            file.close flatMap {
+                              _ =>
+                                DeadlineAndFunctionId(keyValues) flatMap {
+                                  deadlineMinMaxFunctionId =>
+                                    PersistentSegment(
+                                      file = file,
+                                      mmapReads = mmapReads,
+                                      mmapWrites = mmapWrites,
+                                      minKey = keyValues.head.key.unslice(),
+                                      maxKey =
+                                        keyValues.last match {
+                                          case fixed: KeyValue.ReadOnly.Fixed =>
+                                            MaxKey.Fixed(fixed.key.unslice())
+
+                                          case group: KeyValue.ReadOnly.Group =>
+                                            group.maxKey.unslice()
+
+                                          case range: KeyValue.ReadOnly.Range =>
+                                            MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+                                        },
+                                      minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
+                                      segmentSize = fileSize.toInt,
+                                      nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
   }

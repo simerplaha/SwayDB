@@ -66,7 +66,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                 mmapReads = false,
                 mmapWrites = false,
                 checkExists = true
-              )(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, None)
+              )(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty)
           }
           .flatMap {
             segments =>
