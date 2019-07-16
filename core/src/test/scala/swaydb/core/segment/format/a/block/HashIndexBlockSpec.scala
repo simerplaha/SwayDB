@@ -32,6 +32,7 @@ import swaydb.data.slice.Slice
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.util.Random
 
 class HashIndexBlockSpec extends TestBase {
 
@@ -311,27 +312,49 @@ class HashIndexBlockSpec extends TestBase {
 
   "searching a segment" should {
     "value" in {
-      val keyValues =
-        randomizedKeyValues(
-          count = 100,
-          startId = Some(1)
-        )
+      runThis(100.times, log = true) {
+        //create a bunch of key-values so that it creates a perfect hash
+        val compressions = if (randomBoolean()) randomCompressions() else Seq.empty
 
-//      val segment = SegmentBlock.writeClosed(keyValues, 0, SegmentBlock.Config.random).get
+        val keyValues =
+          randomizedKeyValues(
+            count = 1000,
+            addPut = true,
+            startId = Some(1)
+          ).updateStats(
+            hashIndexConfig =
+              HashIndexBlock.Config(
+                maxProbe = 1000,
+                minimumNumberOfKeys = 0,
+                minimumNumberOfHits = 0,
+                allocateSpace = _.requiredSpace * 5,
+                blockIO = _ => randomBlockIO(),
+                compressions = _ => compressions
+              ),
+            sortedIndexConfig =
+              SortedIndexBlock.Config(
+                blockIO = _ => randomBlockIO(),
+                prefixCompressionResetCount = 0,
+                enableAccessPositionIndex = randomBoolean(),
+                compressions = _ => compressions
+              )
+          )
 
+        val blocks = getBlocks(keyValues).get
+        blocks.hashIndexReader shouldBe defined
+        blocks.hashIndexReader.get.block.hit shouldBe keyValues.last.stats.segmentUniqueKeysCount
+        blocks.hashIndexReader.get.block.miss shouldBe 0
 
-
-      //      val segment = SegmentWriter.write(keyValues, segmentCompressions = randomSegmentCompression(), 0, 5).get.flattenSegmentBytes
-      //      val indexes = readBlocks(Reader(segment)).get
-      //
-      //      indexes._4.get.block.miss shouldBe 0
-      //
-      //      Random.shuffle(keyValues) foreach {
-      //        keyValue =>
-      //          indexes._4 shouldBe defined
-      //          val got = HashIndex.get(KeyMatcher.Get.WhilePrefixCompressed(keyValue.key), indexes._4.get, indexes._3, indexes._2).get.get
-      //          got shouldBe keyValue
-      //      }
+        Random.shuffle(keyValues.toList) foreach {
+          keyValue =>
+            HashIndexBlock.search(
+              keyValue.minKey,
+              blocks.hashIndexReader.get,
+              blocks.sortedIndexReader,
+              blocks.valuesReader
+            ).get.get shouldBe keyValue
+        }
+      }
     }
   }
 }
