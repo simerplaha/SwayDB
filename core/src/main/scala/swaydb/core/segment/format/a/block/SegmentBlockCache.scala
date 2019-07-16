@@ -23,35 +23,27 @@ import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.util.cache.Cache
 import swaydb.data.config.{BlockIO, BlockStatus}
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Slice
 import swaydb.data.{IO, Reserve}
 
 object SegmentBlockCache {
 
   def apply(id: String,
             segmentIO: SegmentIO,
-            segmentBlockOffset: SegmentBlock.Offset,
-            rawSegmentReader: () => Reader): SegmentBlockCache =
+            segmentReader: BlockedReader[SegmentBlock]): SegmentBlockCache =
     new SegmentBlockCache(
       id = id,
       segmentIO = segmentIO,
-      segmentBlockInfo =
-        new SegmentBlockInfo(
-          segmentBlockOffset = segmentBlockOffset,
-          segmentReader = rawSegmentReader
-        )
+      segmentBlockedReader = segmentReader
     )
 }
-
-protected class SegmentBlockInfo(val segmentBlockOffset: SegmentBlock.Offset,
-                                 val segmentReader: () => Reader)
 
 /**
   * Implements configured caching & IO strategies for all blocks within a Segment.
   */
 class SegmentBlockCache(id: String,
                         val segmentIO: SegmentIO,
-                        segmentBlockInfo: SegmentBlockInfo) {
+                        segmentBlockedReader: BlockedReader[SegmentBlock]) {
 
   def segmentBlockIO = segmentIO.segmentBlockIO
   def hashIndexBlockIO = segmentIO.hashIndexBlockIO
@@ -64,15 +56,15 @@ class SegmentBlockCache(id: String,
   /**
     * Full Segment cache.
     */
-  private[block] val segmentBlockCache: Cache[SegmentBlockInfo, SegmentBlock] =
-    Cache.blockIO[SegmentBlockInfo, SegmentBlock](
+  private[block] val segmentBlockCache: Cache[BlockedReader[SegmentBlock], SegmentBlock] =
+    Cache.blockIO[BlockedReader[SegmentBlock], SegmentBlock](
       blockIO = _ => segmentBlockIO(BlockStatus.BlockInfo(SegmentBlock.hasCompressionHeaderSize)),
       reserveError = IO.Error.ReservedValue(Reserve())
     ) {
-      segmentBlockInfo =>
+      segmentBlockedReader =>
         SegmentBlock.read(
-          offset = segmentBlockInfo.segmentBlockOffset,
-          segmentReader = segmentBlockInfo.segmentReader()
+          offset = segmentBlockedReader.block.offset,
+          segmentReader = segmentBlockedReader.copy()
         )
     }
 
@@ -178,11 +170,7 @@ class SegmentBlockCache(id: String,
     ) {
       segmentBlock =>
         Block.unblock(
-          reader =
-            BlockedReader(
-              block = segmentBlock,
-              reader = segmentBlockInfo.segmentReader()
-            ),
+          reader = segmentBlockedReader.copy(),
           readAllIfUncompressed =
             segmentBlockIO(segmentBlock.blockStatus).cacheOnAccess
         )
@@ -248,7 +236,7 @@ class SegmentBlockCache(id: String,
 
   private[block] def getSegmentBlock(): IO[SegmentBlock] =
     segmentBlockCache getOrElse {
-      segmentBlockCache.value(segmentBlockInfo)
+      segmentBlockCache.value(segmentBlockedReader.copy())
     }
 
   private[block] def createSegmentBlockReader(): IO[UnblockedReader[SegmentBlock]] =

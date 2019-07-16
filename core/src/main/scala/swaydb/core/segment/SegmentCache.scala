@@ -25,10 +25,10 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.util.ExceptionUtil
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey}
 
 private[core] object SegmentCache {
@@ -37,8 +37,7 @@ private[core] object SegmentCache {
             maxKey: MaxKey[Slice[Byte]],
             minKey: Slice[Byte],
             unsliceKey: Boolean,
-            segmentBlockOffset: SegmentBlock.Offset,
-            rawSegmentReader: () => Reader,
+            segmentReader: BlockedReader[SegmentBlock],
             segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   keyValueLimiter: KeyValueLimiter): SegmentCache =
     new SegmentCache(
@@ -50,8 +49,7 @@ private[core] object SegmentCache {
       blockCache =
         SegmentBlockCache(
           id = id,
-          segmentBlockOffset = segmentBlockOffset,
-          rawSegmentReader = rawSegmentReader,
+          segmentReader = segmentReader,
           segmentIO = segmentIO
         )
     )(keyOrder = keyOrder, keyValueLimiter = keyValueLimiter, groupIO = segmentIO)

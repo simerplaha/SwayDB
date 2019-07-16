@@ -41,7 +41,7 @@ import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.IO
@@ -1438,16 +1438,14 @@ object CommonAssertions {
     SegmentBlockCache(
       id = "test",
       segmentIO = SegmentIO.random,
-      segmentBlockOffset = SegmentBlock.Offset(0, segment.segmentSize),
-      rawSegmentReader = () => Reader(segment.flattenSegmentBytes)
+      segmentReader = BlockedReader(SegmentBlock(SegmentBlock.Offset(0, segment.segmentSize), 0, None), segment.flattenSegmentBytes)
     )
 
   def getSegmentBlockCache(reader: Reader): SegmentBlockCache =
     SegmentBlockCache(
       id = "test-cache",
       segmentIO = SegmentIO.random,
-      segmentBlockOffset = SegmentBlock.Offset(0, reader.size.get.toInt),
-      rawSegmentReader = () => reader
+      segmentReader = BlockedReader(SegmentBlock(SegmentBlock.Offset(0, reader.size.get.toInt), 0, None), reader.copy())
     )
 
   def readAll(reader: Reader): IO[Slice[KeyValue.ReadOnly]] = {
@@ -1683,7 +1681,7 @@ object CommonAssertions {
     val groupKeyValues = persistedGroup.segment.getAll().get
     groupKeyValues should have size group.keyValues.size
     groupKeyValues shouldBe group.keyValues
-//    persistedGroup.segment.blockCache.isCached shouldBe false
+    //    persistedGroup.segment.blockCache.isCached shouldBe false
     persistedGroup
   }
 

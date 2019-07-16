@@ -32,6 +32,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
 import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.{FiniteDurationUtil, IDGenerator, MinMax}
@@ -447,8 +448,7 @@ private[core] object Segment extends LazyLogging {
               SegmentBlockCache(
                 id = "Reading segment",
                 segmentIO = segmentIO,
-                segmentBlockOffset = SegmentBlock.Offset(0, fileSize.toInt),
-                rawSegmentReader = () => Reader(file)
+                segmentReader = BlockedReader(SegmentBlock(SegmentBlock.Offset(0, fileSize.toInt), 0, None), Reader(file))
               )
 
             segmentBlockCache.getFooter() flatMap {

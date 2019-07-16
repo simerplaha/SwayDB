@@ -24,7 +24,7 @@ import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
@@ -406,8 +406,7 @@ private[swaydb] object Memory {
             maxKey = maxKey,
             minKey = minKey,
             unsliceKey = false,
-            segmentBlockOffset = SegmentBlock.Offset(0, segmentBytes.size),
-            rawSegmentReader = () => Reader(segmentBytes),
+            segmentReader = BlockedReader(SegmentBlock(SegmentBlock.Offset(0, segmentBytes.size), 0, None), Reader(segmentBytes)),
             segmentIO = groupIO
           )(keyOrder, limiter)
       }
@@ -1688,12 +1687,15 @@ private[core] object Persistent {
             //slicing will just use more memory. On memory overflow the Group itself will find dropped and hence all the
             //key-values inside the group's SegmentCache will also be GC'd.
             unsliceKey = false,
-            segmentBlockOffset =
-              SegmentBlock.Offset(
-                start = valueOffset,
-                size = valueLength
+            segmentReader =
+              BlockedReader(
+                block = SegmentBlock(
+                  offset = SegmentBlock.Offset(start = valueOffset, size = valueLength),
+                  headerSize = 0,
+                  compressionInfo = None
+                ),
+                reader = valueReader.copy()
               ),
-            rawSegmentReader = () => valueReader.copy(),
             segmentIO = groupIO
           )(keyOrder, limiter)
       }
