@@ -114,6 +114,7 @@ object TestData {
                                                  keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                  fileOpenLimiter: FileLimiter = fileOpenLimiter,
                                                  timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                 segmentIO: SegmentIO = SegmentIO.random,
                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000))) {
 
     def tryReopen: IO[Segment] =
@@ -148,7 +149,8 @@ object TestData {
                                            ec: ExecutionContext,
                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                            keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                           compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000))) {
+                                           compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000)),
+                                           segmentIO: SegmentIO = SegmentIO.random) {
 
     import swaydb.data.IO._
 

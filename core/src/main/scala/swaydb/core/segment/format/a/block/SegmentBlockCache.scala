@@ -27,25 +27,14 @@ import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{IO, Reserve}
 
 object SegmentBlockCache {
+
   def apply(id: String,
-            segmentBlockIO: BlockStatus => BlockIO,
-            hashIndexBlockIO: BlockStatus => BlockIO,
-            bloomFilterBlockIO: BlockStatus => BlockIO,
-            binarySearchIndexBlockIO: BlockStatus => BlockIO,
-            sortedIndexBlockIO: BlockStatus => BlockIO,
-            valuesBlockIO: BlockStatus => BlockIO,
-            segmentFooterBlockIO: BlockStatus => BlockIO,
+            segmentIO: SegmentIO,
             segmentBlockOffset: SegmentBlock.Offset,
             rawSegmentReader: () => Reader): SegmentBlockCache =
     new SegmentBlockCache(
       id = id,
-      segmentBlockIO = segmentBlockIO,
-      hashIndexBlockIO = hashIndexBlockIO,
-      bloomFilterBlockIO = bloomFilterBlockIO,
-      binarySearchIndexBlockIO = binarySearchIndexBlockIO,
-      sortedIndexBlockIO = sortedIndexBlockIO,
-      valuesBlockIO = valuesBlockIO,
-      segmentFooterBlockIO = segmentFooterBlockIO,
+      segmentIO = segmentIO,
       segmentBlockInfo =
         new SegmentBlockInfo(
           segmentBlockOffset = segmentBlockOffset,
@@ -61,14 +50,16 @@ protected class SegmentBlockInfo(val segmentBlockOffset: SegmentBlock.Offset,
   * Implements configured caching & IO strategies for all blocks within a Segment.
   */
 class SegmentBlockCache(id: String,
-                        segmentBlockIO: BlockStatus => BlockIO,
-                        hashIndexBlockIO: BlockStatus => BlockIO,
-                        bloomFilterBlockIO: BlockStatus => BlockIO,
-                        binarySearchIndexBlockIO: BlockStatus => BlockIO,
-                        sortedIndexBlockIO: BlockStatus => BlockIO,
-                        valuesBlockIO: BlockStatus => BlockIO,
-                        segmentFooterBlockIO: BlockStatus => BlockIO,
+                        val segmentIO: SegmentIO,
                         segmentBlockInfo: SegmentBlockInfo) {
+
+  def segmentBlockIO = segmentIO.segmentBlockIO
+  def hashIndexBlockIO = segmentIO.hashIndexBlockIO
+  def bloomFilterBlockIO = segmentIO.bloomFilterBlockIO
+  def binarySearchIndexBlockIO = segmentIO.binarySearchIndexBlockIO
+  def sortedIndexBlockIO = segmentIO.sortedIndexBlockIO
+  def valuesBlockIO = segmentIO.valuesBlockIO
+  def segmentFooterBlockIO = segmentIO.segmentFooterBlockIO
 
   /**
     * Full Segment cache.

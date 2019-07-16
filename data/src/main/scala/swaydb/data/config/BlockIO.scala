@@ -27,8 +27,9 @@ object BlockIO {
     * The default [[BlockIO]] strategy used for all [[BlockStatus.CompressedBlock]]
     * or [[BlockStatus.UncompressedBlock]] blocks.
     */
-  def default(blockStatus: BlockStatus) =
-    BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed)
+  val defaultSynchronised: BlockStatus => BlockIO.SynchronisedIO =
+    (blockStatus: BlockStatus) =>
+      BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed)
 
   /**
     * The default [[BlockIO]] strategy used for all [[BlockStatus.BlockInfo]].

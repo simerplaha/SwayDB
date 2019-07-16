@@ -173,6 +173,9 @@ class CacheUnsafe[I, O](fetch: I => O, lazyValue: LazyValue[O]) {
   def isCached: Boolean =
     lazyValue.isDefined
 
+  def getOrElse(f: => O): O =
+    lazyValue getOrElse f
+
   def clear() =
     lazyValue.clear()
 }

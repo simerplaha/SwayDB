@@ -39,6 +39,15 @@ private[swaydb] sealed trait KeyValueGroupingStrategyInternal extends GroupingSt
   def sortedIndexConfig: SortedIndexBlock.Config
   def valuesConfig: ValuesBlock.Config
   def groupConfig: SegmentBlock.Config
+  def groupIO: SegmentIO =
+    SegmentIO(
+      bloomFilterConfig = bloomFilterConfig,
+      hashIndexConfig = hashIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      valuesConfig = valuesConfig,
+      segmentConfig = groupConfig
+    )
 }
 
 private[swaydb] object KeyValueGroupingStrategyInternal {

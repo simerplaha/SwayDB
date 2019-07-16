@@ -55,7 +55,7 @@ private[core] object ValuesBlock {
       Config(
         compressDuplicateValues = enable.compressDuplicateValues,
         compressDuplicateRangeValues = enable.compressDuplicateRangeValues,
-        blockIO = FunctionUtil.safe(BlockIO.default, enable.blockIO),
+        blockIO = FunctionUtil.safe(BlockIO.defaultSynchronised, enable.blockIO),
         compressions =
           FunctionUtil.safe(
             default = _ => Seq.empty[CompressionInternal],

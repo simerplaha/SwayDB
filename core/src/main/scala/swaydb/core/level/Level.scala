@@ -104,6 +104,17 @@ private[core] object Level extends LazyLogging {
     acquireLock(levelStorage) flatMap {
       lock =>
         //lock acquired.
+        //initialise Segment IO for this Level.
+        implicit val segmentIO =
+          SegmentIO(
+            bloomFilterConfig = bloomFilterConfig,
+            hashIndexConfig = hashIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            valuesConfig = valuesConfig,
+            segmentConfig = segmentConfig
+          )
+
         //initialise readers & writers
         import AppendixMapEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
 
@@ -336,6 +347,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                                               fileOpenLimiter: FileLimiter,
                                                                               val groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                                               val segmentIDGenerator: IDGenerator,
+                                                                              segmentIO: SegmentIO,
                                                                               reserve: ReserveRange.State[Unit]) extends NextLevel with LazyLogging { self =>
 
   logger.info(s"{}: Level started.", paths)

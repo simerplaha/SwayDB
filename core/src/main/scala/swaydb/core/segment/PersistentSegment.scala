@@ -27,6 +27,7 @@ import swaydb.core.data.{Persistent, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.DBFile
+import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
@@ -40,6 +41,47 @@ import swaydb.data.{IO, MaxKey}
 
 import scala.concurrent.duration.Deadline
 
+object PersistentSegment {
+  def apply(file: DBFile,
+            mmapReads: Boolean,
+            mmapWrites: Boolean,
+            minKey: Slice[Byte],
+            maxKey: MaxKey[Slice[Byte]],
+            minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+            segmentSize: Int,
+            nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                     timeOrder: TimeOrder[Slice[Byte]],
+                                                     functionStore: FunctionStore,
+                                                     keyValueLimiter: KeyValueLimiter,
+                                                     fileOpenLimiter: FileLimiter,
+                                                     segmentIO: SegmentIO): IO[PersistentSegment] =
+    file.fileSize map {
+      fileSize =>
+        val segmentCache =
+          SegmentCache(
+            id = file.path.toString,
+            maxKey = maxKey,
+            minKey = minKey,
+            segmentIO = segmentIO,
+            unsliceKey = true,
+            segmentBlockOffset = SegmentBlock.Offset(0, fileSize.toInt),
+            rawSegmentReader = () => Reader(file)
+          )
+
+        new PersistentSegment(
+          file = file,
+          mmapReads = mmapReads,
+          mmapWrites = mmapWrites,
+          minKey = minKey,
+          maxKey = maxKey,
+          minMaxFunctionId = minMaxFunctionId,
+          segmentSize = segmentSize,
+          nearestExpiryDeadline = nearestExpiryDeadline,
+          segmentCache = segmentCache
+        )
+    }
+}
+
 private[segment] case class PersistentSegment(file: DBFile,
                                               mmapReads: Boolean,
                                               mmapWrites: Boolean,
@@ -47,25 +89,15 @@ private[segment] case class PersistentSegment(file: DBFile,
                                               maxKey: MaxKey[Slice[Byte]],
                                               minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                               segmentSize: Int,
-                                              nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                                                       functionStore: FunctionStore,
-                                                                                       keyValueLimiter: KeyValueLimiter,
-                                                                                       fileOpenLimiter: FileLimiter) extends Segment with LazyLogging {
+                                              nearestExpiryDeadline: Option[Deadline],
+                                              segmentCache: SegmentCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                                          functionStore: FunctionStore,
+                                                                          keyValueLimiter: KeyValueLimiter,
+                                                                          fileOpenLimiter: FileLimiter,
+                                                                          segmentIO: SegmentIO) extends Segment with LazyLogging {
 
   def path = file.path
-
-  //  private val segmentBlockCache = Cache.io[SegmentBlock](synchronised = true, stored = true)(getSegmentBlock())
-
-  private val segmentCache: SegmentCache =
-  //    SegmentCache(
-  //      id = file.path.toString,
-  //      maxKey = maxKey,
-  //      minKey = minKey,
-  //      unsliceKey = true,
-  //      rawSegmentReader = () => segmentBlockCache.map(_.createBlockReader(Reader(file)))
-  //    )
-    ???
 
   def cache: ConcurrentSkipListMap[Slice[Byte], Persistent] =
     segmentCache.persistentCache
@@ -126,7 +158,8 @@ private[segment] case class PersistentSegment(file: DBFile,
           sortedIndexConfig = sortedIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig
+          bloomFilterConfig = bloomFilterConfig,
+          segmentIO = segmentIO
         ) flatMap {
           splits =>
             splits.mapIO(
@@ -176,7 +209,8 @@ private[segment] case class PersistentSegment(file: DBFile,
           sortedIndexConfig = sortedIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig
+          bloomFilterConfig = bloomFilterConfig,
+          segmentIO = segmentIO
         ) flatMap {
           splits =>
             splits.mapIO(

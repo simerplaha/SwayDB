@@ -293,10 +293,13 @@ private[merge] object SegmentGrouper extends LazyLogging {
                    sortedIndexConfig: SortedIndexBlock.Config,
                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                    hashIndexConfig: HashIndexBlock.Config,
-                   bloomFilterConfig: BloomFilterBlock.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                               keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] =
+                   bloomFilterConfig: BloomFilterBlock.Config,
+                   segmentIO: SegmentIO)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                         keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] =
     keyValues.headOption match {
       case Some(keyValue) =>
+        implicit val groupIO = groupingStrategy.map(_.groupIO) getOrElse segmentIO
+
         keyValue match {
           case keyValue: KeyValue.ReadOnly.Group =>
             keyValue.segment.getAll() match {
@@ -311,7 +314,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   sortedIndexConfig = sortedIndexConfig,
                   binarySearchIndexConfig = binarySearchIndexConfig,
                   hashIndexConfig = hashIndexConfig,
-                  bloomFilterConfig = bloomFilterConfig
+                  bloomFilterConfig = bloomFilterConfig,
+                  segmentIO = segmentIO
                 )
               case IO.Failure(exception) =>
                 IO.Failure(exception)
@@ -328,7 +332,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
               sortedIndexConfig = sortedIndexConfig,
               binarySearchIndexConfig = binarySearchIndexConfig,
               hashIndexConfig = hashIndexConfig,
-              bloomFilterConfig = bloomFilterConfig
+              bloomFilterConfig = bloomFilterConfig,
+              segmentIO = segmentIO
             ) match {
               case IO.Success(_) =>
                 addKeyValues(
@@ -341,7 +346,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   sortedIndexConfig = sortedIndexConfig,
                   binarySearchIndexConfig = binarySearchIndexConfig,
                   hashIndexConfig = hashIndexConfig,
-                  bloomFilterConfig = bloomFilterConfig
+                  bloomFilterConfig = bloomFilterConfig,
+                  segmentIO = segmentIO
                 )
               case IO.Failure(exception) =>
                 IO.Failure(exception)
@@ -360,8 +366,9 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   sortedIndexConfig: SortedIndexBlock.Config,
                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                   hashIndexConfig: HashIndexBlock.Config,
-                  bloomFilterConfig: BloomFilterBlock.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                              keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] = {
+                  bloomFilterConfig: BloomFilterBlock.Config,
+                  segmentIO: SegmentIO)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                        keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] = {
 
     def doAdd(keyValueToAdd: Option[Transient] => Transient): IO[Unit] = {
 
@@ -693,6 +700,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
             }
 
         case group: KeyValue.ReadOnly.Group =>
+          implicit val groupIO = groupingStrategy.map(_.groupIO) getOrElse segmentIO
           group.segment.getAll() flatMap {
             keyValues =>
               addKeyValues(
@@ -705,7 +713,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 sortedIndexConfig = sortedIndexConfig,
                 binarySearchIndexConfig = binarySearchIndexConfig,
                 hashIndexConfig = hashIndexConfig,
-                bloomFilterConfig = bloomFilterConfig
+                bloomFilterConfig = bloomFilterConfig,
+                segmentIO = segmentIO
               )
           }
       }

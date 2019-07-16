@@ -44,6 +44,7 @@ class SegmentBlockSpec extends TestBase {
   implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
 
   implicit def testTimer: TestTimer = TestTimer.random
+  implicit def segmentIO: SegmentIO = SegmentIO.random
 
   "SegmentBlock" should {
     "convert empty KeyValues and not throw exception but return empty bytes" in {

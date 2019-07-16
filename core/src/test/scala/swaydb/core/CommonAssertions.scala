@@ -105,7 +105,8 @@ object CommonAssertions {
       }
 
     def shouldBe(expected: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                     keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Unit = {
+                                     keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                     segmentIO: SegmentIO = SegmentIO.random): Unit = {
       val actualMemory = actual.toMemory
       val expectedMemory = expected.toMemory
 
@@ -430,7 +431,8 @@ object CommonAssertions {
         sortedIndexConfig = SortedIndexBlock.Config.random,
         binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
         hashIndexConfig = HashIndexBlock.Config.random,
-        bloomFilterConfig = BloomFilterBlock.Config.random
+        bloomFilterConfig = BloomFilterBlock.Config.random,
+        segmentIO = SegmentIO.random
       ).assertGet
 
     if (expected.size == 0) {
@@ -1253,7 +1255,8 @@ object CommonAssertions {
   }
 
   def unzipGroups[T <: KeyValue](keyValues: Iterable[T])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                         keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
+                                                         keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                         segmentIO: SegmentIO = SegmentIO.random): Slice[Transient] =
     keyValues.flatMap {
       case keyValue: Transient.Group =>
         unzipGroups(keyValue.keyValues)
@@ -1434,13 +1437,7 @@ object CommonAssertions {
   def getSegmentBlockCache(segment: SegmentBlock.Closed): SegmentBlockCache =
     SegmentBlockCache(
       id = "test",
-      segmentBlockIO = _ => randomBlockIO(),
-      hashIndexBlockIO = _ => randomBlockIO(),
-      bloomFilterBlockIO = _ => randomBlockIO(),
-      binarySearchIndexBlockIO = _ => randomBlockIO(),
-      sortedIndexBlockIO = _ => randomBlockIO(),
-      valuesBlockIO = _ => randomBlockIO(),
-      segmentFooterBlockIO = _ => randomBlockIO(),
+      segmentIO = SegmentIO.random,
       segmentBlockOffset = SegmentBlock.Offset(0, segment.segmentSize),
       rawSegmentReader = () => Reader(segment.flattenSegmentBytes)
     )
@@ -1448,13 +1445,7 @@ object CommonAssertions {
   def getSegmentBlockCache(reader: Reader): SegmentBlockCache =
     SegmentBlockCache(
       id = "test-cache",
-      segmentBlockIO = _ => randomBlockIO(),
-      hashIndexBlockIO = _ => randomBlockIO(),
-      bloomFilterBlockIO = _ => randomBlockIO(),
-      binarySearchIndexBlockIO = _ => randomBlockIO(),
-      sortedIndexBlockIO = _ => randomBlockIO(),
-      valuesBlockIO = _ => randomBlockIO(),
-      segmentFooterBlockIO = _ => randomBlockIO(),
+      segmentIO = SegmentIO.random,
       segmentBlockOffset = SegmentBlock.Offset(0, reader.size.get.toInt),
       rawSegmentReader = () => reader
     )
@@ -1485,7 +1476,8 @@ object CommonAssertions {
   }
 
   def printGroupHierarchy(keyValues: Slice[KeyValue.ReadOnly], spaces: Int)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                            keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Unit =
+                                                                            keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                                            segmentIO: SegmentIO = SegmentIO.random): Unit =
     keyValues foreachBreak {
       case group: Persistent.Group =>
         println(s"$spaces " + " " * spaces + group.getClass.getSimpleName)
@@ -1516,7 +1508,8 @@ object CommonAssertions {
     }
 
   def openGroup(group: KeyValue.ReadOnly.Group)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[KeyValue.ReadOnly] = {
+                                                keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                segmentIO: SegmentIO = SegmentIO.random): Slice[KeyValue.ReadOnly] = {
     val allKeyValues = group.segment.getAll().assertGet
     allKeyValues flatMap {
       case group: KeyValue.ReadOnly.Group =>
@@ -1682,7 +1675,8 @@ object CommonAssertions {
   }
 
   def assertGroup(group: Transient.Group)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                          limiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Persistent.Group = {
+                                          limiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                          segmentIO: SegmentIO = SegmentIO.random): Persistent.Group = {
     val readKeyValues = readAll(group).get
     readKeyValues should have size 1
     val persistedGroup = readKeyValues.head.asInstanceOf[Persistent.Group]
@@ -1702,5 +1696,18 @@ object CommonAssertions {
         readAllIfUncompressed = readFullBlockIfUncompressed,
         parentBlock = reader
       ).get
+  }
+
+  implicit class SegmentIOImplicits(io: SegmentIO.type) {
+    def random =
+      SegmentIO(
+        segmentBlockIO = _ => randomBlockIO(),
+        hashIndexBlockIO = _ => randomBlockIO(),
+        bloomFilterBlockIO = _ => randomBlockIO(),
+        binarySearchIndexBlockIO = _ => randomBlockIO(),
+        sortedIndexBlockIO = _ => randomBlockIO(),
+        valuesBlockIO = _ => randomBlockIO(),
+        segmentFooterBlockIO = _ => randomBlockIO()
+      )
   }
 }

@@ -36,23 +36,24 @@ private[core] object SegmentCache {
             maxKey: MaxKey[Slice[Byte]],
             minKey: Slice[Byte],
             unsliceKey: Boolean,
-            segmentOffset: SegmentBlock.Offset,
-            rawSegmentReader: () => Reader)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                            keyValueLimiter: KeyValueLimiter): SegmentCache =
-  //    new SegmentCache(
-  //      id = id,
-  //      maxKey = maxKey,
-  //      minKey = minKey,
-  //      persistentCache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder),
-  //      unsliceKey = unsliceKey,
-  //      blockCache =
-  //        SegmentBlockCache(
-  //          id = id,
-  //          segmentBlockOffset = segmentOffset,
-  //          rawSegmentReader = rawSegmentReader
-  //        )
-  //    )
-    ???
+            segmentBlockOffset: SegmentBlock.Offset,
+            rawSegmentReader: () => Reader,
+            segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  keyValueLimiter: KeyValueLimiter): SegmentCache =
+    new SegmentCache(
+      id = id,
+      maxKey = maxKey,
+      minKey = minKey,
+      persistentCache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder),
+      unsliceKey = unsliceKey,
+      blockCache =
+        SegmentBlockCache(
+          id = id,
+          segmentBlockOffset = segmentBlockOffset,
+          rawSegmentReader = rawSegmentReader,
+          segmentIO = segmentIO
+        )
+    )(keyOrder = keyOrder, keyValueLimiter = keyValueLimiter, groupIO = segmentIO)
 }
 private[core] class SegmentCache(id: String,
                                  maxKey: MaxKey[Slice[Byte]],
@@ -60,7 +61,8 @@ private[core] class SegmentCache(id: String,
                                  private[segment] val persistentCache: ConcurrentSkipListMap[Slice[Byte], Persistent],
                                  unsliceKey: Boolean,
                                  val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    keyValueLimiter: KeyValueLimiter) extends LazyLogging {
+                                                                    keyValueLimiter: KeyValueLimiter,
+                                                                    groupIO: SegmentIO) extends LazyLogging {
 
 
   import keyOrder._
@@ -367,35 +369,30 @@ private[core] class SegmentCache(id: String,
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     prepareGetAll {
       (footer, sortedIndex, values) =>
-//        SortedIndexBlock
-//          .readAll(
-//            keyValueCount = footer.keyValueCount,
-//            sortedIndexReader = sortedIndex,
-//            valuesReader = values,
-//            addTo = addTo
-//          )
-//          .onFailureSideEffect {
-//            _ =>
-//              logger.trace("{}: Reading sorted index block failed.", id)
-//          }
-        ???
+        SortedIndexBlock
+          .readAll(
+            keyValueCount = footer.keyValueCount,
+            sortedIndexReader = sortedIndex,
+            valuesReader = values,
+            addTo = addTo
+          )
+          .onFailureSideEffect {
+            _ =>
+              logger.trace("{}: Reading sorted index block failed.", id)
+          }
     }
 
   def getHeadKeyValueCount(): IO[Int] =
-  //    blockCache.footer.map(_.keyValueCount)
-    ???
+    blockCache.getFooter().map(_.keyValueCount)
 
   def getBloomFilterKeyValueCount(): IO[Int] =
-  //    blockCache.footer.map(_.bloomFilterItemsCount)
-    ???
+    blockCache.getFooter().map(_.bloomFilterItemsCount)
 
   def hasRange: IO[Boolean] =
-  //    blockCache.footer.map(_.hasRange)
-    ???
+    blockCache.getFooter().map(_.hasRange)
 
   def hasPut: IO[Boolean] =
-  //    blockCache.footer.map(_.hasPut)
-    ???
+    blockCache.getFooter().map(_.hasPut)
 
   def isCacheEmpty =
     persistentCache.isEmpty
@@ -407,12 +404,10 @@ private[core] class SegmentCache(id: String,
     blockCache.isBloomFilterDefined
 
   def createdInLevel: IO[Int] =
-  //    blockCache.footer.map(_.createdInLevel)
-    ???
+    blockCache.getFooter().map(_.createdInLevel)
 
   def isGrouped: IO[Boolean] =
-  //    blockCache.footer.map(_.hasGroup)
-    ???
+    blockCache.getFooter().map(_.hasGroup)
 
   def isInCache(key: Slice[Byte]): Boolean =
     persistentCache containsKey key

@@ -187,7 +187,8 @@ private[core] object KeyValue {
       def minKey: Slice[Byte]
       def maxKey: MaxKey[Slice[Byte]]
       def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                  keyValueLimiter: KeyValueLimiter): SegmentCache
+                  keyValueLimiter: KeyValueLimiter,
+                  groupIO: SegmentIO): SegmentCache
       def deadline: Option[Deadline]
       def isCached: Boolean
     }
@@ -397,16 +398,17 @@ private[swaydb] object Memory {
                    segmentBytes: Slice[Byte],
                    deadline: Option[Deadline]) extends Memory with KeyValue.ReadOnly.Group {
 
-    private val segmentCache: CacheUnsafe[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
+    private val segmentCache: CacheUnsafe[(KeyOrder[Slice[Byte]], KeyValueLimiter, SegmentIO), SegmentCache] =
       Cache.unsafe(synchronised = true, stored = true) {
-        case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter) =>
+        case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter, groupIO: SegmentIO) =>
           SegmentCache(
             id = "Memory.Group - BinarySegment",
-            minKey = minKey,
             maxKey = maxKey,
+            minKey = minKey,
             unsliceKey = false,
-            segmentOffset = SegmentBlock.Offset(0, segmentBytes.size),
-            rawSegmentReader = () => Reader(segmentBytes)
+            segmentBlockOffset = SegmentBlock.Offset(0, segmentBytes.size),
+            rawSegmentReader = () => Reader(segmentBytes),
+            segmentIO = groupIO
           )(keyOrder, limiter)
       }
 
@@ -420,8 +422,11 @@ private[swaydb] object Memory {
       segmentCache.isCached
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                keyValueLimiter: KeyValueLimiter): SegmentCache =
-      segmentCache.value(keyOrder, keyValueLimiter)
+                keyValueLimiter: KeyValueLimiter,
+                config: SegmentIO): SegmentCache =
+      segmentCache getOrElse {
+        segmentCache.value(keyOrder, keyValueLimiter, config)
+      }
 
     def uncompress(): Memory.Group = {
       segmentCache.clear()
@@ -1672,23 +1677,24 @@ private[core] object Persistent {
                    deadline: Option[Deadline],
                    isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group {
 
-    private val segmentCache: CacheUnsafe[(KeyOrder[Slice[Byte]], KeyValueLimiter), SegmentCache] =
+    private val segmentCache: CacheUnsafe[(KeyOrder[Slice[Byte]], KeyValueLimiter, SegmentIO), SegmentCache] =
       Cache.unsafe(synchronised = true, stored = true) {
-        case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter) =>
+        case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter, groupIO: SegmentIO) =>
           SegmentCache(
             id = "Persistent.Group - BinarySegment",
-            minKey = minKey,
             maxKey = maxKey,
+            minKey = minKey,
             //persistent key-value's key do not have be sliced either because the decompressed bytes are still in memory.
             //slicing will just use more memory. On memory overflow the Group itself will find dropped and hence all the
             //key-values inside the group's SegmentCache will also be GC'd.
             unsliceKey = false,
-            segmentOffset =
+            segmentBlockOffset =
               SegmentBlock.Offset(
                 start = valueOffset,
                 size = valueLength
               ),
-            rawSegmentReader = () => valueReader.copy()
+            rawSegmentReader = () => valueReader.copy(),
+            segmentIO = groupIO
           )(keyOrder, limiter)
       }
 
@@ -1712,7 +1718,10 @@ private[core] object Persistent {
     }
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                keyValueLimiter: KeyValueLimiter): SegmentCache =
-      segmentCache.value(keyOrder, keyValueLimiter)
+                keyValueLimiter: KeyValueLimiter,
+                config: SegmentIO): SegmentCache =
+      segmentCache getOrElse {
+        segmentCache.value(keyOrder, keyValueLimiter, config)
+      }
   }
 }

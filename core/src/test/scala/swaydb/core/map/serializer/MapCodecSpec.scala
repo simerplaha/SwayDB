@@ -26,6 +26,7 @@ import swaydb.core.IOAssert._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -40,6 +41,7 @@ class MapCodecSpec extends TestBase {
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def compression = randomGroupingStrategyOption(randomNextInt(1000))
+  implicit def segmentIO: SegmentIO = SegmentIO.random
 
   val appendixReader = AppendixMapEntryReader(true, true)
 

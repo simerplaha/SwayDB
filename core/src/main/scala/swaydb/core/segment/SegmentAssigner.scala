@@ -22,6 +22,7 @@ package swaydb.core.segment
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.map.Map
 import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.segment.merge.MergeList
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
@@ -36,15 +37,18 @@ private[core] object SegmentAssigner {
   implicit val keyValueLimiter = KeyValueLimiter.none
 
   def assignMinMaxOnly(inputSegments: Iterable[Segment],
-                       targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Iterable[Segment]] =
+                       targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                          segmentIO: SegmentIO): IO[Iterable[Segment]] =
     SegmentAssigner.assign(Segment.tempMinMaxKeyValues(inputSegments), targetSegments).map(_.keys)
 
   def assignMinMaxOnly(map: Map[Slice[Byte], Memory.SegmentResponse],
-                       targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Iterable[Segment]] =
+                       targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                          segmentIO: SegmentIO): IO[Iterable[Segment]] =
     SegmentAssigner.assign(Segment.tempMinMaxKeyValues(map), targetSegments).map(_.keys)
 
   def assign(keyValues: Slice[KeyValue.ReadOnly],
-             segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[mutable.Map[Segment, Slice[KeyValue.ReadOnly]]] = {
+             segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                          segmentIO: SegmentIO): IO[mutable.Map[Segment, Slice[KeyValue.ReadOnly]]] = {
     import keyOrder._
     val assignmentsMap = mutable.Map.empty[Segment, Slice[KeyValue.ReadOnly]]
     val segmentsIterator = segments.iterator
@@ -190,9 +194,9 @@ private[core] object SegmentAssigner {
                   keyValue.segment.getAll() match {
                     case IO.Success(groupsKeyValues) =>
                       assign(
-                        MergeList[Memory.Range, KeyValue.ReadOnly](groupsKeyValues) append remainingKeyValues.dropHead(),
-                        thisSegmentMayBe,
-                        nextSegmentMayBe
+                        remainingKeyValues = MergeList[Memory.Range, KeyValue.ReadOnly](groupsKeyValues) append remainingKeyValues.dropHead(),
+                        thisSegmentMayBe = thisSegmentMayBe,
+                        nextSegmentMayBe = nextSegmentMayBe
                       )
 
                     case IO.Failure(error) =>

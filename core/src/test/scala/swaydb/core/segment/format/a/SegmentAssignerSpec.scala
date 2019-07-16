@@ -27,6 +27,7 @@ import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{KeyValue, Memory, Transient, Value}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.IOEffect._
+import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.segment.{Segment, SegmentAssigner}
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestTimer}
@@ -72,6 +73,7 @@ class SegmentAssignerSpec3 extends SegmentAssignerSpec {
 sealed trait SegmentAssignerSpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
+  implicit def segmentIO: SegmentIO = SegmentIO.random
 
   def keyValueCount: Int
 

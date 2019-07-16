@@ -52,11 +52,12 @@ private[core] object Segment extends LazyLogging {
   def memory(path: Path,
              createdInLevel: Long,
              keyValues: Iterable[Transient])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                      timeOrder: TimeOrder[Slice[Byte]],
-                                                      functionStore: FunctionStore,
-                                                      fileLimiter: FileLimiter,
-                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                      keyValueLimiter: KeyValueLimiter): IO[Segment] =
+                                             timeOrder: TimeOrder[Slice[Byte]],
+                                             functionStore: FunctionStore,
+                                             fileLimiter: FileLimiter,
+                                             groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                             keyValueLimiter: KeyValueLimiter,
+                                             segmentIO: SegmentIO): IO[Segment] =
     if (keyValues.isEmpty) {
       IO.Failure(new Exception("Empty key-values submitted to memory Segment."))
     } else {
@@ -117,10 +118,11 @@ private[core] object Segment extends LazyLogging {
                  mmapWrites: Boolean,
                  segmentConfig: SegmentBlock.Config,
                  keyValues: Iterable[Transient])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                          functionStore: FunctionStore,
-                                                          keyValueLimiter: KeyValueLimiter,
-                                                          fileOpenLimiter: FileLimiter): IO[Segment] =
+                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                 functionStore: FunctionStore,
+                                                 keyValueLimiter: KeyValueLimiter,
+                                                 fileOpenLimiter: FileLimiter,
+                                                 segmentIO: SegmentIO): IO[Segment] =
     SegmentBlock.writeClosed(
       keyValues = keyValues,
       createdInLevel = createdInLevel,
@@ -158,7 +160,7 @@ private[core] object Segment extends LazyLogging {
                   DBFile.channelRead(path, autoClose = true)
               }
 
-          writeResult map {
+          writeResult flatMap {
             file =>
               PersistentSegment(
                 file = file,
@@ -201,7 +203,8 @@ private[core] object Segment extends LazyLogging {
                                                                 functionStore: FunctionStore,
                                                                 keyValueLimiter: KeyValueLimiter,
                                                                 fileOpenLimiter: FileLimiter,
-                                                                compression: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
+                                                                compression: Option[KeyValueGroupingStrategyInternal],
+                                                                segmentIO: SegmentIO): IO[Slice[Segment]] =
     segment match {
       case segment: PersistentSegment =>
         val nextPath = fetchNextPath
@@ -264,7 +267,8 @@ private[core] object Segment extends LazyLogging {
                                                                 functionStore: FunctionStore,
                                                                 keyValueLimiter: KeyValueLimiter,
                                                                 fileOpenLimiter: FileLimiter,
-                                                                compression: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
+                                                                compression: Option[KeyValueGroupingStrategyInternal],
+                                                                segmentIO: SegmentIO): IO[Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
       minSegmentSize = minSegmentSize,
@@ -274,7 +278,8 @@ private[core] object Segment extends LazyLogging {
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
       hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig
+      bloomFilterConfig = bloomFilterConfig,
+      segmentIO = segmentIO
     ) flatMap {
       splits =>
         splits.mapIO(
@@ -315,7 +320,8 @@ private[core] object Segment extends LazyLogging {
                                                                functionStore: FunctionStore,
                                                                fileLimiter: FileLimiter,
                                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                               keyValueLimiter: KeyValueLimiter): IO[Slice[Segment]] =
+                                                               keyValueLimiter: KeyValueLimiter,
+                                                               segmentIO: SegmentIO): IO[Slice[Segment]] =
     segment.getAll() flatMap {
       keyValues =>
         copyToMemory(
@@ -346,7 +352,8 @@ private[core] object Segment extends LazyLogging {
                                                                functionStore: FunctionStore,
                                                                fileLimiter: FileLimiter,
                                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                               keyValueLimiter: KeyValueLimiter): IO[Slice[Segment]] =
+                                                               keyValueLimiter: KeyValueLimiter,
+                                                               segmentIO: SegmentIO): IO[Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
       minSegmentSize = minSegmentSize,
@@ -356,7 +363,8 @@ private[core] object Segment extends LazyLogging {
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
       hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig
+      bloomFilterConfig = bloomFilterConfig,
+      segmentIO = segmentIO
     ) flatMap { //recovery not required. On failure, uncommitted Segments will be GC'd as nothing holds references to them.
       keyValues =>
         keyValues mapIO {
@@ -381,7 +389,8 @@ private[core] object Segment extends LazyLogging {
                                          timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: FunctionStore,
                                          keyValueLimiter: KeyValueLimiter,
-                                         fileOpenLimiter: FileLimiter): IO[Segment] = {
+                                         fileOpenLimiter: FileLimiter,
+                                         segmentIO: SegmentIO): IO[Segment] = {
 
     val fileIO =
       if (mmapReads)
@@ -389,7 +398,7 @@ private[core] object Segment extends LazyLogging {
       else
         DBFile.channelRead(path = path, autoClose = true, checkExists = checkExists)
 
-    fileIO map {
+    fileIO flatMap {
       file =>
         PersistentSegment(
           file = file,
@@ -642,7 +651,8 @@ private[core] object Segment extends LazyLogging {
 
   def overlapsWithBusySegments(inputSegments: Iterable[Segment],
                                busySegments: Iterable[Segment],
-                               appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Boolean] =
+                               appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                    segmentIO: SegmentIO): IO[Boolean] =
     if (busySegments.isEmpty)
       IO.`false`
     else
@@ -659,7 +669,8 @@ private[core] object Segment extends LazyLogging {
 
   def overlapsWithBusySegments(map: Map[Slice[Byte], Memory.SegmentResponse],
                                busySegments: Iterable[Segment],
-                               appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Boolean] =
+                               appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                    groupIO: SegmentIO): IO[Boolean] =
     if (busySegments.isEmpty)
       IO.`false`
     else {

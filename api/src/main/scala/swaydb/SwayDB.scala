@@ -81,7 +81,6 @@ object SwayDB extends LazyLogging {
     * @param keyOrder               Sort order for keys
     * @tparam K Type of key
     * @tparam V Type of value
-    *
     * @return Database instance
     */
   def apply[K, V](config: SwayDBPersistentConfig,

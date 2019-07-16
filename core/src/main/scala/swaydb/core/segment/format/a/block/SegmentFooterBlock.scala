@@ -37,7 +37,7 @@ object SegmentFooterBlock {
   object Config {
     def default =
       Config(
-        blockIO = BlockIO.default
+        blockIO = BlockIO.defaultSynchronised
       )
   }
 

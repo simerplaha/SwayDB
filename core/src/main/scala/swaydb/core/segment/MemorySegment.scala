@@ -59,7 +59,8 @@ private[segment] case class MemorySegment(path: Path,
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore,
                                                                                    keyValueLimiter: KeyValueLimiter,
-                                                                                   fileLimiter: FileLimiter) extends Segment with LazyLogging {
+                                                                                   fileLimiter: FileLimiter,
+                                                                                   segmentIO: SegmentIO) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -105,7 +106,8 @@ private[segment] case class MemorySegment(path: Path,
             sortedIndexConfig = sortedIndexConfig,
             binarySearchIndexConfig = binarySearchIndexConfig,
             hashIndexConfig = hashIndexConfig,
-            bloomFilterConfig = bloomFilterConfig
+            bloomFilterConfig = bloomFilterConfig,
+            segmentIO = segmentIO
           ) flatMap {
             splits =>
               splits.mapIO[Segment](
@@ -155,7 +157,8 @@ private[segment] case class MemorySegment(path: Path,
             sortedIndexConfig = sortedIndexConfig,
             binarySearchIndexConfig = binarySearchIndexConfig,
             hashIndexConfig = hashIndexConfig,
-            bloomFilterConfig = bloomFilterConfig
+            bloomFilterConfig = bloomFilterConfig,
+            segmentIO = segmentIO
           ) flatMap {
             splits =>
               splits.mapIO[Segment](
@@ -240,14 +243,14 @@ private[segment] case class MemorySegment(path: Path,
   def mightContainKey(key: Slice[Byte]): IO[Boolean] =
     bloomFilter map {
       memoryBlock =>
-//        BloomFilterBlock.mightContain(
-//          key = key,
-//          reader =
-//            BlockReader(
-//              reader = Reader(memoryBlock.bytes),
-//              block = memoryBlock.bloomFilter
-//            )
-//        )
+        //        BloomFilterBlock.mightContain(
+        //          key = key,
+        //          reader =
+        //            BlockReader(
+        //              reader = Reader(memoryBlock.bytes),
+        //              block = memoryBlock.bloomFilter
+        //            )
+        //        )
         ???
     } getOrElse IO.`true`
 

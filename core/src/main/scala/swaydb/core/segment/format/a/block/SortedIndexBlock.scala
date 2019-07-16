@@ -63,7 +63,7 @@ private[core] object SortedIndexBlock {
       Config(
         enableAccessPositionIndex = enable.enablePositionIndex,
         prefixCompressionResetCount = enable.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0),
-        blockIO = FunctionUtil.safe(BlockIO.default, enable.blockIO),
+        blockIO = FunctionUtil.safe(BlockIO.defaultSynchronised, enable.blockIO),
         compressions =
           FunctionUtil.safe(
             default = _ => Seq.empty[CompressionInternal],

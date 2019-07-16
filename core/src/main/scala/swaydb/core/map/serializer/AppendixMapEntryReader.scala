@@ -28,6 +28,7 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
+import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
@@ -42,6 +43,7 @@ object AppendixMapEntryReader {
                                           functionStore: FunctionStore,
                                           keyValueLimiter: KeyValueLimiter,
                                           fileOpenLimiter: FileLimiter,
+                                          segmentIO: SegmentIO,
                                           compression: Option[KeyValueGroupingStrategyInternal]): AppendixMapEntryReader =
     new AppendixMapEntryReader(
       mmapSegmentsOnRead = mmapSegmentsOnRead,
@@ -55,6 +57,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                                                            functionStore: FunctionStore,
                                                            keyValueLimiter: KeyValueLimiter,
                                                            fileOpenLimiter: FileLimiter,
+                                                           segmentIO: SegmentIO,
                                                            compression: Option[KeyValueGroupingStrategyInternal]) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {

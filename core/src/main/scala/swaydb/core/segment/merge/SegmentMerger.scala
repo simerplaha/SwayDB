@@ -128,8 +128,9 @@ private[core] object SegmentMerger extends LazyLogging {
             sortedIndexConfig: SortedIndexBlock.Config,
             binarySearchIndexConfig: BinarySearchIndexBlock.Config,
             hashIndexConfig: HashIndexBlock.Config,
-            bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                        groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[Transient]]] = {
+            bloomFilterConfig: BloomFilterBlock.Config,
+            segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[Transient]]] = {
     val splits = ListBuffer[ListBuffer[Transient]](ListBuffer())
     keyValues foreachIO {
       keyValue =>
@@ -143,7 +144,8 @@ private[core] object SegmentMerger extends LazyLogging {
           sortedIndexConfig = sortedIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig
+          bloomFilterConfig = bloomFilterConfig,
+          segmentIO = segmentIO,
 
         )
     } match {
@@ -184,7 +186,8 @@ private[core] object SegmentMerger extends LazyLogging {
       sortedIndexConfig = SortedIndexBlock.Config.disabled,
       binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
       hashIndexConfig = HashIndexBlock.Config.disabled,
-      bloomFilterConfig = BloomFilterBlock.Config.disabled
+      bloomFilterConfig = BloomFilterBlock.Config.disabled,
+      segmentIO = SegmentIO.defaultSynchronised
     )(keyOrder, timeOrder, functionStore, None)
       .get
       .flatten
@@ -204,7 +207,8 @@ private[core] object SegmentMerger extends LazyLogging {
       sortedIndexConfig = SortedIndexBlock.Config.disabled,
       binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
       hashIndexConfig = HashIndexBlock.Config.disabled,
-      bloomFilterConfig = BloomFilterBlock.Config.disabled
+      bloomFilterConfig = BloomFilterBlock.Config.disabled,
+      segmentIO = SegmentIO.defaultSynchronised
     )(keyOrder, timeOrder, functionStore, None)
       .get
       .flatten
@@ -219,10 +223,11 @@ private[core] object SegmentMerger extends LazyLogging {
             sortedIndexConfig: SortedIndexBlock.Config,
             binarySearchIndexConfig: BinarySearchIndexBlock.Config,
             hashIndexConfig: HashIndexBlock.Config,
-            bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                        functionStore: FunctionStore,
-                                                        groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[Transient]]] =
+            bloomFilterConfig: BloomFilterBlock.Config,
+            segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  timeOrder: TimeOrder[Slice[Byte]],
+                                  functionStore: FunctionStore,
+                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[Transient]]] =
     merge(
       newKeyValues = MergeList(newKeyValues),
       oldKeyValues = MergeList(oldKeyValues),
@@ -234,7 +239,8 @@ private[core] object SegmentMerger extends LazyLogging {
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
       hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig
+      bloomFilterConfig = bloomFilterConfig,
+      segmentIO = segmentIO
     ) flatMap {
       splits =>
         completeMerge(
@@ -260,12 +266,15 @@ private[core] object SegmentMerger extends LazyLogging {
                     sortedIndexConfig: SortedIndexBlock.Config,
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                     hashIndexConfig: HashIndexBlock.Config,
-                    bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                                functionStore: FunctionStore,
-                                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[Transient]]] = {
+                    bloomFilterConfig: BloomFilterBlock.Config,
+                    segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                          timeOrder: TimeOrder[Slice[Byte]],
+                                          functionStore: FunctionStore,
+                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[Transient]]] = {
 
     import keyOrder._
+
+    implicit val groupIO = groupingStrategy.map(_.groupIO) getOrElse segmentIO
 
     def add(nextKeyValue: KeyValue.ReadOnly): IO[Unit] =
       SegmentGrouper.addKeyValue(
@@ -278,7 +287,8 @@ private[core] object SegmentMerger extends LazyLogging {
         sortedIndexConfig = sortedIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
         hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig
+        bloomFilterConfig = bloomFilterConfig,
+        segmentIO = segmentIO
       )
 
     @tailrec
