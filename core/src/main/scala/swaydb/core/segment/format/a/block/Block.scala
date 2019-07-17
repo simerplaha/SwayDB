@@ -215,11 +215,11 @@ private[core] object Block extends LazyLogging {
       IO.Failure(SegmentException.SegmentCorruptionException(s"Failed to read block header.", error.exception))
   }
 
-  def unblock[O <: BlockOffset, B <: Block[O]](blockReader: BlockedReader[O, B],
+  def unblock[O <: BlockOffset, B <: Block[O]](reader: BlockedReader[O, B],
                                                readAllIfUncompressed: Boolean)(implicit blockOps: BlockOps[O, B]): IO[UnblockedReader[O, B]] =
-    blockReader.block.compressionInfo match {
+    reader.block.compressionInfo match {
       case Some(compressionInfo) =>
-        blockReader
+        reader
           .readAll()
           .flatMap {
             compressedBytes =>
@@ -236,7 +236,7 @@ private[core] object Block extends LazyLogging {
                     bytes = decompressedBytes,
                     block =
                       blockOps.updateBlockOffset(
-                        block = blockReader.block,
+                        block = reader.block,
                         start = 0,
                         size = decompressedBytes.size
                       )
@@ -248,7 +248,7 @@ private[core] object Block extends LazyLogging {
 
       case None =>
         //no compression just skip the header bytes.
-        val unblocked = UnblockedReader.skipHeader(blockReader)
+        val unblocked = UnblockedReader.skipHeader(reader)
 
         if (readAllIfUncompressed)
           unblocked.readAllAndGetReader()

@@ -94,7 +94,7 @@ private[core] class SegmentCache(id: String,
       hashIndex <- blockCache.createHashIndexReader()
       binarySearchIndex <- blockCache.createBinarySearchIndexReader()
       sortedIndex <- blockCache.createSortedIndexReader()
-      values <- blockCache.createValuesReader()
+      values <- blockCache.createValueReaderCache()
       result <- f(footer, hashIndex, binarySearchIndex, sortedIndex, values)
     } yield {
       result
@@ -108,7 +108,7 @@ private[core] class SegmentCache(id: String,
     for {
       footer <- blockCache.getFooter()
       sortedIndex <- blockCache.createSortedIndexReader()
-      values <- blockCache.createValuesReader()
+      values <- blockCache.createValueReaderCache()
       result <- f(footer, sortedIndex, values)
     } yield {
       result
@@ -123,7 +123,7 @@ private[core] class SegmentCache(id: String,
       footer <- blockCache.getFooter()
       binarySearchIndex <- blockCache.createBinarySearchIndexReader()
       sortedIndex <- blockCache.createSortedIndexReader()
-      values <- blockCache.createValuesReader()
+      values <- blockCache.createValueReaderCache()
       result <- f(footer, binarySearchIndex, sortedIndex, values)
     } yield {
       result

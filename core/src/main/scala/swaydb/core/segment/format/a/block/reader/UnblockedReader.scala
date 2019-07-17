@@ -46,10 +46,17 @@ private[core] object UnblockedReader {
       block = block
     )
 
+  def moveTo[O <: BlockOffset, B <: Block[O]](offset: O,
+                                              parent: UnblockedReader[O, B])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
+    new UnblockedReader[O, B](
+      reader = parent,
+      block = blockOps.updateBlockOffset(parent.block, offset.start, offset.size)
+    )
+
   def apply[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B],
                                              readAllIfUncompressed: Boolean)(implicit blockOps: BlockOps[O, B]): IO[UnblockedReader[O, B]] =
     Block.unblock(
-      blockReader = blockedReader,
+      reader = blockedReader,
       readAllIfUncompressed = readAllIfUncompressed
     )
 

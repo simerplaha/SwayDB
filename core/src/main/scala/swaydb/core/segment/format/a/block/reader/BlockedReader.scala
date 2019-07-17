@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
+import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps, SegmentBlock}
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
@@ -48,6 +48,12 @@ private[core] object BlockedReader {
             )
         }
     }
+
+  def apply[O <: BlockOffset, B <: Block[O]](block: B, parent: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): BlockedReader[O, B] =
+    new BlockedReader[O, B](
+      reader = parent.copy(),
+      block = block
+    )
 }
 
 private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(private[reader] val reader: Reader,

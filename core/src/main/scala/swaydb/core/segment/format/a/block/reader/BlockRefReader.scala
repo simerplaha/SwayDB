@@ -63,6 +63,12 @@ private[core] object BlockRefReader {
       offset = offset,
       reader = reader
     )
+
+  def moveWithin[O <: BlockOffset](offset: O, reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): BlockRefReader[O] =
+    new BlockRefReader(
+      offset = offset,
+      reader = reader
+    )
 }
 
 private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,

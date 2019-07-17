@@ -95,6 +95,9 @@ sealed trait Cache[I, O] { self =>
 
   def getOrElse(f: => IO[O]): IO[O]
 
+  def getSomeOrElse(f: => IO[Option[O]]): IO[Option[O]] =
+    Try(getOrElse(???)).map(_.map(Some(_))) getOrElse f
+
   def map[O2](f: O => IO[O2]): Cache[I, O2] =
     new Cache[I, O2] {
       override def value(i: => I): IO[O2] = self.value(i).flatMap(f)
@@ -129,6 +132,7 @@ private class BlockIOCache[I, O](cache: CacheUnsafe[I, Cache[I, O]]) extends Cac
       case _ =>
         f
     }
+
 
   //clear the inner cache first, it unsuccessful then clear the outer cache.
   //why? outer cache is just an initialisation cache it does not do io/computation.

@@ -455,12 +455,12 @@ private[core] object Segment extends LazyLogging {
               footer =>
                 segmentBlockCache.createSortedIndexReader() flatMap {
                   sortedIndexReader =>
-                    segmentBlockCache.createValuesReader() flatMap {
-                      valuesReader =>
+                    segmentBlockCache.createValueReaderCache() flatMap {
+                      valueCache =>
                         SortedIndexBlock.readAll(
                           keyValueCount = footer.keyValueCount,
                           sortedIndexReader = sortedIndexReader,
-                          valueCache = valuesReader
+                          valueCache = valueCache
                         ) flatMap {
                           keyValues =>
                             file.close flatMap {
