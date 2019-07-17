@@ -90,6 +90,12 @@ protected trait BlockReader extends Reader {
       .moveTo(offset.start)
       .read(offset.size)
 
+  def readAllOrNone(): IO[Option[Slice[Byte]]] =
+    if (offset.size == 0)
+      IO.none
+    else
+      readAll().map(Some(_))
+
   override def readRemaining(): IO[Slice[Byte]] =
     remaining flatMap read
 }

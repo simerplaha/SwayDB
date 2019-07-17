@@ -23,6 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.util.cache.Cache
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
 import swaydb.data.config.{BlockIO, BlockStatus, RandomKeyIndex, UncompressedBlockInfo}
@@ -385,7 +386,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   def search(key: Slice[Byte],
              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReaderReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
+             valuesReaderReader: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
     val matcher =
       if (sortedIndexReader.block.hasPrefixCompression)
         KeyMatcher.Get.WhilePrefixCompressed(key)

@@ -24,6 +24,7 @@ import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyRangeValueReader
+import swaydb.core.util.cache.Cache
 import swaydb.data.IO
 import swaydb.data.slice.Reader
 
@@ -32,7 +33,7 @@ object RangeReader extends EntryReader[Persistent.Range] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                              valueCache: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -46,19 +47,14 @@ object RangeReader extends EntryReader[Persistent.Range] {
       valueOffsetAndLength =>
         KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Range) flatMap {
           case (key, isKeyPrefixCompressed) =>
-            valueReader map {
-              valueReader =>
+            valueCache map {
+              valueCache =>
                 val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                 val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
                 Persistent.Range(
                   key = key,
-                  lazyRangeValueReader =
-                    LazyRangeValueReader(
-                      reader = valueReader,
-                      offset = valueOffset,
-                      length = valueLength
-                    ),
+                  valueCache = valueCache,
                   nextIndexOffset = nextIndexOffset,
                   nextIndexSize = nextIndexSize,
                   indexOffset = indexOffset,

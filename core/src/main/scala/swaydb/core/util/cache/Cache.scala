@@ -19,13 +19,22 @@
 
 package swaydb.core.util.cache
 
+import swaydb.core.segment.format.a.block.ValuesBlock
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.FunctionUtil
 import swaydb.data.config.BlockIO
 import swaydb.data.{IO, Reserve}
 
+import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
 object Cache {
+
+  def emptyValuesBlock: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+    Cache.concurrentIO(synchronised = false, stored = true) {
+      _ =>
+        IO(ValuesBlock.emptyUnblocked)
+    }
 
   def concurrentIO[I, O](synchronised: Boolean, stored: Boolean)(fetch: I => IO[O]): Cache[I, O] =
     new SynchronisedIO[I, O](
@@ -80,21 +89,31 @@ object Cache {
   * Caches a value on read. Used for IO operations where the output does not change.
   * For example: A file's size.
   */
-sealed trait Cache[I, O] {
+sealed trait Cache[I, O] { self =>
   def value(i: => I): IO[O]
   def isCached: Boolean
   def clear(): Unit
 
   def getOrElse(f: => IO[O]): IO[O]
 
-  def map[T](i: I)(f: O => T): IO[T] =
-    value(i) map f
+  def map[O2](f: O => IO[O2]): Cache[I, O2] =
+    new Cache[I, O2] {
+      override def value(i: => I): IO[O2] = self.value(i).flatMap(f)
+      override def isCached: Boolean = self.isCached
+      override def getOrElse(f: => IO[O2]): IO[O2] = Try(value(???)).getOrElse(f)
+      override def clear(): Unit = self.clear()
+    }
 
-  def foreach[T](i: I)(f: O => T): Unit =
-    value(i) foreach f
-
-  def flatMap[T](i: I)(f: O => IO[T]): IO[T] =
-    value(i) flatMap f
+  def flatMap[O2](next: Cache[O, O2]): Cache[I, O2] =
+    new Cache[I, O2] {
+      override def value(i: => I): IO[O2] = self.value(i).flatMap(next.value(_))
+      override def isCached: Boolean = self.isCached
+      override def getOrElse(f: => IO[O2]): IO[O2] = next.getOrElse(f)
+      override def clear(): Unit = {
+        self.clear()
+        next.clear()
+      }
+    }
 }
 
 private class BlockIOCache[I, O](cache: CacheUnsafe[I, Cache[I, O]]) extends Cache[I, O] {

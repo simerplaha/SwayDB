@@ -24,15 +24,16 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.ValueSerializer
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.util.cache.Cache
 import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 private[core] object LazyPendingApplyValueReader {
-  def apply(reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+  def apply(reader: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             offset: Int,
             length: Int): LazyPendingApplyValueReader =
     new LazyPendingApplyValueReader {
-      override val valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock] = reader
+      override val valueReader: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] = reader
 
       override def valueLength: Int = length
 
@@ -70,16 +71,18 @@ class ActivePendingApplyValueReader(applies: Slice[Value.Apply]) extends LazyPen
 
   override def getOrFetchApplies: IO[Slice[Value.Apply]] = IO.Success(applies)
 
-  override val valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock] = {
-    val slice = ValueSerializer.writeBytes(applies)
-    UnblockedReader(
-      block = ValuesBlock(ValuesBlock.Offset(0, slice.size), 0, None),
-      bytes = slice
-    )
+  override val valueReader: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] = {
+//    val slice = ValueSerializer.writeBytes(applies)
+//    UnblockedReader(
+//      block = ValuesBlock(ValuesBlock.Offset(0, slice.size), 0, None),
+//      bytes = slice
+//    )
+    ???
   }
 
   override def valueLength: Int =
-    valueReader.block.offset.size
+//    valueReader.block.offset.size
+  ???
 
   override def valueOffset: Int =
     0

@@ -694,7 +694,7 @@ object TestData {
                 case function @ Persistent.Function(key, lazyFunctionReader, time, _, _, _, _, _, _, _) =>
                   Transient.Function(
                     key = key,
-                    function = lazyFunctionReader.getOrFetchFunction.assertGet,
+                    function = ???, //lazyFunctionReader.getOrFetchFunction.assertGet,
                     time = time,
                     previous = previous,
                     valuesConfig = valuesConfig,
@@ -778,7 +778,7 @@ object TestData {
             maxKey = maxKey,
             blockedSegment =
               SegmentBlock.Closed(
-                segmentBytes = Slice(valueReader.moveTo(valueOffset).read(valueLength).get.unslice()),
+                segmentBytes = ???, //Slice(valueReader.moveTo(valueOffset).read(valueLength).get.unslice()),
                 minMaxFunctionId = None,
                 nearestDeadline = deadline
               )

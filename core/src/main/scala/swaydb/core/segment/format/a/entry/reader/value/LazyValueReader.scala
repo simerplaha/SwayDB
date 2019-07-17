@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a.entry.reader.value
 
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.util.cache.Cache
 import swaydb.data.IO
 import swaydb.data.slice.Slice
 
@@ -28,18 +29,19 @@ private[core] object LazyValueReader {
 
   val empty =
     new LazyValueReader {
-      override val valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
-        ValuesBlock.emptyUnblocked
+      override val valueReader: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+        Cache.concurrentIO(false, false)(_ => IO.Success(ValuesBlock.emptyUnblocked))
 
       override val valueLength: Int = 0
       override val valueOffset: Int = 0
     }
 
-  def apply(reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+  def apply(reader: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             offset: Int,
             length: Int): LazyValueReader =
     new LazyValueReader {
-      override val valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock] = reader
+      override val valueReader: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+        reader
 
       override def valueLength: Int = length
 
@@ -51,7 +53,7 @@ private[core] trait LazyValueReader {
 
   @volatile var valueOption: Option[Slice[Byte]] = _
 
-  def valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]
+  def valueReader: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]
 
   def valueLength: Int
 
@@ -73,7 +75,8 @@ private[core] trait LazyValueReader {
       IO.Success(valueOption)
 
   def getOrFetchValue: IO[Option[Slice[Byte]]] =
-    fetchValue(valueReader)
+//    fetchValue(valueReader)
+  ???
 
   def isValueDefined: Boolean =
     valueOption != null

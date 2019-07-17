@@ -3,6 +3,7 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.util.cache.Cache
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -20,7 +21,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                   end: Option[Persistent],
                   binarySearchReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                  valuesReader: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     binarySearchReader map {
       binarySearchIndexReader =>
         BinarySearchIndexBlock.searchLower(
@@ -67,14 +68,14 @@ private[core] object SegmentSearcher extends LazyLogging {
                    end: Option[Persistent],
                    binarySearchReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                   valuesReader: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     start map {
       start =>
         SortedIndexBlock.searchHigherSeekOne(
           key = key,
           startFrom = start,
           indexReader = sortedIndexReader,
-          valuesReader = valuesReader
+          valueCache = valuesReader
         ) flatMap {
           found =>
             if (found.isDefined)
@@ -106,7 +107,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                          end: Option[Persistent],
                          binarySearchReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                          sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                         valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                         valuesReader: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     binarySearchReader map {
       binarySearchIndexReader =>
         if (binarySearchIndexReader.block.isFullIndex)
@@ -150,7 +151,7 @@ private[core] object SegmentSearcher extends LazyLogging {
              hashIndexReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
              binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReaderReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+             valuesReaderReader: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
              hasRange: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     hashIndexReader map {
       hashIndexReader =>
@@ -192,7 +193,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                      end: Option[Persistent],
                      binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                      sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                     valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                     valuesReader: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     binarySearchIndexReader map {
       binarySearchIndexReader =>
         BinarySearchIndexBlock.search(

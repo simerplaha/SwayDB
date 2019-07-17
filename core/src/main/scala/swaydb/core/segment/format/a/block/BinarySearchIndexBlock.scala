@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a.block
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.util.cache.Cache
 import swaydb.core.util.{Bytes, FunctionUtil, Options}
 import swaydb.data.IO
 import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
@@ -337,7 +338,7 @@ private[core] object BinarySearchIndexBlock {
                      end: Option[Persistent],
                      binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                      sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                     values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
+                     values: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
     val matcher =
       higherOrLower map {
         higher =>
@@ -383,7 +384,7 @@ private[core] object BinarySearchIndexBlock {
             matcher = matcher,
             fromOffset = sortedIndexOffsetValue,
             sortedIndex = sortedIndex,
-            values = values
+            valueCache = values
           )
     )
   }
@@ -393,7 +394,7 @@ private[core] object BinarySearchIndexBlock {
              end: Option[Persistent],
              binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+             valuesReader: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       key = key,
       higherOrLower = None,
@@ -409,7 +410,7 @@ private[core] object BinarySearchIndexBlock {
                    end: Option[Persistent],
                    binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                   valuesReader: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       key = key,
       higherOrLower = Options.`true`,
@@ -425,7 +426,7 @@ private[core] object BinarySearchIndexBlock {
                   end: Option[Persistent],
                   binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                  valuesReader: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       key = key,
       higherOrLower = Options.`false`,

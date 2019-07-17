@@ -24,6 +24,7 @@ import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyPendingApplyValueReader
+import swaydb.core.util.cache.Cache
 import swaydb.data.IO
 import swaydb.data.slice.Reader
 
@@ -32,7 +33,7 @@ object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                              valueCache: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -50,22 +51,17 @@ object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
               time =>
                 KeyReader.read(keyValueId, indexReader, previous, KeyValueId.PendingApply) flatMap {
                   case (key, isKeyPrefixCompressed) =>
-                    valueReader map {
-                      valueReader =>
+                    valueCache map {
+                      valueCache =>
                         val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                         val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
                         IO {
-                          Persistent.PendingApply(
-                            _key = key,
-                            _time = time,
+                          Persistent.PendingApply.fromCache(
+                            key = key,
+                            time = time,
                             deadline = deadline,
-                            lazyValueReader =
-                              LazyPendingApplyValueReader(
-                                reader = valueReader,
-                                offset = valueOffset,
-                                length = valueLength
-                              ),
+                            valueCache = valueCache,
                             nextIndexOffset = nextIndexOffset,
                             nextIndexSize = nextIndexSize,
                             indexOffset = indexOffset,

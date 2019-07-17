@@ -169,19 +169,23 @@ object CommonAssertions {
             case keyValue: Persistent.Function =>
               Some(keyValue.getOrFetchFunction.get.safeGetBlocking())
             case keyValue: Persistent.PendingApply =>
-              keyValue.lazyValueReader.getOrFetchValue.get.safeGetBlocking()
+              //              keyValue.lazyValueReader.getOrFetchValue.get.safeGetBlocking()
+              ???
             case keyValue: Persistent.Remove =>
               keyValue.getOrFetchValue
             case keyValue: Persistent.Range =>
-              keyValue.lazyRangeValueReader.getOrFetchValue.get.safeGetBlocking()
+              //              keyValue.valueCache.getOrFetchValue.get.safeGetBlocking()
+              ???
             case keyValue: Persistent.Group =>
-              keyValue
-                .valueReader
-                .moveTo(keyValue.valueOffset)
-                .read(keyValue.valueLength)
-                .safeGetBlocking()
-                .map(Some(_))
-                .get
+              //              keyValue
+              //                .valueReader
+              //                .value(ValuesBlock.Offset(keyValue.valueOffset, keyValue.valueLength))
+              //                .get
+              //                .readAll()
+              //                .safeGetBlocking()
+              //                .map(Some(_))
+              //                .get
+              ???
           }
       }
   }
@@ -795,24 +799,25 @@ object CommonAssertions {
 
   def assertGet(keyValues: Slice[Transient],
                 rawSegmentReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
-    val blocks = readBlocks(rawSegmentReader.copy()).get
-
-    keyValues foreach {
-      keyValue =>
-        //        val key = keyValue.minKey.readInt()
-        //        if (key % 100 == 0)
-        //          println(s"Key: $key")
-        SegmentSearcher.search(
-          key = keyValue.minKey,
-          start = None,
-          end = None,
-          hashIndexReader = blocks.hashIndexReader,
-          binarySearchIndexReader = blocks.binarySearchIndexReader,
-          sortedIndexReader = blocks.sortedIndexReader,
-          valuesReaderReader = blocks.valuesReader,
-          hasRange = blocks.footer.hasRange
-        ).assertGet shouldBe keyValue
-    }
+    //    val blocks = readBlocks(rawSegmentReader.copy()).get
+    //
+    //    keyValues foreach {
+    //      keyValue =>
+    //        //        val key = keyValue.minKey.readInt()
+    //        //        if (key % 100 == 0)
+    //        //          println(s"Key: $key")
+    //        SegmentSearcher.search(
+    //          key = keyValue.minKey,
+    //          start = None,
+    //          end = None,
+    //          hashIndexReader = blocks.hashIndexReader,
+    //          binarySearchIndexReader = blocks.binarySearchIndexReader,
+    //          sortedIndexReader = blocks.sortedIndexReader,
+    //          valuesReaderReader = blocks.valuesReader,
+    //          hasRange = blocks.footer.hasRange
+    //        ).assertGet shouldBe keyValue
+    //    }
+    ???
   }
 
   def assertBloom(keyValues: Slice[Transient],
@@ -1157,63 +1162,65 @@ object CommonAssertions {
 
   def assertLower(keyValues: Slice[Transient],
                   reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
-    val blocks = readBlocks(reader.copy()).get
-
-    @tailrec
-    def assertLowers(index: Int) {
-      //      println(s"assertLowers : ${index}")
-      if (index > keyValues.size - 1) {
-        //end
-      } else if (index == 0) {
-        keyValues(index) match {
-          case range: Transient.Range =>
-            SegmentSearcher.searchLower(range.fromKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe empty
-            (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
-              key =>
-                SegmentSearcher.searchLower(Slice.writeInt(key), None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe range
-            }
-
-          case _ =>
-            SegmentSearcher.searchLower(keyValues(index).minKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe empty
-        }
-        assertLowers(index + 1)
-      } else {
-        val expectedLowerKeyValue = keyValues(index - 1)
-        keyValues(index) match {
-          case range: Transient.Range =>
-            SegmentSearcher.searchLower(range.fromKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGet shouldBe expectedLowerKeyValue
-            (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
-              key =>
-                SegmentSearcher.searchLower(Slice.writeInt(key), None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe range
-            }
-
-          case _ =>
-            SegmentSearcher.searchLower(keyValues(index).minKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGet shouldBe expectedLowerKeyValue
-        }
-
-        assertLowers(index + 1)
-      }
-    }
-
-    assertLowers(0)
+    //    val blocks = readBlocks(reader.copy()).get
+    //
+    //    @tailrec
+    //    def assertLowers(index: Int) {
+    //      //      println(s"assertLowers : ${index}")
+    //      if (index > keyValues.size - 1) {
+    //        //end
+    //      } else if (index == 0) {
+    //        keyValues(index) match {
+    //          case range: Transient.Range =>
+    //            SegmentSearcher.searchLower(range.fromKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe empty
+    //            (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
+    //              key =>
+    //                SegmentSearcher.searchLower(Slice.writeInt(key), None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe range
+    //            }
+    //
+    //          case _ =>
+    //            SegmentSearcher.searchLower(keyValues(index).minKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe empty
+    //        }
+    //        assertLowers(index + 1)
+    //      } else {
+    //        val expectedLowerKeyValue = keyValues(index - 1)
+    //        keyValues(index) match {
+    //          case range: Transient.Range =>
+    //            SegmentSearcher.searchLower(range.fromKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGet shouldBe expectedLowerKeyValue
+    //            (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
+    //              key =>
+    //                SegmentSearcher.searchLower(Slice.writeInt(key), None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe range
+    //            }
+    //
+    //          case _ =>
+    //            SegmentSearcher.searchLower(keyValues(index).minKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGet shouldBe expectedLowerKeyValue
+    //        }
+    //
+    //        assertLowers(index + 1)
+    //      }
+    //    }
+    //
+    //    assertLowers(0)
+    ???
   }
 
   def assertHigher(keyValues: Slice[KeyValue],
                    reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): Unit = {
-    val blocks = readBlocks(reader).get
-    assertHigher(
-      keyValues,
-      getHigher =
-        key =>
-          SegmentSearcher.searchHigher(
-            key = key,
-            start = None,
-            end = None,
-            binarySearchReader = blocks.binarySearchIndexReader,
-            sortedIndexReader = blocks.sortedIndexReader,
-            valuesReader = blocks.valuesReader
-          )
-    )
+    //    val blocks = readBlocks(reader).get
+    //    assertHigher(
+    //      keyValues,
+    //      getHigher =
+    //        key =>
+    //          SegmentSearcher.searchHigher(
+    //            key = key,
+    //            start = None,
+    //            end = None,
+    //            binarySearchReader = blocks.binarySearchIndexReader,
+    //            sortedIndexReader = blocks.sortedIndexReader,
+    //            valuesReader = blocks.valuesReader
+    //          )
+    //    )
+    ???
   }
 
   def assertLower(_keyValues: Slice[KeyValue],
@@ -1452,22 +1459,23 @@ object CommonAssertions {
       .readAll(
         keyValueCount = blockCache.getFooter().get.keyValueCount,
         sortedIndexReader = blockCache.createSortedIndexReader().get,
-        valuesReader = blockCache.createValuesReader().get
+        valueCache = blockCache.createValuesReader().get
       )
   }
 
   def readBlocks(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Blocks] = {
     val blockCache = getSegmentBlockCache(reader)
-    IO {
-      Blocks(
-        footer = blockCache.getFooter().get,
-        valuesReader = blockCache.createValuesReader().get,
-        sortedIndexReader = blockCache.createSortedIndexReader().get,
-        hashIndexReader = blockCache.createHashIndexReader().get,
-        binarySearchIndexReader = blockCache.createBinarySearchIndexReader().get,
-        bloomFilterReader = blockCache.createBloomFilterReader().get
-      )
-    }
+    //    IO {
+    //      Blocks(
+    //        footer = blockCache.getFooter().get,
+    //        valuesReader = blockCache.createValuesReader().get,
+    //        sortedIndexReader = blockCache.createSortedIndexReader().get,
+    //        hashIndexReader = blockCache.createHashIndexReader().get,
+    //        binarySearchIndexReader = blockCache.createBinarySearchIndexReader().get,
+    //        bloomFilterReader = blockCache.createBloomFilterReader().get
+    //      )
+    //    }
+    ???
   }
 
   def printGroupHierarchy(keyValues: Slice[KeyValue.ReadOnly], spaces: Int)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -1621,33 +1629,39 @@ object CommonAssertions {
           case Persistent.Put(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyValueReader.getOrFetchValue.get.safeGetBlocking().shouldBeSliced()
+//            lazyValueReader.getOrFetchValue.get.safeGetBlocking().shouldBeSliced()
+            ???
 
           case Persistent.Update(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyValueReader.getOrFetchValue.get.safeGetBlocking().shouldBeSliced()
+//            lazyValueReader.getOrFetchValue.get.safeGetBlocking().shouldBeSliced()
+            ???
 
           case Persistent.Function(_key, lazyFunctionReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyFunctionReader.getOrFetchFunction.get.safeGetBlocking().shouldBeSliced()
+//            lazyFunctionReader.getOrFetchFunction.get.safeGetBlocking().shouldBeSliced()
+            ???
 
           case Persistent.PendingApply(_key, _time, deadline, lazyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyValueReader.getOrFetchApplies.get.safeGetBlocking() foreach assertSliced
+//            lazyValueReader.getOrFetchApplies.get.safeGetBlocking() foreach assertSliced
+            ???
 
           case Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _fromKey.shouldBeSliced()
             _toKey.shouldBeSliced()
-            lazyRangeValueReader.fetchFromValue.assertGetOpt foreach assertSliced
-            lazyRangeValueReader.fetchRangeValue foreach assertSliced
+//            lazyRangeValueReader.fetchFromValue.assertGetOpt foreach assertSliced
+//            lazyRangeValueReader.fetchRangeValue foreach assertSliced
+            ???
 
           case Persistent.Group(_minKey, _maxKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline, _, _) =>
             _minKey.shouldBeSliced()
             _maxKey.maxKey.shouldBeSliced()
-            valueReader.moveTo(valueOffset).read(valueLength).safeGetBlocking().get.shouldBeSliced()
+            //            valueReader.moveTo(valueOffset).read(valueLength).safeGetBlocking().get.shouldBeSliced()
+            ???
         }
     }
 

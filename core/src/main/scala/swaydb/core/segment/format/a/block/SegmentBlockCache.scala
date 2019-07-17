@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a.block
 
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.util.cache.Cache
 import swaydb.data.IO
 import swaydb.data.config.{BlockIO, BlockStatus}
 import swaydb.data.slice.Slice
@@ -373,7 +374,7 @@ class SegmentBlockCache(id: String,
   //    }
     ???
 
-  def createValuesReader(): IO[Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
+  def createValuesReader(): IO[Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]]] =
   //    valuesReaderCache getOrElse {
   //      getValues() flatMap {
   //        values =>
@@ -395,7 +396,7 @@ class SegmentBlockCache(id: String,
                 SortedIndexBlock.readAll(
                   keyValueCount = footer.keyValueCount,
                   sortedIndexReader = sortedIndexReader,
-                  valuesReader = valuesReader,
+                  valueCache = valuesReader,
                   addTo = addTo
                 )
             }

@@ -22,6 +22,7 @@ package swaydb.core.util.cache
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.RunThis._
+import swaydb.core.TestData._
 import swaydb.data.config.BlockIO
 import swaydb.data.{IO, Reserve}
 
@@ -92,9 +93,13 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.isCached shouldBe true
         cache.value() shouldBe IO.Success(123) //value again mock function is not invoked again
 
-        cache.foreach()(int => int shouldBe 123)
-        cache.map()(int => int) shouldBe IO.Success(123)
-        cache.flatMap()(int => IO.Success(int + 1)) shouldBe IO.Success(124)
+        val mapCache = cache.map(int => IO(int))
+        mapCache.value(Int.MaxValue) shouldBe IO.Success(123)
+        mapCache.value(???) shouldBe IO.Success(123)
+
+        val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean())(int => IO(int + 1)))
+        flatMapCache.value(Int.MaxValue) shouldBe IO.Success(124)
+        flatMapCache.value(???) shouldBe IO.Success(124)
 
         //getOrElse on cached is not invoked on new value
         cache.getOrElse(???) shouldBe IO(123)
@@ -113,7 +118,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved)(_ => mock.apply())
 
         cache.isCached shouldBe false
-        mock.expects() returning IO.Failure("Kaboom!")
+        mock.expects() returning IO.Failure("Kaboom!") repeat 5.times
         cache.getOrElse(IO(233)) shouldBe IO(233)
         cache.isCached shouldBe false
 
@@ -121,9 +126,19 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.value().failed.get.exception.getMessage shouldBe "Kaboom!"
         cache.isCached shouldBe false
 
+        val mapCache = cache.map(int => IO(int))
+        mapCache.value(Int.MaxValue).failed.get.exception.getMessage shouldBe "Kaboom!"
+        mapCache.value(Int.MaxValue).failed.get.exception.getMessage shouldBe "Kaboom!"
+
+        val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean())(int => IO(int + 1)))
+        flatMapCache.value(Int.MaxValue).failed.get.exception.getMessage shouldBe "Kaboom!"
+        flatMapCache.value(Int.MaxValue).failed.get.exception.getMessage shouldBe "Kaboom!"
+
         //success
         mock.expects() returning IO(123)
         cache.value() shouldBe IO.Success(123) //value again mock function is not invoked again
+        mapCache.value() shouldBe IO.Success(123)
+        flatMapCache.value() shouldBe IO.Success(124)
         cache.isCached shouldBe true
         cache.isCached shouldBe true
         cache.clear()
@@ -144,14 +159,13 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.isCached shouldBe false
 
         mock.expects() returning IO(111)
-        cache.foreach()(int => int shouldBe 111)
-        cache.map()(int => int) shouldBe IO(111)
-        cache.flatMap()(int => IO(int + 1)) shouldBe IO(112)
+        cache.map(int => IO(int)).value(12332) shouldBe IO(111)
+        cache.flatMap(Cache.concurrentIO(randomBoolean(), true)(int => IO(int + 1))).value(23434) shouldBe IO(112)
 
         cache.clear()
         cache.isCached shouldBe false
         mock.expects() returning IO(222)
-        cache.flatMap()(int => IO(int + 1)) shouldBe IO(223)
+        cache.flatMap(Cache.concurrentIO(randomBoolean(), true)(int => IO(int + 2))).value(43433434) shouldBe IO(224)
 
         //on cached value ??? is not invoked.
         cache.getOrElse(???) shouldBe IO(222)
@@ -168,19 +182,42 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
         cache.isCached shouldBe false
 
-        mock.expects() returning IO.Failure("Kaboom!") repeat 3.times
-        cache.foreach()(_ => fail("error was expected. This should not be executed"))
-        cache.map()(int => int).failed.get.exception.getMessage shouldBe "Kaboom!"
+        mock.expects() returning IO.Failure("Kaboom!") repeat 2.times
+        cache.map(IO(_)).value().failed.get.exception.getMessage shouldBe "Kaboom!"
         cache.isCached shouldBe false
-        cache.flatMap()(int => IO.Success(int + 1)).failed.get.exception.getMessage shouldBe "Kaboom!"
+        cache.flatMap(Cache.reservedIO(true, IO.Error.BusyFuture(Reserve()))(int => IO.Success(int + 1))).value().failed.get.exception.getMessage shouldBe "Kaboom!"
         cache.isCached shouldBe false
 
         mock.expects() returning IO(222)
-        cache.flatMap()(int => IO.Success(int + 1)) shouldBe IO.Success(223)
+        cache.flatMap(Cache.concurrentIO(randomBoolean(), true)(int => IO.Success(int + 1))).value() shouldBe IO.Success(223)
         cache.isCached shouldBe true
       }
 
       runTestForAllCombinations(doTest)
+    }
+
+    "clear all flatMapped caches" in {
+      val cache = Cache.concurrentIO[Unit, Int](randomBoolean(), true)(_ => IO(1))
+      cache.value() shouldBe IO.Success(1)
+      cache.isCached shouldBe true
+
+      val nestedCache = Cache.concurrentIO[Int, Int](randomBoolean(), true)(int => IO(int + 1))
+
+      val flatMapCache = cache.flatMap(nestedCache)
+      flatMapCache.value() shouldBe IO.Success(2)
+      flatMapCache.isCached shouldBe true
+      nestedCache.isCached shouldBe true
+
+      val mapCache = flatMapCache.map(int => IO(int + 1))
+      mapCache.value() shouldBe IO.Success(3)
+      mapCache.isCached shouldBe true
+
+      mapCache.clear()
+
+      cache.isCached shouldBe false
+      flatMapCache.isCached shouldBe false
+      nestedCache.isCached shouldBe false
+      mapCache.isCached shouldBe false
     }
 
     "concurrent access to reserved io" should {
@@ -189,7 +226,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
           @volatile var invokeCount = 0
 
-          val cache =
+          val _cache =
             if (blockIO)
               Cache.blockIO[Unit, Int](blockIO = _ => BlockIO.ReservedIO(true), IO.Error.ReservedValue(Reserve())) {
                 _ =>
@@ -204,6 +241,14 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
                   sleep(5.millisecond) //delay access
                   IO.Success(10)
               }
+
+          val cache =
+            if (randomBoolean())
+              _cache.map(IO(_))
+            else if (randomBoolean())
+              _cache.flatMap(Cache.concurrentIO(false, false)(IO(_)))
+            else
+              _cache
 
           if (blockIO) {
             cache.value()

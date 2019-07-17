@@ -21,15 +21,16 @@ package swaydb.core.segment.format.a.entry.reader.value
 
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.util.cache.Cache
 import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 private[core] object LazyUpdateValueReader {
-  def apply(reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+  def apply(reader: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             offset: Int,
             length: Int): LazyUpdateValueReader =
     new LazyUpdateValueReader {
-      override val valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock] = reader
+      override val valueReader: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] = reader
 
       override def valueLength: Int = length
 

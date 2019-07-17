@@ -460,7 +460,7 @@ private[core] object Segment extends LazyLogging {
                         SortedIndexBlock.readAll(
                           keyValueCount = footer.keyValueCount,
                           sortedIndexReader = sortedIndexReader,
-                          valuesReader = valuesReader
+                          valueCache = valuesReader
                         ) flatMap {
                           keyValues =>
                             file.close flatMap {

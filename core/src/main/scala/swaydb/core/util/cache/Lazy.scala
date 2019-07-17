@@ -44,11 +44,16 @@ protected sealed trait Lazy[V] {
   def getOrElse[T >: V](f: => T): T
   def isDefined: Boolean
   def clear(): Unit
+  def isStored: Boolean
+  def isSynchronised: Boolean
 }
 
 class LazyValue[V](synchronised: Boolean, stored: Boolean) extends Lazy[V] {
 
   @volatile private var cache: Option[V] = None
+
+  def isStored: Boolean = stored
+  def isSynchronised: Boolean = synchronised
 
   override def get(): Option[V] =
     cache
@@ -103,6 +108,9 @@ class LazyValue[V](synchronised: Boolean, stored: Boolean) extends Lazy[V] {
 }
 
 class LazyIO[V](lazyValue: LazyValue[IO.Success[V]]) extends Lazy[IO[V]] {
+
+  def isStored: Boolean = lazyValue.isStored
+  def isSynchronised: Boolean = lazyValue.isSynchronised
 
   def set(value: => IO[V]): IO[V] =
     value map {

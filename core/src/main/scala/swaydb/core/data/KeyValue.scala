@@ -1299,9 +1299,36 @@ private[core] object Persistent {
       Value.Remove(deadline, time)
   }
 
+  object Put {
+    def fromCache(key: Slice[Byte],
+                  deadline: Option[Deadline],
+                  valueCache: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  time: Time,
+                  nextIndexOffset: Int,
+                  nextIndexSize: Int,
+                  indexOffset: Int,
+                  valueOffset: Int,
+                  valueLength: Int,
+                  accessPosition: Int,
+                  isPrefixCompressed: Boolean) =
+      new Put(
+        _key = key,
+        deadline = deadline,
+        valueCache = valueCache.map(_.readAllOrNone()),
+        _time = time,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        indexOffset = indexOffset,
+        valueOffset = valueOffset,
+        valueLength = valueLength,
+        accessPosition = accessPosition,
+        isPrefixCompressed = isPrefixCompressed
+      )
+  }
+
   case class Put(private var _key: Slice[Byte],
                  deadline: Option[Deadline],
-                 private val lazyValueReader: LazyValueReader,
+                 private val valueCache: Cache[ValuesBlock.Offset, Option[Slice[Byte]]],
                  private var _time: Time,
                  nextIndexOffset: Int,
                  nextIndexSize: Int,
@@ -1330,10 +1357,10 @@ private[core] object Persistent {
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
     override def getOrFetchValue: IO[Option[Slice[Byte]]] =
-      lazyValueReader.getOrFetchValue
+      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def isValueDefined: Boolean =
-      lazyValueReader.isValueDefined
+      valueCache.isCached
 
     override def toFromValue(): IO[Value.Put] =
       getOrFetchValue map {
@@ -1363,9 +1390,36 @@ private[core] object Persistent {
       copy(_time = time)
   }
 
+  object Update {
+    def fromCache(key: Slice[Byte],
+                  deadline: Option[Deadline],
+                  valueCache: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  time: Time,
+                  nextIndexOffset: Int,
+                  nextIndexSize: Int,
+                  indexOffset: Int,
+                  valueOffset: Int,
+                  valueLength: Int,
+                  accessPosition: Int,
+                  isPrefixCompressed: Boolean) =
+      new Update(
+        _key = key,
+        deadline = deadline,
+        valueCache = valueCache.map(_.readAllOrNone()),
+        _time = time,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        indexOffset = indexOffset,
+        valueOffset = valueOffset,
+        valueLength = valueLength,
+        accessPosition = accessPosition,
+        isPrefixCompressed = isPrefixCompressed
+      )
+  }
+
   case class Update(private var _key: Slice[Byte],
                     deadline: Option[Deadline],
-                    private val lazyValueReader: LazyValueReader,
+                    private val valueCache: Cache[ValuesBlock.Offset, Option[Slice[Byte]]],
                     private var _time: Time,
                     nextIndexOffset: Int,
                     nextIndexSize: Int,
@@ -1394,10 +1448,10 @@ private[core] object Persistent {
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
     override def isValueDefined: Boolean =
-      lazyValueReader.isValueDefined
+      valueCache.isCached
 
     def getOrFetchValue: IO[Option[Slice[Byte]]] =
-      lazyValueReader.getOrFetchValue
+      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def toFromValue(): IO[Value.Update] =
       getOrFetchValue map {
@@ -1433,7 +1487,7 @@ private[core] object Persistent {
       Persistent.Put(
         _key = key,
         deadline = deadline,
-        lazyValueReader = lazyValueReader,
+        valueCache = valueCache,
         _time = time,
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
@@ -1448,7 +1502,32 @@ private[core] object Persistent {
       Persistent.Put(
         _key = key,
         deadline = deadline,
-        lazyValueReader = lazyValueReader,
+        valueCache = valueCache,
+        _time = time,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        indexOffset = indexOffset,
+        valueOffset = valueOffset,
+        valueLength = valueLength,
+        accessPosition = accessPosition,
+        isPrefixCompressed = isPrefixCompressed
+      )
+  }
+
+  object Function {
+    def fromCache(key: Slice[Byte],
+                  valueCache: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  time: Time,
+                  nextIndexOffset: Int,
+                  nextIndexSize: Int,
+                  indexOffset: Int,
+                  valueOffset: Int,
+                  valueLength: Int,
+                  accessPosition: Int,
+                  isPrefixCompressed: Boolean) =
+      new Function(
+        _key = key,
+        valueCache = valueCache.map(_.readAll()),
         _time = time,
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
@@ -1461,7 +1540,7 @@ private[core] object Persistent {
   }
 
   case class Function(private var _key: Slice[Byte],
-                      private val lazyFunctionReader: LazyFunctionReader,
+                      private val valueCache: Cache[ValuesBlock.Offset, Slice[Byte]],
                       private var _time: Time,
                       nextIndexOffset: Int,
                       nextIndexSize: Int,
@@ -1484,10 +1563,10 @@ private[core] object Persistent {
     override def indexEntryDeadline: Option[Deadline] = None
 
     override def isValueDefined: Boolean =
-      lazyFunctionReader.isValueDefined
+      valueCache.isCached
 
     def getOrFetchFunction: IO[Slice[Byte]] =
-      lazyFunctionReader.getOrFetchFunction
+      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def toFromValue(): IO[Value.Function] =
       getOrFetchFunction map {
@@ -1512,10 +1591,37 @@ private[core] object Persistent {
       copy(_time = time)
   }
 
+  object PendingApply {
+    def fromCache(key: Slice[Byte],
+                  time: Time,
+                  deadline: Option[Deadline],
+                  valueCache: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  nextIndexOffset: Int,
+                  nextIndexSize: Int,
+                  indexOffset: Int,
+                  valueOffset: Int,
+                  valueLength: Int,
+                  accessPosition: Int,
+                  isPrefixCompressed: Boolean) =
+      new PendingApply(
+        _key = key,
+        _time = time,
+        deadline = deadline,
+        valueCache = valueCache.map(_.readAll().flatMap(bytes => ValueSerializer.read[Slice[Value.Apply]](bytes))),
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        indexOffset = indexOffset,
+        valueOffset = valueOffset,
+        valueLength = valueLength,
+        accessPosition = accessPosition,
+        isPrefixCompressed = isPrefixCompressed
+      )
+  }
+
   case class PendingApply(private var _key: Slice[Byte],
                           private var _time: Time,
                           deadline: Option[Deadline],
-                          lazyValueReader: LazyPendingApplyValueReader,
+                          valueCache: Cache[ValuesBlock.Offset, Slice[Value.Apply]],
                           nextIndexOffset: Int,
                           nextIndexSize: Int,
                           indexOffset: Int,
@@ -1537,16 +1643,15 @@ private[core] object Persistent {
     override def indexEntryDeadline: Option[Deadline] = deadline
 
     override def isValueDefined: Boolean =
-      lazyValueReader.isValueDefined
+      valueCache.isCached
 
     override def getOrFetchApplies: IO[Slice[Value.Apply]] =
-      lazyValueReader.getOrFetchApplies
+      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def toFromValue(): IO[Value.PendingApply] =
-      lazyValueReader.getOrFetchApplies map {
-        applies =>
-          Value.PendingApply(applies)
-      }
+      valueCache
+        .value(ValuesBlock.Offset(valueOffset, valueLength))
+        .map(Value.PendingApply)
 
     override def toRangeValue(): IO[Value.PendingApply] =
       toFromValue()
@@ -1563,7 +1668,7 @@ private[core] object Persistent {
 
   object Range {
     def apply(key: Slice[Byte],
-              lazyRangeValueReader: LazyRangeValueReader,
+              valueCache: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               nextIndexOffset: Int,
               nextIndexSize: Int,
               indexOffset: Int,
@@ -1576,7 +1681,7 @@ private[core] object Persistent {
           Range(
             _fromKey = fromKey,
             _toKey = toKey,
-            lazyRangeValueReader = lazyRangeValueReader,
+            valueCache = valueCache.map(_.readAll().flatMap(RangeValueSerializer.read)),
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
             indexOffset = indexOffset,
@@ -1590,7 +1695,7 @@ private[core] object Persistent {
 
   case class Range(private var _fromKey: Slice[Byte],
                    private var _toKey: Slice[Byte],
-                   lazyRangeValueReader: LazyRangeValueReader,
+                   valueCache: Cache[ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)],
                    nextIndexOffset: Int,
                    nextIndexSize: Int,
                    indexOffset: Int,
@@ -1613,17 +1718,14 @@ private[core] object Persistent {
     override def key: Slice[Byte] =
       _fromKey
 
-    override def fetchFromValue: IO[Option[Value.FromValue]] =
-      lazyRangeValueReader.fetchFromValue
+    def fetchRangeValue: IO[Value.RangeValue] =
+      fetchFromAndRangeValue.map(_._2)
 
-    override def fetchRangeValue: IO[Value.RangeValue] =
-      lazyRangeValueReader.fetchRangeValue
+    def fetchFromValue: IO[Option[Value.FromValue]] =
+      fetchFromAndRangeValue.map(_._1)
 
-    override def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)] =
-      lazyRangeValueReader.fetchFromAndRangeValue
-
-    override def isValueDefined: Boolean =
-      lazyRangeValueReader.isValueDefined
+    def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)] =
+      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def toMemory(): IO[Memory.Range] =
       fetchFromAndRangeValue map {
@@ -1635,11 +1737,14 @@ private[core] object Persistent {
             rangeValue = rangeValue
           )
       }
+
+    override def isValueDefined: Boolean =
+      valueCache.isCached
   }
 
   object Group {
     def apply(key: Slice[Byte],
-              valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+              valueCache: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               nextIndexOffset: Int,
               nextIndexSize: Int,
               indexOffset: Int,
@@ -1653,7 +1758,7 @@ private[core] object Persistent {
           Group(
             _minKey = minKey,
             _maxKey = maxKey,
-            valueReader = valueReader.copy(),
+            valueCache = valueCache,
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
             indexOffset = indexOffset,
@@ -1668,7 +1773,7 @@ private[core] object Persistent {
 
   case class Group(private var _minKey: Slice[Byte],
                    private var _maxKey: MaxKey[Slice[Byte]],
-                   valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+                   valueCache: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                    nextIndexOffset: Int,
                    nextIndexSize: Int,
                    indexOffset: Int,
@@ -1691,7 +1796,7 @@ private[core] object Persistent {
             unsliceKey = false,
             blockRef =
               ???,
-//            BlockRefReader.moveTo(
+            //            BlockRefReader.moveTo(
             //              ValuesBlock.Offset(start = valueOffset, size = valueLength),
             //              valueReader.copy()
             //            )

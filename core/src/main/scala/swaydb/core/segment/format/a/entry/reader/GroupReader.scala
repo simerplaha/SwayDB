@@ -23,6 +23,7 @@ import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
+import swaydb.core.util.cache.Cache
 import swaydb.data.IO
 import swaydb.data.slice.Reader
 
@@ -31,7 +32,7 @@ object GroupReader extends EntryReader[Persistent.Group] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                              valueCache: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -49,12 +50,12 @@ object GroupReader extends EntryReader[Persistent.Group] {
               case (valueOffset, valueLength) =>
                 KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Group) flatMap {
                   case (key, isKeyPrefixCompressed) =>
-                    valueReader map {
-                      valueReader =>
+                    valueCache map {
+                      valueCache =>
                         Persistent.Group(
                           key = key,
                           deadline = deadline,
-                          valueReader = valueReader,
+                          valueCache = valueCache,
                           nextIndexOffset = nextIndexOffset,
                           nextIndexSize = nextIndexSize,
                           indexOffset = indexOffset,

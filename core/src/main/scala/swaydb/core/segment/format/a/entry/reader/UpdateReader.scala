@@ -24,6 +24,7 @@ import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyValueReader
+import swaydb.core.util.cache.Cache
 import swaydb.data.IO
 import swaydb.data.slice.Reader
 
@@ -32,7 +33,7 @@ object UpdateReader extends EntryReader[Persistent.Update] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                              valueCache: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -53,25 +54,15 @@ object UpdateReader extends EntryReader[Persistent.Update] {
                     val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                     val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                    val lazyValueReader =
-                      valueReader map {
-                        valueReader =>
-                          LazyValueReader(
-                            reader = valueReader,
-                            offset = valueOffset,
-                            length = valueLength
-                          )
-                      }
-
-                    if (valueLength > 0 && lazyValueReader.isEmpty)
+                    if (valueLength > 0 && valueCache.isEmpty)
                       ValuesBlock.valuesBlockNotInitialised
                     else
                       IO {
-                        Persistent.Update(
-                          _key = key,
+                        Persistent.Update.fromCache(
+                          key = key,
                           deadline = deadline,
-                          lazyValueReader = lazyValueReader getOrElse LazyValueReader.empty,
-                          _time = time,
+                          valueCache = valueCache getOrElse Cache.emptyValuesBlock,
+                          time = time,
                           nextIndexOffset = nextIndexOffset,
                           nextIndexSize = nextIndexSize,
                           indexOffset = indexOffset,
