@@ -25,7 +25,6 @@ import swaydb.core.util.FunctionUtil
 import swaydb.data.config.BlockIO
 import swaydb.data.{IO, Reserve}
 
-import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
 object Cache {
@@ -107,7 +106,7 @@ sealed trait Cache[I, O] { self =>
   def flatMap[O2](next: Cache[O, O2]): Cache[I, O2] =
     new Cache[I, O2] {
       override def value(i: => I): IO[O2] = self.value(i).flatMap(next.value(_))
-      override def isCached: Boolean = self.isCached
+      override def isCached: Boolean = self.isCached || next.isCached
       override def getOrElse(f: => IO[O2]): IO[O2] = next.getOrElse(f)
       override def clear(): Unit = {
         self.clear()

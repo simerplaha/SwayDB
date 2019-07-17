@@ -52,7 +52,13 @@ private[core] object BlockRefReader {
         )
     }
 
-  def moveTo[O <: BlockOffset, B <: Block[O]](offset: O, reader: UnblockedReader[O, B])(implicit blockOps: BlockOps[O, B]): BlockRefReader[O] =
+  def moveTo[O <: BlockOffset, B <: Block[O]](offset: O, reader: UnblockedReader[O, B]): BlockRefReader[O] =
+    new BlockRefReader(
+      offset = offset,
+      reader = reader
+    )
+
+  def moveTo(offset: SegmentBlock.Offset, reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): BlockRefReader[SegmentBlock.Offset] =
     new BlockRefReader(
       offset = offset,
       reader = reader
