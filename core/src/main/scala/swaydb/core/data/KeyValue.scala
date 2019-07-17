@@ -1311,7 +1311,7 @@ private[core] object Persistent {
       new Put(
         _key = key,
         deadline = deadline,
-        valueCache = valueCache.map(_.readAllOrNone()),
+        valueCache = valueCache.mapStored(_.readAllOrNone()),
         _time = time,
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
@@ -1402,7 +1402,7 @@ private[core] object Persistent {
       new Update(
         _key = key,
         deadline = deadline,
-        valueCache = valueCache.map(_.readAllOrNone()),
+        valueCache = valueCache.mapStored(_.readAllOrNone()),
         _time = time,
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
@@ -1524,7 +1524,7 @@ private[core] object Persistent {
                   isPrefixCompressed: Boolean) =
       new Function(
         _key = key,
-        valueCache = valueCache.map(_.readAll()),
+        valueCache = valueCache.mapStored(_.readAll()),
         _time = time,
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
@@ -1604,7 +1604,7 @@ private[core] object Persistent {
         _key = key,
         _time = time,
         deadline = deadline,
-        valueCache = valueCache.map(_.readAll().flatMap(bytes => ValueSerializer.read[Slice[Value.Apply]](bytes))),
+        valueCache = valueCache.mapStored(_.readAll().flatMap(bytes => ValueSerializer.read[Slice[Value.Apply]](bytes))),
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
         indexOffset = indexOffset,
@@ -1678,7 +1678,7 @@ private[core] object Persistent {
           Range(
             _fromKey = fromKey,
             _toKey = toKey,
-            valueCache = valueCache.map(_.readAll().flatMap(RangeValueSerializer.read)),
+            valueCache = valueCache.mapStored(_.readAll().flatMap(RangeValueSerializer.read)),
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
             indexOffset = indexOffset,

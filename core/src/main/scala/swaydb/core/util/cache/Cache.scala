@@ -106,6 +106,9 @@ sealed trait Cache[I, O] { self =>
       override def clear(): Unit = self.clear()
     }
 
+  def mapStored[O2](f: O => IO[O2]): Cache[I, O2] =
+    flatMap(Cache.concurrentIO(synchronised = false, stored = true)(f))
+
   def flatMap[O2](next: Cache[O, O2]): Cache[I, O2] =
     new Cache[I, O2] {
       //fetch the value from the lowest cache first. Higher caches should only be read if the lowest is not already computed.
@@ -132,7 +135,6 @@ private class BlockIOCache[I, O](cache: CacheUnsafe[I, Cache[I, O]]) extends Cac
       case _ =>
         f
     }
-
 
   //clear the inner cache first, it unsuccessful then clear the outer cache.
   //why? outer cache is just an initialisation cache it does not do io/computation.

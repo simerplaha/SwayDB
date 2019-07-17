@@ -259,35 +259,37 @@ class SegmentBlockCache(id: String,
   def createValuesReader(): IO[Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
     createReaderOptional(valuesReaderCache, getValues())
 
+  /**
+    * Builds a [[Cache]] on top of [[valuesReaderCache]] to fetch the target value from within the [[ValuesBlock]].
+    *
+    * How to unblock the Values is controlled byte [[valuesReaderCache]].
+    */
   def createValueReaderCache(): IO[Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]]] =
-    createValuesReader() map buildValueFetcherCache
+    createValuesReader() map {
+      valuesReader =>
+        valuesReader map {
+          valuesReader =>
+            Cache.concurrentIO(synchronised = false, stored = true) {
+              offset =>
+                IO(UnblockedReader.moveTo(offset, valuesReader))
+            }
+        }
+    }
 
   def createSortedIndexReader(): IO[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] =
     createReader(sortedIndexReaderCache, getSortedIndex())
-
-  /**
-    * Builds a [[Cache]] to fetch the target value from the [[ValuesBlock]].
-    */
-  def buildValueFetcherCache(valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
-    valuesReader map {
-      valuesReader =>
-        Cache.concurrentIO(synchronised = false, stored = true) {
-          offset =>
-            IO(UnblockedReader.moveTo(offset, valuesReader))
-        }
-    }
 
   def readAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None) =
     getFooter() flatMap {
       footer =>
         createSortedIndexReader() flatMap {
           sortedIndexReader =>
-            createValuesReader() flatMap {
-              valuesReader =>
+            createValueReaderCache() flatMap {
+              valueCache =>
                 SortedIndexBlock.readAll(
                   keyValueCount = footer.keyValueCount,
                   sortedIndexReader = sortedIndexReader,
-                  valueCache = buildValueFetcherCache(valuesReader),
+                  valueCache = valueCache,
                   addTo = addTo
                 )
             }
