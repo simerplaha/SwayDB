@@ -105,7 +105,8 @@ sealed trait Cache[I, O] { self =>
 
   def flatMap[O2](next: Cache[O, O2]): Cache[I, O2] =
     new Cache[I, O2] {
-      override def value(i: => I): IO[O2] = self.value(i).flatMap(next.value(_))
+      //fetch the value from the lowest cache first. Higher caches should only be read if the lowest is not already computed.
+      override def value(i: => I): IO[O2] = getOrElse(self.value(i).flatMap(next.value(_)))
       override def isCached: Boolean = self.isCached || next.isCached
       override def getOrElse(f: => IO[O2]): IO[O2] = next.getOrElse(f)
       override def clear(): Unit = {

@@ -402,7 +402,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             matcher = matcher,
             fromOffset = sortedIndexOffsetValue,
             indexReader = sortedIndexReader,
-            valueReader = valuesReaderReader
+            valueCache = valuesReaderReader
           )
     )
   }
