@@ -438,7 +438,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           next = None,
           matcher = matcher,
           indexReader = indexReader,
-          valueCache = valueCache,
+          valueCache = valueCache
         )
     }
 
@@ -477,7 +477,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         readNextKeyValue(
           previous = readFrom,
           indexReader = indexReader,
-          valueCache = valueCache,
+          valueCache = valueCache
         ) match {
           case IO.Success(nextNextKeyValue) =>
             matchOrNext(
@@ -485,7 +485,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
               next = Some(nextNextKeyValue),
               matcher = matcher,
               indexReader = indexReader,
-              valueCache = valueCache,
+              valueCache = valueCache
             )
 
           case IO.Failure(exception) =>
@@ -506,7 +506,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       next = next,
       matcher = matcher,
       indexReader = indexReader,
-      valueCache = valueCache,
+      valueCache = valueCache
     ) match {
       case IO.Success(KeyMatcher.Result.Matched(_, keyValue, _)) =>
         IO.Success(Some(keyValue))

@@ -145,8 +145,7 @@ private[core] object SegmentMerger extends LazyLogging {
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
           bloomFilterConfig = bloomFilterConfig,
-          segmentIO = segmentIO,
-
+          segmentIO = segmentIO
         )
     } match {
       case None =>
