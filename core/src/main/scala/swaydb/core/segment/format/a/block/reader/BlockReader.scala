@@ -19,22 +19,24 @@
 
 package swaydb.core.segment.format.a.block.reader
 
-import swaydb.core.segment.format.a.block.Block
+import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.StorageUnits._
 
-protected abstract class BlockReader[B <: Block](reader: Reader,
-                                                 block: B,
-                                                 diskBlockSize: Int = 4096.bytes) extends Reader {
+protected trait BlockReader extends Reader {
+
+  private[reader] def reader: Reader
+  def offset: BlockOffset
+  def diskBlockSize: Int = 4096.bytes
 
   private var position: Int = 0
 
   override val size: IO[Long] =
-    IO(block.offset.size)
+    IO(offset.size)
 
-  def moveTo(newPosition: Long): BlockReader[B] = {
-    position = newPosition.toInt max 0
+  override def moveTo(position: Long): BlockReader = {
+    this.position = position.toInt
     this
   }
 
@@ -58,7 +60,7 @@ protected abstract class BlockReader[B <: Block](reader: Reader,
       hasMore =>
         if (hasMore)
           reader
-            .moveTo(block.offset.start + position)
+            .moveTo(offset.start + position)
             .get()
             .map {
               got =>
@@ -74,7 +76,7 @@ protected abstract class BlockReader[B <: Block](reader: Reader,
       remaining =>
         val minimum = size min remaining.toInt
         reader
-          .moveTo(block.offset.start + position)
+          .moveTo(offset.start + position)
           .read(minimum)
           .map {
             bytes =>
@@ -85,8 +87,8 @@ protected abstract class BlockReader[B <: Block](reader: Reader,
 
   def readAll(): IO[Slice[Byte]] =
     reader
-      .moveTo(block.offset.start)
-      .read(block.offset.size)
+      .moveTo(offset.start)
+      .read(offset.size)
 
   override def readRemaining(): IO[Slice[Byte]] =
     remaining flatMap read

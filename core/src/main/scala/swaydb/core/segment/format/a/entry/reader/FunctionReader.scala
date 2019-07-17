@@ -32,7 +32,7 @@ object FunctionReader extends EntryReader[Persistent.Function] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Option[UnblockedReader[ValuesBlock]],
+                              valueReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,

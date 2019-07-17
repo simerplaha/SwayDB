@@ -18,9 +18,9 @@ private[core] object SegmentSearcher extends LazyLogging {
   def searchLower(key: Slice[Byte],
                   start: Option[Persistent],
                   end: Option[Persistent],
-                  binarySearchReader: Option[UnblockedReader[BinarySearchIndexBlock]],
-                  sortedIndexReader: UnblockedReader[SortedIndexBlock],
-                  valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                  binarySearchReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     binarySearchReader map {
       binarySearchIndexReader =>
         BinarySearchIndexBlock.searchLower(
@@ -65,9 +65,9 @@ private[core] object SegmentSearcher extends LazyLogging {
   def searchHigher(key: Slice[Byte],
                    start: Option[Persistent],
                    end: Option[Persistent],
-                   binarySearchReader: Option[UnblockedReader[BinarySearchIndexBlock]],
-                   sortedIndexReader: UnblockedReader[SortedIndexBlock],
-                   valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                   binarySearchReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     start map {
       start =>
         SortedIndexBlock.searchHigherSeekOne(
@@ -104,9 +104,9 @@ private[core] object SegmentSearcher extends LazyLogging {
   def binarySearchHigher(key: Slice[Byte],
                          start: Option[Persistent],
                          end: Option[Persistent],
-                         binarySearchReader: Option[UnblockedReader[BinarySearchIndexBlock]],
-                         sortedIndexReader: UnblockedReader[SortedIndexBlock],
-                         valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                         binarySearchReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                         sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                         valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     binarySearchReader map {
       binarySearchIndexReader =>
         if (binarySearchIndexReader.block.isFullIndex)
@@ -147,10 +147,10 @@ private[core] object SegmentSearcher extends LazyLogging {
   def search(key: Slice[Byte],
              start: Option[Persistent],
              end: Option[Persistent],
-             hashIndexReader: Option[UnblockedReader[HashIndexBlock]],
-             binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock]],
-             sortedIndexReader: UnblockedReader[SortedIndexBlock],
-             valuesReaderReader: Option[UnblockedReader[ValuesBlock]],
+             hashIndexReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+             binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+             sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+             valuesReaderReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
              hasRange: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     hashIndexReader map {
       hashIndexReader =>
@@ -190,9 +190,9 @@ private[core] object SegmentSearcher extends LazyLogging {
   private def search(key: Slice[Byte],
                      start: Option[Persistent],
                      end: Option[Persistent],
-                     binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock]],
-                     sortedIndexReader: UnblockedReader[SortedIndexBlock],
-                     valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                     binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                     sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                     valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     binarySearchIndexReader map {
       binarySearchIndexReader =>
         BinarySearchIndexBlock.search(

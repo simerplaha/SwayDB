@@ -2635,7 +2635,7 @@ object TestData {
 
   implicit class SegmentBlockImplicits(segmentBlock: SegmentBlock.type) {
 
-    def emptyDecompressedBlock: UnblockedReader[SegmentBlock] =
+    def emptyDecompressedBlock: UnblockedReader[SegmentBlock.Offset, SegmentBlock] =
       UnblockedReader.empty(
         SegmentBlock(
           offset = SegmentBlock.Offset.empty,
@@ -2644,7 +2644,7 @@ object TestData {
         )
       )
 
-    def unblocked(bytes: Slice[Byte])(implicit updater: BlockUpdater[SegmentBlock]): UnblockedReader[SegmentBlock] =
+    def unblocked(bytes: Slice[Byte])(implicit updater: BlockOps[SegmentBlock.Offset, SegmentBlock]): UnblockedReader[SegmentBlock.Offset, SegmentBlock] =
       UnblockedReader(
         block =
           SegmentBlock(
@@ -2655,10 +2655,10 @@ object TestData {
             headerSize = 0,
             compressionInfo = None
           ),
-        decompressedBytes = bytes
+        bytes = bytes
       )
 
-    def blocked(bytes: Slice[Byte], headerSize: Int, compressionInfo: Block.CompressionInfo)(implicit updater: BlockUpdater[SegmentBlock]): BlockedReader[SegmentBlock] =
+    def blocked(bytes: Slice[Byte], headerSize: Int, compressionInfo: Block.CompressionInfo)(implicit updater: BlockOps[SegmentBlock.Offset, SegmentBlock]): BlockedReader[SegmentBlock.Offset, SegmentBlock] =
       BlockedReader(
         bytes = bytes,
         block =
@@ -2672,6 +2672,4 @@ object TestData {
           )
       )
   }
-
 }
-

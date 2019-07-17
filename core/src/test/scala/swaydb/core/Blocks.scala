@@ -21,9 +21,9 @@ package swaydb.core
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 
-case class Blocks(valuesReader: Option[UnblockedReader[ValuesBlock]],
-                  sortedIndexReader: UnblockedReader[SortedIndexBlock],
-                  hashIndexReader: Option[UnblockedReader[HashIndexBlock]],
-                  binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock]],
-                  bloomFilterReader: Option[UnblockedReader[BloomFilterBlock]],
+case class Blocks(valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                  hashIndexReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+                  binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                  bloomFilterReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
                   footer: SegmentFooterBlock)

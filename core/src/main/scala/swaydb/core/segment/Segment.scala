@@ -32,7 +32,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.{FiniteDurationUtil, IDGenerator, MinMax}
@@ -442,13 +442,13 @@ private[core] object Segment extends LazyLogging {
 
     file flatMap {
       file =>
-        file.fileSize flatMap {
-          fileSize =>
+        BlockRefReader(file) flatMap {
+          refReader =>
             val segmentBlockCache =
               SegmentBlockCache(
                 id = "Reading segment",
                 segmentIO = segmentIO,
-                segmentReader = BlockedReader(SegmentBlock(SegmentBlock.Offset(0, fileSize.toInt), 0, None), Reader(file))
+                blockRef = refReader
               )
 
             segmentBlockCache.getFooter() flatMap {
@@ -484,7 +484,7 @@ private[core] object Segment extends LazyLogging {
                                             MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
                                         },
                                       minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
-                                      segmentSize = fileSize.toInt,
+                                      segmentSize = refReader.offset.size,
                                       nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline
                                     )
                                 }

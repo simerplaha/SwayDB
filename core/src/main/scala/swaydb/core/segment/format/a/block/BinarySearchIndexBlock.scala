@@ -233,21 +233,19 @@ private[core] object BinarySearchIndexBlock {
     else
       IO.none
 
-  def read(offset: Offset,
-           reader: UnblockedReader[SegmentBlock]): IO[BinarySearchIndexBlock] =
+  def read(header: Block.Header[BinarySearchIndexBlock.Offset]): IO[BinarySearchIndexBlock] =
     for {
-      result <- Block.readHeader(offset = offset, reader = reader)
-      valuesCount <- result.headerReader.readIntUnsigned()
-      bytesPerValue <- result.headerReader.readInt()
-      isFullIndex <- result.headerReader.readBoolean()
+      valuesCount <- header.headerReader.readIntUnsigned()
+      bytesPerValue <- header.headerReader.readInt()
+      isFullIndex <- header.headerReader.readBoolean()
     } yield
       BinarySearchIndexBlock(
-        offset = offset,
+        offset = header.offset,
         valuesCount = valuesCount,
-        headerSize = result.headerSize,
+        headerSize = header.headerSize,
         bytesPerValue = bytesPerValue,
         isFullIndex = isFullIndex,
-        compressionInfo = result.compressionInfo
+        compressionInfo = header.compressionInfo
       )
 
   def write(value: Int,
@@ -272,7 +270,7 @@ private[core] object BinarySearchIndexBlock {
         state.previouslyWritten = value
       }
 
-  def search(reader: UnblockedReader[BinarySearchIndexBlock],
+  def search(reader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
              start: Option[Int],
              end: Option[Int],
              higherOrLower: Option[Boolean],
@@ -337,9 +335,9 @@ private[core] object BinarySearchIndexBlock {
                      higherOrLower: Option[Boolean],
                      start: Option[Persistent],
                      end: Option[Persistent],
-                     binarySearchIndex: UnblockedReader[BinarySearchIndexBlock],
-                     sortedIndex: UnblockedReader[SortedIndexBlock],
-                     values: Option[UnblockedReader[ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
+                     binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                     sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                     values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
     val matcher =
       higherOrLower map {
         higher =>
@@ -393,9 +391,9 @@ private[core] object BinarySearchIndexBlock {
   def search(key: Slice[Byte],
              start: Option[Persistent],
              end: Option[Persistent],
-             binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock],
-             sortedIndexReader: UnblockedReader[SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+             binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+             sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       key = key,
       higherOrLower = None,
@@ -409,9 +407,9 @@ private[core] object BinarySearchIndexBlock {
   def searchHigher(key: Slice[Byte],
                    start: Option[Persistent],
                    end: Option[Persistent],
-                   binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock],
-                   sortedIndexReader: UnblockedReader[SortedIndexBlock],
-                   valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                   binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       key = key,
       higherOrLower = Options.`true`,
@@ -425,9 +423,9 @@ private[core] object BinarySearchIndexBlock {
   def searchLower(key: Slice[Byte],
                   start: Option[Persistent],
                   end: Option[Persistent],
-                  binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock],
-                  sortedIndexReader: UnblockedReader[SortedIndexBlock],
-                  valuesReader: Option[UnblockedReader[ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                  binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     search(
       key = key,
       higherOrLower = Options.`false`,
@@ -438,9 +436,14 @@ private[core] object BinarySearchIndexBlock {
       values = valuesReader
     )
 
-  implicit object BinarySearchIndexBlockUpdater extends BlockUpdater[BinarySearchIndexBlock] {
-    override def updateOffset(block: BinarySearchIndexBlock, start: Int, size: Int): BinarySearchIndexBlock =
+  implicit object BinarySearchIndexBlockOps extends BlockOps[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock] {
+    override def updateBlockOffset(block: BinarySearchIndexBlock, start: Int, size: Int): BinarySearchIndexBlock =
       block.copy(offset = BinarySearchIndexBlock.Offset(start = start, size = size))
+
+    override def createOffset(start: Int, size: Int): Offset =
+      BinarySearchIndexBlock.Offset(start, size)
+
+    override def readBlock(header: Block.Header[Offset]): IO[BinarySearchIndexBlock] = ???
   }
 
 }
@@ -450,7 +453,7 @@ private[core] case class BinarySearchIndexBlock(offset: BinarySearchIndexBlock.O
                                                 headerSize: Int,
                                                 bytesPerValue: Int,
                                                 isFullIndex: Boolean,
-                                                compressionInfo: Option[Block.CompressionInfo]) extends Block {
+                                                compressionInfo: Option[Block.CompressionInfo]) extends Block[BinarySearchIndexBlock.Offset] {
   val isVarInt: Boolean =
     BinarySearchIndexBlock.isVarInt(bytesPerValue)
 }

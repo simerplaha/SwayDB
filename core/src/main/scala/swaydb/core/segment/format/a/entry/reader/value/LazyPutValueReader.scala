@@ -25,11 +25,11 @@ import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 private[core] object LazyPutValueReader {
-  def apply(reader: UnblockedReader[ValuesBlock],
+  def apply(reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
             offset: Int,
             length: Int): LazyPutValueReader =
     new LazyPutValueReader {
-      override val valueReader: UnblockedReader[ValuesBlock] = reader
+      override val valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock] = reader
 
       override def valueLength: Int = length
 

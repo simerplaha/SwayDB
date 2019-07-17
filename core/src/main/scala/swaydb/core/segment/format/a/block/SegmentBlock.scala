@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Memory, Transient}
 import swaydb.core.function.FunctionStore
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader}
 import swaydb.core.segment.{DeadlineAndFunctionId, Segment}
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.IO
@@ -198,18 +199,13 @@ private[core] object SegmentBlock {
                                          minMaxFunction: Option[MinMax[Slice[Byte]]],
                                          nearestDeadline: Option[Deadline])
 
-  def read(offset: SegmentBlock.Offset,
-           segmentReader: Reader): IO[SegmentBlock] =
-    Block.readHeader(
-      offset = offset,
-      reader = segmentReader
-    ) map {
-      header =>
-        SegmentBlock(
-          offset = offset,
-          headerSize = header.headerSize,
-          compressionInfo = header.compressionInfo
-        )
+  def read(header: Block.Header[Offset]): IO[SegmentBlock] =
+    IO {
+      SegmentBlock(
+        offset = header.offset,
+        headerSize = header.headerSize,
+        compressionInfo = header.compressionInfo
+      )
     }
 
   val noCompressionHeaderSize = {
@@ -649,13 +645,21 @@ private[core] object SegmentBlock {
         }
     }
 
-  implicit object SegmentBlockUpdater extends BlockUpdater[SegmentBlock] {
-    override def updateOffset(block: SegmentBlock, start: Int, size: Int): SegmentBlock =
+  implicit object SegmentBlockOps extends BlockOps[SegmentBlock.Offset, SegmentBlock] {
+    override def updateBlockOffset(block: SegmentBlock, start: Int, size: Int): SegmentBlock =
       block.copy(offset = SegmentBlock.Offset(start = start, size = size))
+
+    override def createOffset(start: Int, size: Int): Offset =
+      SegmentBlock.Offset(start, size)
+
+    override def readBlock(header: Block.Header[SegmentBlock.Offset]): IO[SegmentBlock] =
+      SegmentBlock.read(header)
   }
+
 }
 
 private[core] case class SegmentBlock(offset: SegmentBlock.Offset,
                                       headerSize: Int,
-                                      compressionInfo: Option[Block.CompressionInfo]) extends Block
+                                      compressionInfo: Option[Block.CompressionInfo]) extends Block[SegmentBlock.Offset]
+
 

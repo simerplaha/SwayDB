@@ -25,7 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.util.ExceptionUtil
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -37,7 +37,7 @@ private[core] object SegmentCache {
             maxKey: MaxKey[Slice[Byte]],
             minKey: Slice[Byte],
             unsliceKey: Boolean,
-            segmentReader: BlockedReader[SegmentBlock],
+            blockRef: BlockRefReader[SegmentBlock.Offset],
             segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   keyValueLimiter: KeyValueLimiter): SegmentCache =
     new SegmentCache(
@@ -49,7 +49,7 @@ private[core] object SegmentCache {
       blockCache =
         SegmentBlockCache(
           id = id,
-          segmentReader = segmentReader,
+          blockRef = blockRef,
           segmentIO = segmentIO
         )
     )(keyOrder = keyOrder, keyValueLimiter = keyValueLimiter, groupIO = segmentIO)
@@ -87,7 +87,7 @@ private[core] class SegmentCache(id: String,
       keyValueLimiter.add(group, persistentCache)
   }
 
-  private def prepareGet[T](f: (SegmentFooterBlock, Option[UnblockedReader[HashIndexBlock]], Option[UnblockedReader[BinarySearchIndexBlock]], UnblockedReader[SortedIndexBlock], Option[UnblockedReader[ValuesBlock]]) => IO[T]): IO[T] = {
+  private def prepareGet[T](f: (SegmentFooterBlock, Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]], Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]], UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]) => IO[T]): IO[T] = {
     for {
       footer <- blockCache.getFooter()
       hashIndex <- blockCache.createHashIndexReader()
@@ -103,7 +103,7 @@ private[core] class SegmentCache(id: String,
       ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
   }
 
-  private def prepareGetAll[T](f: (SegmentFooterBlock, UnblockedReader[SortedIndexBlock], Option[UnblockedReader[ValuesBlock]]) => IO[T]): IO[T] = {
+  private def prepareGetAll[T](f: (SegmentFooterBlock, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]) => IO[T]): IO[T] = {
     for {
       footer <- blockCache.getFooter()
       sortedIndex <- blockCache.createSortedIndexReader()
@@ -117,7 +117,7 @@ private[core] class SegmentCache(id: String,
       ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
   }
 
-  private def prepareIteration[T](f: (SegmentFooterBlock, Option[UnblockedReader[BinarySearchIndexBlock]], UnblockedReader[SortedIndexBlock], Option[UnblockedReader[ValuesBlock]]) => IO[T]): IO[T] = {
+  private def prepareIteration[T](f: (SegmentFooterBlock, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]], UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]) => IO[T]): IO[T] = {
     for {
       footer <- blockCache.getFooter()
       binarySearchIndex <- blockCache.createBinarySearchIndexReader()

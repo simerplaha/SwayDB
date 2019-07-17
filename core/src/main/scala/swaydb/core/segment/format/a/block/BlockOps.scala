@@ -19,6 +19,12 @@
 
 package swaydb.core.segment.format.a.block
 
-trait BlockUpdater[B <: Block] {
-  def updateOffset(block: B, start: Int, size: Int): B
+import swaydb.data.IO
+
+trait BlockOps[O <: BlockOffset, B <: Block[O]] {
+  def updateBlockOffset(block: B, start: Int, size: Int): B
+
+  def createOffset(start: Int, size: Int): O
+
+  def readBlock(header: Block.Header[O]): IO[B]
 }

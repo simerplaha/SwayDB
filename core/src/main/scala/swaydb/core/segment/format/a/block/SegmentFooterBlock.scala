@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a.block
 import swaydb.core.data.Transient
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
+import swaydb.core.segment.format.a.block
 import swaydb.core.segment.format.a.block.Block.CompressionInfo
 import swaydb.core.segment.format.a.block.SegmentBlock.ClosedBlocks
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
@@ -164,7 +165,7 @@ object SegmentFooterBlock {
     }
 
   //all these functions are wrapper with a try catch block with value only to make it easier to read.
-  def read(reader: UnblockedReader[SegmentBlock]): IO[SegmentFooterBlock] =
+  def read(reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): IO[SegmentFooterBlock] =
     try {
       val segmentBlockSize = reader.size.get.toInt
       val footerStartOffset = reader.moveTo(segmentBlockSize - ByteSizeOf.int).readInt().get
@@ -274,9 +275,15 @@ object SegmentFooterBlock {
         }
     }
 
-  implicit object SegmentFooterBlockUpdated extends BlockUpdater[SegmentFooterBlock] {
-    override def updateOffset(block: SegmentFooterBlock, start: Int, size: Int): SegmentFooterBlock =
-      block.copy(offset = SegmentFooterBlock.Offset(start, size))
+  implicit object SegmentFooterBlockUpdated extends BlockOps[SegmentFooterBlock.Offset, SegmentFooterBlock] {
+    override def updateBlockOffset(block: SegmentFooterBlock, start: Int, size: Int): SegmentFooterBlock =
+      block.copy(offset = createOffset(start, size))
+
+    override def createOffset(start: Int, size: Int): Offset =
+      SegmentFooterBlock.Offset(start, size)
+
+    override def readBlock(header: Block.Header[Offset]): IO[SegmentFooterBlock] =
+      ???
   }
 }
 
@@ -293,4 +300,4 @@ case class SegmentFooterBlock(offset: SegmentFooterBlock.Offset,
                               bloomFilterItemsCount: Int,
                               hasRange: Boolean,
                               hasGroup: Boolean,
-                              hasPut: Boolean) extends Block
+                              hasPut: Boolean) extends Block[block.SegmentFooterBlock.Offset]

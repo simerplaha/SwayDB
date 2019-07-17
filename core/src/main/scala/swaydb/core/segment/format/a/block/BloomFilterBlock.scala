@@ -158,27 +158,28 @@ private[core] object BloomFilterBlock extends LazyLogging {
     else
       math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
 
-  def closeForMemory(state: BloomFilterBlock.State): IO[Option[UnblockedReader[BloomFilterBlock]]] =
+  def closeForMemory(state: BloomFilterBlock.State): IO[Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]] =
     BloomFilterBlock.close(state) flatMap {
       closedBloomFilter =>
         closedBloomFilter map {
           closedBloomFilter =>
-            BloomFilterBlock.read(
-              offset = BloomFilterBlock.Offset(0, closedBloomFilter.bytes.size),
-              segmentReader =
-                UnblockedReader[SegmentBlock](
-                  block = SegmentBlock(SegmentBlock.Offset(0, state.bytes.size), 0, None),
-                  decompressedBytes = state.bytes.unslice()
-                )
-            ) map {
-              bloomFilterBlock =>
-                Some(
-                  UnblockedReader[BloomFilterBlock](
-                    block = bloomFilterBlock,
-                    decompressedBytes = state.bytes.unslice()
-                  )
-                )
-            }
+            //            BloomFilterBlock.read(
+            //              offset = BloomFilterBlock.Offset(0, closedBloomFilter.bytes.size),
+            //              segmentReader =
+            //                UnblockedReader[SegmentBlock.Offset, SegmentBlock](
+            //                  block = SegmentBlock(SegmentBlock.Offset(0, state.bytes.size), 0, None),
+            //                  bytes = state.bytes.unslice()
+            //                )
+            //            ) map {
+            //              bloomFilterBlock =>
+            //                Some(
+            //                  UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock](
+            //                    block = bloomFilterBlock,
+            //                    bytes = state.bytes.unslice()
+            //                  )
+            //                )
+            //            }
+            ???
         } getOrElse IO.none
     }
 
@@ -206,19 +207,17 @@ private[core] object BloomFilterBlock extends LazyLogging {
           }
       }
 
-  def read(offset: Offset,
-           segmentReader: UnblockedReader[SegmentBlock]): IO[BloomFilterBlock] =
+  def read(header: Block.Header[BloomFilterBlock.Offset]): IO[BloomFilterBlock] =
     for {
-      blockHeader <- Block.readHeader(offset = offset, reader = segmentReader)
-      numberOfBits <- blockHeader.headerReader.readIntUnsigned()
-      maxProbe <- blockHeader.headerReader.readIntUnsigned()
+      numberOfBits <- header.headerReader.readIntUnsigned()
+      maxProbe <- header.headerReader.readIntUnsigned()
     } yield
       BloomFilterBlock(
-        offset = offset,
-        headerSize = blockHeader.headerSize,
+        offset = header.offset,
+        headerSize = header.headerSize,
         maxProbe = maxProbe,
         numberOfBits = numberOfBits,
-        compressionInfo = blockHeader.compressionInfo
+        compressionInfo = header.compressionInfo
       )
 
   def shouldNotCreateBloomFilter(keyValues: Iterable[Transient]): Boolean =
@@ -278,7 +277,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
   }
 
   def mightContain(key: Slice[Byte],
-                   reader: UnblockedReader[BloomFilterBlock]): IO[Boolean] = {
+                   reader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]): IO[Boolean] = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
@@ -303,9 +302,15 @@ private[core] object BloomFilterBlock extends LazyLogging {
       .map(_.getOrElse(true))
   }
 
-  implicit object BloomFilterBlockUpdater extends BlockUpdater[BloomFilterBlock] {
-    override def updateOffset(block: BloomFilterBlock, start: Int, size: Int): BloomFilterBlock =
-      block.copy(offset = BloomFilterBlock.Offset(start = start, size = size))
+  implicit object BloomFilterBlockOps extends BlockOps[BloomFilterBlock.Offset, BloomFilterBlock] {
+    override def updateBlockOffset(block: BloomFilterBlock, start: Int, size: Int): BloomFilterBlock =
+      block.copy(offset = createOffset(start = start, size = size))
+
+    override def createOffset(start: Int, size: Int): Offset =
+      BloomFilterBlock.Offset(start = start, size = size)
+
+    override def readBlock(header: Block.Header[Offset]): IO[BloomFilterBlock] =
+      BloomFilterBlock.read(header)
   }
 }
 
@@ -313,5 +318,5 @@ private[core] case class BloomFilterBlock(offset: BloomFilterBlock.Offset,
                                           maxProbe: Int,
                                           numberOfBits: Int,
                                           headerSize: Int,
-                                          compressionInfo: Option[Block.CompressionInfo]) extends Block
+                                          compressionInfo: Option[Block.CompressionInfo]) extends Block[BloomFilterBlock.Offset]
 

@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.{Block, BlockUpdater, SegmentBlock}
+import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
@@ -33,78 +33,61 @@ import swaydb.data.slice.{Reader, Slice}
 
 private[core] object UnblockedReader {
 
-  def empty[B <: Block](block: B)(implicit blockUpdater: BlockUpdater[B]) =
-    new UnblockedReader[B](
+  def empty[O <: BlockOffset, B <: Block[O]](block: B)(implicit blockOps: BlockOps[O, B]) =
+    new UnblockedReader[O, B](
       reader = Reader.empty,
-      block = blockUpdater.updateOffset(block, 0, 0)
+      block = blockOps.updateBlockOffset(block, 0, 0)
     )
 
-  /**
-    * Returns reader for decompressed bytes.
-    *
-    * @param block - the offset will get updated to the decompressed bytes.
-    */
-  def apply[B <: Block](block: B,
-                        decompressedBytes: Slice[Byte]): UnblockedReader[B] =
-    new UnblockedReader[B](
-      reader = Reader(decompressedBytes),
+  def apply[O <: BlockOffset, B <: Block[O]](block: B,
+                                             bytes: Slice[Byte]): UnblockedReader[O, B] =
+    new UnblockedReader[O, B](
+      reader = Reader(bytes),
       block = block
     )
 
-  /**
-    * Returns reader for decompressed bytes.
-    *
-    * @param block - the offset will get updated to the decompressed bytes.
-    */
-  def apply[B <: Block](block: B,
-                        reader: UnblockedReader[SegmentBlock]): UnblockedReader[B] =
-    new UnblockedReader[B](
-      reader = reader.copy(),
-      block = block
-    )
-
-  /**
-    * Decompressed parent readers are always required for child blocks to read from.
-    * But for root readers the parent readers are non-existent so here an unblocked [[UnblockedReader]]
-    * is created where a the parent is itself with the same offsets.
-    **/
-  def unsafe[B <: Block](reader: BlockedReader[B]): UnblockedReader[B] =
-    new UnblockedReader[B](
-      reader = reader.copy(),
-      block = reader.block
-    )
-
-  def apply[B <: Block](block: B,
-                        readAllIfUncompressed: Boolean,
-                        segmentReader: UnblockedReader[SegmentBlock])(implicit updater: BlockUpdater[B]) =
+  def apply[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B],
+                                             readAllIfUncompressed: Boolean)(implicit blockOps: BlockOps[O, B]): IO[UnblockedReader[O, B]] =
     Block.unblock(
-      childBlock = block,
-      readAllIfUncompressed = readAllIfUncompressed,
-      parentBlock = segmentReader
+      blockReader = blockedReader,
+      readAllIfUncompressed = readAllIfUncompressed
+    )
+
+  def skipHeader[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
+    new UnblockedReader(
+      block =
+        blockOps.updateBlockOffset(
+          block = blockedReader.block,
+          start = blockedReader.block.offset.start + blockedReader.block.headerSize,
+          size = blockedReader.block.offset.size - blockedReader.block.headerSize
+        ),
+      reader = blockedReader
     )
 }
 
-private[core] class UnblockedReader[B <: Block] private(reader: Reader,
-                                                        val block: B) extends BlockReader(reader, block) with LazyLogging {
+private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val block: B,
+                                                                             private[reader] val reader: Reader) extends BlockReader with LazyLogging {
 
-  override def moveTo(newPosition: Long): UnblockedReader[B] = {
+  def offset = block.offset
+
+  override def moveTo(newPosition: Long): UnblockedReader[O, B] = {
     super.moveTo(newPosition)
     this
   }
 
-  def readAllAndGetReader()(implicit blockUpdater: BlockUpdater[B]): IO[UnblockedReader[B]] =
+  def readAllAndGetReader()(implicit blockOps: BlockOps[O, B]): IO[UnblockedReader[O, B]] =
     readAll()
       .map {
         bytes =>
-          UnblockedReader[B](
-            decompressedBytes = bytes,
-            block = blockUpdater.updateOffset(block, 0, bytes.size)
+          UnblockedReader[O, B](
+            bytes = bytes,
+            block = blockOps.updateBlockOffset(block, 0, bytes.size)
           )
       }
 
-  def copy(): UnblockedReader[B] =
+  def copy(): UnblockedReader[O, B] =
     new UnblockedReader(
-      reader = reader.copy(),
-      block = block
+      block = block,
+      reader = reader.copy()
     )
 }

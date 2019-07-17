@@ -27,11 +27,11 @@ import swaydb.data.IO
 
 private[core] object LazyRangeValueReader {
 
-  def apply(reader: UnblockedReader[ValuesBlock],
+  def apply(reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
             offset: Int,
             length: Int): LazyRangeValueReader =
     new LazyRangeValueReader {
-      override val valueReader: UnblockedReader[ValuesBlock] = reader
+      override val valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock] = reader
 
       override def valueLength: Int = length
 

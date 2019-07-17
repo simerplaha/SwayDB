@@ -30,7 +30,7 @@ import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.segment.format.a.block.reader.BlockedReader
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader}
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
@@ -56,8 +56,8 @@ object PersistentSegment {
                                                      keyValueLimiter: KeyValueLimiter,
                                                      fileOpenLimiter: FileLimiter,
                                                      segmentIO: SegmentIO): IO[PersistentSegment] =
-    file.fileSize map {
-      fileSize =>
+    BlockRefReader(file) map {
+      blockRef =>
         val segmentCache =
           SegmentCache(
             id = file.path.toString,
@@ -65,7 +65,7 @@ object PersistentSegment {
             minKey = minKey,
             segmentIO = segmentIO,
             unsliceKey = true,
-            segmentReader = BlockedReader(SegmentBlock(SegmentBlock.Offset(0, fileSize.toInt), 0, None), Reader(file)),
+            blockRef = blockRef
           )
 
         new PersistentSegment(

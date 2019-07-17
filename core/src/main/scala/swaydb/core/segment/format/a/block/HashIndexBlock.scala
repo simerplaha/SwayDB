@@ -227,23 +227,22 @@ private[core] object HashIndexBlock extends LazyLogging {
           }
       }
 
-  def read(offset: Offset, reader: UnblockedReader[SegmentBlock]): IO[HashIndexBlock] =
+  def read(header: Block.Header[HashIndexBlock.Offset]): IO[HashIndexBlock] =
     for {
-      result <- Block.readHeader(offset = offset, reader = reader)
-      allocatedBytes <- result.headerReader.readInt()
-      maxProbe <- result.headerReader.readInt()
-      hit <- result.headerReader.readIntUnsigned()
-      miss <- result.headerReader.readIntUnsigned()
-      largestValueSize <- result.headerReader.readIntUnsigned()
+      allocatedBytes <- header.headerReader.readInt()
+      maxProbe <- header.headerReader.readInt()
+      hit <- header.headerReader.readIntUnsigned()
+      miss <- header.headerReader.readIntUnsigned()
+      largestValueSize <- header.headerReader.readIntUnsigned()
     } yield
       HashIndexBlock(
-        offset = offset,
-        compressionInfo = result.compressionInfo,
+        offset = header.offset,
+        compressionInfo = header.compressionInfo,
         maxProbe = maxProbe,
         hit = hit,
         miss = miss,
         writeAbleLargestValueSize = largestValueSize,
-        headerSize = result.headerSize,
+        headerSize = header.headerSize,
         allocatedBytes = allocatedBytes
       )
 
@@ -313,7 +312,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
     */
   private[block] def search[R](key: Slice[Byte],
-                               blockReader: UnblockedReader[HashIndexBlock],
+                               blockReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                                assertValue: Int => IO[Option[R]]): IO[Option[R]] = {
 
     val hash = key.##
@@ -384,9 +383,9 @@ private[core] object HashIndexBlock extends LazyLogging {
   }
 
   def search(key: Slice[Byte],
-             hashIndexReader: UnblockedReader[HashIndexBlock],
-             sortedIndexReader: UnblockedReader[SortedIndexBlock],
-             valuesReaderReader: Option[UnblockedReader[ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
+             hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+             sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+             valuesReaderReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
     val matcher =
       if (sortedIndexReader.block.hasPrefixCompression)
         KeyMatcher.Get.WhilePrefixCompressed(key)
@@ -407,9 +406,15 @@ private[core] object HashIndexBlock extends LazyLogging {
     )
   }
 
-  implicit object HashIndexBlockUpdater extends BlockUpdater[HashIndexBlock] {
-    override def updateOffset(block: HashIndexBlock, start: Int, size: Int): HashIndexBlock =
-      block.copy(offset = HashIndexBlock.Offset(start = start, size = size))
+  implicit object HashIndexBlockOps extends BlockOps[HashIndexBlock.Offset, HashIndexBlock] {
+    override def updateBlockOffset(block: HashIndexBlock, start: Int, size: Int): HashIndexBlock =
+      block.copy(offset = createOffset(start = start, size = size))
+
+    override def createOffset(start: Int, size: Int): Offset =
+      HashIndexBlock.Offset(start = start, size = size)
+
+    override def readBlock(header: Block.Header[Offset]): IO[HashIndexBlock] =
+      HashIndexBlock.read(header)
   }
 }
 
@@ -420,7 +425,7 @@ private[core] case class HashIndexBlock(offset: HashIndexBlock.Offset,
                                         miss: Int,
                                         writeAbleLargestValueSize: Int,
                                         headerSize: Int,
-                                        allocatedBytes: Int) extends Block {
+                                        allocatedBytes: Int) extends Block[HashIndexBlock.Offset] {
   val bytesToReadPerIndex = writeAbleLargestValueSize + 1 //+1 to read header/marker 0 byte.
 
   val isCompressed = compressionInfo.isDefined

@@ -24,7 +24,9 @@ import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
+import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
+import swaydb.core.segment.format.a.block.ValuesBlock.ValuesBlockOps
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
@@ -406,7 +408,7 @@ private[swaydb] object Memory {
             maxKey = maxKey,
             minKey = minKey,
             unsliceKey = false,
-            segmentReader = BlockedReader(SegmentBlock(SegmentBlock.Offset(0, segmentBytes.size), 0, None), Reader(segmentBytes)),
+            blockRef = BlockRefReader(segmentBytes)(SegmentBlockOps),
             segmentIO = groupIO
           )(keyOrder, limiter)
       }
@@ -1637,7 +1639,7 @@ private[core] object Persistent {
 
   object Group {
     def apply(key: Slice[Byte],
-              valueReader: UnblockedReader[ValuesBlock],
+              valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               nextIndexOffset: Int,
               nextIndexSize: Int,
               indexOffset: Int,
@@ -1666,7 +1668,7 @@ private[core] object Persistent {
 
   case class Group(private var _minKey: Slice[Byte],
                    private var _maxKey: MaxKey[Slice[Byte]],
-                   valueReader: UnblockedReader[ValuesBlock],
+                   valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                    nextIndexOffset: Int,
                    nextIndexSize: Int,
                    indexOffset: Int,
@@ -1687,15 +1689,12 @@ private[core] object Persistent {
             //slicing will just use more memory. On memory overflow the Group itself will find dropped and hence all the
             //key-values inside the group's SegmentCache will also be GC'd.
             unsliceKey = false,
-            segmentReader =
-              BlockedReader(
-                block = SegmentBlock(
-                  offset = SegmentBlock.Offset(start = valueOffset, size = valueLength),
-                  headerSize = 0,
-                  compressionInfo = None
-                ),
-                reader = valueReader.copy()
-              ),
+            blockRef =
+              ???,
+//            BlockRefReader.moveTo(
+            //              ValuesBlock.Offset(start = valueOffset, size = valueLength),
+            //              valueReader.copy()
+            //            )
             segmentIO = groupIO
           )(keyOrder, limiter)
       }

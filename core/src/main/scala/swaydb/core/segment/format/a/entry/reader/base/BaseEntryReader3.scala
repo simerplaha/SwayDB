@@ -32,7 +32,7 @@ private[core] object BaseEntryReader3 extends BaseEntryReader {
   def read[T](baseId: Int,
               keyValueId: Int,
               indexReader: Reader,
-              valueReader: Option[UnblockedReader[ValuesBlock]],
+              valueReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,

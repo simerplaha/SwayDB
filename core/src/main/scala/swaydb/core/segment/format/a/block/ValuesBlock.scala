@@ -32,12 +32,12 @@ private[core] object ValuesBlock {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
-  def emptyUnblocked: UnblockedReader[ValuesBlock] =
-    UnblockedReader.empty(ValuesBlock.empty)(ValuesBlockUpdater)
+  def emptyUnblocked: UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
+    UnblockedReader.empty[ValuesBlock.Offset, ValuesBlock](ValuesBlock.empty)(ValuesBlockOps)
 
-  def unblocked(bytes: Slice[Byte])(implicit blockUpdater: BlockUpdater[ValuesBlock]): UnblockedReader[ValuesBlock] =
+  def unblocked(bytes: Slice[Byte])(implicit blockOps: BlockOps[ValuesBlock.Offset, ValuesBlock]): UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
     UnblockedReader(
-      decompressedBytes = bytes,
+      bytes = bytes,
       block = ValuesBlock(ValuesBlock.Offset(0, bytes.size), 0, None)
     )
 
@@ -152,21 +152,14 @@ private[core] object ValuesBlock {
         }
     }
 
-  def read(offset: ValuesBlock.Offset,
-           segmentReader: UnblockedReader[SegmentBlock]): IO[ValuesBlock] =
-    Block.readHeader(
-      offset = offset,
-      reader = segmentReader
-    ) map {
-      result =>
-        ValuesBlock(
-          offset = offset,
-          headerSize = result.headerSize,
-          compressionInfo = result.compressionInfo
-        )
-    }
+  def read(header: Block.Header[ValuesBlock.Offset]): ValuesBlock =
+    ValuesBlock(
+      offset = header.offset,
+      headerSize = header.headerSize,
+      compressionInfo = header.compressionInfo
+    )
 
-  def read(fromOffset: Int, length: Int, reader: UnblockedReader[ValuesBlock]): IO[Option[Slice[Byte]]] =
+  def read(fromOffset: Int, length: Int, reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): IO[Option[Slice[Byte]]] =
     if (length == 0)
       IO.none
     else
@@ -192,13 +185,19 @@ private[core] object ValuesBlock {
             }
         }
 
-  implicit object ValuesBlockUpdater extends BlockUpdater[ValuesBlock] {
-    override def updateOffset(block: ValuesBlock, start: Int, size: Int): ValuesBlock =
-      block.copy(offset = ValuesBlock.Offset(start = start, size = size))
+  implicit object ValuesBlockOps extends BlockOps[ValuesBlock.Offset, ValuesBlock] {
+    override def updateBlockOffset(block: ValuesBlock, start: Int, size: Int): ValuesBlock =
+      block.copy(offset = createOffset(start = start, size = size))
+
+    override def createOffset(start: Int, size: Int): Offset =
+      ValuesBlock.Offset(start = start, size = size)
+
+    override def readBlock(header: Block.Header[Offset]): IO[ValuesBlock] =
+      IO(ValuesBlock.read(header))
   }
 }
 
 private[core] case class ValuesBlock(offset: ValuesBlock.Offset,
                                      headerSize: Int,
-                                     compressionInfo: Option[Block.CompressionInfo]) extends Block
+                                     compressionInfo: Option[Block.CompressionInfo]) extends Block[ValuesBlock.Offset]
 

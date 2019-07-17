@@ -28,18 +28,18 @@ private[core] object LazyValueReader {
 
   val empty =
     new LazyValueReader {
-      override val valueReader: UnblockedReader[ValuesBlock] =
+      override val valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
         ValuesBlock.emptyUnblocked
 
       override val valueLength: Int = 0
       override val valueOffset: Int = 0
     }
 
-  def apply(reader: UnblockedReader[ValuesBlock],
+  def apply(reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
             offset: Int,
             length: Int): LazyValueReader =
     new LazyValueReader {
-      override val valueReader: UnblockedReader[ValuesBlock] = reader
+      override val valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock] = reader
 
       override def valueLength: Int = length
 
@@ -51,14 +51,14 @@ private[core] trait LazyValueReader {
 
   @volatile var valueOption: Option[Slice[Byte]] = _
 
-  def valueReader: UnblockedReader[ValuesBlock]
+  def valueReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]
 
   def valueLength: Int
 
   def valueOffset: Int
 
   //tries fetching the value from the given reader
-  private def fetchValue(reader: UnblockedReader[ValuesBlock]): IO[Option[Slice[Byte]]] =
+  private def fetchValue(reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): IO[Option[Slice[Byte]]] =
     if (valueOption == null)
       ValuesBlock.read(
         fromOffset = valueOffset,
