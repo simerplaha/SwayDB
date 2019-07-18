@@ -70,7 +70,7 @@ class SegmentBlockCache(id: String,
 
   def buildBlockInfoCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: BlockStatus => BlockIO)(implicit blockOps: BlockOps[O, B]): Cache[Option[BlockRefReader[O]], Option[B]] =
     Cache.blockIO[Option[BlockRefReader[O]], Option[B]](
-      blockIO = ref => ref.map(ref => blockIO(BlockStatus.BlockInfo(ref.offset.size))) getOrElse BlockIO.defaultBlockInfo,
+      blockIO = ref => ref.map(ref => blockIO(BlockStatus.BlockInfo(ref.offset.size))) getOrElse BlockIO.defaultBlockInfoStored,
       reserveError = IO.Error.ReservedValue(Reserve())
     ) {
       ref =>
@@ -97,7 +97,7 @@ class SegmentBlockCache(id: String,
 
   def buildBlockReaderCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: BlockStatus => BlockIO)(implicit blockOps: BlockOps[O, B]) =
     Cache.blockIO[Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]](
-      blockIO = _.map(reader => blockIO(reader.block.blockStatus)) getOrElse BlockIO.defaultBlockReaders,
+      blockIO = _.map(reader => blockIO(reader.block.blockStatus)) getOrElse BlockIO.defaultBlockReadersStored,
       reserveError = IO.Error.ReservedValue(Reserve())
     ) {
       blockedReader =>

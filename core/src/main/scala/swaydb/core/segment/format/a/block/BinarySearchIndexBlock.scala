@@ -62,7 +62,7 @@ private[core] object BinarySearchIndexBlock {
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             fullIndex = true,
-            blockIO = FunctionUtil.safe(BlockIO.defaultSynchronised, enable.blockIO),
+            blockIO = FunctionUtil.safe(BlockIO.defaultSynchronisedStoredIfCompressed, enable.blockIO),
             compressions =
               FunctionUtil.safe(
                 default = _ => Seq.empty[CompressionInternal],
@@ -75,7 +75,7 @@ private[core] object BinarySearchIndexBlock {
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             fullIndex = false,
-            blockIO = FunctionUtil.safe(BlockIO.defaultSynchronised, enable.blockIO),
+            blockIO = FunctionUtil.safe(BlockIO.defaultSynchronisedStoredIfCompressed, enable.blockIO),
             compressions =
               FunctionUtil.safe(
                 default = _ => Seq.empty[CompressionInternal],

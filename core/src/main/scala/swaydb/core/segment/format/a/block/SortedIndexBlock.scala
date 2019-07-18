@@ -71,7 +71,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       Config(
         enableAccessPositionIndex = enable.enablePositionIndex,
         prefixCompressionResetCount = enable.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0),
-        blockIO = FunctionUtil.safe(BlockIO.defaultSynchronised, enable.blockIO),
+        blockIO = FunctionUtil.safe(BlockIO.defaultSynchronisedStoredIfCompressed, enable.blockIO),
         compressions =
           FunctionUtil.safe(
             default = _ => Seq.empty[CompressionInternal],

@@ -23,15 +23,26 @@ import swaydb.data.config.{BlockIO, BlockStatus}
 
 object SegmentIO {
 
-  val defaultSynchronised =
+  def defaultSynchronisedStoredIfCompressed =
     new SegmentIO(
-      segmentBlockIO = BlockIO.defaultSynchronised,
-      hashIndexBlockIO = BlockIO.defaultSynchronised,
-      bloomFilterBlockIO = BlockIO.defaultSynchronised,
-      binarySearchIndexBlockIO = BlockIO.defaultSynchronised,
-      sortedIndexBlockIO = BlockIO.defaultSynchronised,
-      valuesBlockIO = BlockIO.defaultSynchronised,
-      segmentFooterBlockIO = BlockIO.defaultSynchronised
+      segmentBlockIO = BlockIO.defaultSynchronisedStoredIfCompressed,
+      hashIndexBlockIO = BlockIO.defaultSynchronisedStoredIfCompressed,
+      bloomFilterBlockIO = BlockIO.defaultSynchronisedStoredIfCompressed,
+      binarySearchIndexBlockIO = BlockIO.defaultSynchronisedStoredIfCompressed,
+      sortedIndexBlockIO = BlockIO.defaultSynchronisedStoredIfCompressed,
+      valuesBlockIO = BlockIO.defaultSynchronisedStoredIfCompressed,
+      segmentFooterBlockIO = BlockIO.defaultSynchronisedStoredIfCompressed
+    )
+
+  def defaultSynchronisedStored =
+    new SegmentIO(
+      segmentBlockIO = BlockIO.defaultSynchronisedStored,
+      hashIndexBlockIO = BlockIO.defaultSynchronisedStored,
+      bloomFilterBlockIO = BlockIO.defaultSynchronisedStored,
+      binarySearchIndexBlockIO = BlockIO.defaultSynchronisedStored,
+      sortedIndexBlockIO = BlockIO.defaultSynchronisedStored,
+      valuesBlockIO = BlockIO.defaultSynchronisedStored,
+      segmentFooterBlockIO = BlockIO.defaultSynchronisedStored
     )
 
   def apply(bloomFilterConfig: BloomFilterBlock.Config,

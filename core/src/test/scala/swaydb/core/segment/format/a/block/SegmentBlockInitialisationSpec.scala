@@ -24,7 +24,8 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
-import swaydb.data.config.UncompressedBlockInfo
+import swaydb.data.IO
+import swaydb.data.config.{BlockIO, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -55,13 +56,16 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   enabled = false,
                   minimumNumberOfKeys = 0,
                   fullIndex = randomBoolean(),
-                  blockIO = _ => randomIOAccess(),
+                  blockIO = _ => BlockIO.defaultBlockReadersStored,
                   compressions = _ => randomCompressionsOrEmpty()
                 )
             )
 
-          val blocks = getBlocks(keyValues).get
-          blocks.binarySearchIndexReader shouldBe empty
+          val blocks = getSegmentBlockCache(keyValues)
+          blocks.createBinarySearchIndexReader().get shouldBe empty
+          blocks.binarySearchIndexReaderCache.isCached shouldBe true
+          blocks.binarySearchIndexReaderCache.get() shouldBe Some(IO.none)
+          blocks.createBinarySearchIndexReader().get shouldBe empty
         }
       }
 
@@ -394,6 +398,91 @@ class SegmentBlockInitialisationSpec extends TestBase {
         val blocks = getBlocks(keyValues).get
         blocks.hashIndexReader shouldBe empty
       }
+    }
+  }
+
+  "cache everything" in {
+    runThis(10.times, log = true) {
+      val compressions = Slice.fill(5)(randomCompressionsOrEmpty())
+
+      val keyValues =
+        randomizedKeyValues(
+          count = 10000,
+          startId = Some(1),
+          addPut = true
+        ).updateStats(
+          valuesConfig =
+            ValuesBlock.Config(
+              compressDuplicateValues = randomBoolean(),
+              compressDuplicateRangeValues = randomBoolean(),
+              blockIO = _ => randomIOAccess(cacheOnAccess = true),
+              compressions = _ => compressions.head
+            ),
+          sortedIndexConfig =
+            SortedIndexBlock.Config(
+              blockIO = _ => randomIOAccess(cacheOnAccess = true),
+              prefixCompressionResetCount = 0,
+              enableAccessPositionIndex = true,
+              compressions = _ => compressions(1)
+            ),
+          binarySearchIndexConfig =
+            BinarySearchIndexBlock.Config(
+              enabled = true,
+              minimumNumberOfKeys = 1,
+              fullIndex = true,
+              blockIO = _ => randomIOAccess(cacheOnAccess = true),
+              compressions = _ => compressions(2)
+            ),
+          hashIndexConfig =
+            HashIndexBlock.Config(
+              maxProbe = 5,
+              minimumNumberOfKeys = 2,
+              minimumNumberOfHits = 2,
+              allocateSpace = _.requiredSpace * 10,
+              blockIO = _ => randomIOAccess(cacheOnAccess = true),
+              compressions = _ => compressions(3)
+            ),
+          bloomFilterConfig =
+            BloomFilterBlock.Config(
+              falsePositiveRate = 0.001,
+              minimumNumberOfKeys = 2,
+              blockIO = _ => randomIOAccess(cacheOnAccess = true),
+              compressions = _ => compressions(4)
+            )
+        )
+
+      val cache = getSegmentBlockCache(keyValues, SegmentIO.defaultSynchronisedStored)
+      cache.isCached shouldBe false
+
+      cache.getFooter().get
+      cache.isCached shouldBe true
+      cache.footerBlockCache.isCached shouldBe true
+      cache.clear()
+      cache.isCached shouldBe false
+      cache.footerBlockCache.isCached shouldBe false
+
+      cache.getBinarySearchIndex().get
+      cache.getSortedIndex().get
+      cache.getBloomFilter().get
+      cache.getHashIndex().get
+      cache.getValues().get
+
+      cache.binarySearchIndexBlockCache.isCached shouldBe true
+      cache.sortedIndexBlockCache.isCached shouldBe true
+      cache.bloomFilterBlockCache.isCached shouldBe true
+      cache.hashIndexBlockCache.isCached shouldBe true
+      cache.valuesBlockCache.isCached shouldBe true
+
+      cache.segmentBlockReaderCache.isCached shouldBe true
+
+      cache.binarySearchIndexReaderCache.isCached shouldBe false
+      cache.sortedIndexReaderCache.isCached shouldBe false
+      cache.bloomFilterReaderCache.isCached shouldBe false
+      cache.hashIndexReaderCache.isCached shouldBe false
+      cache.valuesReaderCache.isCached shouldBe false
+
+      cache.clear()
+      cache.isCached shouldBe false
     }
   }
 }

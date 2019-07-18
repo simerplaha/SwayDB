@@ -432,7 +432,7 @@ private[core] object Segment extends LazyLogging {
                                   keyValueLimiter: KeyValueLimiter,
                                   fileOpenLimiter: FileLimiter): IO[Segment] = {
 
-    implicit val segmentIO = SegmentIO.defaultSynchronised
+    implicit val segmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
 
     val file =
       if (mmapReads)

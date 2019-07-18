@@ -799,7 +799,7 @@ object CommonAssertions {
 
   def assertGet(keyValues: Slice[Transient],
                 rawSegmentReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
-    val blocks = readBlocks(rawSegmentReader.copy()).get
+    val blocks = readBlocksFromReader(rawSegmentReader.copy()).get
 
     keyValues foreach {
       keyValue =>
@@ -1157,7 +1157,7 @@ object CommonAssertions {
 
   def assertLower(keyValues: Slice[Transient],
                   reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
-    val blocks = readBlocks(reader.copy()).get
+    val blocks = readBlocksFromReader(reader.copy()).get
 
     @tailrec
     def assertLowers(index: Int) {
@@ -1200,7 +1200,7 @@ object CommonAssertions {
 
   def assertHigher(keyValues: Slice[KeyValue],
                    reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): Unit = {
-    val blocks = readBlocks(reader).get
+    val blocks = readBlocksFromReader(reader).get
     assertHigher(
       keyValues,
       getHigher =
@@ -1416,11 +1416,11 @@ object CommonAssertions {
     readAll(Reader(bytes))
 
   def readBlocks(bytes: Slice[Byte]): IO[Blocks] =
-    readBlocks(Reader(bytes))
+    readBlocksFromReader(Reader(bytes))
 
-  def getSegmentBlockCache(keyValues: Slice[Transient]): SegmentBlockCache = {
-    val segment = SegmentBlock.writeClosed(keyValues, Int.MaxValue, segmentConfig = SegmentBlock.Config.random).get
-    getSegmentBlockCache(segment)
+  def getSegmentBlockCache(keyValues: Slice[Transient], segmentIO: SegmentIO = SegmentIO.random, segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random): SegmentBlockCache = {
+    val segment = SegmentBlock.writeClosed(keyValues, Int.MaxValue, segmentConfig = segmentConfig).get
+    getSegmentBlockCacheFromSegmentClosed(segment, segmentIO)
   }
 
   def randomBlockIO(): BlockIO =
@@ -1431,22 +1431,22 @@ object CommonAssertions {
     else
       BlockIO.ReservedIO(randomBoolean())
 
-  def getSegmentBlockCache(segment: SegmentBlock.Closed): SegmentBlockCache =
+  def getSegmentBlockCacheFromSegmentClosed(segment: SegmentBlock.Closed, segmentIO: SegmentIO = SegmentIO.random): SegmentBlockCache =
     SegmentBlockCache(
       id = "test",
-      segmentIO = SegmentIO.random,
+      segmentIO = segmentIO,
       blockRef = BlockRefReader(segment.flattenSegmentBytes)
     )
 
-  def getSegmentBlockCache(reader: Reader): SegmentBlockCache =
+  def getSegmentBlockCacheFromReader(reader: Reader, segmentIO: SegmentIO = SegmentIO.random): SegmentBlockCache =
     SegmentBlockCache(
       id = "test-cache",
-      segmentIO = SegmentIO.random,
+      segmentIO = segmentIO,
       blockRef = BlockRefReader[SegmentBlock.Offset](reader.copy())(SegmentBlockOps).get
     )
 
   def readAll(reader: Reader): IO[Slice[KeyValue.ReadOnly]] = {
-    val blockCache = getSegmentBlockCache(reader)
+    val blockCache = getSegmentBlockCacheFromReader(reader)
 
     SortedIndexBlock
       .readAll(
@@ -1456,8 +1456,12 @@ object CommonAssertions {
       )
   }
 
-  def readBlocks(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Blocks] = {
-    val blockCache = getSegmentBlockCache(reader)
+  def readBlocksFromReader(reader: Reader, segmentIO: SegmentIO = SegmentIO.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Blocks] = {
+    val blockCache = getSegmentBlockCacheFromReader(reader, segmentIO)
+    readBlocks(blockCache)
+  }
+
+  def readBlocks(blockCache: SegmentBlockCache) =
     IO {
       Blocks(
         footer = blockCache.getFooter().get,
@@ -1468,7 +1472,6 @@ object CommonAssertions {
         bloomFilterReader = blockCache.createBloomFilterReader().get
       )
     }
-  }
 
   def printGroupHierarchy(keyValues: Slice[KeyValue.ReadOnly], spaces: Int)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                             keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,

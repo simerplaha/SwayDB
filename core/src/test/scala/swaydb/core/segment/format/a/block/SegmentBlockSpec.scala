@@ -121,7 +121,7 @@ class SegmentBlockSpec extends TestBase {
         ).assertGet
 
       val fileReader = createRandomFileReader(closedSegment.flattenSegmentBytes)
-      val blocks = readBlocks(fileReader).get
+      val blocks = readBlocksFromReader(fileReader, SegmentIO.defaultSynchronisedStored).get
 
       val randomKeyValues = Random.shuffle(keyValues)
 

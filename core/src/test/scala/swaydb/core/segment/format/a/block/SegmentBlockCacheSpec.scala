@@ -59,7 +59,7 @@ class SegmentBlockCacheSpec extends TestBase {
       closedSegment.segmentBytes.head.isFull shouldBe true //bytes should be full.
 
       //initialise a block cache and run asserts
-      val segmentBlockCache = getSegmentBlockCache(closedSegment)
+      val segmentBlockCache = getSegmentBlockCacheFromSegmentClosed(closedSegment)
       segmentBlockCache.readAll().get shouldBe keyValues
 
       /**

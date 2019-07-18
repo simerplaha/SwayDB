@@ -1716,11 +1716,11 @@ object TestData {
       //      if (slice.written % 100000 == 0) println(s"Generated ${slice.written} key-values.")
       //protect from going into infinite loop
       if ((iteration >= count * 5) && slice.isEmpty) fail(s"Too many iterations ($iteration) without generated key-values. Expected $count.")
-      if (addRandomGroups && randomBoolean()) {
+      if (addRandomGroups && randomBoolean() && randomBoolean()) {
         //create a Random group with the inner key-values the same as count of this group.
         val groupKeyValues =
           randomKeyValues(
-            count = eitherOne(10, 12, 14, 16, 18, 20),
+            count = eitherOne(10, 20, 30, 40, 50, 60),
             startId = Some(key),
             valueSize = valueSize,
             addPut = addPut,
@@ -1741,7 +1741,6 @@ object TestData {
             addRandomRanges = addRandomRanges,
             addRandomGroups = false //do not create more inner groups.
           )
-
         //could be possible that randomKeyValues returns empty if all generations were set to false.
         if (groupKeyValues.isEmpty) {
           if (randomBoolean()) key += 1
@@ -1873,7 +1872,7 @@ object TestData {
         key = key + 1
       }
     }
-//    println(s"Generated: ${slice.size} over iterations: $iteration")
+    //    println(s"Generated: ${slice.size} over iterations: $iteration")
     slice.close()
   }
 
@@ -2627,12 +2626,12 @@ object TestData {
   def randomFalsePositiveRate() =
     Random.nextDouble()
 
-  def randomIOAccess() =
+  def randomIOAccess(cacheOnAccess: => Boolean = randomBoolean()) =
     Random.shuffle(
       Seq(
-        BlockIO.ConcurrentIO(randomBoolean()),
-        BlockIO.SynchronisedIO(randomBoolean()),
-        BlockIO.ReservedIO(randomBoolean())
+        BlockIO.ConcurrentIO(cacheOnAccess),
+        BlockIO.SynchronisedIO(cacheOnAccess),
+        BlockIO.ReservedIO(cacheOnAccess)
       )
     ).head
 

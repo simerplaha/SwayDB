@@ -27,19 +27,23 @@ object BlockIO {
     * The default [[BlockIO]] strategy used for all [[BlockStatus.CompressedBlock]]
     * or [[BlockStatus.UncompressedBlock]] blocks.
     */
-  val defaultSynchronised: BlockStatus => BlockIO.SynchronisedIO =
+  val defaultSynchronisedStoredIfCompressed: BlockStatus => BlockIO.SynchronisedIO =
     (blockStatus: BlockStatus) =>
       BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed)
+
+  val defaultSynchronisedStored: BlockStatus => BlockIO.SynchronisedIO =
+    (_: BlockStatus) =>
+      BlockIO.SynchronisedIO(cacheOnAccess = true)
 
   /**
     * The default [[BlockIO]] strategy used for all [[BlockStatus.BlockInfo]].
     * BlockInfos are never individually unless the entire Segment is compressed.
     */
-  val defaultBlockInfo =
+  val defaultBlockInfoStored =
     BlockIO.ConcurrentIO(true)
 
-  val defaultBlockReaders =
-    BlockIO.ConcurrentIO(false)
+  val defaultBlockReadersStored =
+    BlockIO.ConcurrentIO(true)
 
   case class ConcurrentIO(cacheOnAccess: Boolean) extends BlockIO
   case class SynchronisedIO(cacheOnAccess: Boolean) extends BlockIO

@@ -186,7 +186,7 @@ private[core] object SegmentMerger extends LazyLogging {
       binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
       hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig = BloomFilterBlock.Config.disabled,
-      segmentIO = SegmentIO.defaultSynchronised
+      segmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
     )(keyOrder, timeOrder, functionStore, None)
       .get
       .flatten
@@ -207,7 +207,7 @@ private[core] object SegmentMerger extends LazyLogging {
       binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
       hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig = BloomFilterBlock.Config.disabled,
-      segmentIO = SegmentIO.defaultSynchronised
+      segmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
     )(keyOrder, timeOrder, functionStore, None)
       .get
       .flatten
