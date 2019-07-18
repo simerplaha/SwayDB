@@ -1715,12 +1715,12 @@ object TestData {
       iteration += 1
       //      if (slice.written % 100000 == 0) println(s"Generated ${slice.written} key-values.")
       //protect from going into infinite loop
-      if (iteration >= 10000 && slice.isEmpty) fail("Too many iterations without generated data.")
+      if ((iteration >= count * 2) && slice.isEmpty) fail("Too many iterations without generated data.")
       if (addRandomGroups && randomBoolean()) {
         //create a Random group with the inner key-values the same as count of this group.
         val groupKeyValues =
           randomKeyValues(
-            count = randomIntMax((count max 10) max 50),
+            count = eitherOne(10, 12, 14, 16, 18, 20),
             startId = Some(key),
             valueSize = valueSize,
             addPut = addPut,

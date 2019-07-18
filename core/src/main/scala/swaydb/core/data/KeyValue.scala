@@ -1612,12 +1612,16 @@ private[core] object Persistent {
         _key = key,
         _time = time,
         deadline = deadline,
-        valueCache = valueCache mapStored {
-          reader =>
-            reader
-              .readAll()
-              .flatMap(bytes => ValueSerializer.read[Slice[Value.Apply]](bytes))
-        },
+        valueCache =
+          valueCache mapStored {
+            reader =>
+              reader
+                .readAll()
+                .flatMap {
+                  bytes =>
+                    ValueSerializer.read[Slice[Value.Apply]](bytes)
+                }
+          },
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
         indexOffset = indexOffset,
