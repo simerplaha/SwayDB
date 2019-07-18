@@ -23,7 +23,7 @@ import swaydb.data.slice.Slice
 
 import scala.beans.BeanProperty
 
-object BlockCache {
+object BlockReaderCache {
   class State(@BeanProperty var fromOffset: Int,
               @BeanProperty var bytes: Slice[Byte]) {
     def toOffset = fromOffset + bytes.size - 1
@@ -34,7 +34,7 @@ object BlockCache {
     state setBytes bytes
   }
 
-  def create(position: Int, bytes: Slice[Byte]): State =
+  def init(position: Int, bytes: Slice[Byte]): State =
     new State(position, bytes)
 
   def read(position: Int, size: Int, state: State): Slice[Byte] =

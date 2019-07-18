@@ -34,7 +34,7 @@ protected trait BlockReader extends Reader with LazyLogging {
 
   private var position: Int = 0
 
-  private val blockCache: BlockCache.State = BlockCache.create(0, Slice.emptyBytes)
+  private val cache: BlockReaderCache.State = BlockReaderCache.init(0, Slice.emptyBytes)
 
   override val isFile: Boolean = reader.isFile
 
@@ -82,7 +82,7 @@ protected trait BlockReader extends Reader with LazyLogging {
 
   def readFromCache(position: Int, size: Int): Slice[Byte] =
     if (isFile)
-      BlockCache.read(position = position, size = size, state = blockCache)
+      BlockReaderCache.read(position = position, size = size, state = cache)
     else
       Slice.emptyBytes
 
@@ -119,9 +119,9 @@ protected trait BlockReader extends Reader with LazyLogging {
                 if (isFile) {
                   logger.debug(s"${this.hashCode()}: Seek from disk: ${bytes.size}.bytes")
                   if (bytes.size <= blockSize)
-                    BlockCache.set(nextReadPosition, bytes, blockCache)
+                    BlockReaderCache.set(nextReadPosition, bytes, cache)
                   else
-                    BlockCache.set(nextReadPosition + size, bytes.drop(size).unslice(), blockCache)
+                    BlockReaderCache.set(nextReadPosition + size, bytes.drop(size).unslice(), cache)
                 }
 
                 position += (size min remaining.toInt)
