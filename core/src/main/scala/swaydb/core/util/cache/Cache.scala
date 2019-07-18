@@ -48,8 +48,8 @@ object Cache {
       error = reserveError
     )
 
-  def unsafe[I, O](synchronised: Boolean, stored: Boolean)(fetch: I => O): CacheUnsafe[I, O] =
-    new CacheUnsafe[I, O](
+  def noIO[I, O](synchronised: Boolean, stored: Boolean)(fetch: I => O): CacheNOIO[I, O] =
+    new CacheNOIO[I, O](
       fetch = fetch,
       lazyValue = Lazy.value(
         synchronised = synchronised,
@@ -59,7 +59,7 @@ object Cache {
 
   def blockIO[I, O](blockIO: I => BlockIO, reserveError: => IO.Error.Busy)(fetch: I => IO[O]): Cache[I, O] =
     new BlockIOCache[I, O](
-      Cache.unsafe[I, Cache[I, O]](synchronised = false, stored = true) {
+      Cache.noIO[I, Cache[I, O]](synchronised = false, stored = true) {
         i =>
           FunctionUtil.safe((_: I) => BlockIO.ConcurrentIO(false), blockIO)(i) match {
             case BlockIO.ConcurrentIO(cacheOnAccess) =>
@@ -122,7 +122,7 @@ sealed trait Cache[I, O] { self =>
     }
 }
 
-private class BlockIOCache[I, O](cache: CacheUnsafe[I, Cache[I, O]]) extends Cache[I, O] {
+private class BlockIOCache[I, O](cache: CacheNOIO[I, Cache[I, O]]) extends Cache[I, O] {
 
   override def value(i: => I): IO[O] =
     cache.value(i).value(i)
@@ -190,7 +190,7 @@ private class ReservedIO[I, O](fetch: I => IO[O], lazyIO: LazyIO[O], error: IO.E
   * Caches a value on read. Used for IO operations where the output does not change.
   * For example: A file's size.
   */
-class CacheUnsafe[I, O](fetch: I => O, lazyValue: LazyValue[O]) {
+class CacheNOIO[I, O](fetch: I => O, lazyValue: LazyValue[O]) {
 
   def value(input: => I): O =
     lazyValue getOrSet fetch(input)

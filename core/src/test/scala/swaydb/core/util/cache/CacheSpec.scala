@@ -51,36 +51,36 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     run(test(false, _, _, _))
   }
 
-  def getBlockIO(isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean)(unit: Unit): BlockIO =
+  def getBlockIO(isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean, stored: Boolean)(unit: Unit): BlockIO =
     if (isConcurrent)
-      BlockIO.ConcurrentIO(cacheOnAccess = true)
+      BlockIO.ConcurrentIO(cacheOnAccess = stored)
     else if (isSynchronised)
-      BlockIO.SynchronisedIO(cacheOnAccess = true)
+      BlockIO.SynchronisedIO(cacheOnAccess = stored)
     else if (isReserved)
-      BlockIO.ReservedIO(cacheOnAccess = true)
+      BlockIO.ReservedIO(cacheOnAccess = stored)
     else
-      BlockIO.ConcurrentIO(cacheOnAccess = true) //then it's concurrent
+      BlockIO.ConcurrentIO(cacheOnAccess = stored) //then it's concurrent
 
   /**
     * Return a partial cache with applied configuration which requires the cache body.
     */
-  def getTestCache(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean): (Unit => IO[Int]) => Cache[Unit, Int] =
+  def getTestCache(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean, stored: Boolean): (Unit => IO[Int]) => Cache[Unit, Int] =
     if (isBlockIO)
-      Cache.blockIO[Unit, Int](getBlockIO(isConcurrent, isSynchronised, isReserved), IO.Error.BusyFuture(Reserve()))
+      Cache.blockIO[Unit, Int](getBlockIO(isConcurrent, isSynchronised, isReserved, stored), IO.Error.BusyFuture(Reserve()))
     else if (isConcurrent)
-      Cache.concurrentIO[Unit, Int](synchronised = false, stored = true)
+      Cache.concurrentIO[Unit, Int](synchronised = false, stored = stored)
     else if (isSynchronised)
-      Cache.concurrentIO[Unit, Int](synchronised = true, stored = true)
+      Cache.concurrentIO[Unit, Int](synchronised = true, stored = stored)
     else if (isReserved)
-      Cache.reservedIO[Unit, Int](stored = true, IO.Error.BusyFuture(Reserve()))
+      Cache.reservedIO[Unit, Int](stored = stored, IO.Error.BusyFuture(Reserve()))
     else
-      Cache.concurrentIO[Unit, Int](synchronised = false, stored = true) //then it's concurrent
+      Cache.concurrentIO[Unit, Int](synchronised = false, stored = stored) //then it's concurrent
 
   "Cache.io" should {
     "fetch data only once on success" in {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
         val mock = mockFunction[IO[Int]]
-        val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved)(_ => mock.apply())
+        val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true)(_ => mock.apply())
 
         cache.isCached shouldBe false
 
@@ -115,7 +115,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
         val mock = mockFunction[IO[Int]]
 
-        val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved)(_ => mock.apply())
+        val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true)(_ => mock.apply())
 
         cache.isCached shouldBe false
         mock.expects() returning IO.Failure("Kaboom!") repeat 5.times
@@ -154,7 +154,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
         val mock = mockFunction[IO[Int]]
 
-        val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved)(_ => mock.apply())
+        val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true)(_ => mock.apply())
 
         cache.isCached shouldBe false
 
@@ -178,7 +178,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
         val mock = mockFunction[IO[Int]]
 
-        val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved)(_ => mock.apply())
+        val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true)(_ => mock.apply())
 
         cache.isCached shouldBe false
 
@@ -220,6 +220,61 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
       mapCache.isCached shouldBe false
     }
 
+    "store cache value on mapStored" in {
+      def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
+        val mock = mockFunction[IO[Int]]
+        val rootCache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = false)(_ => mock.apply())
+        //ensure rootCache is not stored
+        mock.expects() returning IO(1)
+        mock.expects() returning IO(2)
+
+        rootCache.isCached shouldBe false
+        rootCache.value() shouldBe IO(1)
+        rootCache.isCached shouldBe false
+        rootCache.value() shouldBe IO(2)
+        rootCache.isCached shouldBe false
+
+        mock.expects() returning IO(3)
+        //run stored
+        val storedCache = rootCache.mapStored {
+          previous =>
+            previous shouldBe 3
+            IO(100)
+        }
+        storedCache.value() shouldBe IO(100)
+        storedCache.isCached shouldBe true
+        //rootCache not value is not read
+        storedCache.value(???) shouldBe IO(100)
+        //original rootCache is still empty
+        rootCache.isCached shouldBe false
+
+        //run stored
+        val storedCache2 = storedCache.mapStored {
+          previous =>
+            //stored rootCache's value is received
+            previous shouldBe 100
+            IO(200)
+        }
+        storedCache2.value() shouldBe IO(200)
+        storedCache2.isCached shouldBe true
+        //rootCache not value is not read
+        storedCache2.value(???) shouldBe IO(200)
+        storedCache.value(???) shouldBe IO(100)
+        //original rootCache is still empty
+        rootCache.isCached shouldBe false
+        storedCache2.isCached shouldBe true
+        storedCache.isCached shouldBe true
+
+        //clearing child cache, clears it all.
+        storedCache2.clear()
+        storedCache2.isCached shouldBe false
+        storedCache.isCached shouldBe false
+        rootCache.isCached shouldBe false
+      }
+
+      runTestForAllCombinations(doTest)
+    }
+
     "concurrent access to reserved io" should {
       "not be allowed" in {
         def doTest(blockIO: Boolean) = {
@@ -246,7 +301,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
             if (randomBoolean())
               _cache.map(IO(_))
             else if (randomBoolean())
-              _cache.flatMap(Cache.concurrentIO(false, false)(IO(_)))
+              _cache.flatMap(Cache.concurrentIO(synchronised = false, stored = false)(IO(_)))
             else
               _cache
 
@@ -290,7 +345,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
       def doTest(isSynchronised: Boolean) = {
         @volatile var got1 = false
         val cache =
-          Cache.unsafe[Unit, Int](synchronised = Random.nextBoolean(), stored = true) {
+          Cache.noIO[Unit, Int](synchronised = Random.nextBoolean(), stored = true) {
             _ =>
               if (!got1) {
                 got1 = true
