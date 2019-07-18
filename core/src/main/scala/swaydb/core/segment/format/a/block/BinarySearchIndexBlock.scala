@@ -22,7 +22,6 @@ package swaydb.core.segment.format.a.block
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.cache.Cache
 import swaydb.core.util.{Bytes, FunctionUtil, Options}
 import swaydb.data.IO
 import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
@@ -444,7 +443,8 @@ private[core] object BinarySearchIndexBlock {
     override def createOffset(start: Int, size: Int): Offset =
       BinarySearchIndexBlock.Offset(start, size)
 
-    override def readBlock(header: Block.Header[Offset]): IO[BinarySearchIndexBlock] = ???
+    override def readBlock(header: Block.Header[Offset]): IO[BinarySearchIndexBlock] =
+      BinarySearchIndexBlock.read(header)
   }
 
 }

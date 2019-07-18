@@ -215,6 +215,18 @@ private[core] object Block extends LazyLogging {
       IO.Failure(SegmentException.SegmentCorruptionException(s"Failed to read block header.", error.exception))
   }
 
+  def unblock[O <: BlockOffset, B <: Block[O]](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, B]): IO[UnblockedReader[O, B]] =
+    unblock(BlockRefReader(bytes))
+
+  def unblock[O <: BlockOffset, B <: Block[O]](ref: BlockRefReader[O])(implicit blockOps: BlockOps[O, B]): IO[UnblockedReader[O, B]] =
+    BlockedReader(ref) flatMap {
+      blockedReader =>
+        Block.unblock[O, B](
+          reader = blockedReader,
+          readAllIfUncompressed = false
+        )
+    }
+
   def unblock[O <: BlockOffset, B <: Block[O]](reader: BlockedReader[O, B],
                                                readAllIfUncompressed: Boolean)(implicit blockOps: BlockOps[O, B]): IO[UnblockedReader[O, B]] =
     reader.block.compressionInfo match {

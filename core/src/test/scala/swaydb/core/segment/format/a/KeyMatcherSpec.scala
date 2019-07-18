@@ -24,10 +24,10 @@
 //import swaydb.core.TestData._
 //import swaydb.core.data.Persistent._
 //import swaydb.core.data.{Persistent, Time}
-//import swaydb.core.io.reader.{BlockedReader, Reader}
+//import swaydb.core.io.reader.Reader
 //import swaydb.core.segment.format.a.block.KeyMatcher.Result._
+//import swaydb.core.segment.format.a.block.reader.BlockedReader
 //import swaydb.core.segment.format.a.block.{KeyMatcher, ValuesBlock}
-//import swaydb.core.segment.format.a.entry.reader.value.{LazyFunctionReader, LazyPendingApplyValueReader, LazyRangeValueReader, LazyValueReader}
 //import swaydb.data.MaxKey
 //import swaydb.data.order.KeyOrder
 //import swaydb.data.slice.Slice
@@ -42,8 +42,6 @@
 //    def compare(a: Slice[Byte], b: Slice[Byte]): Int =
 //      IntSerializer.read(a).compareTo(IntSerializer.read(b))
 //  }
-//
-//  val emptyValuesBlockReader = BlockedReader(Reader.empty, ValuesBlock.empty)
 //
 //  /**
 //    * These implicits are just to make it easier to read the test cases.

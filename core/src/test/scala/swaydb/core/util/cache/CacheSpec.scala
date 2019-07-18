@@ -281,7 +281,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
           @volatile var invokeCount = 0
 
-          val _cache =
+          val simpleCache =
             if (blockIO)
               Cache.blockIO[Unit, Int](blockIO = _ => BlockIO.ReservedIO(true), IO.Error.ReservedValue(Reserve())) {
                 _ =>
@@ -299,11 +299,11 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
           val cache =
             if (randomBoolean())
-              _cache.map(IO(_))
+              simpleCache.map(IO(_))
             else if (randomBoolean())
-              _cache.flatMap(Cache.concurrentIO(synchronised = false, stored = false)(IO(_)))
+              simpleCache.flatMap(Cache.concurrentIO(synchronised = false, stored = false)(IO(_)))
             else
-              _cache
+              simpleCache
 
           if (blockIO) {
             cache.value()
