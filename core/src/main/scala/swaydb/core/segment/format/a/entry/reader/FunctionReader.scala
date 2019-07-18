@@ -51,11 +51,11 @@ object FunctionReader extends EntryReader[Persistent.Function] {
                 val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                 val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
                 valueCache map {
-                  valueReader =>
+                  valueCache =>
                     IO {
                       Persistent.Function.fromCache(
                         key = key,
-                        valueCache = valueReader,
+                        valueCache = valueCache,
                         time = time,
                         nextIndexOffset = nextIndexOffset,
                         nextIndexSize = nextIndexSize,

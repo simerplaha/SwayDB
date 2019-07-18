@@ -96,7 +96,7 @@ class HashIndexBlockSpec extends TestBase {
 
   "it" should {
     "write compressed HashIndex and result in the same as uncompressed HashIndex" in {
-      runThis(50.times) {
+      runThis(10.times) {
         val maxProbe = 10
 
         def allocateMoreSpace(requiredSpace: RequiredSpace) = requiredSpace.requiredSpace * 10
@@ -174,8 +174,8 @@ class HashIndexBlockSpec extends TestBase {
         uncompressedHashIndex.block.writeAbleLargestValueSize shouldBe compressedHashIndex.block.writeAbleLargestValueSize
         uncompressedHashIndex.offset.start shouldBe compressedHashIndex.offset.start
 
-//        val uncompressedBlockReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock] = Block.unblock(uncompressedHashIndex, SegmentBlock.unblocked(uncompressedState.bytes), randomBoolean()).get
-//        val compressedBlockReader = Block.unblock(compressedHashIndex, SegmentBlock.unblocked(compressedState.bytes), randomBoolean()).get
+        //        val uncompressedBlockReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock] = Block.unblock(uncompressedHashIndex, SegmentBlock.unblocked(uncompressedState.bytes), randomBoolean()).get
+        //        val compressedBlockReader = Block.unblock(compressedHashIndex, SegmentBlock.unblocked(compressedState.bytes), randomBoolean()).get
 
         //assert that both compressed and uncompressed HashIndexes should result in the same value eventually.
         assertHashIndexes(uncompressedKeyValues, uncompressedHashIndex, compressedHashIndex)
@@ -183,132 +183,98 @@ class HashIndexBlockSpec extends TestBase {
     }
   }
 
-//  "build index" when {
-//    "the hash is perfect" in {
-//      runThis(100.times) {
-//        val maxProbe = 1000
-//        val startId = Some(0)
-//
-//        val compressions = randomCompressionsOrEmpty()
-//
-//        val keyValues =
-//          randomizedKeyValues(
-//            count = randomIntMax(1000) max 1,
-//            startId = startId,
-//            addPut = true,
-//            hashIndexConfig =
-//              HashIndexBlock.Config(
-//                allocateSpace = _.requiredSpace * 5,
-//                compressions = _ => compressions,
-//                maxProbe = maxProbe,
-//                minimumNumberOfKeys = 0,
-//                minimumNumberOfHits = 0,
-//                blockIO = _ => randomIOAccess()
-//              )
-//          )
-//
-//        keyValues should not be empty
-//
-//        val state =
-//          HashIndexBlock.init(keyValues = keyValues).get
-//
-//        val allocatedBytes = state.bytes.allocatedSize
-//
-//        keyValues foreach {
-//          keyValue =>
-//            HashIndexBlock.write(
-//              key = keyValue.key,
-//              value = keyValue.stats.thisKeyValuesAccessIndexOffset,
-//              state = state
-//            ).get
-//        }
-//
-//        println(s"hit: ${state.hit}")
-//        println(s"miss: ${state.miss}")
-//        println
-//
-//        HashIndexBlock.close(state).get
-//
-//        println(s"Bytes allocated: ${state.bytes.allocatedSize}")
-//        println(s"Bytes written: ${state.bytes.size}")
-//
-//        state.hit shouldBe keyValues.size
-//        state.miss shouldBe 0
-//        state.hit + state.miss shouldBe keyValues.size
-//
-//        val offset = HashIndexBlock.Offset(0, state.bytes.size)
-//
-//        val randomBytes = randomBytesSlice(randomIntMax(100))
-//
-//        val (adjustedOffset, alteredBytes) =
-//          eitherOne(
-//            (offset, state.bytes),
-//            (offset, state.bytes ++ randomBytesSlice(randomIntMax(100))),
-//            (offset.copy(start = randomBytes.size), randomBytes ++ state.bytes),
-//            (offset.copy(start = randomBytes.size), randomBytes ++ state.bytes ++ randomBytesSlice(randomIntMax(100)))
-//          )
-//
-//        val hashIndex = HashIndexBlock.read(adjustedOffset, SegmentBlock.unblocked(alteredBytes)).get
-//
-//        hashIndex shouldBe
-//          HashIndexBlock(
-//            offset = adjustedOffset,
-//            compressionInfo = hashIndex.compressionInfo,
-//            maxProbe = state.maxProbe,
-//            hit = state.hit,
-//            miss = state.miss,
-//            writeAbleLargestValueSize = state.writeAbleLargestValueSize,
-//            headerSize =
-//              HashIndexBlock.headerSize(
-//                keyCounts = keyValues.last.stats.segmentUniqueKeysCount,
-//                writeAbleLargestValueSize = state.writeAbleLargestValueSize,
-//                hasCompression = compressions.nonEmpty
-//              ),
-//            allocatedBytes = allocatedBytes
-//          )
-//
-//        println("Building ListMap")
-//        val indexOffsetMap = mutable.HashMap.empty[Int, ListBuffer[Transient]]
-//
-//        keyValues foreach {
-//          keyValue =>
-//            indexOffsetMap.getOrElseUpdate(keyValue.stats.thisKeyValuesAccessIndexOffset, ListBuffer(keyValue)) += keyValue
-//        }
-//
-//        println(s"ListMap created with size: ${indexOffsetMap.size}")
-//
-//        def findKey(indexOffset: Int, key: Slice[Byte]): IO[Option[Transient]] =
-//          indexOffsetMap.get(indexOffset) match {
-//            case Some(keyValues) =>
-//              IO(keyValues.find(_.key equiv key))
-//
-//            case None =>
-//              IO.Failure(IO.Error.Fatal(s"Got index that does not exist: $indexOffset"))
-//          }
-//
-//        val ref = BlockRefReader[HashIndexBlock.Offset](alteredBytes)
-//
-////        val hashIndexReader = Block.unblock(hashIndex, SegmentBlock.unblocked(alteredBytes), randomBoolean()).get
-////
-////        keyValues foreach {
-////          keyValue =>
-////            val found =
-////              HashIndexBlock.search(
-////                key = keyValue.key,
-////                blockReader = hashIndexReader,
-////                assertValue = findKey(_, keyValue.key)
-////              ).get.get
-////            (found.key equiv keyValue.key) shouldBe true
-////        }
-//        ???
-//      }
-//    }
-//  }
+  "build index" when {
+    "the hash is perfect" in {
+      runThis(100.times) {
+        val maxProbe = 1000
+        val startId = Some(0)
+
+        val compressions = randomCompressionsOrEmpty()
+
+        val keyValues =
+          randomizedKeyValues(
+            count = randomIntMax(1000) max 1,
+            startId = startId,
+            addPut = true,
+            hashIndexConfig =
+              HashIndexBlock.Config(
+                allocateSpace = _.requiredSpace * 5,
+                compressions = _ => compressions,
+                maxProbe = maxProbe,
+                minimumNumberOfKeys = 0,
+                minimumNumberOfHits = 0,
+                blockIO = _ => randomIOAccess()
+              )
+          )
+
+        keyValues should not be empty
+
+        val state =
+          HashIndexBlock.init(keyValues = keyValues).get
+
+        val allocatedBytes = state.bytes.allocatedSize
+
+        keyValues foreach {
+          keyValue =>
+            HashIndexBlock.write(
+              key = keyValue.key,
+              value = keyValue.stats.thisKeyValuesAccessIndexOffset,
+              state = state
+            ).get
+        }
+
+        println(s"hit: ${state.hit}")
+        println(s"miss: ${state.miss}")
+        println
+
+        HashIndexBlock.close(state).get
+
+        println(s"Bytes allocated: ${allocatedBytes}")
+        println(s"Bytes written: ${state.bytes.size}")
+
+        state.hit shouldBe keyValues.size
+        state.miss shouldBe 0
+        state.hit + state.miss shouldBe keyValues.size
+
+        println("Building ListMap")
+        val indexOffsetMap = mutable.HashMap.empty[Int, ListBuffer[Transient]]
+
+        keyValues foreach {
+          keyValue =>
+            indexOffsetMap.getOrElseUpdate(keyValue.stats.thisKeyValuesAccessIndexOffset, ListBuffer(keyValue)) += keyValue
+        }
+
+        println(s"ListMap created with size: ${indexOffsetMap.size}")
+
+        def findKey(indexOffset: Int, key: Slice[Byte]): IO[Option[Transient]] =
+          indexOffsetMap.get(indexOffset) match {
+            case Some(keyValues) =>
+              IO(keyValues.find(_.key equiv key))
+
+            case None =>
+              IO.Failure(IO.Error.Fatal(s"Got index that does not exist: $indexOffset"))
+          }
+
+        val hashIndexReader = Block.unblock(BlockRefReader(state.bytes)).get
+
+        keyValues foreach {
+          keyValue =>
+            val found =
+              HashIndexBlock.search(
+                key = keyValue.key,
+                blockReader = hashIndexReader,
+                assertValue = findKey(_, keyValue.key)
+              ).get.get
+            (found.key equiv keyValue.key) shouldBe true
+        }
+      }
+    }
+  }
 
   "searching a segment" should {
     "value" in {
-      runThis(100.times, log = true) {
-        //create a bunch of key-values so that it creates a perfect hash
+      runThis(10.times, log = true) {
+        //create perfect hash
         val compressions = if (randomBoolean()) randomCompressions() else Seq.empty
 
         val keyValues =
