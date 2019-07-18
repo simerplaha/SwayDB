@@ -94,11 +94,11 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.value() shouldBe IO.Success(123) //value again mock function is not invoked again
 
         val mapCache = cache.map(int => IO(int))
-        mapCache.value(Int.MaxValue) shouldBe IO.Success(123)
+        mapCache.value() shouldBe IO.Success(123)
         mapCache.value(???) shouldBe IO.Success(123)
 
         val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean())(int => IO(int + 1)))
-        flatMapCache.value(Int.MaxValue) shouldBe IO.Success(124)
+        flatMapCache.value() shouldBe IO.Success(124)
         flatMapCache.value(???) shouldBe IO.Success(124)
 
         //getOrElse on cached is not invoked on new value
@@ -127,12 +127,12 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.isCached shouldBe false
 
         val mapCache = cache.map(int => IO(int))
-        mapCache.value(Int.MaxValue).failed.get.exception.getMessage shouldBe "Kaboom!"
-        mapCache.value(Int.MaxValue).failed.get.exception.getMessage shouldBe "Kaboom!"
+        mapCache.value().failed.get.exception.getMessage shouldBe "Kaboom!"
+        mapCache.value().failed.get.exception.getMessage shouldBe "Kaboom!"
 
         val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean())(int => IO(int + 1)))
-        flatMapCache.value(Int.MaxValue).failed.get.exception.getMessage shouldBe "Kaboom!"
-        flatMapCache.value(Int.MaxValue).failed.get.exception.getMessage shouldBe "Kaboom!"
+        flatMapCache.value().failed.get.exception.getMessage shouldBe "Kaboom!"
+        flatMapCache.value().failed.get.exception.getMessage shouldBe "Kaboom!"
 
         //success
         mock.expects() returning IO(123)

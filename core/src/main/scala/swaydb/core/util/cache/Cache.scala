@@ -25,8 +25,6 @@ import swaydb.core.util.FunctionUtil
 import swaydb.data.config.BlockIO
 import swaydb.data.{IO, Reserve}
 
-import scala.util.Try
-
 object Cache {
 
   def emptyValuesBlock: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
@@ -93,16 +91,29 @@ sealed trait Cache[I, O] { self =>
   def isCached: Boolean
   def clear(): Unit
 
+  def get(): Option[IO.Success[O]]
+
   def getOrElse(f: => IO[O]): IO[O]
 
   def getSomeOrElse(f: => IO[Option[O]]): IO[Option[O]] =
-    Try(getOrElse(???)).map(_.map(Some(_))) getOrElse f
+    get().map(_.map(Some(_))) getOrElse f
 
   def map[O2](f: O => IO[O2]): Cache[I, O2] =
     new Cache[I, O2] {
       override def value(i: => I): IO[O2] = self.value(i).flatMap(f)
       override def isCached: Boolean = self.isCached
-      override def getOrElse(f: => IO[O2]): IO[O2] = Try(value(???)).getOrElse(f)
+      override def getOrElse(f: => IO[O2]): IO[O2] = get() getOrElse f
+      override def get(): Option[IO.Success[O2]] =
+        self.get() flatMap {
+          success =>
+            success.flatMap(f) match {
+              case success: IO.Success[O2] =>
+                Some(success)
+
+              case _: IO.Failure[O2] =>
+                None
+            }
+        }
       override def clear(): Unit = self.clear()
     }
 
@@ -114,7 +125,8 @@ sealed trait Cache[I, O] { self =>
       //fetch the value from the lowest cache first. Higher caches should only be read if the lowest is not already computed.
       override def value(i: => I): IO[O2] = getOrElse(self.value(i).flatMap(next.value(_)))
       override def isCached: Boolean = self.isCached || next.isCached
-      override def getOrElse(f: => IO[O2]): IO[O2] = next.getOrElse(f)
+      override def getOrElse(f: => IO[O2]): IO[O2] = next getOrElse f
+      override def get(): Option[IO.Success[O2]] = next.get()
       override def clear(): Unit = {
         self.clear()
         next.clear()
@@ -128,19 +140,18 @@ private class BlockIOCache[I, O](cache: CacheNOIO[I, Cache[I, O]]) extends Cache
     cache.value(i).value(i)
 
   override def isCached: Boolean =
-    Try(cache.value(???).isCached).getOrElse(false)
+    cache.get().flatMap(_.get()).isDefined
 
   override def getOrElse(f: => IO[O]): IO[O] =
-    IO(cache.value(???).value(???).get) recoverWith {
-      case _ =>
-        f
-    }
+    get() getOrElse f
 
-  //clear the inner cache first, it unsuccessful then clear the outer cache.
-  //why? outer cache is just an initialisation cache it does not do io/computation.
-  //if it's called the second file
-  override def clear(): Unit =
-    Try(cache.value(???).clear()) getOrElse cache.clear()
+  override def clear(): Unit = {
+    cache.get() foreach (_.clear())
+    cache.clear()
+  }
+
+  override def get(): Option[IO.Success[O]] =
+    cache.get().flatMap(_.get())
 }
 
 private class SynchronisedIO[I, O](fetch: I => IO[O],
@@ -157,6 +168,9 @@ private class SynchronisedIO[I, O](fetch: I => IO[O],
 
   override def clear(): Unit =
     lazyIO.clear()
+
+  override def get(): Option[IO.Success[O]] =
+    lazyIO.get()
 }
 
 /**
@@ -184,6 +198,9 @@ private class ReservedIO[I, O](fetch: I => IO[O], lazyIO: LazyIO[O], error: IO.E
 
   override def clear() =
     lazyIO.clear()
+
+  override def get(): Option[IO.Success[O]] =
+    lazyIO.get()
 }
 
 /**
@@ -200,6 +217,9 @@ class CacheNOIO[I, O](fetch: I => O, lazyValue: LazyValue[O]) {
 
   def getOrElse(f: => O): O =
     lazyValue getOrElse f
+
+  def get() =
+    lazyValue.get()
 
   def clear() =
     lazyValue.clear()

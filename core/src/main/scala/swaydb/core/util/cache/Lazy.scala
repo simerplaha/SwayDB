@@ -113,20 +113,22 @@ class LazyIO[V](lazyValue: LazyValue[IO.Success[V]]) extends Lazy[IO[V]] {
   def isSynchronised: Boolean = lazyValue.isSynchronised
 
   def set(value: => IO[V]): IO[V] =
-    value map {
-      value =>
-        lazyValue set IO.Success(value)
-        value
+    try
+      lazyValue set IO.Success(value.get)
+    catch {
+      case exception: Exception =>
+        IO.Failure(exception)
     }
 
   override def get(): Option[IO.Success[V]] =
     lazyValue.get()
 
   override def getOrSet(value: => IO[V]): IO[V] =
-    IO {
-      //meh! gotta ensure value is not fetched if set is not required.
-      //need a better way.
-      (lazyValue getOrSet IO.Success(value.get)).get
+    try
+      lazyValue getOrSet IO.Success(value.get)
+    catch {
+      case exception: Exception =>
+        IO.Failure(exception)
     }
 
   override def getOrElse[T >: IO[V]](f: => T): T =
