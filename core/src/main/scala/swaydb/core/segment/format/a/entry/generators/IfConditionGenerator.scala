@@ -120,10 +120,18 @@ object IfConditionGenerator extends App {
       write(fileNumber, ids, false)
   }
 
+  def isUncompressedId(id: BaseEntryIdFormatA) = {
+    val tokens = id.getClass.getName.split("\\$").filter(_.contains("Compressed"))
+    if (tokens.length == 1) //values can be fullyCompressed but still be non-prefixCompressed when only the value bytes are removed but valueOffset and valueLength of previous are copied over.
+      tokens.contains("ValueFullyCompressed")
+    else
+      tokens.length == 0
+  }
+
   def uncompressedIds =
     BaseEntryIdFormatA
       .baseIds
-      .filterNot(_.getClass.getName.contains("Compressed"))
+      .filter(isUncompressedId)
       .sortBy(_.baseId)
 
   write(

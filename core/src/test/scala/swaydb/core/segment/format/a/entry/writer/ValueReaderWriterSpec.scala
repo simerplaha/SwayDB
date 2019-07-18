@@ -48,18 +48,6 @@ import swaydb.serializers._
 class ValueReaderWriterSpec extends TestBase {
   implicit val timer = TestTimer.Empty
 
-  def buildSingleValueCache(bytes: Slice[Byte]): Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
-    Cache.concurrentIO[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](randomBoolean(), randomBoolean()) {
-      offset =>
-        IO(
-          UnblockedReader(
-            block = ValuesBlock(offset, 0, None),
-            bytes = bytes
-          )
-        )
-    }
-
-
   "not compress valueOffset and valueLength if prefixCompression is disabled and compressDuplicateValues is true" in {
     val keyValues =
       Slice(

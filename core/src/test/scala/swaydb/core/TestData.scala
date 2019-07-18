@@ -41,6 +41,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.util.UUIDUtil
+import swaydb.core.util.cache.Cache
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{BlockIO, Dir, RecoveryMode}
@@ -2672,4 +2673,15 @@ object TestData {
           )
       )
   }
+
+  def buildSingleValueCache(bytes: Slice[Byte]): Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+    Cache.concurrentIO[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](randomBoolean(), randomBoolean()) {
+      offset =>
+        IO(
+          UnblockedReader(
+            block = ValuesBlock(offset, 0, None),
+            bytes = bytes
+          )
+        )
+    }
 }

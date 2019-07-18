@@ -26,5 +26,5 @@ object SegmentException {
   case class CannotCopyInMemoryFiles(file: Path) extends Exception(s"Cannot copy in-memory files $file")
   case class SegmentCorruptionException(message: String, cause: Throwable) extends Exception(message, cause)
   case class SegmentFileMissing(path: Path) extends Exception(s"$path: Segment file missing.")
-  case class InvalidKeyValueId(id: Int) extends Exception(s"Invalid entryId: $id.")
+  case class InvalidKeyValueId(id: Int) extends Exception(s"Invalid keyValueId: $id.")
 }
