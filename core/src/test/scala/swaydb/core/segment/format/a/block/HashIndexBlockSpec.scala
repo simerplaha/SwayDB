@@ -54,7 +54,7 @@ class HashIndexBlockSpec extends TestBase {
         val uncompressedIndexes = ListBuffer.empty[Int]
         HashIndexBlock.search(
           key = keyValue.minKey,
-          blockReader = hashIndex1,
+          reader = hashIndex1,
           assertValue =
             index => {
               uncompressedIndexes += index
@@ -65,7 +65,7 @@ class HashIndexBlockSpec extends TestBase {
         val compressedIndexes = ListBuffer.empty[Int]
         HashIndexBlock.search(
           key = keyValue.minKey,
-          blockReader = hashIndex2,
+          reader = hashIndex2,
           assertValue =
             index => {
               compressedIndexes += index
@@ -229,7 +229,7 @@ class HashIndexBlockSpec extends TestBase {
 
         HashIndexBlock.close(state).get
 
-        println(s"Bytes allocated: ${allocatedBytes}")
+        println(s"Bytes allocated: $allocatedBytes")
         println(s"Bytes written: ${state.bytes.size}")
 
         state.hit shouldBe keyValues.size
@@ -262,7 +262,7 @@ class HashIndexBlockSpec extends TestBase {
             val found =
               HashIndexBlock.search(
                 key = keyValue.key,
-                blockReader = hashIndexReader,
+                reader = hashIndexReader,
                 assertValue = findKey(_, keyValue.key)
               ).get.get
             (found.key equiv keyValue.key) shouldBe true

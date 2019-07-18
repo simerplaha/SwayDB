@@ -313,14 +313,14 @@ private[core] object HashIndexBlock extends LazyLogging {
     * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
     */
   private[block] def search[R](key: Slice[Byte],
-                               blockReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                               reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                                assertValue: Int => IO[Option[R]]): IO[Option[R]] = {
 
     val hash = key.##
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
 
-    val hashIndex = blockReader.block
+    val hashIndex = reader.block
 
     @tailrec
     def doFind(probe: Int, checkedHashIndexes: mutable.HashSet[Int]): IO[Option[R]] =
@@ -338,7 +338,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         if (checkedHashIndexes contains index) //do not check the same index again.
           doFind(probe + 1, checkedHashIndexes)
         else
-          blockReader
+          reader
             .moveTo(index)
             .read(hashIndex.bytesToReadPerIndex) match {
             case IO.Success(possibleValueBytes) =>
@@ -395,7 +395,7 @@ private[core] object HashIndexBlock extends LazyLogging {
 
     search(
       key = key,
-      blockReader = hashIndexReader,
+      reader = hashIndexReader,
       assertValue =
         sortedIndexOffsetValue =>
           SortedIndexBlock.findAndMatchOrNextPersistent(

@@ -48,6 +48,8 @@ private[swaydb] trait Reader { self =>
 
   def readRemaining(): IO[Slice[Byte]]
 
+  def isFile: Boolean
+
   def skip(skip: Long): Reader =
     moveTo(getPosition + skip)
 

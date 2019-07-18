@@ -72,4 +72,7 @@ private[core] class FileReader(file: DBFile) extends Reader with LazyLogging {
 
   override def readRemaining(): IO[Slice[Byte]] =
     remaining flatMap read
+
+  final override val isFile: Boolean =
+    true
 }

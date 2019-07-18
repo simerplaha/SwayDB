@@ -81,4 +81,7 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
       reader = reader.copy(),
       block = block
     )
+
+  override val isFile: Boolean = reader.isFile
+  override def blockSize: Int = 4096
 }
