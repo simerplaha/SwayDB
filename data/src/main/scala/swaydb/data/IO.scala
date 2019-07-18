@@ -254,6 +254,7 @@ object IO {
     case class DecompressionValues(busy: Reserve[Unit]) extends Exception("Failed to decompress values")
     case class ReservedValue(busy: Reserve[Unit]) extends Exception("Failed to fetch value")
     case class ReadingHeader(busy: Reserve[Unit]) extends Exception("Failed to read header")
+    case class NullMappedByteBuffer(exception: Exception, busy: Reserve[Unit]) extends Exception(exception)
     case class BusyFuture(busy: Reserve[Unit]) extends Exception("Busy future")
 
     case object OverlappingPushSegment extends Exception("Contains overlapping busy Segments")
@@ -290,6 +291,7 @@ object IO {
         case exception: IO.Exception.ReservedValue => Error.ReservedValue(exception.busy)
         case exception: IO.Exception.ReadingHeader => Error.ReadingHeader(exception.busy)
         case exception: IO.Exception.ReceivedKeyValuesToMergeWithoutTargetSegment => Error.ReceivedKeyValuesToMergeWithoutTargetSegment(exception.keyValueCount)
+        case exception: IO.Exception.NullMappedByteBuffer => Error.NullMappedByteBuffer(exception)
 
         case IO.Exception.OverlappingPushSegment => Error.OverlappingPushSegment
         case IO.Exception.NoSegmentsRemoved => Error.NoSegmentsRemoved
@@ -302,7 +304,6 @@ object IO {
         case exception: FileNotFoundException => Error.FileNotFound(exception)
         case exception: AsynchronousCloseException => Error.AsynchronousClose(exception)
         case exception: ClosedChannelException => Error.ClosedChannel(exception)
-        case exception: NullPointerException => Error.NullPointer(exception)
         case exception: ReadOnlyBufferException => Error.ReadOnlyBuffer(exception)
 
         //Fatal error. This error is not expected to occur on a healthy database. This error would indicate corruption.
@@ -351,7 +352,7 @@ object IO {
       override def reserve: Reserve[Unit] = Reserve()
     }
 
-    case class NullPointer(exception: NullPointerException) extends Busy {
+    case class NullMappedByteBuffer(exception: IO.Exception.NullMappedByteBuffer) extends Busy {
       override def reserve: Reserve[Unit] = Reserve()
     }
 
@@ -495,6 +496,7 @@ object IO {
     @inline final def runSafe[T](f: => T): IO.Async[T] =
       try IO.Success(f) catch {
         case ex: Throwable =>
+          ex.printStackTrace()
           recover(ex, f)
       }
 
@@ -533,7 +535,7 @@ object IO {
         //@formatter:off
         case error: Error.FileNotFound => IO.Failure(error)
         case error: Error.NoSuchFile => IO.Failure(error)
-        case error: Error.NullPointer => IO.Failure(error)
+        case error: Error.NullMappedByteBuffer => IO.Failure(error)
         case error: Error.Busy => IO.Later(operation, error)
         case other: Error => IO.Failure(other)
         //@formatter:on

@@ -773,13 +773,15 @@ object TestData {
 
     def toMemoryGroup =
       keyValue match {
-        case Persistent.Group(minKey, maxKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, accessPosition, deadline, _) =>
+        case Persistent.Group(minKey, maxKey, valueCache, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, accessPosition, deadline, _) =>
+          val groupBytes = valueCache.value(KeyOrder.default, TestLimitQueues.keyValueLimiter, SegmentIO.random).readAllBytes().get.unslice()
+          groupBytes should not be empty
           Memory.Group(
             minKey = minKey,
             maxKey = maxKey,
             blockedSegment =
               SegmentBlock.Closed(
-                segmentBytes = ???, //Slice(valueReader.moveTo(valueOffset).read(valueLength).get.unslice()),
+                segmentBytes = Slice(groupBytes), //Slice(valueReader.moveTo(valueOffset).read(valueLength).get.unslice()),
                 minMaxFunctionId = None,
                 nearestDeadline = deadline
               )
@@ -1708,9 +1710,8 @@ object TestData {
     val slice = Slice.create[Transient](count * 50) //extra space because addRandomRanges and random Groups can be added for Fixed and Range key-values in the same iteration.
     //            var key = 1
     var key = startId getOrElse randomInt(minus = count)
-    val until = key + count
     var iteration = 0
-    while (key < until) {
+    while (slice.size < count) {
       iteration += 1
       //      if (slice.written % 100000 == 0) println(s"Generated ${slice.written} key-values.")
       //protect from going into infinite loop

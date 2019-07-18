@@ -1459,7 +1459,7 @@ object CommonAssertions {
       .readAll(
         keyValueCount = blockCache.getFooter().get.keyValueCount,
         sortedIndexReader = blockCache.createSortedIndexReader().get,
-        valueCache = blockCache.createValueReaderCache().get
+        valuesReader = blockCache.createValuesReader().get
       )
   }
 

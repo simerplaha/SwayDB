@@ -27,7 +27,9 @@ import swaydb.data.util.StorageUnits._
 protected trait BlockReader extends Reader {
 
   private[reader] def reader: Reader
+
   def offset: BlockOffset
+
   def diskBlockSize: Int = 4096.bytes
 
   private var position: Int = 0

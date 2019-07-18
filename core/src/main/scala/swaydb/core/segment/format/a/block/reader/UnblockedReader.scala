@@ -60,16 +60,14 @@ private[core] object UnblockedReader {
       readAllIfUncompressed = readAllIfUncompressed
     )
 
-  def skipHeader[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
-    new UnblockedReader(
-      block =
-        blockOps.updateBlockOffset(
-          block = blockedReader.block,
-          start = blockedReader.block.offset.start + blockedReader.block.headerSize,
-          size = blockedReader.block.offset.size - blockedReader.block.headerSize
-        ),
-      reader = blockedReader
-    )
+  def asUnblocked[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B])(implicit blockOps: BlockOps[O, B]): IO[UnblockedReader[O, B]] =
+    blockedReader.size map {
+      blockSize =>
+        new UnblockedReader(
+          block = blockOps.updateBlockOffset(blockedReader.block, 0, blockSize.toInt),
+          reader = blockedReader
+        )
+    }
 }
 
 private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val block: B,

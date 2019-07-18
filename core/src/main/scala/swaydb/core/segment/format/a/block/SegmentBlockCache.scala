@@ -118,8 +118,8 @@ class SegmentBlockCache(id: String,
       ref =>
         BlockedReader(ref) flatMap {
           blockedReader =>
-            Block.unblock(
-              reader = blockedReader,
+            UnblockedReader(
+              blockedReader = blockedReader,
               readAllIfUncompressed = segmentBlockIO(blockedReader.block.blockStatus).cacheOnAccess
             )
         }
@@ -127,9 +127,15 @@ class SegmentBlockCache(id: String,
 
   private[block] val footerBlockCache =
     Cache.blockIO[UnblockedReader[SegmentBlock.Offset, SegmentBlock], SegmentFooterBlock](
-      blockIO = _ => segmentFooterBlockIO(BlockStatus.BlockInfo(SegmentFooterBlock.optimalBytesRequired)),
+      blockIO =
+        _ =>
+          //reader does not contain any footer related info. Use the default known info about footer.
+          segmentFooterBlockIO(BlockStatus.BlockInfo(SegmentFooterBlock.optimalBytesRequired)),
       reserveError = IO.Error.ReservedValue(Reserve())
-    )(SegmentFooterBlock.read)
+    ) {
+      reader =>
+        SegmentFooterBlock.read(reader)
+    }
 
   //info caches
   private[block] val sortedIndexBlockCache =
@@ -160,7 +166,7 @@ class SegmentBlockCache(id: String,
   private[block] val binarySearchIndexReaderCache =
     buildBlockReaderCacheOptional[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](binarySearchIndexBlockIO)
 
-  private[block] val valuesReaderCache =
+  private[block] val valuesReaderCache: Cache[Option[BlockedReader[ValuesBlock.Offset, ValuesBlock]], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
     buildBlockReaderCacheOptional[ValuesBlock.Offset, ValuesBlock](valuesBlockIO)
 
   private[block] val allCaches =
@@ -172,7 +178,7 @@ class SegmentBlockCache(id: String,
 
   private[block] def createSegmentBlockReader(): IO[UnblockedReader[SegmentBlock.Offset, SegmentBlock]] =
     segmentBlockReaderCache
-      .value(segmentBlockRef)
+      .value(segmentBlockRef.copy())
       .map(_.copy())
 
   def getFooter(): IO[SegmentFooterBlock] =
@@ -259,23 +265,6 @@ class SegmentBlockCache(id: String,
   def createValuesReader(): IO[Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
     createReaderOptional(valuesReaderCache, getValues())
 
-  /**
-    * Builds a [[Cache]] on top of [[valuesReaderCache]] to fetch the target value from within the [[ValuesBlock]].
-    *
-    * How to unblock the Values is controlled byte [[valuesReaderCache]].
-    */
-  def createValueReaderCache(): IO[Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]]] =
-    createValuesReader() map {
-      valuesReader =>
-        valuesReader map {
-          valuesReader =>
-            Cache.concurrentIO(synchronised = false, stored = true) {
-              offset =>
-                IO(UnblockedReader.moveTo(offset, valuesReader))
-            }
-        }
-    }
-
   def createSortedIndexReader(): IO[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] =
     createReader(sortedIndexReaderCache, getSortedIndex())
 
@@ -284,17 +273,20 @@ class SegmentBlockCache(id: String,
       footer =>
         createSortedIndexReader() flatMap {
           sortedIndexReader =>
-            createValueReaderCache() flatMap {
-              valueCache =>
+            createValuesReader() flatMap {
+              valuesReader =>
                 SortedIndexBlock.readAll(
                   keyValueCount = footer.keyValueCount,
                   sortedIndexReader = sortedIndexReader,
-                  valueCache = valueCache,
+                  valuesReader = valuesReader,
                   addTo = addTo
                 )
             }
         }
     }
+
+  def readAllBytes(): IO[Slice[Byte]] =
+    segmentBlockRef.copy().readAll()
 
   def clear(): Unit =
     allCaches.foreach(_.clear())

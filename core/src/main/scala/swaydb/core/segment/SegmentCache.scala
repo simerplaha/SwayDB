@@ -27,7 +27,6 @@ import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.util.ExceptionUtil
-import swaydb.core.util.cache.Cache
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey}
@@ -88,13 +87,13 @@ private[core] class SegmentCache(id: String,
       keyValueLimiter.add(group, persistentCache)
   }
 
-  private def prepareGet[T](f: (SegmentFooterBlock, Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]], Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]], UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock], Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]]) => IO[T]): IO[T] = {
+  private def prepareGet[T](f: (SegmentFooterBlock, Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]], Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]], UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]) => IO[T]): IO[T] = {
     for {
       footer <- blockCache.getFooter()
       hashIndex <- blockCache.createHashIndexReader()
       binarySearchIndex <- blockCache.createBinarySearchIndexReader()
       sortedIndex <- blockCache.createSortedIndexReader()
-      values <- blockCache.createValueReaderCache()
+      values <- blockCache.createValuesReader()
       result <- f(footer, hashIndex, binarySearchIndex, sortedIndex, values)
     } yield {
       result
@@ -104,11 +103,11 @@ private[core] class SegmentCache(id: String,
       ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
   }
 
-  private def prepareGetAll[T](f: (SegmentFooterBlock, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock], Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]]) => IO[T]): IO[T] = {
+  private def prepareGetAll[T](f: (SegmentFooterBlock, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]) => IO[T]): IO[T] = {
     for {
       footer <- blockCache.getFooter()
       sortedIndex <- blockCache.createSortedIndexReader()
-      values <- blockCache.createValueReaderCache()
+      values <- blockCache.createValuesReader()
       result <- f(footer, sortedIndex, values)
     } yield {
       result
@@ -118,12 +117,12 @@ private[core] class SegmentCache(id: String,
       ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
   }
 
-  private def prepareIteration[T](f: (SegmentFooterBlock, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]], UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock], Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]]) => IO[T]): IO[T] = {
+  private def prepareIteration[T](f: (SegmentFooterBlock, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]], UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]) => IO[T]): IO[T] = {
     for {
       footer <- blockCache.getFooter()
       binarySearchIndex <- blockCache.createBinarySearchIndexReader()
       sortedIndex <- blockCache.createSortedIndexReader()
-      values <- blockCache.createValueReaderCache()
+      values <- blockCache.createValuesReader()
       result <- f(footer, binarySearchIndex, sortedIndex, values)
     } yield {
       result
@@ -369,7 +368,7 @@ private[core] class SegmentCache(id: String,
           .readAll(
             keyValueCount = footer.keyValueCount,
             sortedIndexReader = sortedIndex,
-            valueCache = values,
+            valuesReader = values,
             addTo = addTo
           )
           .onFailureSideEffect {
@@ -415,6 +414,9 @@ private[core] class SegmentCache(id: String,
     persistentCache.clear()
     blockCache.clear()
   }
+
+  def readAllBytes(): IO[Slice[Byte]] =
+    blockCache.readAllBytes()
 
   def isInitialised() =
     blockCache.isCached

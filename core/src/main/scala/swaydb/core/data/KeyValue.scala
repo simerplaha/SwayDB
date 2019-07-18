@@ -1311,7 +1311,11 @@ private[core] object Persistent {
       new Put(
         _key = key,
         deadline = deadline,
-        valueCache = valueCache.mapStored(_.readAllOrNone()),
+        valueCache =
+          valueCache mapStored {
+            reader =>
+              reader.readAllOrNone()
+          },
         _time = time,
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
@@ -1402,7 +1406,11 @@ private[core] object Persistent {
       new Update(
         _key = key,
         deadline = deadline,
-        valueCache = valueCache.mapStored(_.readAllOrNone()),
+        valueCache =
+          valueCache mapStored {
+            reader =>
+              reader.readAllOrNone()
+          },
         _time = time,
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
@@ -1604,7 +1612,12 @@ private[core] object Persistent {
         _key = key,
         _time = time,
         deadline = deadline,
-        valueCache = valueCache.mapStored(_.readAll().flatMap(bytes => ValueSerializer.read[Slice[Value.Apply]](bytes))),
+        valueCache = valueCache mapStored {
+          reader =>
+            reader
+              .readAll()
+              .flatMap(bytes => ValueSerializer.read[Slice[Value.Apply]](bytes))
+        },
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
         indexOffset = indexOffset,
@@ -1678,7 +1691,10 @@ private[core] object Persistent {
           Range(
             _fromKey = fromKey,
             _toKey = toKey,
-            valueCache = valueCache.mapStored(_.readAll().flatMap(RangeValueSerializer.read)),
+            valueCache = valueCache mapStored {
+              rangeReader =>
+                rangeReader.readAll().flatMap(RangeValueSerializer.read)
+            },
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
             indexOffset = indexOffset,
@@ -1760,7 +1776,8 @@ private[core] object Persistent {
                     val moved: BlockRefReader[SegmentBlock.Offset] =
                       BlockRefReader.moveTo(
                         SegmentBlock.Offset(
-                          start = valueOffset,
+                          //cache will return a reader with the offset pointing to this Group's offset, here simply reset to return as an BlockRef within the parent Segment's values block.
+                          start = 0,
                           size = valueLength
                         ),
                         reader = reader

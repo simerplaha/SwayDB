@@ -32,8 +32,14 @@ private[core] object ValuesBlock {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
-  def emptyUnblocked: UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
+  val empty =
+    ValuesBlock(ValuesBlock.Offset.zero, 0, None)
+
+  val emptyUnblocked: UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
     UnblockedReader.empty[ValuesBlock.Offset, ValuesBlock](ValuesBlock.empty)(ValuesBlockOps)
+
+  val emptyUnblockedIO: IO[UnblockedReader[Offset, ValuesBlock]] =
+    IO(emptyUnblocked)
 
   def unblocked(bytes: Slice[Byte])(implicit blockOps: BlockOps[ValuesBlock.Offset, ValuesBlock]): UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
     UnblockedReader(
@@ -71,9 +77,6 @@ private[core] object ValuesBlock {
 
   def valuesBlockNotInitialised: IO.Failure[Nothing] =
     IO.Failure(IO.Error.Fatal("Value block not initialised."))
-
-  val empty =
-    ValuesBlock(ValuesBlock.Offset.zero, 0, None)
 
   case class State(var _bytes: Slice[Byte],
                    headerSize: Int,
@@ -187,7 +190,12 @@ private[core] object ValuesBlock {
 
   implicit object ValuesBlockOps extends BlockOps[ValuesBlock.Offset, ValuesBlock] {
     override def updateBlockOffset(block: ValuesBlock, start: Int, size: Int): ValuesBlock =
-      block.copy(offset = createOffset(start = start, size = size))
+      try {
+        block.copy(offset = createOffset(start = start, size = size))
+      } catch {
+        case exception: Exception =>
+          throw exception
+      }
 
     override def createOffset(start: Int, size: Int): Offset =
       ValuesBlock.Offset(start = start, size = size)

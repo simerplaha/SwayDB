@@ -23,6 +23,8 @@ import java.io.FileNotFoundException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.Paths
 
+import swaydb.data.IO.Exception.NullMappedByteBuffer
+
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
@@ -41,7 +43,7 @@ object Base {
       IO.Error.FileNotFound(new FileNotFoundException("")),
       IO.Error.AsynchronousClose(new AsynchronousCloseException()),
       IO.Error.ClosedChannel(new ClosedChannelException),
-      IO.Error.NullPointer(new NullPointerException("")),
+      IO.Error.NullMappedByteBuffer(NullMappedByteBuffer(new NullPointerException, busyBoolean)),
       IO.Error.DecompressingIndex(busyBoolean),
       IO.Error.DecompressingValues(busyBoolean),
       IO.Error.ReadingHeader(busyBoolean),
