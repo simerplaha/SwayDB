@@ -29,7 +29,7 @@ import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.{Segment, SegmentCache}
 import swaydb.core.util.CollectionUtil._
-import swaydb.core.util.cache.{Cache, CacheNOIO}
+import swaydb.core.util.cache.{Cache, NoIO}
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -397,7 +397,7 @@ private[swaydb] object Memory {
                    segmentBytes: Slice[Byte],
                    deadline: Option[Deadline]) extends Memory with KeyValue.ReadOnly.Group {
 
-    private val segmentCache: CacheNOIO[(KeyOrder[Slice[Byte]], KeyValueLimiter, SegmentIO), SegmentCache] =
+    private val segmentCache: NoIO[(KeyOrder[Slice[Byte]], KeyValueLimiter, SegmentIO), SegmentCache] =
       Cache.noIO(synchronised = true, stored = true) {
         case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter, groupIO: SegmentIO) =>
           SegmentCache(
@@ -1774,7 +1774,7 @@ private[core] object Persistent {
         case (minKey, maxKey) =>
           valueCache.value(ValuesBlock.Offset(valueOffset, valueLength)) map {
             reader =>
-              val segmentCache: CacheNOIO[(KeyOrder[Slice[Byte]], KeyValueLimiter, SegmentIO), SegmentCache] =
+              val segmentCache: NoIO[(KeyOrder[Slice[Byte]], KeyValueLimiter, SegmentIO), SegmentCache] =
                 Cache.noIO(synchronised = true, stored = true) {
                   case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter, groupIO: SegmentIO) =>
                     val moved: BlockRefReader[SegmentBlock.Offset] =
@@ -1819,7 +1819,7 @@ private[core] object Persistent {
 
   case class Group(private var _minKey: Slice[Byte],
                    private var _maxKey: MaxKey[Slice[Byte]],
-                   segmentCache: CacheNOIO[(KeyOrder[Slice[Byte]], KeyValueLimiter, SegmentIO), SegmentCache],
+                   segmentCache: NoIO[(KeyOrder[Slice[Byte]], KeyValueLimiter, SegmentIO), SegmentCache],
                    nextIndexOffset: Int,
                    nextIndexSize: Int,
                    indexOffset: Int,

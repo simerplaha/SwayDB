@@ -47,8 +47,8 @@ object Cache {
       error = reserveError
     )
 
-  def noIO[I, O](synchronised: Boolean, stored: Boolean)(fetch: I => O): CacheNOIO[I, O] =
-    new CacheNOIO[I, O](
+  def noIO[I, O](synchronised: Boolean, stored: Boolean)(fetch: I => O): NoIO[I, O] =
+    new NoIO[I, O](
       fetch = fetch,
       lazyValue = Lazy.value(
         synchronised = synchronised,
@@ -142,13 +142,13 @@ sealed trait Cache[I, O] extends LazyLogging { self =>
     }
 }
 
-private class BlockIOCache[I, O](cache: CacheNOIO[I, Cache[I, O]]) extends Cache[I, O] {
+private class BlockIOCache[I, O](cache: NoIO[I, Cache[I, O]]) extends Cache[I, O] {
 
   override def value(i: => I): IO[O] =
     cache.value(i).value(i)
 
   override def isCached: Boolean =
-    cache.get().flatMap(_.get()).isDefined
+    cache.get() exists (_.isCached)
 
   override def getOrElse(f: => IO[O]): IO[O] =
     get() getOrElse f
@@ -215,7 +215,7 @@ private class ReservedIO[I, O](fetch: I => IO[O], lazyIO: LazyIO[O], error: IO.E
   * Caches a value on read. Used for IO operations where the output does not change.
   * For example: A file's size.
   */
-class CacheNOIO[I, O](fetch: I => O, lazyValue: LazyValue[O]) {
+class NoIO[I, O](fetch: I => O, lazyValue: LazyValue[O]) {
 
   def value(input: => I): O =
     lazyValue getOrSet fetch(input)

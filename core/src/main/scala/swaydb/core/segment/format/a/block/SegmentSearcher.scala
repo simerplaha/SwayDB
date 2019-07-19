@@ -49,13 +49,13 @@ private[core] object SegmentSearcher extends LazyLogging {
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) flatMap {
-          case SearchResult.Some(lowerLower, lower) =>
+          case SearchResult.Some(_, lower) =>
             if (binarySearchIndexReader.block.isFullIndex)
               IO.Success(Some(lower))
             else
               SortedIndexBlock.searchLower(
                 key = key,
-                startFrom = lowerLower orElse start,
+                startFrom = Some(lower),
                 indexReader = sortedIndexReader,
                 valuesReader = valuesReader
               )

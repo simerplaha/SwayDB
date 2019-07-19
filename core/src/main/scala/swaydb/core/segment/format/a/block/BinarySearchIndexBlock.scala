@@ -271,10 +271,12 @@ private[core] object BinarySearchIndexBlock {
       }
 
   def search(reader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
-             start: Option[Persistent],
-             end: Option[Persistent],
+             startKeyValue: Option[Persistent],
+             endKeyValue: Option[Persistent],
              higherOrLower: Option[Boolean],
-             matchValue: Int => IO[KeyMatcher.Result]) = {
+             matchValue: Int => IO[KeyMatcher.Result])(implicit ordering: KeyOrder[Slice[Byte]]) = {
+
+    val order = Ordering.by[Persistent, Slice[Byte]](_.key)(ordering)
 
     @tailrec
     def hop(start: Int, end: Int, knownLowest: Option[Persistent], knownMatch: Option[Persistent]): IO[SearchResult[Persistent]] = {
@@ -283,8 +285,11 @@ private[core] object BinarySearchIndexBlock {
       val valueOffset = mid * reader.block.bytesPerValue
       if (start > end)
         knownMatch map {
-          lastMatched =>
-            IO.Success(SearchResult.Some(knownLowest, lastMatched))
+          knownMatch =>
+            if (higherOrLower.contains(true))
+              IO.Success(SearchResult.Some(knownLowest, knownMatch))
+            else
+              IO.Success(SearchResult.Some(None, knownMatch))
         } getOrElse {
           IO.Success(SearchResult.None(knownLowest))
         }
@@ -309,14 +314,27 @@ private[core] object BinarySearchIndexBlock {
                         IO.Success(SearchResult.Some(matched.previous, matched.result))
                       else
                         hop(start = start, end = mid - 1, knownLowest, knownMatch = Some(matched.result))
-                    else if (matched.next.isDefined) //is lower
+                    else if (matched.next.isDefined)
+                    //Is lower! Don't need to compare knownLowest because a successful match would've fetch the nearest lowest.
+                    //Here most times knownLowest would be the same as matched.result.
                       IO.Success(SearchResult.Some(matched.previous, matched.result))
                     else
-                      hop(start = mid + 1, end = end, matched.previous, knownMatch = Some(matched.result))
+                      hop(start = mid + 1, end = end, matched.previous orElse knownLowest, knownMatch = Some(matched.result))
                 }
 
               case behind: KeyMatcher.Result.Behind =>
-                hop(start = mid + 1, end = end, Some(behind.previous), knownMatch = knownMatch)
+                //if the accessIndexPosition is not enabled then the start key could be lower than the seek key.
+                //do a comparison of the highest of both (currently knownLowest and current seeked lowest)
+                val lower =
+                  if (startKeyValue.exists(_.accessPosition == 0))
+                    knownLowest map {
+                      lower =>
+                        order.max(lower, behind.previous)
+                    } getOrElse behind.previous
+                  else
+                    behind.previous
+
+                hop(start = mid + 1, end = end, Some(lower), knownMatch = knownMatch)
 
               case KeyMatcher.Result.AheadOrNoneOrEnd =>
                 hop(start = start, end = mid - 1, knownLowest, knownMatch = knownMatch)
@@ -327,6 +345,8 @@ private[core] object BinarySearchIndexBlock {
       }
     }
 
+    //accessPositions start from 1 but for BinarySearch index we stat from 0.
+    //A accessPosition indicates that accessPositionIndex was disabled.
     def getAccessPosition(keyValue: Persistent) =
       if (keyValue.accessPosition <= 0)
         None
@@ -343,7 +363,7 @@ private[core] object BinarySearchIndexBlock {
         .flatMap(getAccessPosition)
         .getOrElse(reader.block.valuesCount - 1)
 
-    hop(start = getStartPosition(start), end = getEndPosition(end), start, end)
+    hop(start = getStartPosition(startKeyValue), end = getEndPosition(endKeyValue), startKeyValue, endKeyValue)
   }
 
   private def search(key: Slice[Byte],
@@ -376,8 +396,8 @@ private[core] object BinarySearchIndexBlock {
     search(
       reader = binarySearchIndex,
       higherOrLower = higherOrLower,
-      start = start,
-      end = end,
+      startKeyValue = start,
+      endKeyValue = end,
       matchValue =
         sortedIndexOffsetValue =>
           SortedIndexBlock.findAndMatchOrNextMatch(
