@@ -19,6 +19,7 @@
 
 package swaydb.core.util.cache
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.FunctionUtil
@@ -86,7 +87,7 @@ object Cache {
   * Caches a value on read. Used for IO operations where the output does not change.
   * For example: A file's size.
   */
-sealed trait Cache[I, O] { self =>
+sealed trait Cache[I, O] extends LazyLogging { self =>
   def value(i: => I): IO[O]
   def isCached: Boolean
   def clear(): Unit
@@ -98,6 +99,12 @@ sealed trait Cache[I, O] { self =>
   def getSomeOrElse(f: => IO[Option[O]]): IO[Option[O]] =
     get().map(_.map(Some(_))) getOrElse f
 
+  /**
+    * An adapter function that applies the map function to the input on each invocation.
+    * The result does not get stored in this cache.
+    *
+    * [[mapStored]] Or [[flatMap]] functions are used for where storage is required.
+    */
   def map[O2](f: O => IO[O2]): Cache[I, O2] =
     new Cache[I, O2] {
       override def value(i: => I): IO[O2] = self.value(i).flatMap(f)
@@ -110,7 +117,8 @@ sealed trait Cache[I, O] { self =>
               case success: IO.Success[O2] =>
                 Some(success)
 
-              case _: IO.Failure[O2] =>
+              case ex: IO.Failure[O2] =>
+                logger.error("Failed to apply map function on Cache.", ex)
                 None
             }
         }
@@ -122,7 +130,7 @@ sealed trait Cache[I, O] { self =>
 
   def flatMap[O2](next: Cache[O, O2]): Cache[I, O2] =
     new Cache[I, O2] {
-      //fetch the value from the lowest cache first. Higher caches should only be read if the lowest is not already computed.
+      //fetch the value from the lowest cache first. Upper cache should only be read if the lowest is not already computed.
       override def value(i: => I): IO[O2] = getOrElse(self.value(i).flatMap(next.value(_)))
       override def isCached: Boolean = self.isCached || next.isCached
       override def getOrElse(f: => IO[O2]): IO[O2] = next getOrElse f

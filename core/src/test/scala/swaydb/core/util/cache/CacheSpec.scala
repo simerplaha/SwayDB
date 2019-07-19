@@ -102,6 +102,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         mapCache.get() shouldBe Some(IO.Success(123))
         mapCache.value(???) shouldBe IO.Success(123)
         mapCache.value(???) shouldBe IO.Success(123)
+        mapCache.isCached shouldBe false
 
         val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean())(int => IO(int + 1)))
         flatMapCache.value() shouldBe IO.Success(124)
