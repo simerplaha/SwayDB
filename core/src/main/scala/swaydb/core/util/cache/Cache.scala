@@ -183,7 +183,7 @@ private class ReservedIO[I, O](fetch: I => IO[O], lazyIO: LazyIO[O], error: IO.E
     lazyIO getOrElse {
       if (Reserve.setBusyOrGet((), error.reserve).isEmpty)
         try
-          lazyIO set fetch(i)
+          lazyIO getOrElse (lazyIO set fetch(i)) //check if it's set again in the block.
         finally
           Reserve.setFree(error.reserve)
       else

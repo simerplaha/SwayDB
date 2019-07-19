@@ -84,17 +84,23 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
         cache.isCached shouldBe false
 
+        cache.get() shouldBe empty
+
         //getOrElse on un-cached should set the cache
         cache.getOrElse(IO(111)) shouldBe IO(111)
         cache.isCached shouldBe false // still not cached
+        cache.get() shouldBe empty //still not cached
         mock.expects() returning IO(123)
 
         cache.value() shouldBe IO.Success(123)
         cache.isCached shouldBe true
+        cache.get() shouldBe Some(IO.Success(123))
         cache.value() shouldBe IO.Success(123) //value again mock function is not invoked again
+        cache.getOrElse(???) shouldBe IO.Success(123)
 
         val mapCache = cache.map(int => IO(int))
-        mapCache.value() shouldBe IO.Success(123)
+        mapCache.get() shouldBe Some(IO.Success(123))
+        mapCache.value(???) shouldBe IO.Success(123)
         mapCache.value(???) shouldBe IO.Success(123)
 
         val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean())(int => IO(int + 1)))

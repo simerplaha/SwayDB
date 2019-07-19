@@ -20,12 +20,22 @@
 package swaydb.core.util.cache
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 import swaydb.core.util.Benchmark
 import swaydb.data.IO
 
 class CachePerformanceSpec extends WordSpec with Matchers {
 
   val range = 1 to 1000000
+
+  "initialising caches" in {
+    Benchmark("initialising 1 million concurrent caches") {
+      runThis(range.size.times) {
+        Cache.blockIO[Int, Int](_ => randomBlockIO(), ???)(int => IO.Success(int))
+      }
+    }
+  }
 
   "reading concurrentIO" when {
     "stored & concurrent" in {
