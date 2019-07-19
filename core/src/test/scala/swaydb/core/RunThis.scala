@@ -80,7 +80,7 @@ object RunThis extends Eventually {
   def runThis(times: Int, log: Boolean = false, otherInfo: String = "")(f: => Unit): Unit =
     (1 to times) foreach {
       i =>
-        if (log) println(s"Iteration number: $i ${if (otherInfo.nonEmpty) s": $otherInfo"}")
+        if (log) println(s"Iteration number: $i ${if (otherInfo.nonEmpty) s": $otherInfo" else ""}")
         f
     }
 

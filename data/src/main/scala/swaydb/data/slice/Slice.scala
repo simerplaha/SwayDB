@@ -514,7 +514,10 @@ class Slice[+T: ClassTag] private(array: Array[T],
       slice(0, size - count - 1)
 
   override def take(count: Int): Slice[T] =
-    slice(0, (size min count) - 1)
+    if (size == count)
+      this
+    else
+      slice(0, (size min count) - 1)
 
   def take(fromIndex: Int, count: Int): Slice[T] =
     if (count == 0)
@@ -523,7 +526,10 @@ class Slice[+T: ClassTag] private(array: Array[T],
       slice(fromIndex, fromIndex + count - 1)
 
   override def takeRight(count: Int): Slice[T] =
-    slice(size - count, size - 1)
+    if (size == count)
+      this
+    else
+      slice(size - count, size - 1)
 
   override def head: T =
     headOption.get
