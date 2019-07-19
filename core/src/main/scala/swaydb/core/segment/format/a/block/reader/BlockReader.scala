@@ -61,6 +61,10 @@ protected trait BlockReader extends Reader with LazyLogging {
   override def getPosition: Int =
     position
 
+  def cacheSize = cache.size
+
+  def cachedBytes = cache.bytes
+
   override def get(): IO[Int] =
     if (isFile)
       read(1).map(_.head)
@@ -90,47 +94,50 @@ protected trait BlockReader extends Reader with LazyLogging {
     val fromCache = readFromCache(position, size)
     if (size <= fromCache.size)
       IO {
-        logger.debug(s"${this.hashCode()}: Seek from cache: ${fromCache.size}.bytes")
+        logger.debug(s"BlockReader #${this.hashCode()}: Seek from cache: ${fromCache.size}.bytes")
         position += size
         fromCache take size
       }
     else
       remaining flatMap {
         remaining =>
+          if (remaining == 0) {
+            IO.emptyBytes
+          } else {
+            //adjust the seek size to be a multiple of blockSize.
+            val sizeToSeek = blockSize.toDouble * Math.ceil(Math.abs((size - fromCache.size) / blockSize.toDouble))
+            //read the blockSize if there are enough bytes or else only read only the remaining.
+            val canReadSize = sizeToSeek.toInt min (remaining.toInt - fromCache.size)
+            //skip bytes already read from the blockCache.
+            val nextReadPosition = offset.start + position + fromCache.size
 
-          //adjust the seek size to be a multiple of blockSize.
-          val sizeToSeek = blockSize.toDouble * Math.ceil(Math.abs((size - fromCache.size) / blockSize.toDouble))
-          //read the blockSize if there are enough bytes or else only read only the remaining.
-          val canReadSize = sizeToSeek.toInt min (remaining.toInt - fromCache.size)
-          //skip bytes already read from the blockCache.
-          val nextReadPosition = offset.start + position + fromCache.size
+            reader
+              .moveTo(nextReadPosition)
+              .read(canReadSize)
+              .map {
+                bytes =>
 
-          reader
-            .moveTo(nextReadPosition)
-            .read(canReadSize)
-            .map {
-              bytes =>
+                  /**
+                    * [[size]] can be larger than [[blockSize]]. If the seeks are smaller than [[blockSize]]
+                    * then cache the entire bytes since it's known that a minimum of [[blockSize]] is allowed to be cached.
+                    * If seeks are too large then cache only the extra tail bytes which are currently un-read by the client.
+                    */
+                  if (isFile) {
+                    logger.debug(s"BlockReader #${this.hashCode()}: Seek from disk: ${bytes.size}.bytes")
+                    if (bytes.size <= blockSize)
+                      BlockReaderCache.set(nextReadPosition, bytes, cache)
+                    else
+                      BlockReaderCache.set(nextReadPosition + size, bytes.drop(size).unslice(), cache)
+                  }
 
-                /**
-                  * [[size]] can be larger than blockSize. If the seeks are smaller than [[blockSize]]
-                  * then cache the entire bytes since it's known that these bytes will be cached.
-                  * If seeks are too large then cache only the extra tail bytes read to complete the block.
-                  */
-                if (isFile) {
-                  logger.debug(s"${this.hashCode()}: Seek from disk: ${bytes.size}.bytes")
-                  if (bytes.size <= blockSize)
-                    BlockReaderCache.set(nextReadPosition, bytes, cache)
+                  position += (size min remaining.toInt)
+
+                  if (fromCache.isEmpty)
+                    bytes take size
                   else
-                    BlockReaderCache.set(nextReadPosition + size, bytes.drop(size).unslice(), cache)
-                }
-
-                position += (size min remaining.toInt)
-
-                if (fromCache.isEmpty)
-                  bytes take size
-                else
-                  fromCache ++ bytes.take(size - fromCache.size)
-            }
+                    fromCache ++ bytes.take(size - fromCache.size)
+              }
+          }
       }
   }
 

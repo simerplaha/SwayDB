@@ -29,7 +29,6 @@ import swaydb.data.{IO, MaxKey}
 
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
-import scala.collection.mutable.WrappedArray
 import scala.collection.{IterableLike, mutable}
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
@@ -44,6 +43,9 @@ object Slice {
   val someEmptyBytes = Some(emptyBytes)
 
   val emptyEmptyBytes: Slice[Slice[Byte]] = Slice.empty[Slice[Byte]]
+
+  def bytes(range: Iterable[Int]): Slice[Byte] =
+    range.map(_.toByte)(collection.breakOut)
 
   @inline final def empty[T: ClassTag] =
     Slice.create[T](0)
@@ -61,7 +63,7 @@ object Slice {
       array = new Array[T](length),
       fromOffset = 0,
       toOffset = if (length == 0) -1 else length - 1,
-      written = if(isFull) length else 0
+      written = if (isFull) length else 0
     )
 
   def apply[T: ClassTag](data: Array[T]): Slice[T] =

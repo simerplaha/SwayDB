@@ -27,6 +27,8 @@ object BlockReaderCache {
   class State(@BeanProperty var fromOffset: Int,
               @BeanProperty var bytes: Slice[Byte]) {
     def toOffset = fromOffset + bytes.size - 1
+
+    def size = bytes.size
   }
 
   def set(position: Int, bytes: Slice[Byte], state: State): Unit = {
@@ -39,7 +41,7 @@ object BlockReaderCache {
 
   def read(position: Int, size: Int, state: State): Slice[Byte] =
     if (position >= state.fromOffset && position <= state.toOffset)
-      state.bytes.drop(position - state.fromOffset).take(size)
+      state.bytes.drop(position - state.fromOffset) take size
     else
       Slice.emptyBytes
 }
