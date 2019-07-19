@@ -204,7 +204,7 @@ private[core] class SegmentCache(id: String,
               valuesReader =>
                 val endAt =
                   if (end.isDefined)
-                    IO(end)
+                    IO.Success(end)
                   else
                     get(key)
 
@@ -315,7 +315,7 @@ private[core] class SegmentCache(id: String,
               valuesReader =>
                 val startFrom =
                   if (start.isDefined)
-                    IO(start)
+                    IO.Success(start)
                   else
                     get(key)
 

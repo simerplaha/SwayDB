@@ -50,7 +50,7 @@ private[core] object SegmentSearcher extends LazyLogging {
           valuesReader = valuesReader
         ) flatMap {
           case SearchResult.Some(_, lower) =>
-            if (binarySearchIndexReader.block.isFullIndex)
+            if (binarySearchIndexReader.block.isFullIndex || end.exists(end => lower.nextIndexOffset == end.indexOffset))
               IO.Success(Some(lower))
             else
               SortedIndexBlock.searchLower(
@@ -61,15 +61,17 @@ private[core] object SegmentSearcher extends LazyLogging {
               )
 
           case SearchResult.None(lower) =>
-            if (binarySearchIndexReader.block.isFullIndex)
+            if (binarySearchIndexReader.block.isFullIndex) {
               IO.none
-            else
+            } else {
+              assert(lower.isEmpty, "Lower is non-empty")
               SortedIndexBlock.searchLower(
                 key = key,
-                startFrom = lower orElse start,
+                startFrom = start,
                 indexReader = sortedIndexReader,
                 valuesReader = valuesReader
               )
+            }
         }
     } getOrElse {
       SortedIndexBlock.searchLower(
@@ -140,11 +142,9 @@ private[core] object SegmentSearcher extends LazyLogging {
             else
               result match {
                 case SearchResult.None(lower) =>
-                  //if there was a lower Some would've be returned.
-                  assert(lower.isEmpty, "Lower is non-empty")
                   SortedIndexBlock.searchHigher(
                     key = key,
-                    startFrom = start,
+                    startFrom = lower orElse start,
                     sortedIndexReader = sortedIndexReader,
                     valuesReader = valuesReader
                   )
