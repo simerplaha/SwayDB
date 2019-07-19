@@ -486,7 +486,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       next = next,
       hasMore = hasMore(next getOrElse previous)
     ) match {
-      case KeyMatcher.Result.BehindFetchNext =>
+      case KeyMatcher.Result.BehindFetchNext(_) =>
         val readFrom = next getOrElse previous
         readNextKeyValue(
           previous = readFrom,
@@ -525,7 +525,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       case IO.Success(KeyMatcher.Result.Matched(_, keyValue, _)) =>
         IO.Success(Some(keyValue))
 
-      case IO.Success(KeyMatcher.Result.AheadOrNoneOrEnd | KeyMatcher.Result.BehindStopped) =>
+      case IO.Success(KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped) =>
         IO.none
 
       case IO.Failure(error) =>

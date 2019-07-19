@@ -21,7 +21,6 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.cache.Cache
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -50,24 +49,24 @@ private[core] object SegmentSearcher extends LazyLogging {
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) flatMap {
-          case someLower @ Some(_) =>
+          case SearchResult.Some(lowerLower, lower) =>
             if (binarySearchIndexReader.block.isFullIndex)
-              IO.Success(someLower)
+              IO.Success(Some(lower))
             else
               SortedIndexBlock.searchLower(
                 key = key,
-                startFrom = someLower,
+                startFrom = lowerLower orElse start,
                 indexReader = sortedIndexReader,
                 valuesReader = valuesReader
               )
 
-          case None =>
+          case SearchResult.None(lower) =>
             if (binarySearchIndexReader.block.isFullIndex)
               IO.none
             else
               SortedIndexBlock.searchLower(
                 key = key,
-                startFrom = start,
+                startFrom = lower orElse start,
                 indexReader = sortedIndexReader,
                 valuesReader = valuesReader
               )
@@ -119,7 +118,6 @@ private[core] object SegmentSearcher extends LazyLogging {
       )
     }
 
-
   def binarySearchHigher(key: Slice[Byte],
                          start: Option[Persistent],
                          end: Option[Persistent],
@@ -128,32 +126,39 @@ private[core] object SegmentSearcher extends LazyLogging {
                          valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     binarySearchReader map {
       binarySearchIndexReader =>
-        if (binarySearchIndexReader.block.isFullIndex)
-          BinarySearchIndexBlock.searchHigher(
-            key = key,
-            start = start,
-            end = end,
-            binarySearchIndexReader = binarySearchIndexReader,
-            sortedIndexReader = sortedIndexReader,
-            valuesReader = valuesReader
-          )
-        else
-          BinarySearchIndexBlock.searchLower(
-            key = key,
-            start = start,
-            end = end,
-            binarySearchIndexReader = binarySearchIndexReader,
-            sortedIndexReader = sortedIndexReader,
-            valuesReader = valuesReader
-          ) flatMap {
-            someLowerMayBe =>
-              SortedIndexBlock.searchHigher(
-                key = key,
-                startFrom = someLowerMayBe orElse start,
-                sortedIndexReader = sortedIndexReader,
-                valuesReader = valuesReader
-              )
-          }
+        BinarySearchIndexBlock.searchHigher(
+          key = key,
+          start = start,
+          end = end,
+          binarySearchIndexReader = binarySearchIndexReader,
+          sortedIndexReader = sortedIndexReader,
+          valuesReader = valuesReader
+        ) flatMap {
+          result =>
+            if (binarySearchIndexReader.block.isFullIndex)
+              IO.Success(result.toOption)
+            else
+              result match {
+                case SearchResult.None(lower) =>
+                  SortedIndexBlock.searchHigher(
+                    key = key,
+                    startFrom = lower orElse start,
+                    sortedIndexReader = sortedIndexReader,
+                    valuesReader = valuesReader
+                  )
+
+                case SearchResult.Some(lower, value) =>
+                  if (lower.exists(_.nextIndexOffset == value.indexOffset))
+                    IO.Success(result.toOption)
+                  else
+                    SortedIndexBlock.searchHigher(
+                      key = key,
+                      startFrom = lower orElse start,
+                      sortedIndexReader = sortedIndexReader,
+                      valuesReader = valuesReader
+                    )
+              }
+        }
     } getOrElse {
       SortedIndexBlock.searchHigher(
         key = key,
@@ -222,16 +227,16 @@ private[core] object SegmentSearcher extends LazyLogging {
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) flatMap {
-          case some @ Some(_) =>
-            IO.Success(some)
+          case SearchResult.Some(_, value) =>
+            IO.Success(Some(value))
 
-          case None =>
+          case SearchResult.None(lower) =>
             if (binarySearchIndexReader.block.isFullIndex)
               IO.none
             else
               SortedIndexBlock.search(
                 key = key,
-                startFrom = start,
+                startFrom = lower orElse start,
                 indexReader = sortedIndexReader,
                 valuesReader = valuesReader
               )

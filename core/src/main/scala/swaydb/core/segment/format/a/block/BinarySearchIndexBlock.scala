@@ -271,21 +271,23 @@ private[core] object BinarySearchIndexBlock {
       }
 
   def search(reader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
-             start: Option[Int],
-             end: Option[Int],
+             start: Option[Persistent],
+             end: Option[Persistent],
              higherOrLower: Option[Boolean],
              matchValue: Int => IO[KeyMatcher.Result]) = {
 
     @tailrec
-    def hop(start: Int, end: Int, lastKnown: Option[Persistent]): IO[Option[Persistent]] = {
+    def hop(start: Int, end: Int, knownLowest: Option[Persistent], knownMatch: Option[Persistent]): IO[SearchResult[Persistent]] = {
       val mid = start + (end - start) / 2
 
       val valueOffset = mid * reader.block.bytesPerValue
       if (start > end)
-        if (lastKnown.isDefined)
-          IO.Success(lastKnown)
-        else
-          IO.none
+        knownMatch map {
+          lastMatched =>
+            IO.Success(SearchResult.Some(knownLowest, lastMatched))
+        } getOrElse {
+          IO.Success(SearchResult.None(knownLowest))
+        }
       else {
         val value =
           if (reader.block.isVarInt)
@@ -299,28 +301,25 @@ private[core] object BinarySearchIndexBlock {
               case matched: KeyMatcher.Result.Matched =>
                 higherOrLower match {
                   case None =>
-                    IO.Success(Some(matched.result))
+                    IO.Success(SearchResult.Some(matched.previous orElse knownLowest, matched.result))
 
                   case Some(higher) =>
-                    if (higher) {
+                    if (higher)
                       if (matched.previous.isDefined)
-                        IO.Success(Some(matched.result))
+                        IO.Success(SearchResult.Some(matched.previous, matched.result))
                       else
-                        hop(start = start, end = mid - 1, lastKnown = Some(matched.result))
-                    } else {
-                      //is lower
-                      if (matched.next.isDefined)
-                        IO.Success(Some(matched.result))
-                      else
-                        hop(start = mid + 1, end = end, lastKnown = Some(matched.result))
-                    }
+                        hop(start = start, end = mid - 1, knownLowest, knownMatch = Some(matched.result))
+                    else if (matched.next.isDefined) //is lower
+                      IO.Success(SearchResult.Some(matched.previous, matched.result))
+                    else
+                      hop(start = mid + 1, end = end, matched.previous, knownMatch = Some(matched.result))
                 }
 
-              case KeyMatcher.Result.BehindFetchNext | KeyMatcher.Result.BehindStopped =>
-                hop(start = mid + 1, end = end, lastKnown = lastKnown)
+              case behind: KeyMatcher.Result.Behind =>
+                hop(start = mid + 1, end = end, Some(behind.previous), knownMatch = knownMatch)
 
               case KeyMatcher.Result.AheadOrNoneOrEnd =>
-                hop(start = start, end = mid - 1, lastKnown = lastKnown)
+                hop(start = start, end = mid - 1, knownLowest, knownMatch = knownMatch)
             }
           case IO.Failure(error) =>
             IO.Failure(error)
@@ -328,7 +327,23 @@ private[core] object BinarySearchIndexBlock {
       }
     }
 
-    hop(start = start.getOrElse(0), end = end.getOrElse(reader.block.valuesCount - 1), None)
+    def getAccessPosition(keyValue: Persistent) =
+      if (keyValue.accessPosition <= 0)
+        None
+      else
+        Some(keyValue.accessPosition - 1)
+
+    def getStartPosition(keyValue: Option[Persistent]) =
+      keyValue
+        .flatMap(getAccessPosition)
+        .getOrElse(0)
+
+    def getEndPosition(keyValue: Option[Persistent]) =
+      keyValue
+        .flatMap(getAccessPosition)
+        .getOrElse(reader.block.valuesCount - 1)
+
+    hop(start = getStartPosition(start), end = getEndPosition(end), start, end)
   }
 
   private def search(key: Slice[Byte],
@@ -337,7 +352,7 @@ private[core] object BinarySearchIndexBlock {
                      end: Option[Persistent],
                      binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                      sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                     values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] = {
+                     values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[SearchResult[Persistent]] = {
     val matcher =
       higherOrLower map {
         higher =>
@@ -361,22 +376,8 @@ private[core] object BinarySearchIndexBlock {
     search(
       reader = binarySearchIndex,
       higherOrLower = higherOrLower,
-      start =
-        start flatMap {
-          keyValue =>
-            if (keyValue.accessPosition <= 0)
-              None
-            else
-              Some(keyValue.accessPosition - 1)
-        },
-      end =
-        end flatMap {
-          keyValue =>
-            if (keyValue.accessPosition <= 0)
-              None
-            else
-              Some(keyValue.accessPosition - 1)
-        },
+      start = start,
+      end = end,
       matchValue =
         sortedIndexOffsetValue =>
           SortedIndexBlock.findAndMatchOrNextMatch(
@@ -393,7 +394,7 @@ private[core] object BinarySearchIndexBlock {
              end: Option[Persistent],
              binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[SearchResult[Persistent]] =
     search(
       key = key,
       higherOrLower = None,
@@ -409,7 +410,7 @@ private[core] object BinarySearchIndexBlock {
                    end: Option[Persistent],
                    binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[SearchResult[Persistent]] =
     search(
       key = key,
       higherOrLower = Options.`true`,
@@ -425,7 +426,7 @@ private[core] object BinarySearchIndexBlock {
                   end: Option[Persistent],
                   binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[SearchResult[Persistent]] =
     search(
       key = key,
       higherOrLower = Options.`false`,

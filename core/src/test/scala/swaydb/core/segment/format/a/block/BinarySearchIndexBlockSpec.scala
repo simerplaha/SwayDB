@@ -47,7 +47,7 @@ class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
           else if (valueToFind < valueFound)
             KeyMatcher.Result.AheadOrNoneOrEnd
           else
-            KeyMatcher.Result.BehindFetchNext
+            KeyMatcher.Result.BehindFetchNext(null)
         }
 
       values foreach {
@@ -58,7 +58,7 @@ class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
             end = None,
             higherOrLower = None,
             matchValue = matcher(valueToFind = value)
-          ).get shouldBe defined
+          ).get shouldBe a[SearchResult.Some[Int]]
       }
 
       //check for items not in the index.
@@ -72,7 +72,7 @@ class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
             end = None,
             higherOrLower = None,
             matchValue = matcher(valueToFind = i)
-          ).get shouldBe empty
+          ).get shouldBe a[SearchResult.None[Int]]
       }
     }
 
@@ -153,6 +153,9 @@ class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
     val keyValues =
       randomizedKeyValues(
         count = 1000,
+        startId = Some(1),
+        addRandomRanges = false,
+        addRandomGroups = false,
         addPut = true
       ).updateStats(
         binarySearchIndexConfig =
@@ -160,6 +163,10 @@ class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
             enabled = true,
             minimumNumberOfKeys = 0,
             fullIndex = true
+          ),
+        sortedIndexConfig =
+          SortedIndexBlock.Config.random.copy(
+            prefixCompressionResetCount = 0
           )
       )
 
@@ -172,23 +179,45 @@ class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
       blocks.binarySearchIndexReader.get.block.valuesCount shouldBe keyValues.size
 
     "search key-values over binary search" in {
-
       //get
       keyValues.foldLeft(Option.empty[Persistent]) {
         case (previous, keyValue) =>
 
+          val startFrom = eitherOne(None, previous)
+
+          println(s"Find: ${keyValue.minKey.readInt()}")
           val found =
             BinarySearchIndexBlock.search(
               key = keyValue.minKey,
-              start = eitherOne(None, previous),
+              start = startFrom,
               end = None,
               binarySearchIndexReader = blocks.binarySearchIndexReader.get,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
-            ).get.get
+            ).get match {
+              case SearchResult.None(lower) =>
+                lower
+
+              case SearchResult.Some(lower, value) =>
+                //if startFrom is given, search either return a more nearest lowest of the passed in lowest.
+                if (startFrom.isDefined) lower shouldBe defined
+
+                lower foreach {
+                  lower =>
+                    //lower should always be less than keyValue
+                    lower.key.readInt() should be < keyValue.key.readInt()
+                    startFrom foreach {
+                      startFrom =>
+                        //if startFrom is defined lower key should be >= startFrom's key
+                        lower.key.readInt() should be >= startFrom.key.readInt()
+                    }
+                }
+                value.key shouldBe keyValue.minKey
+                Some(value)
+            }
 
           found shouldBe keyValue
-          Some(found)
+          found
       }
     }
 
@@ -209,21 +238,42 @@ class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
 
           keyValue match {
             case fixed: Transient.Fixed =>
-              val actualHigher = getHigher(fixed.key)
-              actualHigher.map(_.key) shouldBe expectedHigher.map(_.key)
+              getHigher(fixed.key) match {
+                case SearchResult.None(lower) =>
+                  lower.get.key.readInt() should be < fixed.key.readInt()
+                  expectedHigher shouldBe empty
+
+                case SearchResult.Some(lower, actualHigher) =>
+                  lower.foreach(_.key.readInt() should be < actualHigher.key.readInt())
+                  actualHigher.key shouldBe expectedHigher.get.key
+              }
 
             case range: Transient.Range =>
               (range.fromKey.readInt() until range.toKey.readInt()) foreach {
                 key =>
-                  val actualHigher = getHigher(key)
-                  actualHigher shouldBe range
-              }
+                  getHigher(key) match {
+                    case SearchResult.None(lower) =>
+                      lower.get.key.readInt() should be < key
+                      expectedHigher shouldBe empty
 
+                    case SearchResult.Some(lower, actualHigher) =>
+                      lower.foreach(_.key.readInt() should be < actualHigher.key.readInt())
+                      actualHigher shouldBe range
+                  }
+              }
+            //
             case group: Transient.Group =>
               (group.minKey.readInt() until group.maxKey.maxKey.readInt()) foreach {
                 key =>
-                  val actualHigher = getHigher(key)
-                  actualHigher.map(_.key) should contain(group.minKey)
+                  getHigher(key) match {
+                    case SearchResult.None(lower) =>
+                      lower.get.key.readInt() should be < key
+                      expectedHigher shouldBe empty
+
+                    case SearchResult.Some(lower, actualHigher) =>
+                      lower.foreach(_.key.readInt() should be < actualHigher.key.readInt())
+                      actualHigher.key shouldBe group.minKey
+                  }
               }
           }
 
@@ -239,8 +289,8 @@ class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
 
     "search lower key-values over binary search" in {
       //test higher in reverse order
-      keyValues.foldLeft(Option.empty[Persistent]) {
-        case (expectedLower, keyValue) =>
+      keyValues.zipWithIndex.foldLeft(Option.empty[Persistent]) {
+        case (expectedLower, (keyValue, index)) =>
 
           def getLower(key: Slice[Byte]) =
             BinarySearchIndexBlock.searchLower(
@@ -254,21 +304,39 @@ class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
 
           keyValue match {
             case fixed: Transient.Fixed =>
-              val actualLower = getLower(fixed.key)
-              actualLower.map(_.key) shouldBe expectedLower.map(_.key)
+              getLower(fixed.key) match {
+                case SearchResult.None(lower) =>
+                  lower shouldBe empty
+
+                case SearchResult.Some(lower, actualLower) =>
+                  lower shouldBe empty
+                  actualLower.key shouldBe expectedLower.get.key
+              }
 
             case range: Transient.Range =>
               (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
                 key =>
-                  val actualLower = getLower(key)
-                  actualLower shouldBe range
+                  getLower(key) match {
+                    case SearchResult.None(lower) =>
+                      lower shouldBe empty
+
+                    case SearchResult.Some(lower, actualLower) =>
+                      lower shouldBe empty
+                      actualLower shouldBe range
+                  }
               }
 
             case group: Transient.Group =>
               (group.minKey.readInt() + 1 to group.maxKey.maxKey.readInt()) foreach {
                 key =>
-                  val actualLower = getLower(key)
-                  actualLower.map(_.key) should contain(group.minKey)
+                  getLower(key) match {
+                    case SearchResult.None(lower) =>
+                      lower shouldBe empty
+
+                    case SearchResult.Some(lower, actualLower) =>
+                      lower shouldBe empty
+                      actualLower.key shouldBe group.minKey
+                  }
               }
           }
 
