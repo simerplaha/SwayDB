@@ -140,9 +140,11 @@ private[core] object SegmentSearcher extends LazyLogging {
             else
               result match {
                 case SearchResult.None(lower) =>
+                  //if there was a lower Some would've be returned.
+                  assert(lower.isEmpty, "Lower is non-empty")
                   SortedIndexBlock.searchHigher(
                     key = key,
-                    startFrom = lower orElse start,
+                    startFrom = start,
                     sortedIndexReader = sortedIndexReader,
                     valuesReader = valuesReader
                   )

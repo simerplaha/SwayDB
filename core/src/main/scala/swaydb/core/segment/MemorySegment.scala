@@ -195,6 +195,7 @@ private[segment] case class MemorySegment(path: Path,
     Option(cache.get(key)) map {
       case response: Memory.SegmentResponse =>
         IO.Success(Some(response))
+
       case _: Memory.Group =>
         IO.Failure(new Exception("Get resulted in a Group when floorEntry should've fetched the Group instead."))
     } getOrElse {
@@ -207,9 +208,7 @@ private[segment] case class MemorySegment(path: Path,
     else
       mightContainKey(key) flatMap {
         mightContain =>
-          if (!mightContain)
-            IO.none
-          else
+          if (mightContain)
             maxKey match {
               case MaxKey.Fixed(maxKey) if key > maxKey =>
                 IO.none
@@ -239,6 +238,8 @@ private[segment] case class MemorySegment(path: Path,
                 else
                   doBasicGet(key)
             }
+          else
+            IO.none
       }
 
   def mightContainKey(key: Slice[Byte]): IO[Boolean] =

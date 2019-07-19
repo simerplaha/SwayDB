@@ -25,8 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.util.ExceptionUtil
+import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey}
@@ -72,8 +71,7 @@ private[core] class SegmentCache(id: String,
     * Sometimes file seeks will be done if the last known cached key-value's ranges are smaller than the
     * key being searched. For example: Search key is 10, but the last lower cache key-value range is 1-5.
     * here it's unknown if a lower key 7 exists without doing a file seek. This is also one of the reasons
-    * reverse iterations are slower than forward. There are ways we can improve this which will eventually be implemented.
-    *
+    * reverse iterations are slower than forward.
     */
   private def addToCache(keyValue: Persistent.SegmentResponse): Unit = {
     if (unsliceKey) keyValue.unsliceKeys
@@ -85,51 +83,6 @@ private[core] class SegmentCache(id: String,
     if (unsliceKey) group.unsliceKeys
     if (persistentCache.putIfAbsent(group.key, group) == null)
       keyValueLimiter.add(group, persistentCache)
-  }
-
-  private def prepareGet[T](f: (SegmentFooterBlock, Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]], Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]], UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]) => IO[T]): IO[T] = {
-    for {
-      footer <- blockCache.getFooter()
-      hashIndex <- blockCache.createHashIndexReader()
-      binarySearchIndex <- blockCache.createBinarySearchIndexReader()
-      sortedIndex <- blockCache.createSortedIndexReader()
-      values <- blockCache.createValuesReader()
-      result <- f(footer, hashIndex, binarySearchIndex, sortedIndex, values)
-    } yield {
-      result
-    }
-  } onFailureSideEffect {
-    failure: IO.Failure[_] =>
-      ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
-  }
-
-  private def prepareGetAll[T](f: (SegmentFooterBlock, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]) => IO[T]): IO[T] = {
-    for {
-      footer <- blockCache.getFooter()
-      sortedIndex <- blockCache.createSortedIndexReader()
-      values <- blockCache.createValuesReader()
-      result <- f(footer, sortedIndex, values)
-    } yield {
-      result
-    }
-  } onFailureSideEffect {
-    failure: IO.Failure[_] =>
-      ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
-  }
-
-  private def prepareIteration[T](f: (SegmentFooterBlock, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]], UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]) => IO[T]): IO[T] = {
-    for {
-      footer <- blockCache.getFooter()
-      binarySearchIndex <- blockCache.createBinarySearchIndexReader()
-      sortedIndex <- blockCache.createSortedIndexReader()
-      values <- blockCache.createValuesReader()
-      result <- f(footer, binarySearchIndex, sortedIndex, values)
-    } yield {
-      result
-    }
-  } onFailureSideEffect {
-    failure: IO.Failure[_] =>
-      ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
   }
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
@@ -147,6 +100,41 @@ private[core] class SegmentCache(id: String,
         } getOrElse IO.`true`
     }
 
+  private def get(key: Slice[Byte], start: Option[Persistent], end: Option[Persistent], hasRange: Boolean): IO[Option[Persistent.SegmentResponse]] =
+    blockCache.createHashIndexReader() flatMap {
+      hashIndexReader =>
+        blockCache.createBinarySearchIndexReader() flatMap {
+          binarySearchIndexReader =>
+            blockCache.createSortedIndexReader() flatMap {
+              sortedIndexReader =>
+                blockCache.createValuesReader() flatMap {
+                  valuesReader =>
+                    SegmentSearcher.search(
+                      key = key,
+                      start = start,
+                      end = end,
+                      hashIndexReader = hashIndexReader,
+                      binarySearchIndexReader = binarySearchIndexReader,
+                      sortedIndexReader = sortedIndexReader,
+                      valuesReaderReader = valuesReader,
+                      hasRange = hasRange
+                    ) flatMap {
+                      case Some(response: Persistent.SegmentResponse) =>
+                        addToCache(response)
+                        IO.Success(Some(response))
+
+                      case Some(group: Persistent.Group) =>
+                        addToCache(group)
+                        group.segment.get(key)
+
+                      case None =>
+                        IO.none
+                    }
+                }
+            }
+        }
+    }
+
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key > maxKey =>
@@ -160,8 +148,7 @@ private[core] class SegmentCache(id: String,
       //        IO.none
 
       case _ =>
-        val floorValue = Option(persistentCache.floorEntry(key)).map(_.getValue)
-        floorValue match {
+        Option(persistentCache.floorEntry(key)).map(_.getValue) match {
           case Some(floor: Persistent.SegmentResponse) if floor.key equiv key =>
             IO.Success(Some(floor))
 
@@ -172,62 +159,80 @@ private[core] class SegmentCache(id: String,
           case Some(floorRange: Persistent.Range) if floorRange contains key =>
             IO.Success(Some(floorRange))
 
-          case _ =>
-            mightContain(key) flatMap {
-              contains =>
-                if (contains)
-                  prepareGet {
-                    (footer, hashIndex, binarySearchIndex, sortedIndex, values) =>
-                      SegmentSearcher.search(
-                        key = key,
-                        start = floorValue,
-                        end = None,
-                        hashIndexReader = hashIndex,
-                        binarySearchIndexReader = binarySearchIndex,
-                        sortedIndexReader = sortedIndex,
-                        valuesReaderReader = values,
-                        hasRange = footer.hasRange
-                      ) flatMap {
-                        case Some(response: Persistent.SegmentResponse) =>
-                          addToCache(response)
-                          IO.Success(Some(response))
+          case floorValue =>
+            blockCache.getFooter() flatMap {
+              footer =>
+                //if there is no hashIndex help binarySearch by sending it a higher entry.
+                def getHigherForBinarySearch() =
+                  if (footer.hashIndexOffset.isEmpty && footer.binarySearchIndexOffset.isDefined)
+                    Option(persistentCache.higherEntry(key)).map(_.getValue)
+                  else
+                    None
 
-                        case Some(group: Persistent.Group) =>
-                          addToCache(group)
-                          group.segment.get(key)
-
-                        case None =>
-                          IO.none
-                      }
-                  }
+                if (footer.hasRange)
+                  get(
+                    key = key,
+                    start = floorValue,
+                    end = getHigherForBinarySearch(),
+                    hasRange = footer.hasRange
+                  )
                 else
-                  IO.none
+                  mightContain(key) flatMap {
+                    mightContain =>
+                      if (mightContain)
+                        get(
+                          key = key,
+                          start = floorValue,
+                          end = getHigherForBinarySearch(),
+                          hasRange = footer.hasRange
+                        )
+                      else
+                        IO.none
+                  }
             }
         }
     }
 
-  private def satisfyLowerFromCache(key: Slice[Byte],
-                                    lowerKeyValue: Persistent): Option[Persistent] =
-  //if the lowest key-value in the cache is the last key-value, then lower is the next lowest key-value for the key.
-    if (lowerKeyValue.nextIndexOffset == -1) //-1 indicated last key-value in the Segment.
-      Some(lowerKeyValue)
-    else
-      lowerKeyValue match {
-        case lowerRange: Persistent.Range if lowerRange containsLower key =>
-          Some(lowerRange)
+  private def lower(key: Slice[Byte],
+                    start: Option[Persistent],
+                    end: Option[Persistent]): IO[Option[Persistent.SegmentResponse]] =
+    blockCache.createBinarySearchIndexReader() flatMap {
+      binarySearchIndexReader =>
+        blockCache.createSortedIndexReader() flatMap {
+          sortedIndexReader =>
+            blockCache.createValuesReader() flatMap {
+              valuesReader =>
+                val endAt =
+                  if (end.isDefined)
+                    IO(end)
+                  else
+                    get(key)
 
-        case lowerGroup: Persistent.Group if lowerGroup containsLower key =>
-          Some(lowerGroup)
+                endAt flatMap {
+                  end =>
+                    SegmentSearcher.searchLower(
+                      key = key,
+                      start = start,
+                      end = end,
+                      binarySearchReader = binarySearchIndexReader,
+                      sortedIndexReader = sortedIndexReader,
+                      valuesReader
+                    ) flatMap {
+                      case Some(response: Persistent.SegmentResponse) =>
+                        addToCache(response)
+                        IO.Success(Some(response))
 
-        case _ =>
-          Option(persistentCache.ceilingEntry(key)).map(_.getValue) flatMap {
-            ceilingKeyValue =>
-              if (lowerKeyValue.nextIndexOffset == ceilingKeyValue.indexOffset)
-                Some(lowerKeyValue)
-              else
-                None
-          }
-      }
+                      case Some(group: Persistent.Group) =>
+                        addToCache(group)
+                        group.segment.lower(key)
+
+                      case None =>
+                        IO.none
+                    }
+                }
+            }
+        }
+    }
 
   def lower(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     if (key <= minKey)
@@ -241,58 +246,49 @@ private[core] class SegmentCache(id: String,
           get(fromKey)
 
         case _ =>
-          val lowerKeyValue = Option(persistentCache.lowerEntry(key)).map(_.getValue)
-          val lowerFromCache = lowerKeyValue.flatMap(satisfyLowerFromCache(key, _))
-          lowerFromCache map {
-            case response: Persistent.SegmentResponse =>
-              IO.Success(Some(response))
-
-            case group: Persistent.Group =>
-              group.segment.lower(key)
-          } getOrElse {
-            prepareIteration {
-              (footer, binarySearchIndex, sortedIndex, valuesReader) =>
-                SegmentSearcher.searchLower(
-                  key = key,
-                  start = lowerKeyValue,
-                  end = None,
-                  binarySearchReader = binarySearchIndex,
-                  sortedIndexReader = sortedIndex,
-                  valuesReader
-                ) flatMap {
-                  case Some(response: Persistent.SegmentResponse) =>
-                    addToCache(response)
+          Option(persistentCache.lowerEntry(key)).map(_.getValue) match {
+            case someLower @ Some(lowerKeyValue) =>
+              //if the lowest key-value in the cache is the last key-value, then lower is the next lowest key-value for the key.
+              if (lowerKeyValue.nextIndexOffset == -1) //-1 indicated last key-value in the Segment.
+                lowerKeyValue match {
+                  case response: Persistent.SegmentResponse =>
                     IO.Success(Some(response))
 
-                  case Some(group: Persistent.Group) =>
-                    addToCache(group)
+                  case group: Persistent.Group =>
                     group.segment.lower(key)
-
-                  case None =>
-                    IO.none
                 }
-            }
+              else
+                lowerKeyValue match {
+                  case lowerRange: Persistent.Range if lowerRange containsLower key =>
+                    IO.Success(Some(lowerRange))
+
+                  case lowerGroup: Persistent.Group if lowerGroup containsLower key =>
+                    lowerGroup.segment.lower(key)
+
+                  case _ =>
+                    Option(persistentCache.ceilingEntry(key)).map(_.getValue) match {
+                      case someCeiling @ Some(ceilingKeyValue) =>
+                        if (lowerKeyValue.nextIndexOffset == ceilingKeyValue.indexOffset)
+                          lowerKeyValue match {
+                            case response: Persistent.SegmentResponse =>
+                              IO.Success(Some(response))
+
+                            case group: Persistent.Group =>
+                              group.segment.lower(key)
+                          }
+                        else
+                          lower(key, someLower, someCeiling)
+
+                      case None =>
+                        lower(key, someLower, None)
+                    }
+                }
+
+            case None =>
+              val someCeiling = Option(persistentCache.ceilingEntry(key)).map(_.getValue)
+              lower(key, None, someCeiling)
           }
       }
-
-  private def satisfyHigherFromCache(key: Slice[Byte],
-                                     floorKeyValue: Persistent): Option[Persistent] =
-    floorKeyValue match {
-      case floorRange: Persistent.Range if floorRange contains key =>
-        Some(floorRange)
-
-      case floorGroup: Persistent.Group if floorGroup containsHigher key =>
-        Some(floorGroup)
-
-      case _ =>
-        Option(persistentCache.higherEntry(key)).map(_.getValue) flatMap {
-          higherKeyValue =>
-            if (floorKeyValue.nextIndexOffset == higherKeyValue.indexOffset)
-              Some(higherKeyValue)
-            else
-              None
-        }
-    }
 
   def floorHigherHint(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
     hasPut map {
@@ -308,6 +304,47 @@ private[core] class SegmentCache(id: String,
           None
     }
 
+  private def higher(key: Slice[Byte],
+                     start: Option[Persistent],
+                     end: Option[Persistent]): IO[Option[Persistent.SegmentResponse]] =
+    blockCache.createBinarySearchIndexReader() flatMap {
+      binarySearchIndexReader =>
+        blockCache.createSortedIndexReader() flatMap {
+          sortedIndexReader =>
+            blockCache.createValuesReader() flatMap {
+              valuesReader =>
+                val startFrom =
+                  if (start.isDefined)
+                    IO(start)
+                  else
+                    get(key)
+
+                startFrom flatMap {
+                  startFrom =>
+                    SegmentSearcher.searchHigher(
+                      key = key,
+                      start = startFrom,
+                      end = end,
+                      binarySearchReader = binarySearchIndexReader,
+                      sortedIndexReader = sortedIndexReader,
+                      valuesReader = valuesReader
+                    ) flatMap {
+                      case Some(response: Persistent.SegmentResponse) =>
+                        addToCache(response)
+                        IO.Success(Some(response))
+
+                      case Some(group: Persistent.Group) =>
+                        addToCache(group)
+                        group.segment.higher(key)
+
+                      case None =>
+                        IO.none
+                    }
+                }
+            }
+        }
+    }
+
   def higher(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key >= maxKey =>
@@ -317,64 +354,60 @@ private[core] class SegmentCache(id: String,
         IO.none
 
       case _ =>
-        val floorKeyValue = Option(persistentCache.floorEntry(key)).map(_.getValue)
-        val higherFromCache = floorKeyValue.flatMap(satisfyHigherFromCache(key, _))
+        Option(persistentCache.floorEntry(key)).map(_.getValue) match {
+          case someFloor @ Some(floorEntry) =>
+            floorEntry match {
+              case floorRange: Persistent.Range if floorRange contains key =>
+                IO.Success(Some(floorRange))
 
-        higherFromCache map {
-          case response: Persistent.SegmentResponse =>
-            IO.Success(Some(response))
+              case floorGroup: Persistent.Group if floorGroup containsHigher key =>
+                floorGroup.segment.higher(key)
 
-          case group: Persistent.Group =>
-            group.segment.higher(key)
-        } getOrElse {
-          prepareIteration {
-            (footer, binarySearchIndex, sortedIndex, values) =>
-              val startFrom =
-                if (floorKeyValue.isDefined)
-                  IO(floorKeyValue)
-                else
-                  get(key)
+              case _ =>
+                Option(persistentCache.higherEntry(key)).map(_.getValue) match {
+                  case someHigher @ Some(higherKeyValue) =>
+                    if (floorEntry.nextIndexOffset == higherKeyValue.indexOffset)
+                      higherKeyValue match {
+                        case response: Persistent.SegmentResponse =>
+                          IO.Success(Some(response))
 
-              startFrom flatMap {
-                startFrom =>
-                  SegmentSearcher.searchHigher(
-                    key = key,
-                    start = startFrom,
-                    end = None,
-                    binarySearchReader = binarySearchIndex,
-                    sortedIndexReader = sortedIndex,
-                    valuesReader = values
-                  ) flatMap {
-                    case Some(response: Persistent.SegmentResponse) =>
-                      addToCache(response)
-                      IO.Success(Some(response))
+                        case group: Persistent.Group =>
+                          group.segment.higher(key)
+                      }
+                    else
+                      higher(key, someFloor, someHigher)
 
-                    case Some(group: Persistent.Group) =>
-                      addToCache(group)
-                      group.segment.higher(key)
+                  case None =>
+                    higher(key, someFloor, None)
+                }
+            }
 
-                    case None =>
-                      IO.none
-                  }
-              }
-          }
+          case None =>
+            val someHigher = Option(persistentCache.higherEntry(key)).map(_.getValue)
+            higher(key, None, someHigher)
         }
     }
 
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
-    prepareGetAll {
-      (footer, sortedIndex, values) =>
-        SortedIndexBlock
-          .readAll(
-            keyValueCount = footer.keyValueCount,
-            sortedIndexReader = sortedIndex,
-            valuesReader = values,
-            addTo = addTo
-          )
-          .onFailureSideEffect {
-            _ =>
-              logger.trace("{}: Reading sorted index block failed.", id)
-          }
+    blockCache.getFooter() flatMap {
+      footer =>
+        blockCache.createSortedIndexReader() flatMap {
+          sortedIndexReader =>
+            blockCache.createValuesReader() flatMap {
+              valuesReader =>
+                SortedIndexBlock
+                  .readAll(
+                    keyValueCount = footer.keyValueCount,
+                    sortedIndexReader = sortedIndexReader,
+                    valuesReader = valuesReader,
+                    addTo = addTo
+                  )
+                  .onFailureSideEffect {
+                    _ =>
+                      logger.trace("{}: Reading sorted index block failed.", id)
+                  }
+            }
+        }
     }
 
   def getHeadKeyValueCount(): IO[Int] =
