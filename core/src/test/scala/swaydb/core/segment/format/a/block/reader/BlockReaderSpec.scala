@@ -39,6 +39,23 @@ class BlockReaderSpec extends TestBase with MockFactory {
       }
   }
 
+  "read when block size is 0" in {
+    val slice = (1 to 10).map(_.toByte).toSlice
+    val fileReader = mock[FileReader]("fileReader")
+
+    val reader = BlockReader(blockReader = fileReader, blockOffset = ValuesBlock.Offset(0, slice.size), _blockSize = 0)
+    (0 to 9) foreach {
+      i =>
+        fileReader.moveTo _ expects i returning fileReader
+        fileReader.read _ expects 1 returning IO(Slice(slice(i)))
+
+        val byte = reader.read(1).get
+        byte should have size 1
+        byte.head shouldBe slice(i)
+        reader.readFromCache(0, 100) shouldBe empty
+    }
+  }
+
   "read when block size is larger than data size" in {
     val slice = (1 to 10).map(_.toByte).toSlice
     val fileReader = mock[FileReader]("fileReader")

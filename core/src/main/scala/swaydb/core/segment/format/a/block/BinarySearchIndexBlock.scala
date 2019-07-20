@@ -293,7 +293,7 @@ private[core] object BinarySearchIndexBlock {
               else //if it was lower then send the best known lower as the response.
                 IO.Success(SearchResult.Some(None, knownLowestYes))
           }
-      } getOrElse IO.Success(SearchResult.None(None)) //if no data return None response.
+      } getOrElse IO.Success(SearchResult.None(knownLowest)) //if no data return None response.
     }
 
   def search(reader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
@@ -309,13 +309,14 @@ private[core] object BinarySearchIndexBlock {
       val mid = start + (end - start) / 2
 
       val valueOffset = mid * reader.block.bytesPerValue
+
       if (start > end)
         resolveResponse(
           knownLowest = knownLowest,
           knownMatch = knownMatch,
           isHigherSeek = isHigherSeek
         )
-      else {
+      else
         reader.moveTo(valueOffset).readInt(unsigned = reader.block.isVarInt).flatMap(matchValue) match {
           case IO.Success(value) =>
             value match {
@@ -359,7 +360,6 @@ private[core] object BinarySearchIndexBlock {
           case IO.Failure(error) =>
             IO.Failure(error)
         }
-      }
     }
 
     //accessPositions start from 1 but BinarySearch starts from 0.

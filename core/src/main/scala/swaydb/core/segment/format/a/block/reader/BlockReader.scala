@@ -91,7 +91,12 @@ protected trait BlockReader extends Reader with LazyLogging {
       Slice.emptyBytes
 
   override def read(size: Int): IO[Slice[Byte]] = {
-    val fromCache = readFromCache(position, size)
+    val fromCache =
+      if (blockSize <= 0)
+        Slice.emptyBytes
+      else
+        readFromCache(position, size)
+
     if (size <= fromCache.size)
       IO {
         logger.debug(s"BlockReader #${this.hashCode()}: Seek from cache: ${fromCache.size}.bytes")
@@ -101,19 +106,23 @@ protected trait BlockReader extends Reader with LazyLogging {
     else
       remaining flatMap {
         remaining =>
-          if (remaining == 0) {
+          if (remaining <= 0) {
             IO.emptyBytes
           } else {
             //adjust the seek size to be a multiple of blockSize.
-            val sizeToSeek = blockSize.toDouble * Math.ceil(Math.abs((size - fromCache.size) / blockSize.toDouble))
+            val blockSizeToRead =
+              if (blockSize <= 0)
+                size
+              else
+                blockSize.toDouble * Math.ceil(Math.abs((size - fromCache.size) / blockSize.toDouble))
             //read the blockSize if there are enough bytes or else only read only the remaining.
-            val canReadSize = sizeToSeek.toInt min (remaining.toInt - fromCache.size)
+            val actualBlockReadSize = blockSizeToRead.toInt min (remaining.toInt - fromCache.size)
             //skip bytes already read from the blockCache.
-            val nextReadPosition = offset.start + position + fromCache.size
+            val nextBlockReadPosition = offset.start + position + fromCache.size
 
             reader
-              .moveTo(nextReadPosition)
-              .read(canReadSize)
+              .moveTo(nextBlockReadPosition)
+              .read(actualBlockReadSize)
               .map {
                 bytes =>
 
@@ -122,20 +131,21 @@ protected trait BlockReader extends Reader with LazyLogging {
                     * then cache the entire bytes since it's known that a minimum of [[blockSize]] is allowed to be cached.
                     * If seeks are too large then cache only the extra tail bytes which are currently un-read by the client.
                     */
-                  if (isFile) {
+                  if (isFile && blockSize > 0) {
                     logger.debug(s"BlockReader #${this.hashCode()}: Seek from disk: ${bytes.size}.bytes")
                     if (bytes.size <= blockSize)
-                      BlockReaderCache.set(nextReadPosition, bytes, cache)
+                      BlockReaderCache.set(nextBlockReadPosition - offset.start, bytes, cache)
                     else
-                      BlockReaderCache.set(nextReadPosition + size, bytes.drop(size).unslice(), cache)
+                      BlockReaderCache.set(nextBlockReadPosition - offset.start + size, bytes.drop(size).unslice(), cache)
                   }
 
-                  position += (size min remaining.toInt)
+                  val actualSize = size min remaining.toInt
+                  position += actualSize
 
                   if (fromCache.isEmpty)
                     bytes take size
                   else
-                    fromCache ++ bytes.take(size - fromCache.size)
+                    fromCache ++ bytes.take(actualSize - fromCache.size)
               }
           }
       }

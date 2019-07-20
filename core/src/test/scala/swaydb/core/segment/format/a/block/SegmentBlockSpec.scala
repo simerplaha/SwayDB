@@ -26,15 +26,12 @@ import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.io.reader.Reader
-import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.config.BlockIO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-
-import scala.util.Random
 
 class SegmentBlockSpec extends TestBase {
 
@@ -86,7 +83,7 @@ class SegmentBlockSpec extends TestBase {
     }
 
     "write and read a group" in {
-      runThis(10.times) {
+      runThis(100.times) {
         val count = eitherOne(randomIntMax(5) max 1, 100, 500, 700, 1000)
         val keyValues = randomizedKeyValues(count, addPut = true, startId = Some(1))
         val group =
@@ -114,14 +111,17 @@ class SegmentBlockSpec extends TestBase {
 
         bytes.isFull shouldBe true
 
-        val readGroup = readAll(bytes).assertGet.asInstanceOf[Slice[KeyValue.ReadOnly.Group]]
-        val allKeyValuesForGroups = readGroup.flatMap(_.segment.getAll().assertGet)
-        allKeyValuesForGroups shouldBe keyValues.toMemory
+        Seq(Reader(bytes), createRandomFileReader(bytes)) foreach {
+          reader =>
+            val readGroup = readAll(reader).assertGet.asInstanceOf[Slice[KeyValue.ReadOnly.Group]]
+            val allKeyValuesForGroups = readGroup.flatMap(_.segment.getAll().assertGet)
+            allKeyValuesForGroups shouldBe keyValues.toMemory
+        }
       }
     }
 
     "write two sibling groups" in {
-      runThis(10.times) {
+      runThis(100.times) {
         val group1KeyValues = randomizedKeyValues(keyValueCount, addPut = true)
         val group1 = randomGroup(group1KeyValues)
 
@@ -149,7 +149,7 @@ class SegmentBlockSpec extends TestBase {
     }
 
     "write child groups to a root group" in {
-      runThis(10.times) {
+      runThis(100.times) {
         val group1KeyValues = randomizedKeyValues(keyValueCount, addPut = true)
         val group1 = randomGroup(group1KeyValues)
 
@@ -264,7 +264,7 @@ class SegmentBlockSpec extends TestBase {
     "report Segment corruption if CRC check does not match when reading the footer" in {
       //FIXME - flaky tests
 
-      //      runThis(10.times) {
+      //      runThis(100.times) {
       //        val keyValues = Slice(Transient.put(1)).updateStats
       //
       //        val (bytes, _) =
@@ -295,8 +295,8 @@ class SegmentBlockSpec extends TestBase {
 
   "SegmentFooter.read" should {
     "set hasRange to false when Segment contains no Range key-value" in {
-      runThis(10.times) {
-        val keyValues = randomizedKeyValues(keyValueCount, addRandomRanges = false)
+      runThis(100.times) {
+        val keyValues = randomizedKeyValues(keyValueCount, addPut = true, addRandomRanges = false)
         if (keyValues.nonEmpty) {
 
           val blocks = getBlocks(keyValues).get
@@ -344,7 +344,7 @@ class SegmentBlockSpec extends TestBase {
         blocks.footer.hasRange shouldBe true
       }
 
-      runThis(10.times) {
+      runThis(100.times) {
         doAssert(randomizedKeyValues(keyValueCount, addRandomRangeRemoves = false, addRandomRanges = true, startId = Some(1)))
       }
     }
@@ -362,9 +362,9 @@ class SegmentBlockSpec extends TestBase {
         blocks.footer.bloomFilterOffset shouldBe empty
       }
 
-      runThis(10.times) {
+      runThis(100.times) {
         val keyValues =
-          randomizedKeyValues(keyValueCount, startId = Some(1)) ++
+          randomizedKeyValues(keyValueCount, addPut = true, startId = Some(1)) ++
             Seq(
               eitherOne(
                 left =
@@ -411,7 +411,7 @@ class SegmentBlockSpec extends TestBase {
         assertBloom(keyValues, blocks.bloomFilterReader.get)
       }
 
-      runThis(10.times) {
+      runThis(100.times) {
         doAssert(
           Slice(
             randomFixedKeyValue(1).toTransient,
@@ -448,7 +448,7 @@ class SegmentBlockSpec extends TestBase {
         assertBloom(keyValues, blocks.bloomFilterReader.get)
       }
 
-      runThis(10.times) {
+      runThis(100.times) {
         val keyValues = randomizedKeyValues(keyValueCount, addPut = true, addRandomRanges = false, addRandomRangeRemoves = false)
         if (keyValues.nonEmpty) doAssert(keyValues)
       }
@@ -474,7 +474,7 @@ class SegmentBlockSpec extends TestBase {
         }
       }
 
-      runThis(10.times) {
+      runThis(100.times) {
         doAssert(
           Slice(
             randomFixedKeyValue(1).toTransient,
@@ -512,7 +512,7 @@ class SegmentBlockSpec extends TestBase {
         }
       }
 
-      runThis(10.times) {
+      runThis(100.times) {
         doAssert(
           Slice(
             randomFixedKeyValue(1).toTransient,
