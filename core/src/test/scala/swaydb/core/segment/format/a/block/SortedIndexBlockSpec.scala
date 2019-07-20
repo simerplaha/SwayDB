@@ -42,7 +42,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
     keyValues.zip(readKeyValues).zipWithIndex.foreach {
       case ((transient, persistent: Persistent), index) =>
         persistent.getClass.getSimpleName shouldBe transient.getClass.getSimpleName
-        persistent.key shouldBe transient.minKey
+        persistent.key shouldBe transient.key
         persistent.isPrefixCompressed shouldBe transient.isPrefixCompressed
         persistent.accessPosition shouldBe transient.stats.thisKeyValueAccessIndexPosition
         val thisKeyValueRealIndexOffsetFunction = PrivateMethod[Int]('thisKeyValueRealIndexOffset)
@@ -129,7 +129,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       val searchedKeyValues = ListBuffer.empty[Persistent]
       keyValues.foldLeft(Option.empty[Persistent]) {
         case (previous, keyValue) =>
-          val searchedKeyValue = SortedIndexBlock.search(keyValue.minKey, previous, unblockedReader.copy(), testValuesReader).get.get
+          val searchedKeyValue = SortedIndexBlock.search(keyValue.key, previous, unblockedReader.copy(), testValuesReader).get.get
           searchedKeyValues += searchedKeyValue
           //randomly set previous
           if (randomBoolean())
@@ -165,7 +165,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
                 searchedKeyValue
             } getOrElse {
               //if previous is not defined start with a get
-              SortedIndexBlock.search(keyValue.minKey, previous, unblockedReader.copy(), testValuesReader).get.get
+              SortedIndexBlock.search(keyValue.key, previous, unblockedReader.copy(), testValuesReader).get.get
             }
 
           searchedKeyValuesSeekOne += searchedKeyValue

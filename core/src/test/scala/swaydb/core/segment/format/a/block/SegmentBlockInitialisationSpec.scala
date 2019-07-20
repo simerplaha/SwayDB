@@ -104,7 +104,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
 
           val keyValues: Slice[Transient] =
             randomizedKeyValues(
-              count = 100,
+              count = 1000,
               startId = Some(1),
               addRandomGroups = false,
               addPut = true,
@@ -125,7 +125,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               hashIndexConfig =
                 HashIndexBlock.Config(
                   maxProbe = 5,
-                  allocateSpace = _.requiredSpace * 10,
+                  allocateSpace = _.requiredSpace * 30,
                   minimumNumberOfKeys = 0,
                   minimumNumberOfHits = 0,
                   blockIO = _ => randomIOAccess(),

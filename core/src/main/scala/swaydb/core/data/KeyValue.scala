@@ -196,10 +196,7 @@ private[core] object KeyValue {
   type KeyValueTuple = (Slice[Byte], Option[Slice[Byte]])
 }
 
-private[swaydb] sealed trait Memory extends KeyValue.ReadOnly {
-
-  def key: Slice[Byte]
-}
+private[swaydb] sealed trait Memory extends KeyValue.ReadOnly
 
 private[swaydb] object Memory {
   sealed trait SegmentResponse extends Memory with KeyValue.ReadOnly.SegmentResponse
@@ -438,7 +435,7 @@ private[core] sealed trait Transient extends KeyValue { self =>
   val isRange: Boolean
   val isGroup: Boolean
   val previous: Option[Transient]
-  def minKey: Slice[Byte]
+  def mergedKey: Slice[Byte]
   def values: Slice[Slice[Byte]]
   def valuesConfig: ValuesBlock.Config
   def sortedIndexConfig: SortedIndexBlock.Config
@@ -654,7 +651,7 @@ private[core] object Transient {
     override val isRange: Boolean = false
     override val isGroup: Boolean = false
     override val isRemoveRangeMayBe = false
-    override def minKey = key
+    override def mergedKey = key
     override def value: Option[Slice[Byte]] = None
     override def values: Slice[Slice[Byte]] = Slice.emptyEmptyBytes
 
@@ -721,7 +718,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
-    override def minKey = key
+    override def mergedKey = key
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
@@ -788,7 +785,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
-    override def minKey = key
+    override def mergedKey = key
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
@@ -853,7 +850,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
-    override def minKey = key
+    override def mergedKey = key
     override def value: Option[Slice[Byte]] = Some(function)
     override def values: Slice[Slice[Byte]] = Slice(function)
     override def deadline: Option[Deadline] = None
@@ -919,7 +916,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
-    override def minKey = key
+    override def mergedKey = key
     override val deadline: Option[Deadline] = Segment.getNearestDeadline(None, applies)
     override val value: Option[Slice[Byte]] = Some(ValueSerializer.writeBytes(applies))
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
@@ -999,7 +996,7 @@ private[core] object Transient {
       new Range(
         fromKey = fromKey,
         toKey = toKey,
-        key = mergedKey,
+        mergedKey = mergedKey,
         fromValue = None,
         rangeValue = rangeValue,
         valueSerialiser = valueSerialiser _,
@@ -1034,7 +1031,7 @@ private[core] object Transient {
       new Range(
         fromKey = fromKey,
         toKey = toKey,
-        key = mergedKey,
+        mergedKey = mergedKey,
         fromValue = fromValue,
         rangeValue = rangeValue,
         valueSerialiser = valueSerialiser _,
@@ -1050,7 +1047,7 @@ private[core] object Transient {
 
   case class Range(fromKey: Slice[Byte],
                    toKey: Slice[Byte],
-                   key: Slice[Byte],
+                   mergedKey: Slice[Byte],
                    fromValue: Option[Value.FromValue],
                    rangeValue: Value.RangeValue,
                    valueSerialiser: () => Option[Slice[Byte]],
@@ -1065,7 +1062,7 @@ private[core] object Transient {
     override val isGroup: Boolean = false
     override val isRange: Boolean = true
     override val deadline: Option[Deadline] = None
-    override def minKey = fromKey
+    override def key = fromKey
     override def value = valueSerialiser()
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
@@ -1143,7 +1140,7 @@ private[core] object Transient {
 
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
-                   key: Slice[Byte],
+                   mergedKey: Slice[Byte],
                    blockedSegment: SegmentBlock.Closed,
                    //the deadline is the nearest deadline in the Group's key-values.
                    minMaxFunctionId: Option[MinMax[Slice[Byte]]],
@@ -1155,6 +1152,8 @@ private[core] object Transient {
                    hashIndexConfig: HashIndexBlock.Config,
                    bloomFilterConfig: BloomFilterBlock.Config,
                    previous: Option[Transient]) extends Transient {
+
+    def key = minKey
 
     override val isRemoveRangeMayBe: Boolean = keyValues.last.stats.segmentHasRemoveRange
     override val isRange: Boolean = keyValues.last.stats.segmentHasRange
@@ -1217,8 +1216,6 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble {
   val nextIndexOffset: Int
   val nextIndexSize: Int
   val accessPosition: Int
-
-  def key: Slice[Byte]
 
   def valueLength: Int
 

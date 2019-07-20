@@ -23,7 +23,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.Memory
+import swaydb.core.data.Transient
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.queue.FileLimiter
 import swaydb.core.util._
@@ -80,7 +80,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       runThis(100.times) {
         assertSegment(
           keyValues =
-            randomizedKeyValues(randomIntMax(keyValuesCount) max 1),
+            randomizedKeyValues(randomIntMax(keyValuesCount) max 1, addPut = true),
 
           assert =
             (keyValues, segment) => {
@@ -88,17 +88,17 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
               segment.minKey shouldBe keyValues.head.key
               segment.maxKey shouldBe {
                 keyValues.last match {
-                  case _: Memory.Fixed =>
+                  case _: Transient.Fixed =>
                     MaxKey.Fixed[Slice[Byte]](keyValues.last.key)
 
-                  case group: Memory.Group =>
+                  case group: Transient.Group =>
                     group.maxKey
 
-                  case range: Memory.Range =>
+                  case range: Transient.Range =>
                     MaxKey.Range[Slice[Byte]](range.fromKey, range.toKey)
+
                 }
               }
-
               //ensure that min and max keys are slices
               segment.minKey.underlyingArraySize shouldBe 4
               segment.maxKey match {
@@ -110,7 +110,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                   maxKey.underlyingArraySize shouldBe 4
               }
 
-              assertBloom(keyValues, segment)
+//              assertBloom(keyValues, segment)
 
               segment.close.assertGet
             }

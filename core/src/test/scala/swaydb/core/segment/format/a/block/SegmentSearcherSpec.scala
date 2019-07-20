@@ -51,7 +51,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
       case (previous, keyValue) =>
         val got =
           SegmentSearcher.search(
-            key = keyValue.minKey,
+            key = keyValue.key,
             start = eitherOne(None, previous),
             end = None,
             hashIndexReader = blocks.hashIndexReader,

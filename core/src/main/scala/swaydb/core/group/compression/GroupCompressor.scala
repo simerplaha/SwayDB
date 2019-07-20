@@ -64,12 +64,12 @@ private[core] object GroupCompressor extends LazyLogging {
       ) flatMap {
         blockedSegment =>
           IO {
-            val (minKey, maxKey, fullKey) = buildCompressedKey(keyValues)
+            val (minKey, maxKey, mergedKey) = buildCompressedKey(keyValues)
             Transient.Group(
-              minKey = minKey,
+              key = minKey,
               maxKey = maxKey,
               minMaxFunctionId = blockedSegment.minMaxFunctionId,
-              key = fullKey,
+              mergedKey = mergedKey,
               blockedSegment = blockedSegment,
               deadline = blockedSegment.nearestDeadline,
               keyValues = keyValues,

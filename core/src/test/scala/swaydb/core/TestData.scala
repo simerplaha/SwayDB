@@ -382,7 +382,7 @@ object TestData {
 
         case range: Transient.Range =>
           range match {
-            case Transient.Range(fromKey, toKey, fullKey, fromValue, rangeValue, _, _, _, _, _, _, _) =>
+            case Transient.Range(fromKey, toKey, mergedKey, fromValue, rangeValue, _, _, _, _, _, _, _) =>
               Memory.Range(fromKey, toKey, fromValue, rangeValue)
           }
       }
@@ -391,7 +391,7 @@ object TestData {
       keyValue match {
         case group: Transient.Group =>
           group match {
-            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, minMaxFunctionId, deadline, _, _, _, _, _, _, _) =>
+            case Transient.Group(fromKey, toKey, mergedKey, compressedKeyValues, minMaxFunctionId, deadline, _, _, _, _, _, _, _) =>
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,

@@ -80,7 +80,7 @@ private[core] object KeyValueWriter {
                                               previous: Transient,
                                               currentTime: Time,
                                               compressDuplicateValues: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
-    compress(key = current.key, previous = previous, minimumCommonBytes = 2) map {
+    compress(key = current.mergedKey, previous = previous, minimumCommonBytes = 2) map {
       case (commonBytes, remainingBytes) =>
         val writeResult =
           TimeWriter.write(
@@ -116,12 +116,12 @@ private[core] object KeyValueWriter {
         enablePrefixCompression = enablePrefixCompression,
         isKeyCompressed = false,
         hasPrefixCompressed = false,
-        plusSize = current.key.size //write key bytes.
+        plusSize = current.mergedKey.size //write key bytes.
       )
 
     writeResult
       .indexBytes
-      .addAll(current.key)
+      .addAll(current.mergedKey)
 
     writeResult
   }

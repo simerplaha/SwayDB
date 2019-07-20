@@ -108,10 +108,10 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
           head = None,
           last = last
         )
-      minKey shouldBe last.minKey
+      minKey shouldBe last.key
       maxKey shouldBe last.maxKey
 
-      GroupKeyCompressor.decompress(compressedKey).assertGet shouldBe ((last.minKey, last.maxKey))
+      GroupKeyCompressor.decompress(compressedKey).assertGet shouldBe ((last.key, last.maxKey))
     }
   }
 

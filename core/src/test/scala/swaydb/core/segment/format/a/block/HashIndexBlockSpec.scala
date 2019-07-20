@@ -53,7 +53,7 @@ class HashIndexBlockSpec extends TestBase {
       keyValue =>
         val uncompressedIndexes = ListBuffer.empty[Int]
         HashIndexBlock.search(
-          key = keyValue.minKey,
+          key = keyValue.key,
           reader = hashIndex1,
           assertValue =
             index => {
@@ -64,7 +64,7 @@ class HashIndexBlockSpec extends TestBase {
 
         val compressedIndexes = ListBuffer.empty[Int]
         HashIndexBlock.search(
-          key = keyValue.minKey,
+          key = keyValue.key,
           reader = hashIndex2,
           assertValue =
             index => {
@@ -279,7 +279,7 @@ class HashIndexBlockSpec extends TestBase {
 
         val keyValues =
           randomizedKeyValues(
-            count = 1000,
+            count = 100,
             addPut = true,
             startId = Some(1)
           ).updateStats(
@@ -288,7 +288,7 @@ class HashIndexBlockSpec extends TestBase {
                 maxProbe = 1000,
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
-                allocateSpace = _.requiredSpace * 5,
+                allocateSpace = _.requiredSpace * 30,
                 blockIO = _ => randomBlockIO(),
                 compressions = _ => compressions
               ),
@@ -309,10 +309,10 @@ class HashIndexBlockSpec extends TestBase {
         Random.shuffle(keyValues.toList) foreach {
           keyValue =>
             HashIndexBlock.search(
-              keyValue.minKey,
-              blocks.hashIndexReader.get,
-              blocks.sortedIndexReader,
-              blocks.valuesReader
+              key = keyValue.key,
+              hashIndexReader = blocks.hashIndexReader.get,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReader = blocks.valuesReader
             ).get.get shouldBe keyValue
         }
       }

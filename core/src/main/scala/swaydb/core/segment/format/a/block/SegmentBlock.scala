@@ -247,12 +247,12 @@ private[core] object SegmentBlock {
               .map(_.stats.thisKeyValuesAccessIndexOffset)
               .getOrElse(keyValue.stats.thisKeyValuesAccessIndexOffset)
 
-          bloomFilter foreach (BloomFilterBlock.add(keyValue.minKey, _))
+          bloomFilter foreach (BloomFilterBlock.add(keyValue.key, _))
 
           hashIndex map {
             hashIndexState =>
               HashIndexBlock.write(
-                key = keyValue.minKey,
+                key = keyValue.key,
                 value = thisKeyValuesAccessOffset,
                 state = hashIndexState
               )
@@ -308,7 +308,7 @@ private[core] object SegmentBlock {
 
               memoryMap foreach {
                 skipList =>
-                  val minKeyUnsliced = rootGroup.minKey.unslice()
+                  val minKeyUnsliced = rootGroup.key.unslice()
                   skipList.put(
                     minKeyUnsliced,
                     Memory.Group(

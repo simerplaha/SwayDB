@@ -104,7 +104,7 @@ class SegmentSearcherPerformanceSpec extends TestBase with MockFactory {
       randomKeyValues foreach {
         keyValue =>
           SegmentSearcher.search(
-            key = keyValue.minKey,
+            key = keyValue.key,
             start = None,
             end = None,
             hashIndexReader = blocks.hashIndexReader,

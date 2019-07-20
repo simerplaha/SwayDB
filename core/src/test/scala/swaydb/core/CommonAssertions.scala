@@ -807,7 +807,7 @@ object CommonAssertions {
         //        if (key % 100 == 0)
         //          println(s"Key: $key")
         SegmentSearcher.search(
-          key = keyValue.minKey,
+          key = keyValue.key,
           start = None,
           end = None,
           hashIndexReader = blocks.hashIndexReader,
@@ -1175,7 +1175,7 @@ object CommonAssertions {
             }
 
           case _ =>
-            SegmentSearcher.searchLower(keyValues(index).minKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe empty
+            SegmentSearcher.searchLower(keyValues(index).key, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGetOpt shouldBe empty
         }
         assertLowers(index + 1)
       } else {
@@ -1189,7 +1189,7 @@ object CommonAssertions {
             }
 
           case _ =>
-            SegmentSearcher.searchLower(keyValues(index).minKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGet shouldBe expectedLowerKeyValue
+            SegmentSearcher.searchLower(keyValues(index).key, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).assertGet shouldBe expectedLowerKeyValue
         }
 
         assertLowers(index + 1)
