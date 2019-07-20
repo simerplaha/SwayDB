@@ -59,6 +59,12 @@ private[swaydb] trait Reader { self =>
   def readInt(): IO[Int] =
     ByteUtil.readInt(self)
 
+  def readInt(unsigned: Boolean): IO[Int] =
+    if (unsigned)
+      readIntUnsigned()
+    else
+      readInt()
+
   def readIntUnsigned(): IO[Int] =
     ByteUtil.readUnsignedInt(self)
 

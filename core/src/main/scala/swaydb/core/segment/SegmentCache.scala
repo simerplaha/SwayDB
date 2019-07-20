@@ -100,7 +100,11 @@ private[core] class SegmentCache(id: String,
         } getOrElse IO.`true`
     }
 
-  private def get(key: Slice[Byte], start: Option[Persistent], end: Option[Persistent], hasRange: Boolean): IO[Option[Persistent.SegmentResponse]] =
+  private def get(key: Slice[Byte],
+                  start: Option[Persistent],
+                  end: Option[Persistent],
+                  hasRange: Boolean,
+                  hashIndexSearchOnly: Boolean): IO[Option[Persistent.SegmentResponse]] =
     blockCache.createHashIndexReader() flatMap {
       hashIndexReader =>
         blockCache.createBinarySearchIndexReader() flatMap {
@@ -116,7 +120,8 @@ private[core] class SegmentCache(id: String,
                       hashIndexReader = hashIndexReader,
                       binarySearchIndexReader = binarySearchIndexReader,
                       sortedIndexReader = sortedIndexReader,
-                      valuesReaderReader = valuesReader,
+                      valuesReader = valuesReader,
+                      hashIndexSearchOnly = hashIndexSearchOnly,
                       hasRange = hasRange
                     ) flatMap {
                       case Some(response: Persistent.SegmentResponse) =>
@@ -136,6 +141,10 @@ private[core] class SegmentCache(id: String,
     }
 
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
+    get(key = key, hashIndexSearchOnly = false)
+
+
+  private def get(key: Slice[Byte], hashIndexSearchOnly: Boolean): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key > maxKey =>
         IO.none
@@ -164,7 +173,7 @@ private[core] class SegmentCache(id: String,
               footer =>
                 //if there is no hashIndex help binarySearch by sending it a higher entry.
                 def getHigherForBinarySearch() =
-                  if (footer.hashIndexOffset.isEmpty && footer.binarySearchIndexOffset.isDefined)
+                  if (!hashIndexSearchOnly && footer.hashIndexOffset.isEmpty && footer.binarySearchIndexOffset.isDefined)
                     Option(persistentCache.higherEntry(key)).map(_.getValue)
                   else
                     None
@@ -174,7 +183,8 @@ private[core] class SegmentCache(id: String,
                     key = key,
                     start = floorValue,
                     end = getHigherForBinarySearch(),
-                    hasRange = footer.hasRange
+                    hasRange = footer.hasRange,
+                    hashIndexSearchOnly = hashIndexSearchOnly
                   )
                 else
                   mightContain(key) flatMap {
@@ -184,7 +194,8 @@ private[core] class SegmentCache(id: String,
                           key = key,
                           start = floorValue,
                           end = getHigherForBinarySearch(),
-                          hasRange = footer.hasRange
+                          hasRange = footer.hasRange,
+                          hashIndexSearchOnly = hashIndexSearchOnly
                         )
                       else
                         IO.none
@@ -206,7 +217,7 @@ private[core] class SegmentCache(id: String,
                   if (end.isDefined)
                     IO.Success(end)
                   else
-                    get(key)
+                    get(key = key, hashIndexSearchOnly = true)
 
                 endAt flatMap {
                   end =>
@@ -214,7 +225,7 @@ private[core] class SegmentCache(id: String,
                       key = key,
                       start = start,
                       end = end,
-                      binarySearchReader = binarySearchIndexReader,
+                      binarySearchIndexReader = binarySearchIndexReader,
                       sortedIndexReader = sortedIndexReader,
                       valuesReader
                     ) flatMap {
@@ -317,7 +328,7 @@ private[core] class SegmentCache(id: String,
                   if (start.isDefined)
                     IO.Success(start)
                   else
-                    get(key)
+                    get(key, hashIndexSearchOnly = true)
 
                 startFrom flatMap {
                   startFrom =>
@@ -325,7 +336,7 @@ private[core] class SegmentCache(id: String,
                       key = key,
                       start = startFrom,
                       end = end,
-                      binarySearchReader = binarySearchIndexReader,
+                      binarySearchIndexReader = binarySearchIndexReader,
                       sortedIndexReader = sortedIndexReader,
                       valuesReader = valuesReader
                     ) flatMap {

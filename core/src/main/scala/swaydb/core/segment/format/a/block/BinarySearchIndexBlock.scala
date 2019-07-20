@@ -270,10 +270,36 @@ private[core] object BinarySearchIndexBlock {
         state.previouslyWritten = value
       }
 
+  def resolveResponse(knownLowest: Option[Persistent], knownMatch: Option[Persistent], isHigherSeek: Option[Boolean]): IO[SearchResult[Persistent]] =
+    knownMatch flatMap {
+      knownMatch =>
+        isHigherSeek map {
+          isHigher =>
+            //if higher got a successful match return the result with knowLost.
+            if (isHigher)
+              IO.Success(SearchResult.Some(knownLowest, knownMatch))
+            else //if it's lower seek then match is the lower match.
+              IO.Success(SearchResult.Some(None, knownMatch))
+        }
+    } getOrElse {
+      //if there was not match create a response from known collected seeks.
+      knownLowest flatMap {
+        knownLowestYes =>
+          isHigherSeek map {
+            higher =>
+              //if it was higher and knownMatch is none means there was no successful higher but lower might be know.
+              if (higher)
+                IO.Success(SearchResult.None(knownLowest))
+              else //if it was lower then send the best known lower as the response.
+                IO.Success(SearchResult.Some(None, knownLowestYes))
+          }
+      } getOrElse IO.Success(SearchResult.None(None)) //if no data return None response.
+    }
+
   def search(reader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
              startKeyValue: Option[Persistent],
              endKeyValue: Option[Persistent],
-             higherOrLower: Option[Boolean],
+             isHigherSeek: Option[Boolean],
              matchValue: Int => IO[KeyMatcher.Result])(implicit ordering: KeyOrder[Slice[Byte]]) = {
 
     val order = Ordering.by[Persistent, Slice[Byte]](_.key)(ordering)
@@ -284,27 +310,17 @@ private[core] object BinarySearchIndexBlock {
 
       val valueOffset = mid * reader.block.bytesPerValue
       if (start > end)
-        knownMatch map {
-          knownMatch =>
-            if (higherOrLower.contains(true))
-              IO.Success(SearchResult.Some(knownLowest, knownMatch))
-            else
-              IO.Success(SearchResult.Some(None, knownMatch))
-        } getOrElse {
-          IO.Success(SearchResult.None(knownLowest))
-        }
+        resolveResponse(
+          knownLowest = knownLowest,
+          knownMatch = knownMatch,
+          isHigherSeek = isHigherSeek
+        )
       else {
-        val value =
-          if (reader.block.isVarInt)
-            reader.moveTo(valueOffset).readIntUnsigned()
-          else
-            reader.moveTo(valueOffset).readInt()
-
-        value.flatMap(matchValue) match {
+        reader.moveTo(valueOffset).readInt(unsigned = reader.block.isVarInt).flatMap(matchValue) match {
           case IO.Success(value) =>
             value match {
               case matched: KeyMatcher.Result.Matched =>
-                higherOrLower match {
+                isHigherSeek match {
                   case None =>
                     IO.Success(SearchResult.Some(matched.previous orElse knownLowest, matched.result))
 
@@ -325,8 +341,9 @@ private[core] object BinarySearchIndexBlock {
               case behind: KeyMatcher.Result.Behind =>
                 //if the accessIndexPosition is not enabled then the start key could be lower than the seek key.
                 //do a comparison of the highest of both (currently knownLowest and current seeked lowest)
+                //seek can also return a lower lower if its not a fullIndex so do a check again.
                 val lower =
-                  if (startKeyValue.exists(_.accessPosition == 0))
+                  if (!reader.block.isFullIndex || startKeyValue.exists(_.accessPosition == 0))
                     knownLowest map {
                       lower =>
                         order.max(lower, behind.previous)
@@ -345,10 +362,12 @@ private[core] object BinarySearchIndexBlock {
       }
     }
 
-    //accessPositions start from 1 but for BinarySearch index we stat from 0.
-    //A accessPosition indicates that accessPositionIndex was disabled.
+    //accessPositions start from 1 but BinarySearch starts from 0.
+    //A 0 accessPosition indicates that accessPositionIndex was disabled.
+    //A key-values accessPosition can sometimes be larger than what binarySearchIndex knows for cases where binarySearchIndex is partial
+    //to handle that check that accessPosition is not over the number total binarySearchIndex entries.
     def getAccessPosition(keyValue: Persistent) =
-      if (keyValue.accessPosition <= 0)
+      if (keyValue.accessPosition <= 0 || (!reader.block.isFullIndex && keyValue.accessPosition > reader.block.valuesCount))
         None
       else
         Some(keyValue.accessPosition - 1)
@@ -363,7 +382,7 @@ private[core] object BinarySearchIndexBlock {
         .flatMap(getAccessPosition)
         .getOrElse(reader.block.valuesCount - 1)
 
-    hop(start = getStartPosition(startKeyValue), end = getEndPosition(endKeyValue), startKeyValue, endKeyValue)
+    hop(start = getStartPosition(startKeyValue), end = getEndPosition(endKeyValue), startKeyValue, None)
   }
 
   private def search(key: Slice[Byte],
@@ -395,7 +414,7 @@ private[core] object BinarySearchIndexBlock {
 
     search(
       reader = binarySearchIndex,
-      higherOrLower = higherOrLower,
+      isHigherSeek = higherOrLower,
       startKeyValue = start,
       endKeyValue = end,
       matchValue =

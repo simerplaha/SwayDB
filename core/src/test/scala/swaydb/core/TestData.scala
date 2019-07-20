@@ -403,14 +403,7 @@ object TestData {
     def toMemory: Memory = {
       keyValue match {
         case group: Transient.Group =>
-          group match {
-            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, minMaxFunctionId, deadline, _, _, _, _, _, _, _) =>
-              Memory.Group(
-                minKey = fromKey,
-                maxKey = toKey,
-                blockedSegment = compressedKeyValues
-              )
-          }
+          group.toMemoryGroup
 
         case _ =>
           toMemoryResponse

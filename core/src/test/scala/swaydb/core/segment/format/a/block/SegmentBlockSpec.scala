@@ -59,89 +59,6 @@ class SegmentBlockSpec extends TestBase {
       closedSegment.nearestDeadline shouldBe empty
     }
 
-    "performance" in {
-      val compressions = Slice.fill(5)(randomCompressionsOrEmpty())
-
-      val keyValues =
-        randomizedKeyValues(
-          count = 10000,
-          startId = Some(1),
-          addPut = true,
-          addRandomGroups = false
-        ).updateStats(
-          valuesConfig =
-            ValuesBlock.Config(
-              compressDuplicateValues = randomBoolean(),
-              compressDuplicateRangeValues = randomBoolean(),
-              blockIO = _ => randomIOAccess(),
-              compressions = _ => compressions.head
-            ),
-          sortedIndexConfig =
-            SortedIndexBlock.Config(
-              blockIO = _ => randomIOAccess(),
-              prefixCompressionResetCount = 0,
-              enableAccessPositionIndex = true,
-              compressions = _ => compressions(1)
-            ),
-          binarySearchIndexConfig =
-            BinarySearchIndexBlock.Config(
-              enabled = true,
-              minimumNumberOfKeys = 1,
-              fullIndex = true,
-              blockIO = _ => randomIOAccess(),
-              compressions = _ => compressions(2)
-            ),
-          hashIndexConfig =
-            HashIndexBlock.Config(
-              maxProbe = 5,
-              minimumNumberOfKeys = 2,
-              minimumNumberOfHits = 2,
-              allocateSpace = _.requiredSpace * 10,
-              blockIO = _ => randomIOAccess(),
-              compressions = _ => compressions(3)
-            ),
-          bloomFilterConfig =
-            BloomFilterBlock.Config(
-              falsePositiveRate = 0.001,
-              minimumNumberOfKeys = 2,
-              blockIO = _ => randomIOAccess(),
-              compressions = _ => compressions(4)
-            )
-        )
-
-      val closedSegment =
-        SegmentBlock.writeClosed(
-          keyValues = keyValues,
-          segmentConfig =
-            new SegmentBlock.Config(
-              blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
-              compressions = _ => Seq.empty
-            ),
-          createdInLevel = 0
-        ).assertGet
-
-      val fileReader = createRandomFileReader(closedSegment.flattenSegmentBytes)
-      val blocks = readBlocksFromReader(fileReader, SegmentIO.defaultSynchronisedStored).get
-
-      val randomKeyValues = Random.shuffle(keyValues)
-
-      Benchmark("search performance") {
-        randomKeyValues foreach {
-          keyValue =>
-            SegmentSearcher.search(
-              key = keyValue.minKey,
-              start = None,
-              end = None,
-              hashIndexReader = blocks.hashIndexReader,
-              binarySearchIndexReader = blocks.binarySearchIndexReader,
-              sortedIndexReader = blocks.sortedIndexReader,
-              valuesReaderReader = blocks.valuesReader,
-              hasRange = keyValues.last.stats.segmentHasRange
-            ).get shouldBe keyValue
-        }
-      }
-    }
-
     "converting KeyValues to bytes and execute readAll and find on the bytes" in {
       def test(keyValues: Slice[Transient]) = {
         val closedSegment =
@@ -157,9 +74,11 @@ class SegmentBlockSpec extends TestBase {
 
         val reader = Reader(closedSegment.flattenSegmentBytes)
         assertReads(keyValues, reader)
+        val persistentReader = createRandomFileReader(closedSegment.flattenSegmentBytes)
+        assertReads(keyValues, persistentReader)
       }
 
-      runThis(10.times, log = true) {
+      runThis(100.times, log = true) {
         val count = eitherOne(randomIntMax(20) max 1, 50, 100)
         val keyValues = randomizedKeyValues(count, addPut = true, startId = Some(1))
         if (keyValues.nonEmpty) test(keyValues)

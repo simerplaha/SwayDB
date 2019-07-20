@@ -23,9 +23,9 @@ trait Benchmark {
 
   def benchmark[R](message: String, inlinePrint: Boolean = false)(benchmarkThis: => R): R = {
     if (inlinePrint)
-      print(s"Started benchmark: $message - ")
+      print(s"Benchmarking: $message: ")
     else
-      println(s"Started benchmark: $message.")
+      println(s"Benchmarking: $message.")
     val startTime = System.nanoTime()
     val result = benchmarkThis
     val endTime = System.nanoTime()

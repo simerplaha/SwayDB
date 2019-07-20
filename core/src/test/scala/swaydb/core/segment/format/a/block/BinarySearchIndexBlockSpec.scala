@@ -58,7 +58,7 @@ class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
             reader = Block.unblock[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](bytes).get,
             startKeyValue = None,
             endKeyValue = None,
-            higherOrLower = None,
+            isHigherSeek = None,
             matchValue = matcher(valueToFind = value)
           ).get shouldBe a[SearchResult.Some[Int]]
       }
@@ -72,7 +72,7 @@ class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
             reader = Block.unblock[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](bytes).get,
             startKeyValue = None,
             endKeyValue = None,
-            higherOrLower = None,
+            isHigherSeek = None,
             matchValue = matcher(valueToFind = i)
           ).get shouldBe a[SearchResult.None[Int]]
       }

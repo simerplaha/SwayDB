@@ -54,7 +54,7 @@ import swaydb.data.util.StorageUnits._
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import scala.util.Random
+import scala.util.{Random, Try}
 
 object CommonAssertions {
 
@@ -432,11 +432,11 @@ object CommonAssertions {
         minSegmentSize = 10.mb,
         isLastLevel = isLastLevel,
         forInMemory = false,
-        valuesConfig = ValuesBlock.Config.random,
-        sortedIndexConfig = SortedIndexBlock.Config.random,
-        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-        hashIndexConfig = HashIndexBlock.Config.random,
-        bloomFilterConfig = BloomFilterBlock.Config.random,
+        valuesConfig = expected.lastOption.map(_.valuesConfig) getOrElse ValuesBlock.Config.random,
+        sortedIndexConfig = expected.lastOption.map(_.sortedIndexConfig) getOrElse SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = expected.lastOption.map(_.binarySearchIndexConfig) getOrElse BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = expected.lastOption.map(_.hashIndexConfig) getOrElse HashIndexBlock.Config.random,
+        bloomFilterConfig = expected.lastOption.map(_.bloomFilterConfig) getOrElse BloomFilterBlock.Config.random,
         segmentIO = SegmentIO.random
       ).assertGet
 
@@ -813,8 +813,9 @@ object CommonAssertions {
           hashIndexReader = blocks.hashIndexReader,
           binarySearchIndexReader = blocks.binarySearchIndexReader,
           sortedIndexReader = blocks.sortedIndexReader,
-          valuesReaderReader = blocks.valuesReader,
-          hasRange = blocks.footer.hasRange
+          valuesReader = blocks.valuesReader,
+          hasRange = blocks.footer.hasRange,
+          hashIndexSearchOnly = false
         ).assertGet shouldBe keyValue
     }
   }
@@ -1209,7 +1210,7 @@ object CommonAssertions {
             key = key,
             start = None,
             end = None,
-            binarySearchReader = blocks.binarySearchIndexReader,
+            binarySearchIndexReader = blocks.binarySearchIndexReader,
             sortedIndexReader = blocks.sortedIndexReader,
             valuesReader = blocks.valuesReader
           )
@@ -1261,7 +1262,13 @@ object CommonAssertions {
         unzipGroups(keyValue.segment.getAll().get.safeGetBlocking())
       case keyValue: KeyValue =>
         Slice(keyValue.toMemory)
-    }.toMemory.toTransient
+    }.toMemory.toTransient(
+      valuesConfig = Try(keyValues.last.asInstanceOf[Transient].valuesConfig) getOrElse ValuesBlock.Config.random,
+      sortedIndexConfig = Try(keyValues.last.asInstanceOf[Transient].sortedIndexConfig) getOrElse SortedIndexBlock.Config.random,
+      binarySearchIndexConfig = Try(keyValues.last.asInstanceOf[Transient].binarySearchIndexConfig) getOrElse BinarySearchIndexBlock.Config.random,
+      hashIndexConfig = Try(keyValues.last.asInstanceOf[Transient].hashIndexConfig) getOrElse HashIndexBlock.Config.random,
+      bloomFilterConfig = Try(keyValues.last.asInstanceOf[Transient].bloomFilterConfig) getOrElse BloomFilterBlock.Config.random
+    )
 
   def assertHigher(keyValues: Slice[KeyValue],
                    segment: Segment): Unit =
@@ -1392,31 +1399,31 @@ object CommonAssertions {
 
   def readBlocks(group: Transient.Group): IO[Blocks] = {
     val segment = SegmentBlock.writeClosed(Slice(group).updateStats, 0, SegmentBlock.Config.random).get
-    readBlocks(segment)
+    readBlocksFromSegment(segment)
   }
 
   def readAll(closedSegment: SegmentBlock.Closed): IO[Slice[KeyValue.ReadOnly]] =
     readAll(closedSegment.flattenSegmentBytes)
 
-  def readBlocks(closedSegment: SegmentBlock.Closed): IO[Blocks] =
-    readBlocks(closedSegment.flattenSegmentBytes)
+  def readBlocksFromSegment(closedSegment: SegmentBlock.Closed, segmentIO: SegmentIO = SegmentIO.random): IO[Blocks] =
+    readBlocks(closedSegment.flattenSegmentBytes, segmentIO)
 
-  def getBlocks(keyValues: Iterable[Transient]): IO[Blocks] = {
+  def getBlocks(keyValues: Iterable[Transient], segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random, segmentIO: SegmentIO = SegmentIO.random): IO[Blocks] = {
     val closedSegment =
       SegmentBlock.writeClosed(
         keyValues = keyValues,
-        segmentConfig = SegmentBlock.Config.random,
+        segmentConfig = segmentConfig,
         createdInLevel = 0
       ).assertGet
 
-    readBlocks(closedSegment)
+    readBlocksFromSegment(closedSegment, segmentIO)
   }
 
   def readAll(bytes: Slice[Byte]): IO[Slice[KeyValue.ReadOnly]] =
     readAll(Reader(bytes))
 
-  def readBlocks(bytes: Slice[Byte]): IO[Blocks] =
-    readBlocksFromReader(Reader(bytes))
+  def readBlocks(bytes: Slice[Byte], segmentIO: SegmentIO = SegmentIO.random): IO[Blocks] =
+    readBlocksFromReader(Reader(bytes), segmentIO)
 
   def getSegmentBlockCache(keyValues: Slice[Transient], segmentIO: SegmentIO = SegmentIO.random, segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random): SegmentBlockCache = {
     val segment = SegmentBlock.writeClosed(keyValues, Int.MaxValue, segmentConfig = segmentConfig).get
