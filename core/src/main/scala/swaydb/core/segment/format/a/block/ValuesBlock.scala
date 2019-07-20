@@ -127,7 +127,12 @@ private[core] object ValuesBlock {
         ValuesBlock.State(
           _bytes = bytes,
           headerSize = headSize,
-          compressions = keyValues.last.valuesConfig.compressions
+          compressions =
+            //cannot have no compression to begin with a then have compression because that upsets the total bytes required.
+            if (hasCompression)
+              keyValues.last.valuesConfig.compressions
+            else
+              _ => Seq.empty
         )
       )
     }

@@ -137,7 +137,12 @@ private[core] object SortedIndexBlock extends LazyLogging {
       headerSize = headSize,
       enableAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
       hasPrefixCompression = keyValues.last.stats.hasPrefixCompression,
-      compressions = keyValues.last.sortedIndexConfig.compressions
+      compressions =
+        //cannot have no compression to begin with a then have compression because that upsets the total bytes required.
+        if (hasCompression)
+          keyValues.last.sortedIndexConfig.compressions
+        else
+          _ => Seq.empty
     )
   }
 

@@ -23,7 +23,6 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.cache.Cache
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
 import swaydb.data.config.{BlockIO, BlockStatus, RandomKeyIndex, UncompressedBlockInfo}
@@ -146,7 +145,12 @@ private[core] object HashIndexBlock extends LazyLogging {
             headerSize = headSize,
             maxProbe = keyValues.last.hashIndexConfig.maxProbe,
             _bytes = Slice.create[Byte](optimalBytes),
-            compressions = keyValues.last.hashIndexConfig.compressions
+            compressions =
+              //cannot have no compression to begin with a then have compression because that upsets the total bytes required.
+              if (hasCompression)
+                keyValues.last.hashIndexConfig.compressions
+              else
+                _ => Seq.empty
           )
         )
     }
