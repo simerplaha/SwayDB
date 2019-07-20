@@ -186,10 +186,10 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 ),
               hashIndexConfig =
                 HashIndexBlock.Config(
-                  maxProbe = 5,
+                  maxProbe = 100,
                   minimumNumberOfKeys = 0,
                   minimumNumberOfHits = 0,
-                  allocateSpace = _.requiredSpace * 10,
+                  allocateSpace = _.requiredSpace * 20,
                   blockIO = _ => randomIOAccess(),
                   compressions = _ => compressions
                 )

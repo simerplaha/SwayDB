@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.{Bytes, FunctionUtil, Options}
+import swaydb.core.util.{Bytes, FunctionUtil, MinMax, Options}
 import swaydb.data.IO
 import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
@@ -270,7 +270,11 @@ private[core] object BinarySearchIndexBlock {
         state.previouslyWritten = value
       }
 
-  def resolveResponse(knownLowest: Option[Persistent], knownMatch: Option[Persistent], isHigherSeek: Option[Boolean]): IO[SearchResult[Persistent]] =
+  def resolveResponse(knownLowest: Option[Persistent],
+                      knownMatch: Option[Persistent],
+                      startKeyValue: Option[Persistent],
+                      isHigherSeek: Option[Boolean],
+                      block: BinarySearchIndexBlock)(implicit order: Ordering[Persistent]): IO[SearchResult[Persistent]] =
     knownMatch flatMap {
       knownMatch =>
         isHigherSeek map {
@@ -284,16 +288,20 @@ private[core] object BinarySearchIndexBlock {
     } getOrElse {
       //if there was not match create a response from known collected seeks.
       knownLowest flatMap {
-        knownLowestYes =>
+        knowLowest =>
           isHigherSeek map {
             higher =>
               //if it was higher and knownMatch is none means there was no successful higher but lower might be know.
               if (higher)
                 IO.Success(SearchResult.None(knownLowest))
               else //if it was lower then send the best known lower as the response.
-                IO.Success(SearchResult.Some(None, knownLowestYes))
+                IO.Success(SearchResult.Some(None, knowLowest))
           }
-      } getOrElse IO.Success(SearchResult.None(knownLowest)) //if no data return None response.
+      } getOrElse {
+        //if no data return None response with lower set.
+        val lowestMax = MinMax.max(knownLowest, startKeyValue)
+        IO.Success(SearchResult.None(lowestMax))
+      }
     }
 
   def search(reader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
@@ -302,7 +310,7 @@ private[core] object BinarySearchIndexBlock {
              isHigherSeek: Option[Boolean],
              matchValue: Int => IO[KeyMatcher.Result])(implicit ordering: KeyOrder[Slice[Byte]]) = {
 
-    val order = Ordering.by[Persistent, Slice[Byte]](_.key)(ordering)
+    implicit val order: Ordering[Persistent] = Ordering.by[Persistent, Slice[Byte]](_.key)(ordering)
 
     @tailrec
     def hop(start: Int, end: Int, knownLowest: Option[Persistent], knownMatch: Option[Persistent]): IO[SearchResult[Persistent]] = {
@@ -314,7 +322,9 @@ private[core] object BinarySearchIndexBlock {
         resolveResponse(
           knownLowest = knownLowest,
           knownMatch = knownMatch,
-          isHigherSeek = isHigherSeek
+          startKeyValue = startKeyValue,
+          isHigherSeek = isHigherSeek,
+          block = reader.block
         )
       else
         reader.moveTo(valueOffset).readInt(unsigned = reader.block.isVarInt).flatMap(matchValue) match {
@@ -343,16 +353,13 @@ private[core] object BinarySearchIndexBlock {
                 //if the accessIndexPosition is not enabled then the start key could be lower than the seek key.
                 //do a comparison of the highest of both (currently knownLowest and current seeked lowest)
                 //seek can also return a lower lower if its not a fullIndex so do a check again.
-                val lower =
+                val newKnownLowest =
                   if (!reader.block.isFullIndex || startKeyValue.exists(_.accessPosition == 0))
-                    knownLowest map {
-                      lower =>
-                        order.max(lower, behind.previous)
-                    } getOrElse behind.previous
+                    MinMax.max(knownLowest, behind.previous)
                   else
                     behind.previous
 
-                hop(start = mid + 1, end = end, Some(lower), knownMatch = knownMatch)
+                hop(start = mid + 1, end = end, Some(newKnownLowest), knownMatch = knownMatch)
 
               case KeyMatcher.Result.AheadOrNoneOrEnd =>
                 hop(start = start, end = mid - 1, knownLowest, knownMatch = knownMatch)

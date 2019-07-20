@@ -261,8 +261,9 @@ class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
             valuesReader = blocks.valuesReader
           ).get match {
             case SearchResult.None(lower) =>
-              //lower will always be the second last key-value since the last returns None match.
-              lower.get.key shouldBe keyValues.dropRight(1).last.minKey
+              //lower will always be the last known uncompressed key before the last key-value.
+              val expectedLower = keyValues.dropRight(1).reverse.find(!_.isPrefixCompressed).get
+              lower.get.key shouldBe expectedLower.minKey
 
             case _: SearchResult.Some[_] =>
               fail("Didn't expect a match")

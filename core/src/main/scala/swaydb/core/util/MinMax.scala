@@ -74,6 +74,20 @@ private[core] object MinMax {
              right: Option[T])(implicit ordering: Ordering[T]): Option[T] =
     pickOne[T](left, right, maximum)
 
+  def max[T](left: T,
+             right: Option[T])(implicit ordering: Ordering[T]): T =
+    right map {
+      right =>
+        maximum[T](left, right)
+    } getOrElse left
+
+  def max[T](left: Option[T],
+             right: T)(implicit ordering: Ordering[T]): T =
+    left map {
+      left =>
+        maximum[T](left, right)
+    } getOrElse right
+
   def contains[T](key: T, minMax: MinMax[T])(implicit order: Ordering[T]): Boolean = {
     import order._
     minMax.max map {
