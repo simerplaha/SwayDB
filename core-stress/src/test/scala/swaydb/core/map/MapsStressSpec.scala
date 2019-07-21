@@ -19,6 +19,7 @@
 
 package swaydb.core.map
 
+import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.TestData._

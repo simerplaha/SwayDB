@@ -30,6 +30,7 @@ import swaydb.data.IO
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
+import swaydb.core.IOValues._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -144,7 +145,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
             key < (startFrom + 100)
         }
 
-    took.materialize.runIO should have size 100
+    took.materialize.value should have size 100
     took.headOption.get.get._1 shouldBe startFrom
     took.lastOption.get.get._1 shouldBe (startFrom + 99)
   }
@@ -177,7 +178,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
             if (key % 10000 == 0)
               println(s"mapRight: key = $key")
             key
-        }.materialize.runIO
+        }.materialize.value
 
     val expected = (0 until 100) map (startFrom - _)
     took should have size 100
@@ -192,7 +193,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.materialize.runIO shouldBe (1 to 100)
+      }.materialize.value shouldBe (1 to 100)
 
     db
       .fromOrAfter(0)
@@ -202,7 +203,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.materialize.runIO shouldBe (1 to 100)
+      }.materialize.value shouldBe (1 to 100)
   }
 
   def doDrop =
@@ -214,7 +215,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.materialize.runIO shouldBe (keyValueCount - 100 to keyValueCount)
+      }.materialize.value shouldBe (keyValueCount - 100 to keyValueCount)
 
   def doTakeRight =
     db
@@ -226,7 +227,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.materialize.runIO shouldBe (keyValueCount - 99 to keyValueCount).reverse
+      }.materialize.value shouldBe (keyValueCount - 99 to keyValueCount).reverse
 
   def doCount =
     db.size.get should be >= keyValueCount

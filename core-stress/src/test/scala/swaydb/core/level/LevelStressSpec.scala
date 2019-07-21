@@ -82,7 +82,7 @@ sealed trait LevelStressSpec extends TestBase with Benchmark {
 
       def randomSegment = Random.shuffle(segments)
 
-      level.put(segment1).assertGet
+      level.put(segment1).runIO
 
       def doPut(index: Int): Future[Unit] =
         Future() flatMap {

@@ -636,8 +636,8 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
       rootMap.getKeyValue(1).value shouldBe empty
       rootMap.getKeyValue(2).value shouldBe empty
-      subMap.getKeyValue(11).value.value shouldBe empty
-      subMap.getKeyValue(22).value.value shouldBe empty
+      subMap.getKeyValue(11).value shouldBe empty
+      subMap.getKeyValue(22).value shouldBe empty
 
       rootMap.closeDatabase().get
     }
@@ -741,8 +741,8 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
         val first = root.maps.put(1, "first").value
         val second = first.maps.put(2, "second").value
-        first.maps.get(2).value.value shouldBe defined
-        second.maps.get(2).value.value shouldBe empty
+        first.maps.get(2).value shouldBe defined
+        second.maps.get(2).value shouldBe empty
 
         root.closeDatabase().get
       }
@@ -756,7 +756,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
         val second = first.maps.put(2, "second").value
         val secondAgain = first.maps.put(2, "second again").value
 
-        first.maps.get(2).value.value shouldBe defined
+        first.maps.get(2).value shouldBe defined
         first.maps.getValue(2).value shouldBe "second again"
         second.getValue().value shouldBe "second again"
         secondAgain.getValue().value shouldBe "second again"
@@ -779,7 +779,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
         val secondAgain = first.maps.put(2, "second again").value
 
         //map value value updated
-        first.maps.get(2).value.value shouldBe defined
+        first.maps.get(2).value shouldBe defined
         first.maps.getValue(2).value shouldBe "second again"
         second.getValue().value shouldBe "second again"
         secondAgain.getValue().value shouldBe "second again"
@@ -831,7 +831,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
         val secondAgain = first.maps.put(2, "second updated").value
 
         //map value value updated
-        first.maps.get(2).value.value shouldBe defined
+        first.maps.get(2).value shouldBe defined
         first.maps.getValue(2).value shouldBe "second updated"
         second.getValue().value shouldBe "second updated"
         secondAgain.getValue().value shouldBe "second updated"
