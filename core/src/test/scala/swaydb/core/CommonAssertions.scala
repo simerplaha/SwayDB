@@ -22,6 +22,7 @@ package swaydb.core
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentSkipListMap
 
+import org.scalatest.OptionValues._
 import org.scalatest.exceptions.TestFailedException
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
@@ -50,13 +51,12 @@ import swaydb.data.config.BlockIO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.StorageUnits._
-import org.scalatest.OptionValues._
-import IOValues._
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.util.{Random, Try}
+import org.scalatest.Matchers._
 
 object CommonAssertions {
 
@@ -697,7 +697,7 @@ object CommonAssertions {
     def shouldContainAll(keyValues: Slice[KeyValue]): Unit =
       keyValues.foreach {
         keyValue =>
-          actual.get(keyValue.key).runIOValue shouldBe keyValue
+          actual.get(keyValue.key).runIO.value shouldBe keyValue
       }
   }
 
@@ -925,7 +925,7 @@ object CommonAssertions {
     keyValues foreach {
       keyValue =>
         try {
-          val actual = level.getFromThisLevel(keyValue.key).runIOValue
+          val actual = level.getFromThisLevel(keyValue.key).runIO.value
           actual.getOrFetchValue shouldBe keyValue.getOrFetchValue
         } catch {
           case ex: Exception =>
@@ -1191,14 +1191,14 @@ object CommonAssertions {
         val expectedLowerKeyValue = keyValues(index - 1)
         keyValues(index) match {
           case range: Transient.Range =>
-            SegmentSearcher.searchLower(range.fromKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).runIOValue shouldBe expectedLowerKeyValue
+            SegmentSearcher.searchLower(range.fromKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).runIO.value shouldBe expectedLowerKeyValue
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
               key =>
                 SegmentSearcher.searchLower(Slice.writeInt(key), None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).runIO shouldBe range
             }
 
           case _ =>
-            SegmentSearcher.searchLower(keyValues(index).key, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).runIOValue shouldBe expectedLowerKeyValue
+            SegmentSearcher.searchLower(keyValues(index).key, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).runIO.value shouldBe expectedLowerKeyValue
         }
 
         assertLowers(index + 1)
@@ -1295,14 +1295,14 @@ object CommonAssertions {
     def assertLast(keyValue: KeyValue) =
       keyValue match {
         case range: KeyValue.ReadOnly.Range =>
-          getHigher(range.fromKey).runIOValue shouldBe range
+          getHigher(range.fromKey).runIO.value shouldBe range
           getHigher(range.toKey).runIO shouldBe empty
 
         case group: KeyValue.ReadOnly.Group =>
           if (group.minKey equiv group.maxKey.maxKey) {
             getHigher(group.minKey).runIO shouldBe empty
           } else {
-            getHigher(group.minKey).runIOValue shouldBe group
+            getHigher(group.minKey).runIO.value shouldBe group
             getHigher(group.maxKey.maxKey).runIO shouldBe empty
           }
 
@@ -1317,11 +1317,11 @@ object CommonAssertions {
       keyValue match {
         case range: KeyValue.ReadOnly.Range =>
           try
-            getHigher(range.fromKey).runIOValue shouldBe range
+            getHigher(range.fromKey).runIO.value shouldBe range
           catch {
             case exception: Exception =>
               exception.printStackTrace()
-              getHigher(range.fromKey).runIOValue shouldBe range
+              getHigher(range.fromKey).runIO.value shouldBe range
               throw exception
           }
           val toKeyHigher = getHigher(range.toKey).runIO
@@ -1366,11 +1366,11 @@ object CommonAssertions {
           }
 
         case group: KeyValue.ReadOnly.Group if group.minKey != group.maxKey.maxKey =>
-          getHigher(group.minKey).runIOValue shouldBe group
-          getHigher(group.maxKey.maxKey).runIOValue shouldBe next
+          getHigher(group.minKey).runIO.value shouldBe group
+          getHigher(group.maxKey.maxKey).runIO.value shouldBe next
 
         case _ =>
-          IO(getHigher(keyValue.key).runIOValue shouldBe next) recover {
+          IO(getHigher(keyValue.key).runIO.value shouldBe next) recover {
             case _: TestFailedException =>
               unexpiredPuts(Slice(next)) should have size 0
           } get

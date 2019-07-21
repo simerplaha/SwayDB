@@ -32,6 +32,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import org.scalatest.Matchers._
 
 class FixedEntryReaderWriterSpec extends WordSpec {
 

@@ -70,14 +70,14 @@ sealed trait MapIterationSpec extends TestBaseEmbedded {
       val subMap1 = secondMap.maps.put(3, "sub map 1").runIO
       val subMap2 = secondMap.maps.put(4, "sub map 2").runIO
 
-      firstMap.stream.materialize.get shouldBe empty
-      firstMap.maps.stream.materialize.get should contain only ((2, "first map"))
+      firstMap.stream.materialize.runIO shouldBe empty
+      firstMap.maps.stream.materialize.runIO should contain only ((2, "first map"))
 
-      secondMap.stream.materialize.get shouldBe empty
-      secondMap.maps.stream.materialize.get should contain only((3, "sub map 1"), (4, "sub map 2"))
+      secondMap.stream.materialize.runIO shouldBe empty
+      secondMap.maps.stream.materialize.runIO should contain only((3, "sub map 1"), (4, "sub map 2"))
 
-      subMap1.stream.materialize.get shouldBe empty
-      subMap2.stream.materialize.get shouldBe empty
+      subMap1.stream.materialize.runIO shouldBe empty
+      subMap2.stream.materialize.runIO shouldBe empty
 
       db.closeDatabase().get
     }
@@ -90,27 +90,27 @@ sealed trait MapIterationSpec extends TestBaseEmbedded {
       val firstMap = db.maps.put(1, "rootMap").runIO
       val secondMap = firstMap.maps.put(2, "first map").runIO
 
-      firstMap.stream.materialize.get shouldBe empty
-      firstMap.maps.stream.materialize.get should contain only ((2, "first map"))
+      firstMap.stream.materialize.runIO shouldBe empty
+      firstMap.maps.stream.materialize.runIO should contain only ((2, "first map"))
 
       secondMap.put(1, "one").runIO
       secondMap.size.get shouldBe 1
 
-      secondMap.headOption.runIOValue shouldBe ((1, "one"))
-      secondMap.lastOption.runIOValue shouldBe ((1, "one"))
+      secondMap.headOption.runIO.value shouldBe ((1, "one"))
+      secondMap.lastOption.runIO.value shouldBe ((1, "one"))
 
-      secondMap.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.get should contain only ((2, "one"))
+      secondMap.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.runIO should contain only ((2, "one"))
       secondMap.foldLeft(List.empty[(Int, String)]) { case (_, keyValue) => List(keyValue) }.get shouldBe List((1, "one"))
       secondMap.reverse.foldLeft(List.empty[(Int, String)]) { case (_, keyValue) => List(keyValue) }.get shouldBe List((1, "one"))
-      secondMap.reverse.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.get should contain only ((2, "one"))
-      secondMap.reverse.take(100).materialize.get should contain only ((1, "one"))
-      secondMap.reverse.take(1).materialize.get should contain only ((1, "one"))
-      secondMap.take(100).materialize.get should contain only ((1, "one"))
-      secondMap.take(1).materialize.get should contain only ((1, "one"))
-      secondMap.reverse.drop(1).materialize.get shouldBe empty
-      secondMap.drop(1).materialize.get shouldBe empty
-      secondMap.reverse.drop(0).materialize.get should contain only ((1, "one"))
-      secondMap.drop(0).materialize.get should contain only ((1, "one"))
+      secondMap.reverse.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.runIO should contain only ((2, "one"))
+      secondMap.reverse.take(100).materialize.runIO should contain only ((1, "one"))
+      secondMap.reverse.take(1).materialize.runIO should contain only ((1, "one"))
+      secondMap.take(100).materialize.runIO should contain only ((1, "one"))
+      secondMap.take(1).materialize.runIO should contain only ((1, "one"))
+      secondMap.reverse.drop(1).materialize.runIO shouldBe empty
+      secondMap.drop(1).materialize.runIO shouldBe empty
+      secondMap.reverse.drop(0).materialize.runIO should contain only ((1, "one"))
+      secondMap.drop(0).materialize.runIO should contain only ((1, "one"))
 
       db.closeDatabase().get
     }
@@ -125,23 +125,23 @@ sealed trait MapIterationSpec extends TestBaseEmbedded {
       firstMap.put(2, "two").runIO
 
       firstMap.size.get shouldBe 2
-      firstMap.headOption.runIOValue shouldBe ((1, "one"))
-      firstMap.lastOption.runIOValue shouldBe ((2, "two"))
+      firstMap.headOption.runIO.value shouldBe ((1, "one"))
+      firstMap.lastOption.runIO.value shouldBe ((2, "two"))
 
-      firstMap.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.get shouldBe List((2, "one"), (3, "two"))
+      firstMap.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.runIO shouldBe List((2, "one"), (3, "two"))
       firstMap.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue }.get shouldBe List((1, "one"), (2, "two"))
       firstMap.reverse.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue }.get shouldBe List((2, "two"), (1, "one"))
-      firstMap.reverse.map(keyValue => keyValue).materialize.get shouldBe List((2, "two"), (1, "one"))
-      firstMap.reverse.take(100).materialize.get shouldBe List((2, "two"), (1, "one"))
-      firstMap.reverse.take(2).materialize.get shouldBe List((2, "two"), (1, "one"))
-      firstMap.reverse.take(1).materialize.get should contain only ((2, "two"))
-      firstMap.take(100).materialize.get should contain only((1, "one"), (2, "two"))
-      firstMap.take(2).materialize.get should contain only((1, "one"), (2, "two"))
-      firstMap.take(1).materialize.get should contain only ((1, "one"))
-      firstMap.reverse.drop(1).materialize.get should contain only ((1, "one"))
-      firstMap.drop(1).materialize.get should contain only ((2, "two"))
-      firstMap.reverse.drop(0).materialize.get shouldBe List((2, "two"), (1, "one"))
-      firstMap.drop(0).materialize.get shouldBe List((1, "one"), (2, "two"))
+      firstMap.reverse.map(keyValue => keyValue).materialize.runIO shouldBe List((2, "two"), (1, "one"))
+      firstMap.reverse.take(100).materialize.runIO shouldBe List((2, "two"), (1, "one"))
+      firstMap.reverse.take(2).materialize.runIO shouldBe List((2, "two"), (1, "one"))
+      firstMap.reverse.take(1).materialize.runIO should contain only ((2, "two"))
+      firstMap.take(100).materialize.runIO should contain only((1, "one"), (2, "two"))
+      firstMap.take(2).materialize.runIO should contain only((1, "one"), (2, "two"))
+      firstMap.take(1).materialize.runIO should contain only ((1, "one"))
+      firstMap.reverse.drop(1).materialize.runIO should contain only ((1, "one"))
+      firstMap.drop(1).materialize.runIO should contain only ((2, "two"))
+      firstMap.reverse.drop(0).materialize.runIO shouldBe List((2, "two"), (1, "one"))
+      firstMap.drop(0).materialize.runIO shouldBe List((1, "one"), (2, "two"))
 
       db.closeDatabase().get
     }
@@ -159,46 +159,46 @@ sealed trait MapIterationSpec extends TestBaseEmbedded {
       subMap2.put(3, "three").runIO
       subMap2.put(4, "four").runIO
 
-      rootMap.stream.materialize.get shouldBe empty
-      rootMap.maps.stream.materialize.get should contain only((2, "sub map 1"), (3, "sub map 2"))
+      rootMap.stream.materialize.runIO shouldBe empty
+      rootMap.maps.stream.materialize.runIO should contain only((2, "sub map 1"), (3, "sub map 2"))
 
       //FIRST MAP ITERATIONS
       subMap1.size.get shouldBe 2
-      subMap1.headOption.runIOValue shouldBe ((1, "one"))
-      subMap1.lastOption.runIOValue shouldBe ((2, "two"))
-      subMap1.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.get shouldBe List((2, "one"), (3, "two"))
+      subMap1.headOption.runIO.value shouldBe ((1, "one"))
+      subMap1.lastOption.runIO.value shouldBe ((2, "two"))
+      subMap1.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.runIO shouldBe List((2, "one"), (3, "two"))
       subMap1.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue }.get shouldBe List((1, "one"), (2, "two"))
       subMap1.reverse.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous }.get shouldBe List((2, "two"), (1, "one"))
-      subMap1.reverse.map(keyValue => keyValue).materialize.get shouldBe List((2, "two"), (1, "one"))
-      subMap1.reverse.take(100).materialize.get shouldBe List((2, "two"), (1, "one"))
-      subMap1.reverse.take(2).materialize.get shouldBe List((2, "two"), (1, "one"))
-      subMap1.reverse.take(1).materialize.get should contain only ((2, "two"))
-      subMap1.take(100).materialize.get should contain only((1, "one"), (2, "two"))
-      subMap1.take(2).materialize.get should contain only((1, "one"), (2, "two"))
-      subMap1.take(1).materialize.get should contain only ((1, "one"))
-      subMap1.reverse.drop(1).materialize.get should contain only ((1, "one"))
-      subMap1.drop(1).materialize.get should contain only ((2, "two"))
-      subMap1.reverse.drop(0).materialize.get shouldBe List((2, "two"), (1, "one"))
-      subMap1.drop(0).materialize.get shouldBe List((1, "one"), (2, "two"))
+      subMap1.reverse.map(keyValue => keyValue).materialize.runIO shouldBe List((2, "two"), (1, "one"))
+      subMap1.reverse.take(100).materialize.runIO shouldBe List((2, "two"), (1, "one"))
+      subMap1.reverse.take(2).materialize.runIO shouldBe List((2, "two"), (1, "one"))
+      subMap1.reverse.take(1).materialize.runIO should contain only ((2, "two"))
+      subMap1.take(100).materialize.runIO should contain only((1, "one"), (2, "two"))
+      subMap1.take(2).materialize.runIO should contain only((1, "one"), (2, "two"))
+      subMap1.take(1).materialize.runIO should contain only ((1, "one"))
+      subMap1.reverse.drop(1).materialize.runIO should contain only ((1, "one"))
+      subMap1.drop(1).materialize.runIO should contain only ((2, "two"))
+      subMap1.reverse.drop(0).materialize.runIO shouldBe List((2, "two"), (1, "one"))
+      subMap1.drop(0).materialize.runIO shouldBe List((1, "one"), (2, "two"))
 
       //SECOND MAP ITERATIONS
       subMap2.size.get shouldBe 2
-      subMap2.headOption.runIOValue shouldBe ((3, "three"))
-      subMap2.lastOption.runIOValue shouldBe ((4, "four"))
-      subMap2.map(keyValue => (keyValue._1, keyValue._2)).materialize.get shouldBe List((3, "three"), (4, "four"))
+      subMap2.headOption.runIO.value shouldBe ((3, "three"))
+      subMap2.lastOption.runIO.value shouldBe ((4, "four"))
+      subMap2.map(keyValue => (keyValue._1, keyValue._2)).materialize.runIO shouldBe List((3, "three"), (4, "four"))
       subMap2.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue }.get shouldBe List((3, "three"), (4, "four"))
       subMap2.reverse.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous }.get shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.map(keyValue => keyValue).materialize.get shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.take(100).materialize.get shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.take(2).materialize.get shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.take(1).materialize.get should contain only ((4, "four"))
-      subMap2.take(100).materialize.get should contain only((3, "three"), (4, "four"))
-      subMap2.take(2).materialize.get should contain only((3, "three"), (4, "four"))
-      subMap2.take(1).materialize.get should contain only ((3, "three"))
-      subMap2.reverse.drop(1).materialize.get should contain only ((3, "three"))
-      subMap2.drop(1).materialize.get should contain only ((4, "four"))
-      subMap2.reverse.drop(0).materialize.get shouldBe List((4, "four"), (3, "three"))
-      subMap2.drop(0).materialize.get shouldBe List((3, "three"), (4, "four"))
+      subMap2.reverse.map(keyValue => keyValue).materialize.runIO shouldBe List((4, "four"), (3, "three"))
+      subMap2.reverse.take(100).materialize.runIO shouldBe List((4, "four"), (3, "three"))
+      subMap2.reverse.take(2).materialize.runIO shouldBe List((4, "four"), (3, "three"))
+      subMap2.reverse.take(1).materialize.runIO should contain only ((4, "four"))
+      subMap2.take(100).materialize.runIO should contain only((3, "three"), (4, "four"))
+      subMap2.take(2).materialize.runIO should contain only((3, "three"), (4, "four"))
+      subMap2.take(1).materialize.runIO should contain only ((3, "three"))
+      subMap2.reverse.drop(1).materialize.runIO should contain only ((3, "three"))
+      subMap2.drop(1).materialize.runIO should contain only ((4, "four"))
+      subMap2.reverse.drop(0).materialize.runIO shouldBe List((4, "four"), (3, "three"))
+      subMap2.drop(0).materialize.runIO shouldBe List((3, "three"), (4, "four"))
 
       db.closeDatabase().get
     }
@@ -216,71 +216,71 @@ sealed trait MapIterationSpec extends TestBaseEmbedded {
       subMap2.put(3, "three").runIO
       subMap2.put(4, "four").runIO
 
-      rootMap.stream.materialize.get shouldBe empty
-      rootMap.maps.stream.materialize.get should contain only ((2, "sub map 1"))
+      rootMap.stream.materialize.runIO shouldBe empty
+      rootMap.maps.stream.materialize.runIO should contain only ((2, "sub map 1"))
 
       //FIRST MAP ITERATIONS
       subMap1.size.get shouldBe 2
-      subMap1.headOption.runIOValue shouldBe ((1, "one"))
-      subMap1.lastOption.runIOValue shouldBe ((2, "two"))
-      subMap1.maps.lastOption.runIOValue shouldBe ((3, "sub map 2"))
-      subMap1.map(keyValue => (keyValue._1, keyValue._2)).materialize.get shouldBe List((1, "one"), (2, "two"))
-      subMap1.maps.map(keyValue => (keyValue._1, keyValue._2)).materialize.get shouldBe List((3, "sub map 2"))
-      subMap1.maps.map(keyValue => (keyValue._1, keyValue._2)).materialize.get shouldBe List((3, "sub map 2"))
+      subMap1.headOption.runIO.value shouldBe ((1, "one"))
+      subMap1.lastOption.runIO.value shouldBe ((2, "two"))
+      subMap1.maps.lastOption.runIO.value shouldBe ((3, "sub map 2"))
+      subMap1.map(keyValue => (keyValue._1, keyValue._2)).materialize.runIO shouldBe List((1, "one"), (2, "two"))
+      subMap1.maps.map(keyValue => (keyValue._1, keyValue._2)).materialize.runIO shouldBe List((3, "sub map 2"))
+      subMap1.maps.map(keyValue => (keyValue._1, keyValue._2)).materialize.runIO shouldBe List((3, "sub map 2"))
       subMap1.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue }.get shouldBe List((1, "one"), (2, "two"))
       subMap1.maps.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue }.get shouldBe List((3, "sub map 2"))
       subMap1.reverse.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous }.get shouldBe List((2, "two"), (1, "one"))
       subMap1.maps.reverse.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous }.get shouldBe List((3, "sub map 2"))
-      subMap1.reverse.map(keyValue => keyValue).materialize.get shouldBe List((2, "two"), (1, "one"))
-      subMap1.maps.reverse.map(keyValue => keyValue).materialize.get shouldBe List((3, "sub map 2"))
-      subMap1.maps.reverse.map(keyValue => keyValue).materialize.get shouldBe List((3, "sub map 2"))
-      subMap1.reverse.take(100).materialize.get shouldBe List((2, "two"), (1, "one"))
-      subMap1.maps.reverse.take(100).materialize.get shouldBe List((3, "sub map 2"))
-      subMap1.maps.reverse.take(100).materialize.get shouldBe List((3, "sub map 2"))
-      subMap1.reverse.take(3).materialize.get shouldBe List((2, "two"), (1, "one"))
-      subMap1.maps.reverse.take(3).materialize.get shouldBe List((3, "sub map 2"))
-      subMap1.reverse.take(1).materialize.get should contain only ((2, "two"))
-      subMap1.maps.reverse.take(1).materialize.get should contain only ((3, "sub map 2"))
-      subMap1.take(100).materialize.get should contain only((1, "one"), (2, "two"))
-      subMap1.maps.take(100).materialize.get should contain only ((3, "sub map 2"))
-      subMap1.take(2).materialize.get should contain only((1, "one"), (2, "two"))
-      subMap1.maps.take(2).materialize.get should contain only ((3, "sub map 2"))
-      subMap1.take(1).materialize.get should contain only ((1, "one"))
-      subMap1.maps.take(1).materialize.get should contain only ((3, "sub map 2"))
-      subMap1.reverse.drop(1).materialize.get should contain only ((1, "one"))
-      subMap1.maps.reverse.drop(1).materialize.get shouldBe empty
-      subMap1.drop(1).materialize.get should contain only ((2, "two"))
-      subMap1.maps.drop(1).materialize.get shouldBe empty
-      subMap1.reverse.drop(0).materialize.get shouldBe List((2, "two"), (1, "one"))
-      subMap1.maps.reverse.drop(0).materialize.get shouldBe List((3, "sub map 2"))
-      subMap1.drop(0).materialize.get shouldBe List((1, "one"), (2, "two"))
-      subMap1.maps.drop(0).materialize.get shouldBe List((3, "sub map 2"))
+      subMap1.reverse.map(keyValue => keyValue).materialize.runIO shouldBe List((2, "two"), (1, "one"))
+      subMap1.maps.reverse.map(keyValue => keyValue).materialize.runIO shouldBe List((3, "sub map 2"))
+      subMap1.maps.reverse.map(keyValue => keyValue).materialize.runIO shouldBe List((3, "sub map 2"))
+      subMap1.reverse.take(100).materialize.runIO shouldBe List((2, "two"), (1, "one"))
+      subMap1.maps.reverse.take(100).materialize.runIO shouldBe List((3, "sub map 2"))
+      subMap1.maps.reverse.take(100).materialize.runIO shouldBe List((3, "sub map 2"))
+      subMap1.reverse.take(3).materialize.runIO shouldBe List((2, "two"), (1, "one"))
+      subMap1.maps.reverse.take(3).materialize.runIO shouldBe List((3, "sub map 2"))
+      subMap1.reverse.take(1).materialize.runIO should contain only ((2, "two"))
+      subMap1.maps.reverse.take(1).materialize.runIO should contain only ((3, "sub map 2"))
+      subMap1.take(100).materialize.runIO should contain only((1, "one"), (2, "two"))
+      subMap1.maps.take(100).materialize.runIO should contain only ((3, "sub map 2"))
+      subMap1.take(2).materialize.runIO should contain only((1, "one"), (2, "two"))
+      subMap1.maps.take(2).materialize.runIO should contain only ((3, "sub map 2"))
+      subMap1.take(1).materialize.runIO should contain only ((1, "one"))
+      subMap1.maps.take(1).materialize.runIO should contain only ((3, "sub map 2"))
+      subMap1.reverse.drop(1).materialize.runIO should contain only ((1, "one"))
+      subMap1.maps.reverse.drop(1).materialize.runIO shouldBe empty
+      subMap1.drop(1).materialize.runIO should contain only ((2, "two"))
+      subMap1.maps.drop(1).materialize.runIO shouldBe empty
+      subMap1.reverse.drop(0).materialize.runIO shouldBe List((2, "two"), (1, "one"))
+      subMap1.maps.reverse.drop(0).materialize.runIO shouldBe List((3, "sub map 2"))
+      subMap1.drop(0).materialize.runIO shouldBe List((1, "one"), (2, "two"))
+      subMap1.maps.drop(0).materialize.runIO shouldBe List((3, "sub map 2"))
 
       //KEYS ONLY ITERATIONS
       subMap1.keys.size.get shouldBe 2
-      subMap1.keys.headOption.runIOValue shouldBe 1
-      subMap1.keys.lastOption.runIOValue shouldBe 2
+      subMap1.keys.headOption.runIO.value shouldBe 1
+      subMap1.keys.lastOption.runIO.value shouldBe 2
       //      subMap1.maps.keys.lastOption.assertGet shouldBe 3
       //      subMap1.maps.keys.toSeq.get shouldBe List(3)
 
       //SECOND MAP ITERATIONS
       subMap2.size.get shouldBe 2
-      subMap2.headOption.runIOValue shouldBe ((3, "three"))
-      subMap2.lastOption.runIOValue shouldBe ((4, "four"))
-      subMap2.map(keyValue => (keyValue._1, keyValue._2)).materialize.get shouldBe List((3, "three"), (4, "four"))
+      subMap2.headOption.runIO.value shouldBe ((3, "three"))
+      subMap2.lastOption.runIO.value shouldBe ((4, "four"))
+      subMap2.map(keyValue => (keyValue._1, keyValue._2)).materialize.runIO shouldBe List((3, "three"), (4, "four"))
       subMap2.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue }.get shouldBe List((3, "three"), (4, "four"))
       subMap2.reverse.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous }.get shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.map(keyValue => keyValue).materialize.get shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.take(100).materialize.get shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.take(2).materialize.get shouldBe List((4, "four"), (3, "three"))
-      subMap2.reverse.take(1).materialize.get should contain only ((4, "four"))
-      subMap2.take(100).materialize.get should contain only((3, "three"), (4, "four"))
-      subMap2.take(2).materialize.get should contain only((3, "three"), (4, "four"))
-      subMap2.take(1).materialize.get should contain only ((3, "three"))
-      subMap2.reverse.drop(1).materialize.get should contain only ((3, "three"))
-      subMap2.drop(1).materialize.get should contain only ((4, "four"))
-      subMap2.reverse.drop(0).materialize.get shouldBe List((4, "four"), (3, "three"))
-      subMap2.drop(0).materialize.get shouldBe List((3, "three"), (4, "four"))
+      subMap2.reverse.map(keyValue => keyValue).materialize.runIO shouldBe List((4, "four"), (3, "three"))
+      subMap2.reverse.take(100).materialize.runIO shouldBe List((4, "four"), (3, "three"))
+      subMap2.reverse.take(2).materialize.runIO shouldBe List((4, "four"), (3, "three"))
+      subMap2.reverse.take(1).materialize.runIO should contain only ((4, "four"))
+      subMap2.take(100).materialize.runIO should contain only((3, "three"), (4, "four"))
+      subMap2.take(2).materialize.runIO should contain only((3, "three"), (4, "four"))
+      subMap2.take(1).materialize.runIO should contain only ((3, "three"))
+      subMap2.reverse.drop(1).materialize.runIO should contain only ((3, "three"))
+      subMap2.drop(1).materialize.runIO should contain only ((4, "four"))
+      subMap2.reverse.drop(0).materialize.runIO shouldBe List((4, "four"), (3, "three"))
+      subMap2.drop(0).materialize.runIO shouldBe List((3, "three"), (4, "four"))
 
       db.closeDatabase().get
     }

@@ -37,6 +37,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import org.scalatest.OptionValues._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
@@ -262,8 +263,8 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-      MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Put]](bytes.drop(ByteSizeOf.int)).runIOValue shouldBe entry
-      MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](bytes).runIOValue shouldBe entry
+      MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Put]](bytes.drop(ByteSizeOf.int)).runIO.value shouldBe entry
+      MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](bytes).runIO.value shouldBe entry
     }
 
     "write and read bytes for a single Appendix" in {
@@ -278,8 +279,8 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-      MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](bytes.drop(1)).runIOValue shouldBe entry
-      MapEntryReader.read[MapEntry[Slice[Byte], Segment]](bytes).runIOValue shouldBe entry
+      MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](bytes.drop(1)).runIO.value shouldBe entry
+      MapEntryReader.read[MapEntry[Slice[Byte], Segment]](bytes).runIO.value shouldBe entry
 
       segment.close.runIO
     }
@@ -297,8 +298,8 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-      MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Remove]](bytes.drop(ByteSizeOf.int)).runIOValue shouldBe entry
-      MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](bytes).runIOValue shouldBe entry
+      MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Remove]](bytes.drop(ByteSizeOf.int)).runIO.value shouldBe entry
+      MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](bytes).runIO.value shouldBe entry
     }
 
     "write and read bytes for single Appendix entry" in {
@@ -314,8 +315,8 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-      MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](bytes.drop(1)).runIOValue.key shouldBe entry.key
-      MapEntryReader.read[MapEntry[Slice[Byte], Segment]](bytes).runIOValue shouldBe entry
+      MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](bytes.drop(1)).runIO.value.key shouldBe entry.key
+      MapEntryReader.read[MapEntry[Slice[Byte], Segment]](bytes).runIO.value shouldBe entry
 
       segment.close.runIO
     }
@@ -339,7 +340,7 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-      MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](bytes).runIOValue shouldBe entry
+      MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](bytes).runIO.value shouldBe entry
     }
   }
 
@@ -367,7 +368,7 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps!
 
-      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader(bytes)).runIOValue
+      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader(bytes)).runIO.value
 
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
       readMapEntry applyTo skipList
@@ -401,7 +402,7 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps!
 
-      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(bytes)).runIOValue
+      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(bytes)).runIO.value
 
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Segment](keyOrder)
       readMapEntry applyTo skipList

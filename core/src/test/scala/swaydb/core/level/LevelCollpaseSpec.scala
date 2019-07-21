@@ -20,6 +20,7 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
@@ -33,7 +34,6 @@ import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.core.IOValues._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
@@ -172,7 +172,7 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
       keyValues.zipWithIndex foreach {
         case (keyValue, index) =>
           if (index % 2 == 0)
-            level.get(keyValue.key).runIOValue.deadline should contain(expiryAt + index.millisecond)
+            level.get(keyValue.key).runIO.value.deadline should contain(expiryAt + index.millisecond)
       }
 
       sleep(20.seconds)

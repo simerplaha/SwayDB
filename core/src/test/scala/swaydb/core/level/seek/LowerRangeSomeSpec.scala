@@ -33,6 +33,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import org.scalatest.OptionValues._
 
 class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
@@ -70,7 +71,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
-            Lower(key: Slice[Byte]).runIOValue shouldBe expected
+            Lower(key: Slice[Byte]).runIO.value shouldBe expected
         }
       }
     }
@@ -104,7 +105,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
           next.hasStateChanged  _ expects 1                   returning false
           //@formatter:on
         }
-        Lower(1: Slice[Byte]).runIOValue shouldBe expected
+        Lower(1: Slice[Byte]).runIO.value shouldBe expected
       }
     }
 
@@ -131,7 +132,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
-            Lower(key: Slice[Byte]).runIOValue shouldBe lowerLower
+            Lower(key: Slice[Byte]).runIO.value shouldBe lowerLower
         }
       }
     }
@@ -162,7 +163,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
-            Lower(key: Slice[Byte]).runIOValue shouldBe expected
+            Lower(key: Slice[Byte]).runIO.value shouldBe expected
         }
       }
     }
@@ -193,7 +194,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
-            Lower(key: Slice[Byte]).runIOValue shouldBe expected
+            Lower(key: Slice[Byte]).runIO.value shouldBe expected
         }
       }
     }
@@ -221,7 +222,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
-            Lower(key: Slice[Byte]).runIOValue shouldBe put.toMemory(1)
+            Lower(key: Slice[Byte]).runIO.value shouldBe put.toMemory(1)
         }
       }
     }

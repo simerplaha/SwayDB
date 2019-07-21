@@ -34,6 +34,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import org.scalatest.OptionValues._
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -93,10 +94,10 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
     "write key-value" in {
       def assert(zero: LevelZero): Unit = {
         zero.put(1, "one").runIO
-        zero.get(1).runIOValue.getOrFetchValue.runIOValue shouldBe ("one": Slice[Byte])
+        zero.get(1).runIO.value.getOrFetchValue.runIO.value shouldBe ("one": Slice[Byte])
 
         zero.put("2", "two").runIO
-        zero.get("2").runIOValue.getOrFetchValue.runIOValue shouldBe ("two": Slice[Byte])
+        zero.get("2").runIO.value.getOrFetchValue.runIO.value shouldBe ("two": Slice[Byte])
       }
 
       val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))))
@@ -111,7 +112,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
       zero.put(one, one).runIO
 
-      val gotFromLevelZero = zero.get(one).runIOValue.getOrFetchValue.runIOValue
+      val gotFromLevelZero = zero.get(one).runIO.value.getOrFetchValue.runIO.value
       gotFromLevelZero shouldBe one
       //ensure that key-values are not unsliced in LevelZero.
       gotFromLevelZero.underlyingArraySize shouldBe 10
@@ -121,10 +122,10 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       if (persistent) {
         //put the same key-value to Level1 and expect the key-values to be sliced
         level.putKeyValuesTest(Slice(Memory.put(one, one))).runIO
-        val gotFromLevelOne = level.get(one).runIOValue
-        gotFromLevelOne.getOrFetchValue.runIOValue shouldBe one
+        val gotFromLevelOne = level.get(one).runIO.value
+        gotFromLevelOne.getOrFetchValue.runIO.value shouldBe one
         //ensure that key-values are not unsliced in LevelOne.
-        gotFromLevelOne.getOrFetchValue.runIOValue.underlyingArraySize shouldBe 4
+        gotFromLevelOne.getOrFetchValue.runIO.value.underlyingArraySize shouldBe 4
       }
     }
 
@@ -136,7 +137,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
     "write empty values" in {
       val zero = TestLevelZero(Some(TestLevel()))
       zero.put(1, Slice.empty).runIO
-      zero.get(1).safeGetBlocking.runIOValue.getOrFetchValue.runIOValue shouldBe Slice.empty
+      zero.get(1).safeGetBlocking.runIO.value.getOrFetchValue.runIO.value shouldBe Slice.empty
     }
 
     "write large keys and values and reopen the database and re-read key-values" in {
@@ -154,8 +155,8 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       }
 
       def assertRead(zero: LevelZero): Unit = {
-        zero.get(key1).runIOValue.getOrFetchValue.runIOValue shouldBe value1
-        zero.get(key2).runIOValue.getOrFetchValue.runIOValue shouldBe value2
+        zero.get(key1).runIO.value.getOrFetchValue.runIO.value shouldBe value1
+        zero.get(key2).runIO.value.getOrFetchValue.runIO.value shouldBe value2
       }
 
       val zero = TestLevelZero(Some(TestLevel(throttle = _ => Throttle(10.seconds, 0))))
@@ -173,8 +174,8 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       zero.put("one").runIO
       zero.put("two").runIO
 
-      zero.get("one").safeGetBlocking.runIOValue.getOrFetchValue.runIO shouldBe None
-      zero.get("two").safeGetBlocking.runIOValue.getOrFetchValue.runIO shouldBe None
+      zero.get("one").safeGetBlocking.runIO.value.getOrFetchValue.runIO shouldBe None
+      zero.get("two").safeGetBlocking.runIO.value.getOrFetchValue.runIO shouldBe None
 
       zero.contains("one").runIO shouldBe true
       zero.contains("two").runIO shouldBe true
@@ -287,18 +288,18 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       zero.put(4, "four").runIO
       zero.put(5, "five").runIO
 
-      zero.head.safeGetBlocking.runIOValue.getOrFetchValue.runIOValue shouldBe ("one": Slice[Byte])
+      zero.head.safeGetBlocking.runIO.value.getOrFetchValue.runIO.value shouldBe ("one": Slice[Byte])
 
       //remove 1
       zero.remove(1).runIO
       println
-      zero.head.safeGetBlocking.runIOValue.getOrFetchValue.runIOValue shouldBe ("two": Slice[Byte])
+      zero.head.safeGetBlocking.runIO.value.getOrFetchValue.runIO.value shouldBe ("two": Slice[Byte])
 
       zero.remove(2).runIO
       zero.remove(3).runIO
       zero.remove(4).runIO
 
-      zero.head.safeGetBlocking.runIOValue.getOrFetchValue.runIOValue shouldBe ("five": Slice[Byte])
+      zero.head.safeGetBlocking.runIO.value.getOrFetchValue.runIO.value shouldBe ("five": Slice[Byte])
 
       zero.remove(5).runIO
       zero.head.runIO shouldBe empty
@@ -316,18 +317,18 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       zero.put(4, "four").runIO
       zero.put(5, "five").runIO
 
-      zero.last.safeGetBlocking.runIOValue.getOrFetchValue.runIOValue shouldBe ("five": Slice[Byte])
+      zero.last.safeGetBlocking.runIO.value.getOrFetchValue.runIO.value shouldBe ("five": Slice[Byte])
 
       //remove 5
       zero.remove(5).runIO
-      zero.last.safeGetBlocking.runIOValue.getOrFetchValue.runIO.get shouldBe ("four": Slice[Byte])
+      zero.last.safeGetBlocking.runIO.value.getOrFetchValue.runIO.get shouldBe ("four": Slice[Byte])
 
       zero.remove(2).runIO
       zero.remove(3).runIO
       zero.remove(4).runIO
 
       println
-      zero.last.safeGetBlocking.runIOValue.getOrFetchValue.runIOValue shouldBe ("one": Slice[Byte])
+      zero.last.safeGetBlocking.runIO.value.getOrFetchValue.runIO.value shouldBe ("one": Slice[Byte])
 
       zero.remove(1).runIO
       zero.last.runIO shouldBe empty

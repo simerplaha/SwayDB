@@ -19,33 +19,14 @@
 
 package swaydb.core
 
-import org.scalatest.Matchers
-import org.scalatest.OptionValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData.randomBoolean
 import swaydb.data.IO
 
 import scala.concurrent.duration._
 
-object IOValues extends Matchers {
-
-  implicit class RunSafeOptionIOImplicits[T](input: => IO[Option[T]]) {
-    def runIOValue: T =
-      input.asAsync.runIO.value
-
-    def runIO: Option[T] =
-      input.asAsync.runIO
-  }
-
-  implicit class RunSafeIOImplicits[T](input: => IO[T]) {
-    def runIO: T =
-      input.asAsync.runIO
-
-    def value =
-      input.get
-  }
-
-  implicit class RunSafeAsyncIOImplicits[T](input: => IO.Async[T]) {
+sealed trait IOValues {
+  implicit class RunIOImplicits[T](input: => IO[T]) {
     def runIO: T =
       if (randomBoolean())
         IO.Async.runSafe(input.get).safeGetBlocking.get
@@ -53,8 +34,13 @@ object IOValues extends Matchers {
         IO.Async.runSafe(input.get).safeGetFuture.await(1.minute)
   }
 
-  implicit class RunSafeAsyncIOOptionImplicits[T](input: => IO.Async[Option[T]]) {
-    def runIOValue: T =
-      input.runIO.value
+  implicit class RunAsyncIOImplicits[T](input: => IO.Async[T]) {
+    def runIO: T =
+      if (randomBoolean())
+        input.safeGetBlocking.get
+      else
+        input.safeGetFuture.await(1.minute)
   }
 }
+
+object IOValues extends IOValues

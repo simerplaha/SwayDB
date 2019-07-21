@@ -103,9 +103,9 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.remove(2, 999).runIO
       println("Removed .... ")
 
-      db.stream.materialize.get should contain only((1, "1"), (1000, "1000"))
-      db.headOption.runIOValue shouldBe ((1, "1"))
-      db.lastOption.runIOValue shouldBe ((1000, "1000"))
+      db.stream.materialize.runIO should contain only((1, "1"), (1000, "1000"))
+      db.headOption.runIO.value shouldBe ((1, "1"))
+      db.lastOption.runIO.value shouldBe ((1000, "1000"))
 
       db.close().get
     }
@@ -125,9 +125,9 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.update(1, 100, value = "updated").runIO
 
-      db.stream.materialize.get should contain only((1, "updated"), (100, "updated"))
-      db.headOption.runIOValue shouldBe ((1, "updated"))
-      db.lastOption.runIOValue shouldBe ((100, "updated"))
+      db.stream.materialize.runIO should contain only((1, "updated"), (100, "updated"))
+      db.headOption.runIO.value shouldBe ((1, "updated"))
+      db.lastOption.runIO.value shouldBe ((100, "updated"))
 
       db.close().get
     }
@@ -144,9 +144,9 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.update(1, 100, value = "updated").runIO
 
-      db.stream.materialize.get should contain only((1, "updated"), (100, "updated"))
-      db.headOption.runIOValue shouldBe ((1, "updated"))
-      db.lastOption.runIOValue shouldBe ((100, "updated"))
+      db.stream.materialize.runIO should contain only((1, "updated"), (100, "updated"))
+      db.headOption.runIO.value shouldBe ((1, "updated"))
+      db.lastOption.runIO.value shouldBe ((100, "updated"))
 
       db.close().get
     }
@@ -177,9 +177,9 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       val expected = expectedUnchanged ++ expectedUpdated :+ (100, "100")
 
-      db.stream.materialize.get shouldBe expected
-      db.headOption.runIOValue shouldBe ((1, "1"))
-      db.lastOption.runIOValue shouldBe ((100, "100"))
+      db.stream.materialize.runIO shouldBe expected
+      db.headOption.runIO.value shouldBe ((1, "1"))
+      db.lastOption.runIO.value shouldBe ((100, "100"))
 
       db.close().get
     }
@@ -190,7 +190,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.isEmpty.get shouldBe true
 
-      db.stream.materialize.get shouldBe empty
+      db.stream.materialize.runIO shouldBe empty
 
       db.headOption.get shouldBe empty
       db.lastOption.get shouldBe empty
@@ -204,7 +204,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.isEmpty.get shouldBe true
 
-      db.stream.materialize.get shouldBe empty
+      db.stream.materialize.runIO shouldBe empty
 
       db.headOption.get shouldBe empty
       db.lastOption.get shouldBe empty
@@ -220,11 +220,11 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       //      remove and then put should return Put's value
       db.commit(Prepare.Remove(1), Prepare.Put(1, "one")).runIO
-      db.get(1).runIOValue shouldBe "one"
+      db.get(1).runIO.value shouldBe "one"
 
       //remove range and put should return Put's value
       db.commit(Prepare.Remove(1, 100), Prepare.Put(1, "one")).runIO
-      db.get(1).runIOValue shouldBe "one"
+      db.get(1).runIO.value shouldBe "one"
 
       db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Update(1, 100, "updated"), Prepare.Remove(1, 100)).runIO
       db.get(1).runIO shouldBe empty
@@ -235,11 +235,11 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.isEmpty.get shouldBe true
 
       db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one again"), Prepare.Update(1, 100, "updated")).runIO
-      db.get(1).runIOValue shouldBe "updated"
+      db.get(1).runIO.value shouldBe "updated"
       db.stream.materialize.map(_.toMap).runIO.values should contain only "updated"
 
       db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(100, "hundred"), Prepare.Remove(1, 100), Prepare.Update(1, 1000, "updated")).runIO
-      db.stream.materialize.get shouldBe empty
+      db.stream.materialize.runIO shouldBe empty
 
       db.close().get
     }
@@ -253,16 +253,16 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       }
 
       db.from(9999).stream.materialize.runIO should contain only((9999, "9999"), (10000, "10000"))
-      db.from(9998).drop(2).take(1).materialize.get should contain only ((10000, "10000"))
-      db.before(9999).take(1).materialize.get should contain only ((9998, "9998"))
-      db.after(9999).take(1).materialize.get should contain only ((10000, "10000"))
-      db.after(9999).drop(1).materialize.get shouldBe empty
+      db.from(9998).drop(2).take(1).materialize.runIO should contain only ((10000, "10000"))
+      db.before(9999).take(1).materialize.runIO should contain only ((9998, "9998"))
+      db.after(9999).take(1).materialize.runIO should contain only ((10000, "10000"))
+      db.after(9999).drop(1).materialize.runIO shouldBe empty
 
-      db.after(10).takeWhile(_._1 <= 11).materialize.get should contain only ((11, "11"))
-      db.after(10).takeWhile(_._1 <= 11).drop(1).materialize.get shouldBe empty
+      db.after(10).takeWhile(_._1 <= 11).materialize.runIO should contain only ((11, "11"))
+      db.after(10).takeWhile(_._1 <= 11).drop(1).materialize.runIO shouldBe empty
 
-      db.fromOrBefore(0).stream.materialize.get shouldBe empty
-      db.fromOrAfter(0).take(1).materialize.get should contain only ((1, "1"))
+      db.fromOrBefore(0).stream.materialize.runIO shouldBe empty
+      db.fromOrAfter(0).take(1).materialize.runIO should contain only ((1, "1"))
 
       db.close().get
     }

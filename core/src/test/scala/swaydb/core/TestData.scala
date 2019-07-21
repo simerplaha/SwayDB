@@ -52,6 +52,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.data.{IO, MaxKey}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import org.scalatest.Matchers._
 
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext

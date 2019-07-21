@@ -37,6 +37,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import org.scalatest.OptionValues._
 
 import scala.concurrent.ExecutionContext
 
@@ -136,9 +137,9 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         level.put(map).runIO
         assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
 
-        level.get("one").runIOValue shouldBe existingKeyValues(0)
-        level.get("two").runIOValue shouldBe existingKeyValues(1)
-        level.get("three").runIOValue shouldBe existingKeyValues(2)
+        level.get("one").runIO.value shouldBe existingKeyValues(0)
+        level.get("two").runIO.value shouldBe existingKeyValues(1)
+        level.get("three").runIO.value shouldBe existingKeyValues(2)
         level.get("four").runIO shouldBe empty
       }
     }

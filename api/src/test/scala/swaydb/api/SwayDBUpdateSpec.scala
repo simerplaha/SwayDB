@@ -92,7 +92,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       (1 to keyValueCount) foreach {
         i =>
           db.expiration(i).runIO shouldBe empty
-          db.get(i).runIOValue shouldBe "updated"
+          db.get(i).runIO.value shouldBe "updated"
       }
 
       db.close().get
@@ -116,8 +116,8 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       if (deadline.hasTimeLeft())
         (1 to keyValueCount) foreach {
           i =>
-            db.expiration(i).runIOValue shouldBe deadline
-            db.get(i).runIOValue shouldBe "updated"
+            db.expiration(i).runIO.value shouldBe deadline
+            db.get(i).runIO.value shouldBe "updated"
         }
 
       if (deadline.hasTimeLeft()) sleep(deadline.timeLeft)
@@ -161,7 +161,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       (1 to keyValueCount) foreach {
         i =>
           db.expiration(i).runIO shouldBe empty
-          db.get(i).runIOValue shouldBe "updated again"
+          db.get(i).runIO.value shouldBe "updated again"
       }
 
       db.close().get
@@ -204,7 +204,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       (1 to keyValueCount) foreach {
         i =>
           db.expiration(i).runIO shouldBe empty
-          db.get(i).runIOValue shouldBe "updated"
+          db.get(i).runIO.value shouldBe "updated"
       }
 
       db.close().get
@@ -316,7 +316,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       (1 to keyValueCount) foreach {
         i =>
           db.expiration(i).runIO shouldBe empty
-          db.get(i).runIOValue shouldBe "updated 2"
+          db.get(i).runIO.value shouldBe "updated 2"
       }
 
       db.close().get
@@ -517,7 +517,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
         (1 to keyValueCount) foreach {
           i =>
             db.expiration(i).runIO shouldBe empty
-            db.get(i).runIOValue shouldBe "updated"
+            db.get(i).runIO.value shouldBe "updated"
         }
 
       doAssert()

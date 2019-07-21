@@ -138,8 +138,8 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       if (deadline.hasTimeLeft())
         (1 to keyValueCount) foreach {
           i =>
-            db.expiration(i).runIOValue shouldBe deadline
-            db.get(i).runIOValue shouldBe "updated"
+            db.expiration(i).runIO.value shouldBe deadline
+            db.get(i).runIO.value shouldBe "updated"
         }
 
       sleep(deadline)
@@ -169,7 +169,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
         (1 to keyValueCount) foreach {
           i =>
             db.expiration(i).runIO shouldBe defined
-            db.get(i).runIOValue shouldBe i.toString
+            db.get(i).runIO.value shouldBe i.toString
         }
 
       sleep(deadline)
@@ -195,8 +195,8 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       if (deadline.hasTimeLeft())
         (1 to keyValueCount) foreach {
           i =>
-            db.expiration(i).runIOValue shouldBe deadline
-            db.get(i).runIOValue shouldBe (i.toString + " replaced")
+            db.expiration(i).runIO.value shouldBe deadline
+            db.get(i).runIO.value shouldBe (i.toString + " replaced")
         }
 
       sleep(deadline)
@@ -326,8 +326,8 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       if (deadline.hasTimeLeft())
         (1 to keyValueCount) foreach {
           i =>
-            db.expiration(i).runIOValue shouldBe deadline
-            db.get(i).runIOValue shouldBe i.toString
+            db.expiration(i).runIO.value shouldBe deadline
+            db.get(i).runIO.value shouldBe i.toString
         }
 
       sleep(deadline)
@@ -456,8 +456,8 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       if (deadline.hasTimeLeft())
         (1 to keyValueCount) foreach {
           i =>
-            db.expiration(i).runIOValue shouldBe deadline
-            db.get(i).runIOValue shouldBe i.toString
+            db.expiration(i).runIO.value shouldBe deadline
+            db.get(i).runIO.value shouldBe i.toString
         }
 
       sleep(deadline)
@@ -594,8 +594,8 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       if (deadline2.hasTimeLeft())
         (1 to keyValueCount) foreach {
           i =>
-            db.expiration(i).runIOValue shouldBe deadline2
-            db.get(i).runIOValue shouldBe i.toString
+            db.expiration(i).runIO.value shouldBe deadline2
+            db.get(i).runIO.value shouldBe i.toString
         }
 
       sleep(deadline2)

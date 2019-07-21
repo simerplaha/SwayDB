@@ -86,7 +86,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
                 Seq(
                   () => segment.get(0).runIO shouldBe empty,
                   () => segment.get(2).runIO shouldBe empty,
-                  () => segment.get(keyValues.head.key).runIOValue shouldBe keyValues.head,
+                  () => segment.get(keyValues.head.key).runIO.value shouldBe keyValues.head,
                 )
               ).foreach(_ ())
         )
@@ -99,7 +99,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
                 Seq(
                   () => segment.get(0).runIO shouldBe empty,
                   () => segment.get(3).runIO shouldBe empty,
-                  () => segment.get(keyValues.head.key).runIOValue shouldBe keyValues.head
+                  () => segment.get(keyValues.head.key).runIO.value shouldBe keyValues.head
                 )
               ).foreach(_ ())
         )
@@ -120,7 +120,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
                   () =>
                     (1 to 9) foreach {
                       i =>
-                        segment.get(i).runIOValue shouldBe keyValues.head
+                        segment.get(i).runIO.value shouldBe keyValues.head
                     }
                 )
               ).foreach(_ ())
@@ -139,12 +139,12 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
                   () =>
                     (1 to 9) foreach {
                       i =>
-                        segment.get(i).runIOValue shouldBe keyValues.head
+                        segment.get(i).runIO.value shouldBe keyValues.head
                     },
                   () =>
                     (10 to 19) foreach {
                       i =>
-                        segment.get(i).runIOValue shouldBe keyValues.last
+                        segment.get(i).runIO.value shouldBe keyValues.last
                     }
                 )
               ).foreach(_ ())
@@ -182,7 +182,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
               index =>
                 val keyValue = keyValues(index)
                 if (persistent) segment.getFromCache(keyValue.key) shouldBe empty
-                segment.get(keyValue.key).runIOValue shouldBe keyValue
+                segment.get(keyValue.key).runIO.value shouldBe keyValue
 
                 val gotFromCache = eventually(segment.getFromCache(keyValue.key).value)
                 //underlying array sizes should not be slices but copies of arrays.

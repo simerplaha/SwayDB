@@ -83,7 +83,7 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
     (1 to keyValueCount) foreach {
       i =>
         db.expiration(i).runIO shouldBe empty
-        db.get(i).runIOValue shouldBe s"$i new"
+        db.get(i).runIO.value shouldBe s"$i new"
     }
   }
 

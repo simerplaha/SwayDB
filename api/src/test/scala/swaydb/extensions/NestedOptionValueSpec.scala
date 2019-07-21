@@ -50,8 +50,8 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
 
     rootMap.put(1, None).runIO
 
-    rootMap.stream.materialize.get should contain only ((1, None))
-    rootMap.keys.stream.materialize.get should contain only 1
+    rootMap.stream.materialize.runIO should contain only ((1, None))
+    rootMap.keys.stream.materialize.runIO should contain only 1
   }
 
   "Option[Empty[V]]" in {
@@ -86,7 +86,7 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
     rootMap.put(2, Some(Value.NonEmpty("two"))).runIO
     rootMap.put(3, None).runIO
 
-    rootMap.stream.materialize.get should contain inOrderOnly((1, None), (2, Some(Value.NonEmpty("two"))), (3, None))
-    rootMap.keys.stream.materialize.get should contain inOrderOnly(1, 2, 3)
+    rootMap.stream.materialize.runIO should contain inOrderOnly((1, None), (2, Some(Value.NonEmpty("two"))), (3, None))
+    rootMap.keys.stream.materialize.runIO should contain inOrderOnly(1, 2, 3)
   }
 }

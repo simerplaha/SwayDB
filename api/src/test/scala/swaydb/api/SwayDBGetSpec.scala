@@ -82,7 +82,7 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 100) foreach {
         i =>
-          db.get(i).runIOValue shouldBe i.toString
+          db.get(i).runIO.value shouldBe i.toString
       }
 
       db.close().get
@@ -104,7 +104,7 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 9) foreach {
         i =>
-          db.get(i).runIOValue shouldBe i.toString
+          db.get(i).runIO.value shouldBe i.toString
       }
 
       (10 to 90) foreach {
@@ -114,7 +114,7 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (91 to 100) foreach {
         i =>
-          db.get(i).runIOValue shouldBe i.toString
+          db.get(i).runIO.value shouldBe i.toString
       }
 
       db.close().get
@@ -135,15 +135,15 @@ sealed trait SwayDBGetSpec extends TestBase {
           db.expire(i, expire).runIO
       }
 
-      (1 to 100) foreach { i => db.get(i).runIOValue shouldBe i.toString }
+      (1 to 100) foreach { i => db.get(i).runIO.value shouldBe i.toString }
 
       sleep(expire.timeLeft + 10.millisecond)
 
       (10 to 90) foreach { i => db.get(i).runIO shouldBe empty }
-      (1 to 9) foreach { i => db.get(i).runIOValue shouldBe i.toString }
-      (91 to 100) foreach { i => db.get(i).runIOValue shouldBe i.toString }
+      (1 to 9) foreach { i => db.get(i).runIO.value shouldBe i.toString }
+      (91 to 100) foreach { i => db.get(i).runIO.value shouldBe i.toString }
 
-      db.keys.stream.materialize.get shouldBe ((1 to 9) ++ (91 to 100))
+      db.keys.stream.materialize.runIO shouldBe ((1 to 9) ++ (91 to 100))
 
       db.close().get
     }
@@ -160,13 +160,13 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       db.expire(10, 90, expire).runIO
 
-      (1 to 100) foreach { i => db.get(i).runIOValue shouldBe i.toString }
+      (1 to 100) foreach { i => db.get(i).runIO.value shouldBe i.toString }
 
       sleep(expire.timeLeft + 10.millisecond)
 
       (10 to 90) foreach { i => db.get(i).runIO shouldBe empty }
-      (1 to 9) foreach { i => db.get(i).runIOValue shouldBe i.toString }
-      (91 to 100) foreach { i => db.get(i).runIOValue shouldBe i.toString }
+      (1 to 9) foreach { i => db.get(i).runIO.value shouldBe i.toString }
+      (91 to 100) foreach { i => db.get(i).runIO.value shouldBe i.toString }
 
       db.close().get
     }
