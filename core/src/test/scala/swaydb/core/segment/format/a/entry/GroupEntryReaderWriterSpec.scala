@@ -83,10 +83,10 @@ class GroupEntryReaderWriterSpec extends WordSpec {
           previous = None
         ).runIO
 
-      //      val previousRead = EntryReader.read(Reader(previous.indexEntryBytes), Reader(valueBytes), 0, 0, 0, None).assertGet
+      //      val previousRead = EntryReader.read(Reader(previous.indexEntryBytes), Reader(valueBytes), 0, 0, 0, None).runIO
       previousRead shouldBe previous
 
-      //      val read = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).assertGet
+      //      val read = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).runIO
       val nextRead =
         EntryReader.read(
           indexReader = Reader(next.indexEntryBytes),

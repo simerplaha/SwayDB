@@ -90,7 +90,7 @@
 //                sortedIndexCompression = randomCompression(),
 //                valuesCompression = randomCompression()
 //              )
-//        ).assertGetOpt shouldBe empty
+//        ).runIO.value shouldBe empty
 //      }
 //
 //      "there are not enough key-values" in {
@@ -127,18 +127,18 @@
 //          )
 //
 //        if (!force) {
-//          result.assertGetOpt shouldBe empty
+//          result.runIO.value shouldBe empty
 //          //no mutation occurs
 //          mutableKeyValues shouldBe keyValues
 //        } else {
 //          val (bytes, _) =
 //            SegmentWriter.write(
-//              keyValues = Slice(result.assertGet),
+//              keyValues = Slice(result.runIO),
 //              segmentCompressions = randomSegmentCompression(),
 //              createdInLevel = 0,
-//              maxProbe = TestData.maxProbe).assertGet.flattenSegment
+//              maxProbe = TestData.maxProbe).runIO.flattenSegment
 //
-//          readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
+//          readAll(bytes).runIO.head.asInstanceOf[Persistent.Group].segment.getAll().runIO shouldBe keyValues
 //        }
 //      }
 //
@@ -172,7 +172,7 @@
 //                sortedIndexCompression = randomCompressionLZ4OrSnappy(100),
 //                valuesCompression = randomCompression()
 //              )
-//        ).assertGetOpt shouldBe empty
+//        ).runIO.value shouldBe empty
 //
 //        //no mutation occurs
 //        mutableKeyValues shouldBe keyValues
@@ -208,7 +208,7 @@
 //                sortedIndexCompression = randomCompression(),
 //                valuesCompression = randomCompressionLZ4OrSnappy(100)
 //              )
-//        ).assertGetOpt shouldBe empty
+//        ).runIO.value shouldBe empty
 //
 //        //no mutation occurs
 //        mutableKeyValues shouldBe keyValues
@@ -245,7 +245,7 @@
 //                    sortedIndexCompression = randomCompression(),
 //                    valuesCompression = randomCompression()
 //                  )
-//            ).assertGetOpt shouldBe empty
+//            ).runIO.value shouldBe empty
 //
 //            //no mutation occurs
 //            mutableKeyValues should have size 1
@@ -288,7 +288,7 @@
 //                    sortedIndexCompression = randomCompression(),
 //                    valuesCompression = randomCompression()
 //                  )
-//            ).assertGetOpt shouldBe empty
+//            ).runIO.value shouldBe empty
 //        }
 //
 //        //no mutation occurs
@@ -331,19 +331,19 @@
 //          )
 //
 //        if (!force) {
-//          result.assertGetOpt shouldBe empty
+//          result.runIO.value shouldBe empty
 //          //no mutation occurs
 //          mutableKeyValues shouldBe keyValues
 //        } else {
 //          val (bytes, _) =
 //            SegmentWriter.write(
-//              keyValues = Slice(result.assertGet).updateStats,
+//              keyValues = Slice(result.runIO).updateStats,
 //              segmentCompressions = randomSegmentCompression(),
 //              createdInLevel = 0,
 //              maxProbe = TestData.maxProbe
-//        ).assertGet.flattenSegment
+//        ).runIO.flattenSegment
 //
-//          readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe otherKeyValues
+//          readAll(bytes).runIO.head.asInstanceOf[Persistent.Group].segment.getAll().runIO shouldBe otherKeyValues
 //        }
 //      }
 //
@@ -385,19 +385,19 @@
 //          )
 //
 //        if (!force) {
-//          result.assertGetOpt shouldBe empty
+//          result.runIO.value shouldBe empty
 //          //no mutation occurs
 //          mutableKeyValues shouldBe keyValues
 //        } else {
 //          val (bytes, _) =
 //            SegmentWriter.write(
-//              keyValues = Slice(result.assertGet).updateStats,
+//              keyValues = Slice(result.runIO).updateStats,
 //              segmentCompressions = randomSegmentCompression(),
 //              createdInLevel = 0,
 //              maxProbe = TestData.maxProbe
-//        ).assertGet.flattenSegment
+//        ).runIO.flattenSegment
 //
-//          readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe otherKeyValues
+//          readAll(bytes).runIO.head.asInstanceOf[Persistent.Group].segment.getAll().runIO shouldBe otherKeyValues
 //        }
 //      }
 //
@@ -468,7 +468,7 @@
 //                sortedIndexCompression = randomCompression(),
 //                valuesCompression = randomCompression()
 //              )
-//        ).assertGet
+//        ).runIO
 //
 //        //all key-values are merged into one group.
 //        mutableKeyValues should have size 1
@@ -478,9 +478,9 @@
 //            segmentCompressions = randomSegmentCompression(),
 //            createdInLevel = 0,
 //            maxProbe = TestData.maxProbe
-//        ).assertGet.flattenSegment
+//        ).runIO.flattenSegment
 //
-//        readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
+//        readAll(bytes).runIO.head.asInstanceOf[Persistent.Group].segment.getAll().runIO shouldBe keyValues
 //      }
 //
 //      "a Group exists with key-values" in {
@@ -513,7 +513,7 @@
 //                sortedIndexCompression = randomCompression(),
 //                valuesCompression = randomCompression()
 //              )
-//        ).assertGet
+//        ).runIO
 //
 //        mutableKeyValues should have size 2
 //        val (bytes, _) =
@@ -522,11 +522,11 @@
 //            segmentCompressions = randomSegmentCompression(),
 //            createdInLevel = 0,
 //            maxProbe = TestData.maxProbe
-//        ).assertGet.flattenSegment
+//        ).runIO.flattenSegment
 //
-//        val readGroups = readAll(bytes).assertGet
+//        val readGroups = readAll(bytes).runIO
 //        readGroups.head.asInstanceOf[Persistent.Group] shouldBe group
-//        readGroups.last.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
+//        readGroups.last.asInstanceOf[Persistent.Group].segment.getAll().runIO shouldBe keyValues
 //      }
 //
 //      "multiple Groups exists with key-values" in {
@@ -562,7 +562,7 @@
 //                sortedIndexCompression = randomCompression(),
 //                valuesCompression = randomCompression()
 //              )
-//        ).assertGet
+//        ).runIO
 //
 //        mutableKeyValues should have size 4
 //        val (bytes, _) =
@@ -571,13 +571,13 @@
 //            segmentCompressions = randomSegmentCompression(),
 //            createdInLevel = 0,
 //            maxProbe = TestData.maxProbe
-//        ).assertGet.flattenSegment
+//        ).runIO.flattenSegment
 //
-//        val readGroups = readAll(bytes).assertGet
+//        val readGroups = readAll(bytes).runIO
 //        readGroups.head.asInstanceOf[Persistent.Group] shouldBe group1
 //        readGroups(1).asInstanceOf[Persistent.Group] shouldBe group2
 //        readGroups(2).asInstanceOf[Persistent.Group] shouldBe group3
-//        readGroups.last.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
+//        readGroups.last.asInstanceOf[Persistent.Group].segment.getAll().runIO shouldBe keyValues
 //      }
 //
 //      "randomly generated key-values but minimum compression requirement is met" in {
@@ -615,7 +615,7 @@
 //                  sortedIndexCompression = randomCompression(),
 //                  valuesCompression = randomCompression()
 //                )
-//          ).assertGet
+//          ).runIO
 //
 //          //all key-values are merged into one group.
 //          mutableKeyValues should have size 1
@@ -625,9 +625,9 @@
 //              segmentCompressions = randomSegmentCompression(),
 //              createdInLevel = 0,
 //              maxProbe = TestData.maxProbe
-//        ).assertGet.flattenSegment
+//        ).runIO.flattenSegment
 //
-//          readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
+//          readAll(bytes).runIO.head.asInstanceOf[Persistent.Group].segment.getAll().runIO shouldBe keyValues
 //        }
 //      }
 //    }

@@ -133,11 +133,11 @@
 //          keyValues = Slice(group),
 //          createdInLevel = 0,
 //          maxProbe = TestData.maxProbe
-//        ).assertGet.flatten
+//        ).runIO.flatten
 //
 //      val reader = Reader(segmentBytes)
-//      val footer = SegmentFooter.read(reader.copy()).assertGet
-//      val readKeyValues = SortedIndex.readAll(footer.sortedIndexOffset, footer.keyValueCount, reader).assertGet
+//      val footer = SegmentFooter.read(reader.copy()).runIO
+//      val readKeyValues = SortedIndex.readAll(footer.sortedIndexOffset, footer.keyValueCount, reader).runIO
 //      readKeyValues shouldBe keyValues
 //    }
 //
@@ -186,11 +186,11 @@
 //          keyValues = Slice(group),
 //          createdInLevel = 0,
 //          maxProbe = TestData.maxProbe
-//        ).assertGet.flatten
+//        ).runIO.flatten
 //
 //      val reader = Reader(segmentBytes)
-//      val footer = SegmentFooter.read(reader.copy()).assertGet
-//      val readKeyValues = SortedIndex.readAll(footer.sortedIndexOffset, footer.keyValueCount, reader).assertGet
+//      val footer = SegmentFooter.read(reader.copy()).runIO
+//      val readKeyValues = SortedIndex.readAll(footer.sortedIndexOffset, footer.keyValueCount, reader).runIO
 //      readKeyValues shouldBe keyValues
 //    }
 //

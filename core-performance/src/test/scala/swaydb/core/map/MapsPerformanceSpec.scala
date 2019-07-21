@@ -64,7 +64,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
         keyValues foreach {
           keyValue =>
             maps.get(keyValue.key)
-          //            maps.get(keyValue.key).assertGet shouldBe ((ValueType.Add, keyValue.getOrFetchValue.assertGetOpt))
+          //            maps.get(keyValue.key).runIO shouldBe ((ValueType.Add, keyValue.getOrFetchValue.runIO.value))
         }
 
       val dir1 = IOEffect.createDirectoryIfAbsent(testDir.resolve(1.toString))

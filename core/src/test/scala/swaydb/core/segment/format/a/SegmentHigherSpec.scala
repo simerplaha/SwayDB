@@ -75,9 +75,9 @@
 //          keyValues = Slice(randomFixedKeyValue(1)),
 //          assert =
 //            (keyValue, segment) => {
-//              segment.higher(0).assertGet shouldBe keyValue.head
-//              segment.higher(1).assertGetOpt shouldBe empty
-//              segment.higher(2).assertGetOpt shouldBe empty
+//              segment.higher(0).runIO shouldBe keyValue.head
+//              segment.higher(1).runIO.value shouldBe empty
+//              segment.higher(2).runIO.value shouldBe empty
 //            }
 //        )
 //      }
@@ -91,12 +91,12 @@
 //            (keyValue, segment) => {
 //              (0 to 9) foreach {
 //                i =>
-//                  segment.higher(i).assertGet shouldBe keyValue.head
+//                  segment.higher(i).runIO shouldBe keyValue.head
 //              }
 //
 //              (10 to 15) foreach {
 //                i =>
-//                  segment.higher(i).assertGetOpt shouldBe empty
+//                  segment.higher(i).runIO.value shouldBe empty
 //              }
 //            }
 //        )
@@ -109,12 +109,12 @@
 //        keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3)),
 //        assert =
 //          (keyValues, segment) => {
-//            segment.higher(0).assertGet shouldBe keyValues(0)
-//            segment.higher(1).assertGet shouldBe keyValues(1)
-//            segment.higher(2).assertGet shouldBe keyValues(2)
+//            segment.higher(0).runIO shouldBe keyValues(0)
+//            segment.higher(1).runIO shouldBe keyValues(1)
+//            segment.higher(2).runIO shouldBe keyValues(2)
 //            (3 to 10) foreach {
 //              i =>
-//                segment.higher(i).assertGetOpt shouldBe empty
+//                segment.higher(i).runIO.value shouldBe empty
 //            }
 //          }
 //      )
@@ -134,52 +134,52 @@
 //          (keyValues, segment) => {
 //            //0
 //            //  1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(0).assertGet shouldBe keyValues(0)
+//            segment.higher(0).runIO shouldBe keyValues(0)
 //            //1
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(1).assertGet shouldBe keyValues(1)
+//            segment.higher(1).runIO shouldBe keyValues(1)
 //            //    2
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(2).assertGet shouldBe keyValues(1)
+//            segment.higher(2).runIO shouldBe keyValues(1)
 //            //     3
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(3).assertGet shouldBe keyValues(1)
+//            segment.higher(3).runIO shouldBe keyValues(1)
 //            //       4
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(4).assertGet shouldBe keyValues(1)
+//            segment.higher(4).runIO shouldBe keyValues(1)
 //            //        5
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(5).assertGet shouldBe keyValues(2)
+//            segment.higher(5).runIO shouldBe keyValues(2)
 //            //          6
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(6).assertGet shouldBe keyValues(2)
+//            segment.higher(6).runIO shouldBe keyValues(2)
 //            //            10
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(10).assertGet shouldBe keyValues(3)
+//            segment.higher(10).runIO shouldBe keyValues(3)
 //            //                 11
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(11).assertGet shouldBe keyValues(3)
+//            segment.higher(11).runIO shouldBe keyValues(3)
 //            //                   12
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(12).assertGet shouldBe keyValues(3)
+//            segment.higher(12).runIO shouldBe keyValues(3)
 //            //                    19
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(19).assertGet shouldBe keyValues(3)
+//            segment.higher(19).runIO shouldBe keyValues(3)
 //            //                      20
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(20).assertGet shouldBe keyValues(4)
+//            segment.higher(20).runIO shouldBe keyValues(4)
 //            //                              21
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(21).assertGet shouldBe keyValues(4)
+//            segment.higher(21).runIO shouldBe keyValues(4)
 //            //                                29
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(29).assertGet shouldBe keyValues(4)
+//            segment.higher(29).runIO shouldBe keyValues(4)
 //            //                                 30
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(30).assertGetOpt shouldBe empty
+//            segment.higher(30).runIO.value shouldBe empty
 //            //                                    31
 //            //1, (2 - 5), 10, (11 - 20), (20 - 30)
-//            segment.higher(31).assertGetOpt shouldBe empty
+//            segment.higher(31).runIO.value shouldBe empty
 //          }
 //      )
 //    }

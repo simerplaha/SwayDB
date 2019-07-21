@@ -1613,6 +1613,7 @@ object TestData {
                           addExpiredPutDeadlines: Boolean = randomBoolean(),
                           addUpdateDeadlines: Boolean = randomBoolean(),
                           addGroups: Boolean = randomBoolean(),
+                          nestedGroupsKeyValueCount: Int = 5,
                           valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                           sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
@@ -1691,6 +1692,7 @@ object TestData {
                       addUpdateDeadlines: Boolean = false,
                       addRanges: Boolean = false,
                       addGroups: Boolean = false,
+                      nestedGroupsKeyValueCount: Int = 5,
                       valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                       sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                       binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
@@ -1711,7 +1713,7 @@ object TestData {
         //create a Random group with the inner key-values the same as count of this group.
         val groupKeyValues =
           randomKeyValues(
-            count = eitherOne(10, 20, 30, 40, 50, 60),
+            count = nestedGroupsKeyValueCount,
             startId = Some(key),
             valueSize = valueSize,
             addPut = addPut,
@@ -1729,6 +1731,7 @@ object TestData {
             binarySearchIndexConfig = binarySearchIndexConfig,
             hashIndexConfig = hashIndexConfig,
             bloomFilterConfig = bloomFilterConfig,
+            nestedGroupsKeyValueCount = nestedGroupsKeyValueCount,
             addRanges = addRanges,
             addGroups = false //do not create more inner groups.
           )

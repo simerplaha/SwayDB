@@ -91,7 +91,7 @@
 //    //    println(compressionType)
 //
 //    val keyValues = randomKeyValues(keyValuesCount, startId = Some(0))
-//    val segment = TestSegment(keyValues).assertGet
+//    val segment = TestSegment(keyValues).runIO
 //
 //    val segments =
 //      segment.put(
@@ -105,7 +105,7 @@
 //        removeDeletes = false,
 //        createdInLevel = 0,
 //        maxProbe = TestData.maxProbe
-//      ).assertGet
+//      ).runIO
 //    //    printGroupHierarchy(segments)
 //
 //    segments should have size 1
@@ -140,9 +140,9 @@
 //          createdInLevel = 0,
 //          maxProbe = TestData.maxProbe,
 //          falsePositiveRate = TestData.falsePositiveRate
-//        ).assertGet
+//        ).runIO
 //
-//      readAll(bytes).assertGet shouldBe allGroupKeyValues
+//      readAll(bytes).runIO shouldBe allGroupKeyValues
 //    }
 //  }
 //
@@ -153,7 +153,7 @@
 //  //      implicit val keyValueLimiter = KeyValueLimiter(100.bytes, 5.second)
 //  //
 //  //      val group: Transient.Group = randomGroup(keyValues)
-//  //      val segment = TestSegment(Slice(group)).assertGet
+//  //      val segment = TestSegment(Slice(group)).runIO
 //  //
 //  //      if (persistent) {
 //  //        segment.isCacheEmpty shouldBe true
@@ -161,7 +161,7 @@
 //  //        println(segment.segmentSize)
 //  //
 //  //        println("*** Reading single key-value ***")
-//  //        segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+//  //        segment.get(keyValues.head.key).runIO shouldBe keyValues.head
 //  //        assertPostReader()
 //  //
 //  //        println("*** Reading all key-values ***")
@@ -188,7 +188,7 @@
 //  //        println(segment.segmentSize)
 //  //
 //  //        println("*** Reading single key-value ***")
-//  //        segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+//  //        segment.get(keyValues.head.key).runIO shouldBe keyValues.head
 //  //        assertPostReader()
 //  //
 //  //        println("*** Reading all key-values ***")

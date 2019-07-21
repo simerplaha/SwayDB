@@ -89,7 +89,7 @@
 //                sortedIndexCompression = randomCompression(),
 //                valuesCompression = randomCompression()
 //              )
-//        ).assertGetOpt shouldBe empty
+//        ).runIO.value shouldBe empty
 //      }
 //
 //      "there are not enough Groups" in {
@@ -130,20 +130,20 @@
 //          )
 //
 //        if (!force) {
-//          result.assertGetOpt shouldBe empty
+//          result.runIO.value shouldBe empty
 //          //no mutation occurs
 //          mutableKeyValues shouldBe keyValues
 //        } else {
 //          val (bytes, _) =
 //            SegmentWriter.write(
-//              keyValues = Slice(result.assertGet),
+//              keyValues = Slice(result.runIO),
 //              segmentCompressions = randomSegmentCompression(),
 //              createdInLevel = 0,
-//              maxProbe = TestData.maxProbe).assertGet.flattenSegment
+//              maxProbe = TestData.maxProbe).runIO.flattenSegment
 //
-//          val rootGroup = readAll(bytes).assertGet
+//          val rootGroup = readAll(bytes).runIO
 //          rootGroup should have size 1
-//          rootGroup.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
+//          rootGroup.head.asInstanceOf[Persistent.Group].segment.getAll().runIO shouldBe keyValues
 //        }
 //      }
 //
@@ -178,7 +178,7 @@
 //                sortedIndexCompression = randomCompressionLZ4OrSnappy(100),
 //                valuesCompression = randomCompression()
 //              )
-//        ).assertGetOpt shouldBe empty
+//        ).runIO.value shouldBe empty
 //
 //        //no mutation occurs
 //        mutableKeyValues shouldBe groups
@@ -213,7 +213,7 @@
 //                    sortedIndexCompression = randomCompression(),
 //                    valuesCompression = randomCompression()
 //                  )
-//            ).assertGetOpt shouldBe empty
+//            ).runIO.value shouldBe empty
 //
 //            //no mutation occurs
 //            mutableKeyValues should have size 1
@@ -258,20 +258,20 @@
 //                    )
 //              )
 //            if (!force) {
-//              result.assertGetOpt shouldBe empty
+//              result.runIO.value shouldBe empty
 //              //no mutation occurs
 //              mutableKeyValues shouldBe groups
 //            } else {
 //              val (bytes, _) =
 //                SegmentWriter.write(
-//                  keyValues = Slice(result.assertGet).updateStats,
+//                  keyValues = Slice(result.runIO).updateStats,
 //                  segmentCompressions = randomSegmentCompression(),
 //                  createdInLevel = 0,
-//                  maxProbe = TestData.maxProbe).assertGet.flattenSegment
+//                  maxProbe = TestData.maxProbe).runIO.flattenSegment
 //
-//              val rootGroup = readAll(bytes).assertGet
+//              val rootGroup = readAll(bytes).runIO
 //              rootGroup should have size 1
-//              rootGroup.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe groups
+//              rootGroup.head.asInstanceOf[Persistent.Group].segment.getAll().runIO shouldBe groups
 //            }
 //        }
 //      }
@@ -317,14 +317,14 @@
 //        //only a Group key-value exists with
 //        val (bytes, _) =
 //          SegmentWriter.write(
-//            keyValues = Slice(result.assertGet).updateStats,
+//            keyValues = Slice(result.runIO).updateStats,
 //            segmentCompressions = randomSegmentCompression(),
 //            createdInLevel = 0,
-//            maxProbe = TestData.maxProbe).assertGet.flattenSegment
+//            maxProbe = TestData.maxProbe).runIO.flattenSegment
 //
-//        val rootGroup = readAll(bytes).assertGet
+//        val rootGroup = readAll(bytes).runIO
 //        rootGroup should have size 1
-//        rootGroup.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe groups
+//        rootGroup.head.asInstanceOf[Persistent.Group].segment.getAll().runIO shouldBe groups
 //      }
 //    }
 //  }

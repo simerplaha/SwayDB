@@ -73,7 +73,7 @@
 //            allocateSpace = TestData.allocateSpace,
 //            previous = None,
 //            maxProbe = TestData.maxProbe
-//          ).assertGet
+//          ).runIO
 //
 //        //write the group to a Segment
 //        //        val (bytes, _) =
@@ -82,10 +82,10 @@
 //        //            createdInLevel = 0,
 //        //            maxProbe = TestData.maxProbe,
 //        //            falsePositiveRate = TestData.falsePositiveRate
-//        //          ).assertGet
+//        //          ).runIO
 //        //
 //        //        //read footer
-//        //        val readKeyValues = SortedIndex.readAll(SegmentFooter.read(Reader(bytes)).assertGet, Reader(bytes)).assertGet
+//        //        val readKeyValues = SortedIndex.readAll(SegmentFooter.read(Reader(bytes)).runIO, Reader(bytes)).runIO
 //        //        readKeyValues should have size 1
 //        //        val persistentGroup = readKeyValues.head.asInstanceOf[Persistent.Group]
 //        //
@@ -102,7 +102,7 @@
 //        //
 //        //                case IO.Success(value) =>
 //        //                  try {
-//        //                    IO.Async.runSafe(value.get.toMemory().get).safeGetBlocking.assertGet shouldBe keyValue
+//        //                    IO.Async.runSafe(value.get.toMemory().get).safeGetBlocking.runIO shouldBe keyValue
 //        //                    IO.unit
 //        //                  } catch {
 //        //                    case ex: Exception =>

@@ -261,7 +261,7 @@ sealed trait MapIterationSpec extends TestBaseEmbedded {
       subMap1.keys.size.get shouldBe 2
       subMap1.keys.headOption.value.value shouldBe 1
       subMap1.keys.lastOption.value.value shouldBe 2
-      //      subMap1.maps.keys.lastOption.assertGet shouldBe 3
+      //      subMap1.maps.keys.lastOption.runIO shouldBe 3
       //      subMap1.maps.keys.toSeq.get shouldBe List(3)
 
       //SECOND MAP ITERATIONS

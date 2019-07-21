@@ -64,7 +64,7 @@
 //          allocateSpace = TestData.allocateSpace,
 //          previous = None,
 //          maxProbe = TestData.maxProbe
-//        ).assertGet
+//        ).runIO
 //
 //      //add more key-values to the right of the Group
 //      val nonGroupKeyValues = randomKeyValues(count = 1000, startId = Some(groupKeyValues.last.key.readInt() + 1))
@@ -80,7 +80,7 @@
 //            path = Paths.get("/test"),
 //            createdInLevel = 0,
 //            keyValues = mergedKeyValues
-//          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileOpenLimiter, None, keyValueLimiter).assertGet
+//          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileOpenLimiter, None, keyValueLimiter).runIO
 //
 //        //perform reads multiple times and assert that while the key-values are getting drop, the group key-value does
 //        //not value dropped
@@ -135,7 +135,7 @@
 //          allocateSpace = TestData.allocateSpace,
 //          previous = None,
 //          maxProbe = TestData.maxProbe
-//        ).assertGet
+//        ).runIO
 //
 //      //add key-values to the right of the group
 //      val nonGroupKeyValues = randomKeyValues(count = 1000, startId = Some(groupKeyValues.last.key.readInt() + 1))
@@ -148,7 +148,7 @@
 //      try {
 //
 //        //create persistent Segment
-//        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, keyValueLimiter, FileLimiter.empty, timeOrder, None).assertGet
+//        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, keyValueLimiter, FileLimiter.empty, timeOrder, None).runIO
 //
 //        //initially Segment's cache is empty
 //        segment.isCacheEmpty shouldBe true
@@ -178,7 +178,7 @@
 //        headGroupAgain.isIndexDecompressed shouldBe false
 //        headGroupAgain.segment(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe true
 //
-//        segment.close.assertGet
+//        segment.close.runIO
 //      } finally {
 //        keyValueLimiter.terminate()
 //      }

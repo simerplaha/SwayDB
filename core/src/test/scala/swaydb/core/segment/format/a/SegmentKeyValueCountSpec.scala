@@ -78,8 +78,8 @@
 //          assert =
 //            (keyValues, segment) => {
 //              keyValues should have size 1
-//              segment.getHeadKeyValueCount().assertGet shouldBe 1
-//              segment.getBloomFilterKeyValueCount().assertGet shouldBe (if (keyValues.head.toTransient.isRange) 2 else 1)
+//              segment.getHeadKeyValueCount().runIO shouldBe 1
+//              segment.getBloomFilterKeyValueCount().runIO shouldBe (if (keyValues.head.toTransient.isRange) 2 else 1)
 //            }
 //        )
 //      }
@@ -91,8 +91,8 @@
 //          keyValues = randomizedKeyValues(keyValuesCount, addGroups = false),
 //          assert =
 //            (keyValues, segment) => {
-//              segment.getHeadKeyValueCount().assertGet shouldBe keyValues.size
-//              segment.getBloomFilterKeyValueCount().assertGet shouldBe
+//              segment.getHeadKeyValueCount().runIO shouldBe keyValues.size
+//              segment.getBloomFilterKeyValueCount().runIO shouldBe
 //                ((keyValues.count(_.toTransient.isRange) * 2) + keyValues.count(keyValue => !keyValue.toTransient.isRange))
 //            }
 //        )
@@ -107,12 +107,12 @@
 //          assert =
 //            (keyValues, segment) => {
 //              //if nested groups are created then getHeadKeyValueCount shouldBe 1
-//              if (segment.getAll().assertGet.head.isInstanceOf[KeyValue.ReadOnly.Group])
-//                segment.getHeadKeyValueCount().assertGet shouldBe 1
+//              if (segment.getAll().runIO.head.isInstanceOf[KeyValue.ReadOnly.Group])
+//                segment.getHeadKeyValueCount().runIO shouldBe 1
 //              else
-//                segment.getHeadKeyValueCount().assertGet shouldBe groupsKeyValues.size
+//                segment.getHeadKeyValueCount().runIO shouldBe groupsKeyValues.size
 //
-//              segment.getBloomFilterKeyValueCount().assertGet shouldBe groupsKeyValues.size
+//              segment.getBloomFilterKeyValueCount().runIO shouldBe groupsKeyValues.size
 //            }
 //        )
 //      }
@@ -140,8 +140,8 @@
 //          keyValues = Slice(group4).toMemory,
 //          assert = {
 //            (_, segment) => {
-//              segment.getBloomFilterKeyValueCount().assertGet shouldBe group4KeyValues.size
-//              segment.getHeadKeyValueCount().assertGet shouldBe 1
+//              segment.getBloomFilterKeyValueCount().runIO shouldBe group4KeyValues.size
+//              segment.getHeadKeyValueCount().runIO shouldBe 1
 //            }
 //          }
 //        )
@@ -150,8 +150,8 @@
 //          keyValues = Slice(group3).toMemory,
 //          assert =
 //            (keyValues, segment) => {
-//              segment.getBloomFilterKeyValueCount().assertGet shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
-//              segment.getHeadKeyValueCount().assertGet shouldBe 1
+//              segment.getBloomFilterKeyValueCount().runIO shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
+//              segment.getHeadKeyValueCount().runIO shouldBe 1
 //            }
 //        )
 //
@@ -159,8 +159,8 @@
 //          keyValues = Slice(randomGroup(Slice(group3, group4).updateStats)).toMemory,
 //          assert =
 //            (keyValues, segment) => {
-//              segment.getBloomFilterKeyValueCount().assertGet shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size + group4KeyValues.size)
-//              segment.getHeadKeyValueCount().assertGet shouldBe 1
+//              segment.getBloomFilterKeyValueCount().runIO shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size + group4KeyValues.size)
+//              segment.getHeadKeyValueCount().runIO shouldBe 1
 //            }
 //        )
 //      }

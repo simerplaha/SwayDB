@@ -107,7 +107,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           previous = Some(previousRead)
         ).runIO
 
-      //      val nextRead = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).assertGet
+      //      val nextRead = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).runIO
       nextRead shouldBe next
 
       //      println("read previous:  " + previousRead)

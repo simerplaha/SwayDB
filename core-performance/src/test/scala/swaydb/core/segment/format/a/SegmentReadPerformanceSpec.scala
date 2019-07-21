@@ -129,7 +129,7 @@
 //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
 //        compressDuplicateValues = true
-//      )(keyOrder = keyOrder, groupingStrategy = Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).assertGet
+//      )(keyOrder = keyOrder, groupingStrategy = Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).runIO
 //
 //    grouped should have size 1
 //    grouped.head.toSlice
@@ -153,7 +153,7 @@
 //        //        println(s"index: $index")
 //        val keyValue = unGroupedKeyValues(index)
 //        val expectedHigher = unGroupedKeyValues(index + 1)
-//        segment.higher(keyValue.key).assertGet shouldBe expectedHigher
+//        segment.higher(keyValue.key).runIO shouldBe expectedHigher
 //    }
 //  }
 //
@@ -164,20 +164,20 @@
 //        //        segment.lowerKeyValue(keyValues(index).key)
 //        val keyValue = unGroupedKeyValues(index)
 //        val expectedLower = unGroupedKeyValues(index - 1)
-//        segment.lower(keyValue.key).assertGet shouldBe expectedLower
+//        segment.lower(keyValue.key).runIO shouldBe expectedLower
 //    }
 //
 //  var segment: Segment = null
 //
 //  def initSegment() = {
 //    println("Creating segment...")
-//    segment = TestSegment(keyValues).assertGet
+//    segment = TestSegment(keyValues).runIO
 //    println("Segment created.")
 //  }
 //
 //  def reopenSegment() = {
 //    println("Re-opening Segment")
-//    segment.close.assertGet
+//    segment.close.runIO
 //    segment.clearCache()
 //    segment = Segment(
 //      path = segment.path,
@@ -187,7 +187,7 @@
 //      maxKey = segment.maxKey,
 //      segmentSize = segment.segmentSize,
 //      nearestExpiryDeadline = segment.nearestExpiryDeadline
-//    ).assertGet
+//    ).runIO
 //  }
 //
 //  "Segment value benchmark 1" in {

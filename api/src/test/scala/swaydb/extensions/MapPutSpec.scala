@@ -114,26 +114,26 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
     //      val db = newDB()
     //
     //      def insertInMap(firstMap) = {
-    //        firstMap.put(3, "three").assertGet
-    //        firstMap.put(4, "four").assertGet
-    //        firstMap.put(5, "five").assertGet
-    //        firstMap.put(4, "four again").assertGet
+    //        firstMap.put(3, "three").runIO
+    //        firstMap.put(4, "four").runIO
+    //        firstMap.put(5, "five").runIO
+    //        firstMap.put(4, "four again").runIO
     //      }
     //
     //      def insertInRoot(rootMap: Root[Int, String]) = {
-    //        val firstMap = rootMap.maps.put(2, "first map").assertGet
+    //        val firstMap = rootMap.maps.put(2, "first map").runIO
     //        insertInMap(firstMap)
     //
-    //        val secondMap = rootMap.maps.put(3, "second map").assertGet
+    //        val secondMap = rootMap.maps.put(3, "second map").runIO
     //        insertInMap(secondMap)
     //      }
     //
     //      insertInRoot(db)
     //
-    //      rootMap1.maps.put(2, "first map").assertGet.toSeq.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-    //      rootMap1.maps.put(3, "second map").assertGet.toSeq.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-    //      rootMap2.maps.put(2, "first map").assertGet.toSeq.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-    //      rootMap2.maps.put(3, "second map").assertGet.toSeq.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+    //      rootMap1.maps.put(2, "first map").runIO.toSeq.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+    //      rootMap1.maps.put(3, "second map").runIO.toSeq.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+    //      rootMap2.maps.put(2, "first map").runIO.toSeq.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+    //      rootMap2.maps.put(3, "second map").runIO.toSeq.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
     //    }
 
     "putOrGet spec" in {

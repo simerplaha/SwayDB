@@ -1235,7 +1235,7 @@ private[core] object Persistent {
   sealed trait SegmentResponse extends KeyValue.ReadOnly.SegmentResponse with Persistent {
     def toMemory(): IO[Memory.SegmentResponse]
 
-    def isValueDefined: Boolean
+    def isValueCached: Boolean
 
     def toMemoryResponseOption(): IO[Option[Memory.SegmentResponse]] =
       toMemory() map (Some(_))
@@ -1251,7 +1251,7 @@ private[core] object Persistent {
                     accessPosition: Int,
                     isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Remove {
     override val valueLength: Int = 0
-    override val isValueDefined: Boolean = true
+    override val isValueCached: Boolean = true
     override val valueOffset: Int = 0
 
     def key = _key
@@ -1360,7 +1360,7 @@ private[core] object Persistent {
     override def getOrFetchValue: IO[Option[Slice[Byte]]] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
-    override def isValueDefined: Boolean =
+    override def isValueCached: Boolean =
       valueCache.isCached
 
     override def toFromValue(): IO[Value.Put] =
@@ -1455,7 +1455,7 @@ private[core] object Persistent {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def isValueDefined: Boolean =
+    override def isValueCached: Boolean =
       valueCache.isCached
 
     def getOrFetchValue: IO[Option[Slice[Byte]]] =
@@ -1577,7 +1577,7 @@ private[core] object Persistent {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def isValueDefined: Boolean =
+    override def isValueCached: Boolean =
       valueCache.isCached
 
     def getOrFetchFunction: IO[Slice[Byte]] =
@@ -1669,7 +1669,7 @@ private[core] object Persistent {
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
-    override def isValueDefined: Boolean =
+    override def isValueCached: Boolean =
       valueCache.isCached
 
     override def getOrFetchApplies: IO[Slice[Value.Apply]] =
@@ -1776,7 +1776,7 @@ private[core] object Persistent {
           )
       }
 
-    override def isValueDefined: Boolean =
+    override def isValueCached: Boolean =
       valueCache.isCached
   }
 

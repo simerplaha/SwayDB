@@ -111,7 +111,7 @@
 //                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
 //                compressDuplicateValues = true
-//              ).assertGet
+//              ).runIO
 //            }
 //          mergedKeyValues should have size 1
 //          val head = mergedKeyValues.head.toSlice

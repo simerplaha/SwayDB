@@ -50,7 +50,7 @@
 //  val keyValueCount: Int = 100000
 //
 //  override def newDB(): Map[Int, String, IO] =
-//    swaydb.persistent.Map[Int, String](dir = randomDir).assertGet
+//    swaydb.persistent.Map[Int, String](dir = randomDir).runIO
 //}
 //
 //class SwayDBStressSpec1 extends SwayDBStressSpec {
@@ -58,7 +58,7 @@
 //  val keyValueCount: Int = 100000
 //
 //  override def newDB(): Map[Int, String, IO] =
-//    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
+//    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).runIO
 //}
 //
 //class SwayDBStressSpec2 extends SwayDBStressSpec {
@@ -66,14 +66,14 @@
 //  val keyValueCount: Int = 100000
 //
 //  override def newDB(): Map[Int, String, IO] =
-//    swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
+//    swaydb.memory.Map[Int, String](mapSize = 1.byte).runIO
 //}
 //
 //class SwayDBStressSpec3 extends SwayDBStressSpec {
 //  val keyValueCount: Int = 100000
 //
 //  override def newDB(): Map[Int, String, IO] =
-//    swaydb.memory.Map[Int, String]().assertGet
+//    swaydb.memory.Map[Int, String]().runIO
 //}
 //
 //sealed trait SwayDBStressSpec extends TestBase with TestBaseEmbedded {
@@ -88,24 +88,24 @@
 //
 //    runThis(100.times) {
 //      //add multiple Levels to Memory databases and the value fails
-//      //swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
+//      //swaydb.memory.Map[Int, String](mapSize = 1.byte).runIO
 //      eitherOne(
-//        left = (1 to keyValueCount) foreach (i => db.remove(i).assertGet),
-//        right = db.remove(1, keyValueCount).assertGet
+//        left = (1 to keyValueCount) foreach (i => db.remove(i).runIO),
+//        right = db.remove(1, keyValueCount).runIO
 //      )
-//      (1 to keyValueCount) foreach (i => db.update(i, value = i.toString).assertGet)
-//      (1 to keyValueCount) foreach { i => db.put(i, i.toString).assertGet }
+//      (1 to keyValueCount) foreach (i => db.update(i, value = i.toString).runIO)
+//      (1 to keyValueCount) foreach { i => db.put(i, i.toString).runIO }
 //
 //      eitherOne(
-//        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).assertGet),
-//        right = db.expire(1, keyValueCount, deadline).assertGet
+//        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).runIO),
+//        right = db.expire(1, keyValueCount, deadline).runIO
 //      )
 //
-//      Future((1 to keyValueCount) foreach (i => db.update(i, value = i.toString).assertGet))
+//      Future((1 to keyValueCount) foreach (i => db.update(i, value = i.toString).runIO))
 //      Future(
 //        eitherOne(
-//          left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).assertGet),
-//          right = db.expire(1, keyValueCount, deadline).assertGet
+//          left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).runIO),
+//          right = db.expire(1, keyValueCount, deadline).runIO
 //        )
 //      )
 //
@@ -116,7 +116,7 @@
 //      //        case (previous, (nextKey, nextValue)) =>
 //      //          //          println(s"previous: $previous -> next: $nextKey")
 //      //          previous shouldBe (nextKey - 1)
-//      //          db.deadline(nextKey).assertGet shouldBe deadline
+//      //          db.deadline(nextKey).runIO shouldBe deadline
 //      //          //          println(db.level0Meter.mapsCount)
 //      //          nextKey
 //      //      }
@@ -129,15 +129,15 @@
 //      (1 to keyValueCount) foreach {
 //        i =>
 //          anyOrder(
-//            left = db.expiration(i).assertGet shouldBe deadline,
-//            right = db.get(i).assertGet shouldBe i.toString
+//            left = db.expiration(i).runIO shouldBe deadline,
+//            right = db.get(i).runIO shouldBe i.toString
 //          )
 //      }
 //
 //      //      db.foldRight(keyValueCount + 1) {
 //      //        case ((previousKey, previousValue), next) =>
 //      //          println(s"previousKey: $previousKey -> previousValue: $previousValue")
-//      //          db.deadline(previousKey).assertGet shouldBe deadline
+//      //          db.deadline(previousKey).runIO shouldBe deadline
 //      //          (previousKey + 1) shouldBe next
 //      //          previousKey
 //      //      }

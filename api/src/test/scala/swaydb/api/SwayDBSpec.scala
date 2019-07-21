@@ -77,7 +77,7 @@ class SwayDBSpec3 extends SwayDBSpec {
 //  override val keyValueCount: Int = 100
 //
 //  override def newDB(): Map[Int, String, IO] =
-//    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).assertGet
+//    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).runIO
 //}
 //
 //class SwayDB_Zero_Spec3 extends SwayDBSpec {
@@ -85,7 +85,7 @@ class SwayDBSpec3 extends SwayDBSpec {
 //  override val keyValueCount: Int = 100
 //
 //  override def newDB(): Map[Int, String, IO] =
-//    swaydb.memory.zero.Map[Int, String]().assertGet
+//    swaydb.memory.zero.Map[Int, String]().runIO
 //}
 
 sealed trait SwayDBSpec extends TestBaseEmbedded {
@@ -282,8 +282,8 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           db.contains(i).value shouldBe true
       }
 
-      //      db.mightContain(Int.MaxValue).assertGet shouldBe false
-      //      db.mightContain(Int.MinValue).assertGet shouldBe false
+      //      db.mightContain(Int.MaxValue).runIO shouldBe false
+      //      db.mightContain(Int.MinValue).runIO shouldBe false
       db.contains(20000).value shouldBe false
 
       db.close().get
@@ -317,12 +317,12 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       //
       //      (1 to 10000) foreach {
       //        i =>
-      //          db.put(i, i.toString).assertGet
+      //          db.put(i, i.toString).runIO
       //      }
 
       //      (1 to 10000) foreach {
       //        i =>
-      //          db.valueSize(i.toString).assertGet shouldBe i.toString.getBytes(StandardCharsets.UTF_8).length
+      //          db.valueSize(i.toString).runIO shouldBe i.toString.getBytes(StandardCharsets.UTF_8).length
       //      }
     }
 
@@ -331,10 +331,10 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     //
     //      (1 to 2000000) foreach {
     //        i =>
-    //          db.put(i, i.toString).assertGet
+    //          db.put(i, i.toString).runIO
     //      }
     //
-    //      db.remove(1, 2000000).assertGet
+    //      db.remove(1, 2000000).runIO
     //
     //      assertLevelsAreEmpty(db, submitUpdates = true)
     //
@@ -346,10 +346,10 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     //
     //      (1 to 2000000) foreach {
     //        i =>
-    //          db.put(i, i.toString).assertGet
+    //          db.put(i, i.toString).runIO
     //      }
     //
-    //      db.expire(1, 2000000, 5.minutes).assertGet
+    //      db.expire(1, 2000000, 5.minutes).runIO
     //      println("Expiry submitted.")
     //
     //      assertLevelsAreEmpty(db, submitUpdates = true)
@@ -362,7 +362,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     //
     //      (1 to 2000000) foreach {
     //        i =>
-    //          db.put(i, i.toString, 5.minute).assertGet
+    //          db.put(i, i.toString, 5.minute).runIO
     //      }
     //
     //      assertLevelsAreEmpty(db, submitUpdates = false)
@@ -379,7 +379,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     //        while (true) {
     //          (1 to 2000000) foreach {
     //            i =>
-    //              db.get(i).assertGet shouldBe i.toString
+    //              db.get(i).runIO shouldBe i.toString
     //              if (i % 100000 == 0)
     //                println(s"Read $i")
     //          }
@@ -390,7 +390,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     //      println("writing")
     //      (1 to 2000000) foreach {
     //        i =>
-    //          db.put(i, i.toString).assertGet
+    //          db.put(i, i.toString).runIO
     //          if (i % 100000 == 0)
     //            println(s"Write $i")
     //      }
@@ -415,7 +415,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     //
     //    (1 to 10) foreach {
     //      i =>
-    //        db.put(i, i.toString).assertGet
+    //        db.put(i, i.toString).runIO
     //    }
     //
     //    //    db.before(5).toList foreach println

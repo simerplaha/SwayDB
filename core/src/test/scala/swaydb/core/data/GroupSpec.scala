@@ -58,9 +58,9 @@
 //          allocateSpace = TestData.allocateSpace,
 //          previous = None,
 //          maxProbe = TestData.maxProbe
-//        ).assertGet
+//        ).runIO
 //
-//      Seq(group).lastGroup().assertGet shouldBe group
+//      Seq(group).lastGroup().runIO shouldBe group
 //    }
 //
 //    "return last group if there are multiple groups" in {
@@ -78,10 +78,10 @@
 //              allocateSpace = TestData.allocateSpace,
 //              previous = None,
 //              maxProbe = TestData.maxProbe
-//            ).assertGet
+//            ).runIO
 //        }
 //
-//      groups.lastGroup().assertGet shouldBe groups.last
+//      groups.lastGroup().runIO shouldBe groups.last
 //    }
 //
 //    "return last group if there are multiple groups after a non Group key-value" in {
@@ -102,10 +102,10 @@
 //                allocateSpace = TestData.allocateSpace,
 //                previous = None,
 //                maxProbe = TestData.maxProbe
-//              ).assertGet
+//              ).runIO
 //        }
 //
-//      groups.lastGroup().assertGet shouldBe groups.drop(3).head.asInstanceOf[Transient.Group]
+//      groups.lastGroup().runIO shouldBe groups.drop(3).head.asInstanceOf[Transient.Group]
 //    }
 //  }
 //
@@ -125,13 +125,13 @@
 //          allocateSpace = TestData.allocateSpace,
 //          previous = None,
 //          maxProbe = TestData.maxProbe
-//        ).assertGet
+//        ).runIO
 //
 //      //create Segment
-//      val segment = TestSegment(Slice(group)).assertGet
+//      val segment = TestSegment(Slice(group)).runIO
 //
 //      //read all Group's key-values
-//      val readKeyValues = segment.getAll().assertGet
+//      val readKeyValues = segment.getAll().runIO
 //      readKeyValues should have size 1
 //      val readGroup = readKeyValues.head.asInstanceOf[Persistent.Group]
 //
@@ -142,7 +142,7 @@
 //
 //      val segmentCache = readGroup.segment
 //      segmentCache.isCacheEmpty shouldBe true
-//      segmentCache.get(keyValues.head.key).assertGet shouldBe keyValues.head
+//      segmentCache.get(keyValues.head.key).runIO shouldBe keyValues.head
 //
 //      readGroup.isHeaderDecompressed shouldBe true
 //      readGroup.isIndexDecompressed shouldBe true
@@ -156,7 +156,7 @@
 //      uncompressedGroup.isIndexDecompressed shouldBe false
 //      uncompressedGroup.isValueDecompressed shouldBe false
 //      uncompressedGroup.segment.isCacheEmpty shouldBe true
-//      uncompressedGroup.segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+//      uncompressedGroup.segment.get(keyValues.head.key).runIO shouldBe keyValues.head
 //      uncompressedGroup.segment.isCacheEmpty shouldBe false
 //    }
 //
@@ -174,7 +174,7 @@
 //          allocateSpace = TestData.allocateSpace,
 //          previous = None,
 //          maxProbe = TestData.maxProbe
-//        ).assertGet
+//        ).runIO
 //
 //      implicit val groupingStrategy = None
 //
@@ -183,9 +183,9 @@
 //          path = Paths.get("/test"),
 //          createdInLevel = 0,
 //          keyValues = Seq(group)
-//        ).assertGet
+//        ).runIO
 //
-//      val readKeyValues = segment.getAll().assertGet
+//      val readKeyValues = segment.getAll().runIO
 //      readKeyValues should have size 1
 //      val readGroup = readKeyValues.head.asInstanceOf[Memory.Group]
 //
@@ -195,7 +195,7 @@
 //
 //      val segmentCache = readGroup.segment
 //      segmentCache.isCacheEmpty shouldBe true
-//      segmentCache.get(keyValues.head.key).assertGet shouldBe keyValues.head
+//      segmentCache.get(keyValues.head.key).runIO shouldBe keyValues.head
 //
 //      readGroup.isHeaderDecompressed shouldBe true
 //      readGroup.isIndexDecompressed shouldBe true
@@ -207,7 +207,7 @@
 //      uncompressedGroup.isIndexDecompressed shouldBe false
 //      uncompressedGroup.isValueDecompressed shouldBe false
 //      uncompressedGroup.segment.isCacheEmpty shouldBe true
-//      uncompressedGroup.segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+//      uncompressedGroup.segment.get(keyValues.head.key).runIO shouldBe keyValues.head
 //      uncompressedGroup.segment.isCacheEmpty shouldBe false
 //    }
 //  }

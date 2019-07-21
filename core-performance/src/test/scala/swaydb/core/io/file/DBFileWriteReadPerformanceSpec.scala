@@ -135,7 +135,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
       benchmark("FileChannel read benchmark") {
         bytes.foldLeft(0) {
           case (index, byteSlice) =>
-            //            channelFile.read(index, chunkSize).assertGet.array shouldBe byteSlice.array
+            //            channelFile.read(index, chunkSize).runIO.array shouldBe byteSlice.array
             channelFile.read(index, chunkSize)
             index + chunkSize
         }
@@ -154,7 +154,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
       benchmark("mmap read benchmark") {
         bytes.foldLeft(0) {
           case (index, byteSlice) =>
-            //            mmapFile.read(index, chunkSize).assertGet.array shouldBe byteSlice.array
+            //            mmapFile.read(index, chunkSize).runIO.array shouldBe byteSlice.array
             mmapFile.read(index, chunkSize)
             index + chunkSize
         }
@@ -170,7 +170,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
       benchmark("mmap read again benchmark") {
         bytes.foldLeft(0) {
           case (index, byteSlice) =>
-            //            mmapFile.read(index, chunkSize).assertGet.array shouldBe byteSlice.array
+            //            mmapFile.read(index, chunkSize).runIO.array shouldBe byteSlice.array
             mmapFile.read(index, chunkSize)
             index + chunkSize
         }
@@ -188,7 +188,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
       benchmark("memory read benchmark") {
         bytes.foldLeft(0) {
           case (index, byteSlice) =>
-            //            memoryFile.read(index, chunkSize).assertGet shouldBe byteSlice
+            //            memoryFile.read(index, chunkSize).runIO shouldBe byteSlice
             memoryFile.read(index, chunkSize)
             index + chunkSize
         }

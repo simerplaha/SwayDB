@@ -73,14 +73,14 @@
 //      def assert(level: Level) = {
 //        keyValues foreach {
 //          keyValue =>
-//            level.mightContain(keyValue.key).assertGet shouldBe true
+//            level.mightContain(keyValue.key).runIO shouldBe true
 //        }
 //
-//        level.mightContain("THIS KEY DOES NOT EXISTS").assertGet shouldBe false
+//        level.mightContain("THIS KEY DOES NOT EXISTS").runIO shouldBe false
 //      }
 //
 //      val level = TestLevel()
-//      level.putKeyValuesTest(keyValues).assertGet
+//      level.putKeyValuesTest(keyValues).runIO
 //
 //      assert(level)
 //      if (persistent) assert(level.reopen)
@@ -93,9 +93,9 @@
 //      val level = TestLevel(segmentSize = 1.kb, nextLevel = None, throttle = (_) => Throttle(Duration.Zero, 0))
 //
 //      val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)
-//      level.putKeyValuesTest(keyValues).assertGet
+//      level.putKeyValuesTest(keyValues).runIO
 //      //do another put so split occurs.
-//      level.putKeyValuesTest(keyValues.headSlice).assertGet
+//      level.putKeyValuesTest(keyValues.headSlice).runIO
 //      level.segmentsCount() > 1 shouldBe true //ensure there are Segments in this Level
 //
 //      if (persistent) {
@@ -119,7 +119,7 @@
 //      //refresh so that if there is a compression running, this Segment will compressed.
 //      val segments =
 //        TestSegment(putKeyValues)
-//          .assertGet
+//          .runIO
 //          .refresh(
 //            minSegmentSize = 100.mb,
 //            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
@@ -133,12 +133,12 @@
 //            maxProbe = TestData.maxProbe,
 //            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-//          ).assertGet
+//          ).runIO
 //
 //      segments should have size 1
 //      val segment = segments.head
 //
-//      level.put(Seq(segment)).assertGet
+//      level.put(Seq(segment)).runIO
 //
 //      level.meter.segmentsCount shouldBe 1
 //      level.meter.levelSize shouldBe segment.segmentSize
@@ -154,7 +154,7 @@
 //      //refresh so that if there is a compression running, this Segment will compressed.
 //      val segments =
 //        TestSegment(putKeyValues)
-//          .assertGet
+//          .runIO
 //          .refresh(
 //            minSegmentSize = 100.mb,
 //            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
@@ -167,12 +167,12 @@
 //            createdInLevel = 0,
 //            maxProbe = TestData.maxProbe,
 //            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-//            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex).assertGet
+//            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex).runIO
 //
 //      segments should have size 1
 //      val segment = segments.head
 //
-//      level2.put(Seq(segment)).assertGet
+//      level2.put(Seq(segment)).runIO
 //
 //      level1.meter.levelSize shouldBe 0
 //      level1.meter.segmentsCount shouldBe 0
@@ -194,8 +194,8 @@
 //      val level1 = TestLevel(nextLevel = Some(level2))
 //
 //      val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
-//      val segment = TestSegment(putKeyValues).assertGet
-//      level2.put(Seq(segment)).assertGet
+//      val segment = TestSegment(putKeyValues).runIO
+//      level2.put(Seq(segment)).runIO
 //
 //      level1.meterFor(3) shouldBe empty
 //    }

@@ -496,7 +496,7 @@ private[core] object Segment extends LazyLogging {
     }
   }
 
-  def belongsTo(keyValue: KeyValue.ReadOnly,
+  def belongsTo(keyValue: KeyValue,
                 segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
     import keyOrder._
     keyValue.key >= segment.minKey && {

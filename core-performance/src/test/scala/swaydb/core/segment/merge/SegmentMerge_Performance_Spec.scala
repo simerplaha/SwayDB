@@ -55,7 +55,7 @@
 //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
 //        compressDuplicateValues = true
-//      ).assertGet
+//      ).runIO
 //    }
 //  }
 //}

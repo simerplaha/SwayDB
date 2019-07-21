@@ -24,6 +24,10 @@ import java.nio.file.Path
 object SegmentException {
   case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int) extends Exception(s"Failed to write all bytes written: $written, expected : $expected, bytesSize: $bytesSize")
   case class CannotCopyInMemoryFiles(file: Path) extends Exception(s"Cannot copy in-memory files $file")
+  object SegmentCorruptionException {
+    def apply(message: String): SegmentCorruptionException =
+      new SegmentCorruptionException(message, new Exception(message))
+  }
   case class SegmentCorruptionException(message: String, cause: Throwable) extends Exception(message, cause)
   case class SegmentFileMissing(path: Path) extends Exception(s"$path: Segment file missing.")
   case class InvalidKeyValueId(id: Int) extends Exception(s"Invalid keyValueId: $id.")

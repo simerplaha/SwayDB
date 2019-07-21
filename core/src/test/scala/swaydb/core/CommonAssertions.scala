@@ -161,28 +161,24 @@ object CommonAssertions {
           keyValue match {
             case keyValue: Persistent.Put =>
               keyValue.getOrFetchValue.runIO
+
             case keyValue: Persistent.Update =>
               keyValue.getOrFetchValue.runIO
+
             case keyValue: Persistent.Function =>
               Some(keyValue.getOrFetchFunction.runIO)
+
             case keyValue: Persistent.PendingApply =>
-              //              keyValue.lazyValueReader.getOrFetchValue.runSafeIO
-              ???
+              keyValue.toTransient.getOrFetchValue
+
             case keyValue: Persistent.Remove =>
-              keyValue.getOrFetchValue
+              keyValue.toTransient.getOrFetchValue
+
             case keyValue: Persistent.Range =>
-              //              keyValue.valueCache.getOrFetchValue.runSafeIO
-              ???
+              keyValue.toTransient.getOrFetchValue
+
             case keyValue: Persistent.Group =>
-              //              keyValue
-              //                .valueReader
-              //                .value(ValuesBlock.Offset(keyValue.valueOffset, keyValue.valueLength))
-              //                .get
-              //                .readAll()
-              //                .safeGetBlocking()
-              //                .map(Some(_))
-              //                .get
-              ???
+              keyValue.toTransient.getOrFetchValue
           }
       }
   }
@@ -808,17 +804,17 @@ object CommonAssertions {
         //        if (key % 100 == 0)
         //          println(s"Key: $key")
         val result =
-        SegmentSearcher.search(
-          key = keyValue.key,
-          start = None,
-          end = None,
-          hashIndexReader = blocks.hashIndexReader,
-          binarySearchIndexReader = blocks.binarySearchIndexReader,
-          sortedIndexReader = blocks.sortedIndexReader,
-          valuesReader = blocks.valuesReader,
-          hasRange = blocks.footer.hasRange,
-          hashIndexSearchOnly = false
-        ).runIO.value shouldBe keyValue
+          SegmentSearcher.search(
+            key = keyValue.key,
+            start = None,
+            end = None,
+            hashIndexReader = blocks.hashIndexReader,
+            binarySearchIndexReader = blocks.binarySearchIndexReader,
+            sortedIndexReader = blocks.sortedIndexReader,
+            valuesReader = blocks.valuesReader,
+            hasRange = blocks.footer.hasRange,
+            hashIndexSearchOnly = false
+          ).runIO.value shouldBe keyValue
     }
   }
 
@@ -1634,7 +1630,7 @@ object CommonAssertions {
             minKey.shouldBeSliced()
             maxKey.maxKey.shouldBeSliced()
           //todo assert decompressed length
-          //            groupDecompressor.reader().assertGet.remaining.assertGet
+          //            groupDecompressor.reader().runIO.remaining.runIO
         }
       case persistent: Persistent =>
         persistent match {

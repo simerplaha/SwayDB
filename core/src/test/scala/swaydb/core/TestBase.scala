@@ -277,7 +277,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         //        val replyTo = TestActor[PushSegmentsResponse]()
         //        level ! PushSegments(segments, replyTo)
         ???
-        //        replyTo.getMessage(5.seconds).result.assertGet
+        //        replyTo.getMessage(5.seconds).result.runIO
         //        level.segmentsCount() shouldBe segments.size
         level
       }

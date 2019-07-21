@@ -276,18 +276,18 @@ class SegmentBlockSpec extends TestBase {
       //        compressions = Seq.empty
       //      ),
       //            createdInLevel = 0
-      //          ).assertGet.flattenSegment
+      //          ).runIO.flattenSegment
       //
       //        //        val result = SegmentBlock.read(SegmentBlock.Offset(0, bytes.size), Reader(bytes.drop(2)))
       //        //        if(result.isSuccess)
       //        //          println("debug")
-      //        //        result.failed.assertGet.exception shouldBe a[SegmentCorruptionException]
+      //        //        result.failed.runIO.exception shouldBe a[SegmentCorruptionException]
       //
       //        SegmentBlock.read(SegmentBlock.Offset(0, bytes.size), Reader(bytes)) map {
       //          segmentBlock =>
-      //            SegmentBlock.readFooter(segmentBlock.createBlockReader(Reader(bytes.drop(1)))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
-      //            SegmentBlock.readFooter(segmentBlock.createBlockReader(Reader(bytes.dropRight(1)))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
-      //            SegmentBlock.readFooter(segmentBlock.createBlockReader(Reader(bytes.slice(10, 20)))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
+      //            SegmentBlock.readFooter(segmentBlock.createBlockReader(Reader(bytes.drop(1)))).failed.runIO.exception shouldBe a[SegmentCorruptionException]
+      //            SegmentBlock.readFooter(segmentBlock.createBlockReader(Reader(bytes.dropRight(1)))).failed.runIO.exception shouldBe a[SegmentCorruptionException]
+      //            SegmentBlock.readFooter(segmentBlock.createBlockReader(Reader(bytes.slice(10, 20)))).failed.runIO.exception shouldBe a[SegmentCorruptionException]
       //        } get
       //      }
     }

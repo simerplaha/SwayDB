@@ -68,11 +68,11 @@ sealed trait LevelPerformanceSpec extends TestBase with Benchmark {
         //          if (key % 1000 == 0)
         //            println(s"Reading $key")
         level.get(keyValue.key)
-      //        level.get(keyValue.key).assertGet
-      //        val got = level.get(keyValue.key).assertGet
+      //        level.get(keyValue.key).runIO
+      //        val got = level.get(keyValue.key).runIO
       //        got.key shouldBe keyValue.key
-      //        got.getOrFetchValue.assertGetOpt shouldBe keyValue.getOrFetchValue.assertGetOpt
-      //          println("value: " + level.get(keyValue.key).assertGet._2.assertGet.asInt())
+      //        got.getOrFetchValue.runIO.value shouldBe keyValue.getOrFetchValue.runIO.value
+      //          println("value: " + level.get(keyValue.key).runIO._2.runIO.asInt())
     }
   }
 
@@ -81,18 +81,18 @@ sealed trait LevelPerformanceSpec extends TestBase with Benchmark {
       index =>
         //        println(s"index: $index")
         level.lower(keyValues(index).key)
-      //        val keyValue = level.lower(keyValues(index).key).assertGet
+      //        val keyValue = level.lower(keyValues(index).key).runIO
       //        keyValue.key shouldBe keyValues(index - 1).key
-      //        keyValue.getOrFetchValue.assertGetOpt shouldBe keyValues(index - 1).getOrFetchValue.assertGetOpt
+      //        keyValue.getOrFetchValue.runIO.value shouldBe keyValues(index - 1).getOrFetchValue.runIO.value
     }
 
   def readHigher(level: Level) =
     (0 until keyValues.size - 1) foreach {
       index =>
         level.higher(keyValues(index).key)
-      //        val keyValue = level.higher(keyValues(index).key).assertGet
+      //        val keyValue = level.higher(keyValues(index).key).runIO
       //        keyValue.key shouldBe keyValues(index + 1).key
-      //        keyValue.getOrFetchValue.assertGetOpt shouldBe keyValues(index + 1).getOrFetchValue.assertGetOpt
+      //        keyValue.getOrFetchValue.runIO.value shouldBe keyValues(index + 1).getOrFetchValue.runIO.value
     }
 
   var level = TestLevel()

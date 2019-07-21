@@ -756,8 +756,8 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
   //    "result in Busy exception" in {
   //      //create a file
   //      val bytes = Slice(randomBytes())
-  //      val file = DBFile.mmapInit(randomFilePath, bytes.size, autoClose = true).assertGet
-  //      file.append(bytes).assertGet
+  //      val file = DBFile.mmapInit(randomFilePath, bytes.size, autoClose = true).runIO
+  //      file.append(bytes).runIO
   //
   //      //concurrently close and read the same file.
   //      val ios =

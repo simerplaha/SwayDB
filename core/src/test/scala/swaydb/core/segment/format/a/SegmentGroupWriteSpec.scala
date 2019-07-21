@@ -71,7 +71,7 @@
 //        val keyValues = (Slice(mergePut) ++ rightKeyValues).updateStats
 //
 //        implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = Some(randomGroupingStrategy(keyValuesCount))
-//        val segment = TestSegment(keyValues).assertGet
+//        val segment = TestSegment(keyValues).runIO
 //
 //        //write a head key-values so that it triggers merging and grouping
 //        val groupedSegments =
@@ -89,7 +89,7 @@
 //            maxProbe = TestData.maxProbe,
 //            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-//          ).assertGet
+//          ).runIO
 //        //        printGroupHierarchy(newSegments)
 //        groupedSegments should have size 1
 //        val newGroupedSegment = groupedSegments.head
@@ -128,7 +128,7 @@
 //            maxProbe = TestData.maxProbe,
 //            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-//          ).assertGet
+//          ).runIO
 //
 //        newSegmentsWithRemovedKeyValues should have size 1
 //        val lastSegment = newSegmentsWithRemovedKeyValues.head
@@ -137,7 +137,7 @@
 //            lastSegment.get(keyValue.key).runSafeIO.get match {
 //              case _: KeyValue.ReadOnly.Remove =>
 //              case remove: KeyValue.ReadOnly.Range =>
-//                remove.fetchFromOrElseRangeValue.assertGet shouldBe Value.remove(None)
+//                remove.fetchFromOrElseRangeValue.runIO shouldBe Value.remove(None)
 //              case actual =>
 //                fail(s"Expected Remove found ${actual.getClass.getName}")
 //            }
@@ -163,6 +163,6 @@
 ////          segmentSize = 5.mb,
 ////          removeDeletes = false,
 ////          nearestExpiryDeadline = None
-////        ).assertGet
+////        ).runIO
 //
 ////      println(newSegment.path)
