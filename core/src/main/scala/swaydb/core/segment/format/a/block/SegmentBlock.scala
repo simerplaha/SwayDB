@@ -443,7 +443,7 @@ private[core] object SegmentBlock {
 
                   skipList.put(
                     keyUnsliced,
-                    Memory.Put(
+                    Memory.Update(
                       key = keyUnsliced,
                       value = unslicedValue,
                       deadline = update.deadline,
