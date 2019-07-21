@@ -134,7 +134,7 @@
 //        val lastSegment = newSegmentsWithRemovedKeyValues.head
 //        keyValues foreach {
 //          keyValue =>
-//            lastSegment.get(keyValue.key).get.safeGetBlocking().get match {
+//            lastSegment.get(keyValue.key).runSafeIO.get match {
 //              case _: KeyValue.ReadOnly.Remove =>
 //              case remove: KeyValue.ReadOnly.Range =>
 //                remove.fetchFromOrElseRangeValue.assertGet shouldBe Value.remove(None)

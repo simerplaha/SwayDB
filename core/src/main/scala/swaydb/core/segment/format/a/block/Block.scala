@@ -210,9 +210,6 @@ private[core] object Block extends LazyLogging {
         offset = blockOps.createOffset(reader.offset.start + headerSize, reader.offset.size - headerSize)
       )
     }
-  } recoverWith {
-    case error =>
-      IO.Failure(SegmentException.SegmentCorruptionException(s"Failed to read block header.", error.exception))
   }
 
   def unblock[O <: BlockOffset, B <: Block[O]](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, B]): IO[UnblockedReader[O, B]] =

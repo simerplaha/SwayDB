@@ -320,14 +320,14 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
       //remove 5
       zero.remove(5).assertGet
-      zero.last.safeGetBlocking.assertGet.getOrFetchValue.safeGetBlocking().get.get shouldBe ("four": Slice[Byte])
+      zero.last.safeGetBlocking.assertGet.getOrFetchValue.runSafeIO.get shouldBe ("four": Slice[Byte])
 
       zero.remove(2).assertGet
       zero.remove(3).assertGet
       zero.remove(4).assertGet
 
       println
-      zero.last.safeGetBlocking.assertGet.getOrFetchValue.safeGetBlocking().assertGet shouldBe ("one": Slice[Byte])
+      zero.last.safeGetBlocking.assertGet.getOrFetchValue.runSafeIO.assertGet shouldBe ("one": Slice[Byte])
 
       zero.remove(1).assertGet
       zero.last.assertGetOpt shouldBe empty

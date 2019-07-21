@@ -226,7 +226,7 @@ class SegmentBlockCache(id: String,
   def getValues(): IO[Option[ValuesBlock]] =
     getBlockOptional(valuesBlockCache, _.valuesOffset)
 
-  def createReaderOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]], getBlock: => IO[Option[B]]): IO[Option[UnblockedReader[O, B]]] =
+  def createReaderOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]], getBlock: => IO[Option[B]]): IO[Option[UnblockedReader[O, B]]] = {
     cache getOrElse {
       getBlock flatMap {
         block =>
@@ -239,9 +239,10 @@ class SegmentBlockCache(id: String,
               }
           } getOrElse cache.value(None)
       }
-    }.map(_.map(_.copy()))
+    }
+  }.map(_.map(_.copy()))
 
-  def createReader[O <: BlockOffset, B <: Block[O]](cache: Cache[BlockedReader[O, B], UnblockedReader[O, B]], getBlock: => IO[B]): IO[UnblockedReader[O, B]] =
+  def createReader[O <: BlockOffset, B <: Block[O]](cache: Cache[BlockedReader[O, B], UnblockedReader[O, B]], getBlock: => IO[B]): IO[UnblockedReader[O, B]] = {
     cache getOrElse {
       getBlock flatMap {
         block =>
@@ -251,7 +252,8 @@ class SegmentBlockCache(id: String,
                 .value(BlockedReader(block, segmentReader))
           }
       }
-    }.map(_.copy())
+    }
+  }.map(_.copy())
 
   def createHashIndexReader(): IO[Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]]] =
     createReaderOptional(hashIndexReaderCache, getHashIndex())

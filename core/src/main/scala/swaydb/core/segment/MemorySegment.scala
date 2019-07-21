@@ -247,7 +247,7 @@ private[segment] case class MemorySegment(path: Path,
       reader =>
         BloomFilterBlock.mightContain(
           key = key,
-          reader = reader.copy()
+          reader = reader
         )
     } getOrElse IO.`true`
 

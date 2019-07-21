@@ -266,7 +266,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       def valueCache =
         valuesReader map {
           valuesReader =>
-            Cache.concurrentIO[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](synchronised = false, stored = true) {
+            Cache.concurrentIO[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](synchronised = false, stored = false) {
               offset =>
                 if (offset.size == 0)
                   ValuesBlock.emptyUnblockedIO

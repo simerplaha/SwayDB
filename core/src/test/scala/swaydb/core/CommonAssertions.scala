@@ -58,9 +58,47 @@ import scala.util.{Random, Try}
 
 object CommonAssertions {
 
-  implicit class RunSafe[T](input: => T) {
-    def safeGetBlocking(): T =
-      IO.Async.runSafe(input).safeGetBlocking.get
+  implicit class RunSafeIOImplicits[T](input: => IO[T]) {
+    def runSafeIO: T =
+      input.asAsync.runSafeIO
+  }
+
+  implicit class RunSafeOptionIOImplicits[T](input: => IO[Option[T]]) {
+    def runSafeIO: Option[T] =
+      input.asAsync.runSafeIO
+  }
+
+  implicit class RunSafeAsyncIOImplicits[T](input: => IO.Async[T]) {
+    def runSafeIO: T =
+      runSafeIO(2, None)
+
+    private def runSafeIO(timesToRun: Int, previousIO: Option[IO.Failure[T]]): T = {
+      @tailrec
+      def run(remainingTimesToRun: Int, previousIO: Option[IO.Failure[T]]): T =
+        if (remainingTimesToRun == 0)
+          fail(s"Failed to runSafe on Async IO. Ran $timesToRun times.", previousIO.get.exception)
+        else
+          IO.Async.runSafe(input.get).safeGetBlocking match {
+            case IO.Success(value) =>
+              value
+
+            case failure @ IO.Failure(busyError: IO.Error.Busy) =>
+              busyError.isFree shouldBe false
+              run(remainingTimesToRun - 1, Some(failure))
+
+            case IO.Failure(other) =>
+              throw other.exception
+          }
+      //      else
+      //        IO(IO.Async.runSafe(input.get).safeGetFuture.await(1.minute)) match {
+      //          case IO.Success(value) =>
+      //            value
+      //
+      //          case failure @ IO.Failure(_) =>
+      //            runSafeIO(timesToRun, remainingTimesToRun - 1, Some(failure))
+      //        }
+      run(timesToRun, None)
+    }
   }
 
   implicit class KeyValueImplicits(actual: KeyValue) {
@@ -128,10 +166,10 @@ object CommonAssertions {
             case keyValue: Memory.Update =>
               keyValue.value
             case keyValue: Memory.Function =>
-              Some(keyValue.getOrFetchFunction.get.safeGetBlocking())
+              Some(keyValue.getOrFetchFunction.runSafeIO)
             case keyValue: Memory.PendingApply =>
-              val bytes = Slice.create[Byte](ValueSerializer.bytesRequired(keyValue.getOrFetchApplies.get.safeGetBlocking()))
-              ValueSerializer.write(keyValue.getOrFetchApplies.get.safeGetBlocking())(bytes)
+              val bytes = Slice.create[Byte](ValueSerializer.bytesRequired(keyValue.getOrFetchApplies.runSafeIO))
+              ValueSerializer.write(keyValue.getOrFetchApplies.runSafeIO)(bytes)
               Some(bytes)
             case keyValue: Memory.Remove =>
               None
@@ -163,18 +201,18 @@ object CommonAssertions {
         case keyValue: Persistent =>
           keyValue match {
             case keyValue: Persistent.Put =>
-              keyValue.getOrFetchValue.get.safeGetBlocking()
+              keyValue.getOrFetchValue.runSafeIO
             case keyValue: Persistent.Update =>
-              keyValue.getOrFetchValue.get.safeGetBlocking()
+              keyValue.getOrFetchValue.runSafeIO
             case keyValue: Persistent.Function =>
-              Some(keyValue.getOrFetchFunction.get.safeGetBlocking())
+              Some(keyValue.getOrFetchFunction.runSafeIO)
             case keyValue: Persistent.PendingApply =>
-              //              keyValue.lazyValueReader.getOrFetchValue.get.safeGetBlocking()
+              //              keyValue.lazyValueReader.getOrFetchValue.runSafeIO
               ???
             case keyValue: Persistent.Remove =>
               keyValue.getOrFetchValue
             case keyValue: Persistent.Range =>
-              //              keyValue.valueCache.getOrFetchValue.get.safeGetBlocking()
+              //              keyValue.valueCache.getOrFetchValue.runSafeIO
               ???
             case keyValue: Persistent.Group =>
               //              keyValue
@@ -781,7 +819,7 @@ object CommonAssertions {
           if (lower.nonEmpty) {
             expectedLowerKeyValue shouldBe defined
             lower.get.key shouldBe expectedLowerKeyValue.get.key
-            lower.get.getOrFetchValue.get.safeGetBlocking shouldBe expectedLowerKeyValue.get.getOrFetchValue.safeGetBlocking()
+            lower.get.getOrFetchValue.runSafeIO shouldBe expectedLowerKeyValue.get.getOrFetchValue
           } else {
             expectedLowerKeyValue shouldBe empty
           }
@@ -840,10 +878,10 @@ object CommonAssertions {
                   segment: Segment) = {
     val unzipedKeyValues = unzipGroups(keyValues)
 
-    unzipedKeyValues.count {
+    unzipedKeyValues.par.count {
       keyValue =>
-        segment.mightContainKey(keyValue.key).safeGetBlocking().get
-    } should be >= (unzipedKeyValues.size * 0.90).toInt
+        segment.mightContainKey(keyValue.key).runSafeIO
+    } shouldBe unzipedKeyValues.size
 
     assertBloomNotContains(segment)
   }
@@ -852,43 +890,43 @@ object CommonAssertions {
                   bloomFilterReader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]) = {
     val unzipedKeyValues = unzipGroups(keyValues)
 
-    unzipedKeyValues.count {
+    unzipedKeyValues.par.count {
       keyValue =>
         BloomFilterBlock.mightContain(
           key = keyValue.key,
           reader = bloomFilterReader
         ).get
-    } should be >= (unzipedKeyValues.size * 0.90).toInt
+    } shouldBe unzipedKeyValues.size
 
-    //    assertBloomNotContains(bloomFilterReader)
+    assertBloomNotContains(bloomFilterReader)
   }
 
   def assertBloomNotContains(bloomFilterReader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]) =
-    (1 to 1000).count {
+    (1 to 1000).par.count {
       _ =>
-        BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader).get
+        BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader).runSafeIO
     } should be <= 300
 
   def assertBloomNotContains(segment: Segment) =
     if (segment.hasBloomFilter.get)
-      (1 to 1000).count {
+      (1 to 1000).par.count {
         _ =>
-          segment.mightContainKey(randomBytesSlice(100)).get
-      } should be <= 300
+          segment.mightContainKey(randomBytesSlice(100)).runSafeIO
+      } should be <= 900
 
   def assertBloomNotContains(bloom: BloomFilterBlock.State) =
-    runThis(1000.times) {
+    runThisParallel(1000.times) {
       val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.bytes).get
       BloomFilterBlock.mightContain(
         key = randomBytesSlice(randomIntMax(1000) min 100),
         reader = bloomFilter
-      ).get shouldBe false
+      ).runSafeIO shouldBe false
     }
 
   def assertReads(keyValues: Slice[KeyValue],
                   segment: Segment) = {
     val asserts = Seq(() => assertGet(keyValues, segment), () => assertHigher(keyValues, segment), () => assertLower(keyValues, segment))
-    Random.shuffle(asserts).foreach(_ ())
+    Random.shuffle(asserts).par.foreach(_ ())
   }
 
   def assertAllSegmentsCreatedInLevel(level: Level) =
@@ -924,7 +962,7 @@ object CommonAssertions {
       keyValue =>
         try {
           val actual = level.getFromThisLevel(keyValue.key).assertGet
-          actual.getOrFetchValue.safeGetBlocking() shouldBe keyValue.getOrFetchValue.safeGetBlocking()
+          actual.getOrFetchValue shouldBe keyValue.getOrFetchValue
         } catch {
           case ex: Exception =>
             println(
@@ -938,8 +976,8 @@ object CommonAssertions {
 
   def assertEmptyHeadAndLast(level: LevelRef) =
     Seq(
-      () => level.head.get.safeGetBlocking shouldBe empty,
-      () => level.last.get.safeGetBlocking shouldBe empty,
+      () => level.head.safeGetBlocking.get shouldBe empty,
+      () => level.last.safeGetBlocking.get shouldBe empty,
     ).runThisRandomlyInParallel
 
   def assertReads(keyValues: Slice[Transient],
@@ -955,12 +993,18 @@ object CommonAssertions {
 
   def assertGet(keyValues: Iterable[KeyValue],
                 segment: Segment) =
-    unzipGroups(keyValues) foreach {
+    unzipGroups(keyValues).par foreach {
       keyValue =>
         //        val intKey = keyValue.key.readInt()
         //        if (intKey % 1000 == 0)
         //          println("Get: " + intKey)
-        segment.get(keyValue.key).get.safeGetBlocking().assertGet shouldBe keyValue
+        try {
+          segment.get(keyValue.key).runSafeIO.assertGet shouldBe keyValue
+        } catch {
+          case exception: Exception =>
+            exception.printStackTrace()
+            throw exception
+        }
     }
 
   def dump(segments: Iterable[Segment]): Iterable[String] =
@@ -1032,7 +1076,7 @@ object CommonAssertions {
     unzipGroups(keyValues) foreach {
       keyValue =>
         try
-          level.get(keyValue.key).get.safeGetBlocking() match {
+          level.get(keyValue.key).runSafeIO match {
             case Some(got) =>
               got shouldBe keyValue
 
@@ -1055,7 +1099,7 @@ object CommonAssertions {
     unzipGroups(keyValues) foreach {
       keyValue =>
         try
-          level.get(keyValue.key).get.safeGetBlocking shouldBe empty
+          level.get(keyValue.key).runSafeIO shouldBe empty
         catch {
           case ex: Exception =>
             println(
@@ -1085,7 +1129,7 @@ object CommonAssertions {
                     level: LevelRef) =
     keys.par foreach {
       key =>
-        level.get(Slice.writeInt(key)).get.safeGetBlocking shouldBe empty
+        level.get(Slice.writeInt(key)).runSafeIO shouldBe empty
     }
 
   def assertGetNoneButLast(keyValues: Iterable[KeyValue],
@@ -1230,7 +1274,7 @@ object CommonAssertions {
       } else if (index == 0) {
         val actualKeyValue = keyValues(index)
         //        println(s"Lower: ${actualKeyValue.key.readInt()}")
-        segment.lower(actualKeyValue.key).get.safeGetBlocking() shouldBe empty
+        segment.lower(actualKeyValue.key).runSafeIO shouldBe empty
         assertLowers(index + 1)
       } else {
         val expectedLower = keyValues(index - 1)
@@ -1239,7 +1283,7 @@ object CommonAssertions {
         //        if (intKey % 100 == 0)
         //          println(s"Lower: $intKey")
         try {
-          val lower = segment.lower(keyValue.key).get.safeGetBlocking().assertGet
+          val lower = segment.lower(keyValue.key).runSafeIO.assertGet
           lower shouldBe expectedLower
         } catch {
           case x: Exception =>
@@ -1260,7 +1304,7 @@ object CommonAssertions {
       case keyValue: Transient.Group =>
         unzipGroups(keyValue.keyValues)
       case keyValue: KeyValue.ReadOnly.Group =>
-        unzipGroups(keyValue.segment.getAll().get.safeGetBlocking())
+        unzipGroups(keyValue.segment.getAll().runSafeIO)
       case keyValue: KeyValue =>
         Slice(keyValue.toMemory)
     }.toMemory.toTransient(
@@ -1273,7 +1317,7 @@ object CommonAssertions {
 
   def assertHigher(keyValues: Slice[KeyValue],
                    segment: Segment): Unit =
-    assertHigher(unzipGroups(keyValues), getHigher = key => IO(segment.higher(key).get.safeGetBlocking()))
+    assertHigher(unzipGroups(keyValues), getHigher = key => IO(segment.higher(key).runSafeIO))
 
   /**
     * Asserts that all key-values are returned in order when fetching higher in sequence.
@@ -1543,7 +1587,7 @@ object CommonAssertions {
             //merge as though applies were normal fixed key-values. The result should be the same.
             FixedMerger(newer, older.toMemory(newKeyValue.key)).assertGet match {
               case newPendingApply: ReadOnly.PendingApply =>
-                val resultApplies = newPendingApply.getOrFetchApplies.get.safeGetBlocking().reverse.toList ++ reveredApplied.drop(count)
+                val resultApplies = newPendingApply.getOrFetchApplies.runSafeIO.reverse.toList ++ reveredApplied.drop(count)
                 val result =
                   if (resultApplies.size == 1)
                     resultApplies.head.toMemory(newKeyValue.key)
@@ -1632,22 +1676,22 @@ object CommonAssertions {
           case Persistent.Put(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyValueReader.value(ValuesBlock.Offset(persistent.valueOffset, persistent.valueLength)).get.safeGetBlocking().shouldBeSliced()
+            lazyValueReader.value(ValuesBlock.Offset(persistent.valueOffset, persistent.valueLength)).runSafeIO.shouldBeSliced()
 
           case Persistent.Update(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyValueReader.value(ValuesBlock.Offset(persistent.valueOffset, persistent.valueLength)).get.safeGetBlocking().shouldBeSliced()
+            lazyValueReader.value(ValuesBlock.Offset(persistent.valueOffset, persistent.valueLength)).runSafeIO.shouldBeSliced()
 
           case Persistent.Function(_key, lazyFunctionReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyFunctionReader.value(ValuesBlock.Offset(persistent.valueOffset, persistent.valueLength)).get.safeGetBlocking().shouldBeSliced()
+            lazyFunctionReader.value(ValuesBlock.Offset(persistent.valueOffset, persistent.valueLength)).runSafeIO.shouldBeSliced()
 
           case Persistent.PendingApply(_key, _time, deadline, lazyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyValueReader.value(ValuesBlock.Offset(persistent.valueOffset, persistent.valueLength)).get.safeGetBlocking() foreach assertSliced
+            lazyValueReader.value(ValuesBlock.Offset(persistent.valueOffset, persistent.valueLength)).runSafeIO foreach assertSliced
 
           case Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _fromKey.shouldBeSliced()

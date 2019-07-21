@@ -287,17 +287,22 @@ private[core] object BloomFilterBlock extends LazyLogging {
         probe =>
           val computedHash = hash1 + probe * hash2
           val hashIndex = (computedHash & Long.MaxValue) % reader.block.numberOfBits
-
-          reader
-            .moveTo(((hashIndex >>> 6) * 8L).toInt)
-            .readLong()
-            .map {
-              index =>
-                if ((index & (1L << hashIndex)) == 0)
-                  Options.`false`
-                else
-                  None
-            }
+          val position = ((hashIndex >>> 6) * 8L).toInt
+          //hash for invalid key could result in a position that is outside of the actual index bounds which
+          //means that key does not exist.
+          if (reader.block.offset.size - position < ByteSizeOf.long)
+            IO.someFalse
+          else
+            reader
+              .moveTo(position)
+              .readLong()
+              .map {
+                index =>
+                  if ((index & (1L << hashIndex)) == 0)
+                    Options.`false`
+                  else
+                    None
+              }
       }
       .map(_.getOrElse(true))
   }

@@ -496,7 +496,6 @@ object IO {
     @inline final def runSafe[T](f: => T): IO.Async[T] =
       try IO.Success(f) catch {
         case ex: Throwable =>
-          ex.printStackTrace()
           recover(ex, f)
       }
 
@@ -524,10 +523,11 @@ object IO {
 
     def recover[T](exception: Throwable, operation: => T): IO.Async[T] =
       Error(exception) match {
-        //@formatter:off
-        case error: Error.Busy => IO.Later(operation, error)
-        case other: Error => IO.Failure(other)
-        //@formatter:on
+        case error: Error.Busy =>
+          IO.Later(operation, error)
+
+        case other: Error =>
+          IO.Failure(other)
       }
 
     def recoverIfFileExists[T](exception: Throwable, operation: => T): IO.Async[T] =

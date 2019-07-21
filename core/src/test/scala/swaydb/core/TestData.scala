@@ -804,23 +804,23 @@ object TestData {
             case persistent: Persistent.Fixed =>
               persistent match {
                 case put @ Persistent.Put(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-                  Memory.Put(key, put.getOrFetchValue.get.safeGetBlocking(), deadline, time)
+                  Memory.Put(key, put.getOrFetchValue.runSafeIO, deadline, time)
 
                 case put @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-                  Memory.Update(key, put.getOrFetchValue.get.safeGetBlocking(), deadline, time)
+                  Memory.Update(key, put.getOrFetchValue.runSafeIO, deadline, time)
 
                 case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-                  Memory.Function(key, function.getOrFetchFunction.get.safeGetBlocking(), time)
+                  Memory.Function(key, function.getOrFetchFunction.runSafeIO, time)
 
                 case pendingApply @ Persistent.PendingApply(key, time, deadline, lazyPendingApplyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-                  Memory.PendingApply(key, pendingApply.getOrFetchApplies.get.safeGetBlocking())
+                  Memory.PendingApply(key, pendingApply.getOrFetchApplies.runSafeIO)
 
                 case Persistent.Remove(_key, deadline, time, indexOffset, nextIndexOffset, nextIndexSize, _, _) =>
                   Memory.Remove(_key, deadline, time)
               }
 
             case range @ Persistent.Range(_fromKey, _toKey, _, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-              val (fromValue, rangeValue) = range.fetchFromAndRangeValue.get.safeGetBlocking()
+              val (fromValue, rangeValue) = range.fetchFromAndRangeValue.runSafeIO
               Memory.Range(_fromKey, _toKey, fromValue, rangeValue)
           }
       }

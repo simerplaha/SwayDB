@@ -1311,7 +1311,9 @@ private[core] object Persistent {
         valueCache =
           valueCache mapStored {
             reader =>
-              reader.readAllOrNone()
+              reader
+                .copy()
+                .readAllOrNone()
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1406,7 +1408,9 @@ private[core] object Persistent {
         valueCache =
           valueCache mapStored {
             reader =>
-              reader.readAllOrNone()
+              reader
+                .copy()
+                .readAllOrNone()
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1529,7 +1533,13 @@ private[core] object Persistent {
                   isPrefixCompressed: Boolean) =
       new Function(
         _key = key,
-        valueCache = valueCache.mapStored(_.readAll()),
+        valueCache =
+          valueCache mapStored {
+            reader =>
+              reader
+                .copy()
+                .readAll()
+          },
         _time = time,
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
@@ -1613,6 +1623,7 @@ private[core] object Persistent {
           valueCache mapStored {
             reader =>
               reader
+                .copy()
                 .readAll()
                 .flatMap {
                   bytes =>
@@ -1692,10 +1703,14 @@ private[core] object Persistent {
           Range(
             _fromKey = fromKey,
             _toKey = toKey,
-            valueCache = valueCache mapStored {
-              rangeReader =>
-                rangeReader.readAll().flatMap(RangeValueSerializer.read)
-            },
+            valueCache =
+              valueCache mapStored {
+                rangeReader =>
+                  rangeReader
+                    .copy()
+                    .readAll()
+                    .flatMap(RangeValueSerializer.read)
+              },
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
             indexOffset = indexOffset,
@@ -1781,7 +1796,7 @@ private[core] object Persistent {
                           start = 0,
                           size = valueLength
                         ),
-                        reader = reader
+                        reader = reader.copy()
                       )
 
                     SegmentCache(

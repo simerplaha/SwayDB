@@ -165,6 +165,7 @@ class DBFile(val path: Path,
              @volatile var file: Option[DBFileType])(implicit limiter: FileLimiter) extends FileLimiterItem with LazyLogging {
 
   private val busy = Reserve[Unit]()
+  require(busy.isFree)
 
   if (autoClose && isOpen) limiter.close(this)
 
@@ -233,9 +234,18 @@ class DBFile(val path: Path,
 
         openResult match {
           case success @ IO.Success(fileOpened) =>
-            file.foreach(_.close())
+            val oldFile = this.file
             file = Some(fileOpened)
-            if (autoClose) limiter.close(this)
+            if (autoClose)
+              limiter.close(this)
+            else
+              oldFile foreach { //do not eagerly close file if autoClose is true as it might be being read by other thread.
+                oldFile =>
+                  oldFile.close() onFailureSideEffect {
+                    error =>
+                      logger.error(s"Failed to close file $path", error.exception)
+                  }
+              }
             success
 
           case failed @ IO.Failure(_) =>
