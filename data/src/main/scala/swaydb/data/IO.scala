@@ -493,13 +493,13 @@ object IO {
 
   private[swaydb] object Async {
 
-    @inline final def runSafe[T](f: => T): IO.Async[T] =
+    @inline final def recover[T](f: => T): IO.Async[T] =
       try IO.Success(f) catch {
         case ex: Throwable =>
           recover(ex, f)
       }
 
-    @inline final def runSafeIfFileExists[T](f: => T): IO.Async[T] =
+    @inline final def recoverIfFileExists[T](f: => T): IO.Async[T] =
       try IO.Success(f) catch {
         case ex: Throwable =>
           recoverIfFileExists(ex, f)
@@ -688,13 +688,13 @@ object IO {
 
     def safeGet: IO.Async[T] =
       if (_value.isDefined || !isBusy)
-        IO.Async.runSafe(get)
+        IO.Async.recover(get)
       else
         this
 
     def safeGetIfFileExists: IO.Async[T] =
       if (_value.isDefined || !isBusy)
-        IO.Async.runSafeIfFileExists(get)
+        IO.Async.recoverIfFileExists(get)
       else
         this
 

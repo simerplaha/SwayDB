@@ -143,7 +143,9 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       if (persistent) {
         //create a non empty level
         val level = TestLevel()
-        level.put(TestSegment(randomKeyValues(keyValuesCount)).runIO).runIO
+        val segment = TestSegment(randomKeyValues(keyValuesCount)).runIO
+
+        level.put(segment).runIO
 
         //delete the appendix file
         level.paths.headPath.resolve("appendix").files(Extension.Log) map IOEffect.delete

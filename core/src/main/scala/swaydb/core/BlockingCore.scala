@@ -181,7 +181,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
       result =>
         result map {
           response =>
-            IO.Async.runSafeIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
+            IO.Async.recoverIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -208,7 +208,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
       result =>
         result map {
           response =>
-            IO.Async.runSafeIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
+            IO.Async.recoverIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -231,7 +231,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(zero.lastKey.safeGetBlocking)
 
   def bloomFilterKeyValueCount: T[Int] =
-    tag.fromIO(IO.Async.runSafe(zero.bloomFilterKeyValueCount.get).safeGetBlocking)
+    tag.fromIO(IO.Async.recover(zero.bloomFilterKeyValueCount.get).safeGetBlocking)
 
   def deadline(key: Slice[Byte]): T[Option[Deadline]] =
     tag.fromIO(zero.deadline(key).safeGetBlocking)
@@ -243,17 +243,17 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(zero.contains(key).safeGetBlocking)
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
-    tag.fromIO(IO.Async.runSafe(zero.mightContainKey(key).get).safeGetBlocking)
+    tag.fromIO(IO.Async.recover(zero.mightContainKey(key).get).safeGetBlocking)
 
   def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
-    tag.fromIO(IO.Async.runSafe(zero.mightContainFunction(functionId).get).safeGetBlocking)
+    tag.fromIO(IO.Async.recover(zero.mightContainFunction(functionId).get).safeGetBlocking)
 
   private def getIO(key: Slice[Byte]): IO[Option[Option[Slice[Byte]]]] =
     zero.get(key).safeGetBlocking flatMap {
       result =>
         result map {
           response =>
-            IO.Async.runSafeIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
+            IO.Async.recoverIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
               result =>
                 Some(result)
             } recoverWith {
@@ -280,7 +280,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
       result =>
         result map {
           response =>
-            IO.Async.runSafeIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
+            IO.Async.recoverIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -304,7 +304,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
       result =>
         result map {
           response =>
-            IO.Async.runSafeIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
+            IO.Async.recoverIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -331,7 +331,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
       result =>
         result map {
           response =>
-            IO.Async.runSafeIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
+            IO.Async.recoverIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
