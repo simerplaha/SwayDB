@@ -398,14 +398,20 @@ private[core] class SegmentCache(id: String,
         Option(persistentCache.floorEntry(key)).map(_.getValue) match {
           case someFloor @ Some(floorEntry) =>
             floorEntry match {
-              case floorRange: Persistent.Range if floorRange contains key =>
-                IO.Success(Some(floorRange))
+              case floor: Persistent.Range if floor contains key =>
+                IO.Success(Some(floor))
 
-              case floorGroup: Persistent.Group if floorGroup containsHigher key =>
-                floorGroup.segment.higher(key)
+              case floor: Persistent.Group if floor containsHigher key =>
+                floor.segment.higher(key)
 
               case _ =>
                 Option(persistentCache.higherEntry(key)).map(_.getValue) match {
+                  case Some(higherRange: Persistent.Range) if higherRange contains key =>
+                    IO.Success(Some(higherRange))
+
+                  case Some(higherGroup: Persistent.Group) if higherGroup containsHigher key =>
+                    higherGroup.segment.higher(key)
+
                   case someHigher @ Some(higherKeyValue) =>
                     if (floorEntry.nextIndexOffset == higherKeyValue.indexOffset)
                       higherKeyValue match {
@@ -424,8 +430,35 @@ private[core] class SegmentCache(id: String,
             }
 
           case None =>
-            val someHigher = Option(persistentCache.higherEntry(key)).map(_.getValue)
-            higher(key, None, someHigher)
+            getFooter() flatMap {
+              footer =>
+                if (footer.hasGroup || footer.hasRange)
+                  Option(persistentCache.ceilingEntry(key)).map(_.getValue) match {
+                    case Some(ceiling: Persistent.Range) if ceiling contains key =>
+                      IO.Success(Some(ceiling))
+
+                    case Some(ceiling: Persistent.Group) if ceiling containsHigher key =>
+                      ceiling.segment.higher(key)
+
+                    case ceiling =>
+                      Option(persistentCache.higherEntry(key)).map(_.getValue) match {
+                        case someHigh @ Some(high) =>
+                          if (ceiling forall (!_.key.equiv(high.key)))
+                            higher(key, ceiling, someHigh)
+                          else
+                            higher(key, None, someHigh)
+
+                        case None =>
+                          higher(key, ceiling, None)
+                      }
+                  }
+                else
+                  higher(
+                    key = key,
+                    start = None,
+                    end = Option(persistentCache.higherEntry(key)).map(_.getValue)
+                  )
+            }
         }
     }
 
