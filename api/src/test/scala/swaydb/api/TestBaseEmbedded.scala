@@ -36,13 +36,13 @@ trait TestBaseEmbedded extends TestBase {
   def doAssertEmpty[V](db: Map[Int, V, IO]) =
     (1 to keyValueCount) foreach {
       i =>
-        db.expiration(i).runIO match {
+        db.expiration(i).value match {
           case Some(value) =>
             value.hasTimeLeft() shouldBe false
 
           case None =>
         }
-        db.get(i).runIO shouldBe empty
+        db.get(i).value shouldBe empty
     }
 
   def pluralSegment(count: Int) = if (count == 1) "Segment" else "Segments"
@@ -73,7 +73,7 @@ trait TestBaseEmbedded extends TestBase {
               println(s"Level $levelNumber. Submitting updated to trigger remove.")
               (1 to 500000) foreach { //submit multiple update range key-values so that a map gets submitted for compaction and to trigger merge on copied Segments in last Level.
                 i =>
-                  db.update(1, 1000000, value = "just triggering update to assert remove").runIO
+                  db.update(1, 1000000, value = "just triggering update to assert remove").value
                   if (i == 100000) sleep(2.seconds)
               }
             }

@@ -30,7 +30,7 @@ class FromSpec0 extends FromSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).runIO
+    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).value
 }
 
 class FromSpec1 extends FromSpec {
@@ -38,7 +38,7 @@ class FromSpec1 extends FromSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).runIO
+    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).value
 }
 
 class FromSpec2 extends FromSpec {
@@ -46,14 +46,14 @@ class FromSpec2 extends FromSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).runIO
+    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).value
 }
 
 class FromSpec3 extends FromSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String]().runIO
+    swaydb.extensions.memory.Map[Int, String]().value
 }
 
 sealed trait FromSpec extends TestBaseEmbedded {
@@ -67,8 +67,8 @@ sealed trait FromSpec extends TestBaseEmbedded {
     "return empty on an empty Map" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap").runIO
-      val firstMap = rootMap.maps.put(2, "first map").runIO
+      val rootMap = db.maps.put(1, "rootMap").value
+      val firstMap = rootMap.maps.put(2, "first map").value
 
       firstMap
         .from(2)
@@ -82,10 +82,10 @@ sealed trait FromSpec extends TestBaseEmbedded {
     "if the map contains only 1 element" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap").runIO
-      val firstMap = rootMap.maps.put(2, "first map").runIO
+      val rootMap = db.maps.put(1, "rootMap").value
+      val firstMap = rootMap.maps.put(2, "first map").value
 
-      firstMap.put(1, "one").runIO
+      firstMap.put(1, "one").value
 
       firstMap
         .from(2)
@@ -144,37 +144,37 @@ sealed trait FromSpec extends TestBaseEmbedded {
     "Sibling maps" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap1").runIO
+      val rootMap = db.maps.put(1, "rootMap1").value
 
-      val subMap1 = rootMap.maps.put(2, "sub map 2").runIO
-      subMap1.put(1, "one").runIO
-      subMap1.put(2, "two").runIO
+      val subMap1 = rootMap.maps.put(2, "sub map 2").value
+      subMap1.put(1, "one").value
+      subMap1.put(2, "two").value
 
-      val subMap2 = rootMap.maps.put(3, "sub map three").runIO
-      subMap2.put(3, "three").runIO
-      subMap2.put(4, "four").runIO
+      val subMap2 = rootMap.maps.put(3, "sub map three").value
+      subMap2.put(3, "three").value
+      subMap2.put(4, "four").value
 
-      subMap1.from(3).stream.materialize.runIO shouldBe empty
-      subMap1.after(2).stream.materialize.runIO shouldBe empty
-      subMap1.from(1).stream.materialize.runIO should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.fromOrBefore(2).stream.materialize.runIO should contain only ((2, "two"))
-      subMap1.fromOrBefore(1).stream.materialize.runIO should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.after(0).stream.materialize.runIO should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.fromOrAfter(0).stream.materialize.runIO should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.size.runIO shouldBe 2
-      subMap1.headOption.runIO should contain((1, "one"))
-      subMap1.lastOption.runIO should contain((2, "two"))
+      subMap1.from(3).stream.materialize.value shouldBe empty
+      subMap1.after(2).stream.materialize.value shouldBe empty
+      subMap1.from(1).stream.materialize.value should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.fromOrBefore(2).stream.materialize.value should contain only ((2, "two"))
+      subMap1.fromOrBefore(1).stream.materialize.value should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.after(0).stream.materialize.value should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.fromOrAfter(0).stream.materialize.value should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.size.value shouldBe 2
+      subMap1.headOption.value should contain((1, "one"))
+      subMap1.lastOption.value should contain((2, "two"))
 
-      subMap2.from(5).stream.materialize.runIO shouldBe empty
-      subMap2.after(4).stream.materialize.runIO shouldBe empty
-      subMap2.from(3).stream.materialize.runIO should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.fromOrBefore(5).stream.materialize.runIO should contain only ((4, "four"))
-      subMap2.fromOrBefore(3).stream.materialize.runIO should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.after(0).stream.materialize.runIO should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.fromOrAfter(1).stream.materialize.runIO should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.size.runIO shouldBe 2
-      subMap2.headOption.runIO.value shouldBe ((3, "three"))
-      subMap2.lastOption.runIO.value shouldBe ((4, "four"))
+      subMap2.from(5).stream.materialize.value shouldBe empty
+      subMap2.after(4).stream.materialize.value shouldBe empty
+      subMap2.from(3).stream.materialize.value should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.fromOrBefore(5).stream.materialize.value should contain only ((4, "four"))
+      subMap2.fromOrBefore(3).stream.materialize.value should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.after(0).stream.materialize.value should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.fromOrAfter(1).stream.materialize.value should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.size.value shouldBe 2
+      subMap2.headOption.value.value shouldBe ((3, "three"))
+      subMap2.lastOption.value.value shouldBe ((4, "four"))
 
       db.closeDatabase().get
     }
@@ -182,44 +182,44 @@ sealed trait FromSpec extends TestBaseEmbedded {
     "nested maps" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap1").runIO
+      val rootMap = db.maps.put(1, "rootMap1").value
 
-      val subMap1 = rootMap.maps.put(2, "sub map 1").runIO
-      subMap1.put(1, "one").runIO
-      subMap1.put(2, "two").runIO
+      val subMap1 = rootMap.maps.put(2, "sub map 1").value
+      subMap1.put(1, "one").value
+      subMap1.put(2, "two").value
 
-      val subMap2 = subMap1.maps.put(3, "sub map 2").runIO
-      subMap2.put(3, "three").runIO
-      subMap2.put(4, "four").runIO
+      val subMap2 = subMap1.maps.put(3, "sub map 2").value
+      subMap2.put(3, "three").value
+      subMap2.put(4, "four").value
 
-      subMap1.from(4).stream.materialize.runIO shouldBe empty
-      subMap1.after(3).stream.materialize.runIO shouldBe empty
-      subMap1.from(1).stream.materialize.runIO should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.maps.from(1).stream.materialize.runIO shouldBe empty
-      subMap1.maps.after(1).stream.materialize.runIO should contain only ((3, "sub map 2"))
-      subMap1.fromOrBefore(2).stream.materialize.runIO should contain only ((2, "two"))
-      subMap1.maps.fromOrBefore(2).stream.materialize.runIO should contain only ((3, "sub map 2"))
+      subMap1.from(4).stream.materialize.value shouldBe empty
+      subMap1.after(3).stream.materialize.value shouldBe empty
+      subMap1.from(1).stream.materialize.value should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.from(1).stream.materialize.value shouldBe empty
+      subMap1.maps.after(1).stream.materialize.value should contain only ((3, "sub map 2"))
+      subMap1.fromOrBefore(2).stream.materialize.value should contain only ((2, "two"))
+      subMap1.maps.fromOrBefore(2).stream.materialize.value should contain only ((3, "sub map 2"))
 
-      subMap1.fromOrBefore(1).stream.materialize.runIO should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.maps.fromOrBefore(1).stream.materialize.runIO should contain only ((3, "sub map 2"))
-      subMap1.after(0).stream.materialize.runIO should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.maps.after(0).stream.materialize.runIO should contain only ((3, "sub map 2"))
-      subMap1.fromOrAfter(0).stream.materialize.runIO should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.maps.fromOrAfter(0).stream.materialize.runIO should contain only ((3, "sub map 2"))
-      subMap1.size.runIO shouldBe 2
-      subMap1.headOption.runIO.value shouldBe ((1, "one"))
-      subMap1.maps.lastOption.runIO.value shouldBe ((3, "sub map 2"))
+      subMap1.fromOrBefore(1).stream.materialize.value should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.fromOrBefore(1).stream.materialize.value should contain only ((3, "sub map 2"))
+      subMap1.after(0).stream.materialize.value should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.after(0).stream.materialize.value should contain only ((3, "sub map 2"))
+      subMap1.fromOrAfter(0).stream.materialize.value should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.fromOrAfter(0).stream.materialize.value should contain only ((3, "sub map 2"))
+      subMap1.size.value shouldBe 2
+      subMap1.headOption.value.value shouldBe ((1, "one"))
+      subMap1.maps.lastOption.value.value shouldBe ((3, "sub map 2"))
 
-      subMap2.from(5).stream.materialize.runIO shouldBe empty
-      subMap2.after(4).stream.materialize.runIO shouldBe empty
-      subMap2.from(3).stream.materialize.runIO should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.fromOrBefore(5).stream.materialize.runIO should contain only ((4, "four"))
-      subMap2.fromOrBefore(3).stream.materialize.runIO should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.after(0).stream.materialize.runIO should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.fromOrAfter(1).stream.materialize.runIO should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.size.runIO shouldBe 2
-      subMap2.headOption.runIO.value shouldBe ((3, "three"))
-      subMap2.lastOption.runIO.value shouldBe ((4, "four"))
+      subMap2.from(5).stream.materialize.value shouldBe empty
+      subMap2.after(4).stream.materialize.value shouldBe empty
+      subMap2.from(3).stream.materialize.value should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.fromOrBefore(5).stream.materialize.value should contain only ((4, "four"))
+      subMap2.fromOrBefore(3).stream.materialize.value should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.after(0).stream.materialize.value should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.fromOrAfter(1).stream.materialize.value should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.size.value shouldBe 2
+      subMap2.headOption.value.value shouldBe ((3, "three"))
+      subMap2.lastOption.value.value shouldBe ((4, "four"))
 
       db.closeDatabase().get
     }

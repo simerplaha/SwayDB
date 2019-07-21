@@ -32,7 +32,7 @@ class SwayDBUpdateSpec0 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.Map[Int, String](dir = randomDir).runIO
+    swaydb.persistent.Map[Int, String](dir = randomDir).value
 }
 
 class SwayDBUpdateSpec1 extends SwayDBUpdateSpec {
@@ -40,7 +40,7 @@ class SwayDBUpdateSpec1 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).runIO
+    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).value
 }
 
 class SwayDBUpdateSpec2 extends SwayDBUpdateSpec {
@@ -48,14 +48,14 @@ class SwayDBUpdateSpec2 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.Map[Int, String](mapSize = 1.byte).runIO
+    swaydb.memory.Map[Int, String](mapSize = 1.byte).value
 }
 
 class SwayDBUpdateSpec3 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.Map[Int, String]().runIO
+    swaydb.memory.Map[Int, String]().value
 }
 
 class SwayDBUpdateSpec4 extends SwayDBUpdateSpec {
@@ -63,14 +63,14 @@ class SwayDBUpdateSpec4 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).runIO
+    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).value
 }
 
 class SwayDBUpdateSpec5 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.zero.Map[Int, String]().runIO
+    swaydb.memory.zero.Map[Int, String]().value
 }
 
 sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
@@ -83,16 +83,16 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
     "Put" in {
       val db = newDB()
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).runIO }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
       (1 to keyValueCount) foreach {
         i =>
-          db.expiration(i).runIO shouldBe empty
-          db.get(i).runIO.value shouldBe "updated"
+          db.expiration(i).value shouldBe empty
+          db.get(i).value.value shouldBe "updated"
       }
 
       db.close().get
@@ -103,21 +103,21 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
 
       val deadline = eitherOne(4.seconds.fromNow, expiredDeadline())
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).runIO }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).runIO),
-        right = db.expire(1, keyValueCount, deadline).runIO
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
+        right = db.expire(1, keyValueCount, deadline).value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
       if (deadline.hasTimeLeft())
         (1 to keyValueCount) foreach {
           i =>
-            db.expiration(i).runIO.value shouldBe deadline
-            db.get(i).runIO.value shouldBe "updated"
+            db.expiration(i).value.value shouldBe deadline
+            db.get(i).value.value shouldBe "updated"
         }
 
       if (deadline.hasTimeLeft()) sleep(deadline.timeLeft)
@@ -130,14 +130,14 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
     "Put & Remove" in {
       val db = newDB()
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).runIO }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).runIO),
-        right = db.remove(1, keyValueCount).runIO
+        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
+        right = db.remove(1, keyValueCount).value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
       doAssertEmpty(db)
@@ -148,20 +148,20 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
     "Put & Update" in {
       val db = newDB()
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).runIO }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated again").runIO),
-        right = db.update(1, keyValueCount, value = "updated again").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated again").value),
+        right = db.update(1, keyValueCount, value = "updated again").value
       )
 
       (1 to keyValueCount) foreach {
         i =>
-          db.expiration(i).runIO shouldBe empty
-          db.get(i).runIO.value shouldBe "updated again"
+          db.expiration(i).value shouldBe empty
+          db.get(i).value.value shouldBe "updated again"
       }
 
       db.close().get
@@ -173,13 +173,13 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).runIO),
-        right = db.remove(1, keyValueCount).runIO
+        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
+        right = db.remove(1, keyValueCount).value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
       doAssertEmpty(db)
@@ -191,20 +191,20 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).runIO),
-        right = db.remove(1, keyValueCount).runIO
+        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
+        right = db.remove(1, keyValueCount).value
       )
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).runIO }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
       (1 to keyValueCount) foreach {
         i =>
-          db.expiration(i).runIO shouldBe empty
-          db.get(i).runIO.value shouldBe "updated"
+          db.expiration(i).value shouldBe empty
+          db.get(i).value.value shouldBe "updated"
       }
 
       db.close().get
@@ -214,17 +214,17 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).runIO),
-        right = db.remove(1, keyValueCount).runIO
+        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
+        right = db.remove(1, keyValueCount).value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated again").runIO),
-        right = db.update(1, keyValueCount, value = "updated again").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated again").value),
+        right = db.update(1, keyValueCount, value = "updated again").value
       )
 
       doAssertEmpty(db)
@@ -238,17 +238,17 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val deadline = eitherOne(2.seconds.fromNow, expiredDeadline())
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).runIO),
-        right = db.remove(1, keyValueCount).runIO
+        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
+        right = db.remove(1, keyValueCount).value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).runIO),
-        right = db.expire(1, keyValueCount, deadline).runIO
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
+        right = db.expire(1, keyValueCount, deadline).value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
       doAssertEmpty(db)
@@ -260,18 +260,18 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).runIO),
-        right = db.remove(1, keyValueCount).runIO
+        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
+        right = db.remove(1, keyValueCount).value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).runIO),
-        right = db.remove(1, keyValueCount).runIO
+        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
+        right = db.remove(1, keyValueCount).value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
       doAssertEmpty(db)
@@ -285,12 +285,12 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "old updated").runIO),
-        right = db.update(1, keyValueCount, value = "old updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "old updated").value),
+        right = db.update(1, keyValueCount, value = "old updated").value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
       doAssertEmpty(db)
@@ -302,21 +302,21 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).runIO }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").runIO),
-        right = db.update(1, keyValueCount, value = "updated 2").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").value),
+        right = db.update(1, keyValueCount, value = "updated 2").value
       )
 
       (1 to keyValueCount) foreach {
         i =>
-          db.expiration(i).runIO shouldBe empty
-          db.get(i).runIO.value shouldBe "updated 2"
+          db.expiration(i).value shouldBe empty
+          db.get(i).value.value shouldBe "updated 2"
       }
 
       db.close().get
@@ -326,18 +326,18 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").runIO),
-        right = db.update(1, keyValueCount, value = "updated 1").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").value),
+        right = db.update(1, keyValueCount, value = "updated 1").value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").runIO),
-        right = db.update(1, keyValueCount, value = "updated 2").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").value),
+        right = db.update(1, keyValueCount, value = "updated 2").value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated again 3").runIO),
-        right = db.update(1, keyValueCount, value = "updated again 3").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated again 3").value),
+        right = db.update(1, keyValueCount, value = "updated again 3").value
       )
 
       doAssertEmpty(db)
@@ -351,18 +351,18 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val deadline = eitherOne(2.seconds.fromNow, expiredDeadline())
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").runIO),
-        right = db.update(1, keyValueCount, value = "updated 1").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").value),
+        right = db.update(1, keyValueCount, value = "updated 1").value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).runIO),
-        right = db.expire(1, keyValueCount, deadline).runIO
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
+        right = db.expire(1, keyValueCount, deadline).value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").runIO),
-        right = db.update(1, keyValueCount, value = "updated 2").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").value),
+        right = db.update(1, keyValueCount, value = "updated 2").value
       )
 
       doAssertEmpty(db)
@@ -374,18 +374,18 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").runIO),
-        right = db.update(1, keyValueCount, value = "updated 1").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").value),
+        right = db.update(1, keyValueCount, value = "updated 1").value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).runIO),
-        right = db.remove(1, keyValueCount).runIO
+        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
+        right = db.remove(1, keyValueCount).value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").runIO),
-        right = db.update(1, keyValueCount, value = "updated 2").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").value),
+        right = db.update(1, keyValueCount, value = "updated 2").value
       )
 
       doAssertEmpty(db)
@@ -401,13 +401,13 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).runIO),
-        right = db.expire(1, keyValueCount, deadline).runIO
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
+        right = db.expire(1, keyValueCount, deadline).value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
       doAssertEmpty(db)
@@ -423,16 +423,16 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).runIO),
-        right = db.expire(1, keyValueCount, deadline).runIO
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
+        right = db.expire(1, keyValueCount, deadline).value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).runIO),
-        right = db.remove(1, keyValueCount).runIO
+        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
+        right = db.remove(1, keyValueCount).value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
       doAssertEmpty(db)
@@ -448,17 +448,17 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).runIO),
-        right = db.expire(1, keyValueCount, deadline).runIO
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
+        right = db.expire(1, keyValueCount, deadline).value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
       doAssertEmpty(db)
@@ -475,18 +475,18 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).runIO),
-        right = db.expire(1, keyValueCount, deadline).runIO
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
+        right = db.expire(1, keyValueCount, deadline).value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline2).runIO),
-        right = db.expire(1, keyValueCount, deadline2).runIO
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline2).value),
+        right = db.expire(1, keyValueCount, deadline2).value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
       doAssertEmpty(db)
@@ -502,22 +502,22 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).runIO),
-        right = db.expire(1, keyValueCount, deadline).runIO
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
+        right = db.expire(1, keyValueCount, deadline).value
       )
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).runIO }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").runIO),
-        right = db.update(1, keyValueCount, value = "updated").runIO
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
+        right = db.update(1, keyValueCount, value = "updated").value
       )
 
       def doAssert() =
         (1 to keyValueCount) foreach {
           i =>
-            db.expiration(i).runIO shouldBe empty
-            db.get(i).runIO.value shouldBe "updated"
+            db.expiration(i).value shouldBe empty
+            db.get(i).value.value shouldBe "updated"
         }
 
       doAssert()

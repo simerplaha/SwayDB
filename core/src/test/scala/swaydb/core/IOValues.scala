@@ -27,11 +27,15 @@ import scala.concurrent.duration._
 
 sealed trait IOValues {
   implicit class RunIOImplicits[T](input: => IO[T]) {
-    def runIO: T =
+    private[core] def runIO: T =
       if (randomBoolean())
         IO.Async.recover(input.get).safeGetBlocking.get
       else
         IO.Async.recover(input.get).safeGetFuture.await(1.minute)
+
+
+    def value =
+      input.get
   }
 
   implicit class RunAsyncIOImplicits[T](input: => IO.Async[T]) {

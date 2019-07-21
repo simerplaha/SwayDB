@@ -33,7 +33,7 @@ class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.Map[Int, String](dir = randomDir).runIO
+    swaydb.persistent.Map[Int, String](dir = randomDir).value
 }
 
 class SwayDBReverse_Persistent_Zero_Spec extends SwayDBReverseSpec {
@@ -42,7 +42,7 @@ class SwayDBReverse_Persistent_Zero_Spec extends SwayDBReverseSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.zero.Map[Int, String](dir = randomDir).runIO
+    swaydb.persistent.zero.Map[Int, String](dir = randomDir).value
 }
 
 class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
@@ -51,7 +51,7 @@ class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.Map[Int, String]().runIO
+    swaydb.memory.Map[Int, String]().value
 }
 
 class SwayDBReverse_Memory_Zero_Spec extends SwayDBReverseSpec {
@@ -60,7 +60,7 @@ class SwayDBReverse_Memory_Zero_Spec extends SwayDBReverseSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.zero.Map[Int, String]().runIO
+    swaydb.memory.zero.Map[Int, String]().value
 }
 
 sealed trait SwayDBReverseSpec extends TestBaseEmbedded {
@@ -74,7 +74,7 @@ sealed trait SwayDBReverseSpec extends TestBaseEmbedded {
 
     (1 to keyValueCount) foreach {
       i =>
-        db.put(i, i.toString).runIO
+        db.put(i, i.toString).value
     }
 
     db.keys.foldLeft(keyValueCount + 1) {

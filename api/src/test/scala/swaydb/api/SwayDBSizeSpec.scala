@@ -29,14 +29,14 @@ class SwayDBSize_Persistent_Spec extends SwayDBSizeSpec {
   val keyValueCount: Int = 10000000
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.Map[Int, String](dir = randomDir).runIO
+    swaydb.persistent.Map[Int, String](dir = randomDir).value
 }
 
 class SwayDBSize_Memory_Spec extends SwayDBSizeSpec {
   val keyValueCount: Int = 10000000
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.Map[Int, String]().runIO
+    swaydb.memory.Map[Int, String]().value
 }
 
 sealed trait SwayDBSizeSpec extends TestBaseEmbedded {
@@ -52,7 +52,7 @@ sealed trait SwayDBSizeSpec extends TestBaseEmbedded {
 
     (1 to keyValueCount) foreach {
       i =>
-        db.put(i, i.toString).runIO
+        db.put(i, i.toString).value
     }
 
     db.size shouldBe keyValueCount

@@ -46,12 +46,12 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
           Some(Some(StringSerializer.read(data)))
     }
 
-    val rootMap = swaydb.extensions.memory.Map[Int, Option[String]]().runIO
+    val rootMap = swaydb.extensions.memory.Map[Int, Option[String]]().value
 
-    rootMap.put(1, None).runIO
+    rootMap.put(1, None).value
 
-    rootMap.stream.materialize.runIO should contain only ((1, None))
-    rootMap.keys.stream.materialize.runIO should contain only 1
+    rootMap.stream.materialize.value should contain only ((1, None))
+    rootMap.keys.stream.materialize.value should contain only 1
   }
 
   "Option[Empty[V]]" in {
@@ -80,13 +80,13 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
           Some(Value.NonEmpty(StringSerializer.read(data)))
     }
 
-    val rootMap = swaydb.extensions.memory.Map[Int, Option[Value]]().runIO
+    val rootMap = swaydb.extensions.memory.Map[Int, Option[Value]]().value
 
-    rootMap.put(1, Some(Value.Empty)).runIO
-    rootMap.put(2, Some(Value.NonEmpty("two"))).runIO
-    rootMap.put(3, None).runIO
+    rootMap.put(1, Some(Value.Empty)).value
+    rootMap.put(2, Some(Value.NonEmpty("two"))).value
+    rootMap.put(3, None).value
 
-    rootMap.stream.materialize.runIO should contain inOrderOnly((1, None), (2, Some(Value.NonEmpty("two"))), (3, None))
-    rootMap.keys.stream.materialize.runIO should contain inOrderOnly(1, 2, 3)
+    rootMap.stream.materialize.value should contain inOrderOnly((1, None), (2, Some(Value.NonEmpty("two"))), (3, None))
+    rootMap.keys.stream.materialize.value should contain inOrderOnly(1, 2, 3)
   }
 }

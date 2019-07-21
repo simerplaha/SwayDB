@@ -37,7 +37,7 @@ class MapSpec0 extends MapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).runIO
+    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).value
 }
 
 class MapSpec1 extends MapSpec {
@@ -45,7 +45,7 @@ class MapSpec1 extends MapSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).runIO
+    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).value
 }
 
 class MapSpec2 extends MapSpec {
@@ -53,14 +53,14 @@ class MapSpec2 extends MapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).runIO
+    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).value
 }
 
 class MapSpec3 extends MapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String]().runIO
+    swaydb.extensions.memory.Map[Int, String]().value
 }
 
 sealed trait MapSpec extends TestBaseEmbedded {
@@ -76,10 +76,10 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "initialise a rootMap" in {
       val rootMap = newDB()
 
-      rootMap.stream.materialize.runIO shouldBe empty
+      rootMap.stream.materialize.value shouldBe empty
 
       //assert
-      rootMap.baseMap().stream.materialize.runIO shouldBe
+      rootMap.baseMap().stream.materialize.value shouldBe
         List(
           (Key.MapStart(Seq.empty), None),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -95,12 +95,12 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "update a rootMaps value" in {
       val rootMap = newDB()
 
-      rootMap.getValue().runIO shouldBe empty
-      rootMap.updateValue("rootMap").runIO
-      rootMap.getValue().runIO.value shouldBe "rootMap"
+      rootMap.getValue().value shouldBe empty
+      rootMap.updateValue("rootMap").value
+      rootMap.getValue().value.value shouldBe "rootMap"
 
       //assert
-      rootMap.baseMap().stream.materialize.runIO shouldBe
+      rootMap.baseMap().stream.materialize.value shouldBe
         List(
           (Key.MapStart(Seq.empty), Some("rootMap")),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -115,16 +115,16 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
     "insert key-values to rootMap" in {
       val rootMap = newDB()
-      rootMap.put(1, "one").runIO
-      rootMap.put(2, "two").runIO
+      rootMap.put(1, "one").value
+      rootMap.put(2, "two").value
 
       rootMap.get(1).get.get shouldBe "one"
       rootMap.get(2).get.get shouldBe "two"
 
-      rootMap.stream.materialize.runIO shouldBe ListBuffer((1, "one"), (2, "two"))
+      rootMap.stream.materialize.value shouldBe ListBuffer((1, "one"), (2, "two"))
 
       //assert
-      rootMap.baseMap().stream.materialize.runIO shouldBe
+      rootMap.baseMap().stream.materialize.value shouldBe
         List(
           (Key.MapStart(Seq.empty), None),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -141,23 +141,23 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
     "insert a subMap" in {
       val rootMap = newDB()
-      rootMap.put(1, "one").runIO
-      rootMap.put(2, "two").runIO
+      rootMap.put(1, "one").value
+      rootMap.put(2, "two").value
 
-      rootMap.maps.get(1).runIO shouldBe empty
+      rootMap.maps.get(1).value shouldBe empty
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
 
-      rootMap.maps.get(1).runIO shouldBe defined
+      rootMap.maps.get(1).value shouldBe defined
 
-      subMap.put(1, "subMap one").runIO
-      subMap.put(2, "subMap two").runIO
+      subMap.put(1, "subMap one").value
+      subMap.put(2, "subMap two").value
 
-      rootMap.stream.materialize.runIO shouldBe ListBuffer((1, "one"), (2, "two"))
-      subMap.stream.materialize.runIO shouldBe ListBuffer((1, "subMap one"), (2, "subMap two"))
+      rootMap.stream.materialize.value shouldBe ListBuffer((1, "one"), (2, "two"))
+      subMap.stream.materialize.value shouldBe ListBuffer((1, "subMap one"), (2, "subMap two"))
 
       //assert
-      rootMap.baseMap().stream.materialize.runIO shouldBe
+      rootMap.baseMap().stream.materialize.value shouldBe
         List(
           (Key.MapStart(Seq.empty), None),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -185,22 +185,22 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
     "remove all entries from rootMap and subMap" in {
       val rootMap = newDB()
-      rootMap.put(1, "one").runIO
-      rootMap.put(2, "two").runIO
+      rootMap.put(1, "one").value
+      rootMap.put(2, "two").value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
 
-      subMap.put(1, "subMap one").runIO
-      subMap.put(2, "subMap two").runIO
+      subMap.put(1, "subMap one").value
+      subMap.put(2, "subMap two").value
 
       eitherOne(
         left = {
-          rootMap.clear().runIO
-          subMap.clear().runIO
+          rootMap.clear().value
+          subMap.clear().value
         },
         right = {
-          rootMap.remove(1, 2).runIO
-          subMap.remove(1, 2).runIO
+          rootMap.remove(1, 2).value
+          subMap.remove(1, 2).value
         }
       )
       //assert
@@ -229,9 +229,9 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "update a subMap's value" in {
       val rootMap = newDB()
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
       rootMap.maps.updateValue(1, "sub map updated")
-      rootMap.maps.contains(1).runIO shouldBe true
+      rootMap.maps.contains(1).value shouldBe true
 
       //assert
       //      rootMap.baseMap().toList shouldBe
@@ -259,43 +259,43 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "getMap, containsMap, exists & getMapValue" in {
       val rootMap = newDB()
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
-      subMap.put(1, "one").runIO
-      subMap.put(2, "two").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
+      subMap.put(1, "one").value
+      subMap.put(2, "two").value
 
-      val subMapGet = rootMap.maps.get(1).runIO.value
-      subMapGet.getValue().runIO.value shouldBe "sub map"
-      subMapGet.stream.materialize.runIO shouldBe ListBuffer((1, "one"), (2, "two"))
+      val subMapGet = rootMap.maps.get(1).value.value
+      subMapGet.getValue().value.value shouldBe "sub map"
+      subMapGet.stream.materialize.value shouldBe ListBuffer((1, "one"), (2, "two"))
 
-      rootMap.maps.contains(1).runIO shouldBe true
-      rootMap.exists().runIO shouldBe true
-      subMap.exists().runIO shouldBe true
-      rootMap.maps.getValue(1).runIO.value shouldBe "sub map"
-      rootMap.maps.getValue(2).runIO shouldBe empty //2 does not exists
+      rootMap.maps.contains(1).value shouldBe true
+      rootMap.exists().value shouldBe true
+      subMap.exists().value shouldBe true
+      rootMap.maps.getValue(1).value.value shouldBe "sub map"
+      rootMap.maps.getValue(2).value shouldBe empty //2 does not exists
 
-      rootMap.maps.remove(1).runIO
+      rootMap.maps.remove(1).value
 
-      rootMap.maps.contains(1).runIO shouldBe false
-      rootMap.exists().runIO shouldBe true
-      subMap.exists().runIO shouldBe false
-      rootMap.maps.getValue(1).runIO shouldBe empty //is deleted
+      rootMap.maps.contains(1).value shouldBe false
+      rootMap.exists().value shouldBe true
+      subMap.exists().value shouldBe false
+      rootMap.maps.getValue(1).value shouldBe empty //is deleted
 
       rootMap.closeDatabase().get
     }
 
     "expire key" in {
       val rootMap = newDB()
-      rootMap.put(1, "one", 500.millisecond).runIO
-      rootMap.put(2, "two").runIO
+      rootMap.put(1, "one", 500.millisecond).value
+      rootMap.put(2, "two").value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
 
-      subMap.put(1, "subMap one", 500.millisecond).runIO
-      subMap.put(2, "subMap two").runIO
+      subMap.put(1, "subMap one", 500.millisecond).value
+      subMap.put(2, "subMap two").value
 
       eventual {
-        rootMap.get(1).runIO shouldBe empty
-        subMap.get(1).assertGetOpt shouldBe empty
+        rootMap.get(1).value shouldBe empty
+        subMap.get(1).value.value shouldBe empty
       }
 
       //assert
@@ -327,26 +327,26 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
     "expire range keys" in {
       val rootMap = newDB()
-      rootMap.put(1, "one").runIO
-      rootMap.put(2, "two").runIO
+      rootMap.put(1, "one").value
+      rootMap.put(2, "two").value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
 
-      subMap.put(1, "subMap two").runIO
-      subMap.put(2, "subMap two").runIO
-      subMap.put(3, "subMap two").runIO
-      subMap.put(4, "subMap two").runIO
+      subMap.put(1, "subMap two").value
+      subMap.put(2, "subMap two").value
+      subMap.put(3, "subMap two").value
+      subMap.put(4, "subMap two").value
 
-      rootMap.expire(1, 2, 100.millisecond).runIO //expire all key-values from rootMap
-      subMap.expire(2, 3, 100.millisecond).runIO //expire some from subMap
+      rootMap.expire(1, 2, 100.millisecond).value //expire all key-values from rootMap
+      subMap.expire(2, 3, 100.millisecond).value //expire some from subMap
 
       eventual {
-        rootMap.get(1).runIO shouldBe empty
-        rootMap.get(2).runIO shouldBe empty
-        subMap.get(1).assertGet shouldBe "subMap two"
-        subMap.get(2).assertGetOpt shouldBe empty
-        subMap.get(3).assertGetOpt shouldBe empty
-        subMap.get(4).assertGet shouldBe "subMap two"
+        rootMap.get(1).value shouldBe empty
+        rootMap.get(2).value shouldBe empty
+        subMap.get(1).value shouldBe "subMap two"
+        subMap.get(2).value.value shouldBe empty
+        subMap.get(3).value.value shouldBe empty
+        subMap.get(4).value shouldBe "subMap two"
       }
 
       //assert
@@ -376,33 +376,33 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
     "update range keys" in {
       val rootMap = newDB()
-      rootMap.put(1, "one").runIO
-      rootMap.put(2, "two").runIO
+      rootMap.put(1, "one").value
+      rootMap.put(2, "two").value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
 
-      subMap.put(1, "subMap two").runIO
-      subMap.put(2, "subMap two").runIO
-      subMap.put(3, "subMap two").runIO
-      subMap.put(4, "subMap two").runIO
+      subMap.put(1, "subMap two").value
+      subMap.put(2, "subMap two").value
+      subMap.put(3, "subMap two").value
+      subMap.put(4, "subMap two").value
 
       eitherOne(
         left = {
-          rootMap.update(1, 2, "updated").runIO //update all key-values from rootMap
-          subMap.update(2, 3, "updated").runIO //update some from subMap
+          rootMap.update(1, 2, "updated").value //update all key-values from rootMap
+          subMap.update(2, 3, "updated").value //update some from subMap
         },
         right = {
-          rootMap.update(1, "updated").runIO
-          rootMap.update(2, "updated").runIO
-          subMap.update(2, "updated").runIO
-          subMap.update(3, "updated").runIO
+          rootMap.update(1, "updated").value
+          rootMap.update(2, "updated").value
+          subMap.update(2, "updated").value
+          subMap.update(3, "updated").value
         }
       )
 
-      rootMap.get(1).runIO.value shouldBe "updated"
-      rootMap.get(2).runIO.value shouldBe "updated"
-      subMap.get(2).assertGet shouldBe "updated"
-      subMap.get(3).assertGet shouldBe "updated"
+      rootMap.get(1).value.value shouldBe "updated"
+      rootMap.get(2).value.value shouldBe "updated"
+      subMap.get(2).value shouldBe "updated"
+      subMap.get(3).value shouldBe "updated"
 
       rootMap.closeDatabase().get
     }
@@ -412,18 +412,18 @@ sealed trait MapSpec extends TestBaseEmbedded {
       rootMap.commitPrepared(
         Prepare.Put(1, "one"),
         Prepare.Put(2, "two")
-      ).runIO
+      ).value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
       subMap.commitPrepared(
         Prepare.Put(1, "one one"),
         Prepare.Put(2, "two two")
-      ).runIO
+      ).value
 
-      rootMap.get(1).runIO.value shouldBe "one"
-      rootMap.get(2).runIO.value shouldBe "two"
-      subMap.get(1).assertGet shouldBe "one one"
-      subMap.get(2).assertGet shouldBe "two two"
+      rootMap.get(1).value.value shouldBe "one"
+      rootMap.get(2).value.value shouldBe "two"
+      subMap.get(1).value shouldBe "one one"
+      subMap.get(2).value shouldBe "two two"
 
       rootMap.closeDatabase().get
     }
@@ -433,28 +433,28 @@ sealed trait MapSpec extends TestBaseEmbedded {
       rootMap.commitPrepared(
         Prepare.Put(1, "one"),
         Prepare.Put(2, "two")
-      ).runIO
+      ).value
 
       rootMap.commitPrepared(
         Prepare.Update(1, "one updated"),
         Prepare.Update(2, "two updated")
-      ).runIO
+      ).value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
       subMap.commitPrepared(
         Prepare.Put(1, "one one"),
         Prepare.Put(2, "two two")
-      ).runIO
+      ).value
 
       subMap.commitPrepared(
         Prepare.Update(1, "one one updated"),
         Prepare.Update(2, "two two updated")
-      ).runIO
+      ).value
 
-      rootMap.get(1).runIO.value shouldBe "one updated"
-      rootMap.get(2).runIO.value shouldBe "two updated"
-      subMap.get(1).assertGet shouldBe "one one updated"
-      subMap.get(2).assertGet shouldBe "two two updated"
+      rootMap.get(1).value.value shouldBe "one updated"
+      rootMap.get(2).value.value shouldBe "two updated"
+      subMap.get(1).value shouldBe "one one updated"
+      subMap.get(2).value shouldBe "two two updated"
 
       rootMap.closeDatabase().get
     }
@@ -464,27 +464,27 @@ sealed trait MapSpec extends TestBaseEmbedded {
       rootMap.commitPrepared(
         Prepare.Put(1, "one"),
         Prepare.Put(2, "two")
-      ).runIO
+      ).value
 
       rootMap.commitPrepared(
         Prepare.Expire(1, 100.millisecond),
         Prepare.Expire(2, 100.millisecond)
-      ).runIO
+      ).value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
       subMap.commitPrepared(
         Prepare.Put(1, "one one"),
         Prepare.Put(2, "two two")
-      ).runIO
+      ).value
 
       subMap.commitPrepared(
         Prepare.Expire(1, 100.millisecond),
         Prepare.Expire(2, 100.millisecond)
-      ).runIO
+      ).value
 
       eventual {
-        rootMap.stream.materialize.runIO shouldBe empty
-        subMap.stream.materialize.runIO shouldBe empty
+        rootMap.stream.materialize.value shouldBe empty
+        subMap.stream.materialize.value shouldBe empty
       }
 
       rootMap.closeDatabase().get
@@ -492,59 +492,59 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
     "batchPut" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).runIO
+      rootMap.put((1, "one"), (2, "two")).value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
       subMap.put((1, "one one"), (2, "two two"))
 
-      rootMap.stream.materialize.runIO shouldBe ListBuffer((1, "one"), (2, "two"))
-      subMap.stream.materialize.runIO shouldBe ListBuffer((1, "one one"), (2, "two two"))
+      rootMap.stream.materialize.value shouldBe ListBuffer((1, "one"), (2, "two"))
+      subMap.stream.materialize.value shouldBe ListBuffer((1, "one one"), (2, "two two"))
 
       rootMap.closeDatabase().get
     }
 
     "batchUpdate" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).runIO
-      rootMap.update((1, "one updated"), (2, "two updated")).runIO
+      rootMap.put((1, "one"), (2, "two")).value
+      rootMap.update((1, "one updated"), (2, "two updated")).value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
       subMap.put((1, "one one"), (2, "two two"))
-      subMap.update((1, "one one updated"), (2, "two two updated")).runIO
+      subMap.update((1, "one one updated"), (2, "two two updated")).value
 
-      rootMap.stream.materialize.runIO shouldBe ListBuffer((1, "one updated"), (2, "two updated"))
-      subMap.stream.materialize.runIO shouldBe ListBuffer((1, "one one updated"), (2, "two two updated"))
+      rootMap.stream.materialize.value shouldBe ListBuffer((1, "one updated"), (2, "two updated"))
+      subMap.stream.materialize.value shouldBe ListBuffer((1, "one one updated"), (2, "two two updated"))
 
       rootMap.closeDatabase().get
     }
 
     "batchRemove" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).runIO
-      rootMap.remove(1, 2).runIO
+      rootMap.put((1, "one"), (2, "two")).value
+      rootMap.remove(1, 2).value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
       subMap.put((1, "one one"), (2, "two two"))
-      subMap.remove(1, 2).runIO
+      subMap.remove(1, 2).value
 
-      rootMap.stream.materialize.runIO shouldBe empty
-      subMap.stream.materialize.runIO shouldBe empty
+      rootMap.stream.materialize.value shouldBe empty
+      subMap.stream.materialize.value shouldBe empty
 
       rootMap.closeDatabase().get
     }
 
     "batchExpire" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).runIO
-      rootMap.expire((1, 1.second.fromNow)).runIO
+      rootMap.put((1, "one"), (2, "two")).value
+      rootMap.expire((1, 1.second.fromNow)).value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
       subMap.put((1, "one one"), (2, "two two"))
-      subMap.expire((1, 1.second.fromNow), (2, 1.second.fromNow)).runIO
+      subMap.expire((1, 1.second.fromNow), (2, 1.second.fromNow)).value
 
       eventual {
-        rootMap.stream.materialize.runIO should contain only ((2, "two"))
-        subMap.stream.materialize.runIO shouldBe empty
+        rootMap.stream.materialize.value should contain only ((2, "two"))
+        subMap.stream.materialize.value shouldBe empty
       }
 
       rootMap.closeDatabase().get
@@ -552,105 +552,105 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
     "get" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).runIO
+      rootMap.put((1, "one"), (2, "two")).value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
       subMap.put((1, "one one"), (2, "two two"))
 
-      rootMap.get(1).runIO.value shouldBe "one"
-      rootMap.get(2).runIO.value shouldBe "two"
-      subMap.get(1).assertGet shouldBe "one one"
-      subMap.get(2).assertGet shouldBe "two two"
+      rootMap.get(1).value.value shouldBe "one"
+      rootMap.get(2).value.value shouldBe "two"
+      subMap.get(1).value shouldBe "one one"
+      subMap.get(2).value shouldBe "two two"
 
-      rootMap.remove(1, 2).runIO
-      subMap.remove(1, 2).runIO
+      rootMap.remove(1, 2).value
+      subMap.remove(1, 2).value
 
-      rootMap.get(1).runIO shouldBe empty
-      rootMap.get(2).runIO shouldBe empty
-      subMap.get(1).assertGetOpt shouldBe empty
-      subMap.get(2).assertGetOpt shouldBe empty
+      rootMap.get(1).value shouldBe empty
+      rootMap.get(2).value shouldBe empty
+      subMap.get(1).value.value shouldBe empty
+      subMap.get(2).value.value shouldBe empty
 
       rootMap.closeDatabase().get
     }
 
     "value when sub map is removed" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).runIO
+      rootMap.put((1, "one"), (2, "two")).value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
       subMap.put((1, "one one"), (2, "two two"))
 
-      rootMap.get(1).runIO.value shouldBe "one"
-      rootMap.get(2).runIO.value shouldBe "two"
-      subMap.get(1).assertGet shouldBe "one one"
-      subMap.get(2).assertGet shouldBe "two two"
+      rootMap.get(1).value.value shouldBe "one"
+      rootMap.get(2).value.value shouldBe "two"
+      subMap.get(1).value shouldBe "one one"
+      subMap.get(2).value shouldBe "two two"
 
-      rootMap.remove(1, 2).runIO
-      rootMap.maps.remove(1).runIO
+      rootMap.remove(1, 2).value
+      rootMap.maps.remove(1).value
 
-      rootMap.get(1).runIO shouldBe empty
-      rootMap.get(2).runIO shouldBe empty
-      subMap.get(1).assertGetOpt shouldBe empty
-      subMap.get(2).assertGetOpt shouldBe empty
+      rootMap.get(1).value shouldBe empty
+      rootMap.get(2).value shouldBe empty
+      subMap.get(1).value.value shouldBe empty
+      subMap.get(2).value.value shouldBe empty
 
       rootMap.closeDatabase().get
     }
 
     "getKey" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).runIO
+      rootMap.put((1, "one"), (2, "two")).value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
       subMap.put((11, "one one"), (22, "two two"))
 
-      rootMap.getKey(1).runIO.value shouldBe 1
-      rootMap.getKey(2).runIO.value shouldBe 2
-      subMap.getKey(11).assertGet shouldBe 11
-      subMap.getKey(22).assertGet shouldBe 22
+      rootMap.getKey(1).value.value shouldBe 1
+      rootMap.getKey(2).value.value shouldBe 2
+      subMap.getKey(11).value shouldBe 11
+      subMap.getKey(22).value shouldBe 22
 
-      rootMap.remove(1, 2).runIO
-      rootMap.maps.remove(1).runIO
+      rootMap.remove(1, 2).value
+      rootMap.maps.remove(1).value
 
-      rootMap.get(1).runIO shouldBe empty
-      rootMap.get(2).runIO shouldBe empty
-      subMap.get(11).assertGetOpt shouldBe empty
-      subMap.get(22).assertGetOpt shouldBe empty
+      rootMap.get(1).value shouldBe empty
+      rootMap.get(2).value shouldBe empty
+      subMap.get(11).value.value shouldBe empty
+      subMap.get(22).value.value shouldBe empty
 
       rootMap.closeDatabase().get
     }
 
     "getKeyValue" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).runIO
+      rootMap.put((1, "one"), (2, "two")).value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
       subMap.put((11, "one one"), (22, "two two"))
 
-      rootMap.getKeyValue(1).runIO.value shouldBe(1, "one")
-      rootMap.getKeyValue(2).runIO.value shouldBe(2, "two")
-      subMap.getKeyValue(11).assertGet shouldBe(11, "one one")
-      subMap.getKeyValue(22).assertGet shouldBe(22, "two two")
+      rootMap.getKeyValue(1).value.value shouldBe(1, "one")
+      rootMap.getKeyValue(2).value.value shouldBe(2, "two")
+      subMap.getKeyValue(11).value shouldBe(11, "one one")
+      subMap.getKeyValue(22).value shouldBe(22, "two two")
 
-      rootMap.remove(1, 2).runIO
-      rootMap.maps.remove(1).runIO
+      rootMap.remove(1, 2).value
+      rootMap.maps.remove(1).value
 
-      rootMap.getKeyValue(1).runIO shouldBe empty
-      rootMap.getKeyValue(2).runIO shouldBe empty
-      subMap.getKeyValue(11).assertGetOpt shouldBe empty
-      subMap.getKeyValue(22).assertGetOpt shouldBe empty
+      rootMap.getKeyValue(1).value shouldBe empty
+      rootMap.getKeyValue(2).value shouldBe empty
+      subMap.getKeyValue(11).value.value shouldBe empty
+      subMap.getKeyValue(22).value.value shouldBe empty
 
       rootMap.closeDatabase().get
     }
 
     "keys" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).runIO
+      rootMap.put((1, "one"), (2, "two")).value
 
-      val subMap = rootMap.maps.put(1, "sub map").runIO
+      val subMap = rootMap.maps.put(1, "sub map").value
       subMap.put((11, "one one"), (22, "two two"))
 
-      rootMap.keys.stream.materialize.runIO should contain inOrderOnly(1, 2)
-      subMap.keys.stream.materialize.runIO should contain inOrderOnly(11, 22)
+      rootMap.keys.stream.materialize.value should contain inOrderOnly(1, 2)
+      subMap.keys.stream.materialize.value should contain inOrderOnly(11, 22)
 
       rootMap.closeDatabase().get
     }
@@ -665,7 +665,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "return empty subMap range keys for a empty SubMap" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap").runIO
+      val rootMap = db.maps.put(1, "rootMap").value
       Map.childSubMapRanges(rootMap).get shouldBe empty
 
       db.closeDatabase().get
@@ -674,8 +674,8 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "return subMap that has only one child subMap" in {
       val rootMap = newDB()
 
-      val firstMap = rootMap.maps.put(1, "rootMap").runIO
-      val secondMap = firstMap.maps.put(2, "second map").runIO
+      val firstMap = rootMap.maps.put(1, "rootMap").value
+      val secondMap = firstMap.maps.put(2, "second map").value
 
       Map.childSubMapRanges(firstMap).get should contain only ((Key.SubMap(Seq(1), 2), Key.MapStart(Seq(1, 2)), Key.MapEnd(Seq(1, 2))))
       Map.childSubMapRanges(secondMap).get shouldBe empty
@@ -686,9 +686,9 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "return subMaps of 3 nested maps" in {
       val db = newDB()
 
-      val firstMap = db.maps.put(1, "first").runIO
-      val secondMap = firstMap.maps.put(2, "second").runIO
-      val thirdMap = secondMap.maps.put(2, "third").runIO
+      val firstMap = db.maps.put(1, "first").value
+      val secondMap = firstMap.maps.put(2, "second").value
+      val thirdMap = secondMap.maps.put(2, "third").value
 
       Map.childSubMapRanges(firstMap).get should contain inOrderOnly((Key.SubMap(Seq(1), 2), Key.MapStart(Seq(1, 2)), Key.MapEnd(Seq(1, 2))), (Key.SubMap(Seq(1, 2), 2), Key.MapStart(Seq(1, 2, 2)), Key.MapEnd(Seq(1, 2, 2))))
       Map.childSubMapRanges(secondMap).get should contain only ((Key.SubMap(Seq(1, 2), 2), Key.MapStart(Seq(1, 2, 2)), Key.MapEnd(Seq(1, 2, 2))))
@@ -700,18 +700,18 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "returns multiple child subMap that also contains nested subMaps" in {
       val db = newDB()
 
-      val firstMap = db.maps.put(1, "firstMap").runIO
-      val secondMap = firstMap.maps.put(2, "subMap").runIO
+      val firstMap = db.maps.put(1, "firstMap").value
+      val secondMap = firstMap.maps.put(2, "subMap").value
 
-      secondMap.maps.put(2, "subMap").runIO
-      secondMap.maps.put(3, "subMap3").runIO
-      val subMap4 = secondMap.maps.put(4, "subMap4").runIO
-      subMap4.maps.put(44, "subMap44").runIO
-      val subMap5 = secondMap.maps.put(5, "subMap5").runIO
-      val subMap55 = subMap5.maps.put(55, "subMap55").runIO
-      subMap55.maps.put(5555, "subMap55").runIO
-      subMap55.maps.put(6666, "subMap55").runIO
-      subMap5.maps.put(555, "subMap555").runIO
+      secondMap.maps.put(2, "subMap").value
+      secondMap.maps.put(3, "subMap3").value
+      val subMap4 = secondMap.maps.put(4, "subMap4").value
+      subMap4.maps.put(44, "subMap44").value
+      val subMap5 = secondMap.maps.put(5, "subMap5").value
+      val subMap55 = subMap5.maps.put(55, "subMap55").value
+      subMap55.maps.put(5555, "subMap55").value
+      subMap55.maps.put(6666, "subMap55").value
+      subMap5.maps.put(555, "subMap555").value
 
       val mapHierarchy =
         List(
@@ -739,10 +739,10 @@ sealed trait MapSpec extends TestBaseEmbedded {
       "create a new subMap" in {
         val root = newDB()
 
-        val first = root.maps.put(1, "first").runIO
-        val second = first.maps.put(2, "second").runIO
-        first.maps.get(2).assertGetOpt shouldBe defined
-        second.maps.get(2).assertGetOpt shouldBe empty
+        val first = root.maps.put(1, "first").value
+        val second = first.maps.put(2, "second").value
+        first.maps.get(2).value.value shouldBe defined
+        second.maps.get(2).value.value shouldBe empty
 
         root.closeDatabase().get
       }
@@ -752,14 +752,14 @@ sealed trait MapSpec extends TestBaseEmbedded {
       "replace existing map" in {
         val root = newDB()
 
-        val first = root.maps.put(1, "first").runIO
-        val second = first.maps.put(2, "second").runIO
-        val secondAgain = first.maps.put(2, "second again").runIO
+        val first = root.maps.put(1, "first").value
+        val second = first.maps.put(2, "second").value
+        val secondAgain = first.maps.put(2, "second again").value
 
-        first.maps.get(2).assertGetOpt shouldBe defined
-        first.maps.getValue(2).assertGet shouldBe "second again"
-        second.getValue().assertGet shouldBe "second again"
-        secondAgain.getValue().assertGet shouldBe "second again"
+        first.maps.get(2).value.value shouldBe defined
+        first.maps.getValue(2).value shouldBe "second again"
+        second.getValue().value shouldBe "second again"
+        secondAgain.getValue().value shouldBe "second again"
 
         root.closeDatabase().get
       }
@@ -767,24 +767,24 @@ sealed trait MapSpec extends TestBaseEmbedded {
       "replace existing map and all it's entries" in {
         val root = newDB()
 
-        val first = root.maps.put(1, "first").runIO
-        val second = first.maps.put(2, "second").runIO
+        val first = root.maps.put(1, "first").value
+        val second = first.maps.put(2, "second").value
         //write entries to second map
-        second.put(1, "one").runIO
-        second.put(2, "two").runIO
-        second.put(3, "three").runIO
+        second.put(1, "one").value
+        second.put(2, "two").value
+        second.put(3, "three").value
         //assert second map has these entries
-        second.stream.materialize.runIO shouldBe List((1, "one"), (2, "two"), (3, "three"))
+        second.stream.materialize.value shouldBe List((1, "one"), (2, "two"), (3, "three"))
 
-        val secondAgain = first.maps.put(2, "second again").runIO
+        val secondAgain = first.maps.put(2, "second again").value
 
         //map value value updated
-        first.maps.get(2).assertGetOpt shouldBe defined
-        first.maps.getValue(2).assertGet shouldBe "second again"
-        second.getValue().assertGet shouldBe "second again"
-        secondAgain.getValue().assertGet shouldBe "second again"
+        first.maps.get(2).value.value shouldBe defined
+        first.maps.getValue(2).value shouldBe "second again"
+        second.getValue().value shouldBe "second again"
+        secondAgain.getValue().value shouldBe "second again"
         //all the old entries are removed
-        second.stream.materialize.runIO shouldBe empty
+        second.stream.materialize.value shouldBe empty
 
         root.closeDatabase().get
       }
@@ -797,51 +797,51 @@ sealed trait MapSpec extends TestBaseEmbedded {
         //   second
         //       third
         //           fourth
-        val first = root.maps.put(1, "first").runIO
-        val second = first.maps.put(2, "second").runIO
-        second.put(1, "second one").runIO
-        second.put(2, "second two").runIO
-        second.put(3, "second three").runIO
+        val first = root.maps.put(1, "first").value
+        val second = first.maps.put(2, "second").value
+        second.put(1, "second one").value
+        second.put(2, "second two").value
+        second.put(3, "second three").value
         //third map that is the child map of second map
-        val third = second.maps.put(3, "third").runIO
-        third.put(1, "third one").runIO
-        third.put(2, "third two").runIO
-        third.put(3, "third three").runIO
-        val fourth = third.maps.put(4, "fourth").runIO
-        fourth.put(1, "fourth one").runIO
-        fourth.put(2, "fourth two").runIO
-        fourth.put(3, "fourth three").runIO
+        val third = second.maps.put(3, "third").value
+        third.put(1, "third one").value
+        third.put(2, "third two").value
+        third.put(3, "third three").value
+        val fourth = third.maps.put(4, "fourth").value
+        fourth.put(1, "fourth one").value
+        fourth.put(2, "fourth two").value
+        fourth.put(3, "fourth three").value
 
         /**
           * Assert that the all maps' content is accurate
           */
-        second.stream.materialize.runIO shouldBe List((1, "second one"), (2, "second two"), (3, "second three"))
-        third.stream.materialize.runIO shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
-        fourth.stream.materialize.runIO shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
+        second.stream.materialize.value shouldBe List((1, "second one"), (2, "second two"), (3, "second three"))
+        third.stream.materialize.value shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
+        fourth.stream.materialize.value shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
 
-        second.stream.materialize.runIO shouldBe List((1, "second one"), (2, "second two"), (3, "second three"))
-        third.stream.materialize.runIO shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
-        fourth.stream.materialize.runIO shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
+        second.stream.materialize.value shouldBe List((1, "second one"), (2, "second two"), (3, "second three"))
+        third.stream.materialize.value shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
+        fourth.stream.materialize.value shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
 
-        second.maps.stream.materialize.runIO shouldBe List((3, "third"))
-        third.maps.stream.materialize.runIO shouldBe List((4, "fourth"))
-        fourth.maps.stream.materialize.runIO shouldBe empty
+        second.maps.stream.materialize.value shouldBe List((3, "third"))
+        third.maps.stream.materialize.value shouldBe List((4, "fourth"))
+        fourth.maps.stream.materialize.value shouldBe empty
 
         //submit put on second map and assert that all it's contents are replaced.
-        val secondAgain = first.maps.put(2, "second updated").runIO
+        val secondAgain = first.maps.put(2, "second updated").value
 
         //map value value updated
-        first.maps.get(2).assertGetOpt shouldBe defined
-        first.maps.getValue(2).assertGet shouldBe "second updated"
-        second.getValue().assertGet shouldBe "second updated"
-        secondAgain.getValue().assertGet shouldBe "second updated"
+        first.maps.get(2).value.value shouldBe defined
+        first.maps.getValue(2).value shouldBe "second updated"
+        second.getValue().value shouldBe "second updated"
+        secondAgain.getValue().value shouldBe "second updated"
         //all the old entries are removed
-        second.stream.materialize.runIO shouldBe empty
-        third.stream.materialize.runIO shouldBe empty
-        fourth.stream.materialize.runIO shouldBe empty
+        second.stream.materialize.value shouldBe empty
+        third.stream.materialize.value shouldBe empty
+        fourth.stream.materialize.value shouldBe empty
 
-        second.maps.contains(3).runIO shouldBe false
-        second.maps.contains(4).runIO shouldBe false
+        second.maps.contains(3).value shouldBe false
+        second.maps.contains(4).value shouldBe false
 
         root.closeDatabase().get
       }
@@ -851,24 +851,24 @@ sealed trait MapSpec extends TestBaseEmbedded {
       "remove all key-values from a map" in {
 
         val root = newDB()
-        val first = root.maps.put(1, "first").runIO
-        val second = first.maps.put(2, "second").runIO
-        second.put(1, "second one").runIO
-        second.put(2, "second two").runIO
-        second.put(3, "second three").runIO
+        val first = root.maps.put(1, "first").value
+        val second = first.maps.put(2, "second").value
+        second.put(1, "second one").value
+        second.put(2, "second two").value
+        second.put(3, "second three").value
         //third map that is the child map of second map
-        val third = second.maps.put(3, "third").runIO
-        third.put(1, "third one").runIO
-        third.put(2, "third two").runIO
-        third.put(3, "third three").runIO
+        val third = second.maps.put(3, "third").value
+        third.put(1, "third one").value
+        third.put(2, "third two").value
+        third.put(3, "third three").value
 
-        second.stream.materialize.runIO should have size 3
-        second.clear().runIO
-        second.stream.materialize.runIO shouldBe empty
+        second.stream.materialize.value should have size 3
+        second.clear().value
+        second.stream.materialize.value shouldBe empty
 
-        third.stream.materialize.runIO should have size 3
-        second.maps.clear(3).runIO
-        third.stream.materialize.runIO shouldBe empty
+        third.stream.materialize.value should have size 3
+        second.maps.clear(3).value
+        third.stream.materialize.value shouldBe empty
 
         root.closeDatabase().get
       }

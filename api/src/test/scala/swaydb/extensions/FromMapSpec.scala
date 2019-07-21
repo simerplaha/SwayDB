@@ -30,7 +30,7 @@ class FromMapSpec0 extends FromMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): extensions.Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).runIO
+    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).value
 }
 
 class FromMapSpec1 extends FromMapSpec {
@@ -38,7 +38,7 @@ class FromMapSpec1 extends FromMapSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): extensions.Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).runIO
+    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).value
 }
 
 class FromMapSpec2 extends FromMapSpec {
@@ -46,14 +46,14 @@ class FromMapSpec2 extends FromMapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): extensions.Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).runIO
+    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).value
 }
 
 class FromMapSpec3 extends FromMapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): extensions.Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String]().runIO
+    swaydb.extensions.memory.Map[Int, String]().value
 }
 
 sealed trait FromMapSpec extends TestBaseEmbedded {
@@ -67,13 +67,13 @@ sealed trait FromMapSpec extends TestBaseEmbedded {
     "return empty on an empty Map" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap").runIO
+      val rootMap = db.maps.put(1, "rootMap").value
 
-      rootMap.maps.from(1).stream.materialize.runIO shouldBe empty
-      rootMap.maps.before(1).stream.materialize.runIO shouldBe empty
-      rootMap.maps.after(1).stream.materialize.runIO shouldBe empty
-      rootMap.fromOrBefore(1).stream.materialize.runIO shouldBe empty
-      rootMap.fromOrAfter(1).stream.materialize.runIO shouldBe empty
+      rootMap.maps.from(1).stream.materialize.value shouldBe empty
+      rootMap.maps.before(1).stream.materialize.value shouldBe empty
+      rootMap.maps.after(1).stream.materialize.value shouldBe empty
+      rootMap.fromOrBefore(1).stream.materialize.value shouldBe empty
+      rootMap.fromOrAfter(1).stream.materialize.value shouldBe empty
 
       db.closeDatabase().get
     }
@@ -81,24 +81,24 @@ sealed trait FromMapSpec extends TestBaseEmbedded {
     "if the map contains only 1 empty subMap" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap").runIO
-      val firstMap = rootMap.maps.put(2, "sub map").runIO
+      val rootMap = db.maps.put(1, "rootMap").value
+      val firstMap = rootMap.maps.put(2, "sub map").value
 
-      rootMap.maps.from(1).stream.materialize.runIO shouldBe empty
-      rootMap.maps.before(1).stream.materialize.runIO shouldBe List((2, "sub map"))
-      rootMap.maps.after(1).stream.materialize.runIO shouldBe List((2, "sub map"))
-      rootMap.maps.fromOrBefore(1).stream.materialize.runIO shouldBe List((2, "sub map"))
-      rootMap.maps.fromOrAfter(1).stream.materialize.runIO shouldBe List((2, "sub map"))
+      rootMap.maps.from(1).stream.materialize.value shouldBe empty
+      rootMap.maps.before(1).stream.materialize.value shouldBe List((2, "sub map"))
+      rootMap.maps.after(1).stream.materialize.value shouldBe List((2, "sub map"))
+      rootMap.maps.fromOrBefore(1).stream.materialize.value shouldBe List((2, "sub map"))
+      rootMap.maps.fromOrAfter(1).stream.materialize.value shouldBe List((2, "sub map"))
 
-      rootMap.maps.from(2).stream.materialize.runIO shouldBe List((2, "sub map"))
-      rootMap.maps.before(2).stream.materialize.runIO shouldBe List((2, "sub map"))
-      rootMap.maps.after(2).stream.materialize.runIO shouldBe empty
-      rootMap.maps.fromOrBefore(2).stream.materialize.runIO shouldBe List((2, "sub map"))
-      rootMap.maps.fromOrAfter(2).stream.materialize.runIO shouldBe List((2, "sub map"))
+      rootMap.maps.from(2).stream.materialize.value shouldBe List((2, "sub map"))
+      rootMap.maps.before(2).stream.materialize.value shouldBe List((2, "sub map"))
+      rootMap.maps.after(2).stream.materialize.value shouldBe empty
+      rootMap.maps.fromOrBefore(2).stream.materialize.value shouldBe List((2, "sub map"))
+      rootMap.maps.fromOrAfter(2).stream.materialize.value shouldBe List((2, "sub map"))
 
-      rootMap.maps.stream.materialize.runIO should have size 1
-      firstMap.stream.materialize.runIO shouldBe empty
-      firstMap.maps.stream.materialize.runIO shouldBe empty
+      rootMap.maps.stream.materialize.value should have size 1
+      firstMap.stream.materialize.value shouldBe empty
+      firstMap.maps.stream.materialize.value shouldBe empty
 
       rootMap.maps.headOption.get should contain((2, "sub map"))
       rootMap.maps.lastOption.get should contain((2, "sub map"))
@@ -125,57 +125,57 @@ sealed trait FromMapSpec extends TestBaseEmbedded {
       //                                           (222, "two two two")
       //                                           (333, "three three three")
       //                                           (444, "four four four")
-      val rootMap = db.maps.put(1, "rootMap").runIO
-      val firstMap = rootMap.maps.put(2, "sub map").runIO
-      val secondMap = rootMap.maps.put(3, "sub map").runIO
+      val rootMap = db.maps.put(1, "rootMap").value
+      val firstMap = rootMap.maps.put(2, "sub map").value
+      val secondMap = rootMap.maps.put(3, "sub map").value
 
       //insert entries to rootMap
-      rootMap.put(1, "one").runIO
-      rootMap.put(2, "two").runIO
-      rootMap.put(3, "three").runIO
-      rootMap.put(4, "four").runIO
+      rootMap.put(1, "one").value
+      rootMap.put(2, "two").value
+      rootMap.put(3, "three").value
+      rootMap.put(4, "four").value
 
       //insert entries to firstMap
-      firstMap.put(11, "one one").runIO
-      firstMap.put(22, "two two").runIO
-      firstMap.put(33, "three three").runIO
-      firstMap.put(44, "four four").runIO
+      firstMap.put(11, "one one").value
+      firstMap.put(22, "two two").value
+      firstMap.put(33, "three three").value
+      firstMap.put(44, "four four").value
 
       //insert entries to firstMap
-      secondMap.put(111, "one one one").runIO
-      secondMap.put(222, "two two two").runIO
-      secondMap.put(333, "three three three").runIO
-      secondMap.put(444, "four four four").runIO
+      secondMap.put(111, "one one one").value
+      secondMap.put(222, "two two two").value
+      secondMap.put(333, "three three three").value
+      secondMap.put(444, "four four four").value
 
-      rootMap.maps.from(1).stream.materialize.runIO shouldBe empty
+      rootMap.maps.from(1).stream.materialize.value shouldBe empty
       //reverse from the map.
-      rootMap.before(2).reverse.map { case (key, value) => (key, value) }.materialize.runIO shouldBe List((1, "one"))
-      rootMap.before(3).reverse.map { case (key, value) => (key, value) }.materialize.runIO shouldBe List((2, "two"), (1, "one"))
-      rootMap.before(4).reverse.map { case (key, value) => (key, value) }.materialize.runIO shouldBe List((3, "three"), (2, "two"), (1, "one"))
-      rootMap.before(5).reverse.map { case (key, value) => (key, value) }.materialize.runIO shouldBe List((4, "four"), (3, "three"), (2, "two"), (1, "one"))
-      rootMap.from(3).reverse.map { case (key, value) => (key, value) }.materialize.runIO shouldBe List((3, "three"), (2, "two"), (1, "one"))
+      rootMap.before(2).reverse.map { case (key, value) => (key, value) }.materialize.value shouldBe List((1, "one"))
+      rootMap.before(3).reverse.map { case (key, value) => (key, value) }.materialize.value shouldBe List((2, "two"), (1, "one"))
+      rootMap.before(4).reverse.map { case (key, value) => (key, value) }.materialize.value shouldBe List((3, "three"), (2, "two"), (1, "one"))
+      rootMap.before(5).reverse.map { case (key, value) => (key, value) }.materialize.value shouldBe List((4, "four"), (3, "three"), (2, "two"), (1, "one"))
+      rootMap.from(3).reverse.map { case (key, value) => (key, value) }.materialize.value shouldBe List((3, "three"), (2, "two"), (1, "one"))
 
-      rootMap.maps.before(3).reverse.map { case (key, value) => (key, value) }.materialize.runIO shouldBe List((2, "sub map"))
-      rootMap.maps.from(3).reverse.map { case (key, value) => (key, value) }.materialize.runIO shouldBe List((3, "sub map"), (2, "sub map"))
+      rootMap.maps.before(3).reverse.map { case (key, value) => (key, value) }.materialize.value shouldBe List((2, "sub map"))
+      rootMap.maps.from(3).reverse.map { case (key, value) => (key, value) }.materialize.value shouldBe List((3, "sub map"), (2, "sub map"))
 
       //forward from entry
-      rootMap.from(1).stream.materialize.runIO shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four"))
-      rootMap.fromOrAfter(1).stream.materialize.runIO shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four"))
-      rootMap.fromOrBefore(1).stream.materialize.runIO shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four"))
-      rootMap.after(2).stream.materialize.runIO shouldBe List((3, "three"), (4, "four"))
+      rootMap.from(1).stream.materialize.value shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four"))
+      rootMap.fromOrAfter(1).stream.materialize.value shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four"))
+      rootMap.fromOrBefore(1).stream.materialize.value shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four"))
+      rootMap.after(2).stream.materialize.value shouldBe List((3, "three"), (4, "four"))
 
-      firstMap.stream.materialize.runIO shouldBe List((11, "one one"), (22, "two two"), (33, "three three"), (44, "four four"))
-      firstMap.from(11).stream.materialize.runIO shouldBe List((11, "one one"), (22, "two two"), (33, "three three"), (44, "four four"))
-      firstMap.from(22).stream.materialize.runIO shouldBe List((22, "two two"), (33, "three three"), (44, "four four"))
-      firstMap.from(33).stream.materialize.runIO shouldBe List((33, "three three"), (44, "four four"))
-      firstMap.from(44).stream.materialize.runIO shouldBe List((44, "four four"))
+      firstMap.stream.materialize.value shouldBe List((11, "one one"), (22, "two two"), (33, "three three"), (44, "four four"))
+      firstMap.from(11).stream.materialize.value shouldBe List((11, "one one"), (22, "two two"), (33, "three three"), (44, "four four"))
+      firstMap.from(22).stream.materialize.value shouldBe List((22, "two two"), (33, "three three"), (44, "four four"))
+      firstMap.from(33).stream.materialize.value shouldBe List((33, "three three"), (44, "four four"))
+      firstMap.from(44).stream.materialize.value shouldBe List((44, "four four"))
 
-      firstMap.from(11).reverse.map { case (key, value) => (key, value) }.materialize.runIO shouldBe List((11, "one one"))
-      firstMap.from(22).reverse.map { case (key, value) => (key, value) }.materialize.runIO shouldBe List((22, "two two"), (11, "one one"))
-      firstMap.from(33).reverse.map { case (key, value) => (key, value) }.materialize.runIO shouldBe List((33, "three three"), (22, "two two"), (11, "one one"))
-      firstMap.from(44).reverse.map { case (key, value) => (key, value) }.materialize.runIO shouldBe List((44, "four four"), (33, "three three"), (22, "two two"), (11, "one one"))
+      firstMap.from(11).reverse.map { case (key, value) => (key, value) }.materialize.value shouldBe List((11, "one one"))
+      firstMap.from(22).reverse.map { case (key, value) => (key, value) }.materialize.value shouldBe List((22, "two two"), (11, "one one"))
+      firstMap.from(33).reverse.map { case (key, value) => (key, value) }.materialize.value shouldBe List((33, "three three"), (22, "two two"), (11, "one one"))
+      firstMap.from(44).reverse.map { case (key, value) => (key, value) }.materialize.value shouldBe List((44, "four four"), (33, "three three"), (22, "two two"), (11, "one one"))
 
-      firstMap.maps.stream.materialize.runIO shouldBe empty
+      firstMap.maps.stream.materialize.value shouldBe empty
 
       db.closeDatabase().get
     }

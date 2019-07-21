@@ -30,7 +30,7 @@ class MapPutSpec0 extends MapPutSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).runIO
+    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).value
 }
 
 class MapPutSpec1 extends MapPutSpec {
@@ -38,7 +38,7 @@ class MapPutSpec1 extends MapPutSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).runIO
+    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).value
 }
 
 class MapPutSpec2 extends MapPutSpec {
@@ -46,14 +46,14 @@ class MapPutSpec2 extends MapPutSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).runIO
+    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).value
 }
 
 class MapPutSpec3 extends MapPutSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String]().runIO
+    swaydb.extensions.memory.Map[Int, String]().value
 }
 
 sealed trait MapPutSpec extends TestBaseEmbedded {
@@ -66,17 +66,17 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
     "Initialise a RootMap & SubMap from Root" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap").runIO
-      val firstMap = rootMap.maps.put(2, "first map").runIO
+      val rootMap = db.maps.put(1, "rootMap").value
+      val firstMap = rootMap.maps.put(2, "first map").value
 
-      firstMap.put(3, "three").runIO
-      firstMap.put(4, "four").runIO
-      firstMap.put(5, "five").runIO
-      firstMap.put(4, "four again").runIO
+      firstMap.put(3, "three").value
+      firstMap.put(4, "four").value
+      firstMap.put(5, "five").value
+      firstMap.put(4, "four again").value
 
       firstMap
         .stream
-        .materialize.runIO should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+        .materialize.value should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
 
       db.closeDatabase().get
     }
@@ -85,27 +85,27 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
       val db = newDB()
 
       def insert(firstMap: Map[Int, String]) = {
-        firstMap.put(3, "three").runIO
-        firstMap.put(4, "four").runIO
-        firstMap.put(5, "five").runIO
-        firstMap.put(4, "four again").runIO
+        firstMap.put(3, "three").value
+        firstMap.put(4, "four").value
+        firstMap.put(5, "five").value
+        firstMap.put(4, "four again").value
       }
 
-      val firstMap = db.maps.put(1, "first map").runIO
+      val firstMap = db.maps.put(1, "first map").value
 
-      val secondMap = firstMap.maps.put(2, "second map").runIO
+      val secondMap = firstMap.maps.put(2, "second map").value
       insert(secondMap)
 
-      val thirdMap = firstMap.maps.put(3, "third map").runIO
+      val thirdMap = firstMap.maps.put(3, "third map").value
       insert(thirdMap)
 
       secondMap
         .stream
-        .materialize.runIO should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+        .materialize.value should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
 
       thirdMap
         .stream
-        .materialize.runIO should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+        .materialize.value should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
 
       db.closeDatabase().get
     }
@@ -139,14 +139,14 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
     "putOrGet spec" in {
       val db = newDB()
 
-      val map = db.maps.getOrPut(1, "firstMap").runIO
-      map.exists().runIO shouldBe true
-      map.getValue().runIO.value shouldBe "firstMap"
+      val map = db.maps.getOrPut(1, "firstMap").value
+      map.exists().value shouldBe true
+      map.getValue().value.value shouldBe "firstMap"
 
-      val mapAgain = db.maps.getOrPut(1, "firstMap put again").runIO
-      mapAgain.exists().runIO shouldBe true
+      val mapAgain = db.maps.getOrPut(1, "firstMap put again").value
+      mapAgain.exists().value shouldBe true
       //value does not change as the map already exists.
-      mapAgain.getValue().runIO.value shouldBe "firstMap"
+      mapAgain.getValue().value.value shouldBe "firstMap"
 
       db.closeDatabase().get
     }
@@ -154,31 +154,31 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
     "Initialise 5 nested maps with 2 elements in each map" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap1").runIO
+      val rootMap = db.maps.put(1, "rootMap1").value
 
-      val subMap1 = rootMap.maps.put(2, "sub map 2").runIO
-      subMap1.put(1, "one").runIO
-      subMap1.put(2, "two").runIO
+      val subMap1 = rootMap.maps.put(2, "sub map 2").value
+      subMap1.put(1, "one").value
+      subMap1.put(2, "two").value
 
-      val subMap2 = subMap1.maps.put(3, "sub map three").runIO
-      subMap2.put(3, "three").runIO
-      subMap2.put(4, "four").runIO
+      val subMap2 = subMap1.maps.put(3, "sub map three").value
+      subMap2.put(3, "three").value
+      subMap2.put(4, "four").value
 
-      val subMap3 = subMap2.maps.put(5, "sub map five").runIO
-      subMap3.put(5, "five").runIO
-      subMap3.put(6, "six").runIO
+      val subMap3 = subMap2.maps.put(5, "sub map five").value
+      subMap3.put(5, "five").value
+      subMap3.put(6, "six").value
 
-      val subMap4 = subMap3.maps.put(7, "sub map seven").runIO
-      subMap4.put(7, "seven").runIO
-      subMap4.put(8, "eight").runIO
+      val subMap4 = subMap3.maps.put(7, "sub map seven").value
+      subMap4.put(7, "seven").value
+      subMap4.put(8, "eight").value
 
-      subMap1.stream.materialize.runIO should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.maps.stream.materialize.runIO should contain only ((3, "sub map three"))
-      subMap2.stream.materialize.runIO should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.maps.stream.materialize.runIO should contain only ((5, "sub map five"))
-      subMap3.stream.materialize.runIO should contain inOrderOnly((5, "five"), (6, "six"))
-      subMap3.maps.stream.materialize.runIO should contain only ((7, "sub map seven"))
-      subMap4.stream.materialize.runIO should contain inOrderOnly((7, "seven"), (8, "eight"))
+      subMap1.stream.materialize.value should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.stream.materialize.value should contain only ((3, "sub map three"))
+      subMap2.stream.materialize.value should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.maps.stream.materialize.value should contain only ((5, "sub map five"))
+      subMap3.stream.materialize.value should contain inOrderOnly((5, "five"), (6, "six"))
+      subMap3.maps.stream.materialize.value should contain only ((7, "sub map seven"))
+      subMap4.stream.materialize.value should contain inOrderOnly((7, "seven"), (8, "eight"))
 
       db.closeDatabase().get
     }
@@ -186,28 +186,28 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
     "Initialise 5 sibling maps with 2 elements in each map" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap1").runIO
+      val rootMap = db.maps.put(1, "rootMap1").value
 
-      val subMap1 = rootMap.maps.put(2, "sub map 2").runIO
-      subMap1.put(1, "one").runIO
-      subMap1.put(2, "two").runIO
+      val subMap1 = rootMap.maps.put(2, "sub map 2").value
+      subMap1.put(1, "one").value
+      subMap1.put(2, "two").value
 
-      val subMap2 = rootMap.maps.put(3, "sub map three").runIO
-      subMap2.put(3, "three").runIO
-      subMap2.put(4, "four").runIO
+      val subMap2 = rootMap.maps.put(3, "sub map three").value
+      subMap2.put(3, "three").value
+      subMap2.put(4, "four").value
 
-      val subMap3 = rootMap.maps.put(5, "sub map five").runIO
-      subMap3.put(5, "five").runIO
-      subMap3.put(6, "six").runIO
+      val subMap3 = rootMap.maps.put(5, "sub map five").value
+      subMap3.put(5, "five").value
+      subMap3.put(6, "six").value
 
-      val subMap4 = rootMap.maps.put(7, "sub map seven").runIO
-      subMap4.put(7, "seven").runIO
-      subMap4.put(8, "eight").runIO
+      val subMap4 = rootMap.maps.put(7, "sub map seven").value
+      subMap4.put(7, "seven").value
+      subMap4.put(8, "eight").value
 
-      subMap1.stream.materialize.runIO should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap2.stream.materialize.runIO should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap3.stream.materialize.runIO should contain inOrderOnly((5, "five"), (6, "six"))
-      subMap4.stream.materialize.runIO should contain inOrderOnly((7, "seven"), (8, "eight"))
+      subMap1.stream.materialize.value should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap2.stream.materialize.value should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap3.stream.materialize.value should contain inOrderOnly((5, "five"), (6, "six"))
+      subMap4.stream.materialize.value should contain inOrderOnly((7, "seven"), (8, "eight"))
 
       db.closeDatabase().get
     }
