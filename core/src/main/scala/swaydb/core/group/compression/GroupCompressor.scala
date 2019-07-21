@@ -66,7 +66,7 @@ private[core] object GroupCompressor extends LazyLogging {
           IO {
             val (minKey, maxKey, mergedKey) = buildCompressedKey(keyValues)
             Transient.Group(
-              key = minKey,
+              minKey = minKey,
               maxKey = maxKey,
               minMaxFunctionId = blockedSegment.minMaxFunctionId,
               mergedKey = mergedKey,

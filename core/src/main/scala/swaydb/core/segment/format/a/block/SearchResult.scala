@@ -24,15 +24,6 @@ sealed trait SearchResult[+T] {
 }
 object SearchResult {
 
-  object None {
-    val none: SearchResult.None[Nothing] = new SearchResult.None(Option.empty)
-
-    def apply[T](lower: Option[T]): SearchResult[T] =
-      if (lower.isEmpty)
-        none
-      else
-        new None(lower)
-  }
   case class None[T](lower: Option[T]) extends SearchResult[T] {
     override val toOption: Option[T] = scala.None
   }
