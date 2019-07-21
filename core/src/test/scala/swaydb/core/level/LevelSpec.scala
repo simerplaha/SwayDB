@@ -24,7 +24,7 @@ import java.nio.channels.OverlappingFileLockException
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
@@ -88,7 +88,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       if (persistent) {
         val otherDirs = (0 to randomIntMax(5)) map (_ => Dir(randomDir, 1))
         val storage = LevelStorage.Persistent(randomBoolean(), randomBoolean(), randomDir, otherDirs)
-        val lock = Level.acquireLock(storage).assertGetOpt
+        val lock = Level.acquireLock(storage).runIO
         lock shouldBe defined
         //other directories do not have locks.
         storage.otherDirs foreach {
@@ -97,11 +97,11 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         }
 
         //trying to lock again should fail
-        Level.acquireLock(storage).failed.assertGet.exception shouldBe a[OverlappingFileLockException]
+        Level.acquireLock(storage).failed.runIO.exception shouldBe a[OverlappingFileLockException]
 
         //closing the lock should allow re-locking
         lock.get.close()
-        Level.acquireLock(storage).assertGetOpt shouldBe defined
+        Level.acquireLock(storage).runIO shouldBe defined
       }
     }
   }
@@ -136,26 +136,26 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       level.segmentsInLevel() shouldBe empty
       level.removeDeletedRecords shouldBe true
 
-      level.delete.assertGet
+      level.delete.runIO
     }
 
     "report error if appendix file and folder does not exists" in {
       if (persistent) {
         //create a non empty level
         val level = TestLevel()
-        level.put(TestSegment(randomKeyValues(keyValuesCount)).assertGet).assertGet
+        level.put(TestSegment(randomKeyValues(keyValuesCount)).runIO).runIO
 
         //delete the appendix file
         level.paths.headPath.resolve("appendix").files(Extension.Log) map IOEffect.delete
         //expect failure when file does not exists
-        level.tryReopen.failed.assertGet.exception shouldBe a[IllegalStateException]
+        level.tryReopen.failed.runIO.exception shouldBe a[IllegalStateException]
 
         //delete folder
-        IOEffect.delete(level.paths.headPath.resolve("appendix")).assertGet
+        IOEffect.delete(level.paths.headPath.resolve("appendix")).runIO
         //expect failure when folder does not exist
-        level.tryReopen.failed.assertGet.exception shouldBe a[IllegalStateException]
+        level.tryReopen.failed.runIO.exception shouldBe a[IllegalStateException]
 
-        level.delete.assertGet
+        level.delete.runIO
       }
     }
   }
@@ -166,30 +166,30 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         // memory Level do not have uncommitted Segments
       } else {
         val level = TestLevel()
-        level.putKeyValuesTest(randomPutKeyValues()).assertGet
+        level.putKeyValuesTest(randomPutKeyValues()).runIO
         val segmentsIdsBeforeInvalidSegments = level.segmentFilesOnDisk
         segmentsIdsBeforeInvalidSegments should have size 1
 
-        val currentSegmentId = segmentsIdsBeforeInvalidSegments.head.fileId.assertGet._1
+        val currentSegmentId = segmentsIdsBeforeInvalidSegments.head.fileId.runIO._1
 
         //create 3 invalid segments in all the paths of the Level
         level.dirs.foldLeft(currentSegmentId) {
           case (currentSegmentId, dir) =>
-            TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId)).assertGet
-            TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId)).assertGet
-            TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId)).assertGet
+            TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId)).runIO
+            TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId)).runIO
+            TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId)).runIO
             currentSegmentId + 3
         }
         //every level folder has 3 uncommitted Segments plus 1 valid Segment
         level.segmentFilesOnDisk should have size (level.dirs.size * 3) + 1
 
-        Level.deleteUncommittedSegments(level.dirs, level.segmentsInLevel()).assertGet
+        Level.deleteUncommittedSegments(level.dirs, level.segmentsInLevel()).runIO
 
         level.segmentFilesOnDisk should have size 1
         level.segmentFilesOnDisk should contain only segmentsIdsBeforeInvalidSegments.head
         level.reopen.segmentFilesOnDisk should contain only segmentsIdsBeforeInvalidSegments.head
 
-        level.delete.assertGet
+        level.delete.runIO
       }
     }
   }
@@ -197,19 +197,19 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
   "largestSegmentId" should {
     "value the largest segment in the Level when the Level is not empty" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValuesTest(randomizedKeyValues(2000)).assertGet
+      level.putKeyValuesTest(randomizedKeyValues(2000)).runIO
 
       val largeSegmentId = Level.largestSegmentId(level.segmentsInLevel())
-      largeSegmentId shouldBe level.segmentsInLevel().map(_.path.fileId.assertGet._1).max
+      largeSegmentId shouldBe level.segmentsInLevel().map(_.path.fileId.runIO._1).max
 
-      level.delete.assertGet
+      level.delete.runIO
     }
 
     "return 0 when the Level is empty" in {
       val level = TestLevel(segmentSize = 1.kb)
       Level.largestSegmentId(level.segmentsInLevel()) shouldBe 0
 
-      level.delete.assertGet
+      level.delete.runIO
     }
   }
 
@@ -225,10 +225,10 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         take = 10
       ) shouldBe Level.emptySegmentsToPush
 
-      level.close.assertGet
-      nextLevel.close.assertGet
+      level.close.runIO
+      nextLevel.close.runIO
 
-      level.delete.assertGet
+      level.delete.runIO
     }
 
     "return all Segments to copy if next Level is empty" in {
@@ -248,8 +248,8 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       toMerge shouldBe empty
       toCopy.map(_.path) shouldBe level.segmentsInLevel().take(10).map(_.path)
 
-      level.close.assertGet
-      nextLevel.close.assertGet
+      level.close.runIO
+      nextLevel.close.runIO
     }
 
     "return all unreserved Segments to copy if next Level is empty" in {
@@ -272,8 +272,8 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       toMerge shouldBe empty
       toCopy.map(_.path) shouldBe level.segmentsInLevel().drop(1).take(10).map(_.path)
 
-      level.delete.assertGet
-      nextLevel.delete.assertGet
+      level.delete.runIO
+      nextLevel.delete.runIO
     }
   }
 
@@ -287,7 +287,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         take = 10
       ) shouldBe empty
 
-      level.delete.assertGet
+      level.delete.runIO
     }
 
     "return empty if all segments were reserved" in {
@@ -306,7 +306,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         take = 10
       ) shouldBe empty
 
-      level.delete.assertGet
+      level.delete.runIO
     }
   }
 
@@ -314,8 +314,8 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "reserve keys for compaction where Level is empty" in {
       val level = TestLevel()
       val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2).map(_.updateStats)
-      val segment1 = TestSegment(keyValues.head).assertGet
-      val segment2 = TestSegment(keyValues.last).assertGet
+      val segment1 = TestSegment(keyValues.head).runIO
+      val segment2 = TestSegment(keyValues.last).runIO
       level.reserve(Seq(segment1, segment2)).get shouldBe Right(keyValues.head.head.key)
 
       //cannot reserve again
@@ -323,23 +323,23 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       level.reserve(Seq(segment1)).get shouldBe a[Left[_, _]]
       level.reserve(Seq(segment2)).get shouldBe a[Left[_, _]]
 
-      level.delete.assertGet
+      level.delete.runIO
     }
 
     "return completed Future for empty Segments" in {
       val level = TestLevel()
       level.reserve(Seq.empty).get.left.get.isCompleted shouldBe true
 
-      level.delete.assertGet
+      level.delete.runIO
     }
 
     "reserve min and max keys" in {
       val level = TestLevel()
       val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2).map(_.updateStats)
-      val segments = Seq(TestSegment(keyValues.head).assertGet, TestSegment(keyValues.last).assertGet)
-      level.put(segments).assertGet
+      val segments = Seq(TestSegment(keyValues.head).runIO, TestSegment(keyValues.last).runIO)
+      level.put(segments).runIO
 
-      level.delete.assertGet
+      level.delete.runIO
     }
   }
 
@@ -349,26 +349,26 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "build MapEntry.Put map for the first created Segment" in {
       val level = TestLevel()
 
-      val segments = TestSegment(Slice(Transient.put(1, "value1"), Transient.put(2, "value2")).updateStats).assertGet
-      val actualMapEntry = level.buildNewMapEntry(Slice(segments), originalSegmentMayBe = None, initialMapEntry = None).assertGet
+      val segments = TestSegment(Slice(Transient.put(1, "value1"), Transient.put(2, "value2")).updateStats).runIO
+      val actualMapEntry = level.buildNewMapEntry(Slice(segments), originalSegmentMayBe = None, initialMapEntry = None).runIO
       val expectedMapEntry = MapEntry.Put[Slice[Byte], Segment](segments.minKey, segments)
 
       actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
         expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
 
-      level.delete.assertGet
+      level.delete.runIO
     }
 
     "build MapEntry.Put map for the newly merged Segments and not add MapEntry.Remove map " +
       "for original Segment as it's minKey is replace by one of the new Segment" in {
       val level = TestLevel()
 
-      val originalSegment = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).assertGet
-      val mergedSegment1 = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).assertGet
-      val mergedSegment2 = TestSegment(Slice(Transient.put(6, "value"), Transient.put(10, "value")).updateStats).assertGet
-      val mergedSegment3 = TestSegment(Slice(Transient.put(11, "value"), Transient.put(15, "value")).updateStats).assertGet
+      val originalSegment = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).runIO
+      val mergedSegment1 = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).runIO
+      val mergedSegment2 = TestSegment(Slice(Transient.put(6, "value"), Transient.put(10, "value")).updateStats).runIO
+      val mergedSegment3 = TestSegment(Slice(Transient.put(11, "value"), Transient.put(15, "value")).updateStats).runIO
 
-      val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), Some(originalSegment), initialMapEntry = None).assertGet
+      val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), Some(originalSegment), initialMapEntry = None).runIO
 
       val expectedMapEntry =
         MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
@@ -378,16 +378,16 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
         expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
 
-      level.delete.assertGet
+      level.delete.runIO
     }
 
     "build MapEntry.Put map for the newly merged Segments and also add Remove map entry for original map when all minKeys are unique" in {
       val level = TestLevel()
 
-      val originalSegment = TestSegment(Slice(Transient.put(0, "value"), Transient.put(5, "value")).updateStats).assertGet
-      val mergedSegment1 = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).assertGet
-      val mergedSegment2 = TestSegment(Slice(Transient.put(6, "value"), Transient.put(10, "value")).updateStats).assertGet
-      val mergedSegment3 = TestSegment(Slice(Transient.put(11, "value"), Transient.put(15, "value")).updateStats).assertGet
+      val originalSegment = TestSegment(Slice(Transient.put(0, "value"), Transient.put(5, "value")).updateStats).runIO
+      val mergedSegment1 = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).runIO
+      val mergedSegment2 = TestSegment(Slice(Transient.put(6, "value"), Transient.put(10, "value")).updateStats).runIO
+      val mergedSegment3 = TestSegment(Slice(Transient.put(11, "value"), Transient.put(15, "value")).updateStats).runIO
 
       val expectedMapEntry =
         MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
@@ -395,12 +395,12 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
           MapEntry.Put[Slice[Byte], Segment](11, mergedSegment3) ++
           MapEntry.Remove[Slice[Byte]](0)
 
-      val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), Some(originalSegment), initialMapEntry = None).assertGet
+      val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), Some(originalSegment), initialMapEntry = None).runIO
 
       actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
         expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
 
-      level.delete.assertGet
+      level.delete.runIO
     }
   }
 }

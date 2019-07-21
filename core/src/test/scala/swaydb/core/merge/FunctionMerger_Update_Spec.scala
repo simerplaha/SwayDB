@@ -22,7 +22,7 @@ package swaydb.core.merge
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
@@ -125,7 +125,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
                   oldKeyValue.copy(value = value, deadline = deadline.orElse(oldKeyValue.deadline), time = newKeyValue.time)
               }
             else
-              Memory.PendingApply(key = key, applies = Slice(oldKeyValue.toFromValue().assertGet, newKeyValue.toFromValue().assertGet))
+              Memory.PendingApply(key = key, applies = Slice(oldKeyValue.toFromValue().runIO, newKeyValue.toFromValue().runIO))
 
           assertMerge(
             newKeyValue = newKeyValue,
@@ -157,7 +157,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
               assertMerge(
                 newKeyValue = newKeyValue,
                 oldKeyValue = oldKeyValue,
-                expected = Memory.PendingApply(Slice.emptyBytes, Slice(oldKeyValue.toFromValue().assertGet, newKeyValue.toFromValue().assertGet)),
+                expected = Memory.PendingApply(Slice.emptyBytes, Slice(oldKeyValue.toFromValue().runIO, newKeyValue.toFromValue().runIO)),
                 lastLevel = None
               )
           }
@@ -180,7 +180,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
               assertMerge(
                 newKeyValue = newKeyValue,
                 oldKeyValue = oldKeyValue,
-                expected = Memory.PendingApply(1, Slice(oldKeyValue.toFromValue().assertGet, newKeyValue.toFromValue().assertGet)),
+                expected = Memory.PendingApply(1, Slice(oldKeyValue.toFromValue().runIO, newKeyValue.toFromValue().runIO)),
                 lastLevel = None
               )
           }

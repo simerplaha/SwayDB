@@ -19,7 +19,7 @@
 
 package swaydb
 
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.data.IO
@@ -27,35 +27,35 @@ import swaydb.serializers.Default._
 
 class SwayDBFunctionSpec0 extends SwayDBFunctionSpec {
   override def newDB(): Map[Int, Int, IO] =
-    swaydb.persistent.Map[Int, Int](randomDir).assertGet
+    swaydb.persistent.Map[Int, Int](randomDir).runIO
 }
 
 class SwayDBFunctionSpec1 extends SwayDBFunctionSpec {
 
   override def newDB(): Map[Int, Int, IO] =
-    swaydb.persistent.Map[Int, Int](randomDir, mapSize = 1.byte).assertGet
+    swaydb.persistent.Map[Int, Int](randomDir, mapSize = 1.byte).runIO
 }
 
 class SwayDBFunctionSpec2 extends SwayDBFunctionSpec {
 
   override def newDB(): Map[Int, Int, IO] =
-    swaydb.memory.Map[Int, Int](mapSize = 1.byte).assertGet
+    swaydb.memory.Map[Int, Int](mapSize = 1.byte).runIO
 }
 
 class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
   override def newDB(): Map[Int, Int, IO] =
-    swaydb.memory.Map[Int, Int]().assertGet
+    swaydb.memory.Map[Int, Int]().runIO
 }
 
 class SwayDBFunctionSpec4 extends SwayDBFunctionSpec {
 
   override def newDB(): Map[Int, Int, IO] =
-    swaydb.memory.zero.Map[Int, Int](mapSize = 1.byte).assertGet
+    swaydb.memory.zero.Map[Int, Int](mapSize = 1.byte).runIO
 }
 
 class SwayDBFunctionSpec5 extends SwayDBFunctionSpec {
   override def newDB(): Map[Int, Int, IO] =
-    swaydb.memory.zero.Map[Int, Int]().assertGet
+    swaydb.memory.zero.Map[Int, Int]().runIO
 }
 
 sealed trait SwayDBFunctionSpec extends TestBase {

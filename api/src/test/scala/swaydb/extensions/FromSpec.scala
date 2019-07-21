@@ -20,7 +20,7 @@
 package swaydb.extensions
 
 import swaydb.api.TestBaseEmbedded
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
@@ -29,7 +29,7 @@ class FromSpec0 extends FromSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).assertGet
+    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).runIO
 }
 
 class FromSpec1 extends FromSpec {
@@ -37,7 +37,7 @@ class FromSpec1 extends FromSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
+    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).runIO
 }
 
 class FromSpec2 extends FromSpec {
@@ -45,14 +45,14 @@ class FromSpec2 extends FromSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).assertGet
+    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).runIO
 }
 
 class FromSpec3 extends FromSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String]().assertGet
+    swaydb.extensions.memory.Map[Int, String]().runIO
 }
 
 sealed trait FromSpec extends TestBaseEmbedded {
@@ -66,8 +66,8 @@ sealed trait FromSpec extends TestBaseEmbedded {
     "return empty on an empty Map" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap").assertGet
-      val firstMap = rootMap.maps.put(2, "first map").assertGet
+      val rootMap = db.maps.put(1, "rootMap").runIO
+      val firstMap = rootMap.maps.put(2, "first map").runIO
 
       firstMap
         .from(2)
@@ -81,10 +81,10 @@ sealed trait FromSpec extends TestBaseEmbedded {
     "if the map contains only 1 element" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap").assertGet
-      val firstMap = rootMap.maps.put(2, "first map").assertGet
+      val rootMap = db.maps.put(1, "rootMap").runIO
+      val firstMap = rootMap.maps.put(2, "first map").runIO
 
-      firstMap.put(1, "one").assertGet
+      firstMap.put(1, "one").runIO
 
       firstMap
         .from(2)
@@ -143,15 +143,15 @@ sealed trait FromSpec extends TestBaseEmbedded {
     "Sibling maps" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap1").assertGet
+      val rootMap = db.maps.put(1, "rootMap1").runIO
 
-      val subMap1 = rootMap.maps.put(2, "sub map 2").assertGet
-      subMap1.put(1, "one").assertGet
-      subMap1.put(2, "two").assertGet
+      val subMap1 = rootMap.maps.put(2, "sub map 2").runIO
+      subMap1.put(1, "one").runIO
+      subMap1.put(2, "two").runIO
 
-      val subMap2 = rootMap.maps.put(3, "sub map three").assertGet
-      subMap2.put(3, "three").assertGet
-      subMap2.put(4, "four").assertGet
+      val subMap2 = rootMap.maps.put(3, "sub map three").runIO
+      subMap2.put(3, "three").runIO
+      subMap2.put(4, "four").runIO
 
       subMap1.from(3).stream.materialize.get shouldBe empty
       subMap1.after(2).stream.materialize.get shouldBe empty
@@ -160,9 +160,9 @@ sealed trait FromSpec extends TestBaseEmbedded {
       subMap1.fromOrBefore(1).stream.materialize.get should contain inOrderOnly((1, "one"), (2, "two"))
       subMap1.after(0).stream.materialize.get should contain inOrderOnly((1, "one"), (2, "two"))
       subMap1.fromOrAfter(0).stream.materialize.get should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.size.assertGet shouldBe 2
-      subMap1.headOption.assertGetOpt should contain((1, "one"))
-      subMap1.lastOption.assertGetOpt should contain((2, "two"))
+      subMap1.size.runIO shouldBe 2
+      subMap1.headOption.runIO should contain((1, "one"))
+      subMap1.lastOption.runIO should contain((2, "two"))
 
       subMap2.from(5).stream.materialize.get shouldBe empty
       subMap2.after(4).stream.materialize.get shouldBe empty
@@ -171,9 +171,9 @@ sealed trait FromSpec extends TestBaseEmbedded {
       subMap2.fromOrBefore(3).stream.materialize.get should contain inOrderOnly((3, "three"), (4, "four"))
       subMap2.after(0).stream.materialize.get should contain inOrderOnly((3, "three"), (4, "four"))
       subMap2.fromOrAfter(1).stream.materialize.get should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.size.assertGet shouldBe 2
-      subMap2.headOption.assertGet shouldBe ((3, "three"))
-      subMap2.lastOption.assertGet shouldBe ((4, "four"))
+      subMap2.size.runIO shouldBe 2
+      subMap2.headOption.runIOValue shouldBe ((3, "three"))
+      subMap2.lastOption.runIOValue shouldBe ((4, "four"))
 
       db.closeDatabase().get
     }
@@ -181,15 +181,15 @@ sealed trait FromSpec extends TestBaseEmbedded {
     "nested maps" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap1").assertGet
+      val rootMap = db.maps.put(1, "rootMap1").runIO
 
-      val subMap1 = rootMap.maps.put(2, "sub map 1").assertGet
-      subMap1.put(1, "one").assertGet
-      subMap1.put(2, "two").assertGet
+      val subMap1 = rootMap.maps.put(2, "sub map 1").runIO
+      subMap1.put(1, "one").runIO
+      subMap1.put(2, "two").runIO
 
-      val subMap2 = subMap1.maps.put(3, "sub map 2").assertGet
-      subMap2.put(3, "three").assertGet
-      subMap2.put(4, "four").assertGet
+      val subMap2 = subMap1.maps.put(3, "sub map 2").runIO
+      subMap2.put(3, "three").runIO
+      subMap2.put(4, "four").runIO
 
       subMap1.from(4).stream.materialize.get shouldBe empty
       subMap1.after(3).stream.materialize.get shouldBe empty
@@ -205,9 +205,9 @@ sealed trait FromSpec extends TestBaseEmbedded {
       subMap1.maps.after(0).stream.materialize.get should contain only ((3, "sub map 2"))
       subMap1.fromOrAfter(0).stream.materialize.get should contain inOrderOnly((1, "one"), (2, "two"))
       subMap1.maps.fromOrAfter(0).stream.materialize.get should contain only ((3, "sub map 2"))
-      subMap1.size.assertGet shouldBe 2
-      subMap1.headOption.assertGet shouldBe ((1, "one"))
-      subMap1.maps.lastOption.assertGet shouldBe ((3, "sub map 2"))
+      subMap1.size.runIO shouldBe 2
+      subMap1.headOption.runIOValue shouldBe ((1, "one"))
+      subMap1.maps.lastOption.runIOValue shouldBe ((3, "sub map 2"))
 
       subMap2.from(5).stream.materialize.get shouldBe empty
       subMap2.after(4).stream.materialize.get shouldBe empty
@@ -216,9 +216,9 @@ sealed trait FromSpec extends TestBaseEmbedded {
       subMap2.fromOrBefore(3).stream.materialize.get should contain inOrderOnly((3, "three"), (4, "four"))
       subMap2.after(0).stream.materialize.get should contain inOrderOnly((3, "three"), (4, "four"))
       subMap2.fromOrAfter(1).stream.materialize.get should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.size.assertGet shouldBe 2
-      subMap2.headOption.assertGet shouldBe ((3, "three"))
-      subMap2.lastOption.assertGet shouldBe ((4, "four"))
+      subMap2.size.runIO shouldBe 2
+      subMap2.headOption.runIOValue shouldBe ((3, "three"))
+      subMap2.lastOption.runIOValue shouldBe ((4, "four"))
 
       db.closeDatabase().get
     }

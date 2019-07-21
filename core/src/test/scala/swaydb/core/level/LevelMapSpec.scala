@@ -22,7 +22,7 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
@@ -91,7 +91,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
           fileSize = 1.mb,
           initialWriteCount = 0,
           dropCorruptedTailEntries = false
-        ).assertGet.item
+        ).runIO.item
       else
         Map.memory[Slice[Byte], Memory.SegmentResponse]()
 
@@ -104,7 +104,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
     "succeed" when {
       "writing to an empty Level" in {
         val level = TestLevel()
-        level.put(map).assertGet
+        level.put(map).runIO
         //since this is a new Segment and Level has no sub-level, all the deleted key-values will value removed.
         val (deletedKeyValues, otherKeyValues) = keyValues.partition(_.isInstanceOf[Memory.Remove])
 
@@ -113,7 +113,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         //deleted key-values do not exist.
         deletedKeyValues foreach {
           deleted =>
-            level.get(deleted.key).assertGetOpt shouldBe empty
+            level.get(deleted.key).runIO shouldBe empty
         }
       }
 
@@ -130,16 +130,16 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
               Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"), Memory.remove("four", randomly(expiredDeadline()))
             ).sorted(keyOrder.on[KeyValue](_.key)))
 
-        level.putKeyValuesTest(sortedExistingKeyValues).assertGet
+        level.putKeyValuesTest(sortedExistingKeyValues).runIO
 
         //put a new map
-        level.put(map).assertGet
+        level.put(map).runIO
         assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
 
-        level.get("one").assertGet shouldBe existingKeyValues(0)
-        level.get("two").assertGet shouldBe existingKeyValues(1)
-        level.get("three").assertGet shouldBe existingKeyValues(2)
-        level.get("four").assertGetOpt shouldBe empty
+        level.get("one").runIOValue shouldBe existingKeyValues(0)
+        level.get("two").runIOValue shouldBe existingKeyValues(1)
+        level.get("three").runIOValue shouldBe existingKeyValues(2)
+        level.get("four").runIO shouldBe empty
       }
     }
   }
@@ -157,7 +157,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
           flushOnOverflow = true,
           fileSize = 1.mb,
           initialWriteCount = 0,
-          dropCorruptedTailEntries = false).assertGet.item
+          dropCorruptedTailEntries = false).runIO.item
       else
         Map.memory[Slice[Byte], Memory.SegmentResponse]()
 
@@ -186,7 +186,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         }
 
         val level = TestLevel(nextLevel = Some(nextLevel))
-        level.put(map).assertGet
+        level.put(map).runIO
         assertGetNoneFromThisLevelOnly(keyValues, level) //because nextLevel is a mock.
       }
 
@@ -212,9 +212,9 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
 
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000)).toTransient
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).runIO), None).runIO
 
-        level.put(map).assertGet
+        level.put(map).runIO
         assertGetNoneFromThisLevelOnly(lastLevelKeyValues, level) //because nextLevel is a mock.
         assertGetFromThisLevelOnly(keyValues, level)
       }

@@ -19,7 +19,7 @@
 
 package swaydb.core
 
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
@@ -43,7 +43,7 @@ package object map {
                writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]],
                reader: MapEntryReader[MapEntry[Slice[Byte], Memory.SegmentResponse]],
                skipListMerge: SkipListMerger[Slice[Byte], Memory.SegmentResponse]) = {
-      map.close().assertGet
+      map.close().runIO
       Map.persistent[Slice[Byte], Memory.SegmentResponse](
         folder = map.path,
         mmap = Random.nextBoolean(),
@@ -51,7 +51,7 @@ package object map {
         fileSize = 10.mb,
         initialWriteCount = 0,
         dropCorruptedTailEntries = false
-      ).assertGet.item
+      ).runIO.item
     }
   }
 }

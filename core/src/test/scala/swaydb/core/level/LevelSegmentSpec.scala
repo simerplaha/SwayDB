@@ -23,7 +23,7 @@ import java.nio.file.{FileAlreadyExistsException, Files, NoSuchFileException}
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
@@ -87,11 +87,11 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
       "level is empty" in {
         val level = TestLevel()
         val keyValues = randomIntKeyStringValues(keyValuesCount)
-        val segment = TestSegment(keyValues).assertGet
-        segment.close.assertGet
-        level.put(segment).assertGet
+        val segment = TestSegment(keyValues).runIO
+        segment.close.runIO
+        level.put(segment).runIO
         assertReads(keyValues, level)
-        level.close.assertGet
+        level.close.runIO
       }
 
       "level is non-empty" in {
@@ -99,12 +99,12 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         // as reads do not value retried on failure in Level, they only value retried in LevelZero.
         val level = TestLevel(segmentSize = 100.bytes)
         val keyValues = randomIntKeyStringValues(keyValuesCount)
-        val segment = TestSegment(keyValues).assertGet
-        level.put(segment).assertGet
+        val segment = TestSegment(keyValues).runIO
+        level.put(segment).runIO
 
         val keyValues2 = randomIntKeyStringValues(keyValuesCount * 10)
-        val segment2 = TestSegment(keyValues2).assertGet
-        level.put(segment2).assertGet
+        val segment2 = TestSegment(keyValues2).runIO
+        level.put(segment2).runIO
 
         assertGet(keyValues, level)
         assertGet(keyValues2, level)
@@ -123,8 +123,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
                 (split1.updateStats, two.updateStats, three.updateStats)
             }
 
-        val segments = Seq(TestSegment(keyValues1).assertGet, TestSegment(keyValues2).assertGet, TestSegment(keyValues3).assertGet)
-        level.put(segments).assertGet
+        val segments = Seq(TestSegment(keyValues1).runIO, TestSegment(keyValues2).runIO, TestSegment(keyValues3).runIO)
+        level.put(segments).runIO
 
         assertReads(keyValues, level)
       }
@@ -138,11 +138,11 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val keyValues3 = slicedKeyValues(2)
 
         //create a level with key-values
-        level.putKeyValuesTest(keyValues2).assertGet
+        level.putKeyValuesTest(keyValues2).runIO
         level.isEmpty shouldBe false
 
-        val segments = Seq(TestSegment(keyValues1.toTransient).assertGet, TestSegment(keyValues3.toTransient).assertGet)
-        level.put(segments).assertGet
+        val segments = Seq(TestSegment(keyValues1.toTransient).runIO, TestSegment(keyValues3.toTransient).runIO)
+        level.put(segments).runIO
 
         assertReads(allKeyValues, level)
       }
@@ -176,18 +176,18 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
           val level = TestLevel(segmentSize = 1.byte, levelStorage = storage)
 
-          level.putKeyValuesTest(keyValues).assertGet
+          level.putKeyValuesTest(keyValues).runIO
           level.segmentsCount() shouldBe keyValues.size
           assertDistribution()
 
           //write the same key-values again so that all Segments are updated. This should still maintain the Segment distribution
-          level.putKeyValuesTest(keyValues).assertGet
+          level.putKeyValuesTest(keyValues).runIO
           assertDistribution()
 
           //shuffle key-values should still maintain distribution order
           Random.shuffle(keyValues.grouped(10)) foreach {
             keyValues =>
-              level.putKeyValuesTest(keyValues).assertGet
+              level.putKeyValuesTest(keyValues).runIO
           }
           assertDistribution()
 
@@ -195,21 +195,21 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           Random.shuffle(keyValues.grouped(10)).take(2) foreach {
             keyValues =>
               val deleteKeyValues = keyValues.map(keyValue => Memory.remove(keyValue.key)).toSlice
-              level.putKeyValuesTest(deleteKeyValues).assertGet
+              level.putKeyValuesTest(deleteKeyValues).runIO
           }
 
-          level.putKeyValuesTest(keyValues).assertGet
+          level.putKeyValuesTest(keyValues).runIO
           assertDistribution()
         }
       }
 
       "copy Segments if segmentsToMerge is empty" in {
         val keyValues = randomKeyValues(keyValuesCount).groupedSlice(5).map(_.updateStats)
-        val segmentToCopy = keyValues map (keyValues => TestSegment(keyValues).assertGet)
+        val segmentToCopy = keyValues map (keyValues => TestSegment(keyValues).runIO)
 
         val level = TestLevel()
 
-        level.put(Seq.empty, segmentToCopy, Seq.empty).assertGet
+        level.put(Seq.empty, segmentToCopy, Seq.empty).runIO
 
         level.isEmpty shouldBe false
         assertReads(keyValues.flatten, level)
@@ -217,13 +217,13 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
       "copy and merge Segments" in {
         val keyValues = randomKeyValues(100).groupedSlice(10).map(_.updateStats).toArray
-        val segmentToCopy = keyValues.take(5) map (keyValues => TestSegment(keyValues).assertGet)
-        val segmentToMerge = keyValues.drop(5).take(4) map (keyValues => TestSegment(keyValues).assertGet)
-        val targetSegment = TestSegment(keyValues.last).assertGet
+        val segmentToCopy = keyValues.take(5) map (keyValues => TestSegment(keyValues).runIO)
+        val segmentToMerge = keyValues.drop(5).take(4) map (keyValues => TestSegment(keyValues).runIO)
+        val targetSegment = TestSegment(keyValues.last).runIO
 
         val level = TestLevel()
-        level.put(targetSegment).assertGet
-        level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).assertGet
+        level.put(targetSegment).runIO
+        level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).runIO
 
         level.isEmpty shouldBe false
 
@@ -236,10 +236,10 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val level = TestLevel()
 
         val keyValues = randomIntKeyStringValues()
-        val segment = TestSegment(keyValues).assertGet
-        segment.delete.assertGet
+        val segment = TestSegment(keyValues).runIO
+        segment.delete.runIO
 
-        val result = level.put(segment).failed.assertGet
+        val result = level.put(segment).failed.runIO
         if (persistent)
           result.exception shouldBe a[NoSuchFileException]
         else
@@ -253,20 +253,20 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
       "return failure if segmentToMerge has no target Segment" in {
         val keyValues = randomKeyValues(keyValuesCount)
-        val segmentsToMerge = TestSegment(keyValues).assertGet
+        val segmentsToMerge = TestSegment(keyValues).runIO
         val level = TestLevel()
-        level.put(Seq(segmentsToMerge), Seq(), Seq()).failed.assertGet shouldBe IO.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size)
+        level.put(Seq(segmentsToMerge), Seq(), Seq()).failed.runIO shouldBe IO.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size)
       }
 
       "revert copy if merge fails" in {
         if (persistent) {
           val keyValues = randomKeyValues(100)(TestTimer.Empty).groupedSlice(10).map(_.updateStats).toArray
-          val segmentToCopy = keyValues.take(5) map (keyValues => TestSegment(keyValues).assertGet)
-          val segmentToMerge = keyValues.drop(5).take(4) map (keyValues => TestSegment(keyValues).assertGet)
-          val targetSegment = TestSegment(keyValues.last).assertGet
+          val segmentToCopy = keyValues.take(5) map (keyValues => TestSegment(keyValues).runIO)
+          val segmentToMerge = keyValues.drop(5).take(4) map (keyValues => TestSegment(keyValues).runIO)
+          val targetSegment = TestSegment(keyValues.last).runIO
 
           val level = TestLevel(segmentSize = 150.bytes)
-          level.put(targetSegment).assertGet
+          level.put(targetSegment).runIO
 
           //segment to copy
           val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 9)
@@ -277,7 +277,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
           val appendixBeforePut = level.segmentsInLevel()
           val levelFilesBeforePut = level.segmentFilesOnDisk
-          level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
+          level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).failed.runIO.exception shouldBe a[FileAlreadyExistsException]
           level.segmentFilesOnDisk shouldBe levelFilesBeforePut
           level.segmentsInLevel().map(_.path) shouldBe appendixBeforePut.map(_.path)
         }
@@ -286,7 +286,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
       "revert copy on failure" in {
         if (persistent) {
           val keyValues = randomKeyValues(keyValuesCount).groupedSlice(5).map(_.updateStats)
-          val segmentToCopy = keyValues map (keyValues => TestSegment(keyValues).assertGet)
+          val segmentToCopy = keyValues map (keyValues => TestSegment(keyValues).runIO)
 
           val level = TestLevel()
 
@@ -298,7 +298,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           }
           val levelFilesBeforePut = level.segmentFilesOnDisk
 
-          level.put(Seq.empty, segmentToCopy, Seq.empty).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
+          level.put(Seq.empty, segmentToCopy, Seq.empty).failed.runIO.exception shouldBe a[FileAlreadyExistsException]
 
           level.isEmpty shouldBe true
           level.segmentFilesOnDisk shouldBe levelFilesBeforePut
@@ -320,13 +320,13 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).runIO), None).runIO //write first Segment to Level
         assertGetFromThisLevelOnly(keyValues, level)
 
-        level.put(TestSegment(keyValues.take(1).updateStats).assertGet).assertGet
-        level.put(TestSegment(keyValues.takeRight(1).updateStats).assertGet).assertGet
+        level.put(TestSegment(keyValues.take(1).updateStats).runIO).runIO
+        level.put(TestSegment(keyValues.takeRight(1).updateStats).runIO).runIO
 
-        level.close.assertGet
+        level.close.runIO
       }
 
       "upper level has no overlapping Segments and nextLevel allows Segment copying" in {
@@ -335,13 +335,13 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).runIO), None).runIO //write first Segment to Level
         assertGetFromThisLevelOnly(keyValues, level)
 
         //write non-overlapping key-values
         val nextMaxKey = keyValues.last.key.readInt() + 1000
         val keyValues2 = randomIntKeyStringValues(keyValuesCount, startId = Some(nextMaxKey))
-        val segment = TestSegment(keyValues2).assertGet
+        val segment = TestSegment(keyValues2).runIO
 
         nextLevel.partitionUnreservedCopyable _ expects * onCall { //check if it can copied into next Level
           segments: Iterable[Segment] =>
@@ -357,7 +357,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             IO.unit
         }
 
-        level.put(segment).assertGet
+        level.put(segment).runIO
 
         assertGet(keyValues, level) //previous existing key-values should still exist
         assertGetNoneFromThisLevelOnly(keyValues2, level) //newly added key-values do not exist because nextLevel is mocked.
@@ -369,13 +369,13 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).runIO), None).runIO //write first Segment to Level
         assertGetFromThisLevelOnly(keyValues, level)
 
         //write non-overlapping key-values
         val nextMaxKey = keyValues.last.key.readInt() + 1000
         val keyValues2 = randomIntKeyStringValues(keyValuesCount, startId = Some(nextMaxKey))
-        val segment = TestSegment(keyValues2).assertGet
+        val segment = TestSegment(keyValues2).runIO
 
         nextLevel.partitionUnreservedCopyable _ expects * onCall { //check if it can copied into next Level
           segments: Iterable[Segment] =>
@@ -384,7 +384,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             (Iterable.empty, segments)
         }
 
-        level.put(segment).assertGet
+        level.put(segment).runIO
 
         assertGet(keyValues, level) //previous existing key-values should still exist
         assertGetFromThisLevelOnly(keyValues2, level) //newly added key-values do not exist because nextLevel is mocked.
@@ -396,14 +396,14 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).runIO), None).runIO //write first Segment to Level
         assertGet(keyValues, level)
 
         //write non-overlapping key-values
         val nextMaxKey = keyValues.last.key.readInt() + 1000
         val keyValues2 = randomIntKeyStringValues(keyValuesCount, startId = Some(nextMaxKey)).groupedSlice(2)
-        val segment2 = TestSegment(keyValues2.head).assertGet
-        val segment3 = TestSegment(keyValues2.last.updateStats).assertGet
+        val segment2 = TestSegment(keyValues2.head).runIO
+        val segment3 = TestSegment(keyValues2.last.updateStats).runIO
 
         nextLevel.partitionUnreservedCopyable _ expects * onCall {
           segments: Iterable[Segment] =>
@@ -420,7 +420,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             IO.unit
         }
 
-        level.put(Seq(segment2, segment3)).assertGet
+        level.put(Seq(segment2, segment3)).runIO
 
         assertGetFromThisLevelOnly(keyValues, level) //all key-values value persisted into upper level.
         //segment2's key-values still readable from upper Level since they were copied locally.
@@ -434,13 +434,13 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).runIO), None).runIO //write first Segment to Level
         assertGet(keyValues, level)
 
         //write non-overlapping key-values
         val nextMaxKey = keyValues.last.key.readInt() + 1000
         val keyValues2 = randomIntKeyStringValues(keyValuesCount, startId = Some(nextMaxKey))
-        val segment = TestSegment(keyValues2).assertGet
+        val segment = TestSegment(keyValues2).runIO
 
         nextLevel.partitionUnreservedCopyable _ expects * onCall { //check if it can copied into next Level
           segments: Iterable[Segment] =>
@@ -456,7 +456,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             IO.Failure(new Exception("Kaboom!!")) //fail to copy, upper level will continue copying in it's Level.
         }
 
-        level.put(segment).assertGet
+        level.put(segment).runIO
 
         assertGetFromThisLevelOnly(keyValues, level) //all key-values value persisted into upper level.
         assertGetFromThisLevelOnly(keyValues2, level) //all key-values value persisted into upper level.

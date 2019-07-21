@@ -20,7 +20,7 @@
 package swaydb.extensions
 
 import swaydb.api.TestBaseEmbedded
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
@@ -46,9 +46,9 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
           Some(Some(StringSerializer.read(data)))
     }
 
-    val rootMap = swaydb.extensions.memory.Map[Int, Option[String]]().assertGet
+    val rootMap = swaydb.extensions.memory.Map[Int, Option[String]]().runIO
 
-    rootMap.put(1, None).assertGet
+    rootMap.put(1, None).runIO
 
     rootMap.stream.materialize.get should contain only ((1, None))
     rootMap.keys.stream.materialize.get should contain only 1
@@ -80,11 +80,11 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
           Some(Value.NonEmpty(StringSerializer.read(data)))
     }
 
-    val rootMap = swaydb.extensions.memory.Map[Int, Option[Value]]().assertGet
+    val rootMap = swaydb.extensions.memory.Map[Int, Option[Value]]().runIO
 
-    rootMap.put(1, Some(Value.Empty)).assertGet
-    rootMap.put(2, Some(Value.NonEmpty("two"))).assertGet
-    rootMap.put(3, None).assertGet
+    rootMap.put(1, Some(Value.Empty)).runIO
+    rootMap.put(2, Some(Value.NonEmpty("two"))).runIO
+    rootMap.put(3, None).runIO
 
     rootMap.stream.materialize.get should contain inOrderOnly((1, None), (2, Some(Value.NonEmpty("two"))), (3, None))
     rootMap.keys.stream.materialize.get should contain inOrderOnly(1, 2, 3)

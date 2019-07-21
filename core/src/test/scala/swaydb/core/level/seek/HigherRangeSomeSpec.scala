@@ -22,7 +22,7 @@ package swaydb.core.level.seek
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
@@ -72,7 +72,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asAsync
           }
         }
-        Higher(0: Slice[Byte]).assertGet shouldBe toKeyGet
+        Higher(0: Slice[Byte]).runIOValue shouldBe toKeyGet
       }
     }
 
@@ -103,7 +103,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asAsync
           }
         }
-        Higher(1: Slice[Byte]).assertGet shouldBe toKeyGet
+        Higher(1: Slice[Byte]).runIOValue shouldBe toKeyGet
       }
     }
 
@@ -131,7 +131,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asAsync
           }
         }
-        Higher(2: Slice[Byte]).assertGet shouldBe toKeyGet
+        Higher(2: Slice[Byte]).runIOValue shouldBe toKeyGet
       }
     }
 
@@ -153,7 +153,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
           next.higher _ expects (3: Slice[Byte]) returning IO(Some(result)).asAsync
           next.hasStateChanged _ expects 1 returning false
         }
-        Higher(3: Slice[Byte]).assertGet shouldBe result
+        Higher(3: Slice[Byte]).runIOValue shouldBe result
       }
     }
   }

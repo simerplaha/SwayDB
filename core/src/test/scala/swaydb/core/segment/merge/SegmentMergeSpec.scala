@@ -22,7 +22,7 @@ package swaydb.core.segment.merge
 import scala.collection.mutable.ListBuffer
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
@@ -74,7 +74,7 @@ class SegmentMergeSpec extends TestBase {
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
             groupLastSegment = true
-          ).assertGet
+          ).runIO
         newSegments.size shouldBe 1
 
         val newSegmentsUnzipped = unzipGroups(newSegments.head)
@@ -107,7 +107,7 @@ class SegmentMergeSpec extends TestBase {
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
             groupLastSegment = true
-          ).assertGet
+          ).runIO
 
         newSegments.size shouldBe 1
 
@@ -132,7 +132,7 @@ class SegmentMergeSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           groupLastSegment = true
-        ).assertGet.size shouldBe 1
+        ).runIO.size shouldBe 1
 
         SegmentMerger.completeMerge(
           segments = ListBuffer(segment),
@@ -144,7 +144,7 @@ class SegmentMergeSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           groupLastSegment = true
-        ).assertGet.size shouldBe 1
+        ).runIO.size shouldBe 1
       }
     }
 
@@ -184,7 +184,7 @@ class SegmentMergeSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentIO = SegmentIO.random
-        ).assertGet.toArray
+        ).runIO.toArray
       )
 
       assert(
@@ -200,7 +200,7 @@ class SegmentMergeSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentIO = SegmentIO.random
-        ).assertGet.toArray
+        ).runIO.toArray
       )
     }
   }
@@ -224,7 +224,7 @@ class SegmentMergeSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentIO = SegmentIO.random
-        ).assertGet
+        ).runIO
 
       split1 should have size 5
       split1 should contain only
@@ -247,7 +247,7 @@ class SegmentMergeSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentIO = SegmentIO.random
-        ).assertGet
+        ).runIO
 
       persistentSplit should have size 1
 
@@ -274,7 +274,7 @@ class SegmentMergeSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentIO = SegmentIO.random
-        ).assertGet
+        ).runIO
 
       memorySplit should have size 1
 
@@ -301,7 +301,7 @@ class SegmentMergeSpec extends TestBase {
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
             segmentIO = SegmentIO.random
-          ).assertGet
+          ).runIO
 
         mergeResultWithoutGroup should have size 1
 
@@ -315,7 +315,7 @@ class SegmentMergeSpec extends TestBase {
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
             groupConfig = SegmentBlock.Config.random
-          ).assertGet.toMemory
+          ).runIO.toMemory
 
         val mergeResultWithGroup =
           SegmentMerger.merge(
@@ -330,7 +330,7 @@ class SegmentMergeSpec extends TestBase {
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
             segmentIO = SegmentIO.random
-          ).assertGet
+          ).runIO
 
         mergeResultWithGroup should have size 1
 

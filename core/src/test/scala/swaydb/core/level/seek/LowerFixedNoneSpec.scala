@@ -21,7 +21,7 @@ package swaydb.core.level.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.{TestData, TestTimer}
@@ -56,7 +56,7 @@ class LowerFixedNoneSpec extends WordSpec with Matchers with MockFactory with Op
         next.hasStateChanged  _ expects 1                 returning false
         //@formatter:on
       }
-      Lower(0: Slice[Byte]).assertGetOpt shouldBe empty
+      Lower(0: Slice[Byte]).runIO shouldBe empty
     }
 
 
@@ -80,7 +80,7 @@ class LowerFixedNoneSpec extends WordSpec with Matchers with MockFactory with Op
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Lower(1: Slice[Byte]).assertGetOpt shouldBe empty
+        Lower(1: Slice[Byte]).runIO shouldBe empty
       }
     }
 
@@ -107,7 +107,7 @@ class LowerFixedNoneSpec extends WordSpec with Matchers with MockFactory with Op
           next.hasStateChanged  _ expects 2                 returning false
           //@formatter:on
         }
-        Lower(1: Slice[Byte]).assertGetOpt shouldBe empty
+        Lower(1: Slice[Byte]).runIO shouldBe empty
       }
     }
 
@@ -138,7 +138,7 @@ class LowerFixedNoneSpec extends WordSpec with Matchers with MockFactory with Op
           next.hasStateChanged  _ expects 2                 returning false
           //@formatter:on
         }
-        Lower(2: Slice[Byte]).assertGetOpt shouldBe empty
+        Lower(2: Slice[Byte]).runIO shouldBe empty
       }
     }
 

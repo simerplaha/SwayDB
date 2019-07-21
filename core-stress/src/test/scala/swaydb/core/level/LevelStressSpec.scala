@@ -20,7 +20,7 @@
 package swaydb.core.level
 
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
@@ -72,11 +72,11 @@ sealed trait LevelStressSpec extends TestBase with Benchmark {
       val level = TestLevel(segmentSize = 500.kb)
 
       val keyValues = randomPutKeyValues(keyValueCount, startId = Some(0))
-      val segment1 = TestSegment(keyValues.toTransient).assertGet
-      val segment2 = TestSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).assertGet
-      val segment3 = TestSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).assertGet
-      val segment4 = TestSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).assertGet
-      val segment5 = TestSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).assertGet
+      val segment1 = TestSegment(keyValues.toTransient).runIO
+      val segment2 = TestSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).runIO
+      val segment3 = TestSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).runIO
+      val segment4 = TestSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).runIO
+      val segment5 = TestSegment(keyValues.take(randomIntMax(keyValues.size) max 1).toTransient).runIO
 
       val segments = Seq(segment1, segment2, segment3, segment4, segment5)
 
@@ -150,8 +150,8 @@ sealed trait LevelStressSpec extends TestBase with Benchmark {
 
       testResult await 10.minutes
 
-      level.delete.assertGet
-      segments.foreach(_.delete.assertGet)
+      level.delete.runIO
+      segments.foreach(_.delete.runIO)
 
       println("TEST COMPLETE!")
       println("STARTING NEXT TEST ITERATION.")

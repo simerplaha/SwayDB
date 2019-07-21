@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a
 import java.nio.file.FileAlreadyExistsException
 
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
@@ -117,7 +117,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                   maxKey.underlyingArraySize shouldBe 4
               }
               assertBloom(keyValues, segment)
-              segment.close.assertGet
+              segment.close.runIO
             }
         )
       }
@@ -134,7 +134,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
               segment.maxKey shouldBe MaxKey.Fixed[Slice[Byte]](11)
               segment.minKey.underlyingArraySize shouldBe ByteSizeOf.int
               segment.maxKey.maxKey.underlyingArraySize shouldBe ByteSizeOf.int
-              segment.close.assertGet
+              segment.close.runIO
             }
         )
       }
@@ -148,7 +148,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
               segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](1, 10)
-              segment.close.assertGet
+              segment.close.runIO
             }
         )
       }
@@ -168,7 +168,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
               rangeMaxKey.maxKey.underlyingArraySize shouldBe ByteSizeOf.int
               rangeMaxKey.fromKey.underlyingArraySize shouldBe ByteSizeOf.int
 
-              segment.close.assertGet
+              segment.close.runIO
             }
         )
       }
@@ -187,7 +187,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
               segment.maxKey shouldBe MaxKey.Fixed[Slice[Byte]](20)
-              segment.close.assertGet
+              segment.close.runIO
             }
         )
       }
@@ -211,7 +211,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
               segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](5, 10)
-              segment.close.assertGet
+              segment.close.runIO
             }
         )
       }
@@ -291,8 +291,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       def doAssert(keyValues: Slice[KeyValue], segment: Segment) = {
         segment.hasBloomFilter.get shouldBe false
         assertBloom(keyValues.toMemory.toTransient, segment)
-        segment.hasRange.assertGet shouldBe true
-        segment.close.assertGet
+        segment.hasRange.runIO shouldBe true
+        segment.close.runIO
       }
 
       assertSegment(
@@ -370,9 +370,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
         assert =
           (keyValues, segment) => {
-            segment.hasBloomFilter.runSafeIO shouldBe true
-            segment.hasRange.assertGet shouldBe false
-            segment.close.assertGet
+            segment.hasBloomFilter.runIO shouldBe true
+            segment.hasRange.runIO shouldBe false
+            segment.close.runIO
           }
       )
 
@@ -391,9 +391,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
         assert =
           (keyValues, segment) => {
-            segment.hasBloomFilter.runSafeIO shouldBe true
-            segment.hasRange.assertGet shouldBe true
-            segment.close.assertGet
+            segment.hasBloomFilter.runIO shouldBe true
+            segment.hasRange.runIO shouldBe true
+            segment.close.runIO
           }
       )
 
@@ -415,9 +415,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           ),
         assert =
           (keyValues, segment) => {
-            segment.hasBloomFilter.runSafeIO shouldBe true
-            segment.hasRange.assertGet shouldBe true
-            segment.close.assertGet
+            segment.hasBloomFilter.runIO shouldBe true
+            segment.hasRange.runIO shouldBe true
+            segment.close.runIO
           }
       )
     }
@@ -425,9 +425,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "set hasRange to true if the Segment contains Range key-values" in {
 
       def doAssert(keyValues: Slice[KeyValue], segment: Segment): Unit = {
-        segment.hasRange.assertGet shouldBe true
-        segment.hasPut.assertGet shouldBe true
-        segment.close.assertGet
+        segment.hasRange.runIO shouldBe true
+        segment.hasPut.runIO shouldBe true
+        segment.close.runIO
       }
 
       assertSegment(
@@ -494,12 +494,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           assert =
             (keyValues, segment) => {
               val failedKeyValues = randomKeyValues(keyValuesCount, addRandomRemoves = true)
-              TestSegment(failedKeyValues, path = segment.path).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
+              TestSegment(failedKeyValues, path = segment.path).failed.runIO.exception shouldBe a[FileAlreadyExistsException]
               //data remained unchanged
               assertReads(keyValues, segment)
               failedKeyValues foreach {
                 keyValue =>
-                  segment.get(keyValue.key).assertGetOpt.isEmpty shouldBe true
+                  segment.get(keyValue.key).runIO.isEmpty shouldBe true
               }
               assertBloom(keyValues, segment)
             }
@@ -535,7 +535,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                 segment.isCacheEmpty shouldBe false
 
                 assertBloom(keyValues, segment)
-                segment.close.assertGet
+                segment.close.runIO
                 segment.isOpen shouldBe false
                 segment.isFileDefined shouldBe false
                 segment.isCacheEmpty shouldBe true
@@ -560,7 +560,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                     mmapReads = randomBoolean(),
                     mmapWrites = randomBoolean(),
                     checkExists = false
-                  ).assertGet
+                  ).runIO
 
                 readSegment shouldBe segment
               }

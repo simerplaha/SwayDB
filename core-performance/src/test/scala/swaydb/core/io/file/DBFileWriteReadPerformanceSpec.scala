@@ -19,7 +19,7 @@
 
 package swaydb.core.io.file
 
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.queue.FileLimiter
 import swaydb.core.util.Benchmark
@@ -45,13 +45,13 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
         * Round 2: 1.328009528 seconds
         * Round 3: 1.3148811 seconds
         */
-      val channelFile = DBFile.channelWrite(randomFilePath, autoClose = true).assertGet
+      val channelFile = DBFile.channelWrite(randomFilePath, autoClose = true).runIO
       benchmark("FileChannel write benchmark") {
         bytes foreach channelFile.append
       }
       //check all the bytes were written
-      val readChannelFile = DBFile.channelRead(channelFile.path, autoClose = true).assertGet
-      readChannelFile.fileSize.assertGet shouldBe bytes.size * chunkSize
+      val readChannelFile = DBFile.channelRead(channelFile.path, autoClose = true).runIO
+      readChannelFile.fileSize.runIO shouldBe bytes.size * chunkSize
 
       /**
         * Benchmark memory mapped files write
@@ -61,22 +61,22 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
         * Round 3: 0.542235514 seconds
         */
 
-      val mmapFile = DBFile.mmapInit(randomFilePath, bytes.size * chunkSize, autoClose = true).assertGet
+      val mmapFile = DBFile.mmapInit(randomFilePath, bytes.size * chunkSize, autoClose = true).runIO
       benchmark("mmap write benchmark") {
         bytes foreach mmapFile.append
       }
-      mmapFile.fileSize.assertGet shouldBe bytes.size * chunkSize
+      mmapFile.fileSize.runIO shouldBe bytes.size * chunkSize
 
-      channelFile.close.assertGet
-      readChannelFile.close.assertGet
-      mmapFile.close.assertGet
+      channelFile.close.runIO
+      readChannelFile.close.runIO
+      mmapFile.close.runIO
     }
 
     "Get performance" in {
       val bytes = randomBytes(chunkSize)
-      val file = DBFile.channelWrite(randomFilePath, autoClose = true).assertGet
+      val file = DBFile.channelWrite(randomFilePath, autoClose = true).runIO
       file.append(Slice(bytes))
-      file.close.assertGet
+      file.close.runIO
 
       /**
         * Benchmark file channel read
@@ -85,14 +85,14 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
         * Round 3: 1.842739196 seconds
         */
 
-      val channelFile = DBFile.channelRead(file.path, autoClose = true).assertGet
+      val channelFile = DBFile.channelRead(file.path, autoClose = true).runIO
       benchmark("FileChannel value benchmark") {
         bytes.indices foreach {
           index =>
-            channelFile.get(index).assertGet shouldBe bytes(index)
+            channelFile.get(index).runIO shouldBe bytes(index)
         }
       }
-      channelFile.close.assertGet
+      channelFile.close.runIO
 
       /**
         * Benchmark memory mapped file read
@@ -101,14 +101,14 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
         * Round 2: 0.965750206 seconds
         * Round 3: 1.044735106 seconds
         */
-      val mmapFile = DBFile.mmapRead(file.path, autoClose = true).assertGet
+      val mmapFile = DBFile.mmapRead(file.path, autoClose = true).runIO
       benchmark("mmap value benchmark") {
         bytes.indices foreach {
           index =>
-            mmapFile.get(index).assertGet shouldBe bytes(index)
+            mmapFile.get(index).runIO shouldBe bytes(index)
         }
       }
-      mmapFile.close.assertGet
+      mmapFile.close.runIO
     }
 
     "Read 1 million bytes in chunks of 250.bytes performance" in {
@@ -120,9 +120,9 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
           allBytes addAll bytes
           bytes
       }
-      val file = DBFile.channelWrite(randomFilePath, autoClose = true).assertGet
-      bytes foreach (file.append(_).assertGet)
-      file.close.assertGet
+      val file = DBFile.channelWrite(randomFilePath, autoClose = true).runIO
+      bytes foreach (file.append(_).runIO)
+      file.close.runIO
 
       /**
         * Benchmark file channel read
@@ -131,7 +131,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
         * Round 3: 0.819253382 seconds
         */
 
-      val channelFile = DBFile.channelRead(file.path, autoClose = true).assertGet
+      val channelFile = DBFile.channelRead(file.path, autoClose = true).runIO
       benchmark("FileChannel read benchmark") {
         bytes.foldLeft(0) {
           case (index, byteSlice) =>
@@ -140,7 +140,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
             index + chunkSize
         }
       }
-      channelFile.close.assertGet
+      channelFile.close.runIO
 
       /**
         * Benchmark memory mapped file read
@@ -149,7 +149,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
         * Round 2: 0.54580672 seconds
         * Round 3: 0.463990916 seconds
         */
-      val mmapFile = DBFile.mmapRead(file.path, autoClose = true).assertGet
+      val mmapFile = DBFile.mmapRead(file.path, autoClose = true).runIO
 
       benchmark("mmap read benchmark") {
         bytes.foldLeft(0) {
@@ -175,7 +175,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
             index + chunkSize
         }
       }
-      mmapFile.close.assertGet
+      mmapFile.close.runIO
 
       /**
         * Benchmark memory file read
@@ -184,7 +184,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
         * Round 2: TestData.falsePositiveRate29407648 seconds
         * Round 3: 0.090982974 seconds
         */
-      val memoryFile = DBFile.memory(file.path, allBytes, autoClose = true).assertGet
+      val memoryFile = DBFile.memory(file.path, allBytes, autoClose = true).runIO
       benchmark("memory read benchmark") {
         bytes.foldLeft(0) {
           case (index, byteSlice) =>

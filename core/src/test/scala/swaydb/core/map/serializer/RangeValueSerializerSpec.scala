@@ -20,7 +20,7 @@
 package swaydb.core.map.serializer
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
@@ -38,7 +38,7 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
     RangeValueSerializer.write((), rangeValue)(bytes)
     bytes.isFull shouldBe true
 
-    RangeValueSerializer.read(bytes).assertGet shouldBe ((Option.empty[FromValue], rangeValue))
+    RangeValueSerializer.read(bytes).runIO shouldBe ((Option.empty[FromValue], rangeValue))
 
     //also assert option Serializer
     def doAssertOption(rangeValue: RangeValue) = {
@@ -49,7 +49,7 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
       RangeValueSerializer.write(Option.empty[FromValue], rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
       bytes.isFull shouldBe true
 
-      RangeValueSerializer.read(bytes).assertGet shouldBe ((None, rangeValue))
+      RangeValueSerializer.read(bytes).runIO shouldBe ((None, rangeValue))
     }
 
     doAssertOption(rangeValue)
@@ -83,7 +83,7 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
     RangeValueSerializer.write(fromValue, rangeValue)(bytes)
     bytes.isFull shouldBe true
 
-    RangeValueSerializer.read(bytes).assertGet shouldBe ((Some(fromValue), rangeValue))
+    RangeValueSerializer.read(bytes).runIO shouldBe ((Some(fromValue), rangeValue))
 
     //also assert option Serializer
     def doAssertOption(fromValue: FromValue, rangeValue: RangeValue) = {
@@ -93,7 +93,7 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
       RangeValueSerializer.write(Option(fromValue), rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
       bytes.isFull shouldBe true
 
-      RangeValueSerializer.read(bytes).assertGet shouldBe ((Some(fromValue), rangeValue))
+      RangeValueSerializer.read(bytes).runIO shouldBe ((Some(fromValue), rangeValue))
     }
 
     doAssertOption(fromValue, rangeValue)

@@ -19,7 +19,7 @@
 
 package swaydb.core.io.file
 
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
@@ -41,57 +41,57 @@ class DBFileStressWriteSpec extends TestBase with Benchmark {
     "write key values to a ChannelFile" in {
       val path = randomFilePath
 
-      val file = DBFile.channelWrite(path, autoClose = false).assertGet
+      val file = DBFile.channelWrite(path, autoClose = false).runIO
       benchmark("write 1 million key values to a ChannelFile") {
         bytes foreach {
           byteChunk =>
-            file.append(byteChunk).assertGet
+            file.append(byteChunk).runIO
         }
       }
-      file.close.assertGet
+      file.close.runIO
     }
 
     "write key values to a ChannelFile concurrently" in {
       val path = randomFilePath
 
-      val file = DBFile.channelWrite(path, autoClose = false).assertGet
+      val file = DBFile.channelWrite(path, autoClose = false).runIO
       benchmark("write 1 million key values to a ChannelFile concurrently") {
         Future.sequence {
           bytes map {
             chunk =>
-              Future(file.append(chunk).assertGet)
+              Future(file.append(chunk).runIO)
           }
         } await 20.seconds
       }
-      file.close.assertGet
+      file.close.runIO
     }
 
     "write key values to a MMAPlFile" in {
       val path = randomFilePath
 
-      val file = DBFile.mmapInit(path, bytes.size * 50, autoClose = false).assertGet
+      val file = DBFile.mmapInit(path, bytes.size * 50, autoClose = false).runIO
       benchmark("write 1 million key values to a MMAPlFile") {
         bytes foreach {
           chunk =>
-            file.append(chunk).assertGet
+            file.append(chunk).runIO
         }
       }
-      file.close.assertGet
+      file.close.runIO
     }
 
     "write key values to a MMAPlFile concurrently" in {
       val path = randomFilePath
 
-      val file = DBFile.mmapInit(path, bytes.size * 50, autoClose = false).assertGet
+      val file = DBFile.mmapInit(path, bytes.size * 50, autoClose = false).runIO
       benchmark("write 1 million key values to a MMAPlFile concurrently") {
         Future.sequence {
           bytes map {
             chunk =>
-              Future(file.append(chunk).assertGet)
+              Future(file.append(chunk).runIO)
           }
         } await 20.seconds
       }
-      file.close.assertGet
+      file.close.runIO
     }
   }
 }

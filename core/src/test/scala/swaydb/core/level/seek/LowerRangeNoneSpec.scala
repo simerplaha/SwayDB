@@ -21,7 +21,7 @@ package swaydb.core.level.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.{TestData, TestTimer}
@@ -64,7 +64,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
                 next.hasStateChanged  _ expects 1                   returning false
                 //@formatter:on
               }
-              Lower(key: Slice[Byte]).assertGetOpt shouldBe empty
+              Lower(key: Slice[Byte]).runIO shouldBe empty
           }
         }
       }
@@ -93,7 +93,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
                 next.hasStateChanged  _ expects 1                   returning false
                 //@formatter:on
               }
-              Lower(key: Slice[Byte]).assertGetOpt shouldBe empty
+              Lower(key: Slice[Byte]).runIO shouldBe empty
           }
         }
       }
@@ -124,7 +124,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
                 next.hasStateChanged  _ expects 1                   returning false
                 //@formatter:on
               }
-              Lower(key: Slice[Byte]).assertGetOpt shouldBe empty
+              Lower(key: Slice[Byte]).runIO shouldBe empty
           }
         }
       }
@@ -151,7 +151,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
                 next.hasStateChanged  _ expects 1                   returning false
                 //@formatter:on
               }
-              Lower(key: Slice[Byte]).assertGetOpt shouldBe empty
+              Lower(key: Slice[Byte]).runIO shouldBe empty
           }
         }
       }
@@ -177,7 +177,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
             next.hasStateChanged  _ expects 1                   returning false
             //@formatter:on
           }
-          Lower(12: Slice[Byte]).assertGetOpt shouldBe empty
+          Lower(12: Slice[Byte]).runIO shouldBe empty
         }
       }
     }

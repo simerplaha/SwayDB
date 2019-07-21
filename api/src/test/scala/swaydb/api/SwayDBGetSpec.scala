@@ -20,7 +20,7 @@
 package swaydb.api
 
 import swaydb._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.data.IO
@@ -30,35 +30,35 @@ import scala.concurrent.duration._
 
 class SwayDBGetSpec0 extends SwayDBGetSpec {
   override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.Map[Int, String](randomDir).assertGet
+    swaydb.persistent.Map[Int, String](randomDir).runIO
 }
 
 class SwayDBGetSpec1 extends SwayDBGetSpec {
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
+    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).runIO
 }
 
 class SwayDBGetSpec2 extends SwayDBGetSpec {
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
+    swaydb.memory.Map[Int, String](mapSize = 1.byte).runIO
 }
 
 class SwayDBGetSpec3 extends SwayDBGetSpec {
   override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.Map[Int, String]().assertGet
+    swaydb.memory.Map[Int, String]().runIO
 }
 
 class SwayDBGetSpec4 extends SwayDBGetSpec {
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).assertGet
+    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).runIO
 }
 
 class SwayDBGetSpec5 extends SwayDBGetSpec {
   override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.zero.Map[Int, String]().assertGet
+    swaydb.memory.zero.Map[Int, String]().runIO
 }
 
 sealed trait SwayDBGetSpec extends TestBase {
@@ -72,17 +72,17 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).runIO
       }
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).runIO
       }
 
       (1 to 100) foreach {
         i =>
-          db.get(i).assertGet shouldBe i.toString
+          db.get(i).runIOValue shouldBe i.toString
       }
 
       db.close().get
@@ -94,27 +94,27 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).runIO
       }
 
       (10 to 90) foreach {
         i =>
-          db.remove(i).assertGet
+          db.remove(i).runIO
       }
 
       (1 to 9) foreach {
         i =>
-          db.get(i).assertGet shouldBe i.toString
+          db.get(i).runIOValue shouldBe i.toString
       }
 
       (10 to 90) foreach {
         i =>
-          db.get(i).assertGetOpt shouldBe empty
+          db.get(i).runIO shouldBe empty
       }
 
       (91 to 100) foreach {
         i =>
-          db.get(i).assertGet shouldBe i.toString
+          db.get(i).runIOValue shouldBe i.toString
       }
 
       db.close().get
@@ -125,23 +125,23 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).runIO
       }
 
       val expire = 2.second.fromNow
 
       (10 to 90) foreach {
         i =>
-          db.expire(i, expire).assertGet
+          db.expire(i, expire).runIO
       }
 
-      (1 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
+      (1 to 100) foreach { i => db.get(i).runIOValue shouldBe i.toString }
 
       sleep(expire.timeLeft + 10.millisecond)
 
-      (10 to 90) foreach { i => db.get(i).assertGetOpt shouldBe empty }
-      (1 to 9) foreach { i => db.get(i).assertGet shouldBe i.toString }
-      (91 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
+      (10 to 90) foreach { i => db.get(i).runIO shouldBe empty }
+      (1 to 9) foreach { i => db.get(i).runIOValue shouldBe i.toString }
+      (91 to 100) foreach { i => db.get(i).runIOValue shouldBe i.toString }
 
       db.keys.stream.materialize.get shouldBe ((1 to 9) ++ (91 to 100))
 
@@ -153,20 +153,20 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).runIO
       }
 
       val expire = 2.second.fromNow
 
-      db.expire(10, 90, expire).assertGet
+      db.expire(10, 90, expire).runIO
 
-      (1 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
+      (1 to 100) foreach { i => db.get(i).runIOValue shouldBe i.toString }
 
       sleep(expire.timeLeft + 10.millisecond)
 
-      (10 to 90) foreach { i => db.get(i).assertGetOpt shouldBe empty }
-      (1 to 9) foreach { i => db.get(i).assertGet shouldBe i.toString }
-      (91 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
+      (10 to 90) foreach { i => db.get(i).runIO shouldBe empty }
+      (1 to 9) foreach { i => db.get(i).runIOValue shouldBe i.toString }
+      (91 to 100) foreach { i => db.get(i).runIOValue shouldBe i.toString }
 
       db.close().get
     }

@@ -21,7 +21,7 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
@@ -75,11 +75,11 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
         assertAllLevels =
           (_, _, _, level) =>
             Seq(
-              () => level.get(randomStringOption).assertGetOpt shouldBe empty,
-              () => level.higher(randomStringOption).assertGetOpt shouldBe empty,
-              () => level.lower(randomStringOption).assertGetOpt shouldBe empty,
-              () => level.head.assertGetOpt shouldBe empty,
-              () => level.last.assertGetOpt shouldBe empty
+              () => level.get(randomStringOption).runIO shouldBe empty,
+              () => level.higher(randomStringOption).runIO shouldBe empty,
+              () => level.lower(randomStringOption).runIO shouldBe empty,
+              () => level.head.runIO shouldBe empty,
+              () => level.last.runIO shouldBe empty
             ).runThisRandomly
       )
     }
@@ -141,13 +141,13 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
                   nonExistingKeys foreach {
                     nonExistentKey =>
                       val expectedHigher = existing.find(put => put.hasTimeLeft() && put.key.readInt() > nonExistentKey).map(_.key.readInt())
-                      level.higher(nonExistentKey).assertGetOpt.map(_.key.readInt()) shouldBe expectedHigher
+                      level.higher(nonExistentKey).runIO.map(_.key.readInt()) shouldBe expectedHigher
                   },
                 () =>
                   nonExistingKeys foreach {
                     nonExistentKey =>
                       val expectedLower = existing.reverse.find(put => put.hasTimeLeft() && put.key.readInt() < nonExistentKey).map(_.key.readInt())
-                      level.lower(nonExistentKey).assertGetOpt.map(_.key.readInt()) shouldBe expectedLower
+                      level.lower(nonExistentKey).runIO.map(_.key.readInt()) shouldBe expectedLower
                   }
               ).runThisRandomlyInParallel
             }

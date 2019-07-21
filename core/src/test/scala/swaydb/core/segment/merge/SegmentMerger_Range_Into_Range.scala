@@ -21,7 +21,7 @@ package swaydb.core.segment.merge
 
 import org.scalatest.WordSpec
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
@@ -59,8 +59,8 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 10,
               toKey = 15,
-              fromValue = oldKeyValue.fromValue.map(fromValue => FixedMerger(newKeyValue.rangeValue.toMemory(10), fromValue.toMemory(10)).flatMap(_.toFromValue()).assertGet),
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).assertGet
+              fromValue = oldKeyValue.fromValue.map(fromValue => FixedMerger(newKeyValue.rangeValue.toMemory(10), fromValue.toMemory(10)).flatMap(_.toFromValue()).runIO),
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runIO
             ),
             Memory.Range(
               fromKey = 15,
@@ -105,8 +105,8 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 10,
               toKey = 20,
-              fromValue = oldKeyValue.fromValue.map(oldFromValue => FixedMerger(newKeyValue.rangeValue.toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).assertGet),
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).assertGet
+              fromValue = oldKeyValue.fromValue.map(oldFromValue => FixedMerger(newKeyValue.rangeValue.toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).runIO),
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runIO
             )
           )
         val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMap(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
@@ -144,8 +144,8 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 10,
               toKey = 20,
-              fromValue = oldKeyValue.fromValue.map(oldFromValue => FixedMerger(newKeyValue.rangeValue.toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).assertGet),
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).assertGet
+              fromValue = oldKeyValue.fromValue.map(oldFromValue => FixedMerger(newKeyValue.rangeValue.toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).runIO),
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runIO
             ),
             Memory.Range(
               fromKey = 20,
@@ -182,11 +182,11 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
         val from: Option[Value.FromValue] =
           oldKeyValue.fromValue match {
             case Some(oldFromValue) =>
-              Some(FixedMerger(newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).assertGet)
+              Some(FixedMerger(newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).runIO)
             case None =>
               newKeyValue.fromValue match {
                 case Some(newFromValue) =>
-                  Some(FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(10)).flatMap(_.toFromValue()).assertGet)
+                  Some(FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(10)).flatMap(_.toFromValue()).runIO)
                 case None =>
                   None
               }
@@ -198,7 +198,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
               fromKey = 10,
               toKey = 15,
               fromValue = from,
-              rangeValue = ValueMerger(newKeyValue.rangeValue: Value.RangeValue, oldKeyValue.rangeValue: Value.RangeValue).assertGet
+              rangeValue = ValueMerger(newKeyValue.rangeValue: Value.RangeValue, oldKeyValue.rangeValue: Value.RangeValue).runIO
             ),
             Memory.Range(
               fromKey = 15,
@@ -240,16 +240,16 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
                 //different approach used pattern matching instead of using similar approach like in SegmentMerge.scala
                 oldKeyValue.fromValue match {
                   case Some(oldFromValue) =>
-                    Some(FixedMerger(newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).assertGet)
+                    Some(FixedMerger(newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).runIO)
                   case None =>
                     newKeyValue.fromValue match {
                       case Some(newFromValue) =>
-                        Some(FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(10)).flatMap(_.toFromValue()).assertGet)
+                        Some(FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(10)).flatMap(_.toFromValue()).runIO)
                       case None =>
                         None
                     }
                 },
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).assertGet
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runIO
             )
           )
         val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMap(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
@@ -285,16 +285,16 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
                 //different approach used pattern matching instead of using similar approach just like in SegmentMerge.scala
                 oldKeyValue.fromValue match {
                   case Some(oldFromValue) =>
-                    Some(FixedMerger(newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).assertGet)
+                    Some(FixedMerger(newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).runIO)
                   case None =>
                     newKeyValue.fromValue match {
                       case Some(newFromValue) =>
-                        Some(FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(10)).flatMap(_.toFromValue()).assertGet)
+                        Some(FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(10)).flatMap(_.toFromValue()).runIO)
                       case None =>
                         None
                     }
                 },
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).assertGet
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runIO
             ),
             Memory.Range(
               fromKey = 20,
@@ -338,8 +338,8 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 11,
               toKey = 15,
-              fromValue = newKeyValue.fromValue.map(fromValue => FixedMerger(fromValue.toMemory(11), oldKeyValue.rangeValue.toMemory(11)).flatMap(_.toFromValue()).assertGet),
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).assertGet
+              fromValue = newKeyValue.fromValue.map(fromValue => FixedMerger(fromValue.toMemory(11), oldKeyValue.rangeValue.toMemory(11)).flatMap(_.toFromValue()).runIO),
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runIO
             ),
             Memory.Range(
               fromKey = 15,
@@ -383,8 +383,8 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 11,
               toKey = 20,
-              fromValue = newKeyValue.fromValue.map(fromValue => FixedMerger(fromValue.toMemory(11), oldKeyValue.rangeValue.toMemory(11)).flatMap(_.toFromValue()).assertGet),
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).assertGet
+              fromValue = newKeyValue.fromValue.map(fromValue => FixedMerger(fromValue.toMemory(11), oldKeyValue.rangeValue.toMemory(11)).flatMap(_.toFromValue()).runIO),
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runIO
             )
           )
         val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMap(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
@@ -422,8 +422,8 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 11,
               toKey = 20,
-              fromValue = newKeyValue.fromValue.map(fromValue => FixedMerger(fromValue.toMemory(11), oldKeyValue.rangeValue.toMemory(11)).flatMap(_.toFromValue()).assertGet),
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).assertGet
+              fromValue = newKeyValue.fromValue.map(fromValue => FixedMerger(fromValue.toMemory(11), oldKeyValue.rangeValue.toMemory(11)).flatMap(_.toFromValue()).runIO),
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runIO
             ),
             Memory.Range(
               fromKey = 20,

@@ -22,7 +22,7 @@ package swaydb.core.level
 import java.nio.file.{Path, Paths}
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.io.file.IOEffect
@@ -63,9 +63,9 @@ class PathsDistributorSpec extends TestBase with MockFactory {
           dirs,
           () =>
             Seq(
-              TestSegment(path = path1.resolve("11.seg")).assertGet,
-              TestSegment(path = path3.resolve("31.seg")).assertGet,
-              TestSegment(path = path3.resolve("32.seg")).assertGet
+              TestSegment(path = path1.resolve("11.seg")).runIO,
+              TestSegment(path = path3.resolve("31.seg")).runIO,
+              TestSegment(path = path3.resolve("32.seg")).runIO
             )
         )
 
@@ -231,9 +231,9 @@ class PathsDistributorSpec extends TestBase with MockFactory {
       //second batch, where each Path has 1 Segment = a total of 3 Segments. Distribution ratio for path2 is 2 and but it contains only 1 Segment.
       segments expects() returning
         Seq(
-          TestSegment(path = path1.resolve("1.seg")).assertGet,
-          TestSegment(path = path2.resolve("2.seg")).assertGet,
-          TestSegment(path = path3.resolve("3.seg")).assertGet
+          TestSegment(path = path1.resolve("1.seg")).runIO,
+          TestSegment(path = path2.resolve("2.seg")).runIO,
+          TestSegment(path = path3.resolve("3.seg")).runIO
         )
       //a total of 3 Segments but path2 was expected to have 2 Segments which it does not so the distribution returns path2 to be filled.
       distributor.next shouldBe path2
@@ -250,12 +250,12 @@ class PathsDistributorSpec extends TestBase with MockFactory {
       //4ht batch, path3 contains none but path1 and path2 have one Segment.
       segments expects() returning
         Seq(
-          TestSegment(path = path1.resolve("11.seg")).assertGet,
-          TestSegment(path = path2.resolve("22.seg")).assertGet,
-          TestSegment(path = path2.resolve("222.seg")).assertGet,
-          TestSegment(path = path2.resolve("2222.seg")).assertGet,
-          TestSegment(path = path2.resolve("22222.seg")).assertGet,
-          TestSegment(path = path2.resolve("222222.seg")).assertGet
+          TestSegment(path = path1.resolve("11.seg")).runIO,
+          TestSegment(path = path2.resolve("22.seg")).runIO,
+          TestSegment(path = path2.resolve("222.seg")).runIO,
+          TestSegment(path = path2.resolve("2222.seg")).runIO,
+          TestSegment(path = path2.resolve("22222.seg")).runIO,
+          TestSegment(path = path2.resolve("222222.seg")).runIO
         )
       //a total 6 Segments which path3 is empty, here the path3 gets filled before going back to normal
       distributor.next shouldBe path3
@@ -265,12 +265,12 @@ class PathsDistributorSpec extends TestBase with MockFactory {
       //5th batch. Distribution is fixed all Paths contains equally distributed Segments based on distribution ration.
       segments expects() returning
         Seq(
-          TestSegment(path = path1.resolve("111.seg")).assertGet,
-          TestSegment(path = path2.resolve("2222222.seg")).assertGet,
-          TestSegment(path = path2.resolve("22222222.seg")).assertGet,
-          TestSegment(path = path3.resolve("33.seg")).assertGet,
-          TestSegment(path = path3.resolve("333.seg")).assertGet,
-          TestSegment(path = path3.resolve("3333.seg")).assertGet
+          TestSegment(path = path1.resolve("111.seg")).runIO,
+          TestSegment(path = path2.resolve("2222222.seg")).runIO,
+          TestSegment(path = path2.resolve("22222222.seg")).runIO,
+          TestSegment(path = path3.resolve("33.seg")).runIO,
+          TestSegment(path = path3.resolve("333.seg")).runIO,
+          TestSegment(path = path3.resolve("3333.seg")).runIO
         )
       // goes back to returning normal paths based on the default distribution ratio.
       distributor.next shouldBe path1

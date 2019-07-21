@@ -22,7 +22,7 @@ package swaydb.core.level
 import java.nio.file.Path
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.TestBase
 
 import scala.collection.mutable.ListBuffer
@@ -60,7 +60,7 @@ class LevelRefSpec extends TestBase with MockFactory {
       LevelRef.getLevels(level2).map(_.rootPath) shouldBe allPaths.drop(2)
       LevelRef.getLevels(level3).map(_.rootPath) shouldBe allPaths.drop(3)
 
-      level0.close.assertGet
+      level0.close.runIO
     }
   }
 
@@ -75,7 +75,7 @@ class LevelRefSpec extends TestBase with MockFactory {
 
       paths should contain only level.rootPath
 
-      level.close.assertGet
+      level.close.runIO
     }
 
     "multi level" in {
@@ -97,7 +97,7 @@ class LevelRefSpec extends TestBase with MockFactory {
       paths(level2) shouldBe allPaths.drop(2)
       paths(level3) shouldBe allPaths.drop(3)
 
-      level0.close.assertGet
+      level0.close.runIO
     }
   }
 
@@ -107,7 +107,7 @@ class LevelRefSpec extends TestBase with MockFactory {
       val paths = level.mapLevels(_.rootPath)
 
       paths should contain only level.rootPath
-      level.close.assertGet
+      level.close.runIO
     }
 
     "multi level" in {
@@ -125,7 +125,7 @@ class LevelRefSpec extends TestBase with MockFactory {
       paths(level2) shouldBe allPaths.drop(2)
       paths(level3) shouldBe allPaths.drop(3)
 
-      level0.close.assertGet
+      level0.close.runIO
     }
   }
 
@@ -137,6 +137,6 @@ class LevelRefSpec extends TestBase with MockFactory {
 
     level0.reverseLevels.map(_.rootPath) shouldBe Seq(level3.rootPath, level2.rootPath, level1.rootPath, level0.rootPath)
 
-    level0.close.assertGet
+    level0.close.runIO
   }
 }

@@ -22,7 +22,7 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
@@ -73,9 +73,9 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
   "removeSegments" should {
     "remove segments from disk and remove them from appendix" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValuesTest(randomPutKeyValues(keyValuesCount)).assertGet
+      level.putKeyValuesTest(randomPutKeyValues(keyValuesCount)).runIO
 
-      level.removeSegments(level.segmentsInLevel()).assertGet
+      level.removeSegments(level.segmentsInLevel()).runIO
 
       level.isEmpty shouldBe true
 

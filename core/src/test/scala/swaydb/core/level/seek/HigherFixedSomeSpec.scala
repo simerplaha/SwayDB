@@ -21,7 +21,7 @@ package swaydb.core.level.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
@@ -61,7 +61,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).assertGet shouldBe put
+        Higher(0: Slice[Byte]).runIOValue shouldBe put
       }
     }
 
@@ -85,7 +85,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).assertGet shouldBe put
+        Higher(0: Slice[Byte]).runIOValue shouldBe put
       }
     }
 
@@ -101,7 +101,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
         val upperKeyValue = randomFixedKeyValue(1, includeRemoves = false, deadline = randomDeadlineOption(false), functionOutput = randomUpdateFunctionOutput())
         val lowerKeyValue = randomPutKeyValue(1, deadline = None)
-        val expected = FixedMerger(upperKeyValue, lowerKeyValue).assertGet
+        val expected = FixedMerger(upperKeyValue, lowerKeyValue).runIO
 
         inSequence {
           //@formatter:off
@@ -111,7 +111,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).assertGet shouldBe expected
+        Higher(0: Slice[Byte]).runIOValue shouldBe expected
       }
     }
 
@@ -153,7 +153,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
           }
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).assertGet shouldBe expected
+        Higher(0: Slice[Byte]).runIOValue shouldBe expected
       }
     }
 
@@ -177,7 +177,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).assertGet shouldBe lowerKeyValue
+        Higher(0: Slice[Byte]).runIOValue shouldBe lowerKeyValue
       }
     }
   }

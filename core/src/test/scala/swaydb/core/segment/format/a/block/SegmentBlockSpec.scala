@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
@@ -50,7 +50,7 @@ class SegmentBlockSpec extends TestBase {
           keyValues = Seq.empty,
           segmentConfig = SegmentBlock.Config.random,
           createdInLevel = randomIntMax()
-        ).assertGet
+        ).runIO
 
       closedSegment.segmentBytes.isEmpty shouldBe true
       closedSegment.nearestDeadline shouldBe empty
@@ -67,7 +67,7 @@ class SegmentBlockSpec extends TestBase {
                 compressions = _ => Seq.empty
               ),
             createdInLevel = randomNextInt(10)
-          ).assertGet
+          ).runIO
 
         val reader = Reader(closedSegment.flattenSegmentBytes)
         assertReads(keyValues, reader)
@@ -96,7 +96,7 @@ class SegmentBlockSpec extends TestBase {
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
             previous = None
-          ).assertGet
+          ).runIO
 
         val bytes =
           SegmentBlock.writeClosed(
@@ -107,14 +107,14 @@ class SegmentBlockSpec extends TestBase {
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
-          ).assertGet.flattenSegmentBytes
+          ).runIO.flattenSegmentBytes
 
         bytes.isFull shouldBe true
 
         Seq(Reader(bytes), createRandomFileReader(bytes)) foreach {
           reader =>
-            val readGroup = readAll(reader).assertGet.asInstanceOf[Slice[KeyValue.ReadOnly.Group]]
-            val allKeyValuesForGroups = readGroup.flatMap(_.segment.getAll().assertGet)
+            val readGroup = readAll(reader).runIO.asInstanceOf[Slice[KeyValue.ReadOnly.Group]]
+            val allKeyValuesForGroups = readGroup.flatMap(_.segment.getAll().runIO)
             allKeyValuesForGroups shouldBe keyValues.toMemory
         }
       }
@@ -138,12 +138,12 @@ class SegmentBlockSpec extends TestBase {
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
-          ).assertGet.flattenSegmentBytes
+          ).runIO.flattenSegmentBytes
 
-        val allBytes = readAll(segmentBytes).assertGet
+        val allBytes = readAll(segmentBytes).runIO
         allBytes.isInstanceOf[Slice[KeyValue.ReadOnly.Group]] shouldBe true
 
-        val allKeyValuesForGroups = allBytes.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segment.getAll().assertGet)
+        val allKeyValuesForGroups = allBytes.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segment.getAll().runIO)
         allKeyValuesForGroups shouldBe (group1KeyValues ++ group2KeyValues).toMemory
       }
     }
@@ -172,18 +172,18 @@ class SegmentBlockSpec extends TestBase {
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
-          ).assertGet.flattenSegmentBytes
+          ).runIO.flattenSegmentBytes
 
         bytes.isFull shouldBe true
 
-        val rootGroup = readAll(bytes).assertGet
+        val rootGroup = readAll(bytes).runIO
         rootGroup should have size 1
         rootGroup.isInstanceOf[Slice[KeyValue.ReadOnly.Group]] shouldBe true
 
-        val childGroups = rootGroup.head.asInstanceOf[KeyValue.ReadOnly.Group].segment.getAll().assertGet
+        val childGroups = rootGroup.head.asInstanceOf[KeyValue.ReadOnly.Group].segment.getAll().runIO
         childGroups.isInstanceOf[Slice[KeyValue.ReadOnly.Group]] shouldBe true
 
-        val allKeyValuesForGroups = childGroups.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segment.getAll().assertGet)
+        val allKeyValuesForGroups = childGroups.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segment.getAll().runIO)
         allKeyValuesForGroups shouldBe (group1KeyValues ++ group2KeyValues ++ group3KeyValues).toMemory
       }
     }
@@ -202,7 +202,7 @@ class SegmentBlockSpec extends TestBase {
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
-          ).assertGet.flattenSegmentBytes
+          ).runIO.flattenSegmentBytes
 
         //in memory
         assertReads(keyValues, Reader(bytes.unslice()))
@@ -223,7 +223,7 @@ class SegmentBlockSpec extends TestBase {
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0
-        ).assertGet.flattenSegment
+        ).runIO.flattenSegment
 
       deadline shouldBe empty
 
@@ -251,7 +251,7 @@ class SegmentBlockSpec extends TestBase {
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0
-        ).assertGet.flattenSegment
+        ).runIO.flattenSegment
 
       if (!setDeadlines) deadline shouldBe empty
 

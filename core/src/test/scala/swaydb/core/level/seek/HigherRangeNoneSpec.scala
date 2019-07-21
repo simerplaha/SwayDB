@@ -21,7 +21,7 @@ package swaydb.core.level.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.{TestData, TestTimer}
@@ -66,7 +66,7 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
                 next.hasStateChanged  _ expects 1                   returning false
                 //@formatter:on
               }
-              Higher(key: Slice[Byte]).assertGetOpt shouldBe empty
+              Higher(key: Slice[Byte]).runIO shouldBe empty
           }
         }
       }
@@ -95,7 +95,7 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
                 next.hasStateChanged  _ expects 1                   returning false
                 //@formatter:on
               }
-              Higher(key: Slice[Byte]).assertGetOpt shouldBe empty
+              Higher(key: Slice[Byte]).runIO shouldBe empty
           }
         }
       }
@@ -126,7 +126,7 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
             next.hasStateChanged  _ expects 1                   returning false
             //@formatter:on
           }
-          Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
+          Higher(0: Slice[Byte]).runIO shouldBe empty
         }
       }
 
@@ -155,7 +155,7 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
             next.hasStateChanged  _ expects 1                   returning false
             //@formatter:on
           }
-          Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
+          Higher(0: Slice[Byte]).runIO shouldBe empty
         }
       }
     }

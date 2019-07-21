@@ -20,7 +20,7 @@
 package swaydb.extensions
 
 import swaydb.api.TestBaseEmbedded
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.data.util.StorageUnits._
 import swaydb.extensions
@@ -30,7 +30,7 @@ class FromMapSpec0 extends FromMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): extensions.Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).assertGet
+    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).runIO
 }
 
 class FromMapSpec1 extends FromMapSpec {
@@ -38,7 +38,7 @@ class FromMapSpec1 extends FromMapSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): extensions.Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
+    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).runIO
 }
 
 class FromMapSpec2 extends FromMapSpec {
@@ -46,14 +46,14 @@ class FromMapSpec2 extends FromMapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): extensions.Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).assertGet
+    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).runIO
 }
 
 class FromMapSpec3 extends FromMapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): extensions.Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String]().assertGet
+    swaydb.extensions.memory.Map[Int, String]().runIO
 }
 
 sealed trait FromMapSpec extends TestBaseEmbedded {
@@ -67,7 +67,7 @@ sealed trait FromMapSpec extends TestBaseEmbedded {
     "return empty on an empty Map" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap").assertGet
+      val rootMap = db.maps.put(1, "rootMap").runIO
 
       rootMap.maps.from(1).stream.materialize.get shouldBe empty
       rootMap.maps.before(1).stream.materialize.get shouldBe empty
@@ -81,8 +81,8 @@ sealed trait FromMapSpec extends TestBaseEmbedded {
     "if the map contains only 1 empty subMap" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap").assertGet
-      val firstMap = rootMap.maps.put(2, "sub map").assertGet
+      val rootMap = db.maps.put(1, "rootMap").runIO
+      val firstMap = rootMap.maps.put(2, "sub map").runIO
 
       rootMap.maps.from(1).stream.materialize.get shouldBe empty
       rootMap.maps.before(1).stream.materialize.get shouldBe List((2, "sub map"))
@@ -125,27 +125,27 @@ sealed trait FromMapSpec extends TestBaseEmbedded {
       //                                           (222, "two two two")
       //                                           (333, "three three three")
       //                                           (444, "four four four")
-      val rootMap = db.maps.put(1, "rootMap").assertGet
-      val firstMap = rootMap.maps.put(2, "sub map").assertGet
-      val secondMap = rootMap.maps.put(3, "sub map").assertGet
+      val rootMap = db.maps.put(1, "rootMap").runIO
+      val firstMap = rootMap.maps.put(2, "sub map").runIO
+      val secondMap = rootMap.maps.put(3, "sub map").runIO
 
       //insert entries to rootMap
-      rootMap.put(1, "one").assertGet
-      rootMap.put(2, "two").assertGet
-      rootMap.put(3, "three").assertGet
-      rootMap.put(4, "four").assertGet
+      rootMap.put(1, "one").runIO
+      rootMap.put(2, "two").runIO
+      rootMap.put(3, "three").runIO
+      rootMap.put(4, "four").runIO
 
       //insert entries to firstMap
-      firstMap.put(11, "one one").assertGet
-      firstMap.put(22, "two two").assertGet
-      firstMap.put(33, "three three").assertGet
-      firstMap.put(44, "four four").assertGet
+      firstMap.put(11, "one one").runIO
+      firstMap.put(22, "two two").runIO
+      firstMap.put(33, "three three").runIO
+      firstMap.put(44, "four four").runIO
 
       //insert entries to firstMap
-      secondMap.put(111, "one one one").assertGet
-      secondMap.put(222, "two two two").assertGet
-      secondMap.put(333, "three three three").assertGet
-      secondMap.put(444, "four four four").assertGet
+      secondMap.put(111, "one one one").runIO
+      secondMap.put(222, "two two two").runIO
+      secondMap.put(333, "three three three").runIO
+      secondMap.put(444, "four four four").runIO
 
       rootMap.maps.from(1).stream.materialize.get shouldBe empty
       //reverse from the map.

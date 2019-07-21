@@ -21,7 +21,7 @@ package swaydb.core.level.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
@@ -62,7 +62,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Lower(1: Slice[Byte]).assertGet shouldBe put
+        Lower(1: Slice[Byte]).runIOValue shouldBe put
       }
     }
 
@@ -86,7 +86,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Lower(1: Slice[Byte]).assertGet shouldBe put
+        Lower(1: Slice[Byte]).runIOValue shouldBe put
       }
     }
 
@@ -103,7 +103,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
 
         val upperKeyValue = randomFixedKeyValue(0, includeRemoves = false, deadline = randomDeadlineOption(false), functionOutput = randomUpdateFunctionOutput())
         val lowerKeyValue = randomPutKeyValue(0, deadline = None)
-        val expected = FixedMerger(upperKeyValue, lowerKeyValue).assertGet
+        val expected = FixedMerger(upperKeyValue, lowerKeyValue).runIO
 
         inSequence {
           //@formatter:off
@@ -113,7 +113,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Lower(1: Slice[Byte]).assertGet shouldBe expected
+        Lower(1: Slice[Byte]).runIOValue shouldBe expected
       }
     }
 
@@ -155,7 +155,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
           }
           //@formatter:on
         }
-        Lower(2: Slice[Byte]).assertGet shouldBe expected
+        Lower(2: Slice[Byte]).runIOValue shouldBe expected
       }
     }
 
@@ -179,7 +179,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Lower(2: Slice[Byte]).assertGet shouldBe lowerKeyValue
+        Lower(2: Slice[Byte]).runIOValue shouldBe lowerKeyValue
       }
     }
   }

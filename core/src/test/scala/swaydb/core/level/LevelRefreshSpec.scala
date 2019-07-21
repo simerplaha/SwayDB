@@ -22,7 +22,7 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
@@ -79,19 +79,19 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
     "remove expired key-values" in {
       val level = TestLevel(segmentSize = 1.kb)
       val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0))(TestTimer.Empty)
-      level.putKeyValuesTest(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).runIO
       //dispatch another put request so that existing Segment gets split
-      level.putKeyValuesTest(Slice(keyValues.head)).assertGet
+      level.putKeyValuesTest(Slice(keyValues.head)).runIO
       level.segmentsCount() should be > 1
 
       //expire all key-values
-      level.putKeyValuesTest(Slice(Memory.Range(0, Int.MaxValue, None, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).assertGet
+      level.putKeyValuesTest(Slice(Memory.Range(0, Int.MaxValue, None, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).runIO
       level.segmentFilesInAppendix should be > 1
 
       sleep(3.seconds)
       level.segmentsInLevel() foreach {
         segment =>
-          level.refresh(segment).assertGet
+          level.refresh(segment).runIO
       }
 
       level.segmentFilesInAppendix shouldBe 0
@@ -102,14 +102,14 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
 
       val keyValues = randomPutKeyValues(keyValuesCount, addRandomExpiredPutDeadlines = false)
       val maps = TestMap(keyValues.toTransient.toMemoryResponse)
-      level.put(maps).assertGet
+      level.put(maps).runIO
 
       val nextLevel = TestLevel()
-      nextLevel.put(level.segmentsInLevel()).assertGet
+      nextLevel.put(level.segmentsInLevel()).runIO
 
-      nextLevel.segmentsInLevel() foreach (_.createdInLevel.assertGet shouldBe level.levelNumber)
-      nextLevel.segmentsInLevel() foreach (segment => nextLevel.refresh(segment).assertGet)
-      nextLevel.segmentsInLevel() foreach (_.createdInLevel.assertGet shouldBe nextLevel.levelNumber)
+      nextLevel.segmentsInLevel() foreach (_.createdInLevel.runIO shouldBe level.levelNumber)
+      nextLevel.segmentsInLevel() foreach (segment => nextLevel.refresh(segment).runIO)
+      nextLevel.segmentsInLevel() foreach (_.createdInLevel.runIO shouldBe nextLevel.levelNumber)
     }
   }
 }

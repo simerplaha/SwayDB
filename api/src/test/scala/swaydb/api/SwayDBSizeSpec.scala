@@ -20,7 +20,7 @@
 package swaydb
 
 import swaydb.api.TestBaseEmbedded
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.data.IO
 import swaydb.serializers.Default._
@@ -29,14 +29,14 @@ class SwayDBSize_Persistent_Spec extends SwayDBSizeSpec {
   val keyValueCount: Int = 10000000
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.Map[Int, String](dir = randomDir).assertGet
+    swaydb.persistent.Map[Int, String](dir = randomDir).runIO
 }
 
 class SwayDBSize_Memory_Spec extends SwayDBSizeSpec {
   val keyValueCount: Int = 10000000
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.Map[Int, String]().assertGet
+    swaydb.memory.Map[Int, String]().runIO
 }
 
 sealed trait SwayDBSizeSpec extends TestBaseEmbedded {
@@ -52,7 +52,7 @@ sealed trait SwayDBSizeSpec extends TestBaseEmbedded {
 
     (1 to keyValueCount) foreach {
       i =>
-        db.put(i, i.toString).assertGet
+        db.put(i, i.toString).runIO
     }
 
     db.size shouldBe keyValueCount

@@ -20,7 +20,7 @@
 package swaydb.core.util
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Time, Value}
@@ -29,6 +29,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import org.scalatest.OptionValues._
 
 import scala.util.Random
 
@@ -53,7 +54,7 @@ class MinMaxSpec extends WordSpec with Matchers {
       val left = (Slice.writeInt(1) ++ Slice.writeInt(2)).dropRight(ByteSizeOf.int)
       left.underlyingArraySize should be > 4
 
-      val min = MinMax.min(Some(left), Some(1: Slice[Byte]))(KeyOrder.default).assertGet
+      val min = MinMax.min(Some(left), Some(1: Slice[Byte]))(KeyOrder.default).value
 
       min shouldBe left
       min.underlyingArraySize shouldBe left.underlyingArraySize
@@ -63,7 +64,7 @@ class MinMaxSpec extends WordSpec with Matchers {
       val left = (Slice.writeInt(1) ++ Slice.writeInt(2)).dropRight(ByteSizeOf.int)
       left.underlyingArraySize should be > 4
 
-      val min = MinMax.min(Some(left), None)(KeyOrder.default).assertGet
+      val min = MinMax.min(Some(left), None)(KeyOrder.default).value
 
       min shouldBe left
       min.underlyingArraySize shouldBe left.underlyingArraySize
@@ -73,7 +74,7 @@ class MinMaxSpec extends WordSpec with Matchers {
       val right = (Slice.writeInt(1) ++ Slice.writeInt(2)).dropRight(ByteSizeOf.int)
       right.underlyingArraySize should be > 4
 
-      val min = MinMax.min(None, Some(right))(KeyOrder.default).assertGet
+      val min = MinMax.min(None, Some(right))(KeyOrder.default).value
 
       min shouldBe right
       min.underlyingArraySize shouldBe right.underlyingArraySize
@@ -103,7 +104,7 @@ class MinMaxSpec extends WordSpec with Matchers {
       val left = (Slice.writeInt(1) ++ Slice.writeInt(2)).dropRight(ByteSizeOf.int)
       left.underlyingArraySize should be > 4
 
-      val max = MinMax.max(Some(left), Some(1: Slice[Byte]))(KeyOrder.default).assertGet
+      val max = MinMax.max(Some(left), Some(1: Slice[Byte]))(KeyOrder.default).value
 
       max shouldBe left
       max.underlyingArraySize shouldBe left.underlyingArraySize
@@ -113,7 +114,7 @@ class MinMaxSpec extends WordSpec with Matchers {
       val left = (Slice.writeInt(1) ++ Slice.writeInt(2)).dropRight(ByteSizeOf.int)
       left.underlyingArraySize should be > 4
 
-      val max = MinMax.max(Some(left), None)(KeyOrder.default).assertGet
+      val max = MinMax.max(Some(left), None)(KeyOrder.default).value
 
       max shouldBe left
       max.underlyingArraySize shouldBe left.underlyingArraySize
@@ -123,7 +124,7 @@ class MinMaxSpec extends WordSpec with Matchers {
       val right = (Slice.writeInt(1) ++ Slice.writeInt(2)).dropRight(ByteSizeOf.int)
       right.underlyingArraySize should be > 4
 
-      val max = MinMax.max(None, Some(right))(KeyOrder.default).assertGet
+      val max = MinMax.max(None, Some(right))(KeyOrder.default).value
 
       max shouldBe right
       max.underlyingArraySize shouldBe right.underlyingArraySize

@@ -22,7 +22,7 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.exceptions.TestFailedException
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
@@ -109,12 +109,12 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
                 update =>
                   val (gotValue, gotDeadline) = level.get(update.key) mapAsync {
                     case Some(put) =>
-                      val value = IO.Async.runSafe(put.getOrFetchValue.get).safeGetBlocking.assertGetOpt
+                      val value = IO.Async.runSafe(put.getOrFetchValue.get).safeGetBlocking.runIO
                       (value, put.deadline)
 
                     case None =>
                       (None, None)
-                  } assertGet
+                  } runIO
 
                   Try(gotValue shouldBe updatedValue) match {
                     case Failure(testException: TestFailedException) =>
@@ -122,12 +122,12 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
                       implicit val keyOrder = KeyOrder.default
                       implicit val timeOrder = TimeOrder.long
                       val level: Level = TestLevel()
-                      level.putKeyValuesTest(level2KeyValues).assertGet
-                      level.putKeyValuesTest(level1KeyValues).assertGet
-                      level.putKeyValuesTest(level0KeyValues).assertGet
+                      level.putKeyValuesTest(level2KeyValues).runIO
+                      level.putKeyValuesTest(level1KeyValues).runIO
+                      level.putKeyValuesTest(level0KeyValues).runIO
 
                       //if after merging into a single Level the result is not empty then print all the failed exceptions.
-                      Try(level.get(update.key).safeGetBlocking.assertGetOpt shouldBe empty).failed foreach {
+                      Try(level.get(update.key).safeGetBlocking.runIO shouldBe empty).failed foreach {
                         exception =>
                           exception.printStackTrace()
                           throw testException

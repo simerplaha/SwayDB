@@ -21,7 +21,7 @@ package swaydb.core.level.zero
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Transient}
@@ -92,11 +92,11 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
   "LevelZero.put" should {
     "write key-value" in {
       def assert(zero: LevelZero): Unit = {
-        zero.put(1, "one").assertGet
-        zero.get(1).assertGet.getOrFetchValue.assertGet shouldBe ("one": Slice[Byte])
+        zero.put(1, "one").runIO
+        zero.get(1).runIOValue.getOrFetchValue.runIOValue shouldBe ("one": Slice[Byte])
 
-        zero.put("2", "two").assertGet
-        zero.get("2").assertGet.getOrFetchValue.assertGet shouldBe ("two": Slice[Byte])
+        zero.put("2", "two").runIO
+        zero.get("2").runIOValue.getOrFetchValue.runIOValue shouldBe ("two": Slice[Byte])
       }
 
       val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))))
@@ -109,9 +109,9 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       val zero = TestLevelZero(Some(level))
       val one = Slice.create[Byte](10).addInt(1).close()
 
-      zero.put(one, one).assertGet
+      zero.put(one, one).runIO
 
-      val gotFromLevelZero = zero.get(one).assertGet.getOrFetchValue.assertGet
+      val gotFromLevelZero = zero.get(one).runIOValue.getOrFetchValue.runIOValue
       gotFromLevelZero shouldBe one
       //ensure that key-values are not unsliced in LevelZero.
       gotFromLevelZero.underlyingArraySize shouldBe 10
@@ -120,23 +120,23 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       //in-memory key-values are slice of the whole Segment.
       if (persistent) {
         //put the same key-value to Level1 and expect the key-values to be sliced
-        level.putKeyValuesTest(Slice(Memory.put(one, one))).assertGet
-        val gotFromLevelOne = level.get(one).assertGet
-        gotFromLevelOne.getOrFetchValue.assertGet shouldBe one
+        level.putKeyValuesTest(Slice(Memory.put(one, one))).runIO
+        val gotFromLevelOne = level.get(one).runIOValue
+        gotFromLevelOne.getOrFetchValue.runIOValue shouldBe one
         //ensure that key-values are not unsliced in LevelOne.
-        gotFromLevelOne.getOrFetchValue.assertGet.underlyingArraySize shouldBe 4
+        gotFromLevelOne.getOrFetchValue.runIOValue.underlyingArraySize shouldBe 4
       }
     }
 
     "not write empty key-value" in {
       val zero = TestLevelZero(Some(TestLevel()))
-      zero.put(Slice.empty, Slice.empty).failed.assertGet.exception shouldBe a[IllegalArgumentException]
+      zero.put(Slice.empty, Slice.empty).failed.runIO.exception shouldBe a[IllegalArgumentException]
     }
 
     "write empty values" in {
       val zero = TestLevelZero(Some(TestLevel()))
-      zero.put(1, Slice.empty).assertGet
-      zero.get(1).safeGetBlocking.assertGet.getOrFetchValue.assertGet shouldBe Slice.empty
+      zero.put(1, Slice.empty).runIO
+      zero.get(1).safeGetBlocking.runIOValue.getOrFetchValue.runIOValue shouldBe Slice.empty
     }
 
     "write large keys and values and reopen the database and re-read key-values" in {
@@ -149,13 +149,13 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       val value2 = Random.nextString(750000): Slice[Byte]
 
       def assertWrite(zero: LevelZero): Unit = {
-        zero.put(key1, value1).assertGet
-        zero.put(key2, value2).assertGet
+        zero.put(key1, value1).runIO
+        zero.put(key2, value2).runIO
       }
 
       def assertRead(zero: LevelZero): Unit = {
-        zero.get(key1).assertGet.getOrFetchValue.assertGet shouldBe value1
-        zero.get(key2).assertGet.getOrFetchValue.assertGet shouldBe value2
+        zero.get(key1).runIOValue.getOrFetchValue.runIOValue shouldBe value1
+        zero.get(key2).runIOValue.getOrFetchValue.runIOValue shouldBe value2
       }
 
       val zero = TestLevelZero(Some(TestLevel(throttle = _ => Throttle(10.seconds, 0))))
@@ -170,26 +170,26 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
     "write keys only" in {
       val zero = TestLevelZero(Some(TestLevel()))
 
-      zero.put("one").assertGet
-      zero.put("two").assertGet
+      zero.put("one").runIO
+      zero.put("two").runIO
 
-      zero.get("one").safeGetBlocking.assertGet.getOrFetchValue.assertGetOpt shouldBe None
-      zero.get("two").safeGetBlocking.assertGet.getOrFetchValue.assertGetOpt shouldBe None
+      zero.get("one").safeGetBlocking.runIOValue.getOrFetchValue.runIO shouldBe None
+      zero.get("two").safeGetBlocking.runIOValue.getOrFetchValue.runIO shouldBe None
 
-      zero.contains("one").assertGet shouldBe true
-      zero.contains("two").assertGet shouldBe true
-      zero.contains("three").assertGet shouldBe false
+      zero.contains("one").runIO shouldBe true
+      zero.contains("two").runIO shouldBe true
+      zero.contains("three").runIO shouldBe false
     }
 
     "batch write key-values" in {
       val keyValues = randomIntKeyStringValues(keyValuesCount)
 
       val zero = TestLevelZero(Some(TestLevel()))
-      zero.put(_ => keyValues.toMapEntry.get).assertGet
+      zero.put(_ => keyValues.toMapEntry.get).runIO
 
       assertGet(keyValues, zero)
 
-      zero.bloomFilterKeyValueCount.assertGet shouldBe keyValues.size
+      zero.bloomFilterKeyValueCount.runIO shouldBe keyValues.size
     }
 
     "batch writing empty keys should fail" in {
@@ -214,7 +214,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       val keyValues = randomIntKeyStringValues(keyValuesCount)
       keyValues foreach {
         keyValue =>
-          zero.put(keyValue.key, keyValue.getOrFetchValue).assertGet
+          zero.put(keyValue.key, keyValue.getOrFetchValue).runIO
       }
 
       if (unexpiredPuts(keyValues).nonEmpty)
@@ -222,25 +222,25 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
       keyValues foreach {
         keyValue =>
-          zero.remove(keyValue.key).assertGet
+          zero.remove(keyValue.key).runIO
       }
 
-      zero.head.assertGetOpt shouldBe empty
-      zero.last.assertGetOpt shouldBe empty
+      zero.head.runIO shouldBe empty
+      zero.last.runIO shouldBe empty
     }
 
     "batch remove key-values" in {
       val keyValues = randomIntKeyStringValues(keyValuesCount)
       val zero = TestLevelZero(Some(TestLevel()))
-      zero.put(_ => keyValues.toMapEntry.get).assertGet
+      zero.put(_ => keyValues.toMapEntry.get).runIO
 
       assertGet(keyValues, zero)
 
       val removeKeyValues = Slice(keyValues.map(keyValue => Memory.remove(keyValue.key)).toArray)
-      zero.put(_ => removeKeyValues.toMapEntry.get).assertGet
+      zero.put(_ => removeKeyValues.toMapEntry.get).runIO
 
       assertGetNone(keyValues, zero)
-      zero.head.assertGetOpt shouldBe empty
+      zero.head.runIO shouldBe empty
     }
   }
 
@@ -250,15 +250,15 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       val keyValues = randomIntKeyStringValues(1)
       keyValues foreach {
         keyValue =>
-          zero.put(keyValue.key, keyValue.getOrFetchValue).assertGet
+          zero.put(keyValue.key, keyValue.getOrFetchValue).runIO
       }
 
       zero.bloomFilterKeyValueCount.get shouldBe 1
 
       zero.clear().safeGetBlocking.get
 
-      zero.head.assertGetOpt shouldBe empty
-      zero.last.assertGetOpt shouldBe empty
+      zero.head.runIO shouldBe empty
+      zero.last.runIO shouldBe empty
     }
 
     "remove all key-values" in {
@@ -266,13 +266,13 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       val keyValues = randomIntKeyStringValues(keyValuesCount)
       keyValues foreach {
         keyValue =>
-          zero.put(keyValue.key, keyValue.getOrFetchValue).assertGet
+          zero.put(keyValue.key, keyValue.getOrFetchValue).runIO
       }
 
       zero.clear().safeGetBlocking.get
 
-      zero.head.assertGetOpt shouldBe empty
-      zero.last.assertGetOpt shouldBe empty
+      zero.head.runIO shouldBe empty
+      zero.last.runIO shouldBe empty
     }
   }
 
@@ -281,28 +281,28 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       //disable throttle
       val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))), mapSize = 1.byte)
 
-      zero.put(1, "one").assertGet
-      zero.put(2, "two").assertGet
-      zero.put(3, "three").assertGet
-      zero.put(4, "four").assertGet
-      zero.put(5, "five").assertGet
+      zero.put(1, "one").runIO
+      zero.put(2, "two").runIO
+      zero.put(3, "three").runIO
+      zero.put(4, "four").runIO
+      zero.put(5, "five").runIO
 
-      zero.head.safeGetBlocking.assertGet.getOrFetchValue.assertGet shouldBe ("one": Slice[Byte])
+      zero.head.safeGetBlocking.runIOValue.getOrFetchValue.runIOValue shouldBe ("one": Slice[Byte])
 
       //remove 1
-      zero.remove(1).assertGet
+      zero.remove(1).runIO
       println
-      zero.head.safeGetBlocking.assertGet.getOrFetchValue.assertGet shouldBe ("two": Slice[Byte])
+      zero.head.safeGetBlocking.runIOValue.getOrFetchValue.runIOValue shouldBe ("two": Slice[Byte])
 
-      zero.remove(2).assertGet
-      zero.remove(3).assertGet
-      zero.remove(4).assertGet
+      zero.remove(2).runIO
+      zero.remove(3).runIO
+      zero.remove(4).runIO
 
-      zero.head.safeGetBlocking.assertGet.getOrFetchValue.assertGet shouldBe ("five": Slice[Byte])
+      zero.head.safeGetBlocking.runIOValue.getOrFetchValue.runIOValue shouldBe ("five": Slice[Byte])
 
-      zero.remove(5).assertGet
-      zero.head.assertGetOpt shouldBe empty
-      zero.last.assertGetOpt shouldBe empty
+      zero.remove(5).runIO
+      zero.head.runIO shouldBe empty
+      zero.last.runIO shouldBe empty
     }
   }
 
@@ -310,44 +310,44 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
     "return the last key-value" in {
       val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
 
-      zero.put(1, "one").assertGet
-      zero.put(2, "two").assertGet
-      zero.put(3, "three").assertGet
-      zero.put(4, "four").assertGet
-      zero.put(5, "five").assertGet
+      zero.put(1, "one").runIO
+      zero.put(2, "two").runIO
+      zero.put(3, "three").runIO
+      zero.put(4, "four").runIO
+      zero.put(5, "five").runIO
 
-      zero.last.safeGetBlocking.assertGet.getOrFetchValue.assertGet shouldBe ("five": Slice[Byte])
+      zero.last.safeGetBlocking.runIOValue.getOrFetchValue.runIOValue shouldBe ("five": Slice[Byte])
 
       //remove 5
-      zero.remove(5).assertGet
-      zero.last.safeGetBlocking.assertGet.getOrFetchValue.runSafeIO.get shouldBe ("four": Slice[Byte])
+      zero.remove(5).runIO
+      zero.last.safeGetBlocking.runIOValue.getOrFetchValue.runIO.get shouldBe ("four": Slice[Byte])
 
-      zero.remove(2).assertGet
-      zero.remove(3).assertGet
-      zero.remove(4).assertGet
+      zero.remove(2).runIO
+      zero.remove(3).runIO
+      zero.remove(4).runIO
 
       println
-      zero.last.safeGetBlocking.assertGet.getOrFetchValue.runSafeIO.assertGet shouldBe ("one": Slice[Byte])
+      zero.last.safeGetBlocking.runIOValue.getOrFetchValue.runIOValue shouldBe ("one": Slice[Byte])
 
-      zero.remove(1).assertGet
-      zero.last.assertGetOpt shouldBe empty
-      zero.head.assertGetOpt shouldBe empty
+      zero.remove(1).runIO
+      zero.last.runIO shouldBe empty
+      zero.head.runIO shouldBe empty
     }
   }
 
   "LevelZero.remove range" should {
     "not allow from key to be > than to key" in {
       val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
-      zero.remove(10, 1).failed.assertGet.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
-      zero.remove(2, 1).failed.assertGet.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
+      zero.remove(10, 1).failed.runIO.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
+      zero.remove(2, 1).failed.runIO.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
     }
   }
 
   "LevelZero.update range" should {
     "not allow from key to be > than to key" in {
       val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
-      zero.update(10, 1, value = "value").failed.assertGet.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
-      zero.update(2, 1, value = "value").failed.assertGet.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
+      zero.update(10, 1, value = "value").failed.runIO.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
+      zero.update(2, 1, value = "value").failed.runIO.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
     }
   }
 }

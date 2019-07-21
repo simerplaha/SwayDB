@@ -21,7 +21,7 @@ package swaydb.core.merge
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
@@ -54,7 +54,7 @@ class RemoveMerger_Function_Spec extends WordSpec with Matchers {
             if (newKeyValue.deadline.isEmpty)
               newKeyValue
             else
-              Memory.PendingApply(key = key, Slice(oldKeyValue.toFromValue().assertGet, newKeyValue.toFromValue().assertGet))
+              Memory.PendingApply(key = key, Slice(oldKeyValue.toFromValue().runIO, newKeyValue.toFromValue().runIO))
 
           assertMerge(
             newKeyValue = newKeyValue,

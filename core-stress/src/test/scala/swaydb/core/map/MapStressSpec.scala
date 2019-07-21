@@ -20,7 +20,7 @@
 package swaydb.core.map
 
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZeroSkipListMerger
@@ -49,7 +49,7 @@ class MapStressSpec extends TestBase {
         keyValues foreach {
           keyValue =>
             val entry = MapEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))(Level0PutWriter)
-            map.write(entry).assertGet shouldBe true
+            map.write(entry).runIO shouldBe true
         }
 
         testRead(map)
@@ -58,7 +58,7 @@ class MapStressSpec extends TestBase {
       def testRead(map: Map[Slice[Byte], Memory.SegmentResponse]) =
         keyValues foreach {
           keyValue =>
-            map.get(keyValue.key).assertGet shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
+            map.get(keyValue.key).value shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
         }
 
       val dir1 = createRandomDir
@@ -67,21 +67,21 @@ class MapStressSpec extends TestBase {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0MapEntryPutWriter
 
-      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = false, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).assertGet.item)
+      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).runIO.item)
+      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = false, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).runIO.item)
       test(Map.memory[Slice[Byte], Memory.SegmentResponse](flushOnOverflow = true, fileSize = 1.kb))
 
       //reopen - all the entries should value recovered for persistent maps. Also switch mmap types.
-      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = false, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).assertGet.item)
-      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).assertGet.item)
+      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = false, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).runIO.item)
+      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).runIO.item)
 
       //write the same data again
-      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = false, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).assertGet.item)
+      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).runIO.item)
+      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = false, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).runIO.item)
 
       //read again
-      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = false, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).assertGet.item)
-      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).assertGet.item)
+      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = false, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).runIO.item)
+      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, flushOnOverflow = true, 1.kb, initialWriteCount = 0, dropCorruptedTailEntries = false).runIO.item)
     }
   }
 }

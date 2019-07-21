@@ -22,7 +22,7 @@ package swaydb.core.level.seek
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{SwayFunctionOutput, Value}
@@ -49,7 +49,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))))
 
-        Get(1).assertGetOpt shouldBe empty
+        Get(1).runIO shouldBe empty
       }
     }
 
@@ -62,7 +62,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomRemoveKeyValue(1, randomExpiredDeadlineOption())))
 
-        Get(1).assertGetOpt shouldBe empty
+        Get(1).runIO shouldBe empty
       }
     }
 
@@ -76,7 +76,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomRemoveKeyValue(1, Some(randomDeadline(expired = false)))))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.none
 
-        Get(1).assertGetOpt shouldBe empty
+        Get(1).runIO shouldBe empty
       }
     }
 
@@ -90,7 +90,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomRemoveKeyValue(1, Some(randomDeadline(expired = false)))))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asAsync
 
-        Get(1).assertGetOpt shouldBe empty
+        Get(1).runIO shouldBe empty
       }
     }
 
@@ -104,7 +104,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomUpdateKeyValue(1, deadline = randomDeadlineOption(false))))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.none
 
-        Get(1).assertGetOpt shouldBe empty
+        Get(1).runIO shouldBe empty
       }
     }
 
@@ -118,7 +118,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomUpdateKeyValue(1, deadline = randomDeadlineOption(false))))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asAsync
 
-        Get(1).assertGetOpt shouldBe empty
+        Get(1).runIO shouldBe empty
       }
     }
 
@@ -132,7 +132,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomFunctionKeyValue(1)))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.none
 
-        Get(1).assertGetOpt shouldBe empty
+        Get(1).runIO shouldBe empty
       }
     }
 
@@ -146,7 +146,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomFunctionKeyValue(1)))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asAsync
 
-        Get(1).assertGetOpt shouldBe empty
+        Get(1).runIO shouldBe empty
       }
     }
 
@@ -160,7 +160,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPendingApplyKeyValue(1)))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.none
 
-        Get(1).assertGetOpt shouldBe empty
+        Get(1).runIO shouldBe empty
       }
     }
 
@@ -174,7 +174,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPendingApplyKeyValue(1)))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asAsync
 
-        Get(1).assertGetOpt shouldBe empty
+        Get(1).runIO shouldBe empty
       }
     }
 
@@ -200,7 +200,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(pendingApply))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asAsync
 
-        Get(1).assertGetOpt shouldBe empty
+        Get(1).runIO shouldBe empty
       }
     }
 
@@ -220,7 +220,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, Some(fromValues))))
 
-        Get(1).assertGetOpt shouldBe empty
+        Get(1).runIO shouldBe empty
       }
     }
 
@@ -240,13 +240,13 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
                 SwayFunctionOutput.Expire(expiredDeadline()),
                 SwayFunctionOutput.Update(randomStringOption, Some(expiredDeadline())),
               )
-          ).toRangeValue().assertGet
+          ).toRangeValue().runIO
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, eitherOne(None, Some(functionValue)), functionValue)))
         //next level can return anything it will be removed.
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1))).asAsync
 
-        Get(1).assertGetOpt shouldBe empty
+        Get(1).runIO shouldBe empty
       }
     }
 
@@ -268,7 +268,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         ioStillBusy.isSuccess shouldBe false
 
         Reserve.setFree(busy.reserve)
-        io.safeGet.assertGetOpt shouldBe empty
+        io.safeGet.runIO shouldBe empty
       }
     }
   }

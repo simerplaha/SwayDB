@@ -19,7 +19,7 @@
 
 package swaydb.core.level
 
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.TestBase
 import swaydb.core.io.file.IOEffect
 import swaydb.core.segment.Segment
@@ -49,8 +49,8 @@ class PathsDistributorPerformanceSpec extends TestBase with Benchmark {
 
     //randomly create Segments in different paths to have an un-even distribution in each folder
     def randomlyDistributeSegments(): Iterable[Segment] = {
-      val segment = TestSegment(path = randomPath).assertGet
-      segment.close.assertGet
+      val segment = TestSegment(path = randomPath).runIO
+      segment.close.runIO
       Array.fill(10)(segment)
     }
 

@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
 import swaydb.core.actor.WiredActor
@@ -234,7 +234,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
             flushOnOverflow = flushOnOverflow,
             initialWriteCount = 0,
             fileSize = fileSize
-          ).assertGet
+          ).runIO
 
       keyValues foreach {
         keyValue =>
@@ -335,7 +335,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
             _ =>
               level
           }
-      } assertGet
+      } runIO
   }
 
   object TestLevelZero {
@@ -353,11 +353,11 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         nextLevel = nextLevel,
         throttle = throttle,
         acceleration = brake,
-      ).assertGet
+      ).runIO
   }
 
   def createFile(bytes: Slice[Byte]): Path =
-    IOEffect.write(testDir.resolve(nextSegmentId), bytes).assertGet
+    IOEffect.write(testDir.resolve(nextSegmentId), bytes).runIO
 
   def createRandomFileReader(path: Path): FileReader = {
     implicit val limiter = fileOpenLimiter
@@ -373,7 +373,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   def createMMAPFileReader(path: Path): FileReader = {
     implicit val limiter = fileOpenLimiter
     new FileReader(
-      DBFile.mmapRead(path, autoClose = true).assertGet
+      DBFile.mmapRead(path, autoClose = true).runIO
     )
   }
 
@@ -383,7 +383,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   def createFileChannelFileReader(path: Path): FileReader = {
     implicit val limiter = fileOpenLimiter
     new FileReader(
-      DBFile.channelRead(path, autoClose = true).assertGet
+      DBFile.channelRead(path, autoClose = true).runIO
     )
   }
 
@@ -562,7 +562,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
     runAsserts(asserts)
 
-    level0.delete.assertGet
+    level0.delete.runIO
     compaction foreach Compactor.terminate
 
     if (!throttleOn)
@@ -594,13 +594,13 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                               assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
     println("level3.putKeyValues")
-    if (level3KeyValues.nonEmpty) level3.putKeyValuesTest(level3KeyValues).assertGet
+    if (level3KeyValues.nonEmpty) level3.putKeyValuesTest(level3KeyValues).runIO
     println("level2.putKeyValues")
-    if (level2KeyValues.nonEmpty) level2.putKeyValuesTest(level2KeyValues).assertGet
+    if (level2KeyValues.nonEmpty) level2.putKeyValuesTest(level2KeyValues).runIO
     println("level1.putKeyValues")
-    if (level1KeyValues.nonEmpty) level1.putKeyValuesTest(level1KeyValues).assertGet
+    if (level1KeyValues.nonEmpty) level1.putKeyValuesTest(level1KeyValues).runIO
     println("level0.putKeyValues")
-    if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).assertGet
+    if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).runIO
     import RunThis._
 
     Seq(
@@ -648,8 +648,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                        testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]) = {
-    val segment = TestSegment(keyValues).assertGet
-    if (closeAfterCreate) segment.close.assertGet
+    val segment = TestSegment(keyValues).runIO
+    if (closeAfterCreate) segment.close.runIO
 
     assert(keyValues, segment) //first
     if (testAgainAfterAssert) assert(keyValues, segment) //with cache populated
@@ -659,12 +659,12 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       assert(keyValues, segment) //same Segment but test with cleared cache.
 
       val segmentReopened = segment.reopen //reopen
-      if(closeAfterCreate) segmentReopened.close.assertGet
+      if(closeAfterCreate) segmentReopened.close.runIO
       assert(keyValues, segmentReopened)
       if (testAgainAfterAssert) assert(keyValues, segmentReopened)
-      segmentReopened.close.assertGet
+      segmentReopened.close.runIO
     } else {
-      segment.close.assertGet
+      segment.close.runIO
     }
   }
 }

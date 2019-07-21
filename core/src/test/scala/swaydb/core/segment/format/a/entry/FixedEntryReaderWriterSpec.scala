@@ -25,7 +25,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.data.order.KeyOrder
@@ -55,7 +55,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = entry.stats.thisKeyValueAccessIndexPosition,
           previous = None
-        ).assertGet
+        ).runIO
       //      println("read:  " + read)
       read shouldBe entry
     }
@@ -89,7 +89,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = previous.stats.thisKeyValueAccessIndexPosition,
           previous = None
-        ).assertGet
+        ).runIO
 
       previousRead shouldBe previous
 
@@ -103,7 +103,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = next.stats.thisKeyValueAccessIndexPosition,
           previous = Some(previousRead)
-        ).assertGet
+        ).runIO
 
       //      val nextRead = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).assertGet
       nextRead shouldBe next

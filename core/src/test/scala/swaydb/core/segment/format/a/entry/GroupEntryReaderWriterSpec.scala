@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.entry
 
 import org.scalatest.WordSpec
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
@@ -50,7 +50,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = entry.stats.thisKeyValueAccessIndexPosition,
           previous = None
-        ).assertGet
+        ).runIO
 
       //      println("read:  " + read)
       read shouldBe entry
@@ -81,7 +81,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = previous.stats.thisKeyValueAccessIndexPosition,
           previous = None
-        ).assertGet
+        ).runIO
 
       //      val previousRead = EntryReader.read(Reader(previous.indexEntryBytes), Reader(valueBytes), 0, 0, 0, None).assertGet
       previousRead shouldBe previous
@@ -97,7 +97,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = next.stats.thisKeyValueAccessIndexPosition,
           previous = Some(previousRead)
-        ).assertGet
+        ).runIO
       //      println("read:  " + read)
       //      println
       nextRead shouldBe next

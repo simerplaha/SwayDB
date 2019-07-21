@@ -20,14 +20,14 @@
 package swaydb.api
 
 import swaydb._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.data.IO
 import swaydb.serializers.Default._
 
 class SwayDBSpec0 extends SwayDBSpec {
   override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.Map[Int, String](randomDir).assertGet
+    swaydb.persistent.Map[Int, String](randomDir).runIO
 
   override val keyValueCount: Int = 100
 }
@@ -37,12 +37,12 @@ class SwayDBSpec1 extends SwayDBSpec {
   override val keyValueCount: Int = 100
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
+    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).runIO
 }
 
 class SwayDB_Zero_Spec0 extends SwayDBSpec {
   override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.zero.Map[Int, String](randomDir).assertGet
+    swaydb.persistent.zero.Map[Int, String](randomDir).runIO
 
   override val keyValueCount: Int = 100
 }
@@ -52,7 +52,7 @@ class SwayDB_Zero_Spec1 extends SwayDBSpec {
   override val keyValueCount: Int = 100
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.zero.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
+    swaydb.persistent.zero.Map[Int, String](randomDir, mapSize = 1.byte).runIO
 }
 
 class SwayDBSpec2 extends SwayDBSpec {
@@ -60,7 +60,7 @@ class SwayDBSpec2 extends SwayDBSpec {
   override val keyValueCount: Int = 100
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
+    swaydb.memory.Map[Int, String](mapSize = 1.byte).runIO
 }
 
 class SwayDBSpec3 extends SwayDBSpec {
@@ -68,7 +68,7 @@ class SwayDBSpec3 extends SwayDBSpec {
   override val keyValueCount: Int = 100
 
   override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.Map[Int, String]().assertGet
+    swaydb.memory.Map[Int, String]().runIO
 }
 
 //class SwayDB_Zero_Spec2 extends SwayDBSpec {
@@ -97,15 +97,15 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       (1 to 1000) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).runIO
       }
       println("Removing .... ")
-      db.remove(2, 999).assertGet
+      db.remove(2, 999).runIO
       println("Removed .... ")
 
       db.stream.materialize.get should contain only((1, "1"), (1000, "1000"))
-      db.headOption.assertGet shouldBe ((1, "1"))
-      db.lastOption.assertGet shouldBe ((1000, "1000"))
+      db.headOption.runIOValue shouldBe ((1, "1"))
+      db.lastOption.runIOValue shouldBe ((1000, "1000"))
 
       db.close().get
     }
@@ -115,19 +115,19 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).runIO
       }
 
       (2 to 99) foreach {
         i =>
-          db.remove(i).assertGet
+          db.remove(i).runIO
       }
 
-      db.update(1, 100, value = "updated").assertGet
+      db.update(1, 100, value = "updated").runIO
 
       db.stream.materialize.get should contain only((1, "updated"), (100, "updated"))
-      db.headOption.assertGet shouldBe ((1, "updated"))
-      db.lastOption.assertGet shouldBe ((100, "updated"))
+      db.headOption.runIOValue shouldBe ((1, "updated"))
+      db.lastOption.runIOValue shouldBe ((100, "updated"))
 
       db.close().get
     }
@@ -137,16 +137,16 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).runIO
       }
 
-      db.remove(2, 99).assertGet
+      db.remove(2, 99).runIO
 
-      db.update(1, 100, value = "updated").assertGet
+      db.update(1, 100, value = "updated").runIO
 
       db.stream.materialize.get should contain only((1, "updated"), (100, "updated"))
-      db.headOption.assertGet shouldBe ((1, "updated"))
-      db.lastOption.assertGet shouldBe ((100, "updated"))
+      db.headOption.runIOValue shouldBe ((1, "updated"))
+      db.lastOption.runIOValue shouldBe ((100, "updated"))
 
       db.close().get
     }
@@ -156,12 +156,12 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).runIO
       }
 
-      db.update(10, 90, value = "updated").assertGet
+      db.update(10, 90, value = "updated").runIO
 
-      db.remove(50, 99).assertGet
+      db.remove(50, 99).runIO
 
       val expectedUnchanged =
         (1 to 9) map {
@@ -178,15 +178,15 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       val expected = expectedUnchanged ++ expectedUpdated :+ (100, "100")
 
       db.stream.materialize.get shouldBe expected
-      db.headOption.assertGet shouldBe ((1, "1"))
-      db.lastOption.assertGet shouldBe ((100, "100"))
+      db.headOption.runIOValue shouldBe ((1, "1"))
+      db.lastOption.runIOValue shouldBe ((100, "100"))
 
       db.close().get
     }
 
     "return empty for an empty database with update range" in {
       val db = newDB()
-      db.update(1, Int.MaxValue, value = "updated").assertGet
+      db.update(1, Int.MaxValue, value = "updated").runIO
 
       db.isEmpty.get shouldBe true
 
@@ -200,7 +200,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
     "return empty for an empty database with remove range" in {
       val db = newDB()
-      db.remove(1, Int.MaxValue).assertGet
+      db.remove(1, Int.MaxValue).runIO
 
       db.isEmpty.get shouldBe true
 
@@ -215,30 +215,30 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     "batch put, remove, update & range remove key-values" in {
       val db = newDB()
 
-      db.commit(Prepare.Put(1, "one"), Prepare.Remove(1)).assertGet
-      db.get(1).assertGetOpt shouldBe empty
+      db.commit(Prepare.Put(1, "one"), Prepare.Remove(1)).runIO
+      db.get(1).runIO shouldBe empty
 
       //      remove and then put should return Put's value
-      db.commit(Prepare.Remove(1), Prepare.Put(1, "one")).assertGet
-      db.get(1).assertGet shouldBe "one"
+      db.commit(Prepare.Remove(1), Prepare.Put(1, "one")).runIO
+      db.get(1).runIOValue shouldBe "one"
 
       //remove range and put should return Put's value
-      db.commit(Prepare.Remove(1, 100), Prepare.Put(1, "one")).assertGet
-      db.get(1).assertGet shouldBe "one"
+      db.commit(Prepare.Remove(1, 100), Prepare.Put(1, "one")).runIO
+      db.get(1).runIOValue shouldBe "one"
 
-      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Update(1, 100, "updated"), Prepare.Remove(1, 100)).assertGet
-      db.get(1).assertGetOpt shouldBe empty
+      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Update(1, 100, "updated"), Prepare.Remove(1, 100)).runIO
+      db.get(1).runIO shouldBe empty
       db.isEmpty.get shouldBe true
       //
-      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Remove(1, 100), Prepare.Update(1, 100, "updated")).assertGet
-      db.get(1).assertGetOpt shouldBe empty
+      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Remove(1, 100), Prepare.Update(1, 100, "updated")).runIO
+      db.get(1).runIO shouldBe empty
       db.isEmpty.get shouldBe true
 
-      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one again"), Prepare.Update(1, 100, "updated")).assertGet
-      db.get(1).assertGet shouldBe "updated"
-      db.stream.materialize.map(_.toMap).assertGet.values should contain only "updated"
+      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one again"), Prepare.Update(1, 100, "updated")).runIO
+      db.get(1).runIOValue shouldBe "updated"
+      db.stream.materialize.map(_.toMap).runIO.values should contain only "updated"
 
-      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(100, "hundred"), Prepare.Remove(1, 100), Prepare.Update(1, 1000, "updated")).assertGet
+      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(100, "hundred"), Prepare.Remove(1, 100), Prepare.Update(1, 1000, "updated")).runIO
       db.stream.materialize.get shouldBe empty
 
       db.close().get
@@ -249,10 +249,10 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       (1 to 10000) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).runIO
       }
 
-      db.from(9999).stream.materialize.assertGet should contain only((9999, "9999"), (10000, "10000"))
+      db.from(9999).stream.materialize.runIO should contain only((9999, "9999"), (10000, "10000"))
       db.from(9998).drop(2).take(1).materialize.get should contain only ((10000, "10000"))
       db.before(9999).take(1).materialize.get should contain only ((9998, "9998"))
       db.after(9999).take(1).materialize.get should contain only ((10000, "10000"))
@@ -272,18 +272,18 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       (1 to 10000) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).runIO
       }
 
       (1 to 10000) foreach {
         i =>
-          db.mightContain(i).assertGet shouldBe true
-          db.contains(i).assertGet shouldBe true
+          db.mightContain(i).runIO shouldBe true
+          db.contains(i).runIO shouldBe true
       }
 
       //      db.mightContain(Int.MaxValue).assertGet shouldBe false
       //      db.mightContain(Int.MinValue).assertGet shouldBe false
-      db.contains(20000).assertGet shouldBe false
+      db.contains(20000).runIO shouldBe false
 
       db.close().get
     }
@@ -293,20 +293,20 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       (1 to 100000) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).runIO
       }
 
       (1 to 100000) foreach {
         i =>
-          db.remove(i).assertGet
+          db.remove(i).runIO
       }
 
       (1 to 100000) foreach {
         i =>
-          db.contains(i).assertGet shouldBe false
+          db.contains(i).runIO shouldBe false
       }
 
-      db.contains(100001).assertGet shouldBe false
+      db.contains(100001).runIO shouldBe false
 
       db.close().get
     }

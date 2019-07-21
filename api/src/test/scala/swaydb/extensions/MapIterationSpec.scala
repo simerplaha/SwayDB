@@ -20,7 +20,7 @@
 package swaydb.extensions
 
 import swaydb.api.TestBaseEmbedded
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
@@ -29,7 +29,7 @@ class MapIterationSpec0 extends MapIterationSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).assertGet
+    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).runIO
 }
 
 class MapIterationSpec1 extends MapIterationSpec {
@@ -37,7 +37,7 @@ class MapIterationSpec1 extends MapIterationSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
+    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).runIO
 }
 
 class MapIterationSpec2 extends MapIterationSpec {
@@ -45,14 +45,14 @@ class MapIterationSpec2 extends MapIterationSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).assertGet
+    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).runIO
 }
 
 class MapIterationSpec3 extends MapIterationSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String]().assertGet
+    swaydb.extensions.memory.Map[Int, String]().runIO
 }
 
 sealed trait MapIterationSpec extends TestBaseEmbedded {
@@ -65,10 +65,10 @@ sealed trait MapIterationSpec extends TestBaseEmbedded {
     "exclude & include subMap by default" in {
       val db = newDB()
 
-      val firstMap = db.maps.put(1, "rootMap").assertGet
-      val secondMap = firstMap.maps.put(2, "first map").assertGet
-      val subMap1 = secondMap.maps.put(3, "sub map 1").assertGet
-      val subMap2 = secondMap.maps.put(4, "sub map 2").assertGet
+      val firstMap = db.maps.put(1, "rootMap").runIO
+      val secondMap = firstMap.maps.put(2, "first map").runIO
+      val subMap1 = secondMap.maps.put(3, "sub map 1").runIO
+      val subMap2 = secondMap.maps.put(4, "sub map 2").runIO
 
       firstMap.stream.materialize.get shouldBe empty
       firstMap.maps.stream.materialize.get should contain only ((2, "first map"))
@@ -87,17 +87,17 @@ sealed trait MapIterationSpec extends TestBaseEmbedded {
     "the map contains 1 element" in {
       val db = newDB()
 
-      val firstMap = db.maps.put(1, "rootMap").assertGet
-      val secondMap = firstMap.maps.put(2, "first map").assertGet
+      val firstMap = db.maps.put(1, "rootMap").runIO
+      val secondMap = firstMap.maps.put(2, "first map").runIO
 
       firstMap.stream.materialize.get shouldBe empty
       firstMap.maps.stream.materialize.get should contain only ((2, "first map"))
 
-      secondMap.put(1, "one").assertGet
+      secondMap.put(1, "one").runIO
       secondMap.size.get shouldBe 1
 
-      secondMap.headOption.assertGet shouldBe ((1, "one"))
-      secondMap.lastOption.assertGet shouldBe ((1, "one"))
+      secondMap.headOption.runIOValue shouldBe ((1, "one"))
+      secondMap.lastOption.runIOValue shouldBe ((1, "one"))
 
       secondMap.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.get should contain only ((2, "one"))
       secondMap.foldLeft(List.empty[(Int, String)]) { case (_, keyValue) => List(keyValue) }.get shouldBe List((1, "one"))
@@ -118,15 +118,15 @@ sealed trait MapIterationSpec extends TestBaseEmbedded {
     "the map contains 2 elements" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap").assertGet
-      val firstMap = rootMap.maps.put(2, "first map").assertGet
+      val rootMap = db.maps.put(1, "rootMap").runIO
+      val firstMap = rootMap.maps.put(2, "first map").runIO
 
-      firstMap.put(1, "one").assertGet
-      firstMap.put(2, "two").assertGet
+      firstMap.put(1, "one").runIO
+      firstMap.put(2, "two").runIO
 
       firstMap.size.get shouldBe 2
-      firstMap.headOption.assertGet shouldBe ((1, "one"))
-      firstMap.lastOption.assertGet shouldBe ((2, "two"))
+      firstMap.headOption.runIOValue shouldBe ((1, "one"))
+      firstMap.lastOption.runIOValue shouldBe ((2, "two"))
 
       firstMap.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.get shouldBe List((2, "one"), (3, "two"))
       firstMap.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue }.get shouldBe List((1, "one"), (2, "two"))
@@ -149,23 +149,23 @@ sealed trait MapIterationSpec extends TestBaseEmbedded {
     "Sibling maps" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap1").assertGet
+      val rootMap = db.maps.put(1, "rootMap1").runIO
 
-      val subMap1 = rootMap.maps.put(2, "sub map 1").assertGet
-      subMap1.put(1, "one").assertGet
-      subMap1.put(2, "two").assertGet
+      val subMap1 = rootMap.maps.put(2, "sub map 1").runIO
+      subMap1.put(1, "one").runIO
+      subMap1.put(2, "two").runIO
 
-      val subMap2 = rootMap.maps.put(3, "sub map 2").assertGet
-      subMap2.put(3, "three").assertGet
-      subMap2.put(4, "four").assertGet
+      val subMap2 = rootMap.maps.put(3, "sub map 2").runIO
+      subMap2.put(3, "three").runIO
+      subMap2.put(4, "four").runIO
 
       rootMap.stream.materialize.get shouldBe empty
       rootMap.maps.stream.materialize.get should contain only((2, "sub map 1"), (3, "sub map 2"))
 
       //FIRST MAP ITERATIONS
       subMap1.size.get shouldBe 2
-      subMap1.headOption.assertGet shouldBe ((1, "one"))
-      subMap1.lastOption.assertGet shouldBe ((2, "two"))
+      subMap1.headOption.runIOValue shouldBe ((1, "one"))
+      subMap1.lastOption.runIOValue shouldBe ((2, "two"))
       subMap1.map(keyValue => (keyValue._1 + 1, keyValue._2)).materialize.get shouldBe List((2, "one"), (3, "two"))
       subMap1.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue }.get shouldBe List((1, "one"), (2, "two"))
       subMap1.reverse.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous }.get shouldBe List((2, "two"), (1, "one"))
@@ -183,8 +183,8 @@ sealed trait MapIterationSpec extends TestBaseEmbedded {
 
       //SECOND MAP ITERATIONS
       subMap2.size.get shouldBe 2
-      subMap2.headOption.assertGet shouldBe ((3, "three"))
-      subMap2.lastOption.assertGet shouldBe ((4, "four"))
+      subMap2.headOption.runIOValue shouldBe ((3, "three"))
+      subMap2.lastOption.runIOValue shouldBe ((4, "four"))
       subMap2.map(keyValue => (keyValue._1, keyValue._2)).materialize.get shouldBe List((3, "three"), (4, "four"))
       subMap2.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue }.get shouldBe List((3, "three"), (4, "four"))
       subMap2.reverse.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous }.get shouldBe List((4, "four"), (3, "three"))
@@ -206,24 +206,24 @@ sealed trait MapIterationSpec extends TestBaseEmbedded {
     "nested maps" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap1").assertGet
+      val rootMap = db.maps.put(1, "rootMap1").runIO
 
-      val subMap1 = rootMap.maps.put(2, "sub map 1").assertGet
-      subMap1.put(1, "one").assertGet
-      subMap1.put(2, "two").assertGet
+      val subMap1 = rootMap.maps.put(2, "sub map 1").runIO
+      subMap1.put(1, "one").runIO
+      subMap1.put(2, "two").runIO
 
-      val subMap2 = subMap1.maps.put(3, "sub map 2").assertGet
-      subMap2.put(3, "three").assertGet
-      subMap2.put(4, "four").assertGet
+      val subMap2 = subMap1.maps.put(3, "sub map 2").runIO
+      subMap2.put(3, "three").runIO
+      subMap2.put(4, "four").runIO
 
       rootMap.stream.materialize.get shouldBe empty
       rootMap.maps.stream.materialize.get should contain only ((2, "sub map 1"))
 
       //FIRST MAP ITERATIONS
       subMap1.size.get shouldBe 2
-      subMap1.headOption.assertGet shouldBe ((1, "one"))
-      subMap1.lastOption.assertGet shouldBe ((2, "two"))
-      subMap1.maps.lastOption.assertGet shouldBe ((3, "sub map 2"))
+      subMap1.headOption.runIOValue shouldBe ((1, "one"))
+      subMap1.lastOption.runIOValue shouldBe ((2, "two"))
+      subMap1.maps.lastOption.runIOValue shouldBe ((3, "sub map 2"))
       subMap1.map(keyValue => (keyValue._1, keyValue._2)).materialize.get shouldBe List((1, "one"), (2, "two"))
       subMap1.maps.map(keyValue => (keyValue._1, keyValue._2)).materialize.get shouldBe List((3, "sub map 2"))
       subMap1.maps.map(keyValue => (keyValue._1, keyValue._2)).materialize.get shouldBe List((3, "sub map 2"))
@@ -258,15 +258,15 @@ sealed trait MapIterationSpec extends TestBaseEmbedded {
 
       //KEYS ONLY ITERATIONS
       subMap1.keys.size.get shouldBe 2
-      subMap1.keys.headOption.assertGet shouldBe 1
-      subMap1.keys.lastOption.assertGet shouldBe 2
+      subMap1.keys.headOption.runIOValue shouldBe 1
+      subMap1.keys.lastOption.runIOValue shouldBe 2
       //      subMap1.maps.keys.lastOption.assertGet shouldBe 3
       //      subMap1.maps.keys.toSeq.get shouldBe List(3)
 
       //SECOND MAP ITERATIONS
       subMap2.size.get shouldBe 2
-      subMap2.headOption.assertGet shouldBe ((3, "three"))
-      subMap2.lastOption.assertGet shouldBe ((4, "four"))
+      subMap2.headOption.runIOValue shouldBe ((3, "three"))
+      subMap2.lastOption.runIOValue shouldBe ((4, "four"))
       subMap2.map(keyValue => (keyValue._1, keyValue._2)).materialize.get shouldBe List((3, "three"), (4, "four"))
       subMap2.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue }.get shouldBe List((3, "three"), (4, "four"))
       subMap2.reverse.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous }.get shouldBe List((4, "four"), (3, "three"))

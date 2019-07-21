@@ -22,7 +22,7 @@ package swaydb.core.level.seek
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Time, Value}
@@ -60,7 +60,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             val upperLevel = randomRangeKeyValue(0, 10, None, rangeValue = rangeValue)
             val lowerLower = randomPutKeyValue(key - 1, deadline = None)
 
-            val expected = FixedMerger(upperLevel.rangeValue.toMemory(key - 1), lowerLower).assertGet
+            val expected = FixedMerger(upperLevel.rangeValue.toMemory(key - 1), lowerLower).runIO
 
             inSequence {
               //@formatter:off
@@ -70,7 +70,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
-            Lower(key: Slice[Byte]).assertGet shouldBe expected
+            Lower(key: Slice[Byte]).runIOValue shouldBe expected
         }
       }
     }
@@ -93,7 +93,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
         //if fromValue is defined it will be merged with lower else lower is returned
         val expected =
           upperLevel.fetchFromOrElseRangeValue
-            .map(currentFromValue => FixedMerger(currentFromValue.toMemory(0), lowerLevel).assertGet)
+            .map(currentFromValue => FixedMerger(currentFromValue.toMemory(0), lowerLevel).runIO)
             .getOrElse(lowerLevel)
 
         inSequence {
@@ -104,7 +104,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
           next.hasStateChanged  _ expects 1                   returning false
           //@formatter:on
         }
-        Lower(1: Slice[Byte]).assertGet shouldBe expected
+        Lower(1: Slice[Byte]).runIOValue shouldBe expected
       }
     }
 
@@ -131,7 +131,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
-            Lower(key: Slice[Byte]).assertGet shouldBe lowerLower
+            Lower(key: Slice[Byte]).runIOValue shouldBe lowerLower
         }
       }
     }
@@ -152,7 +152,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             val currentRangeValue = randomUpdateRangeValue()
             val lowerLower = randomPutKeyValue(9, deadline = None)
 
-            val expected = FixedMerger(currentRangeValue.toMemory(9), lowerLower).assertGet
+            val expected = FixedMerger(currentRangeValue.toMemory(9), lowerLower).runIO
 
             inSequence {
               //@formatter:off
@@ -162,7 +162,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
-            Lower(key: Slice[Byte]).assertGet shouldBe expected
+            Lower(key: Slice[Byte]).runIOValue shouldBe expected
         }
       }
     }
@@ -183,7 +183,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             val lowerLower = randomPutKeyValue(1, deadline = None)
             val rangeValue = randomRangeValue(addRemoves = false, deadline = randomDeadlineOption(false), functionOutput = randomFunctionOutput(false, false))
 
-            val expected = FixedMerger(rangeValue.toMemory(1), lowerLower).assertGet
+            val expected = FixedMerger(rangeValue.toMemory(1), lowerLower).runIO
 
             inSequence {
               //@formatter:off
@@ -193,7 +193,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
-            Lower(key: Slice[Byte]).assertGet shouldBe expected
+            Lower(key: Slice[Byte]).runIOValue shouldBe expected
         }
       }
     }
@@ -221,7 +221,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
-            Lower(key: Slice[Byte]).assertGet shouldBe put.toMemory(1)
+            Lower(key: Slice[Byte]).runIOValue shouldBe put.toMemory(1)
         }
       }
     }

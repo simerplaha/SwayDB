@@ -22,7 +22,7 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
@@ -33,6 +33,7 @@ import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.core.IOValues._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
@@ -79,7 +80,7 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
       //disable throttling so that it does not automatically collapse small Segments
       val level = TestLevel(segmentSize = 1.kb)
       val keyValues = randomPutKeyValues(1000, addRandomPutDeadlines = false)(TestTimer.Empty)
-      level.putKeyValuesTest(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).runIO
 
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
@@ -98,13 +99,13 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
             }
         }
       //delete half of the key values which will create small Segments
-      level.putKeyValuesTest(Slice(deleteEverySecond.toArray)).assertGet
-      level.collapse(level.segmentsInLevel()).assertGet
+      level.putKeyValuesTest(Slice(deleteEverySecond.toArray)).runIO
+      level.collapse(level.segmentsInLevel()).runIO
       //since every second key-value was delete, the number of Segments is reduced to half
       level.segmentFilesInAppendix shouldBe <=((segmentCountBeforeDelete / 2) + 1) //+1 for odd number of key-values
       assertReads(Slice(keyValuesNoDeleted.toArray), level)
 
-      level.delete.assertGet
+      level.delete.runIO
     }
 
     "collapse all small Segments into one of the existing small Segments, if the Segment was reopened with a larger segment size" in {
@@ -119,16 +120,16 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
           assertAllSegmentsCreatedInLevel(level)
 
           val keyValues = randomPutKeyValues(1000, addRandomPutDeadlines = false)(TestTimer.Empty)
-          level.putKeyValuesTest(keyValues).assertGet
+          level.putKeyValuesTest(keyValues).runIO
           //dispatch another push to trigger split
-          level.putKeyValuesTest(Slice(keyValues.head)).assertGet
+          level.putKeyValuesTest(Slice(keyValues.head)).runIO
 
           level.segmentsCount() > 1 shouldBe true
-          level.close.assertGet
+          level.close.runIO
 
           //reopen the Level with larger min segment size
           val reopenLevel = level.reopen(segmentSize = 20.mb)
-          reopenLevel.collapse(level.segmentsInLevel()).assertGet
+          reopenLevel.collapse(level.segmentsInLevel()).runIO
 
           //resulting segments is 1
           eventually {
@@ -139,7 +140,7 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
           val reopen2 = reopenLevel.reopen
           eventual(assertReads(keyValues, reopen2))
 
-          level.delete.assertGet
+          level.delete.runIO
         }
       }
     }
@@ -150,7 +151,7 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
       val level = TestLevel(segmentSize = 1.kb)
       val expiryAt = 5.seconds.fromNow
       val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addRandomPutDeadlines = false)(TestTimer.Empty)
-      level.putKeyValuesTest(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).runIO
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
 
@@ -167,20 +168,20 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
         }
 
       //delete half of the key values which will create small Segments
-      level.putKeyValuesTest(Slice(expireEverySecond.toArray)).assertGet
+      level.putKeyValuesTest(Slice(expireEverySecond.toArray)).runIO
       keyValues.zipWithIndex foreach {
         case (keyValue, index) =>
           if (index % 2 == 0)
-            level.get(keyValue.key).assertGet.deadline should contain(expiryAt + index.millisecond)
+            level.get(keyValue.key).runIOValue.deadline should contain(expiryAt + index.millisecond)
       }
 
       sleep(20.seconds)
-      level.collapse(level.segmentsInLevel()).assertGet
+      level.collapse(level.segmentsInLevel()).runIO
       level.segmentFilesInAppendix should be <= (segmentCountBeforeDelete / 2)
 
       assertReads(Slice(keyValuesNotExpired.toArray), level)
 
-      level.delete.assertGet
+      level.delete.runIO
     }
   }
 
@@ -189,13 +190,13 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
 
     val keyValues = randomPutKeyValues(keyValuesCount, addRandomExpiredPutDeadlines = false)
     val maps = TestMap(keyValues.toTransient.toMemoryResponse)
-    level.put(maps).assertGet
+    level.put(maps).runIO
 
     val nextLevel = TestLevel()
-    nextLevel.put(level.segmentsInLevel()).assertGet
+    nextLevel.put(level.segmentsInLevel()).runIO
 
-    if (persistent) nextLevel.segmentsInLevel() foreach (_.createdInLevel.assertGet shouldBe level.levelNumber)
-    nextLevel.collapse(nextLevel.segmentsInLevel()).assertGet
-    nextLevel.segmentsInLevel() foreach (_.createdInLevel.assertGet shouldBe nextLevel.levelNumber)
+    if (persistent) nextLevel.segmentsInLevel() foreach (_.createdInLevel.runIO shouldBe level.levelNumber)
+    nextLevel.collapse(nextLevel.segmentsInLevel()).runIO
+    nextLevel.segmentsInLevel() foreach (_.createdInLevel.runIO shouldBe nextLevel.levelNumber)
   }
 }

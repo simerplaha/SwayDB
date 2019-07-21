@@ -19,7 +19,7 @@
 
 package swaydb.core.level
 
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
@@ -96,14 +96,14 @@ sealed trait LevelPerformanceSpec extends TestBase with Benchmark {
     }
 
   var level = TestLevel()
-  level.putKeyValuesTest(keyValues).assertGet
+  level.putKeyValuesTest(keyValues).runIO
 
   def reopenLevel() = {
     println("Re-opening Level")
     level.segmentsInLevel().foreach {
       segment =>
         segment.clearCache()
-        segment.close.assertGet
+        segment.close.runIO
     }
     level = level.reopen
   }

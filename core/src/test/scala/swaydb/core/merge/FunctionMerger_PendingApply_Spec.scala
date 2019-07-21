@@ -21,7 +21,7 @@ package swaydb.core.merge
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
@@ -54,7 +54,7 @@ class FunctionMerger_PendingApply_Spec extends WordSpec with Matchers {
           //new but has older time than oldKeyValue
           val newKeyValue = randomFunctionKeyValue(key = key)
 
-          val expected = FixedMerger(newKeyValue, apply.toMemory(key)).assertGet
+          val expected = FixedMerger(newKeyValue, apply.toMemory(key)).runIO
 
           //          println(s"newKeyValue: $newKeyValue")
           //          println(s"old apply: $apply")
