@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a.block
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
+import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
@@ -33,7 +34,7 @@ import swaydb.serializers._
 
 import scala.util.Try
 
-class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
+class BinarySearchIndexBlockSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
 
@@ -105,14 +106,20 @@ class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
 
             state.bytes.isFull shouldBe true
 
-            val index = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlock.Offset](BlockRefReader(state.bytes)).get).get
+            Seq(
+              BlockRefReader[BinarySearchIndexBlock.Offset](createRandomFileReader(state.bytes)).get,
+              BlockRefReader[BinarySearchIndexBlock.Offset](state.bytes)
+            ) foreach {
+              reader =>
+                val index = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlock.Offset](reader).get).get
 
-            index.valuesCount shouldBe state.writtenValues
+                index.valuesCount shouldBe state.writtenValues
 
-            //byte size of Int.MaxValue is 5, but the index will switch to using 4 byte ints.
-            index.bytesPerValue should be <= 4
+                //byte size of Int.MaxValue is 5, but the index will switch to using 4 byte ints.
+                index.bytesPerValue should be <= 4
 
-            assertSearch(state.bytes, values)
+                assertSearch(state.bytes, values)
+            }
         }
       }
     }
@@ -140,13 +147,19 @@ class BinarySearchIndexBlockSpec extends WordSpec with Matchers {
 
         state.writtenValues shouldBe values.size
 
-        val index = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlock.Offset](BlockRefReader(state.bytes)).get).get
+        Seq(
+          BlockRefReader[BinarySearchIndexBlock.Offset](createRandomFileReader(state.bytes)).get,
+          BlockRefReader[BinarySearchIndexBlock.Offset](state.bytes)
+        ) foreach {
+          reader =>
+            val index = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlock.Offset](reader).get).get
 
-        index.bytesPerValue shouldBe Bytes.sizeOf(largestValue)
+            index.bytesPerValue shouldBe Bytes.sizeOf(largestValue)
 
-        index.valuesCount shouldBe values.size
+            index.valuesCount shouldBe values.size
 
-        assertSearch(bytes = state.bytes, values = values)
+            assertSearch(bytes = state.bytes, values = values)
+        }
       }
     }
   }

@@ -19,12 +19,12 @@
 
 package swaydb.core.segment.format.a.block
 
-import swaydb.core.CommonAssertions.{eitherOne, _}
+import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{Transient, Value}
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -55,12 +55,48 @@ class BloomFilterBlockSpec extends TestBase {
 
         BloomFilterBlock.close(filter).get
 
-        val bloom = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](filter.bytes).get
-        (1 to 10) foreach (key => BloomFilterBlock.mightContain(key, bloom).get shouldBe true)
-        (11 to 20) foreach (key => BloomFilterBlock.mightContain(key, bloom).get shouldBe false)
+        Seq(
+          BlockRefReader[BloomFilterBlock.Offset](filter.bytes),
+          BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(filter.bytes)).get
+        ) foreach {
+          reader =>
+            val bloom = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](reader).get
+            (1 to 10) foreach (key => BloomFilterBlock.mightContain(key, bloom).get shouldBe true)
+            (11 to 20) foreach (key => BloomFilterBlock.mightContain(key, bloom).get shouldBe false)
 
-        println("numberOfBits: " + filter.numberOfBits)
-        println("written: " + filter.written)
+            println("numberOfBits: " + filter.numberOfBits)
+            println("written: " + filter.written)
+        }
+      }
+    }
+
+    "write bloom filter to bytes for a single key-value" in {
+      runThis(10.times) {
+        val compressions = eitherOne(Seq.empty, randomCompressions())
+
+        val state =
+          BloomFilterBlock.init(
+            numberOfKeys = 10,
+            falsePositiveRate = 0.01,
+            compressions = _ => compressions
+          ).get
+
+        BloomFilterBlock.add(1, state)
+
+        BloomFilterBlock.close(state).get
+
+        Seq(
+          BlockRefReader[BloomFilterBlock.Offset](state.bytes),
+          BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.bytes)).get
+        ) foreach {
+          reader =>
+            val bloom = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](reader).get
+            BloomFilterBlock.mightContain(1, bloom).get shouldBe true
+            (2 to 20) foreach (key => BloomFilterBlock.mightContain(key, bloom).get shouldBe false)
+
+            println("numberOfBits: " + state.numberOfBits)
+            println("written: " + state.written)
+        }
       }
     }
   }
@@ -241,8 +277,14 @@ class BloomFilterBlockSpec extends TestBase {
 
       BloomFilterBlock.close(state).get
 
-      val reader = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](state.bytes).get
-      runAssert(data, reader)
+      Seq(
+        BlockRefReader[BloomFilterBlock.Offset](state.bytes),
+        BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.bytes)).get
+      ) foreach {
+        blockRefReader =>
+          val reader = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](blockRefReader).get
+          runAssert(data, reader)
+      }
     }
   }
 }

@@ -840,9 +840,9 @@ object CommonAssertions {
                   segment: Segment) = {
     val unzipedKeyValues = unzipGroups(keyValues)
 
-    unzipedKeyValues.par.count {
+    unzipedKeyValues.count {
       keyValue =>
-        segment.mightContainKey(keyValue.key).get
+        segment.mightContainKey(keyValue.key).safeGetBlocking().get
     } should be >= (unzipedKeyValues.size * 0.90).toInt
 
     assertBloomNotContains(segment)
@@ -860,7 +860,7 @@ object CommonAssertions {
         ).get
     } should be >= (unzipedKeyValues.size * 0.90).toInt
 
-    assertBloomNotContains(bloomFilterReader)
+    //    assertBloomNotContains(bloomFilterReader)
   }
 
   def assertBloomNotContains(bloomFilterReader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]) =
@@ -870,10 +870,11 @@ object CommonAssertions {
     } should be <= 300
 
   def assertBloomNotContains(segment: Segment) =
-    (1 to 1000).count {
-      _ =>
-        segment.mightContainKey(randomBytesSlice(100)).get
-    } should be <= 300
+    if (segment.hasBloomFilter.get)
+      (1 to 1000).count {
+        _ =>
+          segment.mightContainKey(randomBytesSlice(100)).get
+      } should be <= 300
 
   def assertBloomNotContains(bloom: BloomFilterBlock.State) =
     runThis(1000.times) {
@@ -887,7 +888,7 @@ object CommonAssertions {
   def assertReads(keyValues: Slice[KeyValue],
                   segment: Segment) = {
     val asserts = Seq(() => assertGet(keyValues, segment), () => assertHigher(keyValues, segment), () => assertLower(keyValues, segment))
-    Random.shuffle(asserts).par.foreach(_ ())
+    Random.shuffle(asserts).foreach(_ ())
   }
 
   def assertAllSegmentsCreatedInLevel(level: Level) =
@@ -1364,7 +1365,7 @@ object CommonAssertions {
           IO(getHigher(keyValue.key).assertGet shouldBe next) recover {
             case _: TestFailedException =>
               unexpiredPuts(Slice(next)) should have size 0
-          }
+          } get
       }
     }
 

@@ -435,8 +435,8 @@ private[segment] case class MemorySegment(path: Path,
   override def isGrouped: IO[Boolean] =
     IO(_isGrouped)
 
-  override def isBloomFilterDefined: Boolean =
-    bloomFilterReader.isDefined
+  override def hasBloomFilter: IO[Boolean] =
+    IO(bloomFilterReader.isDefined)
 
   override def clearCache(): Unit =
     cache.values().asScala foreach {

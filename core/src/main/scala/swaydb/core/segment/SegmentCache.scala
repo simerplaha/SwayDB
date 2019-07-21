@@ -143,7 +143,6 @@ private[core] class SegmentCache(id: String,
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     get(key = key, hashIndexSearchOnly = false)
 
-
   private def get(key: Slice[Byte], hashIndexSearchOnly: Boolean): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key > maxKey =>
@@ -157,7 +156,13 @@ private[core] class SegmentCache(id: String,
       //        IO.none
 
       case _ =>
-        Option(persistentCache.floorEntry(key)).map(_.getValue) match {
+        val floor =
+          if (hashIndexSearchOnly)
+            None
+          else
+            Option(persistentCache.floorEntry(key)).map(_.getValue)
+
+        floor match {
           case Some(floor: Persistent.SegmentResponse) if floor.key equiv key =>
             IO.Success(Some(floor))
 
@@ -207,38 +212,41 @@ private[core] class SegmentCache(id: String,
   private def lower(key: Slice[Byte],
                     start: Option[Persistent],
                     end: Option[Persistent]): IO[Option[Persistent.SegmentResponse]] =
-    blockCache.createBinarySearchIndexReader() flatMap {
-      binarySearchIndexReader =>
-        blockCache.createSortedIndexReader() flatMap {
-          sortedIndexReader =>
-            blockCache.createValuesReader() flatMap {
-              valuesReader =>
-                val endAt =
-                  if (end.isDefined)
-                    IO.Success(end)
-                  else
-                    get(key = key, hashIndexSearchOnly = true)
+    blockCache.getFooter() flatMap {
+      footer =>
+        blockCache.createBinarySearchIndexReader() flatMap {
+          binarySearchIndexReader =>
+            blockCache.createSortedIndexReader() flatMap {
+              sortedIndexReader =>
+                blockCache.createValuesReader() flatMap {
+                  valuesReader =>
+                    val endAt =
+                      if (end.isDefined || footer.hasGroup) //don't do get if it has Group because it will fetch the inner group key-value which cannot be used as startFrom.
+                        IO.Success(end)
+                      else
+                        get(key = key, hashIndexSearchOnly = true)
 
-                endAt flatMap {
-                  end =>
-                    SegmentSearcher.searchLower(
-                      key = key,
-                      start = start,
-                      end = end,
-                      binarySearchIndexReader = binarySearchIndexReader,
-                      sortedIndexReader = sortedIndexReader,
-                      valuesReader
-                    ) flatMap {
-                      case Some(response: Persistent.SegmentResponse) =>
-                        addToCache(response)
-                        IO.Success(Some(response))
+                    endAt flatMap {
+                      end =>
+                        SegmentSearcher.searchLower(
+                          key = key,
+                          start = start,
+                          end = end,
+                          binarySearchIndexReader = binarySearchIndexReader,
+                          sortedIndexReader = sortedIndexReader,
+                          valuesReader
+                        ) flatMap {
+                          case Some(response: Persistent.SegmentResponse) =>
+                            addToCache(response)
+                            IO.Success(Some(response))
 
-                      case Some(group: Persistent.Group) =>
-                        addToCache(group)
-                        group.segment.lower(key)
+                          case Some(group: Persistent.Group) =>
+                            addToCache(group)
+                            group.segment.lower(key)
 
-                      case None =>
-                        IO.none
+                          case None =>
+                            IO.none
+                        }
                     }
                 }
             }
@@ -318,38 +326,41 @@ private[core] class SegmentCache(id: String,
   private def higher(key: Slice[Byte],
                      start: Option[Persistent],
                      end: Option[Persistent]): IO[Option[Persistent.SegmentResponse]] =
-    blockCache.createBinarySearchIndexReader() flatMap {
-      binarySearchIndexReader =>
-        blockCache.createSortedIndexReader() flatMap {
-          sortedIndexReader =>
-            blockCache.createValuesReader() flatMap {
-              valuesReader =>
-                val startFrom =
-                  if (start.isDefined)
-                    IO.Success(start)
-                  else
-                    get(key, hashIndexSearchOnly = true)
+    blockCache.getFooter() flatMap {
+      footer =>
+        blockCache.createBinarySearchIndexReader() flatMap {
+          binarySearchIndexReader =>
+            blockCache.createSortedIndexReader() flatMap {
+              sortedIndexReader =>
+                blockCache.createValuesReader() flatMap {
+                  valuesReader =>
+                    val startFrom =
+                      if (start.isDefined || footer.hasGroup) //don't do get if it has Group because it will fetch the inner group key-value which cannot be used as startFrom.
+                        IO.Success(start)
+                      else
+                        get(key, hashIndexSearchOnly = true)
 
-                startFrom flatMap {
-                  startFrom =>
-                    SegmentSearcher.searchHigher(
-                      key = key,
-                      start = startFrom,
-                      end = end,
-                      binarySearchIndexReader = binarySearchIndexReader,
-                      sortedIndexReader = sortedIndexReader,
-                      valuesReader = valuesReader
-                    ) flatMap {
-                      case Some(response: Persistent.SegmentResponse) =>
-                        addToCache(response)
-                        IO.Success(Some(response))
+                    startFrom flatMap {
+                      startFrom =>
+                        SegmentSearcher.searchHigher(
+                          key = key,
+                          start = startFrom,
+                          end = end,
+                          binarySearchIndexReader = binarySearchIndexReader,
+                          sortedIndexReader = sortedIndexReader,
+                          valuesReader = valuesReader
+                        ) flatMap {
+                          case Some(response: Persistent.SegmentResponse) =>
+                            addToCache(response)
+                            IO.Success(Some(response))
 
-                      case Some(group: Persistent.Group) =>
-                        addToCache(group)
-                        group.segment.higher(key)
+                          case Some(group: Persistent.Group) =>
+                            addToCache(group)
+                            group.segment.higher(key)
 
-                      case None =>
-                        IO.none
+                          case None =>
+                            IO.none
+                        }
                     }
                 }
             }
@@ -439,8 +450,8 @@ private[core] class SegmentCache(id: String,
   def isFooterDefined: Boolean =
     blockCache.isFooterDefined
 
-  def isBloomFilterDefined: Boolean =
-    blockCache.isBloomFilterDefined
+  def hasBloomFilter: IO[Boolean] =
+    blockCache.getFooter().map(_.bloomFilterOffset.isDefined)
 
   def createdInLevel: IO[Int] =
     blockCache.getFooter().map(_.createdInLevel)

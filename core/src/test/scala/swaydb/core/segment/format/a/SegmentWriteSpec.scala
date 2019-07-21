@@ -96,7 +96,6 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
                   case range: Transient.Range =>
                     MaxKey.Range[Slice[Byte]](range.fromKey, range.toKey)
-
                 }
               }
               //ensure that min and max keys are slices
@@ -109,9 +108,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                   fromKey.underlyingArraySize shouldBe 4
                   maxKey.underlyingArraySize shouldBe 4
               }
-
 //              assertBloom(keyValues, segment)
-
               segment.close.assertGet
             }
         )
