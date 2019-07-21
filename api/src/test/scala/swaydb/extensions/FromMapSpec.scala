@@ -25,6 +25,7 @@ import swaydb.core.RunThis._
 import swaydb.data.util.StorageUnits._
 import swaydb.extensions
 import swaydb.serializers.Default._
+import org.scalatest.OptionValues._
 
 class FromMapSpec0 extends FromMapSpec {
   val keyValueCount: Int = 1000

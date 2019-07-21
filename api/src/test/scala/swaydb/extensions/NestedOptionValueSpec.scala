@@ -24,6 +24,7 @@ import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
+import org.scalatest.OptionValues._
 
 class NestedOptionValueSpec extends TestBaseEmbedded {
   override val keyValueCount: Int = 1000
