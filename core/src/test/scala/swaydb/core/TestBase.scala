@@ -245,7 +245,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   }
 
   object TestSegment {
-    def apply(keyValues: Slice[Transient] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
+    def apply(keyValues: Slice[Transient] = randomizedKeyValues(addPut = true)(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
               path: Path = testSegmentFile,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
@@ -655,7 +655,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     if (testAgainAfterAssert) assert(keyValues, segment) //with cache populated
 
     if (persistent) {
-      segment.clearCache()
+      segment.clearCachedKeyValues()
       assert(keyValues, segment) //same Segment but test with cleared cache.
 
       val segmentReopened = segment.reopen //reopen

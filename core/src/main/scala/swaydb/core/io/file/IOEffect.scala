@@ -287,4 +287,7 @@ private[core] object IOEffect extends LazyLogging {
 
   def readAll(path: Path): IO[Slice[Byte]] =
     IO(Slice(Files.readAllBytes(path)))
+
+  def size(path: Path): IO[Long] =
+    IO(Files.size(path))
 }

@@ -104,7 +104,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def close: IO[Unit] =
     file.close map {
       _ =>
-        segmentCache.clear()
+        segmentCache.clearBlockCache()
     }
 
   def isOpen: Boolean =
@@ -123,7 +123,7 @@ private[segment] case class PersistentSegment(file: DBFile,
         logger.error(s"{}: Failed to delete Segment file.", path, failure)
     } map {
       _ =>
-        segmentCache.clear()
+        segmentCache.clearBlockCache()
     }
   }
 
@@ -314,8 +314,13 @@ private[segment] case class PersistentSegment(file: DBFile,
   override def hasBloomFilter: IO[Boolean] =
     segmentCache.hasBloomFilter
 
-  def clearCache(): Unit =
-    segmentCache.clear()
+  def clearCachedKeyValues(): Unit =
+    segmentCache.clearCachedKeyValues()
+
+  def clearAllCaches(): Unit = {
+    clearCachedKeyValues()
+    segmentCache.clearBlockCache()
+  }
 
   def isInCache(key: Slice[Byte]): Boolean =
     segmentCache isInCache key

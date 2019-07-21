@@ -169,23 +169,9 @@ private[core] object BloomFilterBlock extends LazyLogging {
       closedBloomFilter =>
         closedBloomFilter map {
           closedBloomFilter =>
-            //            BloomFilterBlock.read(
-            //              offset = BloomFilterBlock.Offset(0, closedBloomFilter.bytes.size),
-            //              segmentReader =
-            //                UnblockedReader[SegmentBlock.Offset, SegmentBlock](
-            //                  block = SegmentBlock(SegmentBlock.Offset(0, state.bytes.size), 0, None),
-            //                  bytes = state.bytes.unslice()
-            //                )
-            //            ) map {
-            //              bloomFilterBlock =>
-            //                Some(
-            //                  UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock](
-            //                    block = bloomFilterBlock,
-            //                    bytes = state.bytes.unslice()
-            //                  )
-            //                )
-            //            }
-            ???
+            Block
+              .unblock[BloomFilterBlock.Offset, BloomFilterBlock](closedBloomFilter.bytes.unslice())(BloomFilterBlockOps)
+              .map(Some(_))
         } getOrElse IO.none
     }
 

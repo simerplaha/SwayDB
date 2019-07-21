@@ -903,7 +903,9 @@ private[core] trait Segment extends FileLimiterItem {
 
   def getBloomFilterKeyValueCount(): IO[Int]
 
-  def clearCache(): Unit
+  def clearCachedKeyValues(): Unit
+
+  def clearAllCaches(): Unit
 
   def isInCache(key: Slice[Byte]): Boolean
 

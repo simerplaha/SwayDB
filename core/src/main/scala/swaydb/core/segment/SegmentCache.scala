@@ -468,10 +468,11 @@ private[core] class SegmentCache(id: String,
   def cacheSize: Int =
     persistentCache.size()
 
-  def clear() = {
+  def clearCachedKeyValues() =
     persistentCache.clear()
+
+  def clearBlockCache() = //cached key-value are not required to be clear. Limiter will clear them eventually since they are stored as WeakReferences.
     blockCache.clear()
-  }
 
   def readAllBytes(): IO[Slice[Byte]] =
     blockCache.readAllBytes()

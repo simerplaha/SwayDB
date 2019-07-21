@@ -102,7 +102,7 @@ sealed trait LevelPerformanceSpec extends TestBase with Benchmark {
     println("Re-opening Level")
     level.segmentsInLevel().foreach {
       segment =>
-        segment.clearCache()
+        segment.clearCachedKeyValues()
         segment.close.runIO
     }
     level = level.reopen

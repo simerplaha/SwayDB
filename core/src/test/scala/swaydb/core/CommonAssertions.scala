@@ -1414,7 +1414,7 @@ object CommonAssertions {
   def readAll(closedSegment: SegmentBlock.Closed): IO[Slice[KeyValue.ReadOnly]] =
     readAll(closedSegment.flattenSegmentBytes)
 
-  def toPersistent(keyValues: Slice[Transient]): IO[Slice[KeyValue.ReadOnly]] = {
+  def readAllToPersistent(keyValues: Iterable[Transient]): IO[Slice[KeyValue.ReadOnly]] = {
     val segment = SegmentBlock.writeClosed(keyValues, 0, SegmentBlock.Config.random).get
     readAll(segment.flattenSegmentBytes)
   }

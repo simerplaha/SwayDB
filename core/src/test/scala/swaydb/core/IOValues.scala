@@ -32,8 +32,9 @@ sealed trait IOValues {
         IO.Async.recover(input.get).safeGetBlocking.get
       else
         IO.Async.recover(input.get).safeGetFuture.await(1.minute)
+  }
 
-
+  implicit class RunValueIOImplicits[T](input: IO[T]) {
     def value =
       input.get
   }

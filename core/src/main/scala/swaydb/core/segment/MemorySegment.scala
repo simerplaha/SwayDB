@@ -438,10 +438,21 @@ private[segment] case class MemorySegment(path: Path,
   override def hasBloomFilter: IO[Boolean] =
     IO(bloomFilterReader.isDefined)
 
-  override def clearCache(): Unit =
+  override def clearCachedKeyValues(): Unit =
     cache.values().asScala foreach {
       case group: Group =>
-        group.segment.clear()
+        group.segment.clearCachedKeyValues()
+
+      case _: SegmentResponse =>
+        ()
+    }
+
+  override def clearAllCaches(): Unit =
+    cache.values().asScala foreach {
+      case group: Group =>
+        val groupSegment = group.segment
+        groupSegment.clearCachedKeyValues()
+        groupSegment.clearBlockCache()
 
       case _: SegmentResponse =>
         ()
