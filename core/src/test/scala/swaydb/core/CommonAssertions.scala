@@ -1440,7 +1440,7 @@ object CommonAssertions {
     getSegmentBlockCacheFromSegmentClosed(segment, segmentIO)
   }
 
-  def randomBlockIO(): IOStrategy =
+  def randomIOStrategy(): IOStrategy =
     if (randomBoolean())
       IOStrategy.SynchronisedIO(randomBoolean())
     else if (randomBoolean())
@@ -1704,13 +1704,13 @@ object CommonAssertions {
   implicit class SegmentIOImplicits(io: SegmentIO.type) {
     def random =
       SegmentIO(
-        segmentBlockIO = _ => randomBlockIO(),
-        hashIndexBlockIO = _ => randomBlockIO(),
-        bloomFilterBlockIO = _ => randomBlockIO(),
-        binarySearchIndexBlockIO = _ => randomBlockIO(),
-        sortedIndexBlockIO = _ => randomBlockIO(),
-        valuesBlockIO = _ => randomBlockIO(),
-        segmentFooterBlockIO = _ => randomBlockIO()
+        segmentBlockIO = _ => randomIOStrategy(),
+        hashIndexBlockIO = _ => randomIOStrategy(),
+        bloomFilterBlockIO = _ => randomIOStrategy(),
+        binarySearchIndexBlockIO = _ => randomIOStrategy(),
+        sortedIndexBlockIO = _ => randomIOStrategy(),
+        valuesBlockIO = _ => randomIOStrategy(),
+        segmentFooterBlockIO = _ => randomIOStrategy()
       )
   }
 }

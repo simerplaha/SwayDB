@@ -183,7 +183,9 @@ private[core] class SegmentCache(id: String,
                   else
                     None
 
-                if (footer.hasRange)
+                if (hashIndexSearchOnly && footer.hashIndexOffset.isEmpty)
+                  IO.none
+                else if (footer.hasRange)
                   get(
                     key = key,
                     start = floorValue,
@@ -212,44 +214,47 @@ private[core] class SegmentCache(id: String,
   private def lower(key: Slice[Byte],
                     start: Option[Persistent],
                     end: Option[Persistent]): IO[Option[Persistent.SegmentResponse]] =
-    blockCache.getFooter() flatMap {
-      footer =>
-        blockCache.createBinarySearchIndexReader() flatMap {
-          binarySearchIndexReader =>
-            blockCache.createSortedIndexReader() flatMap {
-              sortedIndexReader =>
-                blockCache.createValuesReader() flatMap {
-                  valuesReader =>
-                    val endAt =
-                      if (end.isDefined || footer.hasGroup) //don't do get if it has Group because it will fetch the inner group key-value which cannot be used as startFrom.
-                        IO.Success(end)
-                      else
-                        get(key = key, hashIndexSearchOnly = true)
+    blockCache.createBinarySearchIndexReader() flatMap {
+      binarySearchIndexReader =>
+        blockCache.createSortedIndexReader() flatMap {
+          sortedIndexReader =>
+            blockCache.createValuesReader() flatMap {
+              valuesReader =>
+                SegmentSearcher.searchLower(
+                  key = key,
+                  start = start,
+                  end = end,
+                  binarySearchIndexReader = binarySearchIndexReader,
+                  sortedIndexReader = sortedIndexReader,
+                  valuesReader
+                ) flatMap {
+                  case Some(response: Persistent.SegmentResponse) =>
+                    addToCache(response)
+                    IO.Success(Some(response))
 
-                    endAt flatMap {
-                      end =>
-                        SegmentSearcher.searchLower(
-                          key = key,
-                          start = start,
-                          end = end,
-                          binarySearchIndexReader = binarySearchIndexReader,
-                          sortedIndexReader = sortedIndexReader,
-                          valuesReader
-                        ) flatMap {
-                          case Some(response: Persistent.SegmentResponse) =>
-                            addToCache(response)
-                            IO.Success(Some(response))
+                  case Some(group: Persistent.Group) =>
+                    addToCache(group)
+                    group.segment.lower(key)
 
-                          case Some(group: Persistent.Group) =>
-                            addToCache(group)
-                            group.segment.lower(key)
-
-                          case None =>
-                            IO.none
-                        }
-                    }
+                  case None =>
+                    IO.none
                 }
             }
+        }
+    }
+
+  private def ceilingForLower(key: Slice[Byte]): IO[Option[Persistent]] =
+    Option(persistentCache.ceilingEntry(key)).map(_.getValue) match {
+      case some @ Some(_) =>
+        IO(some)
+
+      case None =>
+        blockCache.getFooter() flatMap {
+          footer =>
+            if (footer.hasGroup) //don't do get if it has Group because it will fetch the inner group key-value which cannot be used as startFrom.
+              IO.none
+            else
+              get(key = key, hashIndexSearchOnly = true)
         }
     }
 
@@ -284,19 +289,31 @@ private[core] class SegmentCache(id: String,
                   case lowerGroup: Persistent.Group if lowerGroup containsLower key =>
                     lowerGroup.segment.lower(key)
 
-                  case _ =>
-                    Option(persistentCache.ceilingEntry(key)).map(_.getValue) match {
-                      case someCeiling @ Some(ceilingKeyValue) =>
-                        if (lowerKeyValue.nextIndexOffset == ceilingKeyValue.indexOffset)
-                          lowerKeyValue match {
-                            case response: Persistent.SegmentResponse =>
-                              IO.Success(Some(response))
+                  case lowerKeyValue: Persistent =>
+                    ceilingForLower(key) flatMap {
+                      case Some(ceiling) if lowerKeyValue.nextIndexOffset == ceiling.indexOffset =>
+                        lowerKeyValue match {
+                          case response: Persistent.SegmentResponse =>
+                            IO.Success(Some(response))
 
-                            case group: Persistent.Group =>
-                              group.segment.lower(key)
-                          }
+                          case group: Persistent.Group =>
+                            group.segment.lower(key)
+                        }
+
+                      case someCeiling @ Some(ceilingRange: Persistent.Range) =>
+                        if (ceilingRange containsLower key)
+                          IO.Success(Some(ceilingRange))
                         else
                           lower(key, someLower, someCeiling)
+
+                      case someCeiling @ Some(ceilingGroup: Persistent.Group) =>
+                        if (ceilingGroup containsLower key)
+                          ceilingGroup.segment.lower(key)
+                        else
+                          lower(key, someLower, someCeiling)
+
+                      case someCeiling @ Some(_: Persistent.Fixed) =>
+                        lower(key, someLower, someCeiling)
 
                       case None =>
                         lower(key, someLower, None)
@@ -304,8 +321,10 @@ private[core] class SegmentCache(id: String,
                 }
 
             case None =>
-              val someCeiling = Option(persistentCache.ceilingEntry(key)).map(_.getValue)
-              lower(key, None, someCeiling)
+              ceilingForLower(key) flatMap {
+                ceiling =>
+                  lower(key, None, ceiling)
+              }
           }
       }
 

@@ -374,7 +374,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                 BloomFilterBlock.Config(
                   falsePositiveRate = 0.001,
                   minimumNumberOfKeys = 0,
-                  blockIO = _ => randomBlockIO(),
+                  blockIO = _ => randomIOStrategy(),
                   compressions = _ => randomCompressionsOrEmpty()
                 )
             ),
@@ -395,7 +395,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                 BloomFilterBlock.Config(
                   falsePositiveRate = 0.001,
                   minimumNumberOfKeys = 0,
-                  blockIO = _ => randomBlockIO(),
+                  blockIO = _ => randomIOStrategy(),
                   compressions = _ => randomCompressionsOrEmpty()
                 )
             ),
@@ -420,7 +420,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
               BloomFilterBlock.Config(
                 falsePositiveRate = 0.001,
                 minimumNumberOfKeys = 0,
-                blockIO = _ => randomBlockIO(),
+                blockIO = _ => randomIOStrategy(),
                 compressions = _ => randomCompressionsOrEmpty()
               )
           ),

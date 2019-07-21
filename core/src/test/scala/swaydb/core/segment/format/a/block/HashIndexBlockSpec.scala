@@ -289,12 +289,12 @@ class HashIndexBlockSpec extends TestBase {
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
                 allocateSpace = _.requiredSpace * 30,
-                blockIO = _ => randomBlockIO(),
+                blockIO = _ => randomIOStrategy(),
                 compressions = _ => compressions
               ),
             sortedIndexConfig =
               SortedIndexBlock.Config(
-                blockIO = _ => randomBlockIO(),
+                blockIO = _ => randomIOStrategy(),
                 prefixCompressionResetCount = 0,
                 enableAccessPositionIndex = randomBoolean(),
                 compressions = _ => compressions

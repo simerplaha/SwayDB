@@ -63,7 +63,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = keyValues,
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = _ => randomBlockIO(),
+                blockIO = _ => randomIOStrategy(),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = randomNextInt(10)
