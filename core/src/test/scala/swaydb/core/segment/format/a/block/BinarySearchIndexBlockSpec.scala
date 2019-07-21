@@ -18,7 +18,6 @@
  */
 package swaydb.core.segment.format.a.block
 
-import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase

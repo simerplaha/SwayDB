@@ -27,10 +27,9 @@ import swaydb.core.data.{Persistent, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.DBFile
-import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader}
+import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._

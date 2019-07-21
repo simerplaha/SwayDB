@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a
 
+import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.core.CommonAssertions._
@@ -32,7 +33,6 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import org.scalatest.OptionValues._
 
 import scala.util.Random
 

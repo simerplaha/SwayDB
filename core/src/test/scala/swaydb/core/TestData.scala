@@ -21,6 +21,7 @@ package swaydb.core
 
 import java.nio.file.Path
 
+import org.scalatest.Matchers._
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
@@ -52,7 +53,6 @@ import swaydb.data.util.StorageUnits._
 import swaydb.data.{IO, MaxKey}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import org.scalatest.Matchers._
 
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext

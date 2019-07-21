@@ -19,22 +19,22 @@
 
 package swaydb.core.segment.merge
 
-import scala.collection.mutable.ListBuffer
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
 import swaydb.core.IOValues._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.util.Benchmark
-import swaydb.core.{TestBase, TestData, TestTimer}
+import swaydb.core.segment.format.a.block._
+import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.RunThis._
-import swaydb.core.segment.format.a.block.{BinarySearchIndexBlock, BloomFilterBlock, HashIndexBlock, SegmentBlock, SegmentIO, SortedIndexBlock, ValuesBlock}
+
+import scala.collection.mutable.ListBuffer
 
 class SegmentMergeSpec extends TestBase {
 

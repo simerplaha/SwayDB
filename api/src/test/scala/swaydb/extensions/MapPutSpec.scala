@@ -19,12 +19,12 @@
 
 package swaydb.extensions
 
+import org.scalatest.OptionValues._
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
-import org.scalatest.OptionValues._
 
 class MapPutSpec0 extends MapPutSpec {
   val keyValueCount: Int = 1000

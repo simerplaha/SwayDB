@@ -19,6 +19,7 @@
 
 package swaydb.core.util
 
+import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.IOValues._
 import swaydb.data.slice.Slice
@@ -26,7 +27,6 @@ import swaydb.data.util.ByteUtil
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import org.scalatest.OptionValues._
 
 class BytesSpec extends WordSpec with Matchers {
 

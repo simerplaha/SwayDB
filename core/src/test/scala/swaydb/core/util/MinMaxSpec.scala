@@ -19,8 +19,8 @@
 
 package swaydb.core.util
 
+import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Time, Value}
@@ -29,7 +29,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import org.scalatest.OptionValues._
 
 import scala.util.Random
 

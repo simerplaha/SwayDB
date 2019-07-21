@@ -20,6 +20,7 @@ package swaydb.core.segment.format.a.block
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.util.Benchmark
@@ -28,7 +29,6 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.RunThis._
 
 import scala.util.Try
 

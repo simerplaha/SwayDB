@@ -22,6 +22,7 @@ package swaydb.core
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentSkipListMap
 
+import org.scalatest.Matchers._
 import org.scalatest.OptionValues._
 import org.scalatest.exceptions.TestFailedException
 import swaydb.core.IOValues._
@@ -56,7 +57,6 @@ import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.util.{Random, Try}
-import org.scalatest.Matchers._
 
 object CommonAssertions {
 

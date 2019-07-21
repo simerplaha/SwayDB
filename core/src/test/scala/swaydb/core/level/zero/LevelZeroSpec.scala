@@ -20,6 +20,7 @@
 package swaydb.core.level.zero
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
@@ -34,7 +35,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import org.scalatest.OptionValues._
 
 import scala.concurrent.duration._
 import scala.util.Random

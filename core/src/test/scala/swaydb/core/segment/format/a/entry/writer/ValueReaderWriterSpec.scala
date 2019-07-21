@@ -22,13 +22,10 @@ package swaydb.core.segment.format.a.entry.writer
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, Time, Transient}
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, BaseEntryIdFormatA, TransientToKeyValueIdBinder}
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.util.cache.Cache
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.data.IO
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

@@ -19,20 +19,21 @@
 
 package swaydb.core.segment.format.a.entry
 
+import org.scalatest.Matchers._
 import org.scalatest.WordSpec
-import scala.util.Random
 import swaydb.core.CommonAssertions._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
-import swaydb.core.IOValues._
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import org.scalatest.Matchers._
+
+import scala.util.Random
 
 class FixedEntryReaderWriterSpec extends WordSpec {
 

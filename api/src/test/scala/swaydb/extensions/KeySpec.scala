@@ -25,7 +25,6 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers.Serializer
-import org.scalatest.OptionValues._
 
 import scala.collection.SortedSet
 import scala.util.Random

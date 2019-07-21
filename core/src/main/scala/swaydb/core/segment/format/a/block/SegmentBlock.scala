@@ -24,14 +24,13 @@ import java.util.concurrent.ConcurrentSkipListMap
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Memory, Transient}
 import swaydb.core.function.FunctionStore
-import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader}
 import swaydb.core.segment.{DeadlineAndFunctionId, Segment}
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.api.grouping.Compression
 import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Deadline

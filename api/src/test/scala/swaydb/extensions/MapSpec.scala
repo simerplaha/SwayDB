@@ -19,6 +19,7 @@
 
 package swaydb.extensions
 
+import org.scalatest.OptionValues._
 import swaydb.Prepare
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
@@ -28,7 +29,6 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
-import org.scalatest.OptionValues._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
