@@ -125,8 +125,10 @@ private[core] object BloomFilterBlock extends LazyLogging {
     val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
     val maxProbeSize = Bytes.sizeOf(maxProbe)
 
+    val hasCompression = compressions(UncompressedBlockInfo(numberOfBits)).nonEmpty
+
     val headerBytesSize =
-      Block.headerSize(compressions(UncompressedBlockInfo(numberOfBits)).nonEmpty) +
+      Block.headerSize(hasCompression) +
         numberOfBitsSize +
         maxProbeSize
 
@@ -142,7 +144,11 @@ private[core] object BloomFilterBlock extends LazyLogging {
       headerSize = headerSize,
       maxProbe = maxProbe,
       _bytes = bytes,
-      compressions = compressions
+      compressions =
+        if (hasCompression)
+          compressions
+        else
+          _ => Seq.empty
     )
   }
 

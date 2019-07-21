@@ -1314,6 +1314,7 @@ private[core] object Persistent {
               reader
                 .copy()
                 .readAllOrNone()
+                .map(_.unslice())
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1411,6 +1412,7 @@ private[core] object Persistent {
               reader
                 .copy()
                 .readAllOrNone()
+                .map(_.unslice())
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1539,6 +1541,7 @@ private[core] object Persistent {
               reader
                 .copy()
                 .readAll()
+                .map(_.unslice())
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1627,7 +1630,9 @@ private[core] object Persistent {
                 .readAll()
                 .flatMap {
                   bytes =>
-                    ValueSerializer.read[Slice[Value.Apply]](bytes)
+                    ValueSerializer
+                      .read[Slice[Value.Apply]](bytes)
+                      .map(_.map(_.unslice))
                 }
           },
         nextIndexOffset = nextIndexOffset,
@@ -1710,6 +1715,10 @@ private[core] object Persistent {
                     .copy()
                     .readAll()
                     .flatMap(RangeValueSerializer.read)
+                    .map {
+                      case (from, range) =>
+                        (from.map(_.unslice), range.unslice)
+                    }
               },
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,

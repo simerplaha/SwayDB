@@ -70,35 +70,10 @@ object CommonAssertions {
 
   implicit class RunSafeAsyncIOImplicits[T](input: => IO.Async[T]) {
     def runSafeIO: T =
-      runSafeIO(2, None)
-
-    private def runSafeIO(timesToRun: Int, previousIO: Option[IO.Failure[T]]): T = {
-      @tailrec
-      def run(remainingTimesToRun: Int, previousIO: Option[IO.Failure[T]]): T =
-        if (remainingTimesToRun == 0)
-          fail(s"Failed to runSafe on Async IO. Ran $timesToRun times.", previousIO.get.exception)
-        else
-          IO.Async.runSafe(input.get).safeGetBlocking match {
-            case IO.Success(value) =>
-              value
-
-            case failure @ IO.Failure(busyError: IO.Error.Busy) =>
-              busyError.isFree shouldBe false
-              run(remainingTimesToRun - 1, Some(failure))
-
-            case IO.Failure(other) =>
-              throw other.exception
-          }
-      //      else
-      //        IO(IO.Async.runSafe(input.get).safeGetFuture.await(1.minute)) match {
-      //          case IO.Success(value) =>
-      //            value
-      //
-      //          case failure @ IO.Failure(_) =>
-      //            runSafeIO(timesToRun, remainingTimesToRun - 1, Some(failure))
-      //        }
-      run(timesToRun, None)
-    }
+      if (randomBoolean())
+        IO.Async.runSafe(input.get).safeGetBlocking.get
+      else
+        IO.Async.runSafe(input.get).safeGetFuture.await(1.minute)
   }
 
   implicit class KeyValueImplicits(actual: KeyValue) {
@@ -723,11 +698,15 @@ object CommonAssertions {
   implicit class SegmentImplicits(actual: Segment) {
 
     def shouldBe(expected: Segment): Unit = {
+      actual.path shouldBe expected.path
       actual.segmentSize shouldBe expected.segmentSize
       actual.minKey shouldBe expected.minKey
       actual.maxKey shouldBe expected.maxKey
+      actual.minMaxFunctionId shouldBe expected.minMaxFunctionId
+      actual.getBloomFilterKeyValueCount().runSafeIO shouldBe expected.getBloomFilterKeyValueCount().runSafeIO
+      actual.isGrouped.runSafeIO shouldBe actual.isGrouped.runSafeIO
+      actual.persistent shouldBe actual.persistent
       actual.existsOnDisk shouldBe expected.existsOnDisk
-      actual.path shouldBe expected.path
       assertReads(expected.getAll().assertGet, actual)
     }
 
@@ -1450,6 +1429,11 @@ object CommonAssertions {
   def readAll(closedSegment: SegmentBlock.Closed): IO[Slice[KeyValue.ReadOnly]] =
     readAll(closedSegment.flattenSegmentBytes)
 
+  def toPersistent(keyValues: Slice[Transient]): IO[Slice[KeyValue.ReadOnly]] = {
+    val segment = SegmentBlock.writeClosed(keyValues, 0, SegmentBlock.Config.random).get
+    readAll(segment.flattenSegmentBytes)
+  }
+
   def readBlocksFromSegment(closedSegment: SegmentBlock.Closed, segmentIO: SegmentIO = SegmentIO.random): IO[Blocks] =
     readBlocks(closedSegment.flattenSegmentBytes, segmentIO)
 
@@ -1673,31 +1657,31 @@ object CommonAssertions {
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
 
-          case Persistent.Put(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
+          case put @ Persistent.Put(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyValueReader.value(ValuesBlock.Offset(persistent.valueOffset, persistent.valueLength)).runSafeIO.shouldBeSliced()
+            put.getOrFetchValue.runSafeIO.shouldBeSliced()
 
-          case Persistent.Update(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
+          case updated @ Persistent.Update(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyValueReader.value(ValuesBlock.Offset(persistent.valueOffset, persistent.valueLength)).runSafeIO.shouldBeSliced()
+            updated.getOrFetchValue.runSafeIO.shouldBeSliced()
 
-          case Persistent.Function(_key, lazyFunctionReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
+          case function @ Persistent.Function(_key, lazyFunctionReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyFunctionReader.value(ValuesBlock.Offset(persistent.valueOffset, persistent.valueLength)).runSafeIO.shouldBeSliced()
+            function.getOrFetchFunction.runSafeIO.shouldBeSliced()
 
-          case Persistent.PendingApply(_key, _time, deadline, lazyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
+          case pendingApply @ Persistent.PendingApply(_key, _time, deadline, lazyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyValueReader.value(ValuesBlock.Offset(persistent.valueOffset, persistent.valueLength)).runSafeIO foreach assertSliced
+            pendingApply.getOrFetchApplies.runSafeIO foreach assertSliced
 
-          case Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
+          case range @ Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
             _fromKey.shouldBeSliced()
             _toKey.shouldBeSliced()
-            lazyRangeValueReader.value(ValuesBlock.Offset(persistent.valueOffset, persistent.valueLength)).assertGet._1 foreach assertSliced
-            assertSliced(lazyRangeValueReader.value(ValuesBlock.Offset(persistent.valueOffset, persistent.valueLength)).assertGet._2)
+            range.fetchFromValue.runSafeIO foreach assertSliced
+            assertSliced(range.fetchRangeValue.runSafeIO)
 
           case Persistent.Group(_minKey, _maxKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline, _, _) =>
             _minKey.shouldBeSliced()

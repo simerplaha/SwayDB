@@ -438,6 +438,9 @@ private[core] class SegmentCache(id: String,
   def getBloomFilterKeyValueCount(): IO[Int] =
     blockCache.getFooter().map(_.bloomFilterItemsCount)
 
+  def getFooter(): IO[SegmentFooterBlock] =
+    blockCache.getFooter()
+
   def hasRange: IO[Boolean] =
     blockCache.getFooter().map(_.hasRange)
 

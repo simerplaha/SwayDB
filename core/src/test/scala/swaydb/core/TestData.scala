@@ -637,20 +637,25 @@ object TestData {
               )
 
             case group: Memory.Group =>
-              //              Transient.Group(
-              //                keyValues =
-              //                  group.segment.getAll().assertGet
-              //                    .toTransient(
-              //                      valuesConfig = valuesConfig,
-              //                      sortedIndexConfig = sortedIndexConfig,
-              //                      binarySearchIndexConfig = binarySearchIndexConfig,
-              //                      hashIndexConfig = hashIndexConfig,
-              //                      bloomFilterConfig = bloomFilterConfig
-              //                    ),
-              //                previous = previous,
-              //                groupingStrategy = ???
-              //              ).assertGet
-              ???
+              implicit val segmentIO = SegmentIO.random
+              Transient.Group(
+                keyValues =
+                  group.segment.getAll().assertGet
+                    .toTransient(
+                      valuesConfig = valuesConfig,
+                      sortedIndexConfig = sortedIndexConfig,
+                      binarySearchIndexConfig = binarySearchIndexConfig,
+                      hashIndexConfig = hashIndexConfig,
+                      bloomFilterConfig = bloomFilterConfig
+                    ),
+                valuesConfig = valuesConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                bloomFilterConfig = bloomFilterConfig,
+                previous = previous,
+                groupConfig = SegmentBlock.Config.random
+              ).assertGet
           }
 
         case persistent: Persistent =>
@@ -688,7 +693,7 @@ object TestData {
                 case function @ Persistent.Function(key, lazyFunctionReader, time, _, _, _, _, _, _, _) =>
                   Transient.Function(
                     key = key,
-                    function = ???, //lazyFunctionReader.getOrFetchFunction.assertGet,
+                    function = lazyFunctionReader.value(ValuesBlock.Offset(function.valueOffset, function.valueLength)).runSafeIO,
                     time = time,
                     previous = previous,
                     valuesConfig = valuesConfig,
@@ -740,26 +745,18 @@ object TestData {
               )
 
             case group: Persistent.Group =>
-              //              val allKeyValues =
-              //                group
-              //                  .segment
-              //                  .getAll()
-              //                  .assertGet
-              //                  .toTransient(
-              //                    valuesConfig = valuesConfig,
-              //                    sortedIndexConfig = sortedIndexConfig,
-              //                    binarySearchIndexConfig = binarySearchIndexConfig,
-              //                    hashIndexConfig = hashIndexConfig,
-              //                    bloomFilterConfig = bloomFilterConfig
-              //                  )
-              //
-              //              Transient.Group(
-              //                keyValues = allKeyValues,
-              //                previous = previous,
-              //                ???
-              //              ).assertGet
-              //              ???
-              ???
+              implicit val segmentIO = SegmentIO.random
+
+              Transient.Group(
+                keyValues = group.segment.getAll().assertGet.toTransient,
+                valuesConfig = valuesConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                bloomFilterConfig = bloomFilterConfig,
+                previous = previous,
+                groupConfig = SegmentBlock.Config.random
+              ).assertGet
           }
       }
     }

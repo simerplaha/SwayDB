@@ -285,6 +285,9 @@ private[segment] case class PersistentSegment(file: DBFile,
   def getBloomFilterKeyValueCount(): IO[Int] =
     segmentCache.getBloomFilterKeyValueCount()
 
+  def getFooter(): IO[SegmentFooterBlock] =
+    segmentCache.getFooter()
+
   override def isFooterDefined: Boolean =
     segmentCache.isFooterDefined
 

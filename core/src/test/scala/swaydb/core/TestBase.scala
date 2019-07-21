@@ -645,22 +645,23 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
   def assertSegment[T](keyValues: Slice[Transient],
                        assert: (Slice[Transient], Segment) => T,
-                       testWithCachePopulated: Boolean = true,
+                       testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]) = {
     val segment = TestSegment(keyValues).assertGet
     if (closeAfterCreate) segment.close.assertGet
 
     assert(keyValues, segment) //first
-    if (testWithCachePopulated) assert(keyValues, segment) //with cache populated
+    if (testAgainAfterAssert) assert(keyValues, segment) //with cache populated
 
     if (persistent) {
       segment.clearCache()
       assert(keyValues, segment) //same Segment but test with cleared cache.
 
       val segmentReopened = segment.reopen //reopen
+      if(closeAfterCreate) segmentReopened.close.assertGet
       assert(keyValues, segmentReopened)
-      if (testWithCachePopulated) assert(keyValues, segmentReopened)
+      if (testAgainAfterAssert) assert(keyValues, segmentReopened)
       segmentReopened.close.assertGet
     } else {
       segment.close.assertGet
