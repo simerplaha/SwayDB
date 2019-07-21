@@ -439,7 +439,7 @@ object CommonAssertions {
       result should have size 1
       val ungrouped = unzipGroups(result.head)
       ungrouped should have size expected.size
-      ungrouped.toList should contain inOrderElementsOf expected
+      ungrouped.toMemory.toList should contain inOrderElementsOf expected.toMemory
     }
     result
   }

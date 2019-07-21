@@ -55,18 +55,18 @@ class SegmentMergeSpec extends TestBase {
 
         val segment1 = ListBuffer.empty[Transient]
         segment1.+=(Transient.put(key = 1, value = Some(1), previous = segment1.lastOption))
-        segment1.+=(Transient.put(key = 2, value = Some(2), previous = segment1.lastOption)) //total segmentSize is 70.bytes
+        segment1.+=(Transient.put(key = 2, value = Some(2), previous = segment1.lastOption)) //total segmentSize is 144.bytes
 
         val smallerLastSegment = ListBuffer.empty[Transient]
-        smallerLastSegment.+=(Transient.put(key = 1, value = Some(1), previous = None)) //total segmentSize is 60.bytes
+        smallerLastSegment.+=(Transient.put(key = 1, value = Some(1), previous = None)) //total segmentSize is 105.bytes
 
         val segments = ListBuffer[ListBuffer[Transient]](segment1, smallerLastSegment)
 
-        //minSegmentSize is 70.bytes but lastSegment size is 60.bytes. Expected result should move lastSegment's KeyValues to previous segment
+        //minSegmentSize is 144.bytes but lastSegment size is 105.bytes. Expected result should move lastSegment's KeyValues to previous segment
         val newSegments =
           SegmentMerger.completeMerge(
             segments = segments,
-            minSegmentSize = 70.bytes,
+            minSegmentSize = 144.bytes,
             forMemory = false,
             valuesConfig = ValuesBlock.Config.random,
             sortedIndexConfig = SortedIndexBlock.Config.random,
@@ -75,6 +75,7 @@ class SegmentMergeSpec extends TestBase {
             bloomFilterConfig = BloomFilterBlock.Config.random,
             groupLastSegment = true
           ).runIO
+
         newSegments.size shouldBe 1
 
         val newSegmentsUnzipped = unzipGroups(newSegments.head)
@@ -120,7 +121,7 @@ class SegmentMergeSpec extends TestBase {
 
     "make no change if there is only one segment" in {
       runThisParallel(100.times) {
-        val segment: ListBuffer[Transient] = ListBuffer(randomizedKeyValues(randomIntMax(5) max 1, addGroups = false).toList: _*)
+        val segment: ListBuffer[Transient] = ListBuffer(randomizedKeyValues(randomIntMax(5) max 1, addPendingApply = true, addGroups = false).toList: _*)
 
         SegmentMerger.completeMerge(
           segments = ListBuffer(segment),
@@ -212,7 +213,7 @@ class SegmentMergeSpec extends TestBase {
 
       val keyValues: Slice[Memory] = Slice(Memory.put(1, 1), Memory.remove(2), Memory.put(3, 3), Memory.put(4, 4), Memory.Range(5, 10, Some(Value.remove(None)), Value.update(5)))
 
-      val split1 =
+      val splits =
         SegmentMerger.split(
           keyValues = keyValues,
           minSegmentSize = 1.byte,
@@ -226,13 +227,13 @@ class SegmentMergeSpec extends TestBase {
           segmentIO = SegmentIO.random
         ).runIO
 
-      split1 should have size 5
-      split1 should contain only
-        (ListBuffer(Transient.put(1, 1)),
-          ListBuffer(Transient.remove(2)),
-          ListBuffer(Transient.put(3, 3)),
-          ListBuffer(Transient.put(4, 4)), //51.byte Segment size
-          ListBuffer(Transient.Range.create[FromValue, RangeValue](5, 10, Some(Value.remove(None)), Value.update(5))) //56.bytes (segment size)
+      splits should have size 5
+      splits.map(_.toMemory) should contain only
+        (Slice(Memory.put(1, 1)),
+          Slice(Memory.remove(2)),
+          Slice(Memory.put(3, 3)),
+          Slice(Memory.put(4, 4)), //51.byte Segment size
+          Slice(Memory.Range(5, 10, Some(Value.remove(None)), Value.update(5))) //56.bytes (segment size)
         )
 
       val persistentSplit =
