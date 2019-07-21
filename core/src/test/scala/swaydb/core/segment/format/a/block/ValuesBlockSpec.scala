@@ -71,7 +71,7 @@ class ValuesBlockSpec extends TestBase {
         val blocked = BlockedReader(ref.copy()).get
 
         val manuallyReadBlock = ValuesBlock.read(Block.readHeader[ValuesBlock.Offset](ref.copy()).get)
-        manuallyReadBlock.blockStatus shouldBe blocked.block.blockStatus
+        manuallyReadBlock.dataType shouldBe blocked.block.dataType
         manuallyReadBlock.offset shouldBe blocked.block.offset
         manuallyReadBlock.headerSize shouldBe blocked.block.headerSize
 

@@ -27,7 +27,7 @@ import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
-import swaydb.data.config.BlockIO
+import swaydb.data.config.IOStrategy
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -103,7 +103,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = Seq(group),
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+                blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -134,7 +134,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = Seq(group1, group2).updateStats,
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+                blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -168,7 +168,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = Seq(group4),
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+                blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -198,7 +198,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = keyValues,
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+                blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -219,7 +219,7 @@ class SegmentBlockSpec extends TestBase {
           keyValues = keyValues,
           segmentConfig =
             new SegmentBlock.Config(
-              blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+              blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0
@@ -247,7 +247,7 @@ class SegmentBlockSpec extends TestBase {
           keyValues = keyValues,
           segmentConfig =
             new SegmentBlock.Config(
-              blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+              blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0
@@ -272,7 +272,7 @@ class SegmentBlockSpec extends TestBase {
       //            keyValues = keyValues,
       //            segmentConfig =
       //      SegmentBlock.Config(
-      //        blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+      //        blockIO = dataType => BlockIO.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
       //        compressions = Seq.empty
       //      ),
       //            createdInLevel = 0

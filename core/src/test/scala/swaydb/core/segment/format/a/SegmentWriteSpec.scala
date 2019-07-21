@@ -713,8 +713,10 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         segment1.isOpen shouldBe false
       }
       //read one key value from Segment1 so that it's reopened and added to the cache. This will also remove Segment 2 from cache
-      (segment1 get keyValues.head.key).value.value shouldBe keyValues.head
-      segment1.isOpen shouldBe true
+      eventual {
+        (segment1 get keyValues.head.key).value.value shouldBe keyValues.head
+        segment1.isOpen shouldBe true
+      }
 
       eventual(5.seconds) {
         //segment2 is closed
@@ -1464,7 +1466,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           (1 to 100) map {
             key =>
               eitherOne(randomRemoveKeyValue(key), randomRangeKeyValue(key, key + 1, None, randomRangeValue()))
-          }.toTransient
+          } toTransient
         val segment = TestSegment(keyValues).value
         segment.getBloomFilterKeyValueCount().value shouldBe keyValues.size
         segment.getAll().value shouldBe keyValues

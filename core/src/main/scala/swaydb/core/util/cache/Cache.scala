@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.FunctionUtil
-import swaydb.data.config.BlockIO
+import swaydb.data.config.IOStrategy
 import swaydb.data.{IO, Reserve}
 
 object Cache {
@@ -56,24 +56,24 @@ object Cache {
       )
     )
 
-  def blockIO[I, O](blockIO: I => BlockIO, reserveError: => IO.Error.Busy)(fetch: I => IO[O]): Cache[I, O] =
+  def blockIO[I, O](blockIO: I => IOStrategy, reserveError: => IO.Error.Busy)(fetch: I => IO[O]): Cache[I, O] =
     new BlockIOCache[I, O](
       Cache.noIO[I, Cache[I, O]](synchronised = false, stored = true) {
         i =>
-          FunctionUtil.safe((_: I) => BlockIO.ConcurrentIO(false), blockIO)(i) match {
-            case BlockIO.ConcurrentIO(cacheOnAccess) =>
+          FunctionUtil.safe((_: I) => IOStrategy.ConcurrentIO(false), blockIO)(i) match {
+            case IOStrategy.ConcurrentIO(cacheOnAccess) =>
               Cache.concurrentIO[I, O](
                 synchronised = false,
                 stored = cacheOnAccess
               )(fetch)
 
-            case BlockIO.SynchronisedIO(cacheOnAccess) =>
+            case IOStrategy.SynchronisedIO(cacheOnAccess) =>
               Cache.concurrentIO[I, O](
                 synchronised = true,
                 stored = cacheOnAccess
               )(fetch)
 
-            case BlockIO.ReservedIO(cacheOnAccess) =>
+            case IOStrategy.ReservedIO(cacheOnAccess) =>
               Cache.reservedIO[I, O](
                 stored = cacheOnAccess,
                 reserveError = reserveError

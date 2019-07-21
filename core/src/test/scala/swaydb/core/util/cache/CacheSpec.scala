@@ -23,7 +23,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.data.config.BlockIO
+import swaydb.data.config.IOStrategy
 import swaydb.data.{IO, Reserve}
 
 import scala.concurrent.Future
@@ -51,15 +51,15 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     run(test(false, _, _, _))
   }
 
-  def getBlockIO(isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean, stored: Boolean)(unit: Unit): BlockIO =
+  def getBlockIO(isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean, stored: Boolean)(unit: Unit): IOStrategy =
     if (isConcurrent)
-      BlockIO.ConcurrentIO(cacheOnAccess = stored)
+      IOStrategy.ConcurrentIO(cacheOnAccess = stored)
     else if (isSynchronised)
-      BlockIO.SynchronisedIO(cacheOnAccess = stored)
+      IOStrategy.SynchronisedIO(cacheOnAccess = stored)
     else if (isReserved)
-      BlockIO.ReservedIO(cacheOnAccess = stored)
+      IOStrategy.ReservedIO(cacheOnAccess = stored)
     else
-      BlockIO.ConcurrentIO(cacheOnAccess = stored) //then it's concurrent
+      IOStrategy.ConcurrentIO(cacheOnAccess = stored) //then it's concurrent
 
   /**
     * Return a partial cache with applied configuration which requires the cache body.
@@ -291,7 +291,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
           val simpleCache =
             if (blockIO)
-              Cache.blockIO[Unit, Int](blockIO = _ => BlockIO.ReservedIO(true), IO.Error.ReservedValue(Reserve())) {
+              Cache.blockIO[Unit, Int](blockIO = _ => IOStrategy.ReservedIO(true), IO.Error.ReservedValue(Reserve())) {
                 _ =>
                   invokeCount += 1
                   sleep(5.millisecond) //delay access

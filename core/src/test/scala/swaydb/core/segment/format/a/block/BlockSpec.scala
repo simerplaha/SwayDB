@@ -5,27 +5,27 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.segment.format.a.block.Block.CompressionInfo
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
-import swaydb.data.config.BlockStatus
+import swaydb.data.config.IOAction
 import swaydb.data.slice.Slice
 
 class BlockSpec extends TestBase {
 
-  "blockStatus" in {
+  "dataType" in {
     //uncompressed
-    ValuesBlock(ValuesBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = None).blockStatus shouldBe BlockStatus.UncompressedBlock(10)
-    ValuesBlock(ValuesBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = None).blockStatus shouldBe BlockStatus.UncompressedBlock(10)
+    ValuesBlock(ValuesBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = None).dataType shouldBe IOAction.ReadUncompressedData(10)
+    ValuesBlock(ValuesBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = None).dataType shouldBe IOAction.ReadUncompressedData(10)
 
     //compressed
-    ValuesBlock(ValuesBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).blockStatus shouldBe BlockStatus.CompressedBlock(10, 200)
-    ValuesBlock(ValuesBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).blockStatus shouldBe BlockStatus.CompressedBlock(10, 200)
+    ValuesBlock(ValuesBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).dataType shouldBe IOAction.ReadCompressedData(10, 200)
+    ValuesBlock(ValuesBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).dataType shouldBe IOAction.ReadCompressedData(10, 200)
 
     //uncompressed
-    SegmentBlock(SegmentBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = None).blockStatus shouldBe BlockStatus.UncompressedBlock(10)
-    SegmentBlock(SegmentBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = None).blockStatus shouldBe BlockStatus.UncompressedBlock(10)
+    SegmentBlock(SegmentBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = None).dataType shouldBe IOAction.ReadUncompressedData(10)
+    SegmentBlock(SegmentBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = None).dataType shouldBe IOAction.ReadUncompressedData(10)
 
     //compressed
-    SegmentBlock(SegmentBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).blockStatus shouldBe BlockStatus.CompressedBlock(10, 200)
-    SegmentBlock(SegmentBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).blockStatus shouldBe BlockStatus.CompressedBlock(10, 200)
+    SegmentBlock(SegmentBlock.Offset(start = 0, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).dataType shouldBe IOAction.ReadCompressedData(10, 200)
+    SegmentBlock(SegmentBlock.Offset(start = 10, size = 20), headerSize = 10, compressionInfo = Some(CompressionInfo(null, 200))).dataType shouldBe IOAction.ReadCompressedData(10, 200)
   }
 
   "block & unblock" when {

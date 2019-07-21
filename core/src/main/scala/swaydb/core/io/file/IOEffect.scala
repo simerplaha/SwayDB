@@ -53,7 +53,7 @@ private[core] object IOEffect extends LazyLogging {
     def folderId =
       IOEffect.folderId(path)
 
-    def files(extension: Extension) =
+    def files(extension: Extension): List[Path] =
       IOEffect.files(path, extension)
 
     def folders =

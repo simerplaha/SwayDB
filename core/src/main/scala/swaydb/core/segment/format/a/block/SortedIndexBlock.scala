@@ -30,7 +30,7 @@ import swaydb.core.util.cache.Cache
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
+import swaydb.data.config.{IOStrategy, IOAction, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -55,7 +55,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   object Config {
     val disabled =
       Config(
-        blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+        blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         enableAccessPositionIndex = false,
         prefixCompressionResetCount = 0,
         compressions = _ => Seq.empty
@@ -71,7 +71,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       Config(
         enableAccessPositionIndex = enable.enablePositionIndex,
         prefixCompressionResetCount = enable.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0),
-        blockIO = FunctionUtil.safe(BlockIO.defaultSynchronisedStoredIfCompressed, enable.blockIO),
+        blockIO = FunctionUtil.safe(IOStrategy.defaultSynchronisedStoredIfCompressed, enable.ioStrategy),
         compressions =
           FunctionUtil.safe(
             default = _ => Seq.empty[CompressionInternal],
@@ -80,7 +80,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       )
   }
 
-  case class Config(blockIO: BlockStatus => BlockIO,
+  case class Config(blockIO: IOAction => IOStrategy,
                     prefixCompressionResetCount: Int,
                     enableAccessPositionIndex: Boolean,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])

@@ -23,7 +23,7 @@ import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.block.ValuesBlock.ValuesBlockOps
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.util.cache.Cache
-import swaydb.data.config.{BlockIO, BlockStatus}
+import swaydb.data.config.{IOStrategy, IOAction}
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, Reserve}
 
@@ -57,9 +57,9 @@ class SegmentBlockCache(id: String,
   /**
     * Builds a required cache for [[SortedIndexBlock]].
     */
-  def buildBlockInfoCache[O <: BlockOffset, B <: Block[O]](blockIO: BlockStatus => BlockIO)(implicit blockOps: BlockOps[O, B]): Cache[BlockRefReader[O], B] =
+  def buildBlockInfoCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]): Cache[BlockRefReader[O], B] =
     Cache.blockIO[BlockRefReader[O], B](
-      blockIO = ref => blockIO(BlockStatus.BlockInfo(ref.offset.size)),
+      blockIO = ref => blockIO(IOAction.ReadDataOverview(ref.offset.size)),
       reserveError = IO.Error.ReservedValue(Reserve())
     ) {
       ref =>
@@ -68,9 +68,9 @@ class SegmentBlockCache(id: String,
           .flatMap(blockOps.readBlock)
     }
 
-  def buildBlockInfoCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: BlockStatus => BlockIO)(implicit blockOps: BlockOps[O, B]): Cache[Option[BlockRefReader[O]], Option[B]] =
+  def buildBlockInfoCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]): Cache[Option[BlockRefReader[O]], Option[B]] =
     Cache.blockIO[Option[BlockRefReader[O]], Option[B]](
-      blockIO = ref => ref.map(ref => blockIO(BlockStatus.BlockInfo(ref.offset.size))) getOrElse BlockIO.defaultBlockInfoStored,
+      blockIO = ref => ref.map(ref => blockIO(IOAction.ReadDataOverview(ref.offset.size))) getOrElse IOStrategy.defaultBlockInfoStored,
       reserveError = IO.Error.ReservedValue(Reserve())
     ) {
       ref =>
@@ -83,21 +83,21 @@ class SegmentBlockCache(id: String,
         } getOrElse IO.none
     }
 
-  def buildBlockReaderCache[O <: BlockOffset, B <: Block[O]](blockIO: BlockStatus => BlockIO)(implicit blockOps: BlockOps[O, B]) =
+  def buildBlockReaderCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]) =
     Cache.blockIO[BlockedReader[O, B], UnblockedReader[O, B]](
-      blockIO = reader => blockIO(reader.block.blockStatus),
+      blockIO = reader => blockIO(reader.block.dataType),
       reserveError = IO.Error.ReservedValue(Reserve())
     ) {
       blockedReader =>
         UnblockedReader(
           blockedReader = blockedReader,
-          readAllIfUncompressed = blockIO(blockedReader.block.blockStatus).cacheOnAccess
+          readAllIfUncompressed = blockIO(blockedReader.block.dataType).cacheOnAccess
         )
     }
 
-  def buildBlockReaderCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: BlockStatus => BlockIO)(implicit blockOps: BlockOps[O, B]) =
+  def buildBlockReaderCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]) =
     Cache.blockIO[Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]](
-      blockIO = _.map(reader => blockIO(reader.block.blockStatus)) getOrElse BlockIO.defaultBlockReadersStored,
+      blockIO = _.map(reader => blockIO(reader.block.dataType)) getOrElse IOStrategy.defaultBlockReadersStored,
       reserveError = IO.Error.ReservedValue(Reserve())
     ) {
       blockedReader =>
@@ -105,14 +105,14 @@ class SegmentBlockCache(id: String,
           blockedReader =>
             UnblockedReader(
               blockedReader = blockedReader,
-              readAllIfUncompressed = blockIO(blockedReader.block.blockStatus).cacheOnAccess
+              readAllIfUncompressed = blockIO(blockedReader.block.dataType).cacheOnAccess
             ).map(Some(_))
         } getOrElse IO.none
     }
 
   private[block] val segmentBlockReaderCache =
     Cache.blockIO[BlockRefReader[SegmentBlock.Offset], UnblockedReader[SegmentBlock.Offset, SegmentBlock]](
-      blockIO = ref => segmentBlockIO(BlockStatus.BlockInfo(ref.offset.size)),
+      blockIO = ref => segmentBlockIO(IOAction.ReadDataOverview(ref.offset.size)),
       reserveError = IO.Error.ReservedValue(Reserve())
     ) {
       ref =>
@@ -120,7 +120,7 @@ class SegmentBlockCache(id: String,
           blockedReader =>
             UnblockedReader(
               blockedReader = blockedReader,
-              readAllIfUncompressed = segmentBlockIO(blockedReader.block.blockStatus).cacheOnAccess
+              readAllIfUncompressed = segmentBlockIO(blockedReader.block.dataType).cacheOnAccess
             )
         }
     }
@@ -130,7 +130,7 @@ class SegmentBlockCache(id: String,
       blockIO =
         _ =>
           //reader does not contain any footer related info. Use the default known info about footer.
-          segmentFooterBlockIO(BlockStatus.BlockInfo(SegmentFooterBlock.optimalBytesRequired)),
+          segmentFooterBlockIO(IOAction.ReadDataOverview(SegmentFooterBlock.optimalBytesRequired)),
       reserveError = IO.Error.ReservedValue(Reserve())
     ) {
       reader =>

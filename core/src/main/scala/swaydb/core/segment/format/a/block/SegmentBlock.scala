@@ -29,7 +29,7 @@ import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.api.grouping.Compression
-import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
+import swaydb.data.config.{IOStrategy, IOAction, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -48,11 +48,11 @@ private[core] object SegmentBlock {
 
     def default =
       new Config(
-        blockIO = _ => BlockIO.ConcurrentIO(false),
+        blockIO = _ => IOStrategy.ConcurrentIO(false),
         compressions = _ => Seq.empty
       )
 
-    def apply(segmentIO: BlockStatus => BlockIO,
+    def apply(segmentIO: IOAction => IOStrategy,
               compressions: UncompressedBlockInfo => Iterable[Compression]): Config =
       new Config(
         blockIO = segmentIO,
@@ -65,7 +65,7 @@ private[core] object SegmentBlock {
       )
   }
 
-  class Config(val blockIO: BlockStatus => BlockIO,
+  class Config(val blockIO: IOAction => IOStrategy,
                val compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   object Offset {

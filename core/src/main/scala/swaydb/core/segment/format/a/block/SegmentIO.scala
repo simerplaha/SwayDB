@@ -19,30 +19,30 @@
 
 package swaydb.core.segment.format.a.block
 
-import swaydb.data.config.{BlockIO, BlockStatus}
+import swaydb.data.config.{IOStrategy, IOAction}
 
 object SegmentIO {
 
   def defaultSynchronisedStoredIfCompressed =
     new SegmentIO(
-      segmentBlockIO = BlockIO.defaultSynchronisedStoredIfCompressed,
-      hashIndexBlockIO = BlockIO.defaultSynchronisedStoredIfCompressed,
-      bloomFilterBlockIO = BlockIO.defaultSynchronisedStoredIfCompressed,
-      binarySearchIndexBlockIO = BlockIO.defaultSynchronisedStoredIfCompressed,
-      sortedIndexBlockIO = BlockIO.defaultSynchronisedStoredIfCompressed,
-      valuesBlockIO = BlockIO.defaultSynchronisedStoredIfCompressed,
-      segmentFooterBlockIO = BlockIO.defaultSynchronisedStoredIfCompressed
+      segmentBlockIO = IOStrategy.defaultSynchronisedStoredIfCompressed,
+      hashIndexBlockIO = IOStrategy.defaultSynchronisedStoredIfCompressed,
+      bloomFilterBlockIO = IOStrategy.defaultSynchronisedStoredIfCompressed,
+      binarySearchIndexBlockIO = IOStrategy.defaultSynchronisedStoredIfCompressed,
+      sortedIndexBlockIO = IOStrategy.defaultSynchronisedStoredIfCompressed,
+      valuesBlockIO = IOStrategy.defaultSynchronisedStoredIfCompressed,
+      segmentFooterBlockIO = IOStrategy.defaultSynchronisedStoredIfCompressed
     )
 
   def defaultSynchronisedStored =
     new SegmentIO(
-      segmentBlockIO = BlockIO.defaultSynchronisedStored,
-      hashIndexBlockIO = BlockIO.defaultSynchronisedStored,
-      bloomFilterBlockIO = BlockIO.defaultSynchronisedStored,
-      binarySearchIndexBlockIO = BlockIO.defaultSynchronisedStored,
-      sortedIndexBlockIO = BlockIO.defaultSynchronisedStored,
-      valuesBlockIO = BlockIO.defaultSynchronisedStored,
-      segmentFooterBlockIO = BlockIO.defaultSynchronisedStored
+      segmentBlockIO = IOStrategy.defaultSynchronisedStored,
+      hashIndexBlockIO = IOStrategy.defaultSynchronisedStored,
+      bloomFilterBlockIO = IOStrategy.defaultSynchronisedStored,
+      binarySearchIndexBlockIO = IOStrategy.defaultSynchronisedStored,
+      sortedIndexBlockIO = IOStrategy.defaultSynchronisedStored,
+      valuesBlockIO = IOStrategy.defaultSynchronisedStored,
+      segmentFooterBlockIO = IOStrategy.defaultSynchronisedStored
     )
 
   def apply(bloomFilterConfig: BloomFilterBlock.Config,
@@ -62,10 +62,10 @@ object SegmentIO {
     )
 }
 
-private[core] case class SegmentIO(segmentBlockIO: BlockStatus => BlockIO,
-                                   hashIndexBlockIO: BlockStatus => BlockIO,
-                                   bloomFilterBlockIO: BlockStatus => BlockIO,
-                                   binarySearchIndexBlockIO: BlockStatus => BlockIO,
-                                   sortedIndexBlockIO: BlockStatus => BlockIO,
-                                   valuesBlockIO: BlockStatus => BlockIO,
-                                   segmentFooterBlockIO: BlockStatus => BlockIO)
+private[core] case class SegmentIO(segmentBlockIO: IOAction => IOStrategy,
+                                   hashIndexBlockIO: IOAction => IOStrategy,
+                                   bloomFilterBlockIO: IOAction => IOStrategy,
+                                   binarySearchIndexBlockIO: IOAction => IOStrategy,
+                                   sortedIndexBlockIO: IOAction => IOStrategy,
+                                   valuesBlockIO: IOAction => IOStrategy,
+                                   segmentFooterBlockIO: IOAction => IOStrategy)

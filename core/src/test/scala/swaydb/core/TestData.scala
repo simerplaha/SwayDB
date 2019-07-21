@@ -45,7 +45,7 @@ import swaydb.core.util.UUIDUtil
 import swaydb.core.util.cache.Cache
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.{BlockIO, Dir, RecoveryMode}
+import swaydb.data.config.{IOStrategy, Dir, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
@@ -2620,9 +2620,9 @@ object TestData {
   def randomIOAccess(cacheOnAccess: => Boolean = randomBoolean()) =
     Random.shuffle(
       Seq(
-        BlockIO.ConcurrentIO(cacheOnAccess),
-        BlockIO.SynchronisedIO(cacheOnAccess),
-        BlockIO.ReservedIO(cacheOnAccess)
+        IOStrategy.ConcurrentIO(cacheOnAccess),
+        IOStrategy.SynchronisedIO(cacheOnAccess),
+        IOStrategy.ReservedIO(cacheOnAccess)
       )
     ).head
 

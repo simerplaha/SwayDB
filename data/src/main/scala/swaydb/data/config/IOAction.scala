@@ -18,18 +18,21 @@
  */
 package swaydb.data.config
 
-sealed trait BlockStatus {
+sealed trait IOAction {
   def isCompressed: Boolean
 }
 
-object BlockStatus {
-  case class BlockInfo(size: Int) extends BlockStatus {
+object IOAction {
+  case class ReadDataOverview(size: Int) extends IOAction {
     override def isCompressed: Boolean = false
   }
-  case class CompressedBlock(compressedSize: Int, decompressedSize: Int) extends BlockStatus {
+  case class ReadCompressedData(compressedSize: Int, decompressedSize: Int) extends IOAction {
     override def isCompressed: Boolean = true
   }
-  case class UncompressedBlock(size: Int) extends BlockStatus {
+  case class ReadUncompressedData(size: Int) extends IOAction {
+    override def isCompressed: Boolean = false
+  }
+  case object OpenResource extends IOAction {
     override def isCompressed: Boolean = false
   }
 }

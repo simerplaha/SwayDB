@@ -31,7 +31,7 @@ object KeyValueGroupingStrategy {
                    bloomFilter: MightContainIndex,
                    values: ValuesConfig,
                    applyGroupingOnCopy: Boolean,
-                   groupIO: BlockStatus => BlockIO,
+                   groupIO: IOAction => IOStrategy,
                    groupCompressions: UncompressedBlockInfo => Seq[Compression],
                    groupGroupingStrategy: Option[GroupGroupingStrategy]) extends KeyValueGroupingStrategy
 
@@ -42,7 +42,7 @@ object KeyValueGroupingStrategy {
                   bloomFilter: MightContainIndex,
                   values: ValuesConfig,
                   applyGroupingOnCopy: Boolean,
-                  groupIO: BlockStatus => BlockIO,
+                  groupIO: IOAction => IOStrategy,
                   groupCompressions: UncompressedBlockInfo => Seq[Compression],
                   groupGroupingStrategy: Option[GroupGroupingStrategy]) extends KeyValueGroupingStrategy
 }

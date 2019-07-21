@@ -23,5 +23,5 @@ import swaydb.data.api.grouping.Compression
 
 case class ValuesConfig(compressDuplicateValues: Boolean,
                         compressDuplicateRangeValues: Boolean,
-                        blockIO: BlockStatus => BlockIO,
+                        ioStrategy: IOAction => IOStrategy,
                         compression: UncompressedBlockInfo => Seq[Compression])

@@ -26,7 +26,7 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil, MurmurHash3Generic, Options}
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
+import swaydb.data.config.{IOStrategy, IOAction, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -39,7 +39,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
       Config(
         falsePositiveRate = 0.0,
         minimumNumberOfKeys = Int.MaxValue,
-        blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+        blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         compressions = _ => Seq.empty
       )
 
@@ -49,14 +49,14 @@ private[core] object BloomFilterBlock extends LazyLogging {
           Config(
             falsePositiveRate = 0.0,
             minimumNumberOfKeys = Int.MaxValue,
-            blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+            blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
             compressions = _ => Seq.empty
           )
         case enable: swaydb.data.config.MightContainIndex.Enable =>
           Config(
             falsePositiveRate = enable.falsePositiveRate,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
-            blockIO = FunctionUtil.safe(BlockIO.defaultSynchronisedStoredIfCompressed, enable.blockIO),
+            blockIO = FunctionUtil.safe(IOStrategy.defaultSynchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
               FunctionUtil.safe(
                 default = _ => Seq.empty[CompressionInternal],
@@ -68,7 +68,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
 
   case class Config(falsePositiveRate: Double,
                     minimumNumberOfKeys: Int,
-                    blockIO: BlockStatus => BlockIO,
+                    blockIO: IOAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset

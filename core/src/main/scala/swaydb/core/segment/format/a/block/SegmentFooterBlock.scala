@@ -28,7 +28,7 @@ import swaydb.core.segment.format.a.block.SegmentBlock.ClosedBlocks
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.IO
-import swaydb.data.config.{BlockIO, BlockStatus}
+import swaydb.data.config.{IOStrategy, IOAction}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -38,11 +38,11 @@ object SegmentFooterBlock {
   object Config {
     def default =
       Config(
-        blockIO = BlockIO.defaultSynchronisedStoredIfCompressed
+        blockIO = IOStrategy.defaultSynchronisedStoredIfCompressed
       )
   }
 
-  case class Config(blockIO: BlockStatus => BlockIO)
+  case class Config(blockIO: IOAction => IOStrategy)
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 

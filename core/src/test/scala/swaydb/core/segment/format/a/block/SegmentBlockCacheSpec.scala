@@ -5,7 +5,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.data.config.BlockIO
+import swaydb.data.config.IOStrategy
 import swaydb.data.order.KeyOrder
 
 class SegmentBlockCacheSpec extends TestBase {
@@ -27,12 +27,12 @@ class SegmentBlockCacheSpec extends TestBase {
                 enabled = true,
                 minimumNumberOfKeys = 0,
                 fullIndex = true,
-                blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+                blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
                 compressions = _ => binarySearchIndexCompression
               ),
             sortedIndexConfig =
               SortedIndexBlock.Config(
-                blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+                blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
                 prefixCompressionResetCount = 3,
                 enableAccessPositionIndex = true,
                 compressions = _ => sortedIndexCompression

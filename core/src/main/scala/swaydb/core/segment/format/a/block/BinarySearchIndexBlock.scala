@@ -24,7 +24,7 @@ import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil, MinMax, Options}
 import swaydb.data.IO
-import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
+import swaydb.data.config.{IOStrategy, IOAction, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -42,7 +42,7 @@ private[core] object BinarySearchIndexBlock {
         enabled = false,
         minimumNumberOfKeys = 0,
         fullIndex = false,
-        blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+        blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         compressions = _ => Seq.empty
       )
 
@@ -53,7 +53,7 @@ private[core] object BinarySearchIndexBlock {
             enabled = false,
             minimumNumberOfKeys = Int.MaxValue,
             fullIndex = false,
-            blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+            blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
             compressions = _ => Seq.empty
           )
 
@@ -62,7 +62,7 @@ private[core] object BinarySearchIndexBlock {
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             fullIndex = true,
-            blockIO = FunctionUtil.safe(BlockIO.defaultSynchronisedStoredIfCompressed, enable.blockIO),
+            blockIO = FunctionUtil.safe(IOStrategy.defaultSynchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
               FunctionUtil.safe(
                 default = _ => Seq.empty[CompressionInternal],
@@ -75,7 +75,7 @@ private[core] object BinarySearchIndexBlock {
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             fullIndex = false,
-            blockIO = FunctionUtil.safe(BlockIO.defaultSynchronisedStoredIfCompressed, enable.blockIO),
+            blockIO = FunctionUtil.safe(IOStrategy.defaultSynchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
               FunctionUtil.safe(
                 default = _ => Seq.empty[CompressionInternal],
@@ -88,7 +88,7 @@ private[core] object BinarySearchIndexBlock {
   case class Config(enabled: Boolean,
                     minimumNumberOfKeys: Int,
                     fullIndex: Boolean,
-                    blockIO: BlockStatus => BlockIO,
+                    blockIO: IOAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset

@@ -23,7 +23,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.util.Benchmark
-import swaydb.data.config.BlockIO
+import swaydb.data.config.IOStrategy
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -89,7 +89,7 @@ class SegmentSearcherPerformanceSpec extends TestBase with MockFactory {
         keyValues = keyValues,
         segmentConfig =
           new SegmentBlock.Config(
-            blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+            blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
             compressions = _ => Seq.empty
           ),
         createdInLevel = 0

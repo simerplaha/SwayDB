@@ -25,7 +25,7 @@ import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.IO
-import swaydb.data.config.{BlockIO, UncompressedBlockInfo}
+import swaydb.data.config.{IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -56,7 +56,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   enabled = false,
                   minimumNumberOfKeys = 0,
                   fullIndex = randomBoolean(),
-                  blockIO = _ => BlockIO.defaultBlockReadersStored,
+                  blockIO = _ => IOStrategy.defaultBlockReadersStored,
                   compressions = _ => randomCompressionsOrEmpty()
                 )
             )

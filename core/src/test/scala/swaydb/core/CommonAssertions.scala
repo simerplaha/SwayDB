@@ -48,7 +48,7 @@ import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReade
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.IO
-import swaydb.data.config.BlockIO
+import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.StorageUnits._
@@ -1444,13 +1444,13 @@ object CommonAssertions {
     getSegmentBlockCacheFromSegmentClosed(segment, segmentIO)
   }
 
-  def randomBlockIO(): BlockIO =
+  def randomBlockIO(): IOStrategy =
     if (randomBoolean())
-      BlockIO.SynchronisedIO(randomBoolean())
+      IOStrategy.SynchronisedIO(randomBoolean())
     else if (randomBoolean())
-      BlockIO.ConcurrentIO(randomBoolean())
+      IOStrategy.ConcurrentIO(randomBoolean())
     else
-      BlockIO.ReservedIO(randomBoolean())
+      IOStrategy.ReservedIO(randomBoolean())
 
   def getSegmentBlockCacheFromSegmentClosed(segment: SegmentBlock.Closed, segmentIO: SegmentIO = SegmentIO.random): SegmentBlockCache =
     SegmentBlockCache(

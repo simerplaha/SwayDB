@@ -27,7 +27,7 @@ import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader,
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.config.BlockStatus
+import swaydb.data.config.IOAction
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -38,15 +38,15 @@ private[core] trait Block[O <: BlockOffset] {
   def offset: O
   def headerSize: Int
   def compressionInfo: Option[Block.CompressionInfo]
-  def blockStatus: BlockStatus =
+  def dataType: IOAction =
     compressionInfo map {
       compressionInfo =>
-        BlockStatus.CompressedBlock(
+        IOAction.ReadCompressedData(
           compressedSize = offset.size - headerSize,
           decompressedSize = compressionInfo.decompressedLength
         )
     } getOrElse {
-      BlockStatus.UncompressedBlock(offset.size - headerSize)
+      IOAction.ReadUncompressedData(offset.size - headerSize)
     }
 }
 

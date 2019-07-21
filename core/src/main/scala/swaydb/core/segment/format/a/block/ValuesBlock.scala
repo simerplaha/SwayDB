@@ -25,7 +25,7 @@ import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.IO
-import swaydb.data.config.{BlockIO, BlockStatus, UncompressedBlockInfo}
+import swaydb.data.config.{IOStrategy, IOAction, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 
 private[core] object ValuesBlock {
@@ -53,7 +53,7 @@ private[core] object ValuesBlock {
       ValuesBlock.Config(
         compressDuplicateValues = false,
         compressDuplicateRangeValues = false,
-        blockIO = blockStatus => BlockIO.SynchronisedIO(cacheOnAccess = blockStatus.isCompressed),
+        blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         compressions = _ => Seq.empty
       )
 
@@ -61,7 +61,7 @@ private[core] object ValuesBlock {
       Config(
         compressDuplicateValues = enable.compressDuplicateValues,
         compressDuplicateRangeValues = enable.compressDuplicateRangeValues,
-        blockIO = FunctionUtil.safe(BlockIO.defaultSynchronisedStoredIfCompressed, enable.blockIO),
+        blockIO = FunctionUtil.safe(IOStrategy.defaultSynchronisedStoredIfCompressed, enable.ioStrategy),
         compressions =
           FunctionUtil.safe(
             default = _ => Seq.empty[CompressionInternal],
@@ -72,7 +72,7 @@ private[core] object ValuesBlock {
 
   case class Config(compressDuplicateValues: Boolean,
                     compressDuplicateRangeValues: Boolean,
-                    blockIO: BlockStatus => BlockIO,
+                    blockIO: IOAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   def valuesBlockNotInitialised: IO.Failure[Nothing] =
