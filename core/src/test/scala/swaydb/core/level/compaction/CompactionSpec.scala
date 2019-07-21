@@ -181,7 +181,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
 
     "copy Segments to last level" when {
       "some Segments overlap" in {
-        val allKeyValues = randomPutKeyValues(keyValueCount, addRandomPutDeadlines = false, startId = Some(1)).toMemory
+        val allKeyValues = randomPutKeyValues(keyValueCount, addPutDeadlines = false, startId = Some(1)).toMemory
 
         val keyValues = allKeyValues.groupedSlice(5)
 

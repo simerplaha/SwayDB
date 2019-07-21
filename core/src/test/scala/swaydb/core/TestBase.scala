@@ -648,8 +648,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                        testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]) = {
-    val segment = TestSegment(keyValues).runIO
-    if (closeAfterCreate) segment.close.runIO
+    val segment = TestSegment(keyValues).value
+    if (closeAfterCreate) segment.close.value
 
     assert(keyValues, segment) //first
     if (testAgainAfterAssert) assert(keyValues, segment) //with cache populated
@@ -659,12 +659,12 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       assert(keyValues, segment) //same Segment but test with cleared cache.
 
       val segmentReopened = segment.reopen //reopen
-      if(closeAfterCreate) segmentReopened.close.runIO
+      if(closeAfterCreate) segmentReopened.close.value
       assert(keyValues, segmentReopened)
       if (testAgainAfterAssert) assert(keyValues, segmentReopened)
-      segmentReopened.close.runIO
+      segmentReopened.close.value
     } else {
-      segment.close.runIO
+      segment.close.value
     }
   }
 }

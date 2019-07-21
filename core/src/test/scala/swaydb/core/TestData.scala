@@ -804,8 +804,8 @@ object TestData {
                 case put @ Persistent.Put(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
                   Memory.Put(key, put.getOrFetchValue.runIO, deadline, time)
 
-                case put @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-                  Memory.Update(key, put.getOrFetchValue.runIO, deadline, time)
+                case update @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
+                  Memory.Update(key, update.getOrFetchValue.runIO, deadline, time)
 
                 case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
                   Memory.Function(key, function.getOrFetchFunction.runIO, time)
@@ -1152,9 +1152,9 @@ object TestData {
       Value.Update(value, deadline, testTimer.next)
 
   def randomApplyWithDeadline(value: Option[Slice[Byte]] = randomStringOption,
-                              addRandomRangeRemoves: Boolean = randomBoolean(),
+                              addRangeRemoves: Boolean = randomBoolean(),
                               deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()) =
-    if (addRandomRangeRemoves && randomBoolean())
+    if (addRangeRemoves && randomBoolean())
       Value.Remove(Some(deadline), testTimer.next)
     else
       Value.Update(value, Some(deadline), testTimer.next)
@@ -1179,14 +1179,14 @@ object TestData {
 
   def randomAppliesWithDeadline(max: Int = 5,
                                 value: Option[Slice[Byte]] = randomStringOption,
-                                addRandomRangeRemoves: Boolean = randomBoolean(),
+                                addRangeRemoves: Boolean = randomBoolean(),
                                 deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Value.Apply] =
     Slice {
       (1 to (Random.nextInt(max) max 1)).map {
         _ =>
           randomApplyWithDeadline(
             value = value,
-            addRandomRangeRemoves = addRandomRangeRemoves,
+            addRangeRemoves = addRangeRemoves,
             deadline = deadline
           )
       } toArray
@@ -1478,10 +1478,10 @@ object TestData {
       None
 
   def randomFromValueWithDeadlineOption(value: Option[Slice[Byte]] = randomStringOption,
-                                        addRandomRangeRemoves: Boolean = randomBoolean(),
+                                        addRangeRemoves: Boolean = randomBoolean(),
                                         deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Option[Value.FromValue] =
     if (randomBoolean())
-      Some(randomFromValueWithDeadline(value, addRandomRangeRemoves, deadline))
+      Some(randomFromValueWithDeadline(value, addRangeRemoves, deadline))
     else
       None
 
@@ -1522,17 +1522,17 @@ object TestData {
       Value.Update(value, deadline, testTimer.next)
 
   def randomFromValueWithDeadline(value: Option[Slice[Byte]] = randomStringOption,
-                                  addRandomRangeRemoves: Boolean = randomBoolean(),
+                                  addRangeRemoves: Boolean = randomBoolean(),
                                   deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.FromValue =
     if (randomBoolean())
       Value.Put(value, Some(deadline), testTimer.next)
     else
-      randomRangeValueWithDeadline(value = value, addRandomRangeRemoves = addRandomRangeRemoves, deadline = deadline)
+      randomRangeValueWithDeadline(value = value, addRangeRemoves = addRangeRemoves, deadline = deadline)
 
   def randomRangeValueWithDeadline(value: Option[Slice[Byte]] = randomStringOption,
-                                   addRandomRangeRemoves: Boolean = randomBoolean(),
+                                   addRangeRemoves: Boolean = randomBoolean(),
                                    deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.RangeValue =
-    if (addRandomRangeRemoves && randomBoolean())
+    if (addRangeRemoves && randomBoolean())
       Value.Remove(Some(deadline), testTimer.next)
     else if (randomBoolean())
       Value.PendingApply(randomAppliesWithDeadline(value = value, deadline = deadline))
@@ -1582,37 +1582,37 @@ object TestData {
   def randomIntKeyStringValues(count: Int = 5,
                                startId: Option[Int] = None,
                                valueSize: Int = 50,
-                               addRandomRemoves: Boolean = false,
-                               addRandomRanges: Boolean = false,
-                               addRandomRemoveDeadlines: Boolean = false,
-                               addRandomPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                               addRemoves: Boolean = false,
+                               addRanges: Boolean = false,
+                               addRemoveDeadlines: Boolean = false,
+                               addPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental(),
                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                        keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
       valueSize = valueSize,
-      addRandomRemoves = addRandomRemoves,
-      addRandomRanges = addRandomRanges,
-      addRandomRemoveDeadlines = addRandomRemoveDeadlines,
-      addRandomPutDeadlines = addRandomPutDeadlines
+      addRemoves = addRemoves,
+      addRanges = addRanges,
+      addRemoveDeadlines = addRemoveDeadlines,
+      addPutDeadlines = addPutDeadlines
     )
 
   def randomizedKeyValues(count: Int = 5,
                           startId: Option[Int] = None,
                           valueSize: Int = 50,
                           addPut: Boolean = randomBoolean(),
-                          addRandomRemoves: Boolean = randomBoolean(),
-                          addRandomRangeRemoves: Boolean = randomBoolean(),
-                          addRandomUpdates: Boolean = randomBoolean(),
-                          addRandomFunctions: Boolean = randomBoolean(),
-                          addRandomRanges: Boolean = randomBoolean(),
-                          addRandomPendingApply: Boolean = randomBoolean(),
-                          addRandomRemoveDeadlines: Boolean = randomBoolean(),
-                          addRandomPutDeadlines: Boolean = randomBoolean(),
-                          addRandomExpiredPutDeadlines: Boolean = randomBoolean(),
-                          addRandomUpdateDeadlines: Boolean = randomBoolean(),
-                          addRandomGroups: Boolean = randomBoolean(),
+                          addRemoves: Boolean = randomBoolean(),
+                          addRangeRemoves: Boolean = randomBoolean(),
+                          addUpdates: Boolean = randomBoolean(),
+                          addFunctions: Boolean = randomBoolean(),
+                          addRanges: Boolean = randomBoolean(),
+                          addPendingApply: Boolean = randomBoolean(),
+                          addRemoveDeadlines: Boolean = randomBoolean(),
+                          addPutDeadlines: Boolean = randomBoolean(),
+                          addExpiredPutDeadlines: Boolean = randomBoolean(),
+                          addUpdateDeadlines: Boolean = randomBoolean(),
+                          addGroups: Boolean = randomBoolean(),
                           valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                           sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
@@ -1625,17 +1625,17 @@ object TestData {
       startId = startId,
       valueSize = valueSize,
       addPut = addPut,
-      addRandomRemoves = addRandomRemoves,
-      addRandomRangeRemoves = addRandomRangeRemoves,
-      addRandomUpdates = addRandomUpdates,
-      addRandomFunctions = addRandomFunctions,
-      addRandomRanges = addRandomRanges,
-      addRandomPendingApply = addRandomPendingApply,
-      addRandomRemoveDeadlines = addRandomRemoveDeadlines,
-      addRandomPutDeadlines = addRandomPutDeadlines,
-      addRandomExpiredPutDeadlines = addRandomExpiredPutDeadlines,
-      addRandomUpdateDeadlines = addRandomUpdateDeadlines,
-      addRandomGroups = addRandomGroups,
+      addRemoves = addRemoves,
+      addRangeRemoves = addRangeRemoves,
+      addUpdates = addUpdates,
+      addFunctions = addFunctions,
+      addRanges = addRanges,
+      addPendingApply = addPendingApply,
+      addRemoveDeadlines = addRemoveDeadlines,
+      addPutDeadlines = addPutDeadlines,
+      addExpiredPutDeadlines = addExpiredPutDeadlines,
+      addUpdateDeadlines = addUpdateDeadlines,
+      addGroups = addGroups,
       valuesConfig = valuesConfig,
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
@@ -1653,44 +1653,44 @@ object TestData {
       count = count,
       startId = startId,
       valueSize = valueSize,
-      addRandomGroups = true
+      addGroups = true
     )
 
   def randomPutKeyValues(count: Int = 5,
                          startId: Option[Int] = None,
                          valueSize: Int = 50,
-                         addRandomRemoves: Boolean = false,
-                         addRandomRanges: Boolean = false,
-                         addRandomRemoveDeadlines: Boolean = false,
-                         addRandomPutDeadlines: Boolean = true,
-                         addRandomExpiredPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.random): Slice[Memory] =
+                         addRemoves: Boolean = false,
+                         addRanges: Boolean = false,
+                         addRemoveDeadlines: Boolean = false,
+                         addPutDeadlines: Boolean = true,
+                         addExpiredPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.random): Slice[Memory] =
     randomKeyValues(
       count = count,
       startId = startId,
       valueSize = valueSize,
       addPut = true,
-      addRandomRemoves = addRandomRemoves,
-      addRandomRanges = addRandomRanges,
-      addRandomExpiredPutDeadlines = addRandomExpiredPutDeadlines,
-      addRandomRemoveDeadlines = addRandomRemoveDeadlines,
-      addRandomPutDeadlines = addRandomPutDeadlines
+      addRemoves = addRemoves,
+      addRanges = addRanges,
+      addExpiredPutDeadlines = addExpiredPutDeadlines,
+      addRemoveDeadlines = addRemoveDeadlines,
+      addPutDeadlines = addPutDeadlines
     ).toMemory
 
   def randomKeyValues(count: Int = 20,
                       startId: Option[Int] = None,
                       valueSize: Int = 50,
                       addPut: Boolean = true,
-                      addRandomRemoves: Boolean = false,
-                      addRandomRangeRemoves: Boolean = false,
-                      addRandomUpdates: Boolean = false,
-                      addRandomFunctions: Boolean = false,
-                      addRandomRemoveDeadlines: Boolean = false,
-                      addRandomPendingApply: Boolean = false,
-                      addRandomPutDeadlines: Boolean = false,
-                      addRandomExpiredPutDeadlines: Boolean = false,
-                      addRandomUpdateDeadlines: Boolean = false,
-                      addRandomRanges: Boolean = false,
-                      addRandomGroups: Boolean = false,
+                      addRemoves: Boolean = false,
+                      addRangeRemoves: Boolean = false,
+                      addUpdates: Boolean = false,
+                      addFunctions: Boolean = false,
+                      addRemoveDeadlines: Boolean = false,
+                      addPendingApply: Boolean = false,
+                      addPutDeadlines: Boolean = false,
+                      addExpiredPutDeadlines: Boolean = false,
+                      addUpdateDeadlines: Boolean = false,
+                      addRanges: Boolean = false,
+                      addGroups: Boolean = false,
                       valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                       sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                       binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
@@ -1698,7 +1698,7 @@ object TestData {
                       bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit testTimer: TestTimer = TestTimer.Incremental(),
                                                                                                    keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                                    keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
-    val slice = Slice.create[Transient](count * 50) //extra space because addRandomRanges and random Groups can be added for Fixed and Range key-values in the same iteration.
+    val slice = Slice.create[Transient](count * 50) //extra space because addRanges and random Groups can be added for Fixed and Range key-values in the same iteration.
     //            var key = 1
     var key = startId getOrElse randomInt(minus = count)
     var iteration = 0
@@ -1707,7 +1707,7 @@ object TestData {
       //      if (slice.written % 100000 == 0) println(s"Generated ${slice.written} key-values.")
       //protect from going into infinite loop
       if ((iteration >= count * 5) && slice.isEmpty) fail(s"Too many iterations ($iteration) without generated key-values. Expected $count.")
-      if (addRandomGroups && randomBoolean() && randomBoolean()) {
+      if (addGroups && randomBoolean() && randomBoolean()) {
         //create a Random group with the inner key-values the same as count of this group.
         val groupKeyValues =
           randomKeyValues(
@@ -1715,22 +1715,22 @@ object TestData {
             startId = Some(key),
             valueSize = valueSize,
             addPut = addPut,
-            addRandomRemoves = addRandomRemoves,
-            addRandomRangeRemoves = addRandomRangeRemoves,
-            addRandomFunctions = addRandomFunctions,
-            addRandomUpdates = addRandomUpdates,
-            addRandomRemoveDeadlines = addRandomRemoveDeadlines,
-            addRandomExpiredPutDeadlines = addRandomExpiredPutDeadlines,
-            addRandomPendingApply = addRandomPendingApply,
-            addRandomPutDeadlines = addRandomPutDeadlines,
-            addRandomUpdateDeadlines = addRandomUpdateDeadlines,
+            addRemoves = addRemoves,
+            addRangeRemoves = addRangeRemoves,
+            addFunctions = addFunctions,
+            addUpdates = addUpdates,
+            addRemoveDeadlines = addRemoveDeadlines,
+            addExpiredPutDeadlines = addExpiredPutDeadlines,
+            addPendingApply = addPendingApply,
+            addPutDeadlines = addPutDeadlines,
+            addUpdateDeadlines = addUpdateDeadlines,
             valuesConfig = valuesConfig,
             sortedIndexConfig = sortedIndexConfig,
             binarySearchIndexConfig = binarySearchIndexConfig,
             hashIndexConfig = hashIndexConfig,
             bloomFilterConfig = bloomFilterConfig,
-            addRandomRanges = addRandomRanges,
-            addRandomGroups = false //do not create more inner groups.
+            addRanges = addRanges,
+            addGroups = false //do not create more inner groups.
           )
         //could be possible that randomKeyValues returns empty if all generations were set to false.
         if (groupKeyValues.isEmpty) {
@@ -1755,21 +1755,21 @@ object TestData {
           else
             key = group.maxKey.maxKey.readInt() + 1 + randomIntMax(5)
         }
-      } else if (addRandomRanges && randomBoolean()) {
+      } else if (addRanges && randomBoolean()) {
         val toKey = key + 10
         val fromValueValueBytes = eitherOne(None, Some(randomBytesSlice(valueSize)))
         val rangeValueValueBytes = eitherOne(None, Some(randomBytesSlice(valueSize)))
         val fromValueDeadline =
-          if (addRandomPutDeadlines || addRandomRemoveDeadlines || addRandomUpdateDeadlines)
-            randomDeadlineOption(addRandomExpiredPutDeadlines)
+          if (addPutDeadlines || addRemoveDeadlines || addUpdateDeadlines)
+            randomDeadlineOption(addExpiredPutDeadlines)
           else
             None
-        val rangeValueDeadline = if (addRandomRemoveDeadlines || addRandomUpdateDeadlines) randomDeadlineOption else None
+        val rangeValueDeadline = if (addRemoveDeadlines || addUpdateDeadlines) randomDeadlineOption else None
         slice add randomRangeKeyValue(
           from = key,
           to = toKey,
           fromValue = randomFromValueOption(value = fromValueValueBytes, deadline = fromValueDeadline, addPut = addPut),
-          rangeValue = randomRangeValue(value = rangeValueValueBytes, addRemoves = addRandomRangeRemoves, deadline = rangeValueDeadline)
+          rangeValue = randomRangeValue(value = rangeValueValueBytes, addRemoves = addRangeRemoves, deadline = rangeValueDeadline)
         ).toTransient(
           previous = slice.lastOption,
           valuesConfig = valuesConfig,
@@ -1783,11 +1783,11 @@ object TestData {
           key = toKey
         else
           key = toKey + randomIntMax(5)
-      } else if (addRandomRemoves && randomBoolean()) {
+      } else if (addRemoves && randomBoolean()) {
         slice add
           randomRemoveKeyValue(
             key = key: Slice[Byte],
-            deadline = if (addRandomRemoveDeadlines) randomDeadlineOption else None
+            deadline = if (addRemoveDeadlines) randomDeadlineOption else None
           ).toTransient(
             previous = slice.lastOption,
             valuesConfig = valuesConfig,
@@ -1797,12 +1797,12 @@ object TestData {
             bloomFilterConfig = bloomFilterConfig
           )
         key = key + 1
-      } else if (addRandomUpdates && randomBoolean()) {
+      } else if (addUpdates && randomBoolean()) {
         val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
         slice add
           randomUpdateKeyValue(
             key = key: Slice[Byte],
-            deadline = if (addRandomUpdateDeadlines) randomDeadlineOption else None,
+            deadline = if (addUpdateDeadlines) randomDeadlineOption else None,
             value = valueBytes
           ).toTransient(
             previous = slice.lastOption,
@@ -1813,7 +1813,7 @@ object TestData {
             bloomFilterConfig = bloomFilterConfig
           )
         key = key + 1
-      } else if (addRandomFunctions && randomBoolean()) {
+      } else if (addFunctions && randomBoolean()) {
         slice add
           randomFunctionKeyValue(
             key = key: Slice[Byte]
@@ -1826,12 +1826,12 @@ object TestData {
             bloomFilterConfig = bloomFilterConfig
           )
         key = key + 1
-      } else if (addRandomPendingApply && randomBoolean()) {
+      } else if (addPendingApply && randomBoolean()) {
         val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
         slice add
           randomPendingApplyKeyValue(
             key = key: Slice[Byte],
-            deadline = if (addRandomUpdateDeadlines) randomDeadlineOption else None,
+            deadline = if (addUpdateDeadlines) randomDeadlineOption else None,
             value = valueBytes
           ).toTransient(
             previous = slice.lastOption,
@@ -1844,7 +1844,7 @@ object TestData {
         key = key + 1
       } else if (addPut) {
         val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
-        val deadline = if (addRandomPutDeadlines) randomDeadlineOption(addRandomExpiredPutDeadlines) else None
+        val deadline = if (addPutDeadlines) randomDeadlineOption(addExpiredPutDeadlines) else None
         slice add
           randomPutKeyValue(
             key = key: Slice[Byte],
@@ -1869,22 +1869,22 @@ object TestData {
 
   def randomFixedNoneValue(count: Int = 20,
                            startId: Option[Int] = None,
-                           addRandomUpdates: Boolean = true,
-                           addRandomUpdateDeadlines: Boolean = true,
-                           addRandomPutDeadlines: Boolean = true,
-                           addRandomRemoves: Boolean = true,
-                           addRandomRemoveDeadlines: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                           addUpdates: Boolean = true,
+                           addUpdateDeadlines: Boolean = true,
+                           addPutDeadlines: Boolean = true,
+                           addRemoves: Boolean = true,
+                           addRemoveDeadlines: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                      keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
       valueSize = 0,
-      addRandomUpdates = addRandomUpdates,
-      addRandomUpdateDeadlines = addRandomUpdateDeadlines,
-      addRandomPutDeadlines = addRandomPutDeadlines,
-      addRandomRemoves = addRandomRemoves,
-      addRandomRemoveDeadlines = addRandomRemoveDeadlines)
+      addUpdates = addUpdates,
+      addUpdateDeadlines = addUpdateDeadlines,
+      addPutDeadlines = addPutDeadlines,
+      addRemoves = addRemoves,
+      addRemoveDeadlines = addRemoveDeadlines)
 
   def randomGroup(keyValues: Slice[Transient] = randomizedKeyValues()(TestTimer.random, KeyOrder.default, TestLimitQueues.keyValueLimiter),
                   groupConfig: SegmentBlock.Config = SegmentBlock.Config.random,

@@ -877,7 +877,7 @@
 //    "read full index" in {
 //      runThis(10.times) {
 //        //ensure groups are not added because ones read their values are populated in memory
-//        val keyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false)
+//        val keyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
 //        val segment = TestSegment(keyValues).assertGet
 //
 //        if (persistent) segment.isCacheEmpty shouldBe true
@@ -937,8 +937,8 @@
 //    "return None deadline if non of the key-values in the Segments contains deadline" in {
 //
 //      runThis(100.times) {
-//        val segment1 = TestSegment(randomizedKeyValues(keyValuesCount, addRandomPutDeadlines = false, addRandomRemoveDeadlines = false, addRandomUpdateDeadlines = false)).assertGet
-//        val segment2 = TestSegment(randomizedKeyValues(keyValuesCount, addRandomPutDeadlines = false, addRandomRemoveDeadlines = false, addRandomUpdateDeadlines = false)).assertGet
+//        val segment1 = TestSegment(randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)).assertGet
+//        val segment2 = TestSegment(randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)).assertGet
 //
 //        Segment.getNearestDeadlineSegment(segment1, segment2) shouldBe empty
 //
@@ -949,7 +949,7 @@
 //
 //    "return deadline if one of the Segments contains deadline" in {
 //      runThisParallel(10.times) {
-//        val keyValues = randomizedKeyValues(keyValuesCount, addRandomPutDeadlines = false, addRandomRemoveDeadlines = false, addRandomUpdateDeadlines = false).toMemory
+//        val keyValues = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false).toMemory
 //
 //        //only a single key-value with a deadline.
 //        val deadline = 100.seconds.fromNow
@@ -969,7 +969,7 @@
 //          )
 //
 //        val keyValuesWithDeadline = (keyValues ++ Seq(keyValueWithDeadline)).toTransient
-//        val keyValuesNoDeadline = randomizedKeyValues(keyValuesCount, addRandomPutDeadlines = false, addRandomRemoveDeadlines = false, addRandomUpdateDeadlines = false)
+//        val keyValuesNoDeadline = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
 //
 //        val segment1 = TestSegment(keyValuesWithDeadline).assertGet
 //        val segment2 = TestSegment(keyValuesNoDeadline).assertGet

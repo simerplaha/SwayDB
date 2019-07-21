@@ -196,7 +196,7 @@
 //
 //    "add large number of key-values for Grouping" in {
 //
-//      val keyValues = randomizedKeyValues(100000, addRandomGroups = false)
+//      val keyValues = randomizedKeyValues(100000, addGroups = false)
 //
 //      val groupSize = keyValues.last.stats.segmentSizeWithoutFooter / 100
 //

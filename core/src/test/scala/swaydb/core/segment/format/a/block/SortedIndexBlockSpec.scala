@@ -97,7 +97,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
   "write, close, readAll & search" in {
     runThis(10.times) {
-      val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(1000, startId = Some(1), addPut = true, addRandomGroups = false, addRandomRanges = false))
+      val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(1000, startId = Some(1), addPut = true, addGroups = false, addRanges = false))
 
       val state = SortedIndexBlock.init(keyValues)
       keyValues foreach {

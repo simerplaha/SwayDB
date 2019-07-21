@@ -79,7 +79,7 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
     "collapse small Segments to 50% of the size when the Segment's size was reduced by deleting 50% of it's key-values" in {
       //disable throttling so that it does not automatically collapse small Segments
       val level = TestLevel(segmentSize = 1.kb)
-      val keyValues = randomPutKeyValues(1000, addRandomPutDeadlines = false)(TestTimer.Empty)
+      val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)(TestTimer.Empty)
       level.putKeyValuesTest(keyValues).runIO
 
       val segmentCountBeforeDelete = level.segmentsCount()
@@ -119,7 +119,7 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
 
           assertAllSegmentsCreatedInLevel(level)
 
-          val keyValues = randomPutKeyValues(1000, addRandomPutDeadlines = false)(TestTimer.Empty)
+          val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)(TestTimer.Empty)
           level.putKeyValuesTest(keyValues).runIO
           //dispatch another push to trigger split
           level.putKeyValuesTest(Slice(keyValues.head)).runIO
@@ -150,7 +150,7 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
       //Remove or expiring key-values should have the same result
       val level = TestLevel(segmentSize = 1.kb)
       val expiryAt = 5.seconds.fromNow
-      val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addRandomPutDeadlines = false)(TestTimer.Empty)
+      val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addPutDeadlines = false)(TestTimer.Empty)
       level.putKeyValuesTest(keyValues).runIO
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
@@ -188,7 +188,7 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
   "update createdInLevel" in {
     val level = TestLevel(segmentSize = 1.kb)
 
-    val keyValues = randomPutKeyValues(keyValuesCount, addRandomExpiredPutDeadlines = false)
+    val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
     val maps = TestMap(keyValues.toTransient.toMemoryResponse)
     level.put(maps).runIO
 

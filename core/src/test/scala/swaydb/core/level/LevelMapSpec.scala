@@ -96,7 +96,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       else
         Map.memory[Slice[Byte], Memory.SegmentResponse]()
 
-    val keyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomPutDeadlines = false)
+    val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
     keyValues foreach {
       keyValue =>
         map.write(MapEntry.Put(keyValue.key, keyValue.asInstanceOf[Memory.SegmentResponse]))
@@ -162,7 +162,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       else
         Map.memory[Slice[Byte], Memory.SegmentResponse]()
 
-    val keyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomPutDeadlines = false)
+    val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
     keyValues foreach {
       keyValue =>
         map.write(MapEntry.Put(keyValue.key, keyValue.asInstanceOf[Memory.SegmentResponse]))
@@ -194,7 +194,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       "writing to non empty Levels by copying to last Level if key-values do not overlap upper Level" in {
         val nextLevel = mock[NextLevel]
 
-        val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomPutDeadlines = false, startId = Some(1)).map(_.asInstanceOf[Memory.SegmentResponse])
+        val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(1)).map(_.asInstanceOf[Memory.SegmentResponse])
         val map = TestMap(lastLevelKeyValues)
 
         nextLevel.isTrash _ expects() returning false
@@ -212,7 +212,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         }
 
         val level = TestLevel(nextLevel = Some(nextLevel))
-        val keyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000)).toTransient
+        val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000)).toTransient
         level.putKeyValues(keyValues, Seq(TestSegment(keyValues).runIO), None).runIO
 
         level.put(map).runIO

@@ -94,7 +94,7 @@
 //      }
 //
 //      "there are not enough key-values" in {
-//        val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
+//        val keyValues = randomizedKeyValues(keyValueCount, addGroups = false)
 //        val mutableKeyValues = ListBuffer.empty[Transient]
 //        keyValues foreach (mutableKeyValues += _)
 //
@@ -143,7 +143,7 @@
 //      }
 //
 //      "there are enough key-values but key compression's minimum requirement is not satisfied" in {
-//        val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
+//        val keyValues = randomizedKeyValues(keyValueCount, addGroups = false)
 //        val mutableKeyValues = ListBuffer.empty[Transient]
 //        keyValues foreach (mutableKeyValues += _)
 //
@@ -179,7 +179,7 @@
 //      }
 //
 //      "there are enough key-values but values compression's minimum requirement is not satisfied" in {
-//        val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
+//        val keyValues = randomizedKeyValues(keyValueCount, addGroups = false)
 //        val mutableKeyValues = ListBuffer.empty[Transient]
 //        keyValues foreach (mutableKeyValues += _)
 //
@@ -298,7 +298,7 @@
 //      "a Group exists and there are not enough key-values" in {
 //        val group = randomGroup()
 //
-//        val otherKeyValues = randomizedKeyValues(20, startId = Some(group.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+//        val otherKeyValues = randomizedKeyValues(20, startId = Some(group.maxKey.maxKey.readInt() + 1), addGroups = false)
 //        val keyValues = (Seq(group) ++ otherKeyValues).updateStats
 //        val mutableKeyValues = ListBuffer(keyValues.toList: _*)
 //
@@ -352,7 +352,7 @@
 //        val group2 = randomGroup(randomizedKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1)))
 //        val group3 = randomGroup(randomizedKeyValues(keyValueCount, startId = Some(group2.maxKey.maxKey.readInt() + 1)))
 //
-//        val otherKeyValues = randomizedKeyValues(19, startId = Some(group3.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+//        val otherKeyValues = randomizedKeyValues(19, startId = Some(group3.maxKey.maxKey.readInt() + 1), addGroups = false)
 //        val keyValues = (Seq(group1, group2, group3) ++ otherKeyValues).updateStats
 //        val mutableKeyValues = ListBuffer(keyValues.toList: _*)
 //
@@ -403,7 +403,7 @@
 //
 //      "randomly generated key-values but grouping limit is not reached" in {
 //        runThis(100.times) {
-//          val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
+//          val keyValues = randomizedKeyValues(keyValueCount, addGroups = false)
 //          val mutableKeyValues = ListBuffer.empty[Transient]
 //          keyValues foreach (mutableKeyValues += _)
 //
@@ -439,7 +439,7 @@
 //
 //    "return Compressed group (min compression requirement is satisfied - Successfully grouped)" when {
 //      "there are key-values" in {
-//        val keyValues = randomizedKeyValues(20, addRandomGroups = false)
+//        val keyValues = randomizedKeyValues(20, addGroups = false)
 //        val mutableKeyValues = ListBuffer.empty[Transient]
 //        keyValues foreach (mutableKeyValues += _)
 //
@@ -485,7 +485,7 @@
 //
 //      "a Group exists with key-values" in {
 //        val group = randomGroup()
-//        val keyValues = randomizedKeyValues(20, startId = Some(group.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+//        val keyValues = randomizedKeyValues(20, startId = Some(group.maxKey.maxKey.readInt() + 1), addGroups = false)
 //        val mutableKeyValues = ListBuffer((Seq(group) ++ keyValues).updateStats.toList: _*)
 //
 //        SegmentGrouper.groupKeyValues(
@@ -533,7 +533,7 @@
 //        val group1 = randomGroup(randomizedKeyValues(keyValueCount))
 //        val group2 = randomGroup(randomizedKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1)))
 //        val group3 = randomGroup(randomizedKeyValues(keyValueCount, startId = Some(group2.maxKey.maxKey.readInt() + 1)))
-//        val keyValues = randomizedKeyValues(20, startId = Some(group3.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+//        val keyValues = randomizedKeyValues(20, startId = Some(group3.maxKey.maxKey.readInt() + 1), addGroups = false)
 //
 //        val mutableKeyValues = ListBuffer((Seq(group1, group2, group3) ++ keyValues).updateStats.toList: _*)
 //
@@ -582,7 +582,7 @@
 //
 //      "randomly generated key-values but minimum compression requirement is met" in {
 //        runThis(100.times) {
-//          val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
+//          val keyValues = randomizedKeyValues(keyValueCount, addGroups = false)
 //          val mutableKeyValues = ListBuffer.empty[Transient]
 //          keyValues foreach (mutableKeyValues += _)
 //

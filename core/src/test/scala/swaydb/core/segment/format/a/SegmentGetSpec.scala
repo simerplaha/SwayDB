@@ -174,7 +174,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
     "add unsliced key-values to Segment's caches" in {
       assertSegment(
-        keyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false),
+        keyValues = randomizedKeyValues(keyValuesCount, addGroups = false),
         testAgainAfterAssert = false,
         assert =
           (keyValues, segment) =>
@@ -203,7 +203,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 //      runThis(100.times) {
 //        assertSegment(
 //          keyValues =
-//            randomizedKeyValues(keyValuesCount, addRandomGroups = false),
+//            randomizedKeyValues(keyValuesCount, addGroups = false),
 //
 //          testWithCachePopulated =
 //            false,

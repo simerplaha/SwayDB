@@ -645,7 +645,7 @@
 //          val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = Random.nextBoolean(), flushOnOverflow = true, randomIntMax(1.mb), initialWriteCount = 0, dropCorruptedTailEntries = false).assertGet.item
 //
 //          //randomly create 100 key-values to insert into the Map. These key-values may contain range, update, or key-values deadlines randomly.
-//          val keyValues = randomizedKeyValues(1000, addRandomGroups = false).toMemory
+//          val keyValues = randomizedKeyValues(1000, addGroups = false).toMemory
 //          //slice write them to that if map's randomly selected size is too small and multiple maps are written to.
 //          keyValues.groupedSlice(5) foreach {
 //            keyValues =>
@@ -654,7 +654,7 @@
 //          map.skipList.values().asScala shouldBe keyValues
 //
 //          //write overlapping key-values to the same map which are randomly selected and may or may not contain range, update, or key-values deadlines.
-//          val updatedValues = randomizedKeyValues(1000, startId = Some(keyValues.head.key.readInt()), addRandomGroups = false)
+//          val updatedValues = randomizedKeyValues(1000, startId = Some(keyValues.head.key.readInt()), addGroups = false)
 //          val updatedEntries = updatedValues.toMapEntry.assertGet
 //          map.write(updatedEntries).assertGet shouldBe true
 //

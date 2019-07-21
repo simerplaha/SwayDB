@@ -115,19 +115,19 @@
 //
 //  "Nested groups" should {
 //    "read their group's key-values only" in {
-//      val group1KeyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false, startId = Some(0))
+//      val group1KeyValues = randomizedKeyValues(keyValuesCount, addGroups = false, startId = Some(0))
 //      val group1 = randomGroup(group1KeyValues)
 //
-//      val group2KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group1.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+//      val group2KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group1.maxKey.maxKey.readInt() + 1), addGroups = false)
 //      val group2 = randomGroup((Slice(group1) ++ group2KeyValues).updateStats)
 //
-//      val group3KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group2.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+//      val group3KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group2.maxKey.maxKey.readInt() + 1), addGroups = false)
 //      val group3 = randomGroup((Slice(group2) ++ group3KeyValues).updateStats)
 //
-//      val group4KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group3.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+//      val group4KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group3.maxKey.maxKey.readInt() + 1), addGroups = false)
 //      val group4 = randomGroup((Slice(group3) ++ group4KeyValues).updateStats)
 //
-//      val group5KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group4.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+//      val group5KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group4.maxKey.maxKey.readInt() + 1), addGroups = false)
 //      val group5 = randomGroup((Slice(group4) ++ group5KeyValues).updateStats)
 //
 //      //group5 is the root Group.
@@ -148,7 +148,7 @@
 //
 //  //  "Decompressed group" should {
 //  //    "eventually value uncompressed and update cache" in {
-//  //      val keyValues = randomizedKeyValues(100, addRandomGroups = false)
+//  //      val keyValues = randomizedKeyValues(100, addGroups = false)
 //  //
 //  //      implicit val keyValueLimiter = KeyValueLimiter(100.bytes, 5.second)
 //  //

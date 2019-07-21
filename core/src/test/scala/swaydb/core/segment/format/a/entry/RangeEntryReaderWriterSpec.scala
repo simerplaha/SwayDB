@@ -65,7 +65,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
 
   "write and read range entry with other entries" in {
     runThisParallel(1000.times) {
-      val keyValues = randomizedKeyValues(count = 1, addPut = true, addRandomGroups = false)
+      val keyValues = randomizedKeyValues(count = 1, addPut = true, addGroups = false)
       val previous = keyValues.head
 
       val fromKey = keyValues.last.key.readInt() + 1

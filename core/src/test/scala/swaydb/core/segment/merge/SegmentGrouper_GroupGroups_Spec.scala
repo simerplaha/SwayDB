@@ -97,7 +97,7 @@
 //        val group2 = randomGroup(randomizedKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1)))
 //        val group3 = randomGroup(randomizedKeyValues(keyValueCount, startId = Some(group2.maxKey.maxKey.readInt() + 1)))
 //
-//        val otherKeyValues = randomizedKeyValues(20, startId = Some(group3.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+//        val otherKeyValues = randomizedKeyValues(20, startId = Some(group3.maxKey.maxKey.readInt() + 1), addGroups = false)
 //
 //        val groups = Seq(group1, group2, group3).updateStats
 //        val keyValues = (groups ++ otherKeyValues).updateStats

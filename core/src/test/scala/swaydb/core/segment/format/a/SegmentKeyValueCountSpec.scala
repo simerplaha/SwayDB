@@ -74,7 +74,7 @@
 //    "return 1 when the Segment contains only 1 key-value" in {
 //      runThis(100.times) {
 //        assertSegment(
-//          keyValues = randomizedKeyValues(1, addRandomGroups = false),
+//          keyValues = randomizedKeyValues(1, addGroups = false),
 //          assert =
 //            (keyValues, segment) => {
 //              keyValues should have size 1
@@ -88,7 +88,7 @@
 //    "return the number of randomly generated key-values where there are no Groups" in {
 //      runThis(10.times) {
 //        assertSegment(
-//          keyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false),
+//          keyValues = randomizedKeyValues(keyValuesCount, addGroups = false),
 //          assert =
 //            (keyValues, segment) => {
 //              segment.getHeadKeyValueCount().assertGet shouldBe keyValues.size
@@ -101,7 +101,7 @@
 //
 //    "return the number key-values in a single Group" in {
 //      runThis(10.times) {
-//        val groupsKeyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false)
+//        val groupsKeyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
 //        assertSegment(
 //          keyValues = Slice(randomGroup(groupsKeyValues)).toMemory,
 //          assert =
@@ -120,19 +120,19 @@
 //
 //    "return the number key-values in nested Groups" in {
 //      runThis(10.times) {
-//        val group1KeyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false)
+//        val group1KeyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
 //        val group1 = randomGroup(group1KeyValues)
 //
-//        val group2KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group1.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+//        val group2KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group1.maxKey.maxKey.readInt() + 1), addGroups = false)
 //        val group2 = randomGroup((Slice(group1) ++ group2KeyValues).updateStats)
 //        group2.stats.segmentUniqueKeysCount shouldBe (group1KeyValues.size + group2KeyValues.size)
 //
 //        //group3 contains group2 as a child and group2 contains group1 as a child.
-//        val group3KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group2.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+//        val group3KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group2.maxKey.maxKey.readInt() + 1), addGroups = false)
 //        val group3 = randomGroup((Slice(group2) ++ group3KeyValues).updateStats)
 //        group3.stats.segmentUniqueKeysCount shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
 //
-//        val group4KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group3.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+//        val group4KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group3.maxKey.maxKey.readInt() + 1), addGroups = false)
 //        val group4 = randomGroup(group4KeyValues)
 //        group4.stats.segmentUniqueKeysCount shouldBe group4KeyValues.size
 //

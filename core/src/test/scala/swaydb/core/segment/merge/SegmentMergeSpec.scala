@@ -120,7 +120,7 @@ class SegmentMergeSpec extends TestBase {
 
     "make no change if there is only one segment" in {
       runThisParallel(100.times) {
-        val segment: ListBuffer[Transient] = ListBuffer(randomizedKeyValues(randomIntMax(5) max 1, addRandomGroups = false).toList: _*)
+        val segment: ListBuffer[Transient] = ListBuffer(randomizedKeyValues(randomIntMax(5) max 1, addGroups = false).toList: _*)
 
         SegmentMerger.completeMerge(
           segments = ListBuffer(segment),
@@ -285,8 +285,8 @@ class SegmentMergeSpec extends TestBase {
   "Merging fixed into Group" should {
     "return the same result as merging a list of Fixed key-values into Fixed" in {
       runThisParallel(10.times) {
-        val fixedKeyValues = randomKeyValues(count = keyValueCount, addRandomRemoves = true, startId = Some(1))
-        val oldKeyValues = randomKeyValues(count = keyValueCount, startId = Some(fixedKeyValues.head.key.readInt()), addRandomRemoves = true, addRandomRanges = true)
+        val fixedKeyValues = randomKeyValues(count = keyValueCount, addRemoves = true, startId = Some(1))
+        val oldKeyValues = randomKeyValues(count = keyValueCount, startId = Some(fixedKeyValues.head.key.readInt()), addRemoves = true, addRanges = true)
 
         val mergeResultWithoutGroup =
           SegmentMerger.merge(

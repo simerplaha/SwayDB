@@ -106,13 +106,13 @@ class SegmentBlockInitialisationSpec extends TestBase {
             randomizedKeyValues(
               count = 1000,
               startId = Some(1),
-              addRandomGroups = false,
+              addGroups = false,
               addPut = true,
-              addRandomRanges = true,
-              addRandomUpdates = false,
-              addRandomRemoves = false,
-              addRandomFunctions = false,
-              addRandomPendingApply = false
+              addRanges = true,
+              addUpdates = false,
+              addRemoves = false,
+              addFunctions = false,
+              addPendingApply = false
             ).updateStats(
               binarySearchIndexConfig =
                 BinarySearchIndexBlock.Config(
@@ -168,13 +168,13 @@ class SegmentBlockInitialisationSpec extends TestBase {
             randomizedKeyValues(
               count = 100,
               startId = Some(1),
-              addRandomGroups = false,
+              addGroups = false,
               addPut = true,
-              addRandomRanges = true,
-              addRandomUpdates = false,
-              addRandomRemoves = false,
-              addRandomFunctions = false,
-              addRandomPendingApply = false
+              addRanges = true,
+              addUpdates = false,
+              addRemoves = false,
+              addFunctions = false,
+              addPendingApply = false
             ).updateStats(
               binarySearchIndexConfig =
                 BinarySearchIndexBlock.Config(
@@ -219,13 +219,13 @@ class SegmentBlockInitialisationSpec extends TestBase {
             randomizedKeyValues(
               count = 100,
               startId = Some(1),
-              addRandomGroups = false,
+              addGroups = false,
               addPut = true,
-              addRandomRanges = true,
-              addRandomUpdates = false,
-              addRandomRemoves = false,
-              addRandomFunctions = false,
-              addRandomPendingApply = false
+              addRanges = true,
+              addUpdates = false,
+              addRemoves = false,
+              addFunctions = false,
+              addPendingApply = false
             ).updateStats(
               binarySearchIndexConfig =
                 BinarySearchIndexBlock.Config(
@@ -370,7 +370,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
           randomizedKeyValues(
             count = 1000,
             addPut = true,
-            addRandomGroups = false,
+            addGroups = false,
             startId = Some(1)
           )
 

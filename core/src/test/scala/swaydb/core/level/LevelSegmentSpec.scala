@@ -131,7 +131,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
       "writing multiple Segments to a non empty Level" in {
         val level = TestLevel()
-        val allKeyValues = randomPutKeyValues(keyValuesCount * 3, valueSize = 1000, addRandomPutDeadlines = false)(TestTimer.Empty)
+        val allKeyValues = randomPutKeyValues(keyValuesCount * 3, valueSize = 1000, addPutDeadlines = false)(TestTimer.Empty)
         val slicedKeyValues = allKeyValues.groupedSlice(3)
         val keyValues1 = slicedKeyValues(0)
         val keyValues2 = slicedKeyValues(1)

@@ -199,7 +199,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
               implicit val time = testTimer
               level2KeyValues should have size 0
 
-              randomPutKeyValues(keyValuesCount, startId = Some(0), addRandomPutDeadlines = false, addRandomExpiredPutDeadlines = false)
+              randomPutKeyValues(keyValuesCount, startId = Some(0), addPutDeadlines = false, addExpiredPutDeadlines = false)
             },
 
           assertLevel0 =

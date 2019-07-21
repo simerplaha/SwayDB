@@ -68,7 +68,7 @@
 //
 //  "Level.mightContain" should {
 //    "return true for key-values that exists or else false (bloom filter test on reboot)" in {
-//      val keyValues = randomPutKeyValues(keyValuesCount, addRandomPutDeadlines = false)
+//      val keyValues = randomPutKeyValues(keyValuesCount, addPutDeadlines = false)
 //
 //      def assert(level: Level) = {
 //        keyValues foreach {
@@ -92,7 +92,7 @@
 //      //disable throttling so small segment compaction does not occur
 //      val level = TestLevel(segmentSize = 1.kb, nextLevel = None, throttle = (_) => Throttle(Duration.Zero, 0))
 //
-//      val keyValues = randomPutKeyValues(1000, addRandomPutDeadlines = false)
+//      val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)
 //      level.putKeyValuesTest(keyValues).assertGet
 //      //do another put so split occurs.
 //      level.putKeyValuesTest(keyValues.headSlice).assertGet

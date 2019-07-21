@@ -104,11 +104,11 @@ class HashIndexBlockSpec extends TestBase {
         val uncompressedKeyValues =
           randomKeyValues(
             count = 1000,
-            addRandomRemoves = true,
-            addRandomFunctions = true,
-            addRandomRemoveDeadlines = true,
-            addRandomUpdates = true,
-            addRandomPendingApply = true,
+            addRemoves = true,
+            addFunctions = true,
+            addRemoveDeadlines = true,
+            addUpdates = true,
+            addPendingApply = true,
             hashIndexConfig =
               HashIndexBlock.Config.random.copy(
                 allocateSpace = allocateMoreSpace,

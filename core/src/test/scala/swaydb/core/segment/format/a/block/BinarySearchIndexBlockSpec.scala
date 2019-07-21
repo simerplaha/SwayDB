@@ -171,8 +171,8 @@ class BinarySearchIndexBlockSpec extends TestBase {
       randomizedKeyValues(
         count = 1000,
         startId = Some(startId),
-        addRandomRanges = true,
-        addRandomGroups = true,
+        addRanges = true,
+        addGroups = true,
         addPut = true
       ).updateStats(
         binarySearchIndexConfig =

@@ -51,7 +51,7 @@
 //      */
 //    "not drop head Group on memory-overflow" in {
 //      //create a group
-//      val groupKeyValues = randomizedKeyValues(1000, addRandomGroups = false)
+//      val groupKeyValues = randomizedKeyValues(1000, addGroups = false)
 //      val group =
 //        Transient.Group(
 //          keyValues = groupKeyValues,

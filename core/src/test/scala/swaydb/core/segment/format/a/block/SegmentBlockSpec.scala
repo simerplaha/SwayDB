@@ -235,7 +235,7 @@ class SegmentBlockSpec extends TestBase {
 
     "write and read Keys with None value to a Slice[Byte]" in {
       val setDeadlines = false
-      val keyValues = randomFixedNoneValue(count = 2, startId = Some(1), addRandomPutDeadlines = setDeadlines, addRandomUpdateDeadlines = setDeadlines, addRandomRemoveDeadlines = setDeadlines)
+      val keyValues = randomFixedNoneValue(count = 2, startId = Some(1), addPutDeadlines = setDeadlines, addUpdateDeadlines = setDeadlines, addRemoveDeadlines = setDeadlines)
 
       keyValues foreach {
         keyValue =>
@@ -296,7 +296,7 @@ class SegmentBlockSpec extends TestBase {
   "SegmentFooter.read" should {
     "set hasRange to false when Segment contains no Range key-value" in {
       runThis(100.times) {
-        val keyValues = randomizedKeyValues(keyValueCount, addPut = true, addRandomRanges = false)
+        val keyValues = randomizedKeyValues(keyValueCount, addPut = true, addRanges = false)
         if (keyValues.nonEmpty) {
 
           val blocks = getBlocks(keyValues).get
@@ -345,7 +345,7 @@ class SegmentBlockSpec extends TestBase {
       }
 
       runThis(100.times) {
-        doAssert(randomizedKeyValues(keyValueCount, addRandomRangeRemoves = false, addRandomRanges = true, startId = Some(1)))
+        doAssert(randomizedKeyValues(keyValueCount, addRangeRemoves = false, addRanges = true, startId = Some(1)))
       }
     }
 
@@ -449,7 +449,7 @@ class SegmentBlockSpec extends TestBase {
       }
 
       runThis(100.times) {
-        val keyValues = randomizedKeyValues(keyValueCount, addPut = true, addRandomRanges = false, addRandomRangeRemoves = false)
+        val keyValues = randomizedKeyValues(keyValueCount, addPut = true, addRanges = false, addRangeRemoves = false)
         if (keyValues.nonEmpty) doAssert(keyValues)
       }
     }

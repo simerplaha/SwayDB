@@ -20,7 +20,7 @@ class SegmentBlockCacheSpec extends TestBase {
       val binarySearchIndexCompression = randomCompressionsOrEmpty()
       val sortedIndexCompression = randomCompressionsOrEmpty()
       val keyValues =
-        randomizedKeyValues(100, addPut = true, addRandomGroups = false)
+        randomizedKeyValues(100, addPut = true, addGroups = false)
           .updateStats(
             binarySearchIndexConfig =
               BinarySearchIndexBlock.Config(

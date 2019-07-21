@@ -72,17 +72,17 @@ class Level0MapEntrySpec extends TestBase {
         randomizedKeyValues(
           count = 1000,
           addPut = true,
-          addRandomRemoves = true,
-          addRandomRangeRemoves = true,
-          addRandomUpdates = true,
-          addRandomFunctions = true,
-          addRandomRanges = true,
-          addRandomPendingApply = true,
-          addRandomRemoveDeadlines = true,
-          addRandomPutDeadlines = true,
-          addRandomExpiredPutDeadlines = true,
-          addRandomUpdateDeadlines = true,
-          addRandomGroups = false
+          addRemoves = true,
+          addRangeRemoves = true,
+          addUpdates = true,
+          addFunctions = true,
+          addRanges = true,
+          addPendingApply = true,
+          addRemoveDeadlines = true,
+          addPutDeadlines = true,
+          addExpiredPutDeadlines = true,
+          addUpdateDeadlines = true,
+          addGroups = false
         )
 
       keyValues foreach {

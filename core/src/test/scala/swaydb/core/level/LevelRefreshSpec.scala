@@ -100,7 +100,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
     "update createdInLevel" in {
       val level = TestLevel(segmentSize = 1.kb)
 
-      val keyValues = randomPutKeyValues(keyValuesCount, addRandomExpiredPutDeadlines = false)
+      val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
       val maps = TestMap(keyValues.toTransient.toMemoryResponse)
       level.put(maps).runIO
 

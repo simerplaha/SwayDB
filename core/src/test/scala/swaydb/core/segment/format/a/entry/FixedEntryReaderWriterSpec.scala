@@ -67,7 +67,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
     runThis(1000.times) {
       implicit val testTimer = TestTimer.random
 
-      val keyValues = randomizedKeyValues(count = 1, addPut = true, addRandomGroups = false)
+      val keyValues = randomizedKeyValues(count = 1, addPut = true, addGroups = false)
       val previous = keyValues.head
 
       previous.values.size should be <= 1

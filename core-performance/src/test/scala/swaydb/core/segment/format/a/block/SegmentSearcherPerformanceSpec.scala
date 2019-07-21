@@ -42,7 +42,7 @@ class SegmentSearcherPerformanceSpec extends TestBase with MockFactory {
         count = 10000,
         startId = Some(1),
         addPut = true,
-        addRandomGroups = false
+        addGroups = false
       ).updateStats(
         valuesConfig =
           ValuesBlock.Config(
