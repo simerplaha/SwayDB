@@ -538,19 +538,19 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
               (keyValues, segment) => {
                 segment.isOpen shouldBe false
                 segment.isFileDefined shouldBe false
-                segment.isCacheEmpty shouldBe true
+                segment.isKeyValueCacheEmpty shouldBe true
 
                 assertReads(keyValues, segment)
 
                 segment.isOpen shouldBe true
                 segment.isFileDefined shouldBe true
-                segment.isCacheEmpty shouldBe false
+                segment.isKeyValueCacheEmpty shouldBe false
 
                 assertBloom(keyValues, segment)
                 segment.close.runIO
                 segment.isOpen shouldBe false
                 segment.isFileDefined shouldBe false
-                segment.isCacheEmpty shouldBe false
+                segment.isKeyValueCacheEmpty shouldBe false
               }
           )
         }
@@ -734,10 +734,10 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       val segment = TestSegment(keyValues).get
       assertReads(keyValues, segment) //populate the cache
 
-      segment.cacheSize shouldBe keyValues.size
+      segment.cachedKeyValueSize shouldBe keyValues.size
 
       segment.delete.value
-      segment.cacheSize shouldBe keyValues.size //cache is not cleared
+      segment.cachedKeyValueSize shouldBe keyValues.size //cache is not cleared
       if (persistent) {
         segment.isOpen shouldBe false
         segment.isFooterDefined shouldBe false //on delete in-memory footer is cleared

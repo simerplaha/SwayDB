@@ -189,7 +189,11 @@ private[core] object KeyValue {
                   keyValueLimiter: KeyValueLimiter,
                   groupIO: SegmentIO): SegmentCache
       def deadline: Option[Deadline]
-      def isCached: Boolean
+      def areAllCachesEmpty: Boolean
+      def isKeyValuesCacheEmpty: Boolean
+      def isBlockCacheEmpty: Boolean
+      def clearCachedKeyValues(): Unit
+      def clearBlockCache(): Unit
     }
   }
 
@@ -413,8 +417,20 @@ private[swaydb] object Memory {
 
     override def key: Slice[Byte] = minKey
 
-    override def isCached: Boolean =
-      segmentCache.isCached
+    override def areAllCachesEmpty: Boolean =
+      segmentCache.get() forall (_.areAllCachesEmpty)
+
+    def isKeyValuesCacheEmpty: Boolean =
+      segmentCache.get() forall (_.isKeyValueCacheEmpty)
+
+    def isBlockCacheEmpty: Boolean =
+      segmentCache.get() forall (_.isBlockCacheEmpty)
+
+    def clearCachedKeyValues(): Unit =
+      segmentCache.get() foreach (_.clearCachedKeyValues())
+
+    def clearBlockCache(): Unit =
+      segmentCache.get() foreach (_.clearBlockCache())
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
                 keyValueLimiter: KeyValueLimiter,
@@ -1850,8 +1866,20 @@ private[core] object Persistent {
                    deadline: Option[Deadline],
                    isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group {
 
-    def isCached: Boolean =
-      segmentCache.isCached
+    def areAllCachesEmpty: Boolean =
+      segmentCache.get() forall (_.areAllCachesEmpty)
+
+    def isKeyValuesCacheEmpty: Boolean =
+      segmentCache.get() forall (_.isKeyValueCacheEmpty)
+
+    def isBlockCacheEmpty: Boolean =
+      segmentCache.get() forall (_.isBlockCacheEmpty)
+
+    def clearCachedKeyValues(): Unit =
+      segmentCache.get() foreach (_.clearCachedKeyValues())
+
+    def clearBlockCache(): Unit =
+      segmentCache.get() foreach (_.clearBlockCache())
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 

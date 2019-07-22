@@ -907,11 +907,13 @@ private[core] trait Segment extends FileLimiterItem {
 
   def clearAllCaches(): Unit
 
-  def isInCache(key: Slice[Byte]): Boolean
+  def isInKeyValueCache(key: Slice[Byte]): Boolean
 
-  def isCacheEmpty: Boolean
+  def isKeyValueCacheEmpty: Boolean
 
-  def cacheSize: Int
+  def areAllCachesEmpty: Boolean
+
+  def cachedKeyValueSize: Int
 
   def hasRange: IO[Boolean]
 

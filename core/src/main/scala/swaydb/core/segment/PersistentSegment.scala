@@ -99,7 +99,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def path = file.path
 
   def cache: ConcurrentSkipListMap[Slice[Byte], Persistent] =
-    segmentCache.persistentCache
+    segmentCache.keyValueCache
 
   def close: IO[Unit] =
     file.close map {
@@ -322,12 +322,15 @@ private[segment] case class PersistentSegment(file: DBFile,
     segmentCache.clearBlockCache()
   }
 
-  def isInCache(key: Slice[Byte]): Boolean =
-    segmentCache isInCache key
+  def isInKeyValueCache(key: Slice[Byte]): Boolean =
+    segmentCache isInKeyValueCache key
 
-  def isCacheEmpty: Boolean =
-    segmentCache.isCacheEmpty
+  def isKeyValueCacheEmpty: Boolean =
+    segmentCache.isKeyValueCacheEmpty
 
-  def cacheSize: Int =
+  def areAllCachesEmpty: Boolean =
+    segmentCache.areAllCachesEmpty
+
+  def cachedKeyValueSize: Int =
     segmentCache.cacheSize
 }

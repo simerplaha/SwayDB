@@ -963,6 +963,7 @@ object CommonAssertions {
         } catch {
           case exception: Exception =>
             exception.printStackTrace()
+            System.exit(1)
             throw exception
         }
     }

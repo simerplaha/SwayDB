@@ -97,27 +97,31 @@ private class KeyValueLimiterImpl(cacheSize: Long,
         keyValue <- command.keyValueRef.get
       } yield {
         keyValue match {
-          case persistentGroup: Persistent.Group =>
+          case group: KeyValue.ReadOnly.Group =>
 
             /**
-              * Before removing Persistent.Group, check if uncompressing it is enough,
-              * if it's already uncompressed only then remove or else uncompress and re-add to the queue.
-              * Header is not checked here because it's always going to be uncompressed since it's always pre-read before the Group is added to he Queue in [[add]].
+              * Before removing Group, check if removes cache key-values it is enough,
+              * if it's already clear only then remove.
               */
-            if (persistentGroup.isCached) {
-              val uncompressedGroup = persistentGroup.copy()
-              skipList.asInstanceOf[ConcurrentSkipListMap[Slice[Byte], Persistent]].put(persistentGroup.key, uncompressedGroup)
-              add(uncompressedGroup, skipList)
+            if (!group.isBlockCacheEmpty) {
+              group.clearBlockCache()
+              add(group, skipList)
+            } else if (!group.isKeyValuesCacheEmpty) {
+              group.clearCachedKeyValues()
+              add(group, skipList)
             } else {
-              skipList.remove(keyValue.key)
+              group match {
+                case group: Memory.Group =>
+                  //Memory.Group key-values are only uncompressed. DO NOT REMOVE THEM!
+                  skipList.asInstanceOf[ConcurrentSkipListMap[Slice[Byte], Memory]].put(group.key, group.uncompress())
+
+                case group: Persistent.Group =>
+                  skipList remove group.key
+              }
             }
 
           case _: Persistent.SegmentResponse =>
-            skipList.remove(keyValue.key)
-
-          //Memory.Group key-values are only uncompressed. DO NOT REMOVE THEM!
-          case memoryGroup: Memory.Group =>
-            skipList.asInstanceOf[ConcurrentSkipListMap[Slice[Byte], Memory]].put(memoryGroup.key, memoryGroup.uncompress())
+            skipList remove keyValue.key
         }
       }
   }

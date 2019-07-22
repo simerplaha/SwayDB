@@ -76,9 +76,12 @@ private[segment] case class MemorySegment(path: Path,
     * [[keyValueLimiter]] never removes [[Memory.Group]] key-value but instead uncompressed and re-adds them to the skipList.
     *
     */
-  private def addToQueueMayBe(group: Memory.Group): Unit =
-    if (!group.isCached) //If the header is already initialised then this Group is already in the Limit queue as the queue always pre-reads the header
+  private def addToQueueMayBe(group: Memory.Group): Unit = {
+    val groupSegment = group.segment
+    //If the group is already initialised then this Group is already in the Limit queue as the queue always pre-reads the header
+    if (!groupSegment.blockCache.isCached && groupSegment.isKeyValueCacheEmpty)
       keyValueLimiter.add(group, cache) //this is a new decompression, add to queue.
+  }
 
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],
                    minSegmentSize: Long,
@@ -247,7 +250,7 @@ private[segment] case class MemorySegment(path: Path,
       reader =>
         BloomFilterBlock.mightContain(
           key = key,
-          reader = reader
+          reader = reader.copy()
         )
     } getOrElse IO.`true`
 
@@ -458,11 +461,15 @@ private[segment] case class MemorySegment(path: Path,
         ()
     }
 
-  override def isInCache(key: Slice[Byte]): Boolean =
+  override def isInKeyValueCache(key: Slice[Byte]): Boolean =
     cache containsKey key
 
-  override def isCacheEmpty: Boolean =
+  override def isKeyValueCacheEmpty: Boolean =
     cache.isEmpty
-  override def cacheSize: Int =
+
+  def areAllCachesEmpty: Boolean =
+    isKeyValueCacheEmpty
+
+  override def cachedKeyValueSize: Int =
     cache.size()
 }

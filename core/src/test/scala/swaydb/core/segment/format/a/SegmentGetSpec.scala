@@ -213,9 +213,9 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
             (keyValues, segment) =>
               keyValues foreach {
                 keyValue =>
-                  if (persistent) segment isInCache keyValue.key shouldBe false
+                  if (persistent) segment isInKeyValueCache keyValue.key shouldBe false
                   (segment get keyValue.key).runIO shouldBe keyValue
-                  eventually(segment isInCache keyValue.key shouldBe true)
+                  eventually(segment isInKeyValueCache keyValue.key shouldBe true)
               }
         )
       }

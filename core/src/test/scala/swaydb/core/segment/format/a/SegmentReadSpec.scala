@@ -877,7 +877,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         val keyValues = randomizedKeyValues(keyValuesCount, addPut = true, addGroups = false)
         val segment = TestSegment(keyValues).runIO
 
-        if (persistent) segment.isCacheEmpty shouldBe true
+        if (persistent) segment.isKeyValueCacheEmpty shouldBe true
 
         val segmentKeyValues = segment.getAll().runIO.toSlice
 
