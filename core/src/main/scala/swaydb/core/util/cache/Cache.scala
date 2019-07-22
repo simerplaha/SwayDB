@@ -26,7 +26,19 @@ import swaydb.core.util.FunctionUtil
 import swaydb.data.config.IOStrategy
 import swaydb.data.{IO, Reserve}
 
-object Cache {
+private[core] object Cache {
+
+  def empty[I, O](emptyOutput: O): Cache[I, O] =
+    Cache.concurrentIO[I, O](synchronised = false, stored = false){
+      _ =>
+        IO(emptyOutput)
+    }
+
+  def emptyNoIO[I, O](empty: O): NoIO[I, O] =
+    Cache.noIO(synchronised = false, stored = false) {
+      _ =>
+        empty
+    }
 
   def emptyValuesBlock: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
     Cache.concurrentIO(synchronised = false, stored = true) {
@@ -87,7 +99,7 @@ object Cache {
   * Caches a value on read. Used for IO operations where the output does not change.
   * For example: A file's size.
   */
-sealed trait Cache[I, O] extends LazyLogging { self =>
+private[core] sealed trait Cache[I, O] extends LazyLogging { self =>
   def value(i: => I): IO[O]
   def isCached: Boolean
   def clear(): Unit
