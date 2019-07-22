@@ -31,6 +31,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.core.IOValues._
+import swaydb.core.data.Transient
 
 class SegmentHigherSpec0 extends SegmentHigherSpec {
   val keyValuesCount: Int = 100
@@ -120,7 +121,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
     }
 
     "value the higher from the segment when there are Range key-values" in {
-      //1, (2 - 5), 10, (11 - 20), (20 - 30)
+      //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
       runThis(1.times) {
         assertSegment(
           keyValues = Slice(
@@ -128,58 +129,71 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
             randomRangeKeyValue(2, 5),
             randomFixedKeyValue(10),
             randomRangeKeyValue(11, 20),
-            randomRangeKeyValue(20, 30)
+            randomRangeKeyValue(20, 30),
+            randomGroup(Slice(randomFixedKeyValue(30),randomRangeKeyValue(40, 50)).toTransient).toMemory
           ).toTransient,
           assert =
             (keyValues, segment) => {
               //0
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.higher(0).runIO.value shouldBe keyValues(0)
               //1
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.higher(1).runIO.value shouldBe keyValues(1)
               //    2
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.higher(2).runIO.value shouldBe keyValues(1)
               //     3
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.higher(3).runIO.value shouldBe keyValues(1)
               //       4
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.higher(4).runIO.value shouldBe keyValues(1)
               //        5
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.higher(5).runIO.value shouldBe keyValues(2)
               //          6
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.higher(6).runIO.value shouldBe keyValues(2)
               //            10
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.higher(10).runIO.value shouldBe keyValues(3)
               //                 11
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.higher(11).runIO.value shouldBe keyValues(3)
               //                   12
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.higher(12).runIO.value shouldBe keyValues(3)
               //                    19
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.higher(19).runIO.value shouldBe keyValues(3)
               //                      20
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.higher(20).runIO.value shouldBe keyValues(4)
               //                              21
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.higher(21).runIO.value shouldBe keyValues(4)
               //                                29
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.higher(29).runIO.value shouldBe keyValues(4)
               //                                 30
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.higher(30).runIO shouldBe empty
-              //                                    31
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.higher(31).runIO shouldBe empty
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.higher(30).runIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              //                                          31
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.higher(31).runIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              //                                            40
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.higher(40).runIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              //                                              45
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.higher(45).runIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              //                                                 50
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.higher(50).runIO shouldBe empty
+              //                                                     51
+              //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.higher(51).runIO shouldBe empty
             }
         )
       }

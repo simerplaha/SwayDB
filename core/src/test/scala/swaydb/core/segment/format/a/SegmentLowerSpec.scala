@@ -32,6 +32,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.core.IOValues._
 import org.scalatest.OptionValues._
+import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.HashIndexBlock
 
 class SegmentLowerSpec0 extends SegmentLowerSpec {
@@ -110,7 +111,7 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
     }
 
     "value the lower from the segment when there are Range key-values" in {
-      //1, (2 - 5), 10, (11 - 20), (20 - 30)
+      //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
       runThis(1000.times) {
         assertSegment(
           keyValues = Slice(
@@ -118,7 +119,8 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
             randomRangeKeyValue(2, 5),
             randomFixedKeyValue(10),
             randomRangeKeyValue(11, 20),
-            randomRangeKeyValue(20, 30)
+            randomRangeKeyValue(20, 30),
+            randomGroup(Slice(randomFixedKeyValue(30),randomRangeKeyValue(40, 50)).toTransient).toMemory
           ).toTransient(
             hashIndexConfig = HashIndexBlock.Config(10, 0, 0, _.requiredSpace * 10, _ => randomIOStrategy(), _=> Seq.empty)
           ),
@@ -126,53 +128,65 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
           assert =
             (keyValues, segment) => {
               //0
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(0).runIO shouldBe empty
               //1
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(1).runIO shouldBe empty
               //    2
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(2).runIO.value shouldBe keyValues(0)
               //     3
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(3).runIO.value shouldBe keyValues(1)
               //       4
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(4).runIO.value shouldBe keyValues(1)
               //        5
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(5).runIO.value shouldBe keyValues(1)
               //          6
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(6).runIO.value shouldBe keyValues(1)
               //            10
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(10).runIO.value shouldBe keyValues(1)
               //                 11
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(11).runIO.value shouldBe keyValues(2)
               //                   12
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(12).runIO.value shouldBe keyValues(3)
               //                    19
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(19).runIO.value shouldBe keyValues(3)
               //                      20
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(20).runIO.value shouldBe keyValues(3)
               //                              21
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(21).runIO.value shouldBe keyValues(4)
               //                                29
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(29).runIO.value shouldBe keyValues(4)
               //                                 30
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(30).runIO.value shouldBe keyValues(4)
-              //                                    31
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(31).runIO.value shouldBe keyValues(4)
+              //                                           31
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(31).runIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.head
+              //                                              40
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(40).runIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.head
+              //                                                41
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(41).runIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              //                                                   50
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(50).runIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              //                                                      51
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(51).runIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
             }
         )
       }

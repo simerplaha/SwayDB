@@ -40,7 +40,7 @@ import scala.concurrent.duration.Deadline
   *
   * Implements Actor functions.
   */
-object Compactor extends CompactionStrategy[CompactorState] with LazyLogging {
+private[core] object Compactor extends CompactionStrategy[CompactorState] with LazyLogging {
 
   /**
     * Split levels into compaction groups with dedicated or shared ExecutionContexts based on
