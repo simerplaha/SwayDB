@@ -45,10 +45,6 @@ trait Tag[T[_]] {
   def fromIO[A](a: IO[A]): T[A]
 }
 
-trait TagAsync[T[_]] extends Tag[T] {
-  def fromFuture[A](a: Future[A]): T[A]
-}
-
 object Tag {
 
   implicit val tryTag: Tag[Try] =
@@ -167,8 +163,12 @@ object Tag {
       override def fromIO[A](a: IO[A]): IO[A] = a
     }
 
-  implicit def future(implicit ec: ExecutionContext): TagAsync[Future] =
-    new TagAsync[Future] {
+  trait Async[T[_]] extends Tag[T] {
+    def fromFuture[A](a: Future[A]): T[A]
+  }
+
+  implicit def future(implicit ec: ExecutionContext): Tag.Async[Future] =
+    new Tag.Async[Future] {
       override def apply[A](a: => A): Future[A] = Future(a)
       override def map[A, B](a: A)(f: A => B): Future[B] = Future(f(a))
       override def flatMap[A, B](fa: Future[A])(f: A => Future[B]): Future[B] = fa.flatMap(f)

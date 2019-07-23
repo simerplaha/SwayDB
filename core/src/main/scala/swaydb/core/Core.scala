@@ -24,7 +24,7 @@ import swaydb.core.data.KeyValue.KeyValueTuple
 import swaydb.core.data.SwayFunction
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.{Tag, TagAsync}
+import swaydb.data.io.Tag
 import swaydb.data.slice.Slice
 
 import scala.concurrent.ExecutionContext
@@ -77,7 +77,7 @@ private[swaydb] trait Core[T[_]] {
   def level0Meter: LevelZeroMeter
   def levelMeter(levelNumber: Int): Option[LevelMeter]
 
-  def tagAsync[T[_]](implicit ec: ExecutionContext, tag: TagAsync[T]): Core[T]
+  def tagAsync[T[_]](implicit ec: ExecutionContext, tag: Tag.Async[T]): Core[T]
   def tagBlocking[T[_]](implicit tag: Tag[T]): BlockingCore[T]
 
   def close(): T[Unit]

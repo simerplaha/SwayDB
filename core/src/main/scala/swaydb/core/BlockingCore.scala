@@ -31,7 +31,7 @@ import swaydb.IO.Error
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}
-import swaydb.data.io.{Tag, TagAsync}
+import swaydb.data.io.Tag
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -367,7 +367,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def delete(): T[Unit] =
     tag.fromIO(onClose().flatMap(_ => zero.delete))
 
-  override def tagAsync[T[_]](implicit ec: ExecutionContext, tag: TagAsync[T]): Core[T] =
+  override def tagAsync[T[_]](implicit ec: ExecutionContext, tag: Tag.Async[T]): Core[T] =
     AsyncCore(zero, onClose)
 
   override def tagBlocking[T[_]](implicit tag: Tag[T]): BlockingCore[T] =

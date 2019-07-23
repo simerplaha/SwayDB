@@ -24,7 +24,7 @@ import swaydb.core.Core
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.Tag._
-import swaydb.data.io.{Tag, TagAsync}
+import swaydb.data.io.Tag
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
@@ -369,7 +369,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     * Returns an Async API of type O where the [[Tag]] is known.
     */
   def tagAsync[O[_]](implicit ec: ExecutionContext,
-                     tag: TagAsync[O]): Map[K, V, O] =
+                     tag: Async[O]): Map[K, V, O] =
     copy(core = core.tagAsync[O])
 
   /**
