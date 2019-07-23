@@ -42,7 +42,7 @@ class StreamTrySpec extends StreamSpec[Try] {
   override def get[A](a: Try[A]): A = a.get
 }
 
-sealed abstract class StreamSpec[T[_]](implicit wrap: Tag[T]) extends WordSpec with Matchers {
+sealed abstract class StreamSpec[T[_]](implicit tag: Tag[T]) extends WordSpec with Matchers {
 
   def get[A](a: T[A]): A
 

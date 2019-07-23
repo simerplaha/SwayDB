@@ -35,7 +35,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 /**
   * Map database API.
   *
-  * For documentation check - http://swaydb.io/wrap/
+  * For documentation check - http://swaydb.io/tag/
   */
 case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
                            private val from: Option[From[K]] = None,

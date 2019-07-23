@@ -40,28 +40,28 @@ object Stream {
   /**
     * Create and empty [[Stream]].
     */
-  def empty[T, W[_]](implicit wrap: Tag[W]) =
+  def empty[T, W[_]](implicit tag: Tag[W]) =
     apply[T, W](Iterable.empty)
 
   /**
     * Create a [[Stream]] from a collection.
     */
-  def apply[T, W[_]](items: Iterable[T])(implicit wrap: Tag[W]): Stream[T, W] =
+  def apply[T, W[_]](items: Iterable[T])(implicit tag: Tag[W]): Stream[T, W] =
     new Stream[T, W] {
 
       private val iterator = items.iterator
 
       private def step(): W[Option[T]] =
         if (iterator.hasNext)
-          wrap.success(Some(iterator.next()))
+          tag.success(Some(iterator.next()))
         else
-          wrap.none
+          tag.none
 
       override def headOption(): W[Option[T]] = step()
       override private[swaydb] def next(previous: T): W[Option[T]] = step()
     }
 
-  class StreamBuilder[T, W[_]](implicit wrap: Tag[W]) extends mutable.Builder[T, Stream[T, W]] {
+  class StreamBuilder[T, W[_]](implicit tag: Tag[W]) extends mutable.Builder[T, Stream[T, W]] {
     private val items: ListBuffer[T] = ListBuffer.empty[T]
 
     override def +=(x: T): this.type = {
@@ -82,16 +82,16 @@ object Stream {
 
         def step(): W[Option[T]] =
           if (iterator.hasNext)
-            wrap.success(Some(iterator.next()))
+            tag.success(Some(iterator.next()))
           else
-            wrap.none
+            tag.none
 
         override def headOption: W[Option[T]] = step()
         override private[swaydb] def next(previous: T): W[Option[T]] = step()
       }
   }
 
-  implicit def canBuildFrom[T, W[_]](implicit wrap: Tag[W]): CanBuildFrom[Stream[T, W], T, Stream[T, W]] =
+  implicit def canBuildFrom[T, W[_]](implicit tag: Tag[W]): CanBuildFrom[Stream[T, W], T, Stream[T, W]] =
     new CanBuildFrom[Stream[T, W], T, Stream[T, W]] {
       override def apply(from: Stream[T, W]) =
         new StreamBuilder()
@@ -105,7 +105,7 @@ object Stream {
   * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
   * it's required by the stream.
   *
-  * @param tag Implementation for the wrap type.
+  * @param tag Implementation for the tag type.
   * @tparam A stream item's type
   * @tparam T wrapper type.
   */
