@@ -42,15 +42,15 @@ import scala.util.Try
 sealed trait IO[+T] {
   def isFailure: Boolean
   def isSuccess: Boolean
-  def isLater: Boolean
+  def isDeferred: Boolean
   def getOrElse[U >: T](default: => U): U
   def orElse[U >: T](default: => IO[U]): IO[U]
   def get: T
   def foreach[U](f: T => U): Unit
-  def flatMap[U](f: T => IO[U]): IO[U]
-  private[swaydb] def asAsync: IO.Defer[T]
-  private[swaydb] def asIO: IO[T]
   def map[U](f: T => U): IO[U]
+  def flatMap[U](f: T => IO[U]): IO[U]
+  def asDeferred: IO.Defer[T]
+  def asIO: IO[T]
   def exists(f: T => Boolean): Boolean
   def filter(p: T => Boolean): IO[T]
   @inline final def withFilter(p: T => Boolean): WithFilter = new WithFilter(p)
@@ -91,24 +91,24 @@ object IO {
   val ok = IO.Success(OK)
   val notImplemented = IO.Failure(new NotImplementedError())
 
-  private[swaydb] sealed trait Defer[+T] {
+  sealed trait Defer[+T] {
     def isFailure: Boolean
     def isSuccess: Boolean
-    def isLater: Boolean
-    private[swaydb] def flatMap[U](f: T => IO.Defer[U]): IO.Defer[U]
-    private[swaydb] def mapAsync[U](f: T => U): IO.Defer[U]
+    def isDeferred: Boolean
+    def flatMap[U](f: T => IO.Defer[U]): IO.Defer[U]
+    def mapDeferred[U](f: T => U): IO.Defer[U]
     def get: T
-    def safeGet: IO.Defer[T]
-    def safeGetIfFileExists: IO.Defer[T]
-    def safeGetBlocking: IO[T]
-    def safeGetBlockingIfFileExists: IO[T]
-    def safeGetFuture(implicit ec: ExecutionContext): Future[T]
-    def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[T]
+    def run: IO.Defer[T]
+    def runIfFileExists: IO.Defer[T]
+    def runBlocking: IO[T]
+    def runBlockingIfFileExists: IO[T]
+    def runInFuture(implicit ec: ExecutionContext): Future[T]
+    def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[T]
     def getOrElse[U >: T](default: => U): U
     def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U]
     def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U]
     def failed: IO[IO.Error]
-    private[swaydb] def flattenAsync[U](implicit ev: T <:< IO.Defer[U]): IO.Defer[U]
+    def flattenDeferred[U](implicit ev: T <:< IO.Defer[U]): IO.Defer[U]
   }
 
   implicit class IterableIOImplicit[T: ClassTag](iterable: Iterable[T]) {
@@ -449,27 +449,32 @@ object IO {
   def fromFuture[T](future: Future[T])(implicit ec: ExecutionContext): IO.Defer[T] =
     IO.Defer(future)
 
-  final case class Success[+T](value: T) extends IO[T] with IO.Defer[T] {
+  object Success {
+    def apply[T](value: T): IO.Success[T] =
+      new Success(value)
+  }
+
+  final case class Success[+T](value: T) extends IO.Defer[T] with IO[T] {
     override def isFailure: Boolean = false
     override def isSuccess: Boolean = true
-    override def isLater: Boolean = false
+    override def isDeferred: Boolean = false
     override def get: T = value
     override def exists(f: T => Boolean): Boolean = f(value)
-    override def safeGet: IO.Success[T] = this
-    override def safeGetIfFileExists: IO.Success[T] = this
-    override def safeGetBlocking: IO.Success[T] = this
-    override def safeGetBlockingIfFileExists: IO[T] = this
-    override def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = Future.successful(value)
-    override def safeGetFuture(implicit ec: ExecutionContext): Future[T] = Future.successful(value)
+    override def run: IO.Success[T] = this
+    override def runIfFileExists: IO.Success[T] = this
+    override def runBlocking: IO.Success[T] = this
+    override def runBlockingIfFileExists: IO[T] = this
+    override def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = Future.successful(value)
+    override def runInFuture(implicit ec: ExecutionContext): Future[T] = Future.successful(value)
     override def getOrElse[U >: T](default: => U): U = get
     override def orElse[U >: T](default: => IO[U]): IO.Success[U] = this
     override def flatMap[U](f: T => IO[U]): IO[U] = IO.CatchLeak(f(get))
-    private[swaydb] override def flatMap[U](f: T => IO.Defer[U]): IO.Defer[U] = f(get)
+    override def flatMap[U](f: T => IO.Defer[U]): IO.Defer[U] = f(get)
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = get
-    private[swaydb] override def flattenAsync[U](implicit ev: T <:< IO.Defer[U]): IO.Defer[U] = get
+    override def flattenDeferred[U](implicit ev: T <:< IO.Defer[U]): IO.Defer[U] = get
     override def foreach[U](f: T => U): Unit = f(get)
     override def map[U](f: T => U): IO[U] = IO[U](f(get))
-    private[swaydb] override def mapAsync[U](f: T => U): IO.Defer[U] = IO(f(get)).asInstanceOf[IO.Defer[U]]
+    override def mapDeferred[U](f: T => U): IO.Defer[U] = IO(f(get)).asInstanceOf[IO.Defer[U]]
     override def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] = this
     override def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U] = this
     override def failed: IO[IO.Error] = Failure(Error.Fatal(new UnsupportedOperationException("IO.Success.failed")))
@@ -488,11 +493,11 @@ object IO {
       try f(this) finally {}
       this
     }
-    private[swaydb] override def asAsync: IO.Defer[T] = this
-    private[swaydb] override def asIO: IO[T] = this
+    override def asDeferred: IO.Defer[T] = this
+    override def asIO: IO[T] = this
   }
 
-  private[swaydb] object Defer {
+  object Defer {
 
     @inline final def recover[T](f: => T): IO.Defer[T] =
       try IO.Success(f) catch {
@@ -545,7 +550,7 @@ object IO {
     @inline final def apply[T](value: => T, error: Error.Busy): IO.Defer[T] =
       new Deferred(_ => value, error)
 
-    private[swaydb] final def apply[T](future: Future[T])(implicit ec: ExecutionContext): IO.Defer[T] = {
+    final def apply[T](future: Future[T])(implicit ec: ExecutionContext): IO.Defer[T] = {
       val error = IO.Error.BusyFuture(Reserve(()))
       future onComplete {
         _ =>
@@ -562,13 +567,13 @@ object IO {
     }
   }
 
-  private[swaydb] object Deferred {
+  object Deferred {
     @inline final def apply[T](value: => T, error: Error.Busy): Deferred[T] =
       new Deferred(_ => value, error)
   }
 
-  private[swaydb] final case class Deferred[T](value: Unit => T,
-                                               error: Error.Busy) extends IO.Defer[T] {
+  final case class Deferred[T](value: Unit => T,
+                               error: Error.Busy) extends IO.Defer[T] {
 
     @volatile private var _value: Option[T] = None
 
@@ -580,7 +585,7 @@ object IO {
 
     def isFailure: Boolean = false
     def isSuccess: Boolean = false
-    def isLater: Boolean = true
+    def isDeferred: Boolean = true
     def isBusy = error.reserve.isBusy
 
     /**
@@ -593,11 +598,11 @@ object IO {
         got
       }
 
-    override def safeGetBlockingIfFileExists: IO[T] = {
+    override def runBlockingIfFileExists: IO[T] = {
       @tailrec
       def doGet(later: IO.Deferred[T]): IO[T] = {
         Reserve.blockUntilFree(later.error.reserve)
-        later.safeGetIfFileExists match {
+        later.runIfFileExists match {
           case success @ IO.Success(_) =>
             success
 
@@ -615,12 +620,12 @@ object IO {
     /**
       * Opens all [[IO.Defer]] types to read the final value in a blocking manner.
       */
-    def safeGetBlocking: IO[T] = {
+    def runBlocking: IO[T] = {
 
       @tailrec
       def doGet(later: IO.Deferred[T]): IO[T] = {
         Reserve.blockUntilFree(later.error.reserve)
-        later.safeGet match {
+        later.run match {
           case success @ IO.Success(_) =>
             success
 
@@ -638,10 +643,10 @@ object IO {
     /**
       * Opens all [[IO.Defer]] types to read the final value in a non-blocking manner.
       */
-    def safeGetFuture(implicit ec: ExecutionContext): Future[T] = {
+    def runInFuture(implicit ec: ExecutionContext): Future[T] = {
 
       def doGet(later: IO.Deferred[T]): Future[T] =
-        Reserve.future(later.error.reserve).map(_ => later.safeGet) flatMap {
+        Reserve.future(later.error.reserve).map(_ => later.run) flatMap {
           case IO.Success(value) =>
             Future.successful(value)
 
@@ -658,10 +663,10 @@ object IO {
     /**
       * Opens all [[IO.Defer]] types to read the final value in a non-blocking manner.
       */
-    def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = {
+    def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = {
 
       def doGet(later: IO.Deferred[T]): Future[T] =
-        Reserve.future(later.error.reserve).map(_ => later.safeGetIfFileExists) flatMap {
+        Reserve.future(later.error.reserve).map(_ => later.runIfFileExists) flatMap {
           case IO.Success(value) =>
             Future.successful(value)
 
@@ -687,13 +692,13 @@ object IO {
       else
         throw IO.Exception.Busy(error)
 
-    def safeGet: IO.Defer[T] =
+    def run: IO.Defer[T] =
       if (_value.isDefined || !isBusy)
         IO.Defer.recover(get)
       else
         this
 
-    def safeGetIfFileExists: IO.Defer[T] =
+    def runIfFileExists: IO.Defer[T] =
       if (_value.isDefined || !isBusy)
         IO.Defer.recoverIfFileExists(get)
       else
@@ -708,9 +713,9 @@ object IO {
         error = error
       )
 
-    def flattenAsync[U](implicit ev: T <:< IO.Defer[U]): IO.Defer[U] = forceGet
+    def flattenDeferred[U](implicit ev: T <:< IO.Defer[U]): IO.Defer[U] = forceGet
     def map[U](f: T => U): IO.Defer[U] = IO.Deferred[U]((_: Unit) => f(forceGet), error)
-    def mapAsync[U](f: T => U): IO.Defer[U] = map(f)
+    def mapDeferred[U](f: T => U): IO.Defer[U] = map(f)
     def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] = IO(forceGet).recover(f)
     def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U] = IO(forceGet).recoverWith(f)
     def failed: IO[IO.Error] = IO(forceGet).failed
@@ -726,26 +731,26 @@ object IO {
       IO.Failure[T](IO.Error(new Exception(message)))
   }
 
-  final case class Failure[+T](error: Error) extends IO[T] with IO.Defer[T] {
+  final case class Failure[+T](error: Error) extends IO.Defer[T] with IO[T] {
     override def isFailure: Boolean = true
     override def isSuccess: Boolean = false
-    override def isLater: Boolean = false
+    override def isDeferred: Boolean = false
     override def get: T = throw error.exception
-    override def safeGet: IO.Failure[T] = this
-    override def safeGetIfFileExists: IO.Failure[T] = this
-    override def safeGetBlocking: IO.Failure[T] = this
-    override def safeGetBlockingIfFileExists: IO[T] = this
-    override def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = Future.failed(error.exception)
-    override def safeGetFuture(implicit ec: ExecutionContext): Future[T] = Future.failed(error.exception)
+    override def run: IO.Failure[T] = this
+    override def runIfFileExists: IO.Failure[T] = this
+    override def runBlocking: IO.Failure[T] = this
+    override def runBlockingIfFileExists: IO[T] = this
+    override def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = Future.failed(error.exception)
+    override def runInFuture(implicit ec: ExecutionContext): Future[T] = Future.failed(error.exception)
     override def getOrElse[U >: T](default: => U): U = default
     override def orElse[U >: T](default: => IO[U]): IO[U] = IO.CatchLeak(default)
     override def flatMap[U](f: T => IO[U]): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
-    private[swaydb] override def flatMap[U](f: T => IO.Defer[U]): IO.Defer[U] = this.asInstanceOf[IO.Defer[U]]
+    override def flatMap[U](f: T => IO.Defer[U]): IO.Defer[U] = this.asInstanceOf[IO.Defer[U]]
     override def flatten[U](implicit ev: T <:< IO[U]): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
-    private[swaydb] override def flattenAsync[U](implicit ev: T <:< IO.Defer[U]): IO.Defer[U] = this.asInstanceOf[IO.Defer[U]]
+    override def flattenDeferred[U](implicit ev: T <:< IO.Defer[U]): IO.Defer[U] = this.asInstanceOf[IO.Defer[U]]
     override def foreach[U](f: T => U): Unit = ()
     override def map[U](f: T => U): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
-    private[swaydb] override def mapAsync[U](f: T => U): IO.Defer[U] = this.asInstanceOf[IO.Defer[U]]
+    override def mapDeferred[U](f: T => U): IO.Defer[U] = this.asInstanceOf[IO.Defer[U]]
     override def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] =
       IO.CatchLeak(if (f isDefinedAt error) IO.Success(f(error)) else this)
 
@@ -765,15 +770,15 @@ object IO {
     override def onCompleteSideEffect(f: IO[T] => Unit): IO[T] = onFailureSideEffect(f)
     override def onSuccessSideEffect(f: T => Unit): IO.Failure[T] = this
     def exception: Throwable = error.exception
-    private[swaydb] def recoverToAsync[U](operation: => IO.Defer[U]): IO.Defer[U] =
+    def recoverToDeferred[U](operation: => IO.Defer[U]): IO.Defer[U] =
     //it's already know it's a failure, do not run it again on recovery, just flatMap onto operation.
       IO.Defer.recover(this, ()) flatMap {
         _ =>
           operation
       }
 
-    private[swaydb] override def asAsync: IO.Defer[T] = this
-    private[swaydb] override def asIO: IO[T] = this
+    override def asDeferred: IO.Defer[T] = this
+    override def asIO: IO[T] = this
     override def exists(f: T => Boolean): Boolean = false
   }
 }

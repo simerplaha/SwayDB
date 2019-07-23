@@ -40,9 +40,9 @@ class IODeferSpec extends WordSpec with Matchers {
         }
 
       io.get shouldBe 2
-      io.safeGet shouldBe IO.Success(2)
-      io.safeGetBlocking shouldBe IO.Success(2)
-      io.safeGetFuture.await shouldBe 2
+      io.run shouldBe IO.Success(2)
+      io.runBlocking shouldBe IO.Success(2)
+      io.runInFuture.await shouldBe 2
     }
 
     "flatMap on IO.Failure" in {
@@ -58,7 +58,7 @@ class IODeferSpec extends WordSpec with Matchers {
         io.get
       }
 
-      io.safeGet.asInstanceOf[IO.Deferred[_]].error shouldBe IO.Error.OpeningFile(Paths.get(""), boolean)
+      io.run.asInstanceOf[IO.Deferred[_]].error shouldBe IO.Error.OpeningFile(Paths.get(""), boolean)
     }
 
     "safeGet on multiple when last is a failure should return failure" in {
@@ -73,7 +73,7 @@ class IODeferSpec extends WordSpec with Matchers {
             }
         }
 
-      io.safeGet.asInstanceOf[IO.Deferred[_]].error shouldBe failure.error
+      io.run.asInstanceOf[IO.Deferred[_]].error shouldBe failure.error
     }
 
     "safeGet on multiple when last is Async should return last Async" in {
@@ -92,33 +92,33 @@ class IODeferSpec extends WordSpec with Matchers {
 
       (1 to 100).par foreach {
         _ =>
-          io.safeGet.asInstanceOf[IO.Deferred[_]].isValueDefined shouldBe false
+          io.run.asInstanceOf[IO.Deferred[_]].isValueDefined shouldBe false
           io.asInstanceOf[IO.Deferred[_]].isValueDefined shouldBe false
       }
 
-      val io0 = io.safeGet
+      val io0 = io.run
       io0 shouldBe io
 
       //make first IO available
       Reserve.setFree(busy1)
-      val io1 = io.safeGet
+      val io1 = io.run
       io1 shouldBe a[IO.Defer[_]]
-      io0.safeGet shouldBe a[IO.Defer[_]]
+      io0.run shouldBe a[IO.Defer[_]]
 
       //make second IO available
       Reserve.setFree(busy2)
-      val io2 = io.safeGet
+      val io2 = io.run
       io2 shouldBe a[IO.Defer[_]]
-      io0.safeGet shouldBe a[IO.Defer[_]]
-      io1.safeGet shouldBe a[IO.Defer[_]]
+      io0.run shouldBe a[IO.Defer[_]]
+      io1.run shouldBe a[IO.Defer[_]]
 
       //make third IO available. Now all IOs are ready, safeGet will result in Success.
       Reserve.setFree(busy3)
-      val io3 = io.safeGet
+      val io3 = io.run
       io3 shouldBe IO.Success(3)
-      io0.safeGet shouldBe IO.Success(3)
-      io1.safeGet shouldBe IO.Success(3)
-      io2.safeGet shouldBe IO.Success(3)
+      io0.run shouldBe IO.Success(3)
+      io1.run shouldBe IO.Success(3)
+      io2.run shouldBe IO.Success(3)
 
       //value should be defined on all instances.
       io0.asInstanceOf[IO.Deferred[_]].isValueDefined shouldBe true
@@ -146,15 +146,15 @@ class IODeferSpec extends WordSpec with Matchers {
             }
 
           if (i == 1)
-            io.safeGetBlocking shouldBe IO.Success(102)
+            io.runBlocking shouldBe IO.Success(102)
           else
-            io.safeGetFuture.await shouldBe 102
+            io.runInFuture.await shouldBe 102
       }
     }
 
     "be initialised from Future" in {
       val result = IO.fromFuture(Future(1))
-      result.safeGetBlocking.get shouldBe 1
+      result.runBlocking.get shouldBe 1
     }
 
     "recover from Future failures" in {
@@ -174,7 +174,7 @@ class IODeferSpec extends WordSpec with Matchers {
         _ =>
           val error =
             IO.fromFuture(future)
-              .safeGetBlocking
+              .runBlocking
               .failed
               .get
 

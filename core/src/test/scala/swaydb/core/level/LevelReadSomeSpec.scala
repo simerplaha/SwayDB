@@ -107,9 +107,9 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
             (level0KeyValues, level1KeyValues, level2KeyValues, level) =>
               level0KeyValues foreach {
                 update =>
-                  val (gotValue, gotDeadline) = level.get(update.key) mapAsync {
+                  val (gotValue, gotDeadline) = level.get(update.key) mapDeferred {
                     case Some(put) =>
-                      val value = IO.Defer.recover(put.getOrFetchValue.get).safeGetBlocking.runIO
+                      val value = IO.Defer.recover(put.getOrFetchValue.get).runBlocking.runIO
                       (value, put.deadline)
 
                     case None =>
@@ -127,7 +127,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
                       level.putKeyValuesTest(level0KeyValues).runIO
 
                       //if after merging into a single Level the result is not empty then print all the failed exceptions.
-                      Try(level.get(update.key).safeGetBlocking.runIO shouldBe empty).failed foreach {
+                      Try(level.get(update.key).runBlocking.runIO shouldBe empty).failed foreach {
                         exception =>
                           exception.printStackTrace()
                           throw testException

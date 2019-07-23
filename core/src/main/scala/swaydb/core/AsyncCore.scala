@@ -78,7 +78,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
     tag.fromIO(block.update(fromKey, to, value))
 
   override def clear(): T[IO.OK] =
-    tag.fromFuture(zero.clear().safeGetFuture)
+    tag.fromFuture(zero.clear().runInFuture)
 
   override def function(key: Slice[Byte], function: Slice[Byte]): T[IO.OK] =
     tag.fromIO(block.function(key, function))
@@ -105,11 +105,11 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
     tag.fromIO(block.delete())
 
   private def headFuture: Future[Option[KeyValueTuple]] =
-    zero.head.safeGetFuture flatMap {
+    zero.head.runInFuture flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runInFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -129,14 +129,14 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
     tag.fromFuture(headFuture)
 
   def headKey: T[Option[Slice[Byte]]] =
-    tag.fromFuture(zero.headKey.safeGetFuture)
+    tag.fromFuture(zero.headKey.runInFuture)
 
   private def lastFuture: Future[Option[KeyValueTuple]] =
-    zero.last.safeGetFuture flatMap {
+    zero.last.runInFuture flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runInFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -156,29 +156,29 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
     tag.fromFuture(lastFuture)
 
   def lastKey: T[Option[Slice[Byte]]] =
-    tag.fromFuture(zero.lastKey.safeGetFuture)
+    tag.fromFuture(zero.lastKey.runInFuture)
 
   def bloomFilterKeyValueCount: T[Int] =
-    tag.fromFuture(IO.Defer.recover(zero.bloomFilterKeyValueCount.get).safeGetFuture)
+    tag.fromFuture(IO.Defer.recover(zero.bloomFilterKeyValueCount.get).runInFuture)
 
   def deadline(key: Slice[Byte]): T[Option[Deadline]] =
-    tag.fromFuture(zero.deadline(key).safeGetFuture)
+    tag.fromFuture(zero.deadline(key).runInFuture)
 
   def contains(key: Slice[Byte]): T[Boolean] =
-    tag.fromFuture(zero.contains(key).safeGetFuture)
+    tag.fromFuture(zero.contains(key).runInFuture)
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
-    tag.fromFuture(IO.Defer.recover(zero.mightContainKey(key).get).safeGetFuture)
+    tag.fromFuture(IO.Defer.recover(zero.mightContainKey(key).get).runInFuture)
 
   def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
-    tag.fromFuture(IO.Defer.recover(zero.mightContainFunction(functionId).get).safeGetFuture)
+    tag.fromFuture(IO.Defer.recover(zero.mightContainFunction(functionId).get).runInFuture)
 
   def getFuture(key: Slice[Byte]): Future[Option[Option[Slice[Byte]]]] =
-    zero.get(key).safeGetFuture flatMap {
+    zero.get(key).runInFuture flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runInFutureIfFileExists map {
               result =>
                 Some(result)
             } recoverWith {
@@ -198,14 +198,14 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
     tag.fromFuture(getFuture(key))
 
   def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromFuture(zero.getKey(key).safeGetFuture)
+    tag.fromFuture(zero.getKey(key).runInFuture)
 
   def getKeyValueFuture(key: Slice[Byte]): Future[Option[KeyValueTuple]] =
-    zero.get(key).safeGetFuture flatMap {
+    zero.get(key).runInFuture flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runInFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -225,11 +225,11 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
     tag.fromFuture(getKeyValueFuture(key))
 
   def beforeFuture(key: Slice[Byte]): Future[Option[KeyValueTuple]] =
-    zero.lower(key).safeGetFuture flatMap {
+    zero.lower(key).runInFuture flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runInFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -249,14 +249,14 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
     tag.fromFuture(beforeFuture(key))
 
   def beforeKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromFuture(zero.lower(key).safeGetFuture.map(_.map(_.key)))
+    tag.fromFuture(zero.lower(key).runInFuture.map(_.map(_.key)))
 
   private def afterFuture(key: Slice[Byte]): Future[Option[KeyValueTuple]] =
-    zero.higher(key).safeGetFuture flatMap {
+    zero.higher(key).runInFuture flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runInFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -276,10 +276,10 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
     tag.fromFuture(afterFuture(key))
 
   def afterKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromFuture(zero.higher(key).safeGetFuture.map(_.map(_.key)))
+    tag.fromFuture(zero.higher(key).runInFuture.map(_.map(_.key)))
 
   def valueSize(key: Slice[Byte]): T[Option[Int]] =
-    tag.fromFuture(zero.valueSize(key).safeGetFuture)
+    tag.fromFuture(zero.valueSize(key).runInFuture)
 
   override def tagAsync[T[_]](implicit ec: ExecutionContext, tag: Tag.Async[T]): Core[T] =
     copy(zero)

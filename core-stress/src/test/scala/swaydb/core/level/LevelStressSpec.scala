@@ -94,7 +94,7 @@ sealed trait LevelStressSpec extends TestBase with Benchmark {
 
               case later @ IO.Deferred(_, _) =>
                 println(s"$index: Later")
-                later.safeGetFuture flatMap {
+                later.runInFuture flatMap {
                   _ =>
                     println(s"$index: Later received pull. Trying again!")
                     doPut(index)

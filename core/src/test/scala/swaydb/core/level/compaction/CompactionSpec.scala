@@ -249,7 +249,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           (segment: Segment, _) =>
             segments find (_.path == segment.path) shouldBe defined
             segments -= segment
-            segment.delete.asAsync
+            segment.delete.asDeferred
         } repeat 5.times
 
         Compaction.runLastLevelCompaction(

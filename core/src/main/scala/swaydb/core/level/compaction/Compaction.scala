@@ -281,7 +281,7 @@ private[level] object Compaction extends LazyLogging {
                 segments = mergeable take segmentsToPush,
                 thisLevel = level,
                 nextLevel = nextLevel
-              ) mapAsync (_ + copied)
+              ) mapDeferred (_ + copied)
         }
     } getOrElse {
       runLastLevelCompaction(
@@ -289,7 +289,7 @@ private[level] object Compaction extends LazyLogging {
         checkExpired = true,
         remainingCompactions = segmentsToPush,
         segmentsCompacted = 0
-      ).asAsync
+      ).asDeferred
     }
 
   @tailrec
@@ -417,10 +417,10 @@ private[level] object Compaction extends LazyLogging {
           thisLevel.removeSegments(segments) recoverWith {
             case _ =>
               IO.Success(segments.size)
-          } asAsync
+          } asDeferred
 
         case async @ IO.Deferred(_, _) =>
-          async mapAsync (_ => 0)
+          async mapDeferred (_ => 0)
 
         case IO.Failure(error) =>
           IO.Failure(error)

@@ -111,7 +111,7 @@ private[core] object Higher {
 
           case failure: IO.Failure[_] =>
             failure
-              .recoverToAsync(
+              .recoverToDeferred(
                 Higher.seeker(key, currentSeek, nextSeek)
               )
         }
@@ -168,14 +168,14 @@ private[core] object Higher {
 
                     case failed @ IO.Failure(_) =>
                       failed
-                        .recoverToAsync(
+                        .recoverToDeferred(
                           Higher.seeker(key, currentSeek, nextSeek)
                         )
                   }
 
               case failure: IO.Failure[_] =>
                 failure
-                  .recoverToAsync(
+                  .recoverToDeferred(
                     Higher.seeker(key, currentSeek, nextSeek)
                   )
             }
@@ -277,7 +277,7 @@ private[core] object Higher {
 
             case failure: IO.Failure[_] =>
               failure
-                .recoverToAsync(
+                .recoverToDeferred(
                   Higher.seeker(key, currentSeek, nextSeek)
                 )
           }
@@ -310,7 +310,7 @@ private[core] object Higher {
                     }
                   case IO.Failure(error) =>
                     IO.Failure(error)
-                      .recoverToAsync(
+                      .recoverToDeferred(
                         Higher.seeker(key, currentSeek, nextSeek)
                       )
                 }
@@ -360,14 +360,14 @@ private[core] object Higher {
 
                       case IO.Failure(error) =>
                         IO.Failure(error)
-                          .recoverToAsync(
+                          .recoverToDeferred(
                             Higher.seeker(key, currentSeek, nextSeek)
                           )
                     }
 
                   case IO.Failure(error) =>
                     IO.Failure(error)
-                      .recoverToAsync(
+                      .recoverToDeferred(
                         Higher.seeker(key, currentSeek, nextSeek)
                       )
                 }
@@ -397,7 +397,7 @@ private[core] object Higher {
 
                           case failure: IO.Failure[_] =>
                             failure
-                              .recoverToAsync(
+                              .recoverToDeferred(
                                 Higher.seeker(key, currentSeek, nextSeek)
                               )
                         }
@@ -405,7 +405,7 @@ private[core] object Higher {
 
                   case failure: IO.Failure[_] =>
                     failure
-                      .recoverToAsync(
+                      .recoverToDeferred(
                         Higher.seeker(key, currentSeek, nextSeek)
                       )
                 }
@@ -442,7 +442,7 @@ private[core] object Higher {
 
                           case failure: IO.Failure[_] =>
                             failure
-                              .recoverToAsync(
+                              .recoverToDeferred(
                                 Higher.seeker(key, currentSeek, nextSeek)
                               )
                         }
@@ -450,7 +450,7 @@ private[core] object Higher {
 
                   case failure: IO.Failure[_] =>
                     failure
-                      .recoverToAsync(
+                      .recoverToDeferred(
                         Higher.seeker(key, currentSeek, nextSeek)
                       )
                 }
@@ -475,7 +475,7 @@ private[core] object Higher {
 
             case failure: IO.Failure[_] =>
               failure
-                .recoverToAsync(
+                .recoverToDeferred(
                   Higher.seeker(key, currentSeek, nextSeek)
                 )
           }
@@ -534,7 +534,7 @@ private[core] object Higher {
 
                 case failure: IO.Failure[_] =>
                   failure
-                    .recoverToAsync(
+                    .recoverToDeferred(
                       Higher.seeker(key, currentStash, nextSeek)
                     )
               }

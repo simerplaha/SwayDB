@@ -32,7 +32,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
     "set booleans" in {
       val io = IO.Success(1)
       io.isFailure shouldBe false
-      io.isLater shouldBe false
+      io.isDeferred shouldBe false
       io.isSuccess shouldBe true
     }
 
@@ -40,9 +40,9 @@ class IOSuccessSpec extends WordSpec with Matchers {
       val io = IO.Success(1)
 
       io.get shouldBe 1
-      io.safeGet shouldBe io
-      io.safeGetBlocking shouldBe io
-      io.safeGetFuture.await shouldBe 1
+      io.run shouldBe io
+      io.runBlocking shouldBe io
+      io.runInFuture.await shouldBe 1
     }
 
     "getOrElse & orElse return first io if both are successes" in {
@@ -80,7 +80,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
 
     "flatMap on Async should return Async" in {
       val async =
-        IO.Success(1).asAsync flatMap {
+        IO.Success(1).asDeferred flatMap {
           int =>
             IO.Defer(int + 1, IO.Error.OpeningFile(Paths.get(""), Reserve()))
         }

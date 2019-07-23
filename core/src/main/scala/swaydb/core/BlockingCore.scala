@@ -164,7 +164,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(zero.update(fromKey, to, value))
 
   override def clear(): T[IO.OK] =
-    tag.fromIO(zero.clear().safeGetBlocking)
+    tag.fromIO(zero.clear().runBlocking)
 
   def function(key: Slice[Byte], function: Slice[Byte]): T[IO.OK] =
     tag.fromIO(zero.applyFunction(key, function))
@@ -176,11 +176,11 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     zero.registerFunction(functionID, function)
 
   private def headIO: IO[Option[KeyValueTuple]] =
-    zero.head.safeGetBlocking flatMap {
+    zero.head.runBlocking flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -200,14 +200,14 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(headIO)
 
   def headKey: T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.headKey.safeGetBlocking)
+    tag.fromIO(zero.headKey.runBlocking)
 
   private def lastIO: IO[Option[KeyValueTuple]] =
-    zero.last.safeGetBlocking flatMap {
+    zero.last.runBlocking flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -227,32 +227,32 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(lastIO)
 
   def lastKey: T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.lastKey.safeGetBlocking)
+    tag.fromIO(zero.lastKey.runBlocking)
 
   def bloomFilterKeyValueCount: T[Int] =
-    tag.fromIO(IO.Defer.recover(zero.bloomFilterKeyValueCount.get).safeGetBlocking)
+    tag.fromIO(IO.Defer.recover(zero.bloomFilterKeyValueCount.get).runBlocking)
 
   def deadline(key: Slice[Byte]): T[Option[Deadline]] =
-    tag.fromIO(zero.deadline(key).safeGetBlocking)
+    tag.fromIO(zero.deadline(key).runBlocking)
 
   def sizeOfSegments: Long =
     zero.sizeOfSegments
 
   def contains(key: Slice[Byte]): T[Boolean] =
-    tag.fromIO(zero.contains(key).safeGetBlocking)
+    tag.fromIO(zero.contains(key).runBlocking)
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
-    tag.fromIO(IO.Defer.recover(zero.mightContainKey(key).get).safeGetBlocking)
+    tag.fromIO(IO.Defer.recover(zero.mightContainKey(key).get).runBlocking)
 
   def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
-    tag.fromIO(IO.Defer.recover(zero.mightContainFunction(functionId).get).safeGetBlocking)
+    tag.fromIO(IO.Defer.recover(zero.mightContainFunction(functionId).get).runBlocking)
 
   private def getIO(key: Slice[Byte]): IO[Option[Option[Slice[Byte]]]] =
-    zero.get(key).safeGetBlocking flatMap {
+    zero.get(key).runBlocking flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(result)
             } recoverWith {
@@ -272,14 +272,14 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(getIO(key))
 
   def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.getKey(key).safeGetBlocking)
+    tag.fromIO(zero.getKey(key).runBlocking)
 
   private def getKeyValueIO(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
-    zero.get(key).safeGetBlocking flatMap {
+    zero.get(key).runBlocking flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -299,11 +299,11 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(getKeyValueIO(key))
 
   private def beforeIO(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
-    zero.lower(key).safeGetBlocking flatMap {
+    zero.lower(key).runBlocking flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -323,14 +323,14 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(beforeIO(key))
 
   def beforeKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.lower(key).safeGetBlocking.map(_.map(_.key)))
+    tag.fromIO(zero.lower(key).runBlocking.map(_.map(_.key)))
 
   private def afterIO(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
-    zero.higher(key).safeGetBlocking flatMap {
+    zero.higher(key).runBlocking flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -350,10 +350,10 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(afterIO(key))
 
   def afterKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.higher(key).safeGetBlocking.map(_.map(_.key)))
+    tag.fromIO(zero.higher(key).runBlocking.map(_.map(_.key)))
 
   def valueSize(key: Slice[Byte]): T[Option[Int]] =
-    tag.fromIO(zero.valueSize(key).safeGetBlocking)
+    tag.fromIO(zero.valueSize(key).runBlocking)
 
   def level0Meter: LevelZeroMeter =
     zero.levelZeroMeter

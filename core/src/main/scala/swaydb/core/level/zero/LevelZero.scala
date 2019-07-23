@@ -289,7 +289,7 @@ private[core] case class LevelZero(path: Path,
       case Some(headKey) =>
         lastKey flatMap {
           case Some(lastKey) =>
-            remove(headKey, lastKey).asAsync
+            remove(headKey, lastKey).asDeferred
 
           case None =>
             IO.ok //might have been removed by another thread?
@@ -403,7 +403,7 @@ private[core] case class LevelZero(path: Path,
     )
 
   def getKey(key: Slice[Byte]): IO.Defer[Option[Slice[Byte]]] =
-    get(key).mapAsync(_.map(_.key))
+    get(key).mapDeferred(_.map(_.key))
 
   def firstKeyFromMaps =
     maps.reduce[Slice[Byte]](_.firstKey, MinMax.min(_, _)(keyOrder))
@@ -422,10 +422,10 @@ private[core] case class LevelZero(path: Path,
     )
 
   def lastKey: IO.Defer[Option[Slice[Byte]]] =
-    last.mapAsync(_.map(_.key))
+    last.mapDeferred(_.map(_.key))
 
   override def headKey: IO.Defer[Option[Slice[Byte]]] =
-    head.mapAsync(_.map(_.key))
+    head.mapDeferred(_.map(_.key))
 
   def head: IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     nextLevel map {
@@ -635,10 +635,10 @@ private[core] case class LevelZero(path: Path,
     )
 
   def contains(key: Slice[Byte]): IO.Defer[Boolean] =
-    get(key).mapAsync(_.isDefined)
+    get(key).mapDeferred(_.isDefined)
 
   def valueSize(key: Slice[Byte]): IO.Defer[Option[Int]] =
-    get(key) mapAsync {
+    get(key) mapDeferred {
       result =>
         result map {
           response =>
@@ -652,7 +652,7 @@ private[core] case class LevelZero(path: Path,
   }
 
   def deadline(key: Slice[Byte]): IO.Defer[Option[Deadline]] =
-    get(key) mapAsync {
+    get(key) mapDeferred {
       result =>
         result flatMap {
           response =>

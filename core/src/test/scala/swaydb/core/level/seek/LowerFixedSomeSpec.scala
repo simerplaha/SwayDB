@@ -82,7 +82,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
           //@formatter:off
           current.lower         _ expects (1: Slice[Byte])  returning IO.none
           next.stateID          _ expects ()                returning 1
-          next.lower            _ expects (1: Slice[Byte])  returning IO(Some(put)).asAsync
+          next.lower            _ expects (1: Slice[Byte])  returning IO(Some(put)).asDeferred
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
@@ -109,7 +109,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
           //@formatter:off
           current.lower         _ expects (1: Slice[Byte])  returning IO(Some(upperKeyValue))
           next.stateID          _ expects ()                returning 1
-          next.lower            _ expects (1: Slice[Byte])  returning IO(Some(lowerKeyValue)).asAsync
+          next.lower            _ expects (1: Slice[Byte])  returning IO(Some(lowerKeyValue)).asDeferred
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
@@ -146,7 +146,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
           //@formatter:off
           current.lower         _ expects (2: Slice[Byte])  returning IO(Some(upperKeyValue))
           next.stateID          _ expects ()                returning 1
-          next.lower            _ expects (2: Slice[Byte])  returning IO(Some(lowerKeyValue)).asAsync
+          next.lower            _ expects (2: Slice[Byte])  returning IO(Some(lowerKeyValue)).asDeferred
           next.hasStateChanged  _ expects 1                 returning false
           if(!isUpperExpected) {
             next.hasStateChanged  _ expects 1                 returning false
@@ -175,7 +175,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
           //@formatter:off
           current.lower         _ expects (2: Slice[Byte]) returning IO(Some(upperKeyValue))
           next.stateID          _ expects ()                returning 1
-          next.lower            _ expects (2: Slice[Byte]) returning IO(Some(lowerKeyValue)).asAsync
+          next.lower            _ expects (2: Slice[Byte]) returning IO(Some(lowerKeyValue)).asDeferred
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }

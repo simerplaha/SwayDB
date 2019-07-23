@@ -89,7 +89,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         implicit val getFromNextLevel = mock[NextGetter]
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomRemoveKeyValue(1, Some(randomDeadline(expired = false)))))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asAsync
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asDeferred
 
         Get(1).runIO shouldBe empty
       }
@@ -117,7 +117,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         implicit val getFromNextLevel = mock[NextGetter]
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomUpdateKeyValue(1, deadline = randomDeadlineOption(false))))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asAsync
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asDeferred
 
         Get(1).runIO shouldBe empty
       }
@@ -145,7 +145,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         implicit val getFromNextLevel = mock[NextGetter]
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomFunctionKeyValue(1)))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asAsync
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asDeferred
 
         Get(1).runIO shouldBe empty
       }
@@ -173,7 +173,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         implicit val getFromNextLevel = mock[NextGetter]
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPendingApplyKeyValue(1)))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asAsync
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asDeferred
 
         Get(1).runIO shouldBe empty
       }
@@ -199,7 +199,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
           )
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(pendingApply))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asAsync
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).asDeferred
 
         Get(1).runIO shouldBe empty
       }
@@ -245,7 +245,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, eitherOne(None, Some(functionValue)), functionValue)))
         //next level can return anything it will be removed.
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1))).asAsync
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1))).asDeferred
 
         Get(1).runIO shouldBe empty
       }
@@ -265,11 +265,11 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         val io = Get(1)
 
-        val ioStillBusy = io.safeGet
+        val ioStillBusy = io.run
         ioStillBusy.isSuccess shouldBe false
 
         Reserve.setFree(busy.reserve)
-        io.safeGet.runIO shouldBe empty
+        io.run.runIO shouldBe empty
       }
     }
   }

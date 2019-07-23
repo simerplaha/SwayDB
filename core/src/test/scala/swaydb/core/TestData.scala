@@ -2575,7 +2575,7 @@ object TestData {
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
                                 functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] =
-      Higher(key, Seek.Read, Seek.Read).safeGetBlocking
+      Higher(key, Seek.Read, Seek.Read).runBlocking
   }
 
   implicit class LowerImplicits(higher: Lower.type) {
@@ -2584,7 +2584,7 @@ object TestData {
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
                                 functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] =
-      Lower(key, Seek.Read, Seek.Read).safeGetBlocking
+      Lower(key, Seek.Read, Seek.Read).runBlocking
   }
 
   def randomStats(keySize: Int = randomIntMax(10000000),

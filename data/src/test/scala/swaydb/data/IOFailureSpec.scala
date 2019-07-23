@@ -34,7 +34,7 @@ class IOFailureSpec extends WordSpec with Matchers {
     "set boolean" in {
       val io = IO.Failure(IO.Error.OpeningFile(Paths.get(""), Reserve()))
       io.isFailure shouldBe true
-      io.isLater shouldBe false
+      io.isDeferred shouldBe false
       io.isSuccess shouldBe false
     }
 
@@ -44,9 +44,9 @@ class IOFailureSpec extends WordSpec with Matchers {
       assertThrows[IllegalAccessError] {
         io.get
       }
-      io.safeGet shouldBe io
-      io.safeGetBlocking shouldBe io
-      Try(io.safeGetFuture.await).failed.get.getCause shouldBe a[IllegalAccessError]
+      io.run shouldBe io
+      io.runBlocking shouldBe io
+      Try(io.runInFuture.await).failed.get.getCause shouldBe a[IllegalAccessError]
     }
 
     "getOrElse & orElse return first io if both are Failures" in {
@@ -60,7 +60,7 @@ class IOFailureSpec extends WordSpec with Matchers {
 
     "flatMap on Success" in {
       val failIO = IO.Failure(new IllegalThreadStateException)
-      failIO.asAsync flatMap {
+      failIO.asDeferred flatMap {
         i =>
           IO.Success(1)
       } shouldBe failIO
@@ -69,7 +69,7 @@ class IOFailureSpec extends WordSpec with Matchers {
     "flatMap on failure" in {
       val failure = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("")))
 
-      failure.asAsync flatMap {
+      failure.asDeferred flatMap {
         _ =>
           IO.Failure(new IllegalThreadStateException)
       } shouldBe failure
@@ -115,12 +115,12 @@ class IOFailureSpec extends WordSpec with Matchers {
       Base.busyErrors() foreach {
         busy =>
           val failure =
-            IO.Failure(busy) recoverToAsync {
-              IO.Failure(busy) recoverToAsync {
-                IO.Failure(busy) recoverToAsync {
-                  IO.Failure(busy) recoverToAsync {
-                    IO.Failure(busy) recoverToAsync {
-                      IO.Failure(busy) recoverToAsync {
+            IO.Failure(busy) recoverToDeferred {
+              IO.Failure(busy) recoverToDeferred {
+                IO.Failure(busy) recoverToDeferred {
+                  IO.Failure(busy) recoverToDeferred {
+                    IO.Failure(busy) recoverToDeferred {
+                      IO.Failure(busy) recoverToDeferred {
                         IO.Success(100)
                       }
                     }
@@ -128,7 +128,7 @@ class IOFailureSpec extends WordSpec with Matchers {
                 }
               }
             }
-          failure.safeGetBlocking shouldBe IO.Success(100)
+          failure.runBlocking shouldBe IO.Success(100)
       }
     }
 

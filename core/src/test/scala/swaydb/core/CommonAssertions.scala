@@ -752,7 +752,7 @@ object CommonAssertions {
   def assertHigher(keyValuesIterable: Iterable[KeyValue],
                    level: LevelRef): Unit = {
     val keyValues = keyValuesIterable.toSlice
-    assertHigher(keyValues, getHigher = key => level.higher(key).safeGetBlocking)
+    assertHigher(keyValues, getHigher = key => level.higher(key).runBlocking)
   }
 
   def assertLower(keyValuesIterable: Iterable[KeyValue],
@@ -937,8 +937,8 @@ object CommonAssertions {
 
   def assertEmptyHeadAndLast(level: LevelRef) =
     Seq(
-      () => level.head.safeGetBlocking.get shouldBe empty,
-      () => level.last.safeGetBlocking.get shouldBe empty,
+      () => level.head.runBlocking.get shouldBe empty,
+      () => level.last.runBlocking.get shouldBe empty,
     ).runThisRandomlyInParallel
 
   def assertReads(keyValues: Slice[Transient],

@@ -99,7 +99,7 @@ class LowerFixedNoneSpec extends WordSpec with Matchers with MockFactory with Op
           //@formatter:off
           current.lower         _ expects (1: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(0)))
           next.stateID          _ expects ()                returning 1
-          next.lower            _ expects (1: Slice[Byte])  returning IO(Some(randomPutKeyValue(0))).asAsync
+          next.lower            _ expects (1: Slice[Byte])  returning IO(Some(randomPutKeyValue(0))).asDeferred
           next.hasStateChanged  _ expects 1                 returning false
           current.lower         _ expects (0: Slice[Byte])  returning IO.none
           next.stateID          _ expects ()                returning 2
@@ -128,7 +128,7 @@ class LowerFixedNoneSpec extends WordSpec with Matchers with MockFactory with Op
           //@formatter:off
           current.lower         _ expects (2: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
           next.stateID          _ expects ()                returning 1
-          next.lower            _ expects (2: Slice[Byte])  returning IO(Some(randomPutKeyValue(0))).asAsync
+          next.lower            _ expects (2: Slice[Byte])  returning IO(Some(randomPutKeyValue(0))).asDeferred
           next.hasStateChanged  _ expects 1                 returning false repeat 2.times
           current.lower         _ expects (1: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(0)))
           next.hasStateChanged  _ expects 1                 returning false

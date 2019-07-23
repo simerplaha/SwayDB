@@ -57,7 +57,7 @@ private[core] object Get {
       current match {
         case current: KeyValue.ReadOnly.Remove =>
           if (current.hasTimeLeft())
-            nextGetter.get(key) mapAsync {
+            nextGetter.get(key) mapDeferred {
               nextOption =>
                 nextOption flatMap {
                   next =>
@@ -84,7 +84,7 @@ private[core] object Get {
 
         case current: KeyValue.ReadOnly.Update =>
           if (current.hasTimeLeft())
-            nextGetter.get(key) mapAsync {
+            nextGetter.get(key) mapDeferred {
               nextOption =>
                 nextOption flatMap {
                   next =>
@@ -112,7 +112,7 @@ private[core] object Get {
                 IO.none
 
             case failure: IO.Failure[_] =>
-              failure.recoverToAsync(Get(key))
+              failure.recoverToDeferred(Get(key))
           }
 
         case current: KeyValue.ReadOnly.Function =>
@@ -129,7 +129,7 @@ private[core] object Get {
                         IO.none
 
                       case failure: IO.Failure[_] =>
-                        failure.recoverToAsync(Get(key))
+                        failure.recoverToDeferred(Get(key))
                     }
                   else
                     IO.none
@@ -152,7 +152,7 @@ private[core] object Get {
                         IO.none
 
                       case failure: IO.Failure[_] =>
-                        failure.recoverToAsync(Get(key))
+                        failure.recoverToDeferred(Get(key))
                     }
                   else
                     IO.none
@@ -170,7 +170,7 @@ private[core] object Get {
         nextGetter.get(key)
 
       case failure: IO.Failure[_] =>
-        failure.recoverToAsync(Get(key))
+        failure.recoverToDeferred(Get(key))
     }
   }
 }

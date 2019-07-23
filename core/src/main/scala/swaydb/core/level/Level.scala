@@ -547,7 +547,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[Unit] = {
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
-    reserve(segments).asAsync flatMap {
+    reserve(segments).asDeferred flatMap {
       case Left(future) =>
         IO.fromFuture(future)
 
@@ -559,7 +559,7 @@ private[core] case class Level(dirs: Seq[Dir],
             segmentsToMerge = segmentToMerge,
             segmentsToCopy = segmentToCopy,
             targetSegments = appendixSegments
-          ).asAsync
+          ).asDeferred
         }
     }
   }
@@ -621,7 +621,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[Unit] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
-    reserve(map).asAsync flatMap {
+    reserve(map).asDeferred flatMap {
       case Left(future) =>
         IO.fromFuture(future)
 
@@ -653,7 +653,7 @@ private[core] case class Level(dirs: Seq[Dir],
                   }
               }
 
-          result map (_ => ()) asAsync
+          result map (_ => ()) asDeferred
         }
     }
   }
@@ -835,7 +835,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[Unit] = {
     logger.debug("{}: Running refresh.", paths.head)
-    reserve(Seq(segment)).asAsync flatMap {
+    reserve(Seq(segment)).asDeferred flatMap {
       case Left(future) =>
         IO.fromFuture(future)
 
@@ -877,7 +877,7 @@ private[core] case class Level(dirs: Seq[Dir],
                       }
                   }
               }
-          } asAsync
+          } asDeferred
         }
     }
   }
@@ -940,7 +940,7 @@ private[core] case class Level(dirs: Seq[Dir],
         }
 
       //reserve the Level. It's unknown here what segments will value collapsed into what other Segments.
-      reserve(levelSegments).asAsync flatMap {
+      reserve(levelSegments).asDeferred flatMap {
         case Left(future) =>
           IO.fromFuture(future.map(_ => 0))
 
@@ -974,7 +974,7 @@ private[core] case class Level(dirs: Seq[Dir],
                   }
                 segmentsToMerge.size
             }
-          } asAsync
+          } asDeferred
       }
     }
   }
@@ -1253,7 +1253,7 @@ private[core] case class Level(dirs: Seq[Dir],
     * It does not check if the returned key is removed. Use [[Level.head]] instead.
     */
   override def headKey: IO.Defer[Option[Slice[Byte]]] =
-    nextLevel.map(_.headKey) getOrElse IO.none mapAsync {
+    nextLevel.map(_.headKey) getOrElse IO.none mapDeferred {
       nextLevelFirstKey =>
         MinMax.min(appendixWithReadLocked(_.firstKey), nextLevelFirstKey)(keyOrder)
     }
@@ -1263,7 +1263,7 @@ private[core] case class Level(dirs: Seq[Dir],
     * It does not check if the returned key is removed. Use [[Level.last]] instead.
     */
   override def lastKey: IO.Defer[Option[Slice[Byte]]] =
-    nextLevel.map(_.lastKey) getOrElse IO.none mapAsync {
+    nextLevel.map(_.lastKey) getOrElse IO.none mapDeferred {
       nextLevelLastKey =>
         MinMax.max(appendixWithReadLocked(_.lastValue()).map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
     }
