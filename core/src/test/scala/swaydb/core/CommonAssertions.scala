@@ -1369,7 +1369,7 @@ object CommonAssertions {
           getHigher(group.maxKey.maxKey).runIO.value shouldBe next
 
         case _ =>
-          IO(getHigher(keyValue.key).runIO.value shouldBe next).recover[IO.Error, Unit] {
+          IO(getHigher(keyValue.key).runIO.value shouldBe next) recover {
             case _: TestFailedException =>
               unexpiredPuts(Slice(next)) should have size 0
           } get

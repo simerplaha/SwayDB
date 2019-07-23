@@ -49,7 +49,7 @@ sealed trait IO[+E, +A] {
   def get: A
   def foreach[B](f: A => B): Unit
   def map[B](f: A => B): IO[E, B]
-  def flatMap[F >: E, B](f: A => IO[F, B]): IO[F, B]
+  def flatMap[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO[F, B]
   def asDeferred: IO.Defer[E, A]
   def asIO: IO[E, A]
   def exists(f: A => Boolean): Boolean
@@ -57,15 +57,15 @@ sealed trait IO[+E, +A] {
   @inline final def withFilter(p: A => Boolean): WithFilter = new WithFilter(p)
   class WithFilter(p: A => Boolean) {
     def map[B](f: A => B): IO[E, B] = IO.this filter p map f
-    def flatMap[F >: E, B](f: A => IO[F, B]): IO[F, B] = IO.this filter p flatMap f
+    def flatMap[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO[F, B] = IO.this filter p flatMap f
     def foreach[B](f: A => B): Unit = IO.this filter p foreach f
     def withFilter(q: A => Boolean): WithFilter = new WithFilter(x => p(x) && q(x))
   }
   def onFailureSideEffect(f: IO.Failure[E, A] => Unit): IO[E, A]
   def onSuccessSideEffect(f: A => Unit): IO[E, A]
   def onCompleteSideEffect(f: IO[E, A] => Unit): IO[E, A]
-  def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[F, IO[F, B]]): IO[F, B]
-  def recover[F >: E : ErrorHandler, B >: A](f: PartialFunction[F, B]): IO[F, B]
+  def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO[F, B]]): IO[F, B]
+  def recover[B >: A](f: PartialFunction[E, B]): IO[E, B]
   def toOption: Option[A]
   def flatten[F, B](implicit ev: A <:< IO[F, B]): IO[F, B]
   def failed: IO[Nothing, E]
@@ -162,7 +162,7 @@ object IO {
 
         //Fatal error. This error is not expected to occur on a healthy database. This error would indicate corruption.
         //AppendixRepairer can be used to repair map files.
-        case exception => Error.Fatal(exception)
+        case exception: Throwable => Error.Fatal(exception)
       }
 
     sealed trait Busy extends Error {
@@ -270,7 +270,7 @@ object IO {
     def isFailure: Boolean
     def isSuccess: Boolean
     def isDeferred: Boolean
-    def flatMap[F: ErrorHandler, B](f: A => IO.Defer[F, B]): IO.Defer[F, B]
+    def flatMap[F >: E : ErrorHandler, B](f: A => IO.Defer[F, B]): IO.Defer[F, B]
     def mapDeferred[B](f: A => B): IO.Defer[E, B]
     def get: A
     def run: IO.Defer[E, A]
@@ -280,8 +280,8 @@ object IO {
     def runInFuture(implicit ec: ExecutionContext): Future[A]
     def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[A]
     def getOrElse[B >: A](default: => B): B
-    def recover[F >: E : ErrorHandler, B >: A](f: PartialFunction[F, B]): IO[F, B]
-    def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[F, IO[F, B]]): IO[F, B]
+    def recover[B >: A](f: PartialFunction[E, B]): IO[E, B]
+    def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO[F, B]]): IO[F, B]
     def failed: IO[Nothing, E]
     def flattenDeferred[F, B](implicit ev: A <:< IO.Defer[F, B]): IO.Defer[F, B]
   }
@@ -465,15 +465,15 @@ object IO {
     override def runInFuture(implicit ec: ExecutionContext): Future[A] = Future.successful(value)
     override def getOrElse[B >: A](default: => B): B = get
     override def orElse[F >: E : ErrorHandler, B >: A](default: => IO[F, B]): IO.Success[F, B] = this
-    override def flatMap[F >: E, B](f: A => IO[F, B]): IO[F, B] = f(get)
-    override def flatMap[F: ErrorHandler, B](f: A => IO.Defer[F, B]): IO.Defer[F, B] = f(get)
+    override def flatMap[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO[F, B] = f(get)
+    override def flatMap[F >: E : ErrorHandler, B](f: A => IO.Defer[F, B]): IO.Defer[F, B] = f(get)
     override def flatten[F, B](implicit ev: A <:< IO[F, B]): IO[F, B] = get
     override def flattenDeferred[F, B](implicit ev: A <:< IO.Defer[F, B]): IO.Defer[F, B] = get
     override def foreach[B](f: A => B): Unit = f(get)
     override def map[B](f: A => B): IO[E, B] = IO[E, B](f(get))
     override def mapDeferred[B](f: A => B): IO.Defer[E, B] = IO[E, B](f(get)).asInstanceOf[IO.Defer[E, B]]
-    override def recover[F >: E : ErrorHandler, B >: A](f: PartialFunction[F, B]): IO[F, B] = this
-    override def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[F, IO[F, B]]): IO[F, B] = this
+    override def recover[B >: A](f: PartialFunction[E, B]): IO[E, B] = this
+    override def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO[F, B]]): IO[F, B] = this
     override def failed: IO[Nothing, E] = IO.Failure[Nothing, E](new UnsupportedOperationException("IO.Success.failed"))(Nothing)
     override def toOption: Option[A] = Some(get)
     override def toEither: Either[E, A] = Right(get)
@@ -705,8 +705,8 @@ object IO {
     def flattenDeferred[F, B](implicit ev: A <:< IO.Defer[F, B]): IO.Defer[F, B] = forceGet
     def map[B](f: A => B): Deferred[E, B] = IO.Deferred[E, B]((_: Unit) => f(forceGet), error)
     def mapDeferred[B](f: A => B): IO.Defer[E, B] = map(f)
-    def recover[F >: E : ErrorHandler, B >: A](f: PartialFunction[F, B]): IO[F, B] = IO[F, B](forceGet).recover(f)
-    def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[F, IO[F, B]]): IO[F, B] = IO[F, B](forceGet).recoverWith(f)
+    def recover[B >: A](f: PartialFunction[E, B]): IO[E, B] = IO[E, B](forceGet).recover(f)
+    def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO[F, B]]): IO[F, B] = IO[E, B](forceGet).recoverWith(f)
     def failed: IO[Nothing, E] = IO[E, A](forceGet).failed
   }
 
@@ -735,17 +735,17 @@ object IO {
     override def runInFuture(implicit ec: ExecutionContext): Future[A] = Future.failed(exception)
     override def getOrElse[B >: A](default: => B): B = default
     override def orElse[F >: E : ErrorHandler, B >: A](default: => IO[F, B]): IO[F, B] = IO.CatchLeak(default)
-    override def flatMap[F >: E, B](f: A => IO[F, B]): IO.Failure[F, B] = this.asInstanceOf[IO.Failure[F, B]]
-    override def flatMap[F: ErrorHandler, B](f: A => IO.Defer[F, B]): IO.Defer[F, B] = this.asInstanceOf[IO.Defer[F, B]]
+    override def flatMap[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO.Failure[F, B] = this.asInstanceOf[IO.Failure[F, B]]
+    override def flatMap[F >: E : ErrorHandler, B](f: A => IO.Defer[F, B]): IO.Defer[F, B] = this.asInstanceOf[IO.Defer[F, B]]
     override def flatten[F, B](implicit ev: A <:< IO[F, B]): IO.Failure[F, B] = this.asInstanceOf[IO.Failure[F, B]]
     override def flattenDeferred[F, B](implicit ev: A <:< IO.Defer[F, B]): IO.Defer[F, B] = this.asInstanceOf[IO.Defer[F, B]]
     override def foreach[B](f: A => B): Unit = ()
     override def map[B](f: A => B): IO.Failure[E, B] = this.asInstanceOf[IO.Failure[E, B]]
     override def mapDeferred[B](f: A => B): IO.Defer[E, B] = this.asInstanceOf[IO.Defer[E, B]]
-    override def recover[F >: E : ErrorHandler, B >: A](f: PartialFunction[F, B]): IO[F, B] =
-      IO.CatchLeak(if (f isDefinedAt error) IO.Success[F, B](f(error)) else this)
+    override def recover[B >: A](f: PartialFunction[E, B]): IO[E, B] =
+      IO.CatchLeak(if (f isDefinedAt error) IO.Success[E, B](f(error)) else this)
 
-    override def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[F, IO[F, B]]): IO[F, B] =
+    override def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO[F, B]]): IO[F, B] =
       IO.CatchLeak(if (f isDefinedAt error) f(error) else this)
 
     override def failed: IO.Success[Nothing, E] = IO.Success[Nothing, E](error)(Nothing)
@@ -762,7 +762,7 @@ object IO {
     override def onSuccessSideEffect(f: A => Unit): IO.Failure[E, A] = this
     def exception: Throwable = ErrorHandler.toException(error)
     def recoverToDeferred[F >: E : ErrorHandler, B](operation: => IO.Defer[F, B]): IO.Defer[F, B] =
-      IO.Defer.recover[IO.Error, Unit](()).flatMap[F, B] {
+      IO.Defer.recover[F, Unit](()).flatMap[F, B] {
         _ =>
           operation
       }

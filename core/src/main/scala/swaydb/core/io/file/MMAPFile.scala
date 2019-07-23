@@ -94,7 +94,7 @@ private[file] class MMAPFile(val path: Path,
     * FIXME - Switch to using Option.
     */
   def recoverFromNullPointer[T](f: => T): IO[IO.Error, T] =
-    IO(f).recoverWith[IO.Error, T] {
+    IO[IO.Error, T](f) recoverWith {
       case IO.Error.Fatal(ex: NullPointerException) =>
         IO.Failure(IO.Error.NullMappedByteBuffer(IO.Exception.NullMappedByteBuffer(ex, Reserve())))
 

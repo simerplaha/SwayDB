@@ -47,13 +47,13 @@ object ErrorHandler {
 
   object Nothing extends ErrorHandler[Nothing] {
     override def toException(e: Nothing): Throwable = new Exception("Nothing value.")
-    override def fromException[F <: Nothing](e: Throwable): F = throw e
+    override def fromException[F <: Nothing](e: Throwable): F = throw new Exception("Exception cannot be created from Nothing.")
     override def reserve(e: Nothing): Option[Reserve[Unit]] = None
   }
 
   implicit object Throwable extends ErrorHandler[Throwable] {
     override def toException(e: Throwable): Throwable = e
-    override def fromException[F <: Throwable](e: Throwable): F = throw e
+    override def fromException[F <: Throwable](e: Throwable): F = e.asInstanceOf[F]
     override def reserve(e: Throwable): Option[Reserve[Unit]] = None
   }
 

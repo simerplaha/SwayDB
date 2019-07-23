@@ -35,6 +35,7 @@ import swaydb.data.io.Tag
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.{IO, Prepare}
+import swaydb.ErrorHandler.CoreError
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -184,14 +185,14 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
-            } recoverWith[IO.Error, Option[KeyValueTuple]] {
+            } recoverWith {
               case error =>
                 error match {
                   case _: IO.Error.Busy =>
                     headIO
 
                   case failure =>
-                    IO.Failure(failure)
+                    IO.Failure(error = failure)
                 }
             }
         } getOrElse IO.none
@@ -211,14 +212,14 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
-            } recoverWith[IO.Error, Option[KeyValueTuple]] {
+            } recoverWith {
               case error =>
                 error match {
                   case _: IO.Error.Busy =>
                     lastIO
 
                   case failure =>
-                    IO.Failure(failure)
+                    IO.Failure(error = failure)
                 }
             }
         } getOrElse IO.none
@@ -263,7 +264,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
                     getIO(key)
 
                   case failure =>
-                    IO.Failure(failure)
+                    IO.Failure(error = failure)
                 }
             }
         } getOrElse IO.none
@@ -290,7 +291,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
                     getKeyValueIO(key)
 
                   case failure =>
-                    IO.Failure(failure)
+                    IO.Failure(error = failure)
                 }
             }
         } getOrElse IO.none
@@ -314,7 +315,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
                     beforeIO(key)
 
                   case failure =>
-                    IO.Failure(failure)
+                    IO.Failure(error = failure)
                 }
             }
         } getOrElse IO.none
@@ -334,14 +335,14 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
-            } recoverWith[IO.Error, Option[KeyValueTuple]] {
+            } recoverWith {
               case error =>
                 error match {
                   case _: IO.Error.Busy =>
                     afterIO(key)
 
                   case failure =>
-                    IO.Failure(failure)
+                    IO.Failure(error = failure)
                 }
             }
         } getOrElse IO.none
