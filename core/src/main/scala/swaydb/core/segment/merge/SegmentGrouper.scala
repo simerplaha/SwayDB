@@ -308,10 +308,9 @@ private[merge] object SegmentGrouper extends LazyLogging {
                                          keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] =
     keyValues.headOption match {
       case Some(keyValue) =>
-        implicit val groupIO = groupingStrategy.map(_.groupIO) getOrElse segmentIO
-
         keyValue match {
           case keyValue: KeyValue.ReadOnly.Group =>
+            implicit val groupIO = groupingStrategy.map(_.groupIO) getOrElse segmentIO
             keyValue.segment.getAll() match {
               case IO.Success(groupKeyValues) =>
                 addKeyValues(
