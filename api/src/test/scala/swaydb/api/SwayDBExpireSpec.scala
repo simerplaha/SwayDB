@@ -23,7 +23,6 @@ import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
-import swaydb.data.IO
 import swaydb.serializers.Default._
 import org.scalatest.OptionValues._
 

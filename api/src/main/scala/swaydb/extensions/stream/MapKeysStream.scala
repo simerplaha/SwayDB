@@ -19,8 +19,7 @@
 
 package swaydb.extensions.stream
 
-import swaydb.Streamer
-import swaydb.data.IO
+import swaydb.{IO, Streamer}
 import swaydb.data.slice.Slice
 import swaydb.extensions.Key
 import swaydb.serializers.Serializer

@@ -19,8 +19,7 @@
 
 package swaydb.extensions
 
-import swaydb.From
-import swaydb.data.IO
+import swaydb.{From, IO}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.extensions.stream.{MapKeysStream, MapStream}

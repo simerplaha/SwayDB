@@ -19,8 +19,8 @@
 
 package swaydb.core.map
 
+import swaydb.IO
 import swaydb.core.io.file.DBFile
-import swaydb.data.IO
 import swaydb.data.config.RecoveryMode
 
 /**

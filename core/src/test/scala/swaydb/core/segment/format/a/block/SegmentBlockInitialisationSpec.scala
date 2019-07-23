@@ -19,12 +19,12 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
-import swaydb.data.IO
 import swaydb.data.config.{IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice

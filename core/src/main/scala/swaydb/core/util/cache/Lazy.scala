@@ -19,7 +19,7 @@
 
 package swaydb.core.util.cache
 
-import swaydb.data.IO
+import swaydb.IO
 
 object Lazy {
   def value[T](synchronised: Boolean, stored: Boolean): LazyValue[T] =

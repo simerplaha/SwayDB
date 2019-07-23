@@ -21,7 +21,6 @@ package swaydb
 
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
-import swaydb.data.IO
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.Tag._

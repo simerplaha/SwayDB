@@ -23,7 +23,8 @@ import java.io.FileNotFoundException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.Paths
 
-import swaydb.data.IO.Exception.NullMappedByteBuffer
+import swaydb.IO
+import swaydb.IO.Exception.NullMappedByteBuffer
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}

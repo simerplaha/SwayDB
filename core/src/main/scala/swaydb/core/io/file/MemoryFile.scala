@@ -22,7 +22,7 @@ package swaydb.core.io.file
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.IO
+import swaydb.IO
 import swaydb.data.slice.Slice
 
 private[file] object MemoryFile {

@@ -19,9 +19,9 @@
 
 package swaydb.core
 
+import swaydb.IO
 import swaydb.core.RunThis._
 import swaydb.core.TestData.randomBoolean
-import swaydb.data.IO
 
 import scala.concurrent.duration._
 

@@ -19,13 +19,13 @@
 
 package swaydb.core.segment.format.a.entry.reader.base
 
+import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.cache.Cache
-import swaydb.data.IO
 import swaydb.data.slice.Reader
 
 private[core] object BaseEntryReader1 extends BaseEntryReader {

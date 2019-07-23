@@ -20,11 +20,12 @@
 package swaydb.core.group.compression
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.data.Transient
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, MaxKey}
+import swaydb.data.MaxKey
 
 private[core] object GroupCompressor extends LazyLogging {
 

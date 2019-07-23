@@ -21,7 +21,7 @@ package swaydb.core.queue
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.IO
+import swaydb.IO
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

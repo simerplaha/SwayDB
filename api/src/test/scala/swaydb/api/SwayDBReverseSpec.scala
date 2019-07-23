@@ -22,7 +22,6 @@ package swaydb
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
-import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

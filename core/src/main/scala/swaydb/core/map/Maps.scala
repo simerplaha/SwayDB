@@ -23,6 +23,7 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentLinkedDeque
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.brake.BrakePedal
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect
@@ -30,8 +31,7 @@ import swaydb.core.io.file.IOEffect._
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.queue.FileLimiter
-import swaydb.data.IO
-import swaydb.data.IO._
+import swaydb.IO._
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.RecoveryMode
 import swaydb.data.order.{KeyOrder, TimeOrder}

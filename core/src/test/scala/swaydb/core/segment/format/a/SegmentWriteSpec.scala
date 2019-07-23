@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 
 import org.scalatest.OptionValues._
+import swaydb.IO
 import swaydb.configs.level.DefaultGroupingStrategy
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
@@ -44,7 +45,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{IO, MaxKey}
+import swaydb.data.MaxKey
 import swaydb.serializers.Default._
 import swaydb.serializers._
 

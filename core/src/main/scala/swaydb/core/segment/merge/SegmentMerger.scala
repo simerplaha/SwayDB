@@ -20,6 +20,7 @@
 package swaydb.core.segment.merge
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.function.FunctionStore
@@ -27,8 +28,7 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.merge.{FixedMerger, ValueMerger}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
-import swaydb.data.IO
-import swaydb.data.IO._
+import swaydb.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

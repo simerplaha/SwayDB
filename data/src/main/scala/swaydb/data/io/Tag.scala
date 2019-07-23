@@ -19,7 +19,7 @@
 
 package swaydb.data.io
 
-import swaydb.data.IO
+import swaydb.IO
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._

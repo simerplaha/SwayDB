@@ -22,6 +22,7 @@ package swaydb.core
 import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.actor.WiredActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
@@ -32,7 +33,6 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block
-import swaydb.data.IO
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}

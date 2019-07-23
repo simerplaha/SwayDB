@@ -20,7 +20,8 @@
 package swaydb.data
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.data.IO._
+import swaydb.IO
+import swaydb.IO._
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer

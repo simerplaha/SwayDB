@@ -19,8 +19,8 @@
 
 package swaydb.core.level.seek
 
+import swaydb.IO
 import swaydb.core.data.KeyValue
-import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 trait CurrentWalker {

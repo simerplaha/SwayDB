@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 import org.scalatest.Matchers._
 import org.scalatest.OptionValues._
 import org.scalatest.exceptions.TestFailedException
+import swaydb.IO
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
@@ -47,7 +48,6 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
-import swaydb.data.IO
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}

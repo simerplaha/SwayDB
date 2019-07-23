@@ -21,7 +21,7 @@ package swaydb.core.util
 
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.data.IO
+import swaydb.IO
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._

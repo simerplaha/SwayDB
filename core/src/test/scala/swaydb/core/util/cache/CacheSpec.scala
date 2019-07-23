@@ -21,10 +21,11 @@ package swaydb.core.util.cache
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.IO
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.data.config.IOStrategy
-import swaydb.data.{IO, Reserve}
+import swaydb.data.Reserve
 
 import scala.concurrent.Future
 import scala.concurrent.duration._

@@ -19,10 +19,10 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.IO
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.util.Benchmark
-import swaydb.data.IO
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 

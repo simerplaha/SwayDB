@@ -23,11 +23,11 @@ import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.{NoSuchFileException, StandardOpenOption}
 
+import swaydb.IO
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.queue.FileLimiter
-import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 import scala.concurrent.Future

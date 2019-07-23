@@ -21,10 +21,10 @@ package swaydb.core.level
 
 import java.nio.file.{Path, Paths}
 
+import swaydb.IO
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.segment.Segment
-import swaydb.data.IO
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 

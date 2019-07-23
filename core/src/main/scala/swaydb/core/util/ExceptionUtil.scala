@@ -20,7 +20,7 @@
 package swaydb.core.util
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.IO
+import swaydb.IO
 
 private[core] object ExceptionUtil extends LazyLogging {
 

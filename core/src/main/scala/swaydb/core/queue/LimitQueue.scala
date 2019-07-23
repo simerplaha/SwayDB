@@ -20,8 +20,8 @@
 package swaydb.core.queue
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.actor.{Actor, ActorRef}
-import swaydb.data.IO
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext

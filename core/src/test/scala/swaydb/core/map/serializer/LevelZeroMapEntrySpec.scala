@@ -22,6 +22,7 @@ package swaydb.core.map.serializer
 import java.util.concurrent.ConcurrentSkipListMap
 
 import org.scalatest.OptionValues._
+import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
@@ -30,7 +31,6 @@ import swaydb.core.data.Memory
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf

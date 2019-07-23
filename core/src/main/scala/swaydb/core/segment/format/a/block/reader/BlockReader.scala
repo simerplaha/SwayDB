@@ -20,8 +20,8 @@
 package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.segment.format.a.block.BlockOffset
-import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
 protected trait BlockReader extends Reader with LazyLogging {

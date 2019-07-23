@@ -18,6 +18,7 @@
  */
 package swaydb.core.segment.format.a.block
 
+import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
@@ -25,7 +26,6 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.Bytes
-import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

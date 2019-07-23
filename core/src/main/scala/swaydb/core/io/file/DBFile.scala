@@ -22,12 +22,13 @@ package swaydb.core.io.file
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.queue.{FileLimiter, FileLimiterItem}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
-import swaydb.data.IO._
+import swaydb.IO._
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, Reserve}
+import swaydb.data.Reserve
 
 import scala.annotation.tailrec
 import scala.util.hashing.MurmurHash3

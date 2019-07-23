@@ -19,9 +19,9 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
+import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
-import swaydb.data.IO
 import swaydb.data.slice.Reader
 
 import scala.annotation.implicitNotFound

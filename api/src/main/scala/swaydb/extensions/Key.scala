@@ -19,8 +19,8 @@
 
 package swaydb.extensions
 
+import swaydb.IO
 import swaydb.core.io.reader.Reader
-import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteUtil

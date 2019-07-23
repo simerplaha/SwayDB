@@ -19,13 +19,13 @@
 
 package swaydb.core.segment
 
+import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment.getNearestDeadline
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{FiniteDurationUtil, MinMax}
-import swaydb.data.IO
-import swaydb.data.IO._
+import swaydb.IO._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 

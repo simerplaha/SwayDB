@@ -32,7 +32,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, MaxKey}
+import swaydb.data.MaxKey
 import swaydb.serializers.Serializer
 
 import scala.concurrent.ExecutionContext

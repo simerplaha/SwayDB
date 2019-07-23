@@ -19,10 +19,10 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
+import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
-import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 

@@ -19,11 +19,10 @@
 
 package swaydb.api
 
-import swaydb._
+import swaydb.{IO, _}
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
-import swaydb.data.IO
 import swaydb.serializers.Default._
 import org.scalatest.OptionValues._
 

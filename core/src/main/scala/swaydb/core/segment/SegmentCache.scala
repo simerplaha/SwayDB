@@ -22,13 +22,14 @@ package swaydb.core.segment
 import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, MaxKey}
+import swaydb.data.MaxKey
 
 private[core] object SegmentCache {
 

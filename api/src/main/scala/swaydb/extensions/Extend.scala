@@ -19,8 +19,7 @@
 
 package swaydb.extensions
 
-import swaydb.Prepare
-import swaydb.data.IO
+import swaydb.{IO, Prepare}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer

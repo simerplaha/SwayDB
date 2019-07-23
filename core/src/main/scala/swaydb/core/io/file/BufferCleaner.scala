@@ -24,9 +24,9 @@ import java.nio.file.Path
 import java.nio.{ByteBuffer, MappedByteBuffer}
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.core.io.file.BufferCleaner.State
-import swaydb.data.IO
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

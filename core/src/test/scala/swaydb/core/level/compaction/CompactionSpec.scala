@@ -20,6 +20,7 @@
 package swaydb.core.level.compaction
 
 import org.scalamock.scalatest.MockFactory
+import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
@@ -28,7 +29,6 @@ import swaydb.core.level.NextLevel
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
-import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

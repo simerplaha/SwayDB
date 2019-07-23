@@ -19,13 +19,12 @@
 
 package swaydb.core
 
-import swaydb.Prepare
+import swaydb.{IO, Prepare}
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.SwayFunction
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.util.Delay
-import swaydb.data.IO
-import swaydb.data.IO.Error
+import swaydb.IO.Error
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.{Tag, TagAsync}

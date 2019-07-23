@@ -19,11 +19,11 @@
 
 package swaydb.core.level
 
+import swaydb.IO
 import swaydb.core.data.Memory
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
-import swaydb.data.IO
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 

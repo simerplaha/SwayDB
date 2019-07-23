@@ -19,10 +19,9 @@
 
 package swaydb.api
 
-import swaydb._
+import swaydb.{IO, _}
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
-import swaydb.data.IO
 import swaydb.serializers.Default._
 
 class ScalaSetSpec0 extends ScalaSetSpec {

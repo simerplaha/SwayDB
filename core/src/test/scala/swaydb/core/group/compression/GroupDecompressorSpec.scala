@@ -29,9 +29,9 @@
 //import swaydb.core.io.reader.Reader
 //import swaydb.core.queue.KeyValueLimiter
 //import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
-//import swaydb.data.IO._
+//import swaydb.IO._
 //import swaydb.core.{TestBase, TestData}
-//import swaydb.data.IO
+//import swaydb.IO
 //import swaydb.data.order.KeyOrder
 //import swaydb.data.slice.Slice
 //import swaydb.data.util.StorageUnits._

@@ -20,7 +20,6 @@
 package swaydb
 
 import swaydb.Stream.StreamBuilder
-import swaydb.data.IO
 import swaydb.data.io.Tag
 import swaydb.data.io.Tag._
 

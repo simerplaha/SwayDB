@@ -26,10 +26,11 @@ import java.nio.{BufferOverflowException, MappedByteBuffer}
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.IO._
+import swaydb.IO
+import swaydb.IO._
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
-import swaydb.data.{IO, Reserve}
+import swaydb.data.Reserve
 
 import scala.annotation.tailrec
 

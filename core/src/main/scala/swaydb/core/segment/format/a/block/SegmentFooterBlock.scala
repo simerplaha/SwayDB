@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.IO
 import swaydb.core.data.Transient
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
@@ -27,8 +28,7 @@ import swaydb.core.segment.format.a.block.Block.CompressionInfo
 import swaydb.core.segment.format.a.block.SegmentBlock.ClosedBlocks
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, CRC32}
-import swaydb.data.IO
-import swaydb.data.config.{IOStrategy, IOAction}
+import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 

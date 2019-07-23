@@ -19,10 +19,9 @@
 
 package swaydb.core
 
-import swaydb.Prepare
+import swaydb.{IO, Prepare}
 import swaydb.core.data.KeyValue.KeyValueTuple
 import swaydb.core.data.SwayFunction
-import swaydb.data.IO
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.{Tag, TagAsync}

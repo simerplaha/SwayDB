@@ -25,11 +25,11 @@ import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.segment.SegmentException
 import swaydb.core.util.Extension
 import swaydb.core.util.PipeOps._
-import swaydb.data.IO
-import swaydb.data.IO._
+import swaydb.IO._
 import swaydb.data.slice.Slice
 
 import scala.collection.JavaConverters._

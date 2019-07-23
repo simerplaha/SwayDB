@@ -20,11 +20,11 @@
 package swaydb.core.level.compaction
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
-import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec

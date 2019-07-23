@@ -22,13 +22,13 @@ package swaydb.core.level.seek
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.{TestData, TestTimer}
-import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

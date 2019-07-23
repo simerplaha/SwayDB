@@ -22,6 +22,7 @@ package swaydb.data
 import java.nio.file.{NoSuchFileException, Paths}
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.IO
 import swaydb.data.Base._
 
 import scala.concurrent.ExecutionContext.Implicits.global

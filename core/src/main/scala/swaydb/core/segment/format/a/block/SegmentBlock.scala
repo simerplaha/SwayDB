@@ -21,15 +21,15 @@ package swaydb.core.segment.format.a.block
 
 import java.util.concurrent.ConcurrentSkipListMap
 
+import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Memory, Transient}
 import swaydb.core.function.FunctionStore
 import swaydb.core.segment.{DeadlineAndFunctionId, Segment}
 import swaydb.core.util.{Bytes, MinMax}
-import swaydb.data.IO
-import swaydb.data.IO._
+import swaydb.IO._
 import swaydb.data.api.grouping.Compression
-import swaydb.data.config.{IOStrategy, IOAction, UncompressedBlockInfo}
+import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec

@@ -20,12 +20,12 @@
 package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil}
-import swaydb.data.IO
-import swaydb.data.config.{IOStrategy, IOAction, RandomKeyIndex, UncompressedBlockInfo}
+import swaydb.data.config.{IOAction, IOStrategy, RandomKeyIndex, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf

@@ -21,11 +21,11 @@ package swaydb.core.map.timer
 
 import java.nio.file.Path
 
+import swaydb.IO
 import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
-import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

@@ -19,7 +19,7 @@
 
 package swaydb.core
 
-import swaydb.Prepare
+import swaydb.{IO, Prepare}
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.{Memory, SwayFunction, Time, Value}
 import swaydb.core.function.FunctionStore
@@ -27,8 +27,7 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.map.timer.Timer
-import swaydb.data.IO
-import swaydb.data.IO.Error
+import swaydb.IO.Error
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}

@@ -21,6 +21,7 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.exceptions.TestFailedException
+import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
@@ -28,7 +29,6 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
-import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

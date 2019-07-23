@@ -19,12 +19,12 @@
 
 package swaydb.core.map.serializer
 
+import swaydb.IO
 import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.core.util.TimeUtil._
-import swaydb.data.IO
-import swaydb.data.IO._
+import swaydb.IO._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 

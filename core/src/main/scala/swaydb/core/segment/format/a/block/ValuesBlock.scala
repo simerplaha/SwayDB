@@ -19,13 +19,13 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Transient
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil}
-import swaydb.data.IO
-import swaydb.data.config.{IOStrategy, IOAction, UncompressedBlockInfo}
+import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 
 private[core] object ValuesBlock {

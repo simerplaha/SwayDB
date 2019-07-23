@@ -20,7 +20,7 @@
 package swaydb.api
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.Stream
+import swaydb.{IO, Stream}
 import swaydb.core.RunThis._
 import swaydb.data._
 import swaydb.data.io.Tag

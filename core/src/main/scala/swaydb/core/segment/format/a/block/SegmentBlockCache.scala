@@ -19,13 +19,14 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.block.ValuesBlock.ValuesBlockOps
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.util.cache.Cache
-import swaydb.data.config.{IOStrategy, IOAction}
+import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, Reserve}
+import swaydb.data.Reserve
 
 object SegmentBlockCache {
 

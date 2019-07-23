@@ -24,6 +24,7 @@ import java.nio.file.{Path, StandardOpenOption}
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -40,8 +41,7 @@ import swaydb.core.segment.{Segment, SegmentAssigner}
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.ExceptionUtil._
 import swaydb.core.util.{MinMax, _}
-import swaydb.data.IO
-import swaydb.data.IO._
+import swaydb.IO._
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}

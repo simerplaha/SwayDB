@@ -17,13 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data
+package swaydb
 
 import java.io.FileNotFoundException
 import java.nio.ReadOnlyBufferException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.{NoSuchFileException, Path}
 
+import swaydb.data.Reserve
 import swaydb.data.slice.{Slice, SliceReaderSafe}
 
 import scala.annotation.tailrec

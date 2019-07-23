@@ -23,12 +23,11 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.WordSpec
-import swaydb.Apply
+import swaydb.{Apply, IO}
 import swaydb.configs.level.DefaultGroupingStrategy
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.actor.{Actor, ActorRef}
-import swaydb.data.IO
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.MMAP
 import swaydb.serializers.Default._

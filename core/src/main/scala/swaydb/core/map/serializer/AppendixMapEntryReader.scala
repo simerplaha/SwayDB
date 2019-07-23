@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 
+import swaydb.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.map.MapEntry
@@ -32,7 +33,7 @@ import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
-import swaydb.data.{IO, MaxKey}
+import swaydb.data.MaxKey
 
 import scala.concurrent.duration.Deadline
 

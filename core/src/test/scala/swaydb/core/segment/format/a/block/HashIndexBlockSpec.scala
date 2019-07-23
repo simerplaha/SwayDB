@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
@@ -26,7 +27,6 @@ import swaydb.core.TestData._
 import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.HashIndexBlock.HashIndexBlockOps
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.data.IO
 import swaydb.data.config.RandomKeyIndex.RequiredSpace
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice

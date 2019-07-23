@@ -21,10 +21,10 @@ package swaydb.core.level
 
 import java.nio.file.Path
 
+import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.Segment
-import swaydb.data.IO
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 

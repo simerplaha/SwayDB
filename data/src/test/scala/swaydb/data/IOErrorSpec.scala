@@ -25,7 +25,8 @@ import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.{NoSuchFileException, Paths}
 
 import org.scalatest.{FlatSpec, Matchers}
-import swaydb.data.IO.Exception.NullMappedByteBuffer
+import swaydb.IO
+import swaydb.IO.Exception.NullMappedByteBuffer
 
 class IOErrorSpec extends FlatSpec with Matchers {
 

@@ -22,6 +22,7 @@ package swaydb.core
 import java.nio.file.Path
 
 import org.scalatest.Matchers._
+import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
@@ -45,12 +46,12 @@ import swaydb.core.util.UUIDUtil
 import swaydb.core.util.cache.Cache
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.{IOStrategy, Dir, RecoveryMode}
+import swaydb.data.config.{Dir, IOStrategy, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{IO, MaxKey}
+import swaydb.data.MaxKey
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -154,7 +155,7 @@ object TestData {
                                            compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000)),
                                            segmentIO: SegmentIO = SegmentIO.random) {
 
-    import swaydb.data.IO._
+    import swaydb.IO._
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.

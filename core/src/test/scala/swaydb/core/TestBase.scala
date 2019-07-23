@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.TestData._
@@ -43,7 +44,6 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
 import swaydb.core.util.IDGenerator
-import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}

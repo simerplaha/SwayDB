@@ -20,11 +20,10 @@
 package swaydb.memory.zero
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.SwayDB
+import swaydb.{IO, SwayDB}
 import swaydb.configs.level.DefaultMemoryZeroConfig
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
-import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice

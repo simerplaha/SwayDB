@@ -20,14 +20,14 @@
 package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.util.Bytes
-import swaydb.data.IO
-import swaydb.data.IO._
+import swaydb.IO._
 import swaydb.data.config.IOAction
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf

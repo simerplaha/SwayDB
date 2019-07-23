@@ -23,6 +23,7 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
@@ -35,11 +36,11 @@ import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.{FiniteDurationUtil, IDGenerator, MinMax}
-import swaydb.data.IO._
+import swaydb.IO._
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, MaxKey}
+import swaydb.data.MaxKey
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer

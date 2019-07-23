@@ -19,12 +19,12 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil, MinMax, Options}
-import swaydb.data.IO
-import swaydb.data.config.{IOStrategy, IOAction, UncompressedBlockInfo}
+import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf

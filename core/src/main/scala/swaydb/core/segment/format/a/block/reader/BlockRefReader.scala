@@ -20,10 +20,10 @@
 package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block._
-import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
 private[core] object BlockRefReader {

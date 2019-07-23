@@ -24,12 +24,12 @@ import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicLong
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
 import swaydb.core.queue.FileLimiter
-import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

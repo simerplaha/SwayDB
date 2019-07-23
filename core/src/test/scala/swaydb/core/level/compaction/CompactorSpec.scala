@@ -20,6 +20,7 @@
 package swaydb.core.level.compaction
 
 import org.scalamock.scalatest.MockFactory
+import swaydb.IO
 import swaydb.core.RunThis._
 import swaydb.core.actor.WiredActor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
@@ -28,7 +29,7 @@ import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, Reserve}
+import swaydb.data.Reserve
 
 import scala.collection.mutable
 import scala.concurrent.duration._

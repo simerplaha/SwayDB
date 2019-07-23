@@ -22,7 +22,6 @@ package swaydb
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
-import swaydb.data.IO
 import swaydb.serializers.Default._
 
 class SwayDBSize_Persistent_Spec extends SwayDBSizeSpec {

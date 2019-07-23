@@ -19,9 +19,9 @@
 
 package swaydb.core.level.compaction
 
+import swaydb.IO
 import swaydb.core.actor.WiredActor
 import swaydb.core.level.zero.LevelZero
-import swaydb.data.IO
 import swaydb.data.compaction.CompactionExecutionContext
 
 private[core] trait CompactionStrategy[S] {

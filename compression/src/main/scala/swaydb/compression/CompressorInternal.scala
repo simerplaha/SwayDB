@@ -24,7 +24,7 @@ import java.nio.ByteBuffer
 import com.typesafe.scalalogging.LazyLogging
 import net.jpountz.lz4.{LZ4Compressor, LZ4Factory}
 import org.xerial.snappy
-import swaydb.data.IO
+import swaydb.IO
 import swaydb.data.compression.LZ4Compressor.{Fast, High}
 import swaydb.data.compression.LZ4Instance
 import swaydb.data.compression.LZ4Instance._

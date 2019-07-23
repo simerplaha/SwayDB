@@ -24,8 +24,8 @@ import java.util
 import java.util.concurrent.ConcurrentLinkedDeque
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.segment.Segment
-import swaydb.data.IO
 import swaydb.data.config.Dir
 
 import scala.annotation.tailrec

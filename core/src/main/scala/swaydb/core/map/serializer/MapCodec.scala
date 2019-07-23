@@ -20,10 +20,10 @@
 package swaydb.core.map.serializer
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.{MapEntry, RecoveryResult}
 import swaydb.core.util.CRC32
-import swaydb.data.IO
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 

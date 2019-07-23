@@ -20,13 +20,13 @@
 package swaydb.core.level.compaction
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.actor.WiredActor
 import swaydb.core.level.LevelRef
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.util.FiniteDurationUtil
 import swaydb.core.util.FiniteDurationUtil._
-import swaydb.data.IO
-import swaydb.data.IO._
+import swaydb.IO._
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
 

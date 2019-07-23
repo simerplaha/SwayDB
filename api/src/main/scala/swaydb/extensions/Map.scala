@@ -19,14 +19,13 @@
 
 package swaydb.extensions
 
-import swaydb.data.IO
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.extensions.stream.{MapKeysStream, MapStream}
 import swaydb.serializers.Serializer
-import swaydb.{From, Prepare}
+import swaydb.{From, IO, Prepare}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 

@@ -20,9 +20,9 @@
 package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps, SegmentBlock}
-import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
 /**
