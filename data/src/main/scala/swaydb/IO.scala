@@ -76,7 +76,8 @@ sealed trait IO[+E, +A] {
 
 object IO {
 
-  type TIO[_] = IO[Throwable, _]
+  type TIO[T] = IO[Throwable, T]
+  type SIO[T] = IO[IO.Error, T]
 
   sealed trait OK
   final case object OK extends OK

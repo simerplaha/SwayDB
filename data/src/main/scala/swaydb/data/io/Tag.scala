@@ -19,13 +19,14 @@
 
 package swaydb.data.io
 
+import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.IO.SIO
 import swaydb.{ErrorHandler, IO}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
-import ErrorHandler.CoreErrorHandler
 
 /**
   * [[Tag]]s are used to tag databases operations (side-effects) into types that can be
@@ -80,8 +81,6 @@ object Tag {
             failure
         }
     }
-
-  type SIO[T] = IO[IO.Error, T]
 
   implicit val sio: Tag[SIO] =
     new Tag[SIO] {
