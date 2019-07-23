@@ -20,10 +20,10 @@
 package swaydb.api
 
 import org.scalatest.OptionValues._
-import swaydb.{IO, _}
+import swaydb.IO.SIO
+import swaydb._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
-import swaydb.data.io.Tag.SIO
 import swaydb.serializers.Default._
 
 class SwayDBSpec0 extends SwayDBSpec {

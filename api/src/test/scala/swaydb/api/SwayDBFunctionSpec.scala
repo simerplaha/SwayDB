@@ -19,10 +19,10 @@
 
 package swaydb
 
+import swaydb.IO.SIO
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
-import swaydb.data.io.Tag.SIO
 import swaydb.serializers.Default._
 
 class SwayDBFunctionSpec0 extends SwayDBFunctionSpec {

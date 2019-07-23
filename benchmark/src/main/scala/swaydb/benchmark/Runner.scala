@@ -20,9 +20,8 @@
 package swaydb.benchmark
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
+import swaydb.IO.SIO
 import swaydb.core.util.Benchmark
-import swaydb.data.io.Tag.SIO
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default.{LongSerializer, StringSerializer}
 

@@ -20,13 +20,13 @@
 package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{IO, SwayDB}
+import swaydb.IO.SIO
+import swaydb.SwayDB
 import swaydb.configs.level.DefaultMemoryConfig
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
-import swaydb.data.io.Tag.SIO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

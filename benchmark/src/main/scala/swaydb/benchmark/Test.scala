@@ -21,9 +21,9 @@ package swaydb.benchmark
 
 import java.nio.file.Path
 
-import swaydb.{IO, _}
+import swaydb.IO.SIO
+import swaydb._
 import swaydb.data.config.MMAP
-import swaydb.data.io.Tag.SIO
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default.{SliceOptionSerializer, SliceSerializer}
 

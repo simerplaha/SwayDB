@@ -22,6 +22,7 @@ package swaydb
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO.SIO
 import swaydb.core.BlockingCore
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -29,7 +30,6 @@ import swaydb.core.level.tool.AppendixRepairer
 import swaydb.core.queue.FileLimiter
 import swaydb.data.MaxKey
 import swaydb.data.config._
-import swaydb.data.io.Tag.SIO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._

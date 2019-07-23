@@ -21,8 +21,9 @@ package swaydb.weather
 
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.BeforeAndAfterAll
-import swaydb.IO
+import swaydb.IO.SIO
 import swaydb.configs.level.DefaultGroupingStrategy
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
@@ -30,8 +31,6 @@ import swaydb.core.util.Benchmark
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
-import swaydb.core.IOValues._
-import swaydb.data.io.Tag.SIO
 
 import scala.concurrent.Future
 import scala.concurrent.duration._

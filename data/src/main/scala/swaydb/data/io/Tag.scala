@@ -20,7 +20,7 @@
 package swaydb.data.io
 
 import swaydb.ErrorHandler.CoreErrorHandler
-import swaydb.IO.SIO
+import swaydb.IO.{SIO, TIO}
 import swaydb.{ErrorHandler, IO}
 
 import scala.annotation.tailrec

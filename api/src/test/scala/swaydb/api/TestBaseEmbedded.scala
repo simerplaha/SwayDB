@@ -19,11 +19,11 @@
 
 package swaydb.api
 
-import swaydb.{IO, _}
+import swaydb.IO.SIO
+import swaydb._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
-import swaydb.data.io.Tag.SIO
 
 import scala.annotation.tailrec
 import scala.concurrent.Future

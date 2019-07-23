@@ -19,13 +19,13 @@
 
 package swaydb.api
 
-import swaydb.{IO, _}
+import org.scalatest.OptionValues._
+import swaydb.IO.SIO
+import swaydb._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
-import org.scalatest.OptionValues._
-import swaydb.data.io.Tag.SIO
 
 import scala.concurrent.duration._
 

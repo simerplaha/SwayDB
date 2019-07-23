@@ -22,7 +22,9 @@ package swaydb.core
 import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.ErrorHandler.CoreErrorHandler
 import swaydb.IO
+import swaydb.IO.SIO
 import swaydb.core.actor.WiredActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
@@ -35,11 +37,9 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
-import swaydb.data.io.Tag.SIO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-import swaydb.ErrorHandler.CoreErrorHandler
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration

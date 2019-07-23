@@ -19,7 +19,7 @@
 
 package swaydb
 
-import swaydb.data.io.Tag.SIO
+import swaydb.IO.SIO
 
 import scala.collection.{TraversableOnce, mutable}
 

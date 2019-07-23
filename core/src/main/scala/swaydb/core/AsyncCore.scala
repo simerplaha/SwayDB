@@ -20,6 +20,7 @@
 package swaydb.core
 
 import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.IO.SIO
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.SwayFunction
 import swaydb.core.level.zero.LevelZero
@@ -27,7 +28,6 @@ import swaydb.core.util.Delay
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.Tag
-import swaydb.data.io.Tag.SIO
 import swaydb.data.slice.Slice
 import swaydb.{IO, Prepare}
 

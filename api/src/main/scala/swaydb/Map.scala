@@ -19,12 +19,13 @@
 
 package swaydb
 
+import swaydb.IO.SIO
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.Tag._
 import swaydb.data.io.Tag
+import swaydb.data.io.Tag._
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 

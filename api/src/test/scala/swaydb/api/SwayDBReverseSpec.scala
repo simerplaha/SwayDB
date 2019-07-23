@@ -19,10 +19,10 @@
 
 package swaydb
 
+import swaydb.IO.SIO
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
-import swaydb.data.io.Tag.SIO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

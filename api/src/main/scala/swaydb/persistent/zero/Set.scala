@@ -22,13 +22,13 @@ package swaydb.persistent.zero
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{IO, SwayDB}
+import swaydb.IO.SIO
+import swaydb.SwayDB
 import swaydb.configs.level.DefaultPersistentZeroConfig
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{Dir, RecoveryMode}
-import swaydb.data.io.Tag.SIO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -62,4 +62,5 @@ object Set extends LazyLogging {
       db =>
         swaydb.Set[T](db)
     }
+
 }
