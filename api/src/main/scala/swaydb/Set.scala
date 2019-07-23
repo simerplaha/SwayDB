@@ -44,7 +44,7 @@ object Set {
 case class Set[A, T[_]](private val core: Core[T],
                         private val from: Option[From[A]],
                         private[swaydb] val reverseIteration: Boolean = false)(implicit serializer: Serializer[A],
-                                                                               tag: Tag[T]) extends Streamer[A, T] { self =>
+                                                                               tag: Tag[T]) extends Streamed[A, T] { self =>
 
   def wrapCall[C](f: => T[C]): T[C] =
     tag.success(()) flatMap (_ => f)

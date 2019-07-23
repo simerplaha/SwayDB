@@ -19,7 +19,7 @@
 
 package swaydb
 
-private[swaydb] trait Streamer[A, T[_]] {
+protected trait Streamed[A, T[_]] {
 
   def foreach[U](f: A => U): Stream[Unit, T]
 

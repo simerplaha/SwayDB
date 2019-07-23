@@ -40,7 +40,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
                            private val from: Option[From[K]] = None,
                            private[swaydb] val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
                                                                                   valueSerializer: Serializer[V],
-                                                                                  tag: Tag[T]) extends Streamer[(K, V), T] { self =>
+                                                                                  tag: Tag[T]) extends Streamed[(K, V), T] { self =>
 
   def wrapCall[C](f: => T[C]): T[C] =
     tag.success(()) flatMap (_ => f)
@@ -368,15 +368,15 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
   /**
     * Returns an Async API of type O where the [[Tag]] is known.
     */
-  def tagAsync[O[_]](implicit ec: ExecutionContext,
-                     tag: Async[O]): Map[K, V, O] =
-    copy(core = core.tagAsync[O])
+  def tagAsync[T2[_]](implicit ec: ExecutionContext,
+                     tag: Tag.Async[T2]): Map[K, V, T2] =
+    copy(core = core.tagAsync[T2])
 
   /**
     * Returns an blocking API of type O where the [[Tag]] is known.
     */
-  def tagBlocking[O[_]](implicit tag: Tag[O]): Map[K, V, O] =
-    copy(core = core.tagBlocking[O])
+  def tagBlocking[T2[_]](implicit tag: Tag[T2]): Map[K, V, T2] =
+    copy(core = core.tagBlocking[T2])
 
   def asScala: scala.collection.mutable.Map[K, V] =
     ScalaMap[K, V](tagBlocking[IO](Tag.io))

@@ -108,7 +108,7 @@ object Stream {
   * @tparam A stream item's type
   * @tparam T wrapper type.
   */
-abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamer[A, T] { self =>
+abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamed[A, T] { self =>
 
   /**
     * Private val used in [[tag.foldLeft]] for reading only single item.

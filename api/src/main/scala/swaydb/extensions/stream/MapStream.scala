@@ -19,7 +19,7 @@
 
 package swaydb.extensions.stream
 
-import swaydb.{IO, Streamer}
+import swaydb.{IO, Streamed}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.extensions.Key
@@ -176,7 +176,7 @@ case class MapStream[K, V](mapKey: Seq[K],
                            userDefinedFrom: Boolean = false,
                            map: swaydb.Map[Key[K], Option[V], IO])(implicit keySerializer: Serializer[K],
                                                                    mapKeySerializer: Serializer[Key[K]],
-                                                                   optionValueSerializer: Serializer[Option[V]]) extends Streamer[(K, V), IO] { self =>
+                                                                   optionValueSerializer: Serializer[Option[V]]) extends Streamed[(K, V), IO] { self =>
 
   private val endEntriesKey = Key.MapEntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)
