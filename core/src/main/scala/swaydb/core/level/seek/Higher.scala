@@ -60,7 +60,7 @@ private[core] object Higher {
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
-           functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+           functionStore: FunctionStore): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     Higher(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   /**
@@ -72,7 +72,7 @@ private[core] object Higher {
                                           timeOrder: TimeOrder[Slice[Byte]],
                                           currentWalker: CurrentWalker,
                                           nextWalker: NextWalker,
-                                          functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+                                          functionStore: FunctionStore): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     Higher(key, currentSeek, nextSeek)
 
   /**
@@ -89,7 +89,7 @@ private[core] object Higher {
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  currentWalker: CurrentWalker,
                                  nextWalker: NextWalker,
-                                 functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] = {
+                                 functionStore: FunctionStore): IO.Defer[Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
     //    println(s"Current walker: ${currentWalker.levelNumber} - ${key.readInt()}")
@@ -135,7 +135,7 @@ private[core] object Higher {
                     case IO.Success(None) =>
                       Higher(key, currentStash, Seek.Next.Stop(nextStateID))
 
-                    case later @ IO.Later(_, _) =>
+                    case later @ IO.Deferred(_, _) =>
                       later flatMap {
                         case Some(next) =>
                           Higher.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
@@ -157,7 +157,7 @@ private[core] object Higher {
                     case IO.Success(_) =>
                       Higher(currentRange.toKey, Seek.Read, nextSeek)
 
-                    case later @ IO.Later(_, _) =>
+                    case later @ IO.Deferred(_, _) =>
                       later flatMap {
                         case Some(ceiling) if ceiling.hasTimeLeft() =>
                           IO.Success(Some(ceiling))
@@ -192,7 +192,7 @@ private[core] object Higher {
               case IO.Success(None) =>
                 Higher(key, currentStash, Seek.Next.Stop(nextStateID))
 
-              case later @ IO.Later(_, _) =>
+              case later @ IO.Deferred(_, _) =>
                 later flatMap {
                   case Some(next) =>
                     Higher.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
@@ -214,7 +214,7 @@ private[core] object Higher {
               case IO.Success(None) =>
                 Higher(key, currentStash, Seek.Next.Stop(nextStateID))
 
-              case later @ IO.Later(_, _) =>
+              case later @ IO.Deferred(_, _) =>
                 later flatMap {
                   case Some(next) =>
                     Higher.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
@@ -237,7 +237,7 @@ private[core] object Higher {
           case IO.Success(None) =>
             Higher(key, currentSeek, Seek.Next.Stop(nextStateID))
 
-          case later @ IO.Later(_, _) =>
+          case later @ IO.Deferred(_, _) =>
             later flatMap {
               case Some(next) =>
                 Higher.seeker(key, currentSeek, Seek.Next.Stash(next, nextStateID))
@@ -431,7 +431,7 @@ private[core] object Higher {
                           case IO.Success(None) =>
                             Higher(current.toKey, Seek.Read, nextStash)
 
-                          case later @ IO.Later(_, _) =>
+                          case later @ IO.Deferred(_, _) =>
                             later flatMap {
                               case Some(current) =>
                                 Higher.seeker(key, Seek.Current.Stash(current), nextStash)
@@ -518,7 +518,7 @@ private[core] object Higher {
                         case IO.Success(None) =>
                           Higher(current.toKey, Seek.Read, nextSeek)
 
-                        case later @ IO.Later(_, _) =>
+                        case later @ IO.Deferred(_, _) =>
                           later flatMap {
                             case Some(put) =>
                               Higher.seeker(key, Seek.Current.Stash(put), nextSeek)

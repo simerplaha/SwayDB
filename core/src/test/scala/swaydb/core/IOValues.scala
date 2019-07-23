@@ -29,9 +29,9 @@ sealed trait IOValues {
   implicit class RunIOImplicits[T](input: => IO[T]) {
     private[core] def runIO: T =
       if (randomBoolean())
-        IO.Async.recover(input.get).safeGetBlocking.get
+        IO.Defer.recover(input.get).safeGetBlocking.get
       else
-        IO.Async.recover(input.get).safeGetFuture.await(1.minute)
+        IO.Defer.recover(input.get).safeGetFuture.await(1.minute)
   }
 
   implicit class RunValueIOImplicits[T](input: IO[T]) {
@@ -39,7 +39,7 @@ sealed trait IOValues {
       input.get
   }
 
-  implicit class RunAsyncIOImplicits[T](input: => IO.Async[T]) {
+  implicit class RunAsyncIOImplicits[T](input: => IO.Defer[T]) {
     def runIO: T =
       if (randomBoolean())
         input.safeGetBlocking.get

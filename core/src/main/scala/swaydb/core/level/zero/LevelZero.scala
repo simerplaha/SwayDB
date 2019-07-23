@@ -284,7 +284,7 @@ private[core] case class LevelZero(path: Path,
       }
     }
 
-  def clear(): IO.Async[IO.OK] =
+  def clear(): IO.Defer[IO.OK] =
     headKey flatMap {
       case Some(headKey) =>
         lastKey flatMap {
@@ -368,7 +368,7 @@ private[core] case class LevelZero(path: Path,
       currentMap.get(key)(keyOrder)
 
   private def getFromNextLevel(key: Slice[Byte],
-                               mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+                               mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     if (mapsIterator.hasNext)
       find(key, mapsIterator.next(), mapsIterator)
     else
@@ -382,27 +382,27 @@ private[core] case class LevelZero(path: Path,
 
   def nextGetter(mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
     new NextGetter {
-      override def get(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte]): IO.Defer[Option[ReadOnly.Put]] =
         getFromNextLevel(key, mapsIterator)
     }
 
   private def find(key: Slice[Byte],
                    currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-                   mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+                   mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     Get.seek(
       key = key,
       currentGetter = currentGetter(currentMap),
       nextGetter = nextGetter(mapsIterator)
     )
 
-  def get(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
+  def get(key: Slice[Byte]): IO.Defer[Option[ReadOnly.Put]] =
     find(
       key = key,
       currentMap = maps.map,
       mapsIterator = maps.iterator
     )
 
-  def getKey(key: Slice[Byte]): IO.Async[Option[Slice[Byte]]] =
+  def getKey(key: Slice[Byte]): IO.Defer[Option[Slice[Byte]]] =
     get(key).mapAsync(_.map(_.key))
 
   def firstKeyFromMaps =
@@ -421,13 +421,13 @@ private[core] case class LevelZero(path: Path,
       reduce = MinMax.max(_, _)(keyOrder)
     )
 
-  def lastKey: IO.Async[Option[Slice[Byte]]] =
+  def lastKey: IO.Defer[Option[Slice[Byte]]] =
     last.mapAsync(_.map(_.key))
 
-  override def headKey: IO.Async[Option[Slice[Byte]]] =
+  override def headKey: IO.Defer[Option[Slice[Byte]]] =
     head.mapAsync(_.map(_.key))
 
-  def head: IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  def head: IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     nextLevel map {
       nextLevel =>
         nextLevel.headKey flatMap {
@@ -438,7 +438,7 @@ private[core] case class LevelZero(path: Path,
       firstKeyFromMaps.map(ceiling) getOrElse IO.none
     }
 
-  def last: IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  def last: IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     nextLevel map {
       nextLevel =>
         nextLevel.lastKey flatMap {
@@ -449,12 +449,12 @@ private[core] case class LevelZero(path: Path,
       lastKeyFromMaps.map(floor) getOrElse IO.none
     }
 
-  def ceiling(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  def ceiling(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     ceiling(key, maps.map, maps.iterator.asScala.toList)
 
   def ceiling(key: Slice[Byte],
               currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-              otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+              otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     find(key, currentMap, otherMaps.iterator.asJava) flatMap {
       found =>
         if (found.isDefined)
@@ -463,12 +463,12 @@ private[core] case class LevelZero(path: Path,
           findHigher(key, currentMap, otherMaps)
     }
 
-  def floor(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  def floor(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     floor(key, maps.map, maps.iterator.asScala.toList)
 
   def floor(key: Slice[Byte],
             currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-            otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+            otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     find(key, currentMap, otherMaps.iterator.asJava) flatMap {
       found =>
         if (found.isDefined)
@@ -500,7 +500,7 @@ private[core] case class LevelZero(path: Path,
       currentMap.higher(key).map(_._2)
 
   def findHigherInNextLevel(key: Slice[Byte],
-                            otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+                            otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     otherMaps.headOption match {
       case Some(nextMap) =>
         //        println(s"Finding higher for key: ${key.readInt()} in Map: ${nextMap.pathOption}. Remaining map: ${otherMaps.size}")
@@ -513,7 +513,7 @@ private[core] case class LevelZero(path: Path,
   def currentWalker(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                     otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
     new CurrentWalker {
-      override def get(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte]): IO.Defer[Option[ReadOnly.Put]] =
         find(key, currentMap, otherMaps.asJava.iterator())
 
       override def higher(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
@@ -528,13 +528,13 @@ private[core] case class LevelZero(path: Path,
 
   def nextWalker(otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
     new NextWalker {
-      override def higher(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
+      override def higher(key: Slice[Byte]): IO.Defer[Option[ReadOnly.Put]] =
         findHigherInNextLevel(key, otherMaps)
 
-      override def lower(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
+      override def lower(key: Slice[Byte]): IO.Defer[Option[ReadOnly.Put]] =
         findLowerInNextLevel(key, otherMaps)
 
-      override def get(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte]): IO.Defer[Option[ReadOnly.Put]] =
         getFromNextLevel(key, otherMaps.iterator.asJava)
 
       override def hasStateChanged(previousState: Long): Boolean =
@@ -549,7 +549,7 @@ private[core] case class LevelZero(path: Path,
 
   def findHigher(key: Slice[Byte],
                  currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-                 otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+                 otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     Higher.seek(
       key = key,
       currentSeek = Seek.Read,
@@ -567,7 +567,7 @@ private[core] case class LevelZero(path: Path,
     *
     * Higher queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
     */
-  def higher(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  def higher(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     findHigher(
       key = key,
       currentMap = maps.map,
@@ -597,7 +597,7 @@ private[core] case class LevelZero(path: Path,
       currentMap.lower(key).map(_._2)
 
   def findLowerInNextLevel(key: Slice[Byte],
-                           otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+                           otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     otherMaps.headOption match {
       case Some(nextMap) =>
         //println(s"Finding lower for key: ${key.readInt()} in ${nextMap.pathOption}")
@@ -609,7 +609,7 @@ private[core] case class LevelZero(path: Path,
 
   def findLower(key: Slice[Byte],
                 currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-                otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+                otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     Lower.seek(
       key = key,
       currentSeek = Seek.Read,
@@ -627,17 +627,17 @@ private[core] case class LevelZero(path: Path,
     *
     * Lower queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
     */
-  def lower(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  def lower(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     findLower(
       key = key,
       currentMap = maps.map,
       otherMaps = maps.queuedMaps.toList
     )
 
-  def contains(key: Slice[Byte]): IO.Async[Boolean] =
+  def contains(key: Slice[Byte]): IO.Defer[Boolean] =
     get(key).mapAsync(_.isDefined)
 
-  def valueSize(key: Slice[Byte]): IO.Async[Option[Int]] =
+  def valueSize(key: Slice[Byte]): IO.Defer[Option[Int]] =
     get(key) mapAsync {
       result =>
         result map {
@@ -651,7 +651,7 @@ private[core] case class LevelZero(path: Path,
     nextLevel.map(_.bloomFilterKeyValueCount.map(_ + keyValueCountInMaps)) getOrElse IO.Success(keyValueCountInMaps)
   }
 
-  def deadline(key: Slice[Byte]): IO.Async[Option[Deadline]] =
+  def deadline(key: Slice[Byte]): IO.Defer[Option[Deadline]] =
     get(key) mapAsync {
       result =>
         result flatMap {

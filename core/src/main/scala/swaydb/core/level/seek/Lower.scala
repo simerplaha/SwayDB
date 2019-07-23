@@ -60,7 +60,7 @@ private[core] object Lower {
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
-           functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+           functionStore: FunctionStore): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     Lower(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   def seeker(key: Slice[Byte],
@@ -69,7 +69,7 @@ private[core] object Lower {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   currentWalker: CurrentWalker,
                                   nextWalker: NextWalker,
-                                  functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+                                  functionStore: FunctionStore): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     Lower(key, currentSeek, nextSeek)
 
   /**
@@ -86,7 +86,7 @@ private[core] object Lower {
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  currentWalker: CurrentWalker,
                                  nextWalker: NextWalker,
-                                 functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] = {
+                                 functionStore: FunctionStore): IO.Defer[Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
     (currentSeek, nextSeek) match {
@@ -129,7 +129,7 @@ private[core] object Lower {
                     case IO.Success(None) =>
                       Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-                    case later @ IO.Later(_, _) =>
+                    case later @ IO.Deferred(_, _) =>
                       later flatMap {
                         case Some(next) =>
                           Lower.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
@@ -162,7 +162,7 @@ private[core] object Lower {
                             case IO.Success(None) =>
                               Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-                            case later @ IO.Later(_, _) =>
+                            case later @ IO.Deferred(_, _) =>
                               later flatMap {
                                 case Some(next) =>
                                   Lower.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
@@ -203,7 +203,7 @@ private[core] object Lower {
               case IO.Success(None) =>
                 Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-              case later @ IO.Later(_, _) =>
+              case later @ IO.Deferred(_, _) =>
                 later flatMap {
                   case Some(nextFromKey) =>
                     Lower.seeker(key, currentStash, Seek.Next.Stash(nextFromKey, nextStateID))
@@ -227,7 +227,7 @@ private[core] object Lower {
               case IO.Success(None) =>
                 Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-              case later @ IO.Later(_, _) =>
+              case later @ IO.Deferred(_, _) =>
                 later flatMap {
                   case Some(next) =>
                     Lower.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
@@ -249,7 +249,7 @@ private[core] object Lower {
               case IO.Success(None) =>
                 Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-              case later @ IO.Later(_, _) =>
+              case later @ IO.Deferred(_, _) =>
                 later flatMap {
                   case Some(next) =>
                     Lower.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
@@ -272,7 +272,7 @@ private[core] object Lower {
           case IO.Success(None) =>
             Lower(key, currentSeek, Seek.Next.Stop(nextStateID))
 
-          case later @ IO.Later(_, _) =>
+          case later @ IO.Deferred(_, _) =>
             later flatMap {
               case Some(next) =>
                 Lower.seeker(key, currentSeek, Seek.Next.Stash(next, nextStateID))

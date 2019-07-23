@@ -354,7 +354,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private implicit val currentWalker =
     new CurrentWalker {
-      override def get(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte]): IO.Defer[Option[ReadOnly.Put]] =
         self get key
 
       override def higher(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
@@ -369,13 +369,13 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private implicit val nextWalker =
     new NextWalker {
-      override def higher(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
+      override def higher(key: Slice[Byte]): IO.Defer[Option[ReadOnly.Put]] =
         higherInNextLevel(key)
 
-      override def lower(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
+      override def lower(key: Slice[Byte]): IO.Defer[Option[ReadOnly.Put]] =
         lowerFromNextLevel(key)
 
-      override def get(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte]): IO.Defer[Option[ReadOnly.Put]] =
         getFromNextLevel(key)
 
       override def hasStateChanged(previousState: Long): Boolean =
@@ -542,10 +542,10 @@ private[core] case class Level(dirs: Seq[Dir],
       maxKeyInclusive = segment.maxKey.inclusive
     )
 
-  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] =
+  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[Unit] =
     put(Seq(segment))
 
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Unit] = {
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[Unit] = {
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
     reserve(segments).asAsync flatMap {
       case Left(future) =>
@@ -619,7 +619,7 @@ private[core] case class Level(dirs: Seq[Dir],
         appendEntry = None
       )
 
-  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Async[Unit] = {
+  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[Unit] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
     reserve(map).asAsync flatMap {
       case Left(future) =>
@@ -684,7 +684,7 @@ private[core] case class Level(dirs: Seq[Dir],
             case IO.Success(_) =>
               IO.`true`
 
-            case IO.Later(_, _) | IO.Failure(_) =>
+            case IO.Deferred(_, _) | IO.Failure(_) =>
               IO.`false`
           }
     } getOrElse IO.`false`
@@ -767,7 +767,7 @@ private[core] case class Level(dirs: Seq[Dir],
             case IO.Success(_) =>
               IO.Success(nonCopyable)
 
-            case IO.Later(_, _) | IO.Failure(_) =>
+            case IO.Deferred(_, _) | IO.Failure(_) =>
               IO.Success(segments)
           }
     } getOrElse IO.Success(segments)
@@ -833,7 +833,7 @@ private[core] case class Level(dirs: Seq[Dir],
     )
   }
 
-  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] = {
+  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[Unit] = {
     logger.debug("{}: Running refresh.", paths.head)
     reserve(Seq(segment)).asAsync flatMap {
       case Left(future) =>
@@ -918,7 +918,7 @@ private[core] case class Level(dirs: Seq[Dir],
     } getOrElse IO.Failure(IO.Error.NoSegmentsRemoved)
   }
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Int] = {
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[Int] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
     if (segments.isEmpty || appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
       IO.zero
@@ -1133,10 +1133,10 @@ private[core] case class Level(dirs: Seq[Dir],
         IO.none
     }
 
-  def getFromNextLevel(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  def getFromNextLevel(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     nextLevel.map(_.get(key)) getOrElse IO.none
 
-  override def get(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  override def get(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     Get(key)
 
   private def mightContainKeyInThisLevel(key: Slice[Byte]): IO[Boolean] =
@@ -1183,15 +1183,15 @@ private[core] case class Level(dirs: Seq[Dir],
   private def lowerInThisLevel(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
     appendixWithReadLocked(_.lowerValue(key)).map(_.lower(key)) getOrElse IO.none
 
-  private def lowerFromNextLevel(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
+  private def lowerFromNextLevel(key: Slice[Byte]): IO.Defer[Option[ReadOnly.Put]] =
     nextLevel.map(_.lower(key)) getOrElse IO.none
 
-  override def floor(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  override def floor(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     get(key) match {
       case success @ IO.Success(Some(_)) =>
         success
 
-      case later: IO.Later[_] =>
+      case later: IO.Deferred[_] =>
         later
 
       case IO.Success(None) =>
@@ -1201,7 +1201,7 @@ private[core] case class Level(dirs: Seq[Dir],
         failed
     }
 
-  override def lower(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
+  override def lower(key: Slice[Byte]): IO.Defer[Option[ReadOnly.Put]] =
     Lower(
       key = key,
       currentSeek = Seek.Read,
@@ -1223,15 +1223,15 @@ private[core] case class Level(dirs: Seq[Dir],
           higherFromHigherSegment(key)
     }
 
-  private def higherInNextLevel(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  private def higherInNextLevel(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     nextLevel.map(_.higher(key)) getOrElse IO.none
 
-  def ceiling(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  def ceiling(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     get(key) match {
       case success @ IO.Success(Some(_)) =>
         success
 
-      case later: IO.Later[_] =>
+      case later: IO.Deferred[_] =>
         later
 
       case IO.Success(None) =>
@@ -1241,7 +1241,7 @@ private[core] case class Level(dirs: Seq[Dir],
         failed
     }
 
-  override def higher(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  override def higher(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     Higher(
       key = key,
       currentSeek = Seek.Read,
@@ -1252,7 +1252,7 @@ private[core] case class Level(dirs: Seq[Dir],
     * Does a quick appendix lookup.
     * It does not check if the returned key is removed. Use [[Level.head]] instead.
     */
-  override def headKey: IO.Async[Option[Slice[Byte]]] =
+  override def headKey: IO.Defer[Option[Slice[Byte]]] =
     nextLevel.map(_.headKey) getOrElse IO.none mapAsync {
       nextLevelFirstKey =>
         MinMax.min(appendixWithReadLocked(_.firstKey), nextLevelFirstKey)(keyOrder)
@@ -1262,18 +1262,18 @@ private[core] case class Level(dirs: Seq[Dir],
     * Does a quick appendix lookup.
     * It does not check if the returned key is removed. Use [[Level.last]] instead.
     */
-  override def lastKey: IO.Async[Option[Slice[Byte]]] =
+  override def lastKey: IO.Defer[Option[Slice[Byte]]] =
     nextLevel.map(_.lastKey) getOrElse IO.none mapAsync {
       nextLevelLastKey =>
         MinMax.max(appendixWithReadLocked(_.lastValue()).map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
     }
 
-  override def head: IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  override def head: IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     headKey match {
       case IO.Success(firstKey) =>
         firstKey.map(ceiling) getOrElse IO.none
 
-      case later @ IO.Later(_, _) =>
+      case later @ IO.Deferred(_, _) =>
         later flatMap {
           firstKey =>
             firstKey.map(ceiling) getOrElse IO.none
@@ -1288,7 +1288,7 @@ private[core] case class Level(dirs: Seq[Dir],
       case IO.Success(lastKey) =>
         lastKey.map(floor) getOrElse IO.none
 
-      case later @ IO.Later(_, _) =>
+      case later @ IO.Deferred(_, _) =>
         later flatMap {
           lastKey =>
             lastKey.map(floor) getOrElse IO.none

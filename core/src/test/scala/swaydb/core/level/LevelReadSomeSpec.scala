@@ -109,7 +109,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
                 update =>
                   val (gotValue, gotDeadline) = level.get(update.key) mapAsync {
                     case Some(put) =>
-                      val value = IO.Async.recover(put.getOrFetchValue.get).safeGetBlocking.runIO
+                      val value = IO.Defer.recover(put.getOrFetchValue.get).safeGetBlocking.runIO
                       (value, put.deadline)
 
                     case None =>

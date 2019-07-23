@@ -205,7 +205,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         val reserve = Reserve[Unit](())
         reserve.isBusy shouldBe true
         val busy = IO.Error.DecompressingIndex(reserve)
-        val later = IO.Later((), busy)
+        val later = IO.Deferred((), busy)
         later.isBusy shouldBe true
 
         val awaitingPull = LevelCompactionState.AwaitingPull(later, 1.minute.fromNow, 0, 0)
@@ -259,7 +259,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         val reserve = Reserve[Unit](())
         reserve.isBusy shouldBe true
         val busy = IO.Error.DecompressingIndex(reserve)
-        val later = IO.Later((), busy)
+        val later = IO.Deferred((), busy)
         later.isBusy shouldBe true
 
         val level1AwaitingPull = LevelCompactionState.AwaitingPull(later, 1.minute.fromNow, 0, 0)

@@ -25,5 +25,5 @@ import swaydb.data.slice.Slice
 
 trait NextGetter {
 
-  def get(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]]
 }

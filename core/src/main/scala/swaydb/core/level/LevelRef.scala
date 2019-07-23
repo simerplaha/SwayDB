@@ -151,25 +151,25 @@ private[core] trait LevelRef {
 
   def rootPath: Path
 
-  def head: IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def head: IO.Defer[Option[KeyValue.ReadOnly.Put]]
 
-  def last: IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def last: IO.Defer[Option[KeyValue.ReadOnly.Put]]
 
-  def get(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]]
 
-  def ceiling(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def ceiling(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]]
 
-  def floor(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def floor(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]]
 
   def mightContainKey(key: Slice[Byte]): IO[Boolean]
 
-  def lower(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def lower(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]]
 
-  def higher(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def higher(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]]
 
-  def headKey: IO.Async[Option[Slice[Byte]]]
+  def headKey: IO.Defer[Option[Slice[Byte]]]
 
-  def lastKey: IO.Async[Option[Slice[Byte]]]
+  def lastKey: IO.Defer[Option[Slice[Byte]]]
 
   def bloomFilterKeyValueCount: IO[Int]
 

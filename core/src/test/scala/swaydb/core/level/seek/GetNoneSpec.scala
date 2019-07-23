@@ -261,7 +261,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val busy = IO.Error.DecompressingIndex(Reserve(()))
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPendingApplyKeyValue(1)))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.Async(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))), busy)
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.Defer(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))), busy)
 
         val io = Get(1)
 

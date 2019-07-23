@@ -125,16 +125,16 @@ private[core] object TrashLevel extends NextLevel {
 
   override val isTrash: Boolean = true
 
-  override def ceiling(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  override def ceiling(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     IO.none
 
-  override def floor(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+  override def floor(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
     IO.none
 
-  override val headKey: IO.Async[Option[Slice[Byte]]] =
+  override val headKey: IO.Defer[Option[Slice[Byte]]] =
     IO.none
 
-  override val lastKey: IO.Async[Option[Slice[Byte]]] =
+  override val lastKey: IO.Defer[Option[Slice[Byte]]] =
     IO.none
 
   override def closeSegments(): IO[Unit] =
@@ -150,13 +150,13 @@ private[core] object TrashLevel extends NextLevel {
   override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     (segments, Iterable.empty)
 
-  override def put(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] =
+  override def put(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[Unit] =
     IO.unit
 
-  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Async[Unit] =
+  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[Unit] =
     IO.unit
 
-  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Unit] =
+  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[Unit] =
     IO.unit
 
   override def removeSegments(segments: Iterable[Segment]): IO[Int] =
@@ -171,10 +171,10 @@ private[core] object TrashLevel extends NextLevel {
       override def nextLevelMeter: Option[LevelMeter] = None
     }
 
-  override def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] =
+  override def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[Unit] =
     IO.unit
 
-  override def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Int] =
+  override def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[Int] =
     IO.Success(segments.size)
 
   override def isZero: Boolean =

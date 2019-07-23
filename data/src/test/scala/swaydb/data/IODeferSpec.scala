@@ -29,12 +29,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
 
-class IOAsyncSpec extends WordSpec with Matchers {
+class IODeferSpec extends WordSpec with Matchers {
 
   "IO.Async" should {
     "flatMap on IO" in {
       val io =
-        IO.Async(1, IO.Error.DecompressingValues(Reserve())) flatMap {
+        IO.Defer(1, IO.Error.DecompressingValues(Reserve())) flatMap {
           int =>
             IO.Success(int + 1)
         }
@@ -48,8 +48,8 @@ class IOAsyncSpec extends WordSpec with Matchers {
     "flatMap on IO.Failure" in {
       val boolean = Reserve(())
 
-      val io: IO.Async[Int] =
-        IO.Async(1, IO.Error.DecompressingValues(Reserve())) flatMap {
+      val io: IO.Defer[Int] =
+        IO.Defer(1, IO.Error.DecompressingValues(Reserve())) flatMap {
           _ =>
             IO.Failure(IO.Error.OpeningFile(Paths.get(""), boolean))
         }
@@ -58,22 +58,22 @@ class IOAsyncSpec extends WordSpec with Matchers {
         io.get
       }
 
-      io.safeGet.asInstanceOf[IO.Later[_]].error shouldBe IO.Error.OpeningFile(Paths.get(""), boolean)
+      io.safeGet.asInstanceOf[IO.Deferred[_]].error shouldBe IO.Error.OpeningFile(Paths.get(""), boolean)
     }
 
     "safeGet on multiple when last is a failure should return failure" in {
       val failure = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("Not such file")))
 
-      val io: IO.Async[Int] =
-        IO.Async(1, IO.Error.DecompressingIndex(Reserve())) flatMap {
+      val io: IO.Defer[Int] =
+        IO.Defer(1, IO.Error.DecompressingIndex(Reserve())) flatMap {
           i =>
-            IO.Async(i + 1, IO.Error.ReadingHeader(Reserve())) flatMap {
+            IO.Defer(i + 1, IO.Error.ReadingHeader(Reserve())) flatMap {
               _ =>
                 failure
             }
         }
 
-      io.safeGet.asInstanceOf[IO.Later[_]].error shouldBe failure.error
+      io.safeGet.asInstanceOf[IO.Deferred[_]].error shouldBe failure.error
     }
 
     "safeGet on multiple when last is Async should return last Async" in {
@@ -81,19 +81,19 @@ class IOAsyncSpec extends WordSpec with Matchers {
       val busy2 = Reserve(())
       val busy3 = Reserve(())
 
-      val io: IO.Async[Int] =
-        IO.Async(1, IO.Error.DecompressingIndex(busy1)) flatMap {
+      val io: IO.Defer[Int] =
+        IO.Defer(1, IO.Error.DecompressingIndex(busy1)) flatMap {
           i =>
-            IO.Async(i + 1, IO.Error.DecompressingValues(busy2)) flatMap {
+            IO.Defer(i + 1, IO.Error.DecompressingValues(busy2)) flatMap {
               i =>
-                IO.Async(i + 1, IO.Error.ReadingHeader(busy3))
+                IO.Defer(i + 1, IO.Error.ReadingHeader(busy3))
             }
         }
 
       (1 to 100).par foreach {
         _ =>
-          io.safeGet.asInstanceOf[IO.Later[_]].isValueDefined shouldBe false
-          io.asInstanceOf[IO.Later[_]].isValueDefined shouldBe false
+          io.safeGet.asInstanceOf[IO.Deferred[_]].isValueDefined shouldBe false
+          io.asInstanceOf[IO.Deferred[_]].isValueDefined shouldBe false
       }
 
       val io0 = io.safeGet
@@ -102,15 +102,15 @@ class IOAsyncSpec extends WordSpec with Matchers {
       //make first IO available
       Reserve.setFree(busy1)
       val io1 = io.safeGet
-      io1 shouldBe a[IO.Async[_]]
-      io0.safeGet shouldBe a[IO.Async[_]]
+      io1 shouldBe a[IO.Defer[_]]
+      io0.safeGet shouldBe a[IO.Defer[_]]
 
       //make second IO available
       Reserve.setFree(busy2)
       val io2 = io.safeGet
-      io2 shouldBe a[IO.Async[_]]
-      io0.safeGet shouldBe a[IO.Async[_]]
-      io1.safeGet shouldBe a[IO.Async[_]]
+      io2 shouldBe a[IO.Defer[_]]
+      io0.safeGet shouldBe a[IO.Defer[_]]
+      io1.safeGet shouldBe a[IO.Defer[_]]
 
       //make third IO available. Now all IOs are ready, safeGet will result in Success.
       Reserve.setFree(busy3)
@@ -121,9 +121,9 @@ class IOAsyncSpec extends WordSpec with Matchers {
       io2.safeGet shouldBe IO.Success(3)
 
       //value should be defined on all instances.
-      io0.asInstanceOf[IO.Later[_]].isValueDefined shouldBe true
-      io1.asInstanceOf[IO.Later[_]].isValueDefined shouldBe true
-      io2.asInstanceOf[IO.Later[_]].isValueDefined shouldBe true
+      io0.asInstanceOf[IO.Deferred[_]].isValueDefined shouldBe true
+      io1.asInstanceOf[IO.Deferred[_]].isValueDefined shouldBe true
+      io2.asInstanceOf[IO.Deferred[_]].isValueDefined shouldBe true
     }
 
     "safeGetBlocking & safeGetFuture" in {
@@ -131,8 +131,8 @@ class IOAsyncSpec extends WordSpec with Matchers {
 
       (1 to 2) foreach {
         i =>
-          val io: IO.Async[Int] =
-            (0 to 100).foldLeft(IO.Async(1, IO.Error.DecompressingIndex(Reserve()))) {
+          val io: IO.Defer[Int] =
+            (0 to 100).foldLeft(IO.Defer(1, IO.Error.DecompressingIndex(Reserve()))) {
               case (previous, i) =>
                 previous flatMap {
                   output =>
@@ -141,7 +141,7 @@ class IOAsyncSpec extends WordSpec with Matchers {
                       if (Random.nextBoolean()) Thread.sleep(Random.nextInt(100))
                       Reserve.setFree(reserve)
                     }
-                    IO.Async(output + 1, Base.randomBusyException(reserve))
+                    IO.Defer(output + 1, Base.randomBusyException(reserve))
                 }
             }
 

@@ -148,7 +148,7 @@ private[level] object Compaction extends LazyLogging {
           previousStateID = stateID
         )
 
-      case later @ IO.Later(_, _) =>
+      case later @ IO.Deferred(_, _) =>
         LevelCompactionState.AwaitingPull(
           later = later,
           timeout = awaitPullTimeout,
@@ -253,7 +253,7 @@ private[level] object Compaction extends LazyLogging {
           previousStateID = stateID
         )
 
-      case later @ IO.Later(_, _) =>
+      case later @ IO.Deferred(_, _) =>
         LevelCompactionState.AwaitingPull(
           later = later,
           timeout = awaitPullTimeout,
@@ -263,7 +263,7 @@ private[level] object Compaction extends LazyLogging {
     }
 
   private[compaction] def pushForward(level: NextLevel,
-                                      segmentsToPush: Int)(implicit ec: ExecutionContext): IO.Async[Int] =
+                                      segmentsToPush: Int)(implicit ec: ExecutionContext): IO.Defer[Int] =
     level.nextLevel map {
       nextLevel =>
         val (copyable, mergeable) = level.optimalSegmentsPushForward(take = segmentsToPush)
@@ -312,7 +312,7 @@ private[level] object Compaction extends LazyLogging {
                 segmentsCompacted = segmentsCompacted + 1
               )
 
-            case IO.Later(_, _) =>
+            case IO.Deferred(_, _) =>
               logger.debug(s"Level(${level.levelNumber}): Later on refresh.")
               runLastLevelCompaction(
                 level = level,
@@ -349,7 +349,7 @@ private[level] object Compaction extends LazyLogging {
             segmentsCompacted = segmentsCompacted + count
           )
 
-        case IO.Later(_, _) =>
+        case IO.Deferred(_, _) =>
           logger.debug(s"Level(${level.levelNumber}): Later on collapse.")
           runLastLevelCompaction(
             level = level,
@@ -399,7 +399,7 @@ private[level] object Compaction extends LazyLogging {
             logger.error(s"Level(${level.levelNumber}): Failed copy Segments forward.", error.exception)
             0
 
-          case IO.Later(_, _) =>
+          case IO.Deferred(_, _) =>
             //this should never really occur when no other concurrent compactions are occurring.
             logger.warn(s"Level(${level.levelNumber}): Received later compaction.")
             0
@@ -408,7 +408,7 @@ private[level] object Compaction extends LazyLogging {
 
   private[compaction] def putForward(segments: Iterable[Segment],
                                      thisLevel: NextLevel,
-                                     nextLevel: NextLevel)(implicit ec: ExecutionContext): IO.Async[Int] =
+                                     nextLevel: NextLevel)(implicit ec: ExecutionContext): IO.Defer[Int] =
     if (segments.isEmpty)
       IO.zero
     else
@@ -419,7 +419,7 @@ private[level] object Compaction extends LazyLogging {
               IO.Success(segments.size)
           } asAsync
 
-        case async @ IO.Later(_, _) =>
+        case async @ IO.Deferred(_, _) =>
           async mapAsync (_ => 0)
 
         case IO.Failure(error) =>

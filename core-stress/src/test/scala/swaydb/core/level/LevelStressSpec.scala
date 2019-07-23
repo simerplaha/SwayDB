@@ -92,7 +92,7 @@ sealed trait LevelStressSpec extends TestBase with Benchmark {
                 println(s"$index: End put.")
                 Future.unit
 
-              case later @ IO.Later(_, _) =>
+              case later @ IO.Deferred(_, _) =>
                 println(s"$index: Later")
                 later.safeGetFuture flatMap {
                   _ =>

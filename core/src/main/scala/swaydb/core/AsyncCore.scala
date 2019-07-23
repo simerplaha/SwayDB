@@ -109,7 +109,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
       result =>
         result map {
           response =>
-            IO.Async.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -136,7 +136,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
       result =>
         result map {
           response =>
-            IO.Async.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -159,7 +159,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
     tag.fromFuture(zero.lastKey.safeGetFuture)
 
   def bloomFilterKeyValueCount: T[Int] =
-    tag.fromFuture(IO.Async.recover(zero.bloomFilterKeyValueCount.get).safeGetFuture)
+    tag.fromFuture(IO.Defer.recover(zero.bloomFilterKeyValueCount.get).safeGetFuture)
 
   def deadline(key: Slice[Byte]): T[Option[Deadline]] =
     tag.fromFuture(zero.deadline(key).safeGetFuture)
@@ -168,17 +168,17 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
     tag.fromFuture(zero.contains(key).safeGetFuture)
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
-    tag.fromFuture(IO.Async.recover(zero.mightContainKey(key).get).safeGetFuture)
+    tag.fromFuture(IO.Defer.recover(zero.mightContainKey(key).get).safeGetFuture)
 
   def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
-    tag.fromFuture(IO.Async.recover(zero.mightContainFunction(functionId).get).safeGetFuture)
+    tag.fromFuture(IO.Defer.recover(zero.mightContainFunction(functionId).get).safeGetFuture)
 
   def getFuture(key: Slice[Byte]): Future[Option[Option[Slice[Byte]]]] =
     zero.get(key).safeGetFuture flatMap {
       result =>
         result map {
           response =>
-            IO.Async.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
               result =>
                 Some(result)
             } recoverWith {
@@ -205,7 +205,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
       result =>
         result map {
           response =>
-            IO.Async.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -229,7 +229,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
       result =>
         result map {
           response =>
-            IO.Async.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -256,7 +256,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
       result =>
         result map {
           response =>
-            IO.Async.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
+            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).safeGetFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
