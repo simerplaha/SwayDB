@@ -226,13 +226,13 @@ object CommonAssertions {
     eitherOne(
       left =
         KeyValueGroupingStrategyInternal.Count(
-          count = (keyValuesCount / (randomIntMax(50) + 1)) max 1000,
+          count = randomIntMax(50) max 1,
           groupCompression =
             eitherOne(
               left =
                 Some(
                   GroupGroupingStrategyInternal.Count(
-                    count = randomIntMax(5) max 1,
+                    count = randomIntMax(50) max 1,
                     valuesConfig = ValuesBlock.Config.random,
                     sortedIndexConfig = SortedIndexBlock.Config.random,
                     binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
@@ -244,7 +244,7 @@ object CommonAssertions {
               mid =
                 Some(
                   GroupGroupingStrategyInternal.Size(
-                    size = randomIntMax(keyValuesCount max 1000).bytes * 2,
+                    size = randomIntMax(1.mb) max 1,
                     valuesConfig = ValuesBlock.Config.random,
                     sortedIndexConfig = SortedIndexBlock.Config.random,
                     binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
@@ -266,13 +266,13 @@ object CommonAssertions {
         ),
       right =
         KeyValueGroupingStrategyInternal.Size(
-          size = keyValuesCount.kb,
+          size = randomIntMax(1.mb) max 1,
           groupCompression =
             eitherOne(
               left =
                 Some(
                   GroupGroupingStrategyInternal.Count(
-                    count = randomIntMax(5) max 1,
+                    count = randomIntMax(50) max 1,
                     valuesConfig = ValuesBlock.Config.random,
                     sortedIndexConfig = SortedIndexBlock.Config.random,
                     binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
@@ -284,7 +284,7 @@ object CommonAssertions {
               mid =
                 Some(
                   GroupGroupingStrategyInternal.Size(
-                    size = randomIntMax(500).kb,
+                    size = randomIntMax(1.mb) max 1,
                     valuesConfig = ValuesBlock.Config.random,
                     sortedIndexConfig = SortedIndexBlock.Config.random,
                     binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
@@ -1411,7 +1411,7 @@ object CommonAssertions {
   def readAll(closedSegment: SegmentBlock.Closed): IO[Slice[KeyValue.ReadOnly]] =
     readAll(closedSegment.flattenSegmentBytes)
 
-  def readAllToPersistent(keyValues: Iterable[Transient]): IO[Slice[KeyValue.ReadOnly]] = {
+  def writeAndRead(keyValues: Iterable[Transient]): IO[Slice[KeyValue.ReadOnly]] = {
     val segment = SegmentBlock.writeClosed(keyValues, 0, SegmentBlock.Config.random).get
     readAll(segment.flattenSegmentBytes)
   }

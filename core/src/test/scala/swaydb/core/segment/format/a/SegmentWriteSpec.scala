@@ -252,7 +252,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       def doAssert(keyValues: Slice[Transient]) = {
 
         //read key-values so they are all part of the same byte array.
-        val readKeyValues = readAllToPersistent(keyValues).get
+        val readKeyValues = writeAndRead(keyValues).get
 
         //assert that readKeyValues keys are not sliced.
         readKeyValues foreach assertNotSliced
@@ -1557,7 +1557,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       result should have size 1
       result.head should have size keyValues.size
 
-      readAllToPersistent(result.head).value shouldBe keyValues
+      writeAndRead(result.head).value shouldBe keyValues
     }
 
     "succeed for grouped key-values" in {
@@ -1579,7 +1579,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       result should have size 1
       result.head should have size 1
 
-      readAllToPersistent(result.head).value shouldBe keyValues
+      writeAndRead(result.head).value shouldBe keyValues
     }
   }
 }
