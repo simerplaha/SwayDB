@@ -31,7 +31,7 @@ import swaydb.ErrorHandler.CoreError
 private[core] object Cache {
 
   def empty[I, O](emptyOutput: O): Cache[I, O] =
-    Cache.concurrentIO[I, O](synchronised = false, stored = false){
+    Cache.concurrentIO[I, O](synchronised = false, stored = false) {
       _ =>
         IO(emptyOutput)
     }
@@ -177,7 +177,7 @@ private class BlockIOCache[I, O](cache: NoIO[I, Cache[I, O]]) extends Cache[I, O
 }
 
 private class SynchronisedIO[I, O](fetch: I => IO[IO.Error, O],
-                                   lazyIO: LazyIO[O]) extends Cache[I, O] {
+                                   lazyIO: LazyIO[IO.Error, O]) extends Cache[I, O] {
 
   override def value(i: => I): IO[IO.Error, O] =
     lazyIO getOrSet fetch(i)
@@ -199,7 +199,7 @@ private class SynchronisedIO[I, O](fetch: I => IO[IO.Error, O],
   * Caches a value on read. Used for IO operations where the output does not change.
   * For example: A file's size.
   */
-private class ReservedIO[I, O](fetch: I => IO[IO.Error, O], lazyIO: LazyIO[O], error: IO.Error.Busy) extends Cache[I, O] {
+private class ReservedIO[I, O](fetch: I => IO[IO.Error, O], lazyIO: LazyIO[IO.Error, O], error: IO.Error.Busy) extends Cache[I, O] {
 
   override def value(i: => I): IO[IO.Error, O] =
     lazyIO getOrElse {
