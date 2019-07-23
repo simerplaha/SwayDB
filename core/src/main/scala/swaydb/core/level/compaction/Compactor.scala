@@ -29,6 +29,7 @@ import swaydb.core.util.FiniteDurationUtil._
 import swaydb.IO._
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
+import swaydb.ErrorHandler.CoreErrorHandler
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -49,7 +50,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
     * @return return the root parent Actor with child Actors.
     */
   def createActor(levels: List[LevelRef],
-                  executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+                  executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering): IO[IO.Error, WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     if (levels.size != executionContexts.size)
       IO.Failure(IO.Error.Fatal(new IllegalStateException(s"Number of ExecutionContexts(${executionContexts.size}) is not the same as number of Levels(${levels.size}).")))
     else
@@ -221,7 +222,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
   }
 
   def createCompactor(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext])(implicit compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+                      executionContexts: List[CompactionExecutionContext])(implicit compactionOrdering: CompactionOrdering): IO[IO.Error, WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     zero.nextLevel map {
       nextLevel =>
         logger.debug(s"Level(${zero.levelNumber}): Creating actor.")
@@ -248,7 +249,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
 
   def createAndListen(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext],
-                      copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+                      copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[IO.Error, WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     createCompactor(
       zero = zero,
       executionContexts = executionContexts

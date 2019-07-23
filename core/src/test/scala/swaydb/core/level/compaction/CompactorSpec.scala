@@ -33,6 +33,7 @@ import swaydb.data.Reserve
 
 import scala.collection.mutable
 import scala.concurrent.duration._
+import swaydb.ErrorHandler.CoreErrorHandler
 
 class CompactorSpec0 extends CompactorSpec
 

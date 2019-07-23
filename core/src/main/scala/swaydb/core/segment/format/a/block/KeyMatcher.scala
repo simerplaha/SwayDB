@@ -24,6 +24,7 @@ import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.KeyMatcher.Result.{AheadOrNoneOrEnd, BehindFetchNext, BehindStopped, Matched}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.ErrorHandler.CoreErrorHandler
 
 private[core] sealed trait KeyMatcher {
   def key: Slice[Byte]
@@ -45,21 +46,21 @@ private[core] sealed trait KeyMatcher {
 private[core] object KeyMatcher {
 
   sealed trait Result {
-    def asIO: IO.Success[Result]
+    def asIO: IO.Success[IO.Error, Result]
   }
 
   object Result {
 
     sealed trait Complete extends Result {
-      def asIO: IO.Success[Complete]
+      def asIO: IO.Success[IO.Error, Complete]
     }
 
     sealed trait InComplete extends Result {
-      def asIO: IO.Success[InComplete]
+      def asIO: IO.Success[IO.Error, InComplete]
     }
 
     case class Matched(previous: Option[Persistent], result: Persistent, next: Option[Persistent]) extends Complete {
-      override def asIO: IO.Success[Complete] =
+      override def asIO: IO.Success[IO.Error, Complete] =
         IO.Success(this)
     }
     sealed trait Behind {

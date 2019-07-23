@@ -19,27 +19,27 @@
 
 package swaydb.core
 
-import swaydb.IO
+import swaydb.{ErrorHandler, IO}
 import swaydb.core.RunThis._
 import swaydb.core.TestData.randomBoolean
 
 import scala.concurrent.duration._
 
 sealed trait IOValues {
-  implicit class RunIOImplicits[T](input: => IO[T]) {
+  implicit class RunIOImplicits[E: ErrorHandler, T](input: => IO[E, T]) {
     private[core] def runIO: T =
       if (randomBoolean())
-        IO.Defer.recover(input.get).runBlocking.get
+        IO.Defer.recover[E, T](input.get).runBlocking.get
       else
-        IO.Defer.recover(input.get).runInFuture.await(1.minute)
+        IO.Defer.recover[E, T](input.get).runInFuture.await(1.minute)
   }
 
-  implicit class RunValueIOImplicits[T](input: IO[T]) {
+  implicit class RunValueIOImplicits[E: ErrorHandler, T](input: IO[E, T]) {
     def value =
       input.get
   }
 
-  implicit class RunAsyncIOImplicits[T](input: => IO.Defer[T]) {
+  implicit class RunAsyncIOImplicits[E: ErrorHandler, T](input: => IO.Defer[E, T]) {
     def runIO: T =
       if (randomBoolean())
         input.runBlocking.get

@@ -24,15 +24,16 @@ import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{Reader, Slice}
+import swaydb.ErrorHandler.CoreErrorHandler
 
 object KeyReader {
 
-  private def uncompressed(indexReader: Reader,
-                           previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
+  private def uncompressed(indexReader: Reader[IO.Error],
+                           previous: Option[KeyValue.ReadOnly]): IO[IO.Error, Slice[Byte]] =
     indexReader.readRemaining()
 
-  private def compressed(indexReader: Reader,
-                         previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
+  private def compressed(indexReader: Reader[IO.Error],
+                         previous: Option[KeyValue.ReadOnly]): IO[IO.Error, Slice[Byte]] =
     previous map {
       previous =>
         indexReader.readIntUnsigned() flatMap {
@@ -47,9 +48,9 @@ object KeyReader {
     }
 
   def read(keyValueIdInt: Int,
-           indexReader: Reader,
+           indexReader: Reader[IO.Error],
            previous: Option[KeyValue.ReadOnly],
-           keyValueId: KeyValueId): IO[(Slice[Byte], Boolean)] =
+           keyValueId: KeyValueId): IO[IO.Error, (Slice[Byte], Boolean)] =
     if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt))
       KeyReader.compressed(indexReader, previous) map (key => (key, true))
     else if (keyValueId.isKeyValueId_UncompressedKey(keyValueIdInt))

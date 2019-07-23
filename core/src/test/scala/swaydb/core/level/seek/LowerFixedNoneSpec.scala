@@ -30,6 +30,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.ErrorHandler.CoreErrorHandler
 
 class LowerFixedNoneSpec extends WordSpec with Matchers with MockFactory with OptionValues {
 

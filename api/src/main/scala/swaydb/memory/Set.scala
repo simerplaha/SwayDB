@@ -26,6 +26,7 @@ import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
+import swaydb.data.io.Tag.SIO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -53,7 +54,7 @@ object Set extends LazyLogging {
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                      fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                     cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Set[T, IO]] =
+                                                                                     cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): SIO[swaydb.Set[T, SIO]] =
     BlockingCore(
       config = DefaultMemoryConfig(
         mapSize = mapSize,

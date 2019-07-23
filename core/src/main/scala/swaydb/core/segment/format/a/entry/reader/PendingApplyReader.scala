@@ -26,12 +26,13 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.util.cache.Cache
 import swaydb.data.slice.Reader
+import swaydb.ErrorHandler.CoreErrorHandler
 
 object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
 
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
-                              indexReader: Reader,
+                              indexReader: Reader[IO.Error],
                               valueCache: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
@@ -41,7 +42,7 @@ object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
                                                             valueLengthReader: ValueLengthReader[T],
-                                                            valueBytesReader: ValueReader[T]): IO[Persistent.PendingApply] =
+                                                            valueBytesReader: ValueReader[T]): IO[IO.Error, Persistent.PendingApply] =
     deadlineReader.read(indexReader, previous) flatMap {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {

@@ -22,33 +22,34 @@ package swaydb.core.io.reader
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.data.slice.{Reader, Slice}
+import swaydb.ErrorHandler.CoreErrorHandler
 
 private[core] class GroupReader(decompressedValuesSize: Int,
                                 startIndexOffset: Int,
                                 endIndexOffset: Int,
-                                valuesDecompressor: () => IO[Reader],
-                                indexReader: Reader) extends Reader with LazyLogging {
+                                valuesDecompressor: () => IO[IO.Error, Reader[IO.Error]],
+                                indexReader: Reader[IO.Error]) extends Reader[IO.Error] with LazyLogging {
 
   private var position: Int = 0
 
-  override def size: IO[Long] =
+  override def size: IO[IO.Error, Long] =
     indexReader.size map (_ + decompressedValuesSize)
 
-  def moveTo(newPosition: Long): Reader = {
+  def moveTo(newPosition: Long): Reader[IO.Error] = {
     position = newPosition.toInt max 0
     this
   }
 
-  def hasMore: IO[Boolean] =
+  def hasMore: IO[IO.Error, Boolean] =
     size.map(position < _)
 
-  def hasAtLeast(atLeastSize: Long): IO[Boolean] =
+  def hasAtLeast(atLeastSize: Long): IO[IO.Error, Boolean] =
     size map {
       size =>
         (size - position) >= atLeastSize
     }
 
-  override def copy(): Reader =
+  override def copy(): Reader[IO.Error] =
     new GroupReader(
       decompressedValuesSize = decompressedValuesSize,
       startIndexOffset = startIndexOffset,
@@ -60,7 +61,7 @@ private[core] class GroupReader(decompressedValuesSize: Int,
   override def getPosition: Int =
     position
 
-  override def get(): IO[Int] =
+  override def get(): IO[IO.Error, Int] =
     if (position >= startIndexOffset) {
       indexReader.moveTo(position - startIndexOffset).get() map {
         byte =>
@@ -97,6 +98,6 @@ private[core] class GroupReader(decompressedValuesSize: Int,
 
   override def isFile: Boolean = false
 
-  override def readRemaining(): IO[Slice[Byte]] =
-    IO.Failure(new NotImplementedError(s"Function readRemaining() on ${this.getClass.getSimpleName} is not supported!"))
+  override def readRemaining(): IO[IO.Error, Slice[Byte]] =
+    IO.Failure(new IllegalStateException(s"Function readRemaining() on ${this.getClass.getSimpleName} is not supported!"))
 }

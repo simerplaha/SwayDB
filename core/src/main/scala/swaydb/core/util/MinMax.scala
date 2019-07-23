@@ -142,7 +142,7 @@ private[core] object MinMax {
     )(FunctionStore.order)
 
   def minMaxFunction(function: ReadOnly.Function,
-                     current: Option[MinMax[Slice[Byte]]]): IO[MinMax[Slice[Byte]]] =
+                     current: Option[MinMax[Slice[Byte]]]): IO[IO.Error, MinMax[Slice[Byte]]] =
     function.getOrFetchFunction map {
       function =>
         minMax(
@@ -172,7 +172,7 @@ private[core] object MinMax {
     )
 
   def minMaxFunction(range: KeyValue.ReadOnly.Range,
-                     current: Option[MinMax[Slice[Byte]]]): IO[Option[MinMax[Slice[Byte]]]] =
+                     current: Option[MinMax[Slice[Byte]]]): IO[IO.Error, Option[MinMax[Slice[Byte]]]] =
     range.fetchFromAndRangeValue map {
       case (fromValue, rangeValue) =>
         minMaxFunction(

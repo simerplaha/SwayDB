@@ -19,22 +19,22 @@
 
 package swaydb.data.slice
 
-import swaydb.IO
+import swaydb.{ErrorHandler, IO}
 
 /**
   * http://www.swaydb.io/slice/byte-slice
   */
-private[swaydb] case class SliceReaderSafe(slice: Slice[Byte]) extends Reader {
+private[swaydb] case class SliceReaderSafe[E: ErrorHandler](slice: Slice[Byte]) extends Reader[E] {
 
   private var position: Int = 0
 
-  override val size: IO[Long] =
+  override val size: IO[E, Long] =
     IO(slice.size.toLong)
 
-  def hasAtLeast(size: Long): IO[Boolean] =
+  def hasAtLeast(size: Long): IO[E, Boolean] =
     IO((slice.size - position) >= size)
 
-  def read(size: Int): IO[Slice[Byte]] =
+  def read(size: Int): IO[E, Slice[Byte]] =
     IO {
       if (size == 0)
         Slice.emptyBytes
@@ -45,7 +45,7 @@ private[swaydb] case class SliceReaderSafe(slice: Slice[Byte]) extends Reader {
       }
     }
 
-  def moveTo(newPosition: Long): Reader = {
+  def moveTo(newPosition: Long): Reader[E] = {
     position = newPosition.toInt max 0
     this
   }
@@ -63,10 +63,10 @@ private[swaydb] case class SliceReaderSafe(slice: Slice[Byte]) extends Reader {
   override def getPosition: Int =
     position
 
-  override def copy(): Reader =
+  override def copy(): Reader[E] =
     SliceReaderSafe(slice)
 
-  override def readRemaining(): IO[Slice[Byte]] =
+  override def readRemaining(): IO[E, Slice[Byte]] =
     remaining flatMap read
 
   override def isFile: Boolean = false

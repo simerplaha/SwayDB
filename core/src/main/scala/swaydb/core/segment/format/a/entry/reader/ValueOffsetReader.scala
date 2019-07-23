@@ -27,20 +27,21 @@ import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.implicitNotFound
+import swaydb.ErrorHandler.CoreErrorHandler
 
 @implicitNotFound("Type class implementation not found for ValueOffsetReader of type ${T}")
 sealed trait ValueOffsetReader[-T] {
   def isPrefixCompressed: Boolean
 
-  def read(indexReader: Reader,
-           previous: Option[Persistent]): IO[Int]
+  def read(indexReader: Reader[IO.Error],
+           previous: Option[Persistent]): IO[IO.Error, Int]
 }
 
 object ValueOffsetReader {
 
-  private def readOffset(indexReader: Reader,
+  private def readOffset(indexReader: Reader[IO.Error],
                          previous: Option[Persistent],
-                         commonBytes: Int): IO[Int] =
+                         commonBytes: Int): IO[IO.Error, Int] =
     previous.map(_.valueOffset) map {
       previousValueOffset =>
         indexReader.read(ByteSizeOf.int - commonBytes) map {
@@ -54,40 +55,40 @@ object ValueOffsetReader {
   implicit object ValueOffsetOneCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.OneCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: Reader,
-                      previous: Option[Persistent]): IO[Int] =
+    override def read(indexReader: Reader[IO.Error],
+                      previous: Option[Persistent]): IO[IO.Error, Int] =
       readOffset(indexReader, previous, 1)
   }
 
   implicit object ValueOffsetTwoCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.TwoCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: Reader,
-                      previous: Option[Persistent]): IO[Int] =
+    override def read(indexReader: Reader[IO.Error],
+                      previous: Option[Persistent]): IO[IO.Error, Int] =
       readOffset(indexReader, previous, 2)
   }
 
   implicit object ValueOffsetThreeCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.ThreeCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: Reader,
-                      previous: Option[Persistent]): IO[Int] =
+    override def read(indexReader: Reader[IO.Error],
+                      previous: Option[Persistent]): IO[IO.Error, Int] =
       readOffset(indexReader, previous, 3)
   }
 
   implicit object ValueOffsetUncompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: Reader,
-                      previous: Option[Persistent]): IO[Int] =
+    override def read(indexReader: Reader[IO.Error],
+                      previous: Option[Persistent]): IO[IO.Error, Int] =
       indexReader.readIntUnsigned()
   }
 
   implicit object ValueOffsetReaderValueOffsetFullyCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.FullyCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: Reader,
-                      previous: Option[Persistent]): IO[Int] =
+    override def read(indexReader: Reader[IO.Error],
+                      previous: Option[Persistent]): IO[IO.Error, Int] =
       previous map {
         previous =>
           IO.Success(previous.valueOffset)
@@ -97,8 +98,8 @@ object ValueOffsetReader {
   implicit object ValueOffsetReaderNoValue extends ValueOffsetReader[BaseEntryId.Value.NoValue] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: Reader,
-                      previous: Option[Persistent]): IO[Int] =
+    override def read(indexReader: Reader[IO.Error],
+                      previous: Option[Persistent]): IO[IO.Error, Int] =
       IO.zero
   }
 

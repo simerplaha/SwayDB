@@ -22,6 +22,8 @@ package swaydb.core
 import java.nio.file.Path
 
 import org.scalatest.Matchers._
+import swaydb.ErrorHandler.NothingErrorHandler
+import swaydb.ErrorHandler.CoreErrorHandler
 import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
@@ -120,10 +122,10 @@ object TestData {
                                                  segmentIO: SegmentIO = SegmentIO.random,
                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000))) {
 
-    def tryReopen: IO[Segment] =
+    def tryReopen: IO[IO.Error, Segment] =
       tryReopen(segment.path)
 
-    def tryReopen(path: Path): IO[Segment] =
+    def tryReopen(path: Path): IO[IO.Error, Segment] =
       Segment(
         path = path,
         mmapReads = randomBoolean(),
@@ -159,7 +161,7 @@ object TestData {
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
-    def putKeyValuesTest(keyValues: Slice[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): IO[Unit] =
+    def putKeyValuesTest(keyValues: Slice[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): IO[IO.Error, Unit] =
       if (keyValues.isEmpty)
         IO.unit
       else if (!level.isEmpty)
@@ -215,7 +217,7 @@ object TestData {
     def reopen: Level =
       reopen()
 
-    def tryReopen: IO[Level] =
+    def tryReopen: IO[IO.Error, Level] =
       tryReopen()
 
     def reopen(segmentSize: Long = level.segmentSize,
@@ -231,7 +233,7 @@ object TestData {
     def tryReopen(segmentSize: Long = level.segmentSize,
                   throttle: LevelMeter => Throttle = level.throttle,
                   nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                  fileOpenLimiter: FileLimiter = fileOpenLimiter): IO[Level] =
+                                                                  fileOpenLimiter: FileLimiter = fileOpenLimiter): IO[IO.Error, Level] =
       level.releaseLocks flatMap {
         _ =>
           level.closeSegments flatMap {
@@ -293,7 +295,7 @@ object TestData {
       reopened.runIO
     }
 
-    def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly]): IO[Unit] =
+    def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly]): IO[IO.Error, Unit] =
       if (keyValues.isEmpty)
         IO.unit
       else
@@ -2574,7 +2576,7 @@ object TestData {
                                 timeOrder: TimeOrder[Slice[Byte]],
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
-                                functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] =
+                                functionStore: FunctionStore): IO[IO.Error, Option[KeyValue.ReadOnly.Put]] =
       Higher(key, Seek.Read, Seek.Read).runBlocking
   }
 
@@ -2583,7 +2585,7 @@ object TestData {
                                 timeOrder: TimeOrder[Slice[Byte]],
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
-                                functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] =
+                                functionStore: FunctionStore): IO[IO.Error, Option[KeyValue.ReadOnly.Put]] =
       Lower(key, Seek.Read, Seek.Read).runBlocking
   }
 
@@ -2679,11 +2681,11 @@ object TestData {
   def buildSingleValueCache(bytes: Slice[Byte]): Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
     Cache.concurrentIO[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](randomBoolean(), randomBoolean()) {
       offset =>
-        IO(
+        IO[Nothing, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](
           UnblockedReader(
             block = ValuesBlock(offset, 0, None),
             bytes = bytes
           )
-        )
+        )(NothingErrorHandler)
     }
 }

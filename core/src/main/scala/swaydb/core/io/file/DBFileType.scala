@@ -28,34 +28,34 @@ private[file] trait DBFileType {
 
   def path: Path
 
-  def delete(): IO[Unit]
+  def delete(): IO[IO.Error, Unit]
 
-  def close(): IO[Unit]
+  def close(): IO[IO.Error, Unit]
 
-  def append(slice: Slice[Byte]): IO[Unit]
+  def append(slice: Slice[Byte]): IO[IO.Error, Unit]
 
-  def append(slice: Iterable[Slice[Byte]]): IO[Unit]
+  def append(slice: Iterable[Slice[Byte]]): IO[IO.Error, Unit]
 
-  def read(position: Int, size: Int): IO[Slice[Byte]]
+  def read(position: Int, size: Int): IO[IO.Error, Slice[Byte]]
 
-  def get(position: Int): IO[Byte]
+  def get(position: Int): IO[IO.Error, Byte]
 
-  def readAll: IO[Slice[Byte]]
+  def readAll: IO[IO.Error, Slice[Byte]]
 
-  def fileSize: IO[Long]
+  def fileSize: IO[IO.Error, Long]
 
-  def isMemoryMapped: IO[Boolean]
+  def isMemoryMapped: IO[IO.Error, Boolean]
 
-  def isLoaded: IO[Boolean]
+  def isLoaded: IO[IO.Error, Boolean]
 
   def isOpen: Boolean
 
-  def isFull: IO[Boolean]
+  def isFull: IO[IO.Error, Boolean]
 
   def memory: Boolean
 
   def persistent: Boolean =
     !memory
 
-  def forceSave(): IO[Unit]
+  def forceSave(): IO[IO.Error, Unit]
 }

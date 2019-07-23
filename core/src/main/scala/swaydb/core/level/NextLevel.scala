@@ -70,21 +70,21 @@ trait NextLevel extends LevelRef {
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
 
-  def mightContainFunction(key: Slice[Byte]): IO[Boolean]
+  def mightContainFunction(key: Slice[Byte]): IO[IO.Error, Boolean]
 
-  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[Unit]
+  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit]
 
-  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[Unit]
+  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit]
 
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[Unit]
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit]
 
-  def removeSegments(segments: Iterable[Segment]): IO[Int]
+  def removeSegments(segments: Iterable[Segment]): IO[IO.Error, Int]
 
   def meter: LevelMeter
 
-  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[Unit]
+  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit]
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[Int]
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[IO.Error, Int]
 
   def reverseNextLevels: ListBuffer[NextLevel] = {
     val levels = ListBuffer.empty[NextLevel]
@@ -119,5 +119,5 @@ trait NextLevel extends LevelRef {
 
   def groupingStrategy: Option[KeyValueGroupingStrategyInternal]
 
-  def delete: IO[Unit]
+  def delete: IO[IO.Error, Unit]
 }

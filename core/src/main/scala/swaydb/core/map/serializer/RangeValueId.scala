@@ -21,6 +21,7 @@ package swaydb.core.map.serializer
 
 import swaydb.IO
 import swaydb.macros.SealedList
+import swaydb.ErrorHandler.CoreErrorHandler
 
 sealed trait RangeValueId {
   val id: Int
@@ -138,7 +139,7 @@ object RangeValueId {
       rangeId.id -> rangeId
   } toMap
 
-  def apply(id: Int): IO[RangeValueId] =
+  def apply(id: Int): IO[IO.Error, RangeValueId] =
     ids.get(id)
       .map(IO.Success(_))
       .getOrElse(IO.Failure(new Exception(s"Invalid ${this.getClass.getSimpleName}: $id")))

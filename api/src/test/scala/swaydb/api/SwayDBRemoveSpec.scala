@@ -23,6 +23,7 @@ import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
+import swaydb.data.io.Tag.SIO
 import swaydb.serializers.Default._
 
 import scala.concurrent.duration._
@@ -30,7 +31,7 @@ import scala.concurrent.duration._
 class SwayDBRemoveSpec0 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, IO] =
+  override def newDB(): Map[Int, String, SIO] =
     swaydb.persistent.Map[Int, String](dir = randomDir).value
 }
 
@@ -38,7 +39,7 @@ class SwayDBRemoveSpec1 extends SwayDBRemoveSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, IO] =
+  override def newDB(): Map[Int, String, SIO] =
     swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).value
 }
 
@@ -46,14 +47,14 @@ class SwayDBRemoveSpec2 extends SwayDBRemoveSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO] =
+  override def newDB(): Map[Int, String, SIO] =
     swaydb.memory.Map[Int, String](mapSize = 1.byte, segmentSize = 10.bytes).value
 }
 
 class SwayDBRemoveSpec3 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO] =
+  override def newDB(): Map[Int, String, SIO] =
     swaydb.memory.Map[Int, String]().value
 }
 
@@ -61,14 +62,14 @@ class SwayDBRemoveSpec4 extends SwayDBRemoveSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO] =
+  override def newDB(): Map[Int, String, SIO] =
     swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).value
 }
 
 class SwayDBRemoveSpec5 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO] =
+  override def newDB(): Map[Int, String, SIO] =
     swaydb.memory.zero.Map[Int, String]().value
 }
 
@@ -76,7 +77,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Map[Int, String, IO]
+  def newDB(): Map[Int, String, SIO]
 
   "Remove" when {
     "Put" in {
@@ -171,7 +172,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
   "Remove" when {
     "Update" in {
-      val db: Map[Int, String, IO] = newDB()
+      val db: Map[Int, String, SIO] = newDB()
 
       eitherOne(
         left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),

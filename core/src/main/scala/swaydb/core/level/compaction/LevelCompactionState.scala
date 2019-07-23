@@ -32,7 +32,7 @@ private[level] object LevelCompactionState {
 
   def longSleep = 365.days.fromNow
 
-  case class AwaitingPull(later: IO.Deferred[_],
+  case class AwaitingPull(later: IO.Deferred[_, _],
                           timeout: Deadline,
                           stateID: Long,
                           previousStateID: Long) extends LevelCompactionState {

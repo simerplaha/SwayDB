@@ -31,6 +31,7 @@ import swaydb.data.accelerate.Accelerator
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.core.IOValues._
+import swaydb.data.io.Tag.SIO
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -53,7 +54,7 @@ class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
 
 sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark with BeforeAndAfterAll {
 
-  val db: swaydb.Map[Int, WeatherData, IO]
+  val db: swaydb.Map[Int, WeatherData, SIO]
 
   override protected def afterAll(): Unit = {
     db.close().get

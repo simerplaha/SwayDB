@@ -24,6 +24,7 @@ import java.nio.file.{NoSuchFileException, Paths}
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.IO
 import swaydb.data.Base._
+import swaydb.ErrorHandler.ThrowableErrorHandler
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -89,16 +90,17 @@ class IOSuccessSpec extends WordSpec with Matchers {
     }
 
     "flatten" in {
-      val nested: IO[IO[IO[IO[Int]]]] = IO.Success(IO.Success(IO.Success(IO.Success(1))))
-
+      val nested: IO[Throwable, IO[Throwable, IO[Throwable, IO[Throwable, Int]]]] = IO.Success(IO.Success(IO.Success(IO.Success(1))))
       nested.flatten.flatten.flatten shouldBe IO.Success(1)
     }
 
     "flatten on successes with failure" in {
-      val nested: IO[IO[IO[IO[Int]]]] = IO.Success(IO.Success(IO.Success(IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))))))
+      val nested: IO[IO.Error, IO[IO.Error, IO[IO.Error, IO[IO.Error, Int]]]] = IO.Success(IO.Success(IO.Success(IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))))))
 
-      nested.flatten.flatten.flatten.asInstanceOf[IO.Failure[Int]].exception.getMessage shouldBe "Kaboom!"
+      nested.flatten.flatten.flatten.asInstanceOf[IO.Failure[IO.Error, Int]].failed.get.exception.getMessage shouldBe "Kaboom!"
     }
+
+
 
     "invoke onCompleteSideEffect" in {
       var invoked = false

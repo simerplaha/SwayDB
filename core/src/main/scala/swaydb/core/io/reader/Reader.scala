@@ -19,16 +19,17 @@
 
 package swaydb.core.io.reader
 
+import swaydb.ErrorHandler
 import swaydb.core.io.file.DBFile
 import swaydb.data.slice.{Slice, SliceReaderSafe}
 
 private[swaydb] object Reader {
 
-  val empty = Reader(Slice.emptyBytes)
+  def empty[E: ErrorHandler] = Reader[E](Slice.emptyBytes)
 
   def apply(file: DBFile): FileReader =
     new FileReader(file)
 
-  def apply(slice: Slice[Byte]): SliceReaderSafe =
+  def apply[E: ErrorHandler](slice: Slice[Byte]): SliceReaderSafe[E] =
     SliceReaderSafe(slice)
 }

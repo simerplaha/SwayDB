@@ -35,6 +35,7 @@ import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.MaxKey
+import swaydb.ErrorHandler.CoreErrorHandler
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
@@ -77,9 +78,9 @@ private[core] object KeyValue {
     sealed trait SegmentResponse extends KeyValue with ReadOnly
 
     sealed trait Fixed extends SegmentResponse {
-      def toFromValue(): IO[Value.FromValue]
+      def toFromValue(): IO[IO.Error, Value.FromValue]
 
-      def toRangeValue(): IO[Value.RangeValue]
+      def toRangeValue(): IO[IO.Error, Value.RangeValue]
 
       def time: Time
     }
@@ -90,9 +91,9 @@ private[core] object KeyValue {
       def hasTimeLeft(): Boolean
       def isOverdue(): Boolean = !hasTimeLeft()
       def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
-      def getOrFetchValue: IO[Option[Slice[Byte]]]
+      def getOrFetchValue: IO[IO.Error, Option[Slice[Byte]]]
       def time: Time
-      def toFromValue(): IO[Value.Put]
+      def toFromValue(): IO[IO.Error, Value.Put]
       def copyWithDeadlineAndTime(deadline: Option[Deadline], time: Time): KeyValue.ReadOnly.Put
       def copyWithTime(time: Time): KeyValue.ReadOnly.Put
     }
@@ -103,7 +104,7 @@ private[core] object KeyValue {
       def isOverdue(): Boolean = !hasTimeLeft()
       def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
       def time: Time
-      def toFromValue(): IO[Value.Remove]
+      def toFromValue(): IO[IO.Error, Value.Remove]
       def toRemoveValue(): Value.Remove
       def copyWithTime(time: Time): KeyValue.ReadOnly.Remove
     }
@@ -114,8 +115,8 @@ private[core] object KeyValue {
       def isOverdue(): Boolean = !hasTimeLeft()
       def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
       def time: Time
-      def getOrFetchValue: IO[Option[Slice[Byte]]]
-      def toFromValue(): IO[Value.Update]
+      def getOrFetchValue: IO[IO.Error, Option[Slice[Byte]]]
+      def toFromValue(): IO[IO.Error, Value.Update]
       def toPut(): KeyValue.ReadOnly.Put
       def toPut(deadline: Option[Deadline]): KeyValue.ReadOnly.Put
       def copyWithDeadlineAndTime(deadline: Option[Deadline], time: Time): KeyValue.ReadOnly.Update
@@ -125,14 +126,14 @@ private[core] object KeyValue {
 
     sealed trait Function extends KeyValue.ReadOnly.Fixed {
       def time: Time
-      def getOrFetchFunction: IO[Slice[Byte]]
-      def toFromValue(): IO[Value.Function]
+      def getOrFetchFunction: IO[IO.Error, Slice[Byte]]
+      def toFromValue(): IO[IO.Error, Value.Function]
       def copyWithTime(time: Time): Function
     }
 
     sealed trait PendingApply extends KeyValue.ReadOnly.Fixed {
-      def getOrFetchApplies: IO[Slice[Value.Apply]]
-      def toFromValue(): IO[Value.PendingApply]
+      def getOrFetchApplies: IO[IO.Error, Slice[Value.Apply]]
+      def toFromValue(): IO[IO.Error, Value.PendingApply]
       def time: Time
       def deadline: Option[Deadline]
     }
@@ -154,10 +155,10 @@ private[core] object KeyValue {
     sealed trait Range extends KeyValue.ReadOnly with SegmentResponse {
       def fromKey: Slice[Byte]
       def toKey: Slice[Byte]
-      def fetchFromValue: IO[Option[Value.FromValue]]
-      def fetchRangeValue: IO[Value.RangeValue]
-      def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)]
-      def fetchFromOrElseRangeValue: IO[Value.FromValue] =
+      def fetchFromValue: IO[IO.Error, Option[Value.FromValue]]
+      def fetchRangeValue: IO[IO.Error, Value.RangeValue]
+      def fetchFromAndRangeValue: IO[IO.Error, (Option[Value.FromValue], Value.RangeValue)]
+      def fetchFromOrElseRangeValue: IO[IO.Error, Value.FromValue] =
         fetchFromAndRangeValue map {
           case (fromValue, rangeValue) =>
             fromValue getOrElse rangeValue
@@ -224,10 +225,10 @@ private[swaydb] object Memory {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: IO[Option[Slice[Byte]]] =
+    override def getOrFetchValue: IO[IO.Error, Option[Slice[Byte]]] =
       IO.Success(value)
 
-    override def toFromValue(): IO[Value.Put] =
+    override def toFromValue(): IO[IO.Error, Value.Put] =
       IO.Success(Value.Put(value, deadline, time))
 
     override def copyWithDeadlineAndTime(deadline: Option[Deadline],
@@ -238,7 +239,7 @@ private[swaydb] object Memory {
       copy(time = time)
 
     //ahh not very type-safe.
-    override def toRangeValue(): IO[Value.RangeValue] =
+    override def toRangeValue(): IO[IO.Error, Value.RangeValue] =
       IO.Failure(new Exception("Put cannot be converted to RangeValue"))
   }
 
@@ -255,10 +256,10 @@ private[swaydb] object Memory {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: IO[Option[Slice[Byte]]] =
+    override def getOrFetchValue: IO[IO.Error, Option[Slice[Byte]]] =
       IO.Success(value)
 
-    override def toFromValue(): IO[Value.Update] =
+    override def toFromValue(): IO[IO.Error, Value.Update] =
       IO.Success(Value.Update(value, deadline, time))
 
     override def copyWithDeadlineAndTime(deadline: Option[Deadline],
@@ -287,7 +288,7 @@ private[swaydb] object Memory {
         time = time
       )
 
-    override def toRangeValue(): IO[Value.Update] =
+    override def toRangeValue(): IO[IO.Error, Value.Update] =
       toFromValue()
   }
 
@@ -297,16 +298,16 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def getOrFetchFunction: IO[Slice[Byte]] =
+    override def getOrFetchFunction: IO[IO.Error, Slice[Byte]] =
       IO.Success(function)
 
-    override def toFromValue(): IO[Value.Function] =
+    override def toFromValue(): IO[IO.Error, Value.Function] =
       IO.Success(Value.Function(function, time))
 
     override def copyWithTime(time: Time): Function =
       copy(time = time)
 
-    override def toRangeValue(): IO[Value.Function] =
+    override def toRangeValue(): IO[IO.Error, Value.Function] =
       toFromValue()
   }
 
@@ -320,13 +321,13 @@ private[swaydb] object Memory {
 
     def time = Time.fromApplies(applies)
 
-    override def getOrFetchApplies: IO[Slice[Value.Apply]] =
+    override def getOrFetchApplies: IO[IO.Error, Slice[Value.Apply]] =
       IO.Success(applies)
 
-    override def toFromValue(): IO[Value.PendingApply] =
+    override def toFromValue(): IO[IO.Error, Value.PendingApply] =
       IO.Success(Value.PendingApply(applies))
 
-    override def toRangeValue(): IO[Value.PendingApply] =
+    override def toRangeValue(): IO[IO.Error, Value.PendingApply] =
       toFromValue()
   }
 
@@ -348,10 +349,10 @@ private[swaydb] object Memory {
     override def copyWithTime(time: Time): ReadOnly.Remove =
       copy(time = time)
 
-    override def toFromValue(): IO[Value.Remove] =
+    override def toFromValue(): IO[IO.Error, Value.Remove] =
       IO.Success(toRemoveValue())
 
-    override def toRangeValue(): IO[Value.Remove] =
+    override def toRangeValue(): IO[IO.Error, Value.Remove] =
       toFromValue()
   }
 
@@ -372,13 +373,13 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def fetchFromValue: IO[Option[Value.FromValue]] =
+    override def fetchFromValue: IO[IO.Error, Option[Value.FromValue]] =
       IO.Success(fromValue)
 
-    override def fetchRangeValue: IO[Value.RangeValue] =
+    override def fetchRangeValue: IO[IO.Error, Value.RangeValue] =
       IO.Success(rangeValue)
 
-    override def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)] =
+    override def fetchFromAndRangeValue: IO[IO.Error, (Option[Value.FromValue], Value.RangeValue)] =
       IO.Success(fromValue, rangeValue)
   }
 
@@ -1143,7 +1144,7 @@ private[core] object Transient {
               sortedIndexConfig: SortedIndexBlock.Config,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
-              bloomFilterConfig: BloomFilterBlock.Config): IO[Transient.Group] =
+              bloomFilterConfig: BloomFilterBlock.Config): IO[IO.Error, Transient.Group] =
       GroupCompressor.compress(
         keyValues = keyValues,
         previous = previous,
@@ -1252,11 +1253,11 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble {
 private[core] object Persistent {
 
   sealed trait SegmentResponse extends KeyValue.ReadOnly.SegmentResponse with Persistent {
-    def toMemory(): IO[Memory.SegmentResponse]
+    def toMemory(): IO[IO.Error, Memory.SegmentResponse]
 
     def isValueCached: Boolean
 
-    def toMemoryResponseOption(): IO[Option[Memory.SegmentResponse]] =
+    def toMemoryResponseOption(): IO[IO.Error, Option[Memory.SegmentResponse]] =
       toMemory() map (Some(_))
   }
   sealed trait Fixed extends Persistent.SegmentResponse with KeyValue.ReadOnly.Fixed
@@ -1290,7 +1291,7 @@ private[core] object Persistent {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.exists(deadline => (deadline - minus).hasTimeLeft())
 
-    override def toMemory(): IO[Memory.Remove] =
+    override def toMemory(): IO[IO.Error, Memory.Remove] =
       IO.Success {
         Memory.Remove(
           key = key,
@@ -1302,10 +1303,10 @@ private[core] object Persistent {
     override def copyWithTime(time: Time): ReadOnly.Remove =
       copy(_time = time)
 
-    override def toFromValue(): IO[Value.Remove] =
+    override def toFromValue(): IO[IO.Error, Value.Remove] =
       IO.Success(toRemoveValue())
 
-    override def toRangeValue(): IO[Value.Remove] =
+    override def toRangeValue(): IO[IO.Error, Value.Remove] =
       toFromValue()
 
     override def toRemoveValue(): Value.Remove =
@@ -1376,22 +1377,22 @@ private[core] object Persistent {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: IO[Option[Slice[Byte]]] =
+    override def getOrFetchValue: IO[IO.Error, Option[Slice[Byte]]] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    override def toFromValue(): IO[Value.Put] =
+    override def toFromValue(): IO[IO.Error, Value.Put] =
       getOrFetchValue map {
         value =>
           Value.Put(value, deadline, time)
       }
 
-    override def toRangeValue(): IO[Value.RangeValue] =
+    override def toRangeValue(): IO[IO.Error, Value.RangeValue] =
       IO.Failure(new Exception("Put cannot be converted to RangeValue"))
 
-    override def toMemory(): IO[Memory.Put] =
+    override def toMemory(): IO[IO.Error, Memory.Put] =
       getOrFetchValue map {
         value =>
           Memory.Put(
@@ -1477,19 +1478,19 @@ private[core] object Persistent {
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    def getOrFetchValue: IO[Option[Slice[Byte]]] =
+    def getOrFetchValue: IO[IO.Error, Option[Slice[Byte]]] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
-    override def toFromValue(): IO[Value.Update] =
+    override def toFromValue(): IO[IO.Error, Value.Update] =
       getOrFetchValue map {
         value =>
           Value.Update(value, deadline, time)
       }
 
-    override def toRangeValue(): IO[Value.Update] =
+    override def toRangeValue(): IO[IO.Error, Value.Update] =
       toFromValue()
 
-    override def toMemory(): IO[Memory.Update] =
+    override def toMemory(): IO[IO.Error, Memory.Update] =
       getOrFetchValue map {
         value =>
           Memory.Update(
@@ -1599,19 +1600,19 @@ private[core] object Persistent {
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    def getOrFetchFunction: IO[Slice[Byte]] =
+    def getOrFetchFunction: IO[IO.Error, Slice[Byte]] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
-    override def toFromValue(): IO[Value.Function] =
+    override def toFromValue(): IO[IO.Error, Value.Function] =
       getOrFetchFunction map {
         value =>
           Value.Function(value, time)
       }
 
-    override def toRangeValue(): IO[Value.Function] =
+    override def toRangeValue(): IO[IO.Error, Value.Function] =
       toFromValue()
 
-    override def toMemory(): IO[Memory.Function] =
+    override def toMemory(): IO[IO.Error, Memory.Function] =
       getOrFetchFunction map {
         function =>
           Memory.Function(
@@ -1691,18 +1692,18 @@ private[core] object Persistent {
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    override def getOrFetchApplies: IO[Slice[Value.Apply]] =
+    override def getOrFetchApplies: IO[IO.Error, Slice[Value.Apply]] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
-    override def toFromValue(): IO[Value.PendingApply] =
+    override def toFromValue(): IO[IO.Error, Value.PendingApply] =
       valueCache
         .value(ValuesBlock.Offset(valueOffset, valueLength))
         .map(Value.PendingApply)
 
-    override def toRangeValue(): IO[Value.PendingApply] =
+    override def toRangeValue(): IO[IO.Error, Value.PendingApply] =
       toFromValue()
 
-    override def toMemory(): IO[Memory.PendingApply] =
+    override def toMemory(): IO[IO.Error, Memory.PendingApply] =
       getOrFetchApplies map {
         applies =>
           Memory.PendingApply(
@@ -1721,7 +1722,7 @@ private[core] object Persistent {
               valueOffset: Int,
               valueLength: Int,
               accessPosition: Int,
-              isPrefixCompressed: Boolean): IO[Persistent.Range] =
+              isPrefixCompressed: Boolean): IO[IO.Error, Persistent.Range] =
       Bytes.decompressJoin(key) map {
         case (fromKey, toKey) =>
           Range(
@@ -1775,16 +1776,16 @@ private[core] object Persistent {
     override def key: Slice[Byte] =
       _fromKey
 
-    def fetchRangeValue: IO[Value.RangeValue] =
+    def fetchRangeValue: IO[IO.Error, Value.RangeValue] =
       fetchFromAndRangeValue.map(_._2)
 
-    def fetchFromValue: IO[Option[Value.FromValue]] =
+    def fetchFromValue: IO[IO.Error, Option[Value.FromValue]] =
       fetchFromAndRangeValue.map(_._1)
 
-    def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)] =
+    def fetchFromAndRangeValue: IO[IO.Error, (Option[Value.FromValue], Value.RangeValue)] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
-    override def toMemory(): IO[Memory.Range] =
+    override def toMemory(): IO[IO.Error, Memory.Range] =
       fetchFromAndRangeValue map {
         case (fromValue, rangeValue) =>
           Memory.Range(
@@ -1809,7 +1810,7 @@ private[core] object Persistent {
               valueOffset: Int,
               accessPosition: Int,
               deadline: Option[Deadline],
-              isPrefixCompressed: Boolean): IO[Group] =
+              isPrefixCompressed: Boolean): IO[IO.Error, Group] =
       GroupKeyCompressor.decompress(key) flatMap {
         case (minKey, maxKey) =>
           valueCache.value(ValuesBlock.Offset(valueOffset, valueLength)) map {

@@ -24,31 +24,31 @@ import swaydb.IO
 import swaydb.core.io.file.DBFile
 import swaydb.data.slice.{Reader, Slice}
 
-private[core] class FileReader(file: DBFile) extends Reader with LazyLogging {
+private[core] class FileReader(file: DBFile) extends Reader[IO.Error] with LazyLogging {
 
   private var position: Int = 0
 
-  def isLoaded: IO[Boolean] =
+  def isLoaded: IO[IO.Error, Boolean] =
     file.isLoaded
 
-  override def size: IO[Long] =
+  override def size: IO[IO.Error, Long] =
     file.fileSize
 
-  def moveTo(newPosition: Long): Reader = {
+  def moveTo(newPosition: Long): Reader[IO.Error] = {
     position = newPosition.toInt max 0
     this
   }
 
-  def hasMore: IO[Boolean] =
+  def hasMore: IO[IO.Error, Boolean] =
     size.map(position < _)
 
-  def hasAtLeast(size: Long): IO[Boolean] =
+  def hasAtLeast(size: Long): IO[IO.Error, Boolean] =
     file.fileSize map {
       fileSize =>
         (fileSize - position) >= size
     }
 
-  override def copy(): Reader =
+  override def copy(): Reader[IO.Error] =
     new FileReader(file)
 
   override def getPosition: Int = position
@@ -70,7 +70,7 @@ private[core] class FileReader(file: DBFile) extends Reader with LazyLogging {
           bytes
       }
 
-  override def readRemaining(): IO[Slice[Byte]] =
+  override def readRemaining(): IO[IO.Error, Slice[Byte]] =
     remaining flatMap read
 
   final override val isFile: Boolean =

@@ -53,6 +53,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.Random
+import swaydb.ErrorHandler.CoreErrorHandler
 
 class SegmentWriteSpec0 extends SegmentWriteSpec
 

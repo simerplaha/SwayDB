@@ -24,6 +24,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.data.slice.Slice
+import swaydb.ErrorHandler.ThrowableErrorHandler
 
 private[file] object MemoryFile {
   def apply(path: Path, bytes: Slice[Byte]): DBFileType =
@@ -36,48 +37,48 @@ private[file] object MemoryFile {
 private[file] class MemoryFile(val path: Path,
                                private var bytes: Slice[Byte]) extends LazyLogging with DBFileType {
 
-  override def close(): IO[Unit] =
+  override def close(): IO[IO.Error, Unit] =
     IO.unit
 
-  override def append(slice: Slice[Byte]): IO[Unit] =
+  override def append(slice: Slice[Byte]): IO[IO.Error, Unit] =
     IO.Failure(new UnsupportedOperationException("Memory files are immutable. Cannot append."))
 
-  override def append(slice: Iterable[Slice[Byte]]): IO[Unit] =
+  override def append(slice: Iterable[Slice[Byte]]): IO[IO.Error, Unit] =
     IO.Failure(new UnsupportedOperationException("Memory files are immutable. Cannot append."))
 
-  override def read(position: Int, size: Int): IO[Slice[Byte]] =
+  override def read(position: Int, size: Int): IO[IO.Error, Slice[Byte]] =
     IO(bytes.slice(position, position + size - 1))
 
-  override def get(position: Int): IO[Byte] =
+  override def get(position: Int): IO[IO.Error, Byte] =
     IO(bytes.get(position))
 
-  override def readAll: IO[Slice[Byte]] =
+  override def readAll: IO[IO.Error, Slice[Byte]] =
     IO(bytes)
 
-  override def fileSize: IO[Long] =
+  override def fileSize: IO[IO.Error, Long] =
     IO(bytes.size)
 
-  override def isMemoryMapped: IO[Boolean] =
+  override def isMemoryMapped: IO[IO.Error, Boolean] =
     IO.`false`
 
-  override def isLoaded: IO[Boolean] =
+  override def isLoaded: IO[IO.Error, Boolean] =
     IO.`true`
 
   override def isOpen: Boolean =
     true
 
-  override def isFull: IO[Boolean] =
+  override def isFull: IO[IO.Error, Boolean] =
     IO.`true`
 
   override def memory: Boolean = true
 
-  override def delete(): IO[Unit] =
+  override def delete(): IO[IO.Error, Unit] =
     close map {
       _ =>
         //null bytes for GC
         bytes = null
     }
 
-  override def forceSave(): IO[Unit] =
+  override def forceSave(): IO[IO.Error, Unit] =
     IO.unit
 }

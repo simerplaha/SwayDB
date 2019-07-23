@@ -19,7 +19,7 @@
 
 package swaydb.core
 
-import swaydb.{IO, Prepare}
+import swaydb.ErrorHandler.CoreErrorHandler
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.{Memory, SwayFunction, Time, Value}
 import swaydb.core.function.FunctionStore
@@ -27,13 +27,14 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.map.timer.Timer
-import swaydb.IO.Error
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}
 import swaydb.data.io.Tag
+import swaydb.data.io.Tag.SIO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.{IO, Prepare}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -48,7 +49,7 @@ private[swaydb] object BlockingCore {
             fileOpenLimiterEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[BlockingCore[IO]] =
+                                              functionStore: FunctionStore): IO[IO.Error, BlockingCore[SIO]] =
     CoreInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
@@ -62,7 +63,7 @@ private[swaydb] object BlockingCore {
   def apply(config: LevelZeroConfig)(implicit mmapCleanerEC: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[BlockingCore[IO]] =
+                                     functionStore: FunctionStore): IO[IO.Error, BlockingCore[SIO]] =
     CoreInitializer(
       config = config,
       bufferCleanerEC = mmapCleanerEC
@@ -110,7 +111,7 @@ private[swaydb] object BlockingCore {
     }
 }
 
-private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO[Unit])(implicit tag: Tag[T]) extends Core[T] {
+private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO[IO.Error, Unit])(implicit tag: Tag[T]) extends Core[T] {
 
   def put(key: Slice[Byte]): T[IO.OK] =
     tag.fromIO(zero.put(key))
@@ -175,18 +176,18 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
     zero.registerFunction(functionID, function)
 
-  private def headIO: IO[Option[KeyValueTuple]] =
+  private def headIO: IO[IO.Error, Option[KeyValueTuple]] =
     zero.head.runBlocking flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runBlockingIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
-            } recoverWith {
+            } recoverWith[IO.Error, Option[KeyValueTuple]] {
               case error =>
                 error match {
-                  case _: Error.Busy =>
+                  case _: IO.Error.Busy =>
                     headIO
 
                   case failure =>
@@ -202,18 +203,18 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def headKey: T[Option[Slice[Byte]]] =
     tag.fromIO(zero.headKey.runBlocking)
 
-  private def lastIO: IO[Option[KeyValueTuple]] =
+  private def lastIO: IO[IO.Error, Option[KeyValueTuple]] =
     zero.last.runBlocking flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runBlockingIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
-            } recoverWith {
+            } recoverWith[IO.Error, Option[KeyValueTuple]] {
               case error =>
                 error match {
-                  case _: Error.Busy =>
+                  case _: IO.Error.Busy =>
                     lastIO
 
                   case failure =>
@@ -247,18 +248,18 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
     tag.fromIO(IO.Defer.recover(zero.mightContainFunction(functionId).get).runBlocking)
 
-  private def getIO(key: Slice[Byte]): IO[Option[Option[Slice[Byte]]]] =
+  private def getIO(key: Slice[Byte]): IO[IO.Error, Option[Option[Slice[Byte]]]] =
     zero.get(key).runBlocking flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runBlockingIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(result)
-            } recoverWith {
+            } recoverWith[IO.Error, Option[Option[Slice[Byte]]]] {
               case error =>
                 error match {
-                  case _: Error.Busy =>
+                  case _: IO.Error.Busy =>
                     getIO(key)
 
                   case failure =>
@@ -274,18 +275,18 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
     tag.fromIO(zero.getKey(key).runBlocking)
 
-  private def getKeyValueIO(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
+  private def getKeyValueIO(key: Slice[Byte]): IO[IO.Error, Option[KeyValueTuple]] =
     zero.get(key).runBlocking flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runBlockingIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
-            } recoverWith {
+            } recoverWith[IO.Error, Option[KeyValueTuple]] {
               case error =>
                 error match {
-                  case _: Error.Busy =>
+                  case _: IO.Error.Busy =>
                     getKeyValueIO(key)
 
                   case failure =>
@@ -298,18 +299,18 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def getKeyValue(key: Slice[Byte]): T[Option[KeyValueTuple]] =
     tag.fromIO(getKeyValueIO(key))
 
-  private def beforeIO(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
+  private def beforeIO(key: Slice[Byte]): IO[IO.Error, Option[KeyValueTuple]] =
     zero.lower(key).runBlocking flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runBlockingIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
-            } recoverWith {
+            } recoverWith[IO.Error, Option[KeyValueTuple]] {
               case error =>
                 error match {
-                  case _: Error.Busy =>
+                  case _: IO.Error.Busy =>
                     beforeIO(key)
 
                   case failure =>
@@ -325,18 +326,18 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def beforeKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
     tag.fromIO(zero.lower(key).runBlocking.map(_.map(_.key)))
 
-  private def afterIO(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
+  private def afterIO(key: Slice[Byte]): IO[IO.Error, Option[KeyValueTuple]] =
     zero.higher(key).runBlocking flatMap {
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runBlockingIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
-            } recoverWith {
+            } recoverWith[IO.Error, Option[KeyValueTuple]] {
               case error =>
                 error match {
-                  case _: Error.Busy =>
+                  case _: IO.Error.Busy =>
                     afterIO(key)
 
                   case failure =>

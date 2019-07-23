@@ -88,7 +88,7 @@ class BufferCleanerSpec extends TestBase {
     val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
     val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
     val result = BufferCleaner.clean(BufferCleaner.State(None), buffer, path)
-    result shouldBe a[IO.Success[_]]
+    result shouldBe a[IO.Success[_, _]]
     result.get.cleaner shouldBe defined
   }
 }

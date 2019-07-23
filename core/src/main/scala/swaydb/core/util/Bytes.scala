@@ -25,6 +25,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteUtil
+import swaydb.ErrorHandler.CoreErrorHandler
 
 private[swaydb] object Bytes {
 
@@ -186,7 +187,7 @@ private[swaydb] object Bytes {
     }
   }
 
-  def decompressJoin(bytes: Slice[Byte]): IO[(Slice[Byte], Slice[Byte])] =
+  def decompressJoin(bytes: Slice[Byte]): IO[IO.Error, (Slice[Byte], Slice[Byte])] =
     Reader(bytes) ==> {
       reader =>
         for {

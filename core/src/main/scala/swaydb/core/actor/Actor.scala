@@ -232,7 +232,12 @@ private[swaydb] class Actor[T, +S](val state: S,
       while (!terminated && processed < max) {
         val message = queue.poll
         if (message != null) {
-          IO(execution(message, self))
+          try
+            execution(message, self)
+          catch {
+            case exception: Exception =>
+              logger.error("Failed to process message. Continuing.", exception)
+          }
           processed += 1
         } else {
           queueSize.updateAndGet {

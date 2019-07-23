@@ -26,12 +26,13 @@ import swaydb.core.function.FunctionStore
 import swaydb.IO._
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
+import swaydb.ErrorHandler.CoreErrorHandler
 
 private[core] object FixedMerger {
 
   def apply(newer: ReadOnly.Fixed,
             older: ReadOnly.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): IO[ReadOnly.Fixed] =
+                                          functionStore: FunctionStore): IO[IO.Error, ReadOnly.Fixed] =
     older.getOrFetchApplies flatMap {
       oldApplies =>
         FixedMerger(newer, oldApplies)
@@ -39,7 +40,7 @@ private[core] object FixedMerger {
 
   def apply(newer: ReadOnly.Fixed,
             oldApplies: Slice[Value.Apply])(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore): IO[ReadOnly.Fixed] =
+                                            functionStore: FunctionStore): IO[IO.Error, ReadOnly.Fixed] =
     oldApplies.reverse.toIterable.foldLeftIO((newer, 0)) {
       case ((newerMerged, count), olderApply) =>
         newerMerged match {
@@ -81,7 +82,7 @@ private[core] object FixedMerger {
 
   def apply(newKeyValue: ReadOnly.Fixed,
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): IO[ReadOnly.Fixed] =
+                                         functionStore: FunctionStore): IO[IO.Error, ReadOnly.Fixed] =
     newKeyValue match {
       case newKeyValue: ReadOnly.Put =>
         IO(PutMerger(newKeyValue, oldKeyValue))

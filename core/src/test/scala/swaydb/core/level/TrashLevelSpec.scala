@@ -31,6 +31,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration._
+import swaydb.ErrorHandler.CoreErrorHandler
 
 class TrashLevelSpec0 extends TrashLevelSpec
 

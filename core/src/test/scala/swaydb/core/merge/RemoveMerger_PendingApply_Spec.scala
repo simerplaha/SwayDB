@@ -30,6 +30,8 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
+import swaydb.ErrorHandler.CoreErrorHandler
+
 class RemoveMerger_PendingApply_Spec extends WordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default

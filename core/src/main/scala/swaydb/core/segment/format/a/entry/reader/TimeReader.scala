@@ -26,13 +26,14 @@ import swaydb.core.util.Bytes
 import swaydb.data.slice.Reader
 
 import scala.annotation.implicitNotFound
+import swaydb.ErrorHandler.CoreErrorHandler
 
 @implicitNotFound("Type class implementation not found for TimeReader of type ${T}")
 sealed trait TimeReader[-T] {
   def isPrefixCompressed: Boolean
 
-  def read(indexReader: Reader,
-           previous: Option[KeyValue.ReadOnly]): IO[Time]
+  def read(indexReader: Reader[IO.Error],
+           previous: Option[KeyValue.ReadOnly]): IO[IO.Error, Time]
 }
 
 /**
@@ -44,16 +45,16 @@ object TimeReader {
   implicit object NoTimeReader extends TimeReader[BaseEntryId.Time.NoTime] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): IO[Time] =
+    override def read(indexReader: Reader[IO.Error],
+                      previous: Option[KeyValue.ReadOnly]): IO[IO.Error, Time] =
       Time.successEmpty
   }
 
   implicit object UnCompressedTimeReader extends TimeReader[BaseEntryId.Time.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): IO[Time] =
+    override def read(indexReader: Reader[IO.Error],
+                      previous: Option[KeyValue.ReadOnly]): IO[IO.Error, Time] =
       indexReader.readIntUnsigned() flatMap {
         timeSize =>
           indexReader.read(timeSize) map {
@@ -67,8 +68,8 @@ object TimeReader {
 
     override def isPrefixCompressed: Boolean = true
 
-    def readTime(indexReader: Reader,
-                 previousTime: Time): IO[Time] =
+    def readTime(indexReader: Reader[IO.Error],
+                 previousTime: Time): IO[IO.Error, Time] =
       indexReader.readIntUnsigned() flatMap {
         commonBytes =>
           indexReader.readIntUnsigned() flatMap {
@@ -81,8 +82,8 @@ object TimeReader {
           }
       }
 
-    override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): IO[Time] =
+    override def read(indexReader: Reader[IO.Error],
+                      previous: Option[KeyValue.ReadOnly]): IO[IO.Error, Time] =
       previous map {
         case previous: KeyValue.ReadOnly.Put =>
           readTime(indexReader, previous.time)

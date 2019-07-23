@@ -31,6 +31,7 @@ import swaydb.core.queue.FileLimiter
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.ErrorHandler.CoreErrorHandler
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -49,7 +50,7 @@ private[core] object Map extends LazyLogging {
                                                                     limiter: FileLimiter,
                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                     reader: MapEntryReader[MapEntry[K, V]],
-                                                                    skipListMerge: SkipListMerger[K, V]): IO[RecoveryResult[PersistentMap[K, V]]] =
+                                                                    skipListMerge: SkipListMerger[K, V]): IO[IO.Error, RecoveryResult[PersistentMap[K, V]]] =
     PersistentMap(
       folder = folder,
       mmap = mmap,
@@ -69,7 +70,7 @@ private[core] object Map extends LazyLogging {
                                                  limiter: FileLimiter,
                                                  reader: MapEntryReader[MapEntry[K, V]],
                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                 skipListMerger: SkipListMerger[K, V]): IO[PersistentMap[K, V]] =
+                                                 skipListMerger: SkipListMerger[K, V]): IO[IO.Error, PersistentMap[K, V]] =
     PersistentMap(
       folder = folder,
       mmap = mmap,
@@ -103,9 +104,9 @@ private[core] trait Map[K, V] {
 
   def incrementWriteCountStateId: Long
 
-  def write(mapEntry: MapEntry[K, V]): IO[Boolean]
+  def write(mapEntry: MapEntry[K, V]): IO[IO.Error, Boolean]
 
-  def delete: IO[Unit]
+  def delete: IO[IO.Error, Unit]
 
   def size: Int =
     skipList.size()
@@ -220,8 +221,8 @@ private[core] trait Map[K, V] {
   def pathOption: Option[Path] =
     None
 
-  def close(): IO[Unit]
+  def close(): IO[IO.Error, Unit]
 
-  def fileId: IO[Long] =
+  def fileId: IO[IO.Error, Long] =
     IO.Success(0)
 }

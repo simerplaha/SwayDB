@@ -30,6 +30,7 @@ import swaydb.data.Reserve
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
+import swaydb.ErrorHandler.CoreErrorHandler
 
 class CacheSpec extends WordSpec with Matchers with MockFactory {
 
@@ -65,7 +66,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
   /**
     * Return a partial cache with applied configuration which requires the cache body.
     */
-  def getTestCache(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean, stored: Boolean): (Unit => IO[Int]) => Cache[Unit, Int] =
+  def getTestCache(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean, stored: Boolean): (Unit => IO[IO.Error, Int]) => Cache[Unit, Int] =
     if (isBlockIO)
       Cache.blockIO[Unit, Int](getBlockIO(isConcurrent, isSynchronised, isReserved, stored), IO.Error.BusyFuture(Reserve()))
     else if (isConcurrent)
@@ -80,7 +81,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
   "Cache.io" should {
     "fetch data only once on success" in {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
-        val mock = mockFunction[IO[Int]]
+        val mock = mockFunction[IO[IO.Error, Int]]
         val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true)(_ => mock.apply())
 
         cache.isCached shouldBe false
@@ -122,7 +123,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
     "not cache on failure" in {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
-        val mock = mockFunction[IO[Int]]
+        val mock = mockFunction[IO[IO.Error, Int]]
 
         val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true)(_ => mock.apply())
 
@@ -161,7 +162,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
     "cache on successful map and flatMap" in {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
-        val mock = mockFunction[IO[Int]]
+        val mock = mockFunction[IO[IO.Error, Int]]
 
         val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true)(_ => mock.apply())
 
@@ -185,7 +186,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
     "not cache on unsuccessful map and flatMap" in {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
-        val mock = mockFunction[IO[Int]]
+        val mock = mockFunction[IO[IO.Error, Int]]
 
         val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true)(_ => mock.apply())
 
@@ -231,7 +232,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
     "store cache value on mapStored" in {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
-        val mock = mockFunction[IO[Int]]
+        val mock = mockFunction[IO[IO.Error, Int]]
         val rootCache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = false)(_ => mock.apply())
         //ensure rootCache is not stored
         mock.expects() returning IO(1)

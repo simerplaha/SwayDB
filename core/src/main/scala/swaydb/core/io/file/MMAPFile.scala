@@ -31,12 +31,13 @@ import swaydb.IO._
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 import swaydb.data.Reserve
+import swaydb.ErrorHandler.CoreErrorHandler
 
 import scala.annotation.tailrec
 
 private[file] object MMAPFile {
 
-  def read(path: Path): IO[MMAPFile] =
+  def read(path: Path): IO[IO.Error, MMAPFile] =
     IO(FileChannel.open(path, StandardOpenOption.READ)) flatMap {
       channel =>
         MMAPFile(
@@ -48,7 +49,7 @@ private[file] object MMAPFile {
     }
 
   def write(path: Path,
-            bufferSize: Long): IO[MMAPFile] =
+            bufferSize: Long): IO[IO.Error, MMAPFile] =
     IO(FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
       channel =>
         MMAPFile(
@@ -62,7 +63,7 @@ private[file] object MMAPFile {
   private def apply(path: Path,
                     channel: FileChannel,
                     mode: MapMode,
-                    bufferSize: Long): IO[MMAPFile] =
+                    bufferSize: Long): IO[IO.Error, MMAPFile] =
     IO {
       val buff = channel.map(mode, 0, bufferSize)
       new MMAPFile(
@@ -92,8 +93,8 @@ private[file] class MMAPFile(val path: Path,
     *
     * FIXME - Switch to using Option.
     */
-  def recoverFromNullPointer[T](f: => T): IO[T] =
-    IO(f) recoverWith {
+  def recoverFromNullPointer[T](f: => T): IO[IO.Error, T] =
+    IO(f).recoverWith[IO.Error, T] {
       case IO.Error.Fatal(ex: NullPointerException) =>
         IO.Failure(IO.Error.NullMappedByteBuffer(IO.Exception.NullMappedByteBuffer(ex, Reserve())))
 
@@ -101,7 +102,7 @@ private[file] class MMAPFile(val path: Path,
         IO.Failure(other)
     }
 
-  def close(): IO[Unit] =
+  def close(): IO[IO.Error, Unit] =
   //    logger.info(s"$path: Closing channel")
     if (open.compareAndSet(true, false)) {
       recoverFromNullPointer {
@@ -116,7 +117,7 @@ private[file] class MMAPFile(val path: Path,
 
   //forceSave and clearBuffer are never called concurrently other than when the database is being shut down.
   //so there is no blocking cost for using synchronized here on than when this file is already submitted for cleaning on shutdown.
-  def forceSave(): IO[Unit] =
+  def forceSave(): IO[IO.Error, Unit] =
     synchronized {
       if (mode == MapMode.READ_ONLY || isBufferEmpty)
         IO.unit
@@ -134,7 +135,7 @@ private[file] class MMAPFile(val path: Path,
       BufferCleaner.clean(swapBuffer, path)
     }
 
-  private def extendBuffer(bufferSize: Long): IO[Unit] =
+  private def extendBuffer(bufferSize: Long): IO[IO.Error, Unit] =
     recoverFromNullPointer {
       val positionBeforeClear = buffer.position()
       buffer.force()
@@ -143,13 +144,13 @@ private[file] class MMAPFile(val path: Path,
       buffer.position(positionBeforeClear)
     }
 
-  override def append(slice: Iterable[Slice[Byte]]): IO[Unit] =
+  override def append(slice: Iterable[Slice[Byte]]): IO[IO.Error, Unit] =
     (slice foreachIO append) getOrElse IO.unit
 
   @tailrec
-  final def append(slice: Slice[Byte]): IO[Unit] =
+  final def append(slice: Slice[Byte]): IO[IO.Error, Unit] =
     recoverFromNullPointer[Unit](buffer.put(slice.toByteBufferWrap)) match {
-      case success: IO.Success[_] =>
+      case success: IO.Success[_, _] =>
         success
 
       //Although this code extends the buffer, currently there is no implementation that requires this feature.
@@ -165,11 +166,11 @@ private[file] class MMAPFile(val path: Path,
         else
           result
 
-      case failure: IO.Failure[_] =>
+      case failure: IO.Failure[_, _] =>
         failure
     }
 
-  def read(position: Int, size: Int): IO[Slice[Byte]] =
+  def read(position: Int, size: Int): IO[IO.Error, Slice[Byte]] =
     recoverFromNullPointer {
       val array = new Array[Byte](size)
       //      buffer position position
@@ -182,7 +183,7 @@ private[file] class MMAPFile(val path: Path,
       Slice(array)
     }
 
-  def get(position: Int): IO[Byte] =
+  def get(position: Int): IO[IO.Error, Byte] =
     recoverFromNullPointer {
       buffer.get(position)
     }
@@ -190,7 +191,7 @@ private[file] class MMAPFile(val path: Path,
   override def fileSize =
     recoverFromNullPointer(channel.size())
 
-  override def readAll: IO[Slice[Byte]] =
+  override def readAll: IO[IO.Error, Slice[Byte]] =
     read(0, channel.size().toInt)
 
   override def isOpen =
@@ -199,15 +200,15 @@ private[file] class MMAPFile(val path: Path,
   override def isMemoryMapped =
     IO.`true`
 
-  override def isLoaded: IO[Boolean] =
+  override def isLoaded: IO[IO.Error, Boolean] =
     recoverFromNullPointer(buffer.isLoaded)
 
-  override def isFull: IO[Boolean] =
+  override def isFull: IO[IO.Error, Boolean] =
     recoverFromNullPointer(buffer.remaining() == 0)
 
   override def memory: Boolean = false
 
-  override def delete(): IO[Unit] =
+  override def delete(): IO[IO.Error, Unit] =
     close flatMap {
       _ =>
         IOEffect.delete(path)

@@ -26,6 +26,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.ErrorHandler.CoreErrorHandler
 
 import scala.annotation.tailrec
 
@@ -35,7 +36,7 @@ private[core] object Get {
            currentGetter: CurrentGetter,
            nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
-                                   functionStore: FunctionStore): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
+                                   functionStore: FunctionStore): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]] =
     Get(key = key)(
       keyOrder = keyOrder,
       timeOrder = timeOrder,
@@ -48,12 +49,12 @@ private[core] object Get {
                               timeOrder: TimeOrder[Slice[Byte]],
                               currentGetter: CurrentGetter,
                               nextGetter: NextGetter,
-                              functionStore: FunctionStore): IO.Defer[Option[KeyValue.ReadOnly.Put]] = {
+                              functionStore: FunctionStore): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]] = {
 
     import keyOrder._
 
     @tailrec
-    def returnSegmentResponse(current: KeyValue.ReadOnly.SegmentResponse): IO.Defer[Option[ReadOnly.Put]] =
+    def returnSegmentResponse(current: KeyValue.ReadOnly.SegmentResponse): IO.Defer[IO.Error, Option[ReadOnly.Put]] =
       current match {
         case current: KeyValue.ReadOnly.Remove =>
           if (current.hasTimeLeft())
@@ -111,8 +112,8 @@ private[core] object Get {
               else
                 IO.none
 
-            case failure: IO.Failure[_] =>
-              failure.recoverToDeferred(Get(key))
+            case failure @ IO.Failure(_) =>
+              failure.recoverToDeferred[IO.Error, Option[KeyValue.ReadOnly.Put]](Get(key))
           }
 
         case current: KeyValue.ReadOnly.Function =>
@@ -128,8 +129,8 @@ private[core] object Get {
                       case IO.Success(_: ReadOnly.Fixed) =>
                         IO.none
 
-                      case failure: IO.Failure[_] =>
-                        failure.recoverToDeferred(Get(key))
+                      case failure @ IO.Failure(_) =>
+                        failure.recoverToDeferred[IO.Error, Option[KeyValue.ReadOnly.Put]](Get(key))
                     }
                   else
                     IO.none
@@ -151,8 +152,8 @@ private[core] object Get {
                       case IO.Success(_: ReadOnly.Fixed) =>
                         IO.none
 
-                      case failure: IO.Failure[_] =>
-                        failure.recoverToDeferred(Get(key))
+                      case failure @ IO.Failure(_) =>
+                        failure.recoverToDeferred[IO.Error, Option[KeyValue.ReadOnly.Put]](Get(key))
                     }
                   else
                     IO.none
@@ -169,8 +170,8 @@ private[core] object Get {
       case IO.Success(None) =>
         nextGetter.get(key)
 
-      case failure: IO.Failure[_] =>
-        failure.recoverToDeferred(Get(key))
+      case failure @ IO.Failure(_) =>
+        failure.recoverToDeferred[IO.Error, Option[KeyValue.ReadOnly.Put]](Get(key))
     }
   }
 }

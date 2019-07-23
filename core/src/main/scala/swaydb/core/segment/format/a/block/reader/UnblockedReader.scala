@@ -54,13 +54,13 @@ private[core] object UnblockedReader {
     )
 
   def apply[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B],
-                                             readAllIfUncompressed: Boolean)(implicit blockOps: BlockOps[O, B]): IO[UnblockedReader[O, B]] =
+                                             readAllIfUncompressed: Boolean)(implicit blockOps: BlockOps[O, B]): IO[IO.Error, UnblockedReader[O, B]] =
     Block.unblock(
       reader = blockedReader,
       readAllIfUncompressed = readAllIfUncompressed
     )
 
-  def asUnblocked[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B])(implicit blockOps: BlockOps[O, B]): IO[UnblockedReader[O, B]] =
+  def asUnblocked[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B])(implicit blockOps: BlockOps[O, B]): IO[IO.Error, UnblockedReader[O, B]] =
     blockedReader.size map {
       blockSize =>
         new UnblockedReader(
@@ -71,7 +71,7 @@ private[core] object UnblockedReader {
 }
 
 private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val block: B,
-                                                                             private[reader] val reader: Reader) extends BlockReader with LazyLogging {
+                                                                             private[reader] val reader: Reader[IO.Error]) extends BlockReader with LazyLogging {
 
   def offset = block.offset
 
@@ -80,7 +80,7 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
     this
   }
 
-  def readAllAndGetReader()(implicit blockOps: BlockOps[O, B]): IO[UnblockedReader[O, B]] =
+  def readAllAndGetReader()(implicit blockOps: BlockOps[O, B]): IO[IO.Error, UnblockedReader[O, B]] =
     readAll()
       .map {
         bytes =>

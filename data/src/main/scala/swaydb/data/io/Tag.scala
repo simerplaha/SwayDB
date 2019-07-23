@@ -19,12 +19,13 @@
 
 package swaydb.data.io
 
-import swaydb.IO
+import swaydb.{ErrorHandler, IO}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
+import ErrorHandler.CoreErrorHandler
 
 /**
   * [[Tag]]s are used to tag databases operations (side-effects) into types that can be
@@ -41,8 +42,8 @@ trait Tag[T[_]] {
   def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, T], drop: Int, take: Option[Int])(operation: (U, A) => U): T[U]
   def collectFirst[A](previous: A, stream: swaydb.Stream[A, T])(condition: A => Boolean): T[Option[A]]
   def toFuture[A](a: T[A]): Future[A]
-  def toIO[A](a: T[A], timeout: FiniteDuration): IO[A]
-  def fromIO[A](a: IO[A]): T[A]
+  def toIO[E: ErrorHandler, A](a: T[A], timeout: FiniteDuration): IO[E, A]
+  def fromIO[E: ErrorHandler, A](a: IO[E, A]): T[A]
 }
 
 object Tag {
@@ -56,12 +57,12 @@ object Tag {
       override def success[A](value: A): Try[A] = scala.util.Success(value)
       override def none[A]: Try[Option[A]] = scala.util.Success(None)
       override def toFuture[A](a: Try[A]): Future[A] = Future.fromTry(a)
-      override def toIO[A](a: Try[A], timeout: FiniteDuration): IO[A] = IO.fromTry(a)
-      override def fromIO[A](a: IO[A]): Try[A] = a.toTry
+      override def toIO[E: ErrorHandler, A](a: Try[A], timeout: FiniteDuration): IO[E, A] = IO.fromTry[E, A](a)
+      override def fromIO[E: ErrorHandler, A](a: IO[E, A]): Try[A] = a.toTry
       override def failure[A](exception: Throwable): Try[A] = scala.util.Failure(exception)
 
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Try], drop: Int, take: Option[Int])(operation: (U, A) => U): Try[U] =
-        io.foldLeft(initial, after, stream.toIO(10.seconds), drop, take)(operation).toTry //use ioWrap and convert that result to try.
+        sio.foldLeft(initial, after, stream.toIO[IO.Error](10.seconds), drop, take)(operation).toTry //use ioWrap and convert that result to try.
 
       @tailrec
       override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Try])(condition: A => Boolean): Try[Option[A]] =
@@ -80,20 +81,22 @@ object Tag {
         }
     }
 
-  implicit val io: Tag[IO] =
-    new Tag[IO] {
-      override def apply[A](a: => A): IO[A] = IO(a)
-      override def map[A, B](a: A)(f: A => B): IO[B] = IO(f(a))
+  type SIO[T] = IO[IO.Error, T]
+
+  implicit val sio: Tag[SIO] =
+    new Tag[SIO] {
+      override def apply[A](a: => A): SIO[A] = IO(a)
+      override def map[A, B](a: A)(f: A => B): SIO[B] = IO(f(a))
       override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
-      override def flatMap[A, B](fa: IO[A])(f: A => IO[B]): IO[B] = fa.flatMap(f)
-      override def success[A](value: A): IO[A] = IO.Success(value)
-      override def failure[A](exception: Throwable): IO[A] = IO.Failure(exception)
-      override def none[A]: IO[Option[A]] = IO.none
-      override def toFuture[A](a: IO[A]): Future[A] = a.toFuture
-      override def toIO[A](a: IO[A], timeout: FiniteDuration): IO[A] = a
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, IO], drop: Int, take: Option[Int])(operation: (U, A) => U): IO[U] = {
+      override def flatMap[A, B](fa: SIO[A])(f: A => SIO[B]): SIO[B] = fa.flatMap(f)
+      override def success[A](value: A): SIO[A] = IO.Success(value)
+      override def failure[A](exception: Throwable): SIO[A] = IO.Failure(exception)
+      override def none[A]: SIO[Option[A]] = IO.none
+      override def toFuture[A](a: SIO[A]): Future[A] = a.toFuture
+
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, SIO], drop: Int, take: Option[Int])(operation: (U, A) => U): SIO[U] = {
         @tailrec
-        def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): IO[U] =
+        def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): SIO[U] =
           if (take.contains(currentSize))
             IO.Success(previousResult)
           else
@@ -146,7 +149,7 @@ object Tag {
       }
 
       @tailrec
-      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, IO])(condition: A => Boolean): IO[Option[A]] =
+      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, SIO])(condition: A => Boolean): SIO[Option[A]] =
         stream.next(previous) match {
           case success @ IO.Success(Some(nextA)) =>
             if (condition(nextA))
@@ -160,15 +163,16 @@ object Tag {
           case failure @ IO.Failure(_) =>
             failure
         }
-      override def fromIO[A](a: IO[A]): IO[A] = a
+      override def toIO[E: ErrorHandler, A](a: SIO[A], timeout: FiniteDuration): IO[E, A] = ???
+      override def fromIO[E: ErrorHandler, A](a: IO[E, A]): SIO[A] = ???
     }
 
   trait Async[T[_]] extends Tag[T] {
     def fromFuture[A](a: Future[A]): T[A]
   }
 
-  implicit def future(implicit ec: ExecutionContext): Tag.Async[Future] =
-    new Tag.Async[Future] {
+  implicit def future(implicit ec: ExecutionContext): Async[Future] =
+    new Async[Future] {
       override def apply[A](a: => A): Future[A] = Future(a)
       override def map[A, B](a: A)(f: A => B): Future[B] = Future(f(a))
       override def flatMap[A, B](fa: Future[A])(f: A => Future[B]): Future[B] = fa.flatMap(f)
@@ -178,8 +182,6 @@ object Tag {
       override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
       override def toFuture[A](a: Future[A]): Future[A] = a
       override def fromFuture[A](a: Future[A]): Future[A] = a
-      override def toIO[A](a: Future[A], timeout: FiniteDuration): IO[A] = IO(Await.result(a, timeout))
-      override def fromIO[A](a: IO[A]): Future[A] = a.toFuture
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Future], drop: Int, take: Option[Int])(operation: (U, A) => U): Future[U] = {
         def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): Future[U] =
           if (take.contains(currentSize))
@@ -238,6 +240,8 @@ object Tag {
           case None =>
             Future.successful(None)
         }
+      override def toIO[E: ErrorHandler, A](a: Future[A], timeout: FiniteDuration): IO[E, A] = ???
+      override def fromIO[E: ErrorHandler, A](a: IO[E, A]): Future[A] = ???
     }
 
   implicit class TagImplicits[A, T[_] : Tag](a: T[A])(implicit tag: Tag[T]) {

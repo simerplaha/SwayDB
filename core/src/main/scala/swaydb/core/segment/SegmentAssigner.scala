@@ -27,6 +27,7 @@ import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.segment.merge.MergeList
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.ErrorHandler.CoreErrorHandler
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -38,17 +39,17 @@ private[core] object SegmentAssigner {
 
   def assignMinMaxOnly(inputSegments: Iterable[Segment],
                        targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                          segmentIO: SegmentIO): IO[Iterable[Segment]] =
+                                                          segmentIO: SegmentIO): IO[IO.Error, Iterable[Segment]] =
     SegmentAssigner.assign(Segment.tempMinMaxKeyValues(inputSegments), targetSegments).map(_.keys)
 
   def assignMinMaxOnly(map: Map[Slice[Byte], Memory.SegmentResponse],
                        targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                          segmentIO: SegmentIO): IO[Iterable[Segment]] =
+                                                          segmentIO: SegmentIO): IO[IO.Error, Iterable[Segment]] =
     SegmentAssigner.assign(Segment.tempMinMaxKeyValues(map), targetSegments).map(_.keys)
 
   def assign(keyValues: Slice[KeyValue.ReadOnly],
              segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                          segmentIO: SegmentIO): IO[mutable.Map[Segment, Slice[KeyValue.ReadOnly]]] = {
+                                          segmentIO: SegmentIO): IO[IO.Error, mutable.Map[Segment, Slice[KeyValue.ReadOnly]]] = {
     import keyOrder._
     val assignmentsMap = mutable.Map.empty[Segment, Slice[KeyValue.ReadOnly]]
     val segmentsIterator = segments.iterator
@@ -90,7 +91,7 @@ private[core] object SegmentAssigner {
     @tailrec
     def assign(remainingKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
                thisSegmentMayBe: Option[Segment],
-               nextSegmentMayBe: Option[Segment]): IO[Unit] =
+               nextSegmentMayBe: Option[Segment]): IO[IO.Error, Unit] =
       (remainingKeyValues.headOption, thisSegmentMayBe, nextSegmentMayBe) match {
         //add this key-value if it is the new smallest key or if this key belong to this Segment or if there is no next Segment
         case (Some(keyValue: KeyValue), Some(thisSegment), _) if keyValue.key <= thisSegment.minKey || Segment.belongsTo(keyValue, thisSegment) || nextSegmentMayBe.isEmpty =>

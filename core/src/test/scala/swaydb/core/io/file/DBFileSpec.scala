@@ -22,7 +22,6 @@ package swaydb.core.io.file
 import java.nio.ReadOnlyBufferException
 import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
-
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
@@ -34,6 +33,7 @@ import swaydb.core.util.Benchmark
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.slice.Slice
+import swaydb.ErrorHandler.CoreErrorHandler
 
 class DBFileSpec extends TestBase with Benchmark with MockFactory {
 

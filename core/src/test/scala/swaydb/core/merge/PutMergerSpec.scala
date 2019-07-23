@@ -28,6 +28,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.ErrorHandler.CoreErrorHandler
 
 class PutMergerSpec extends WordSpec with Matchers {
 

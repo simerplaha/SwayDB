@@ -32,6 +32,7 @@ import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
 import swaydb.core.queue.FileLimiter
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.ErrorHandler.CoreErrorHandler
 
 private[core] object PersistentTimer extends LazyLogging {
 
@@ -57,7 +58,7 @@ private[core] object PersistentTimer extends LazyLogging {
                                        timeOrder: TimeOrder[Slice[Byte]],
                                        functionStore: FunctionStore,
                                        writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                       reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[PersistentTimer] = {
+                                       reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[IO.Error, PersistentTimer] = {
     implicit val limiter = FileLimiter.empty
 
     Map.persistent[Slice[Byte], Slice[Byte]](
@@ -149,6 +150,6 @@ private[core] class PersistentTimer(mod: Long,
       Time(nextTime)
     }
 
-  override def close: IO[Unit] =
+  override def close: IO[IO.Error, Unit] =
     map.close()
 }

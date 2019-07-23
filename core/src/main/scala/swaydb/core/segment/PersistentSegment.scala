@@ -39,6 +39,7 @@ import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.MaxKey
+import swaydb.ErrorHandler.CoreErrorHandler
 
 import scala.concurrent.duration.Deadline
 
@@ -55,7 +56,7 @@ object PersistentSegment {
                                                      functionStore: FunctionStore,
                                                      keyValueLimiter: KeyValueLimiter,
                                                      fileOpenLimiter: FileLimiter,
-                                                     segmentIO: SegmentIO): IO[PersistentSegment] =
+                                                     segmentIO: SegmentIO): IO[IO.Error, PersistentSegment] =
     BlockRefReader(file) map {
       blockRef =>
         val segmentCache =
@@ -102,7 +103,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def cache: ConcurrentSkipListMap[Slice[Byte], Persistent] =
     segmentCache.keyValueCache
 
-  def close: IO[Unit] =
+  def close: IO[IO.Error, Unit] =
     file.close map {
       _ =>
         segmentCache.clearBlockCache()
@@ -117,7 +118,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def deleteSegmentsEventually =
     fileOpenLimiter.delete(this)
 
-  def delete: IO[Unit] = {
+  def delete: IO[IO.Error, Unit] = {
     logger.trace(s"{}: DELETING FILE", path)
     file.delete() onFailureSideEffect {
       failure =>
@@ -128,7 +129,7 @@ private[segment] case class PersistentSegment(file: DBFile,
     }
   }
 
-  def copyTo(toPath: Path): IO[Path] =
+  def copyTo(toPath: Path): IO[IO.Error, Path] =
     file copyTo toPath
 
   /**
@@ -145,7 +146,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
+                                                                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[IO.Error, Slice[Segment]] =
     getAll() flatMap {
       currentKeyValues =>
         SegmentMerger.merge(
@@ -176,7 +177,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                   ),
 
               recover =
-                (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
+                (segments: Slice[Segment], _: IO.Failure[IO.Error, Slice[Segment]]) =>
                   segments foreach {
                     segmentToDelete =>
                       segmentToDelete.delete onFailureSideEffect {
@@ -198,7 +199,7 @@ private[segment] case class PersistentSegment(file: DBFile,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
+                                                                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[IO.Error, Slice[Segment]] =
     getAll() flatMap {
       currentKeyValues =>
         SegmentMerger.split(
@@ -228,7 +229,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                   ),
 
               recover =
-                (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
+                (segments: Slice[Segment], _: IO.Failure[IO.Error, Slice[Segment]]) =>
                   segments foreach {
                     segmentToDelete =>
                       segmentToDelete.delete onFailureSideEffect {
@@ -240,16 +241,16 @@ private[segment] case class PersistentSegment(file: DBFile,
         }
     }
 
-  def getSegmentBlockOffset(): IO[SegmentBlock.Offset] =
+  def getSegmentBlockOffset(): IO[IO.Error, SegmentBlock.Offset] =
     file.fileSize map (fileSize => SegmentBlock.Offset(0, fileSize.toInt))
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     segmentCache getFromCache key
 
-  def mightContainKey(key: Slice[Byte]): IO[Boolean] =
+  def mightContainKey(key: Slice[Byte]): IO[IO.Error, Boolean] =
     segmentCache mightContain key
 
-  override def mightContainFunction(key: Slice[Byte]): IO[Boolean] =
+  override def mightContainFunction(key: Slice[Byte]): IO[IO.Error, Boolean] =
     IO {
       minMaxFunctionId.exists {
         minMaxFunctionId =>
@@ -260,34 +261,34 @@ private[segment] case class PersistentSegment(file: DBFile,
       }
     }
 
-  def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
+  def get(key: Slice[Byte]): IO[IO.Error, Option[Persistent.SegmentResponse]] =
     segmentCache get key
 
-  def lower(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
+  def lower(key: Slice[Byte]): IO[IO.Error, Option[Persistent.SegmentResponse]] =
     segmentCache lower key
 
-  def floorHigherHint(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
+  def floorHigherHint(key: Slice[Byte]): IO[IO.Error, Option[Slice[Byte]]] =
     segmentCache floorHigherHint key
 
-  def higher(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
+  def higher(key: Slice[Byte]): IO[IO.Error, Option[Persistent.SegmentResponse]] =
     segmentCache higher key
 
-  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
+  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[IO.Error, Slice[KeyValue.ReadOnly]] =
     segmentCache getAll addTo
 
-  override def hasRange: IO[Boolean] =
+  override def hasRange: IO[IO.Error, Boolean] =
     segmentCache.hasRange
 
-  override def hasPut: IO[Boolean] =
+  override def hasPut: IO[IO.Error, Boolean] =
     segmentCache.hasPut
 
-  def getHeadKeyValueCount(): IO[Int] =
+  def getHeadKeyValueCount(): IO[IO.Error, Int] =
     segmentCache.getHeadKeyValueCount()
 
-  def getBloomFilterKeyValueCount(): IO[Int] =
+  def getBloomFilterKeyValueCount(): IO[IO.Error, Int] =
     segmentCache.getBloomFilterKeyValueCount()
 
-  def getFooter(): IO[SegmentFooterBlock] =
+  def getFooter(): IO[IO.Error, SegmentFooterBlock] =
     segmentCache.getFooter()
 
   override def isFooterDefined: Boolean =
@@ -308,13 +309,13 @@ private[segment] case class PersistentSegment(file: DBFile,
   def notExistsOnDisk: Boolean =
     !file.existsOnDisk
 
-  override def createdInLevel: IO[Int] =
+  override def createdInLevel: IO[IO.Error, Int] =
     segmentCache.createdInLevel
 
-  override def isGrouped: IO[Boolean] =
+  override def isGrouped: IO[IO.Error, Boolean] =
     segmentCache.isGrouped
 
-  override def hasBloomFilter: IO[Boolean] =
+  override def hasBloomFilter: IO[IO.Error, Boolean] =
     segmentCache.hasBloomFilter
 
   def clearCachedKeyValues(): Unit =

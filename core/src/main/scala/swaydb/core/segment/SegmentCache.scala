@@ -30,6 +30,7 @@ import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.MaxKey
+import swaydb.ErrorHandler.CoreErrorHandler
 
 private[core] object SegmentCache {
 
@@ -89,7 +90,7 @@ private[core] class SegmentCache(id: String,
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     Option(keyValueCache.get(key))
 
-  def mightContain(key: Slice[Byte]): IO[Boolean] =
+  def mightContain(key: Slice[Byte]): IO[IO.Error, Boolean] =
     blockCache.createBloomFilterReader() flatMap {
       bloomFilterReaderOption =>
         bloomFilterReaderOption map {
@@ -105,7 +106,7 @@ private[core] class SegmentCache(id: String,
                   start: Option[Persistent],
                   end: Option[Persistent],
                   hasRange: Boolean,
-                  hashIndexSearchOnly: Boolean): IO[Option[Persistent.SegmentResponse]] =
+                  hashIndexSearchOnly: Boolean): IO[IO.Error, Option[Persistent.SegmentResponse]] =
     blockCache.createHashIndexReader() flatMap {
       hashIndexReader =>
         blockCache.createBinarySearchIndexReader() flatMap {
@@ -141,10 +142,10 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
+  def get(key: Slice[Byte]): IO[IO.Error, Option[Persistent.SegmentResponse]] =
     get(key = key, hashIndexSearchOnly = false)
 
-  private def get(key: Slice[Byte], hashIndexSearchOnly: Boolean): IO[Option[Persistent.SegmentResponse]] =
+  private def get(key: Slice[Byte], hashIndexSearchOnly: Boolean): IO[IO.Error, Option[Persistent.SegmentResponse]] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key > maxKey =>
         IO.none
@@ -214,7 +215,7 @@ private[core] class SegmentCache(id: String,
 
   private def lower(key: Slice[Byte],
                     start: Option[Persistent],
-                    end: Option[Persistent]): IO[Option[Persistent.SegmentResponse]] =
+                    end: Option[Persistent]): IO[IO.Error, Option[Persistent.SegmentResponse]] =
     blockCache.createBinarySearchIndexReader() flatMap {
       binarySearchIndexReader =>
         blockCache.createSortedIndexReader() flatMap {
@@ -244,7 +245,7 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  private def ceilingForLower(key: Slice[Byte]): IO[Option[Persistent]] =
+  private def ceilingForLower(key: Slice[Byte]): IO[IO.Error, Option[Persistent]] =
     Option(keyValueCache.ceilingEntry(key)).map(_.getValue) match {
       case some @ Some(_) =>
         IO(some)
@@ -259,7 +260,7 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  def lower(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
+  def lower(key: Slice[Byte]): IO[IO.Error, Option[Persistent.SegmentResponse]] =
     if (key <= minKey)
       IO.none
     else
@@ -329,7 +330,7 @@ private[core] class SegmentCache(id: String,
           }
       }
 
-  def floorHigherHint(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
+  def floorHigherHint(key: Slice[Byte]): IO[IO.Error, Option[Slice[Byte]]] =
     hasPut map {
       hasPut =>
         if (hasPut)
@@ -345,7 +346,7 @@ private[core] class SegmentCache(id: String,
 
   private def higher(key: Slice[Byte],
                      start: Option[Persistent],
-                     end: Option[Persistent]): IO[Option[Persistent.SegmentResponse]] =
+                     end: Option[Persistent]): IO[IO.Error, Option[Persistent.SegmentResponse]] =
     blockCache.getFooter() flatMap {
       footer =>
         blockCache.createBinarySearchIndexReader() flatMap {
@@ -387,7 +388,7 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  def higher(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
+  def higher(key: Slice[Byte]): IO[IO.Error, Option[Persistent.SegmentResponse]] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key >= maxKey =>
         IO.none
@@ -463,7 +464,7 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
+  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[IO.Error, Slice[KeyValue.ReadOnly]] =
     blockCache.getFooter() flatMap {
       footer =>
         blockCache.createSortedIndexReader() flatMap {
@@ -485,19 +486,19 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  def getHeadKeyValueCount(): IO[Int] =
+  def getHeadKeyValueCount(): IO[IO.Error, Int] =
     blockCache.getFooter().map(_.keyValueCount)
 
-  def getBloomFilterKeyValueCount(): IO[Int] =
+  def getBloomFilterKeyValueCount(): IO[IO.Error, Int] =
     blockCache.getFooter().map(_.bloomFilterItemsCount)
 
-  def getFooter(): IO[SegmentFooterBlock] =
+  def getFooter(): IO[IO.Error, SegmentFooterBlock] =
     blockCache.getFooter()
 
-  def hasRange: IO[Boolean] =
+  def hasRange: IO[IO.Error, Boolean] =
     blockCache.getFooter().map(_.hasRange)
 
-  def hasPut: IO[Boolean] =
+  def hasPut: IO[IO.Error, Boolean] =
     blockCache.getFooter().map(_.hasPut)
 
   def isKeyValueCacheEmpty =
@@ -509,13 +510,13 @@ private[core] class SegmentCache(id: String,
   def isFooterDefined: Boolean =
     blockCache.isFooterDefined
 
-  def hasBloomFilter: IO[Boolean] =
+  def hasBloomFilter: IO[IO.Error, Boolean] =
     blockCache.getFooter().map(_.bloomFilterOffset.isDefined)
 
-  def createdInLevel: IO[Int] =
+  def createdInLevel: IO[IO.Error, Int] =
     blockCache.getFooter().map(_.createdInLevel)
 
-  def isGrouped: IO[Boolean] =
+  def isGrouped: IO[IO.Error, Boolean] =
     blockCache.getFooter().map(_.hasGroup)
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean =
@@ -533,7 +534,7 @@ private[core] class SegmentCache(id: String,
   def areAllCachesEmpty =
     isKeyValueCacheEmpty && !blockCache.isCached
 
-  def readAllBytes(): IO[Slice[Byte]] =
+  def readAllBytes(): IO[IO.Error, Slice[Byte]] =
     blockCache.readAllBytes()
 
   def isInitialised() =

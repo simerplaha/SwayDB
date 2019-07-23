@@ -36,6 +36,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.RecoveryMode
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.ErrorHandler.CoreErrorHandler
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -71,7 +72,7 @@ private[core] object Maps extends LazyLogging {
                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                          reader: MapEntryReader[MapEntry[K, V]],
                                                          skipListMerger: SkipListMerger[K, V],
-                                                         timer: Timer): IO[Maps[K, V]] = {
+                                                         timer: Timer): IO[IO.Error, Maps[K, V]] = {
     logger.debug("{}: Maps persistent started. Initialising recovery.", path)
     //reverse to keep the newest maps at the top.
     recover[K, V](path, mmap, fileSize, recovery).map(_.reverse) flatMap {
@@ -125,14 +126,14 @@ private[core] object Maps extends LazyLogging {
                                                               functionStore: FunctionStore,
                                                               writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                               mapReader: MapEntryReader[MapEntry[K, V]],
-                                                              skipListMerger: SkipListMerger[K, V]): IO[Seq[Map[K, V]]] = {
+                                                              skipListMerger: SkipListMerger[K, V]): IO[IO.Error, Seq[Map[K, V]]] = {
     /**
       * Performs corruption handling based on the the value set for [[RecoveryMode]].
       */
     def applyRecoveryMode(exception: Throwable,
                           mapPath: Path,
                           otherMapsPaths: List[Path],
-                          recoveredMaps: ListBuffer[Map[K, V]]): IO[Seq[Map[K, V]]] =
+                          recoveredMaps: ListBuffer[Map[K, V]]): IO[IO.Error, Seq[Map[K, V]]] =
       exception match {
         case exception: IllegalStateException =>
           recovery match {
@@ -179,7 +180,7 @@ private[core] object Maps extends LazyLogging {
       */
     @tailrec
     def doRecovery(maps: List[Path],
-                   recoveredMaps: ListBuffer[Map[K, V]]): IO[Seq[Map[K, V]]] =
+                   recoveredMaps: ListBuffer[Map[K, V]]): IO[IO.Error, Seq[Map[K, V]]] =
       maps match {
         case Nil =>
           IO.Success(recoveredMaps)
@@ -244,7 +245,7 @@ private[core] object Maps extends LazyLogging {
                                                      functionStore: FunctionStore,
                                                      mapReader: MapEntryReader[MapEntry[K, V]],
                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                     skipListMerger: SkipListMerger[K, V]): IO[Map[K, V]] =
+                                                     skipListMerger: SkipListMerger[K, V]): IO[IO.Error, Map[K, V]] =
     currentMap match {
       case currentMap @ PersistentMap(_, _, _, _, _, _, _) =>
         currentMap.close() flatMap {
@@ -298,7 +299,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   private[core] def onNextMapCallback(event: () => Unit): Unit =
     onNextMapListener = event
 
-  def write(mapEntry: Timer => MapEntry[K, V]): IO[IO.OK] =
+  def write(mapEntry: Timer => MapEntry[K, V]): IO[IO.Error, IO.OK] =
     synchronized {
       if (brakePedal != null && brakePedal.applyBrakes()) brakePedal = null
       persist(mapEntry(timer))
@@ -310,7 +311,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     *         in LevelZero to determine if there is a map that should be converted Segment.
     */
   @tailrec
-  private def persist(entry: MapEntry[K, V]): IO[IO.OK] =
+  private def persist(entry: MapEntry[K, V]): IO[IO.Error, IO.OK] =
     currentMap.write(entry) match {
       case IO.Success(writeSuccessful) =>
         if (writeSuccessful)
@@ -341,7 +342,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                   IO.Failure(error)
               }
             case IO.Failure(error) =>
-              IO.Failure(error)
+              IO.Failure(error: IO.Error)
           }
 
       //If there is a failure writing an Entry to the Map. Start a new Map immediately! This ensures that
@@ -430,7 +431,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   def last(): Option[Map[K, V]] =
     IO.tryOrNone(maps.getLast)
 
-  def removeLast(): Option[IO[Unit]] =
+  def removeLast(): Option[IO[IO.Error, Unit]] =
     Option(maps.pollLast()) map {
       removedMap =>
         removedMap.delete match {
@@ -462,7 +463,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   def map: Map[K, V] =
     currentMap
 
-  def close: IO[Unit] = {
+  def close: IO[IO.Error, Unit] = {
     timer.close onFailureSideEffect {
       failure =>
         logger.error("Failed to close timer file", failure.exception)

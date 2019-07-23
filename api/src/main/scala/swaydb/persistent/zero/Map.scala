@@ -28,6 +28,7 @@ import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{Dir, RecoveryMode}
+import swaydb.data.io.Tag.SIO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -48,7 +49,7 @@ object Map extends LazyLogging {
                   acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                        ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Map[K, V, IO]] =
+                                                                                        ec: ExecutionContext = SwayDB.defaultExecutionContext): SIO[swaydb.Map[K, V, SIO]] =
     BlockingCore(
       config = DefaultPersistentZeroConfig(
         dir = dir,
@@ -59,6 +60,6 @@ object Map extends LazyLogging {
       )
     ) map {
       db =>
-        swaydb.Map[K, V, IO](db)
+        swaydb.Map[K, V, SIO](db)
     }
 }

@@ -18,6 +18,7 @@
  */
 
 package swaydb.core.map.timer
+import swaydb.ErrorHandler.CoreErrorHandler
 
 import java.nio.file.Path
 

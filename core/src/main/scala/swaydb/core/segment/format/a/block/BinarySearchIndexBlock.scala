@@ -28,6 +28,7 @@ import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
+import swaydb.ErrorHandler.CoreErrorHandler
 
 import scala.annotation.tailrec
 
@@ -209,7 +210,7 @@ private[core] object BinarySearchIndexBlock {
       headerSize
   }
 
-  def close(state: State): IO[Option[State]] =
+  def close(state: State): IO[IO.Error, Option[State]] =
     if (state.bytes.isEmpty)
       IO.none
     else if (state.hasMinimumKeys)
@@ -233,7 +234,7 @@ private[core] object BinarySearchIndexBlock {
     else
       IO.none
 
-  def read(header: Block.Header[BinarySearchIndexBlock.Offset]): IO[BinarySearchIndexBlock] =
+  def read(header: Block.Header[BinarySearchIndexBlock.Offset]): IO[IO.Error, BinarySearchIndexBlock] =
     for {
       valuesCount <- header.headerReader.readIntUnsigned()
       bytesPerValue <- header.headerReader.readInt()
@@ -249,7 +250,7 @@ private[core] object BinarySearchIndexBlock {
       )
 
   def write(value: Int,
-            state: State): IO[Unit] =
+            state: State): IO[IO.Error, Unit] =
     if (value == state.previouslyWritten) { //do not write duplicate entries.
       IO.unit
     } else
@@ -274,7 +275,7 @@ private[core] object BinarySearchIndexBlock {
                       knownMatch: Option[Persistent],
                       startKeyValue: Option[Persistent],
                       isHigherSeek: Option[Boolean],
-                      block: BinarySearchIndexBlock)(implicit order: Ordering[Persistent]): IO[SearchResult[Persistent]] =
+                      block: BinarySearchIndexBlock)(implicit order: Ordering[Persistent]): IO[IO.Error, SearchResult[Persistent]] =
     knownMatch flatMap {
       knownMatch =>
         isHigherSeek map {
@@ -308,12 +309,12 @@ private[core] object BinarySearchIndexBlock {
              startKeyValue: Option[Persistent],
              endKeyValue: Option[Persistent],
              isHigherSeek: Option[Boolean],
-             matchValue: Int => IO[KeyMatcher.Result])(implicit ordering: KeyOrder[Slice[Byte]]) = {
+             matchValue: Int => IO[IO.Error, KeyMatcher.Result])(implicit ordering: KeyOrder[Slice[Byte]]) = {
 
     implicit val order: Ordering[Persistent] = Ordering.by[Persistent, Slice[Byte]](_.key)(ordering)
 
     @tailrec
-    def hop(start: Int, end: Int, knownLowest: Option[Persistent], knownMatch: Option[Persistent]): IO[SearchResult[Persistent]] = {
+    def hop(start: Int, end: Int, knownLowest: Option[Persistent], knownMatch: Option[Persistent]): IO[IO.Error, SearchResult[Persistent]] = {
       val mid = start + (end - start) / 2
 
       val valueOffset = mid * reader.block.bytesPerValue
@@ -398,7 +399,7 @@ private[core] object BinarySearchIndexBlock {
                      end: Option[Persistent],
                      binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                      sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                     values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[SearchResult[Persistent]] = {
+                     values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[IO.Error, SearchResult[Persistent]] = {
     val matcher =
       higherOrLower map {
         higher =>
@@ -440,7 +441,7 @@ private[core] object BinarySearchIndexBlock {
              end: Option[Persistent],
              binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[SearchResult[Persistent]] =
+             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[IO.Error, SearchResult[Persistent]] =
     search(
       key = key,
       higherOrLower = None,
@@ -456,7 +457,7 @@ private[core] object BinarySearchIndexBlock {
                    end: Option[Persistent],
                    binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[SearchResult[Persistent]] =
+                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[IO.Error, SearchResult[Persistent]] =
     search(
       key = key,
       higherOrLower = Options.`true`,
@@ -472,7 +473,7 @@ private[core] object BinarySearchIndexBlock {
                   end: Option[Persistent],
                   binarySearchIndexReader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[SearchResult[Persistent]] =
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[IO.Error, SearchResult[Persistent]] =
     search(
       key = key,
       higherOrLower = Options.`false`,
@@ -490,7 +491,7 @@ private[core] object BinarySearchIndexBlock {
     override def createOffset(start: Int, size: Int): Offset =
       BinarySearchIndexBlock.Offset(start, size)
 
-    override def readBlock(header: Block.Header[Offset]): IO[BinarySearchIndexBlock] =
+    override def readBlock(header: Block.Header[Offset]): IO[IO.Error, BinarySearchIndexBlock] =
       BinarySearchIndexBlock.read(header)
   }
 

@@ -26,6 +26,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.merge._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.ErrorHandler.CoreErrorHandler
 
 import scala.annotation.tailrec
 
@@ -60,7 +61,7 @@ private[core] object Lower {
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
-           functionStore: FunctionStore): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
+           functionStore: FunctionStore): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]] =
     Lower(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   def seeker(key: Slice[Byte],
@@ -69,7 +70,7 @@ private[core] object Lower {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   currentWalker: CurrentWalker,
                                   nextWalker: NextWalker,
-                                  functionStore: FunctionStore): IO.Defer[Option[KeyValue.ReadOnly.Put]] =
+                                  functionStore: FunctionStore): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]] =
     Lower(key, currentSeek, nextSeek)
 
   /**
@@ -86,7 +87,7 @@ private[core] object Lower {
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  currentWalker: CurrentWalker,
                                  nextWalker: NextWalker,
-                                 functionStore: FunctionStore): IO.Defer[Option[KeyValue.ReadOnly.Put]] = {
+                                 functionStore: FunctionStore): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
     (currentSeek, nextSeek) match {
@@ -104,7 +105,7 @@ private[core] object Lower {
           case IO.Success(None) =>
             Lower(key, Seek.Current.Stop, nextSeek)
 
-          case failure: IO.Failure[_] =>
+          case failure @ IO.Failure(_) =>
             failure
               .recoverToDeferred(
                 Lower.seeker(key, currentSeek, nextSeek)
@@ -138,7 +139,7 @@ private[core] object Lower {
                           Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
                       }
 
-                    case failure: IO.Failure[_] =>
+                    case failure @ IO.Failure(_) =>
                       failure
                   }
                 }
@@ -171,20 +172,20 @@ private[core] object Lower {
                                   Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
                               }
 
-                            case failure: IO.Failure[_] =>
+                            case failure @ IO.Failure(_) =>
                               failure
                           }
                         }
                       }
 
-                    case failure: IO.Failure[_] =>
+                    case failure @ IO.Failure(_) =>
                       failure
                         .recoverToDeferred(
                           Lower.seeker(key, currentSeek, nextSeek)
                         )
                   }
 
-              case failure: IO.Failure[_] =>
+              case failure @ IO.Failure(_) =>
                 failure
                   .recoverToDeferred(
                     Lower.seeker(key, currentSeek, nextSeek)
@@ -212,7 +213,7 @@ private[core] object Lower {
                     Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
                 }
 
-              case failure: IO.Failure[_] =>
+              case failure @ IO.Failure(_) =>
                 failure
             }
 
@@ -236,7 +237,7 @@ private[core] object Lower {
                     Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
                 }
 
-              case failure: IO.Failure[_] =>
+              case failure @ IO.Failure(_) =>
                 failure
             }
 
@@ -258,7 +259,7 @@ private[core] object Lower {
                     Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
                 }
 
-              case failure: IO.Failure[_] =>
+              case failure @ IO.Failure(_) =>
                 failure
             }
         }
@@ -281,7 +282,7 @@ private[core] object Lower {
                 Lower.seeker(key, currentSeek, Seek.Next.Stop(nextStateID))
             }
 
-          case failure: IO.Failure[_] =>
+          case failure @ IO.Failure(_) =>
             failure
         }
 
@@ -310,7 +311,7 @@ private[core] object Lower {
             case IO.Success(None) =>
               Lower(key, Seek.Current.Stop, nextSeek)
 
-            case failure: IO.Failure[_] =>
+            case failure @ IO.Failure(_) =>
               failure
                 .recoverToDeferred(
                   Lower.seeker(key, currentSeek, nextSeek)
@@ -343,7 +344,7 @@ private[core] object Lower {
                         //if it doesn't result in an unexpired put move forward.
                         Lower(current.key, Seek.Read, Seek.Read)
                     }
-                  case failure: IO.Failure[_] =>
+                  case failure @ IO.Failure(_) =>
                     failure
                       .recoverToDeferred(
                         Lower.seeker(key, currentSeek, nextSeek)
@@ -397,14 +398,14 @@ private[core] object Lower {
                             Lower(next.key, currentStash, Seek.Read)
                         }
 
-                      case failure: IO.Failure[_] =>
+                      case failure @ IO.Failure(_) =>
                         failure
                           .recoverToDeferred(
                             Lower.seeker(key, currentSeek, nextSeek)
                           )
                     }
 
-                  case failure: IO.Failure[_] =>
+                  case failure @ IO.Failure(_) =>
                     failure
                       .recoverToDeferred(
                         Lower.seeker(key, currentSeek, nextSeek)
@@ -434,7 +435,7 @@ private[core] object Lower {
                                 Lower(next.key, Seek.Read, Seek.Read)
                             }
 
-                          case failure: IO.Failure[_] =>
+                          case failure @ IO.Failure(_) =>
                             failure
                               .recoverToDeferred(
                                 Lower.seeker(key, currentSeek, nextSeek)
@@ -442,7 +443,7 @@ private[core] object Lower {
                         }
                     }
 
-                  case failure: IO.Failure[_] =>
+                  case failure @ IO.Failure(_) =>
                     failure
                       .recoverToDeferred(
                         Lower.seeker(key, currentSeek, nextSeek)
@@ -464,7 +465,7 @@ private[core] object Lower {
                         Lower(current.fromKey, Seek.Read, nextStash)
                     }
 
-                  case failure: IO.Failure[_] =>
+                  case failure @ IO.Failure(_) =>
                     failure
                       .recoverToDeferred(
                         Lower.seeker(key, currentSeek, nextSeek)
@@ -489,7 +490,7 @@ private[core] object Lower {
             case IO.Success(None) =>
               Lower(key, Seek.Current.Stop, nextSeek)
 
-            case failure: IO.Failure[_] =>
+            case failure @ IO.Failure(_) =>
               failure
                 .recoverToDeferred(
                   Lower.seeker(key, currentSeek, nextSeek)
@@ -530,7 +531,7 @@ private[core] object Lower {
                       Lower(current.fromKey, Seek.Read, nextSeek)
                   }
 
-                case failure: IO.Failure[_] =>
+                case failure @ IO.Failure(_) =>
                   failure
                     .recoverToDeferred(
                       Lower.seeker(key, currentSeek, nextSeek)

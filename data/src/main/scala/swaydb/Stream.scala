@@ -39,28 +39,28 @@ object Stream {
   /**
     * Create and empty [[Stream]].
     */
-  def empty[T, W[_]](implicit tag: Tag[W]) =
+  def empty[T, W[_]](implicit wrap: Tag[W]) =
     apply[T, W](Iterable.empty)
 
   /**
     * Create a [[Stream]] from a collection.
     */
-  def apply[T, W[_]](items: Iterable[T])(implicit tag: Tag[W]): Stream[T, W] =
+  def apply[T, W[_]](items: Iterable[T])(implicit wrap: Tag[W]): Stream[T, W] =
     new Stream[T, W] {
 
       private val iterator = items.iterator
 
       private def step(): W[Option[T]] =
         if (iterator.hasNext)
-          tag.success(Some(iterator.next()))
+          wrap.success(Some(iterator.next()))
         else
-          tag.none
+          wrap.none
 
       override def headOption(): W[Option[T]] = step()
       override private[swaydb] def next(previous: T): W[Option[T]] = step()
     }
 
-  class StreamBuilder[T, W[_]](implicit tag: Tag[W]) extends mutable.Builder[T, Stream[T, W]] {
+  class StreamBuilder[T, W[_]](implicit wrap: Tag[W]) extends mutable.Builder[T, Stream[T, W]] {
     private val items: ListBuffer[T] = ListBuffer.empty[T]
 
     override def +=(x: T): this.type = {
@@ -81,16 +81,16 @@ object Stream {
 
         def step(): W[Option[T]] =
           if (iterator.hasNext)
-            tag.success(Some(iterator.next()))
+            wrap.success(Some(iterator.next()))
           else
-            tag.none
+            wrap.none
 
         override def headOption: W[Option[T]] = step()
         override private[swaydb] def next(previous: T): W[Option[T]] = step()
       }
   }
 
-  implicit def canBuildFrom[T, W[_]](implicit tag: Tag[W]): CanBuildFrom[Stream[T, W], T, Stream[T, W]] =
+  implicit def canBuildFrom[T, W[_]](implicit wrap: Tag[W]): CanBuildFrom[Stream[T, W], T, Stream[T, W]] =
     new CanBuildFrom[Stream[T, W], T, Stream[T, W]] {
       override def apply(from: Stream[T, W]) =
         new StreamBuilder()
@@ -104,7 +104,7 @@ object Stream {
   * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
   * it's required by the stream.
   *
-  * @param tag Implementation for the tag type.
+  * @param tag Implementation for the wrap type.
   * @tparam A stream item's type
   * @tparam T wrapper type.
   */
@@ -310,10 +310,10 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamed[A, T] { se
     *
     * @param timeout If the current stream is async/future based then the timeout is used else it's ignored.
     */
-  def toIO(timeout: FiniteDuration): Stream[A, IO] =
-    new Stream[A, IO] {
-      override def headOption: IO[Option[A]] = self.tag.toIO(self.headOption, timeout)
-      override private[swaydb] def next(previous: A): IO[Option[A]] = self.tag.toIO(self.next(previous), timeout)
+  def toIO[E: ErrorHandler](timeout: FiniteDuration): Stream[A, SIO] =
+    new Stream[A, SIO] {
+      override def headOption: SIO[Option[A]] = self.tag.toIO(self.headOption, timeout)
+      override private[swaydb] def next(previous: A): SIO[Option[A]] = self.tag.toIO(self.next(previous), timeout)
     }
 
   /**
@@ -323,8 +323,8 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamed[A, T] { se
     */
   def toTry(timeout: FiniteDuration): Stream[A, Try] =
     new Stream[A, Try] {
-      override def headOption: Try[Option[A]] = self.tag.toIO(self.headOption, timeout).toTry
-      override private[swaydb] def next(previous: A): Try[Option[A]] = self.tag.toIO(self.next(previous), timeout).toTry
+      override def headOption: Try[Option[A]] = self.tag.toIO[Throwable, Option[A]](self.headOption, timeout).toTry
+      override private[swaydb] def next(previous: A): Try[Option[A]] = self.tag.toIO[Throwable, Option[A]](self.next(previous), timeout).toTry
     }
 
   /**

@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
+import swaydb.ErrorHandler.CoreErrorHandler
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._

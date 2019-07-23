@@ -20,6 +20,7 @@
 package swaydb.core.util.cache
 
 import swaydb.IO
+import swaydb.ErrorHandler.CoreErrorHandler
 
 object Lazy {
   def value[T](synchronised: Boolean, stored: Boolean): LazyValue[T] =
@@ -102,9 +103,9 @@ class LazyValue[V](synchronised: Boolean, stored: Boolean) extends Lazy[V] {
     this.cache = None
 }
 
-class LazyIO[V](lazyValue: LazyValue[IO.Success[V]]) extends Lazy[IO[V]] {
+class LazyIO[V](lazyValue: LazyValue[IO.Success[IO.Error, V]]) extends Lazy[IO[IO.Error, V]] {
 
-  def set(value: => IO[V]): IO[V] =
+  def set(value: => IO[IO.Error, V]): IO[IO.Error, V] =
     try
       lazyValue set IO.Success(value.get)
     catch {
@@ -112,10 +113,10 @@ class LazyIO[V](lazyValue: LazyValue[IO.Success[V]]) extends Lazy[IO[V]] {
         IO.Failure(exception)
     }
 
-  override def get(): Option[IO.Success[V]] =
+  override def get(): Option[IO.Success[IO.Error, V]] =
     lazyValue.get()
 
-  override def getOrSet(value: => IO[V]): IO[V] =
+  override def getOrSet(value: => IO[IO.Error, V]): IO[IO.Error, V] =
     try
       lazyValue getOrSet IO.Success(value.get)
     catch {
@@ -123,16 +124,16 @@ class LazyIO[V](lazyValue: LazyValue[IO.Success[V]]) extends Lazy[IO[V]] {
         IO.Failure(exception)
     }
 
-  override def getOrElse[T >: IO[V]](f: => T): T =
+  override def getOrElse[T >: IO[IO.Error, V]](f: => T): T =
     lazyValue getOrElse f
 
-  def map[T](f: V => T): IO[Option[T]] =
+  def map[T](f: V => T): IO[IO.Error, Option[T]] =
     lazyValue
       .get()
       .map(_.map(f).map(Some(_)))
       .getOrElse(IO.none)
 
-  def flatMap[T](f: V => IO[T]): IO[Option[T]] =
+  def flatMap[T](f: V => IO[IO.Error, T]): IO[IO.Error, Option[T]] =
     lazyValue
       .get()
       .map(_.flatMap(f).map(Some(_)))

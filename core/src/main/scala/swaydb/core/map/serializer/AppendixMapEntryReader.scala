@@ -34,6 +34,7 @@ import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.MaxKey
+import swaydb.ErrorHandler.CoreErrorHandler
 
 import scala.concurrent.duration.Deadline
 
@@ -62,7 +63,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                                                            compression: Option[KeyValueGroupingStrategyInternal]) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
-    override def read(reader: Reader): IO[Option[MapEntry.Put[Slice[Byte], Segment]]] =
+    override def read(reader: Reader[IO.Error]): IO[IO.Error, Option[MapEntry.Put[Slice[Byte], Segment]]] =
       for {
         segmentPathLength <- reader.readIntUnsigned()
         segmentPathBytes <- reader.read(segmentPathLength).map(_.unslice())
@@ -129,7 +130,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
   }
 
   implicit object AppendixRemoveReader extends MapEntryReader[MapEntry.Remove[Slice[Byte]]] {
-    override def read(reader: Reader): IO[Option[MapEntry.Remove[Slice[Byte]]]] =
+    override def read(reader: Reader[IO.Error]): IO[IO.Error, Option[MapEntry.Remove[Slice[Byte]]]] =
       for {
         minKeyLength <- reader.readIntUnsigned()
         minKey <- reader.read(minKeyLength).map(_.unslice())
@@ -139,7 +140,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
   }
 
   implicit object AppendixReader extends MapEntryReader[MapEntry[Slice[Byte], Segment]] {
-    override def read(reader: Reader): IO[Option[MapEntry[Slice[Byte], Segment]]] =
+    override def read(reader: Reader[IO.Error]): IO[IO.Error, Option[MapEntry[Slice[Byte], Segment]]] =
       reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
         case (previousEntry, reader) =>
           reader.readIntUnsigned() flatMap {

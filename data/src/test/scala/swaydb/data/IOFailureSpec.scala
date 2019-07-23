@@ -27,6 +27,8 @@ import swaydb.data.Base._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
+import swaydb.ErrorHandler.ThrowableErrorHandler
+import swaydb.IO.Error
 
 class IOFailureSpec extends WordSpec with Matchers {
 
@@ -39,7 +41,7 @@ class IOFailureSpec extends WordSpec with Matchers {
     }
 
     "get" in {
-      val io = IO.Failure[Int](new IllegalAccessError)
+      val io = IO.Failure(new IllegalAccessError)
 
       assertThrows[IllegalAccessError] {
         io.get
@@ -78,7 +80,7 @@ class IOFailureSpec extends WordSpec with Matchers {
     "flatten on successes with failure" in {
       val io = IO.Success(IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))))
 
-      io.flatten.asInstanceOf[IO.Failure[Int]].exception.getMessage shouldBe "Kaboom!"
+      io.flatten.asInstanceOf[IO.Failure[Throwable, Int]].exception.getMessage shouldBe "Kaboom!"
     }
 
     "flatten on failure with success" in {
@@ -88,13 +90,13 @@ class IOFailureSpec extends WordSpec with Matchers {
             IO.Success(11)
         }
 
-      io.flatten.asInstanceOf[IO.Failure[Int]].exception.getMessage shouldBe "Kaboom!"
+      io.flatten.asInstanceOf[IO.Failure[Throwable, Int]].exception.getMessage shouldBe "Kaboom!"
     }
 
     "recover" in {
-      val failure =
-        IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException(""))) recover {
-          case _ =>
+      val failure: IO[Error, Int] =
+        IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException(""))).recover[IO.Error, Int] {
+          case _: IO.Error =>
             1
         }
 
@@ -103,10 +105,11 @@ class IOFailureSpec extends WordSpec with Matchers {
 
     "recoverWith" in {
       val failure =
-        IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException(""))) recoverWith {
-          case _ =>
-            IO.Failure(IO.Error.Fatal(new Exception("recovery exception")))
-        }
+        IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("")))
+          .recoverWith[IO.Error, Unit] {
+            case error: IO.Error =>
+              IO.Failure(IO.Error.Fatal(new Exception("recovery exception")))
+          }
 
       failure.failed.get.exception.getMessage shouldBe "recovery exception"
     }

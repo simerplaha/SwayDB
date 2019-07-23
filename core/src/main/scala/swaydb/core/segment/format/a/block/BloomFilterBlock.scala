@@ -29,6 +29,7 @@ import swaydb.IO._
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
+import swaydb.ErrorHandler.CoreErrorHandler
 
 private[core] object BloomFilterBlock extends LazyLogging {
 
@@ -164,7 +165,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
     else
       math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
 
-  def closeForMemory(state: BloomFilterBlock.State): IO[Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]] =
+  def closeForMemory(state: BloomFilterBlock.State): IO[IO.Error, Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]] =
     BloomFilterBlock.close(state) flatMap {
       closedBloomFilter =>
         closedBloomFilter map {
@@ -175,7 +176,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
         } getOrElse IO.none
     }
 
-  def close(state: State): IO[Option[BloomFilterBlock.State]] =
+  def close(state: State): IO[IO.Error, Option[BloomFilterBlock.State]] =
     if (state.bytes.isEmpty)
       IO.none
     else
@@ -199,7 +200,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
           }
       }
 
-  def read(header: Block.Header[BloomFilterBlock.Offset]): IO[BloomFilterBlock] =
+  def read(header: Block.Header[BloomFilterBlock.Offset]): IO[IO.Error, BloomFilterBlock] =
     for {
       numberOfBits <- header.headerReader.readIntUnsigned()
       maxProbe <- header.headerReader.readIntUnsigned()
@@ -269,7 +270,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
   }
 
   def mightContain(key: Slice[Byte],
-                   reader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]): IO[Boolean] = {
+                   reader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]): IO[IO.Error, Boolean] = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
@@ -306,7 +307,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
     override def createOffset(start: Int, size: Int): Offset =
       BloomFilterBlock.Offset(start = start, size = size)
 
-    override def readBlock(header: Block.Header[Offset]): IO[BloomFilterBlock] =
+    override def readBlock(header: Block.Header[Offset]): IO[IO.Error, BloomFilterBlock] =
       BloomFilterBlock.read(header)
   }
 }

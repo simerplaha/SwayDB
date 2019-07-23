@@ -32,14 +32,14 @@ private[core] object BaseEntryReader3 extends BaseEntryReader {
 
   def read[T](baseId: Int,
               keyValueId: Int,
-              indexReader: Reader,
+              indexReader: Reader[IO.Error],
               valueCache: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
               accessPosition: Int,
               previous: Option[Persistent],
-              reader: EntryReader[T]): Option[IO[T]] =
+              reader: EntryReader[T]): Option[IO[IO.Error, T]] =
   //GENERATED CONDITIONS
     if (baseId == 862)
       Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthUncompressed.DeadlineTwoCompressed, keyValueId, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, accessPosition, previous))

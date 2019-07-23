@@ -22,6 +22,7 @@ package swaydb.benchmark
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.util.Benchmark
+import swaydb.data.io.Tag.SIO
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default.{LongSerializer, StringSerializer}
 
@@ -31,7 +32,7 @@ import scala.util.Random
 
 case class Runner(test: Test) extends Benchmark with LazyLogging {
 
-  private val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], IO] = test.map
+  private val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], SIO] = test.map
   private val randomWrite: Boolean = test.randomWrite
   private val randomRead: Boolean = test.randomRead
   private val forwardIteration: Boolean = test.forwardIteration

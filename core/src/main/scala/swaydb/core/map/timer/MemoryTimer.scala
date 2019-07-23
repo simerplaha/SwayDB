@@ -34,6 +34,6 @@ private[core] class MemoryTimer(time: AtomicLong) extends Timer {
   def next: Time =
     Time(time.incrementAndGet())
 
-  override def close: IO[Unit] =
+  override def close: IO[IO.Error, Unit] =
     IO.unit
 }

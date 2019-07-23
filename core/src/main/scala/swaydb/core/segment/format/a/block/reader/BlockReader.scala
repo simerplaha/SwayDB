@@ -23,10 +23,11 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.data.slice.{Reader, Slice}
+import swaydb.ErrorHandler.CoreErrorHandler
 
-protected trait BlockReader extends Reader with LazyLogging {
+protected trait BlockReader extends Reader[IO.Error] with LazyLogging {
 
-  private[reader] def reader: Reader
+  private[reader] def reader: Reader[IO.Error]
 
   def offset: BlockOffset
 
@@ -38,7 +39,7 @@ protected trait BlockReader extends Reader with LazyLogging {
 
   override val isFile: Boolean = reader.isFile
 
-  override val size: IO[Long] =
+  override val size: IO[IO.Error, Long] =
     IO(offset.size)
 
   override def moveTo(position: Long): BlockReader = {
@@ -46,13 +47,13 @@ protected trait BlockReader extends Reader with LazyLogging {
     this
   }
 
-  def hasMore: IO[Boolean] =
+  def hasMore: IO[IO.Error, Boolean] =
     hasAtLeast(1)
 
-  def hasAtLeast(atLeastSize: Long): IO[Boolean] =
+  def hasAtLeast(atLeastSize: Long): IO[IO.Error, Boolean] =
     hasAtLeast(position, atLeastSize)
 
-  def hasAtLeast(fromPosition: Long, atLeastSize: Long): IO[Boolean] =
+  def hasAtLeast(fromPosition: Long, atLeastSize: Long): IO[IO.Error, Boolean] =
     size map {
       size =>
         (size - fromPosition) >= atLeastSize
@@ -65,7 +66,7 @@ protected trait BlockReader extends Reader with LazyLogging {
 
   def cachedBytes = cache.bytes
 
-  override def get(): IO[Int] =
+  override def get(): IO[IO.Error, Int] =
     if (isFile)
       read(1).map(_.head)
     else
@@ -90,7 +91,7 @@ protected trait BlockReader extends Reader with LazyLogging {
     else
       Slice.emptyBytes
 
-  override def read(size: Int): IO[Slice[Byte]] = {
+  override def read(size: Int): IO[IO.Error, Slice[Byte]] = {
     val fromCache =
       if (blockSize <= 0)
         Slice.emptyBytes
@@ -151,17 +152,17 @@ protected trait BlockReader extends Reader with LazyLogging {
       }
   }
 
-  def readAll(): IO[Slice[Byte]] =
+  def readAll(): IO[IO.Error, Slice[Byte]] =
     reader
       .moveTo(offset.start)
       .read(offset.size)
 
-  def readAllOrNone(): IO[Option[Slice[Byte]]] =
+  def readAllOrNone(): IO[IO.Error, Option[Slice[Byte]]] =
     if (offset.size == 0)
       IO.none
     else
       readAll().map(Some(_))
 
-  override def readRemaining(): IO[Slice[Byte]] =
+  override def readRemaining(): IO[IO.Error, Slice[Byte]] =
     remaining flatMap read
 }

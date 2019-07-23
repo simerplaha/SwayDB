@@ -32,6 +32,7 @@ import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.ErrorHandler.CoreErrorHandler
 
 class LevelRemoveSegmentSpec0 extends LevelRemoveSegmentSpec
 

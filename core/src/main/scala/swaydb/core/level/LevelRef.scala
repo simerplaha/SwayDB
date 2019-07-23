@@ -141,7 +141,7 @@ private[core] trait LevelRef {
 
   def inMemory: Boolean
 
-  def releaseLocks: IO[Unit]
+  def releaseLocks: IO[IO.Error, Unit]
 
   def nextLevel: Option[NextLevel]
 
@@ -151,27 +151,27 @@ private[core] trait LevelRef {
 
   def rootPath: Path
 
-  def head: IO.Defer[Option[KeyValue.ReadOnly.Put]]
+  def head: IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def last: IO.Defer[Option[KeyValue.ReadOnly.Put]]
+  def last: IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def get(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def ceiling(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]]
+  def ceiling(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def floor(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]]
+  def floor(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def mightContainKey(key: Slice[Byte]): IO[Boolean]
+  def mightContainKey(key: Slice[Byte]): IO[IO.Error, Boolean]
 
-  def lower(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]]
+  def lower(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def higher(key: Slice[Byte]): IO.Defer[Option[KeyValue.ReadOnly.Put]]
+  def higher(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def headKey: IO.Defer[Option[Slice[Byte]]]
+  def headKey: IO.Defer[IO.Error, Option[Slice[Byte]]]
 
-  def lastKey: IO.Defer[Option[Slice[Byte]]]
+  def lastKey: IO.Defer[IO.Error, Option[Slice[Byte]]]
 
-  def bloomFilterKeyValueCount: IO[Int]
+  def bloomFilterKeyValueCount: IO[IO.Error, Int]
 
   def isEmpty: Boolean
 
@@ -217,9 +217,9 @@ private[core] trait LevelRef {
 
   def sizeOfSegments: Long
 
-  def close: IO[Unit]
+  def close: IO[IO.Error, Unit]
 
-  def closeSegments(): IO[Unit]
+  def closeSegments(): IO[IO.Error, Unit]
 
   def meterFor(levelNumber: Int): Option[LevelMeter]
 
@@ -233,5 +233,5 @@ private[core] trait LevelRef {
 
   def nextCompactionDelay: FiniteDuration
 
-  def delete: IO[Unit]
+  def delete: IO[IO.Error, Unit]
 }

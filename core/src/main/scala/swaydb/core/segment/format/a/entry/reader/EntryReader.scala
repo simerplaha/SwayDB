@@ -32,7 +32,7 @@ import swaydb.data.slice.Reader
 trait EntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
-                              indexReader: Reader,
+                              indexReader: Reader[IO.Error],
                               valueCache: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
@@ -42,7 +42,7 @@ trait EntryReader[E] {
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
                                                             valueLengthReader: ValueLengthReader[T],
-                                                            valueBytesReader: ValueReader[T]): IO[E]
+                                                            valueBytesReader: ValueReader[T]): IO[IO.Error, E]
 }
 
 object EntryReader {
@@ -61,14 +61,14 @@ object EntryReader {
   def read[T](baseId: Int,
               keyValueId: Int,
               mightBeCompressed: Boolean,
-              indexReader: Reader,
+              indexReader: Reader[IO.Error],
               valueCache: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
               accessPosition: Int,
               previous: Option[Persistent],
-              entryReader: EntryReader[T]): IO[T] =
+              entryReader: EntryReader[T]): IO[IO.Error, T] =
     findReader(baseId = baseId, mightBeCompressed = mightBeCompressed) flatMap {
       entry =>
         entry.read(
@@ -85,14 +85,14 @@ object EntryReader {
         )
     } getOrElse IO.Failure(IO.Error.Fatal(SegmentException.InvalidKeyValueId(baseId)))
 
-  def read(indexReader: Reader,
+  def read(indexReader: Reader[IO.Error],
            mightBeCompressed: Boolean,
            valueCache: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
            indexOffset: Int,
            nextIndexOffset: Int,
            nextIndexSize: Int,
            accessPosition: Int,
-           previous: Option[Persistent]): IO[Persistent] =
+           previous: Option[Persistent]): IO[IO.Error, Persistent] =
     indexReader.readIntUnsigned() flatMap {
       keyValueId =>
         if (KeyValueId.Put.hasKeyValueId(keyValueId))

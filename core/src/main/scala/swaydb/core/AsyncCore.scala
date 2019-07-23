@@ -19,24 +19,25 @@
 
 package swaydb.core
 
-import swaydb.{IO, Prepare}
+import swaydb.ErrorHandler.CoreErrorHandler
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.SwayFunction
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.util.Delay
-import swaydb.IO.Error
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.Tag
+import swaydb.data.io.Tag.SIO
 import swaydb.data.slice.Slice
+import swaydb.{IO, Prepare}
 
 import scala.concurrent.duration.Deadline
 import scala.concurrent.{ExecutionContext, Future}
 
-private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Unit])(implicit ec: ExecutionContext,
-                                                                                     tag: Tag.Async[T]) extends Core[T] {
+private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[IO.Error, Unit])(implicit ec: ExecutionContext,
+                                                                                               tag: Tag.Async[T]) extends Core[T] {
 
-  private val block = BlockingCore[IO](zero, onClose)(Tag.io)
+  private val block = BlockingCore[SIO](zero, onClose)(Tag.sio)
 
   override def put(key: Slice[Byte]): T[IO.OK] =
     tag.fromIO(block.put(key))
@@ -109,13 +110,13 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runInFutureIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runInFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
               case error =>
                 error match {
-                  case _: Error.Busy =>
+                  case _: IO.Error.Busy =>
                     headFuture
 
                   case failure =>
@@ -136,13 +137,13 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runInFutureIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runInFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
               case error =>
                 error match {
-                  case _: Error.Busy =>
+                  case _: IO.Error.Busy =>
                     lastFuture
 
                   case failure =>
@@ -178,13 +179,13 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runInFutureIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runInFutureIfFileExists map {
               result =>
                 Some(result)
             } recoverWith {
               case error =>
                 error match {
-                  case _: Error.Busy =>
+                  case _: IO.Error.Busy =>
                     getFuture(key)
 
                   case failure =>
@@ -205,13 +206,13 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runInFutureIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runInFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
               case error =>
                 error match {
-                  case _: Error.Busy =>
+                  case _: IO.Error.Busy =>
                     getKeyValueFuture(key)
 
                   case failure =>
@@ -229,13 +230,13 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runInFutureIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runInFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
               case error =>
                 error match {
-                  case _: Error.Busy =>
+                  case _: IO.Error.Busy =>
                     beforeFuture(key)
 
                   case failure =>
@@ -256,13 +257,13 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
       result =>
         result map {
           response =>
-            IO.Defer.recoverIfFileExists(response.getOrFetchValue.get).runInFutureIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runInFutureIfFileExists map {
               result =>
                 Some(response.key, result)
             } recoverWith {
               case error =>
                 error match {
-                  case _: Error.Busy =>
+                  case _: IO.Error.Busy =>
                     afterFuture(key)
 
                   case failure =>

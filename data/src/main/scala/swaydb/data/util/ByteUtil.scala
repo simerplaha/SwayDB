@@ -21,8 +21,8 @@ package swaydb.data.util
 
 import java.nio.charset.Charset
 
-import swaydb.IO
 import swaydb.data.slice.{Reader, Slice}
+import swaydb.{ErrorHandler, IO}
 
 object ByteUtil {
 
@@ -33,7 +33,7 @@ object ByteUtil {
     slice add int.toByte
   }
 
-  def readInt(reader: Reader): IO[Int] = {
+  def readInt[E: ErrorHandler](reader: Reader[E]): IO[E, Int] = {
     reader.read(ByteSizeOf.int) map readInt
   }
 
@@ -64,21 +64,21 @@ object ByteUtil {
       ((bytes(6) & 0xffL) << 8) |
       bytes(7) & 0xffL
 
-  def readLong(reader: Reader): IO[Long] =
+  def readLong[E: ErrorHandler](reader: Reader[E]): IO[E, Long] =
     reader.read(ByteSizeOf.long) map readLong
 
-  def readBoolean(reader: Reader): IO[Boolean] =
+  def readBoolean[E: ErrorHandler](reader: Reader[E]): IO[E, Boolean] =
     reader.get() map (_ == 1)
 
-  def readString(reader: Reader, charset: Charset): IO[String] =
+  def readString[E: ErrorHandler](reader: Reader[E], charset: Charset): IO[E, String] =
     reader.size flatMap {
       size =>
         reader.read((size - reader.getPosition).toInt) map (readString(_, charset))
     }
 
-  def readString(size: Int,
-                 reader: Reader,
-                 charset: Charset): IO[String] =
+  def readString[E: ErrorHandler](size: Int,
+                                  reader: Reader[E],
+                                  charset: Charset): IO[E, String] =
     reader.read(size) map (readString(_, charset))
 
   //TODO - readString is expensive. If the slice bytes are a sub-slice of another other Slice a copy of the array will be created.
@@ -104,7 +104,7 @@ object ByteUtil {
   def writeSignedInt(x: Int, slice: Slice[Byte]): Unit =
     writeUnsignedInt((x << 1) ^ (x >> 31), slice)
 
-  def readSignedInt(reader: Reader): IO[Int] = {
+  def readSignedInt[E: ErrorHandler](reader: Reader[E]): IO[E, Int] = {
     readUnsignedInt(reader) map {
       unsigned =>
         // undo even odd mapping
@@ -114,7 +114,7 @@ object ByteUtil {
     }
   }
 
-  def readSignedInt(slice: Slice[Byte]): IO[Int] = {
+  def readSignedInt[E: ErrorHandler](slice: Slice[Byte]): IO[E, Int] = {
     readUnsignedInt(slice) map {
       unsigned =>
         // undo even odd mapping
@@ -146,7 +146,7 @@ object ByteUtil {
     Slice(array).slice(i, array.length - 1)
   }
 
-  def readUnsignedInt(reader: Reader): IO[Int] =
+  def readUnsignedInt[E: ErrorHandler](reader: Reader[E]): IO[E, Int] =
     IO {
       var i = 0
       var int = 0
@@ -160,7 +160,7 @@ object ByteUtil {
       int
     }
 
-  def readUnsignedInt(slice: Slice[Byte]): IO[Int] =
+  def readUnsignedInt[E: ErrorHandler](slice: Slice[Byte]): IO[E, Int] =
     IO {
       var index = 0
       var i = 0
@@ -180,7 +180,7 @@ object ByteUtil {
   /**
     * @return Tuple where the first integer is the unsigned integer and the second is the number of bytes read.
     */
-  def readLastUnsignedInt(slice: Slice[Byte]): IO[(Int, Int)] =
+  def readLastUnsignedInt[E: ErrorHandler](slice: Slice[Byte]): IO[E, (Int, Int)] =
     IO {
       var index = slice.size - 1
       var i = 0
@@ -199,7 +199,7 @@ object ByteUtil {
   def writeSignedLong(long: Long, slice: Slice[Byte]): Unit =
     writeUnsignedLong((long << 1) ^ (long >> 63), slice)
 
-  def readSignedLong(reader: Reader): IO[Long] =
+  def readSignedLong[E: ErrorHandler](reader: Reader[E]): IO[E, Long] =
     readUnsignedLong(reader) map {
       unsigned =>
         // undo even odd mapping
@@ -208,7 +208,7 @@ object ByteUtil {
         tmp ^ (unsigned & (1L << 63))
     }
 
-  def readSignedLong(slice: Slice[Byte]): IO[Long] =
+  def readSignedLong[E: ErrorHandler](slice: Slice[Byte]): IO[E, Long] =
     readUnsignedLong(slice) map {
       unsigned =>
         // undo even odd mapping
@@ -226,7 +226,7 @@ object ByteUtil {
     slice add (x & 0x7F).toByte
   }
 
-  def readUnsignedLong(reader: Reader): IO[Long] =
+  def readUnsignedLong[E: ErrorHandler](reader: Reader[E]): IO[E, Long] =
     IO {
       var i = 0
       var long = 0L
@@ -241,7 +241,7 @@ object ByteUtil {
       long
     }
 
-  def readUnsignedLong(slice: Slice[Byte]): IO[Long] =
+  def readUnsignedLong[E: ErrorHandler](slice: Slice[Byte]): IO[E, Long] =
     IO {
       var index = 0
       var i = 0

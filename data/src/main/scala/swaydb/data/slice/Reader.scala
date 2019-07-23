@@ -21,90 +21,90 @@ package swaydb.data.slice
 
 import java.nio.charset.{Charset, StandardCharsets}
 
-import swaydb.IO
+import swaydb.{ErrorHandler, IO}
 import swaydb.data.util.ByteUtil
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
-private[swaydb] trait Reader { self =>
+private[swaydb] abstract class Reader[E: ErrorHandler] { self =>
 
-  def get(): IO[Int]
+  def get(): IO[E, Int]
 
-  def read(size: Long): IO[Slice[Byte]] =
+  def read(size: Long): IO[E, Slice[Byte]] =
     read(size.toInt)
 
-  def read(size: Int): IO[Slice[Byte]]
+  def read(size: Int): IO[E, Slice[Byte]]
 
-  def size: IO[Long]
+  def size: IO[E, Long]
 
-  def hasMore: IO[Boolean]
+  def hasMore: IO[E, Boolean]
 
-  def hasAtLeast(size: Long): IO[Boolean]
+  def hasAtLeast(size: Long): IO[E, Boolean]
 
   def getPosition: Int
 
-  def moveTo(position: Long): Reader
+  def moveTo(position: Long): Reader[E]
 
-  def readRemaining(): IO[Slice[Byte]]
+  def readRemaining(): IO[E, Slice[Byte]]
 
   def isFile: Boolean
 
-  def skip(skip: Long): Reader =
+  def skip(skip: Long): Reader[E]=
     moveTo(getPosition + skip)
 
-  def readBoolean(): IO[Boolean] =
+  def readBoolean(): IO[E, Boolean] =
     ByteUtil.readBoolean(self)
 
-  def readInt(): IO[Int] =
+  def readInt(): IO[E, Int] =
     ByteUtil.readInt(self)
 
-  def readInt(unsigned: Boolean): IO[Int] =
+  def readInt(unsigned: Boolean): IO[E, Int] =
     if (unsigned)
       readIntUnsigned()
     else
       readInt()
 
-  def readIntUnsigned(): IO[Int] =
+  def readIntUnsigned(): IO[E, Int] =
     ByteUtil.readUnsignedInt(self)
 
-  def readIntUnsignedBytes(): IO[Slice[Byte]] =
+  def readIntUnsignedBytes(): IO[E, Slice[Byte]] =
     ByteUtil.readUnsignedInt(self) flatMap {
       size =>
         read(size)
     }
 
-  def readIntSigned(): IO[Int] =
+  def readIntSigned(): IO[E, Int] =
     ByteUtil.readSignedInt(self)
 
-  def readLong(): IO[Long] =
+  def readLong(): IO[E, Long] =
     ByteUtil.readLong(self)
 
-  def readLongUnsigned(): IO[Long] =
+  def readLongUnsigned(): IO[E, Long] =
     ByteUtil.readUnsignedLong(self)
 
-  def readLongSigned(): IO[Long] =
+  def readLongSigned(): IO[E, Long] =
     ByteUtil.readSignedLong(self)
 
-  def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): IO[String] =
+  def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): IO[E, String] =
     ByteUtil.readString(self, charset)
 
-  def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): IO[String] =
+  def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): IO[E, String] =
     ByteUtil.readString(size, self, charset)
 
-  def remaining: IO[Long] =
+  def remaining: IO[E, Long] =
     size map {
       size =>
         size - getPosition
     }
 
-  def copy(): Reader
+  def copy(): Reader[E]
 
-  def reset(): Reader =
+  def reset(): Reader[E]=
     this moveTo 0
 
   @tailrec
-  final def foldLeftIO[R: ClassTag](result: R)(f: (R, Reader) => IO[R]): IO[R] =
+  final def foldLeftIO[R: ClassTag](result: R)(f: (R, Reader[E]) => IO[E, R]): IO[E, R] =
     hasMore match {
       case IO.Failure(exception) =>
         IO.Failure(exception)

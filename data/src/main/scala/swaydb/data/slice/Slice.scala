@@ -23,7 +23,7 @@ import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 
-import swaydb.IO
+import swaydb.{ErrorHandler, IO}
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.{ByteSizeOf, ByteUtil}
 import swaydb.data.MaxKey
@@ -250,7 +250,7 @@ object Slice {
       slice
     }
 
-    def readIntSigned(): IO[Int] =
+    def readIntSigned[E: ErrorHandler](): IO[E, Int] =
       ByteUtil.readSignedInt(slice)
 
     def addIntUnsigned(int: Int): Slice[Byte] = {
@@ -258,7 +258,7 @@ object Slice {
       slice
     }
 
-    def readIntUnsigned(): IO[Int] =
+    def readIntUnsigned[E: ErrorHandler](): IO[E, Int] =
       ByteUtil.readUnsignedInt(slice)
 
     def addLong(long: Long): Slice[Byte] = {
@@ -274,7 +274,7 @@ object Slice {
       slice
     }
 
-    def readLongUnsigned(): IO[Long] =
+    def readLongUnsigned[E: ErrorHandler](): IO[E, Long] =
       ByteUtil.readUnsignedLong(slice)
 
     def addLongSigned(long: Long): Slice[Byte] = {
@@ -282,7 +282,7 @@ object Slice {
       slice
     }
 
-    def readLongSigned(): IO[Long] =
+    def readLongSigned[E: ErrorHandler](): IO[E, Long] =
       ByteUtil.readSignedLong(slice)
 
     def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] = {
@@ -305,7 +305,7 @@ object Slice {
     def createReaderUnsafe() =
       new SliceReaderUnsafe(slice)
 
-    def createReaderSafe() =
+    def createReaderSafe[E: ErrorHandler]() =
       SliceReaderSafe(slice)
   }
 

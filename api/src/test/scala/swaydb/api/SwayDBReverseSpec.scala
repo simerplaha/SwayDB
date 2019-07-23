@@ -22,6 +22,7 @@ package swaydb
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
+import swaydb.data.io.Tag.SIO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -31,7 +32,7 @@ class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO] =
+  override def newDB(): Map[Int, String, SIO] =
     swaydb.persistent.Map[Int, String](dir = randomDir).value
 }
 
@@ -40,7 +41,7 @@ class SwayDBReverse_Persistent_Zero_Spec extends SwayDBReverseSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO] =
+  override def newDB(): Map[Int, String, SIO] =
     swaydb.persistent.zero.Map[Int, String](dir = randomDir).value
 }
 
@@ -49,7 +50,7 @@ class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
 
   val keyValueCount: Int = 100000
 
-  override def newDB(): Map[Int, String, IO] =
+  override def newDB(): Map[Int, String, SIO] =
     swaydb.memory.Map[Int, String]().value
 }
 
@@ -58,7 +59,7 @@ class SwayDBReverse_Memory_Zero_Spec extends SwayDBReverseSpec {
 
   val keyValueCount: Int = 100000
 
-  override def newDB(): Map[Int, String, IO] =
+  override def newDB(): Map[Int, String, SIO] =
     swaydb.memory.zero.Map[Int, String]().value
 }
 
@@ -66,7 +67,7 @@ sealed trait SwayDBReverseSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Map[Int, String, IO]
+  def newDB(): Map[Int, String, SIO]
 
   "Do reverse ordering" in {
     val db = newDB()

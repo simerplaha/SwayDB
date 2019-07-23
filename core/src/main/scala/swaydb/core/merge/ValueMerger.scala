@@ -30,7 +30,7 @@ private[core] object ValueMerger {
   def apply(key: Slice[Byte],
             newRangeValue: Value.RangeValue,
             oldFromValue: Value.FromValue)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                           functionStore: FunctionStore): IO[Value.FromValue] =
+                                           functionStore: FunctionStore): IO[IO.Error, Value.FromValue] =
     FixedMerger(
       newKeyValue = newRangeValue.toMemory(key),
       oldKeyValue = oldFromValue.toMemory(key)
@@ -39,7 +39,7 @@ private[core] object ValueMerger {
   def apply(key: Slice[Byte],
             newRangeValue: Value.FromValue,
             oldFromValue: Value.FromValue)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                           functionStore: FunctionStore): IO[Value.FromValue] =
+                                           functionStore: FunctionStore): IO[IO.Error, Value.FromValue] =
     FixedMerger(
       newKeyValue = newRangeValue.toMemory(key),
       oldKeyValue = oldFromValue.toMemory(key)
@@ -47,7 +47,7 @@ private[core] object ValueMerger {
 
   def apply(newRangeValue: Value.RangeValue,
             oldRangeValue: Value.RangeValue)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                             functionStore: FunctionStore): IO[Value.RangeValue] =
+                                             functionStore: FunctionStore): IO[IO.Error, Value.RangeValue] =
     FixedMerger(
       newKeyValue = newRangeValue.toMemory(Slice.emptyBytes),
       oldKeyValue = oldRangeValue.toMemory(Slice.emptyBytes)

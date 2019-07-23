@@ -19,6 +19,8 @@
 
 package swaydb
 
+import swaydb.data.io.Tag.SIO
+
 import scala.collection.{TraversableOnce, mutable}
 
 /**
@@ -26,7 +28,7 @@ import scala.collection.{TraversableOnce, mutable}
   */
 private[swaydb] object ScalaSet {
 
-  def apply[A](db: Set[A, IO]): mutable.Set[A] =
+  def apply[A](db: Set[A, SIO]): mutable.Set[A] =
     new mutable.Set[A] {
 
       override def contains(elem: A): Boolean =

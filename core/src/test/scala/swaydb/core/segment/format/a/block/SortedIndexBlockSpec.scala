@@ -32,6 +32,7 @@ import swaydb.data.slice.Slice
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import swaydb.ErrorHandler.CoreErrorHandler
 
 class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 

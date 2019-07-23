@@ -21,7 +21,7 @@ package swaydb.core.data
 
 import java.util.concurrent.atomic.AtomicLong
 
-import swaydb.IO
+import swaydb.{ErrorHandler, IO}
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
@@ -29,7 +29,7 @@ private[core] object Time {
 
   val empty = Time(Slice.emptyBytes)
   val someEmpty = Some(empty)
-  val successEmpty = IO.Success(empty)
+  val successEmpty = IO.Success[Nothing, Time](empty)(ErrorHandler.NothingErrorHandler)
 
   val long = new AtomicLong(System.nanoTime())
 

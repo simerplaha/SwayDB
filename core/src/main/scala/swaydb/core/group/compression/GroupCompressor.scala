@@ -26,6 +26,7 @@ import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValue
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.data.slice.Slice
 import swaydb.data.MaxKey
+import swaydb.ErrorHandler.CoreErrorHandler
 
 private[core] object GroupCompressor extends LazyLogging {
 
@@ -48,7 +49,7 @@ private[core] object GroupCompressor extends LazyLogging {
                sortedIndexConfig: SortedIndexBlock.Config,
                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                hashIndexConfig: HashIndexBlock.Config,
-               bloomFilterConfig: BloomFilterBlock.Config): IO[Transient.Group] =
+               bloomFilterConfig: BloomFilterBlock.Config): IO[IO.Error, Transient.Group] =
     if (keyValues.isEmpty) {
       logger.error(s"Ignoring compression. Cannot compress on empty key-values")
       GroupCompressor.cannotGroupEmptyValues
