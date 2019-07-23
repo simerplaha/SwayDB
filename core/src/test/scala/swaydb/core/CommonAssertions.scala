@@ -425,6 +425,7 @@ object CommonAssertions {
         minSegmentSize = 10.mb,
         isLastLevel = isLastLevel,
         forInMemory = false,
+        createdInLevel = 0,
         valuesConfig = expected.lastOption.map(_.valuesConfig) getOrElse ValuesBlock.Config.random,
         sortedIndexConfig = expected.lastOption.map(_.sortedIndexConfig) getOrElse SortedIndexBlock.Config.random,
         binarySearchIndexConfig = expected.lastOption.map(_.binarySearchIndexConfig) getOrElse BinarySearchIndexBlock.Config.random,

@@ -73,7 +73,8 @@ class SegmentMergeSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
-            groupLastSegment = true
+            groupLastSegment = true,
+            createdInLevel = randomIntMax()
           ).runIO
 
         newSegments.size shouldBe 1
@@ -107,7 +108,8 @@ class SegmentMergeSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
-            groupLastSegment = true
+            groupLastSegment = true,
+            createdInLevel = randomIntMax()
           ).runIO
 
         newSegments.size shouldBe 1
@@ -132,7 +134,8 @@ class SegmentMergeSpec extends TestBase {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          groupLastSegment = true
+          groupLastSegment = true,
+          createdInLevel = randomIntMax()
         ).runIO.size shouldBe 1
 
         SegmentMerger.completeMerge(
@@ -144,7 +147,8 @@ class SegmentMergeSpec extends TestBase {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          groupLastSegment = true
+          groupLastSegment = true,
+          createdInLevel = randomIntMax()
         ).runIO.size shouldBe 1
       }
     }
@@ -184,7 +188,8 @@ class SegmentMergeSpec extends TestBase {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          segmentIO = SegmentIO.random
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
         ).runIO.toArray
       )
 
@@ -200,7 +205,8 @@ class SegmentMergeSpec extends TestBase {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          segmentIO = SegmentIO.random
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
         ).runIO.toArray
       )
     }
@@ -224,7 +230,8 @@ class SegmentMergeSpec extends TestBase {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          segmentIO = SegmentIO.random
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
         ).runIO
 
       splits should have size 5
@@ -247,7 +254,8 @@ class SegmentMergeSpec extends TestBase {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          segmentIO = SegmentIO.random
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
         ).runIO
 
       persistentSplit should have size 1
@@ -274,7 +282,8 @@ class SegmentMergeSpec extends TestBase {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          segmentIO = SegmentIO.random
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
         ).runIO
 
       memorySplit should have size 1
@@ -301,7 +310,8 @@ class SegmentMergeSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
-            segmentIO = SegmentIO.random
+            segmentIO = SegmentIO.random,
+            createdInLevel = randomIntMax()
           ).runIO
 
         mergeResultWithoutGroup should have size 1
@@ -315,7 +325,8 @@ class SegmentMergeSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
-            groupConfig = SegmentBlock.Config.random
+            groupConfig = SegmentBlock.Config.random,
+            createdInLevel = randomIntMax()
           ).runIO.toMemory
 
         val mergeResultWithGroup =
@@ -330,7 +341,8 @@ class SegmentMergeSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
-            segmentIO = SegmentIO.random
+            segmentIO = SegmentIO.random,
+            createdInLevel = randomIntMax()
           ).runIO
 
         mergeResultWithGroup should have size 1

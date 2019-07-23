@@ -1106,7 +1106,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           binarySearchIndexConfig = newKeyValues.last.binarySearchIndexConfig,
           hashIndexConfig = newKeyValues.last.hashIndexConfig,
           bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
-          segmentIO = SegmentIO.random
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
         ).value
 
       expectedKeyValues should have size 1
@@ -1150,7 +1151,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           binarySearchIndexConfig = newKeyValues.last.binarySearchIndexConfig,
           hashIndexConfig = newKeyValues.last.hashIndexConfig,
           bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
-          segmentIO = SegmentIO.random
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
         ).value
 
       expectedKeyValues should have size 1
@@ -1551,7 +1553,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          segmentIO = SegmentIO.random
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
         ).value
 
       result should have size 1
@@ -1573,7 +1576,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
         hashIndexConfig = HashIndexBlock.Config.random,
         bloomFilterConfig = BloomFilterBlock.Config.random,
-        segmentIO = SegmentIO.random
+        segmentIO = SegmentIO.random,
+        createdInLevel = randomIntMax()
       )(keyOrder, Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).value
 
       result should have size 1

@@ -1134,6 +1134,7 @@ private[core] object Transient {
 
     def apply(keyValues: Slice[Transient],
               previous: Option[Transient],
+              createdInLevel: Int,
               //compression is for the group's key-values.
               groupConfig: SegmentBlock.Config,
               //these configs are for the Group itself and not the key-values within the group.
@@ -1146,6 +1147,7 @@ private[core] object Transient {
         keyValues = keyValues,
         previous = previous,
         groupConfig = groupConfig,
+        createdInLevel = createdInLevel,
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,

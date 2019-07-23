@@ -64,7 +64,8 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
           sortedIndexConfig = SortedIndexBlock.Config.random,
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
-          bloomFilterConfig = BloomFilterBlock.Config.random
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          createdInLevel = randomIntMax()
         ).runIO
 
       //add more key-values to the right of the Group
@@ -134,6 +135,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
+          createdInLevel = randomIntMax()
         ).runIO
 
       //add key-values to the right of the group

@@ -95,7 +95,8 @@ class SegmentBlockSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
-            previous = None
+            previous = None,
+            createdInLevel = randomIntMax()
           ).runIO
 
         val bytes =

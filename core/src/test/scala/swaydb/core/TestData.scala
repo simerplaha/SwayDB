@@ -649,6 +649,7 @@ object TestData {
                       hashIndexConfig = hashIndexConfig,
                       bloomFilterConfig = bloomFilterConfig
                     ),
+                createdInLevel = group.segment.getFooter().get.createdInLevel,
                 valuesConfig = valuesConfig,
                 sortedIndexConfig = sortedIndexConfig,
                 binarySearchIndexConfig = binarySearchIndexConfig,
@@ -750,6 +751,7 @@ object TestData {
 
               Transient.Group(
                 keyValues = group.segment.getAll().runIO.toTransient,
+                createdInLevel = group.segment.getFooter().get.createdInLevel,
                 valuesConfig = valuesConfig,
                 sortedIndexConfig = sortedIndexConfig,
                 binarySearchIndexConfig = binarySearchIndexConfig,
@@ -1586,8 +1588,8 @@ object TestData {
                                addRanges: Boolean = false,
                                addRemoveDeadlines: Boolean = false,
                                addPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental(),
-                                                                       keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
+                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                 keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1697,9 +1699,10 @@ object TestData {
                       sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                       binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                       hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
-                      bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit testTimer: TestTimer = TestTimer.Incremental(),
-                                                                                                   keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                   keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
+                      bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+                      createdInLevel: Int = Int.MaxValue)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                          keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                          keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
     val slice = Slice.create[Transient](count * 50) //extra space because addRanges and random Groups can be added for Fixed and Range key-values in the same iteration.
     //            var key = 1
     var key = startId getOrElse randomInt(minus = count)
@@ -1748,7 +1751,8 @@ object TestData {
               sortedIndexConfig = sortedIndexConfig,
               binarySearchIndexConfig = binarySearchIndexConfig,
               hashIndexConfig = hashIndexConfig,
-              bloomFilterConfig = bloomFilterConfig
+              bloomFilterConfig = bloomFilterConfig,
+              createdInLevel = createdInLevel
             ).runIO
 
           slice add group
@@ -1877,8 +1881,8 @@ object TestData {
                            addPutDeadlines: Boolean = true,
                            addRemoves: Boolean = true,
                            addRemoveDeadlines: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
-                                                                     keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                     keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
+                                                               keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                               keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1896,7 +1900,8 @@ object TestData {
                   binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                   hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                   bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-                  previous: Option[Transient] = None)(implicit testTimer: TestTimer = TestTimer.Incremental()): Transient.Group =
+                  previous: Option[Transient] = None,
+                  createdInLevel: Int = Int.MaxValue)(implicit testTimer: TestTimer = TestTimer.Incremental()): Transient.Group =
     Transient.Group(
       keyValues = keyValues,
       previous = previous,
@@ -1905,7 +1910,8 @@ object TestData {
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
       hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig
+      bloomFilterConfig = bloomFilterConfig,
+      createdInLevel = createdInLevel
     ).runIO
 
   implicit class MemoryTypeImplicits(memory: Memory.type) {

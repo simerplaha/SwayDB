@@ -74,7 +74,8 @@ class GroupCompressorSpec extends TestBase {
         sortedIndexConfig = SortedIndexBlock.Config.random,
         binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
         hashIndexConfig = HashIndexBlock.Config.random,
-        bloomFilterConfig = BloomFilterBlock.Config.random
+        bloomFilterConfig = BloomFilterBlock.Config.random,
+        createdInLevel = randomIntMax()
       ).failed.get.exception.getMessage shouldBe GroupCompressor.cannotGroupEmptyValues.exception.getMessage
     }
 
@@ -94,7 +95,8 @@ class GroupCompressorSpec extends TestBase {
               sortedIndexConfig = SortedIndexBlock.Config.random,
               binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
               hashIndexConfig = HashIndexBlock.Config.random,
-              bloomFilterConfig = BloomFilterBlock.Config.random
+              bloomFilterConfig = BloomFilterBlock.Config.random,
+              createdInLevel = randomIntMax()
             ).get
 
           //none of the group's blocks are compressed.
@@ -135,7 +137,8 @@ class GroupCompressorSpec extends TestBase {
               sortedIndexConfig = SortedIndexBlock.Config.random,
               binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
               hashIndexConfig = HashIndexBlock.Config.random,
-              bloomFilterConfig = BloomFilterBlock.Config.random
+              bloomFilterConfig = BloomFilterBlock.Config.random,
+              createdInLevel = randomIntMax()
             ).get
 
           //none of the group's blocks are compressed.
