@@ -57,12 +57,6 @@ object ErrorHandler {
     override def reserve(e: Throwable): Option[Reserve[Unit]] = None
   }
 
-  implicit object Unit extends ErrorHandler[Unit] {
-    override def toException(e: Unit): Throwable = new Exception("Unit value.")
-    override def fromException[F <: Unit](e: Throwable): F = Unit.asInstanceOf[F]
-    override def reserve(e: Unit): Option[Reserve[Unit]] = None
-  }
-
   implicit object CoreError extends ErrorHandler[IO.Error] {
     override def toException(e: IO.Error): Throwable =
       e.exception
