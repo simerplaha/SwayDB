@@ -854,7 +854,7 @@ object CommonAssertions {
       keyValue =>
         BloomFilterBlock.mightContain(
           key = keyValue.key,
-          reader = bloomFilterReader
+          reader = bloomFilterReader.copy()
         ).get
     } shouldBe unzipedKeyValues.size
 
@@ -864,7 +864,7 @@ object CommonAssertions {
   def assertBloomNotContains(bloomFilterReader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]) =
     (1 to 1000).par.count {
       _ =>
-        BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader).runIO
+        BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader.copy()).runIO
     } should be <= 300
 
   def assertBloomNotContains(segment: Segment) =
@@ -879,7 +879,7 @@ object CommonAssertions {
       val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.bytes).get
       BloomFilterBlock.mightContain(
         key = randomBytesSlice(randomIntMax(1000) min 100),
-        reader = bloomFilter
+        reader = bloomFilter.copy()
       ).runIO shouldBe false
     }
 
