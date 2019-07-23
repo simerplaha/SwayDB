@@ -184,7 +184,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
               eitherOne(
                 //either do a range remove
                 left =
-                  randomRemoveRanges(level1KeyValues).toIterable,
+                  randomRemoveRanges(level1KeyValues).toList.toSlice,
                 //or do fixed removes via function or fixed.
                 right =
                   level1KeyValues map {

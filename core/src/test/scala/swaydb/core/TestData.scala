@@ -158,11 +158,11 @@ object TestData {
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
-    def putKeyValuesTest(keyValues: Iterable[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): IO[Unit] =
+    def putKeyValuesTest(keyValues: Slice[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): IO[Unit] =
       if (keyValues.isEmpty)
         IO.unit
       else if (!level.isEmpty)
-        level.putKeyValues(keyValues.toMemory, level.segmentsInLevel(), None)
+        level.putKeyValues(keyValues, level.segmentsInLevel(), None)
       else if (level.inMemory)
         Segment.copyToMemory(
           keyValues = keyValues,
@@ -2449,7 +2449,7 @@ object TestData {
             val rangeTransient = range.rangeValue.toMemory(Slice.emptyBytes).toTransient
             collectUsedDeadlines(Slice(rangeTransient) ++ fromTransient, usedDeadlines)
           case group: Transient.Group =>
-            collectUsedDeadlines(group.keyValues.map(_.asInstanceOf[Transient]).toSlice, usedDeadlines)
+            collectUsedDeadlines(group.keyValues, usedDeadlines)
         }
     }
 
@@ -2491,7 +2491,7 @@ object TestData {
         getMaxKey(last.keyValues.last)
     }
 
-  def unexpiredPuts(keyValues: Iterable[KeyValue]): List[KeyValue.ReadOnly.Put] =
+  def unexpiredPuts(keyValues: Iterable[KeyValue]): Slice[KeyValue.ReadOnly.Put] =
     unzipGroups(keyValues).flatMap {
       keyValue =>
         keyValue.asPut flatMap {
@@ -2503,7 +2503,7 @@ object TestData {
         }
     }(collection.breakOut)
 
-  def getPuts(keyValues: Iterable[KeyValue]): List[KeyValue.ReadOnly.Put] =
+  def getPuts(keyValues: Iterable[KeyValue]): Slice[KeyValue.ReadOnly.Put] =
     unzipGroups(keyValues).flatMap {
       keyValue =>
         keyValue.asPut
@@ -2517,9 +2517,9 @@ object TestData {
   def randomUpdate(keyValues: Iterable[KeyValue.ReadOnly.Put],
                    updatedValue: Option[Slice[Byte]],
                    deadline: Option[Deadline],
-                   randomlyDropUpdates: Boolean)(implicit testTimer: TestTimer = TestTimer.Incremental()): Iterable[Memory] = {
+                   randomlyDropUpdates: Boolean)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] = {
     var keyUsed = keyValues.head.key.readInt() - 1
-    keyValues flatMap {
+    keyValues.flatMap({
       keyValue =>
         if (randomlyDropUpdates && randomBoolean()) {
           keyUsed = keyValue.key.readInt()
@@ -2565,7 +2565,7 @@ object TestData {
         } else {
           None
         }
-    }
+    })(collection.breakOut)
   }
 
   implicit class HigherImplicits(higher: Higher.type) {

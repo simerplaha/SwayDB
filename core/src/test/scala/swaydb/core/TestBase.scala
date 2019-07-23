@@ -403,13 +403,13 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     * ignored completely due to it having a lower or equal time to lower Level. If it has a lower or same time this means
     * that it has already been merged into lower Levels already making the upper Level's read always valid.
     */
-  def assertLevel(level0KeyValues: (Iterable[Memory], Iterable[Memory], TestTimer) => Iterable[Memory] = (_, _, _) => Iterable.empty,
-                  assertLevel0: (Iterable[Memory], Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _, _) => (),
-                  level1KeyValues: (Iterable[Memory], TestTimer) => Iterable[Memory] = (_, _) => Iterable.empty,
-                  assertLevel1: (Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _) => (),
-                  level2KeyValues: TestTimer => Iterable[Memory] = _ => Iterable.empty,
-                  assertLevel2: (Iterable[Memory], LevelRef) => Unit = (_, _) => (),
-                  assertAllLevels: (Iterable[Memory], Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _, _) => (),
+  def assertLevel(level0KeyValues: (Slice[Memory], Slice[Memory], TestTimer) => Slice[Memory] = (_, _, _) => Slice.empty,
+                  assertLevel0: (Slice[Memory], Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _, _) => (),
+                  level1KeyValues: (Slice[Memory], TestTimer) => Slice[Memory] = (_, _) => Slice.empty,
+                  assertLevel1: (Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _) => (),
+                  level2KeyValues: TestTimer => Slice[Memory] = _ => Slice.empty,
+                  assertLevel2: (Slice[Memory], LevelRef) => Unit = (_, _) => (),
+                  assertAllLevels: (Slice[Memory], Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _, _) => (),
                   throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
 
@@ -473,7 +473,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     val level2Assert: LevelRef => Unit = assertLevel2(level0KV, _)
     val levelAllAssert: LevelRef => Unit = assertAllLevels(level0KV, level1KV, level2KV, _)
 
-    def runAsserts(asserts: Seq[((Iterable[Memory], LevelRef => Unit), (Iterable[Memory], LevelRef => Unit), (Iterable[Memory], LevelRef => Unit), (Iterable[Memory], LevelRef => Unit))]) =
+    def runAsserts(asserts: Seq[((Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit))]) =
       asserts.foldLeft(1) {
         case (count, ((level0KeyValues, level0Assert), (level1KeyValues, level1Assert), (level2KeyValues, level2Assert), (level3KeyValues, level3Assert))) => {
           println(s"\nRunning assert: $count/${asserts.size} - $iterationMessage")
@@ -498,7 +498,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         }
       }
 
-    val asserts =
+    val asserts: Seq[((Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit))] =
       if (throttleOn)
       //if throttle is only the top most Level's (Level0) assert should
       // be executed because throttle behaviour is unknown during runtime
@@ -510,14 +510,14 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                 (level0KV, level0Assert),
                 (level1KV, noAssert),
                 (level2KV, noAssert),
-                (Iterable.empty, noAssert),
+                (Slice.empty, noAssert),
               )
             else
               (
-                (Iterable.empty, level0Assert),
-                (Iterable.empty, noAssert),
-                (Iterable.empty, noAssert),
-                (Iterable.empty, noAssert),
+                (Slice.empty, level0Assert),
+                (Slice.empty, noAssert),
+                (Slice.empty, noAssert),
+                (Slice.empty, noAssert),
               )
           )
       else
@@ -526,36 +526,36 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
             (level0KV, level0Assert),
             (level1KV, level1Assert),
             (level2KV, level2Assert),
-            (Iterable.empty, noAssert),
+            (Slice.empty, noAssert),
           ),
           (
             (level0KV, level0Assert),
             (level1KV, level1Assert),
-            (Iterable.empty, level2Assert),
+            (Slice.empty, level2Assert),
             (level2KV, level2Assert),
           ),
           (
             (level0KV, level0Assert),
-            (Iterable.empty, level1Assert),
+            (Slice.empty, level1Assert),
             (level1KV, level1Assert),
             (level2KV, level2Assert),
           ),
           (
-            (Iterable.empty, level0Assert),
+            (Slice.empty, level0Assert),
             (level0KV, level0Assert),
             (level1KV, level1Assert),
             (level2KV, level2Assert),
           ),
           (
-            (Iterable.empty, level0Assert),
-            (Iterable.empty, level0Assert),
+            (Slice.empty, level0Assert),
+            (Slice.empty, level0Assert),
             (level0KV, level0Assert),
             (level1KV, level1Assert)
           ),
           (
-            (Iterable.empty, level0Assert),
-            (Iterable.empty, level0Assert),
-            (Iterable.empty, level0Assert),
+            (Slice.empty, level0Assert),
+            (Slice.empty, level0Assert),
+            (Slice.empty, level0Assert),
             (level0KV, level0Assert)
           )
         )
@@ -578,16 +578,16 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       )
   }
 
-  private def doAssertOnLevel(level0KeyValues: Iterable[Memory],
+  private def doAssertOnLevel(level0KeyValues: Slice[Memory],
                               assertLevel0: LevelRef => Unit,
                               level0: LevelZero,
-                              level1KeyValues: Iterable[Memory],
+                              level1KeyValues: Slice[Memory],
                               assertLevel1: LevelRef => Unit,
                               level1: Level,
-                              level2KeyValues: Iterable[Memory],
+                              level2KeyValues: Slice[Memory],
                               assertLevel2: LevelRef => Unit,
                               level2: Level,
-                              level3KeyValues: Iterable[Memory],
+                              level3KeyValues: Slice[Memory],
                               assertLevel3: LevelRef => Unit,
                               level3: Level,
                               assertAllLevels: LevelRef => Unit,
