@@ -114,7 +114,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 //                if (keyValue.isGroup) {
                 //                  val exception = new Exception(s"Post group key-value is a Group. ${keyValue.getClass.getSimpleName} found, expected a Fixed or Range.")
                 //                  logger.error(exception.getMessage, exception)
-                //                  IO.Failure(exception)
+                //                  IO.Failure(error)
                 //                } else {
                 IO {
                   keyValuesToGroup add
@@ -328,8 +328,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   bloomFilterConfig = bloomFilterConfig,
                   segmentIO = segmentIO
                 )
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Failure(error) =>
+                IO.Failure(error)
             }
 
           case keyValue =>
@@ -362,8 +362,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   bloomFilterConfig = bloomFilterConfig,
                   segmentIO = segmentIO
                 )
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Failure(error) =>
+                IO.Failure(error)
             }
         }
       case None =>
@@ -692,8 +692,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   case None =>
                     IO.unit
                 }
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Failure(error) =>
+                IO.Failure(error)
             }
           else
             range.fetchFromAndRangeValue flatMap {

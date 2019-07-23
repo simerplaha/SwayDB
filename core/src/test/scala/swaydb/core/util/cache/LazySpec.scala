@@ -136,7 +136,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
     "empty" should {
       "return undefined and not set value on getOrElse" in {
         def doTest(isSynchronised: Boolean, stored: Boolean) = {
-          val lazyValue = Lazy.io[Int](isSynchronised, stored)
+          val lazyValue = Lazy.io[Throwable, Int](isSynchronised, stored)
 
           lazyValue.isDefined shouldBe false
           lazyValue getOrElse 10 shouldBe 10
@@ -161,7 +161,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
     "value is already set" should {
       "not update value on getOrSet but update on set" in {
         def doTest(isSynchronised: Boolean) = {
-          val lazyValue = Lazy.io[Int](isSynchronised, true)
+          val lazyValue = Lazy.io[Throwable, Int](isSynchronised, true)
 
           lazyValue getOrSet IO(20) shouldBe IO.Success(20)
           lazyValue getOrElse 10 shouldBe IO.Success(20)
@@ -188,7 +188,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
         val mockValueFunction = mockFunction[Int]
         mockValueFunction expects() returning value //this function is only invoked once.
 
-        val lazyValue = Lazy.io[Int](synchronised = true, stored = true)
+        val lazyValue = Lazy.io[Throwable, Int](synchronised = true, stored = true)
 
         (1 to 10000).par foreach {
           _ =>
@@ -213,7 +213,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
         val mockValueFunction = mockFunction[Int]
         mockValueFunction expects() returning value repeat (2 to 100) //this function is invoked more than once.
 
-        val lazyValue = Lazy.io[Int](synchronised = false, stored = true)
+        val lazyValue = Lazy.io[Throwable, Int](synchronised = false, stored = true)
 
         (1 to 10000).par foreach {
           _ =>

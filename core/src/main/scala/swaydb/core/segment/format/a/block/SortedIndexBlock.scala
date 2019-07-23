@@ -509,8 +509,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
               valuesReader = valuesReader
             )
 
-          case IO.Failure(exception) =>
-            IO.Failure(exception)
+          case IO.Failure(error) =>
+            IO.Failure(error)
         }
 
       case result: KeyMatcher.Result.Complete =>

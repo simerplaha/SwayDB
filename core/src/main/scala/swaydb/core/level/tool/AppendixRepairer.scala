@@ -178,8 +178,8 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
               segment =>
                 appendix.write(MapEntry.Put(segment.minKey, segment))
             } match {
-              case Some(IO.Failure(exception)) =>
-                IO.Failure(exception)
+              case Some(IO.Failure(error)) =>
+                IO.Failure(error)
               case None =>
                 IO.unit
             }

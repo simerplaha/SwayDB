@@ -97,8 +97,8 @@
 //        //          ) mapIO {
 //        //            keyValue =>
 //        //              IO.Async.runSafe(persistentGroup.segmentCache.get(keyValue.key).get).safeGetBlocking match {
-//        //                case IO.Failure(exception) =>
-//        //                  IO.Failure(exception)
+//        //                case IO.Failure(error) =>
+//        //                  IO.Failure(error)
 //        //
 //        //                case IO.Success(value) =>
 //        //                  try {

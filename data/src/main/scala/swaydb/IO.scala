@@ -313,9 +313,9 @@ object IO {
             case IO.Success(None) =>
             //continue reading
 
-            case IO.Failure(exception) =>
+            case IO.Failure(error) =>
               //Not a good idea to break out with return. Needs improvement.
-              return IO.Failure(exception)
+              return IO.Failure(error)
           }
       }
       IO.none
@@ -332,9 +332,9 @@ object IO {
             case IO.Success(None) =>
             //continue reading
 
-            case IO.Failure(exception) =>
+            case IO.Failure(error) =>
               //Not a good idea to break out with return. Needs improvement.
-              return IO.Failure(exception)
+              return IO.Failure(error)
           }
       }
       IO.none

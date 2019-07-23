@@ -117,8 +117,8 @@ object Tag {
               case IO.Success(None) =>
                 IO.Success(previousResult)
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Failure(error) =>
+                IO.Failure(error)
             }
 
         if (take.contains(0))
@@ -142,8 +142,8 @@ object Tag {
             case IO.Success(None) =>
               IO.Success(initial)
 
-            case IO.Failure(exception) =>
-              IO.Failure(exception)
+            case IO.Failure(error) =>
+              IO.Failure(error)
           }
       }
 

@@ -240,13 +240,13 @@ private[level] object Compaction extends LazyLogging {
           previousStateID = stateID
         )
 
-      case IO.Failure(exception) =>
-        exception match {
+      case IO.Failure(error) =>
+        error match {
           //do not log the stack if the IO.Failure to merge was ContainsOverlappingBusySegments.
           case IO.Error.OverlappingPushSegment =>
             logger.debug(s"Level(${zero.levelNumber}): Failed to push", IO.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
           case _ =>
-            logger.error(s"Level(${zero.levelNumber}): Failed to push", exception)
+            logger.error(s"Level(${zero.levelNumber}): Failed to push", error.exception)
         }
         LevelCompactionState.Sleep(
           sleepDeadline = LevelCompactionState.failureSleepDuration,

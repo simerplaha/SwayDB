@@ -106,16 +106,16 @@ private[swaydb] abstract class Reader[E: ErrorHandler] { self =>
   @tailrec
   final def foldLeftIO[R: ClassTag](result: R)(f: (R, Reader[E]) => IO[E, R]): IO[E, R] =
     hasMore match {
-      case IO.Failure(exception) =>
-        IO.Failure(exception)
+      case IO.Failure(error) =>
+        IO.Failure(error)
 
       case IO.Success(yes) if yes =>
         f(result, self) match {
           case IO.Success(newResult) =>
             foldLeftIO(newResult)(f)
 
-          case IO.Failure(exception) =>
-            IO.Failure(exception)
+          case IO.Failure(error) =>
+            IO.Failure(error)
         }
 
       case _ =>
