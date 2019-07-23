@@ -39,38 +39,38 @@ import scala.util.Try
   *
   * [[IO.Defer]] is for performing synchronous and asynchronous IO.
   */
-sealed trait IO[+T] {
+sealed trait IO[+A] {
   def isFailure: Boolean
   def isSuccess: Boolean
   def isDeferred: Boolean
-  def getOrElse[U >: T](default: => U): U
-  def orElse[U >: T](default: => IO[U]): IO[U]
-  def get: T
-  def foreach[U](f: T => U): Unit
-  def map[U](f: T => U): IO[U]
-  def flatMap[U](f: T => IO[U]): IO[U]
-  def asDeferred: IO.Defer[T]
-  def asIO: IO[T]
-  def exists(f: T => Boolean): Boolean
-  def filter(p: T => Boolean): IO[T]
-  @inline final def withFilter(p: T => Boolean): WithFilter = new WithFilter(p)
-  class WithFilter(p: T => Boolean) {
-    def map[U](f: T => U): IO[U] = IO.this filter p map f
-    def flatMap[U](f: T => IO[U]): IO[U] = IO.this filter p flatMap f
-    def foreach[U](f: T => U): Unit = IO.this filter p foreach f
-    def withFilter(q: T => Boolean): WithFilter = new WithFilter(x => p(x) && q(x))
+  def getOrElse[B >: A](default: => B): B
+  def orElse[B >: A](default: => IO[B]): IO[B]
+  def get: A
+  def foreach[B](f: A => B): Unit
+  def map[B](f: A => B): IO[B]
+  def flatMap[B](f: A => IO[B]): IO[B]
+  def asDeferred: IO.Defer[A]
+  def asIO: IO[A]
+  def exists(f: A => Boolean): Boolean
+  def filter(p: A => Boolean): IO[A]
+  @inline final def withFilter(p: A => Boolean): WithFilter = new WithFilter(p)
+  class WithFilter(p: A => Boolean) {
+    def map[B](f: A => B): IO[B] = IO.this filter p map f
+    def flatMap[B](f: A => IO[B]): IO[B] = IO.this filter p flatMap f
+    def foreach[B](f: A => B): Unit = IO.this filter p foreach f
+    def withFilter(q: A => Boolean): WithFilter = new WithFilter(x => p(x) && q(x))
   }
-  def onFailureSideEffect(f: IO.Failure[T] => Unit): IO[T]
-  def onSuccessSideEffect(f: T => Unit): IO[T]
-  def onCompleteSideEffect(f: IO[T] => Unit): IO[T]
-  def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U]
-  def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U]
-  def toOption: Option[T]
-  def flatten[U](implicit ev: T <:< IO[U]): IO[U]
+  def onFailureSideEffect(f: IO.Failure[A] => Unit): IO[A]
+  def onSuccessSideEffect(f: A => Unit): IO[A]
+  def onCompleteSideEffect(f: IO[A] => Unit): IO[A]
+  def recoverWith[B >: A](f: PartialFunction[IO.Error, IO[B]]): IO[B]
+  def recover[B >: A](f: PartialFunction[IO.Error, B]): IO[B]
+  def toOption: Option[A]
+  def flatten[B](implicit ev: A <:< IO[B]): IO[B]
   def failed: IO[IO.Error]
-  def toEither: Either[IO.Error, T]
-  def toFuture: Future[T]
-  def toTry: scala.util.Try[T]
+  def toEither: Either[IO.Error, A]
+  def toFuture: Future[A]
+  def toTry: scala.util.Try[A]
 }
 
 object IO {
@@ -91,29 +91,29 @@ object IO {
   val ok = IO.Success(OK)
   val notImplemented = IO.Failure(new NotImplementedError())
 
-  sealed trait Defer[+T] {
+  sealed trait Defer[+A] {
     def isFailure: Boolean
     def isSuccess: Boolean
     def isDeferred: Boolean
-    def flatMap[U](f: T => IO.Defer[U]): IO.Defer[U]
-    def mapDeferred[U](f: T => U): IO.Defer[U]
-    def get: T
-    def run: IO.Defer[T]
-    def runIfFileExists: IO.Defer[T]
-    def runBlocking: IO[T]
-    def runBlockingIfFileExists: IO[T]
-    def runInFuture(implicit ec: ExecutionContext): Future[T]
-    def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[T]
-    def getOrElse[U >: T](default: => U): U
-    def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U]
-    def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U]
+    def flatMap[B](f: A => IO.Defer[B]): IO.Defer[B]
+    def mapDeferred[B](f: A => B): IO.Defer[B]
+    def get: A
+    def run: IO.Defer[A]
+    def runIfFileExists: IO.Defer[A]
+    def runBlocking: IO[A]
+    def runBlockingIfFileExists: IO[A]
+    def runInFuture(implicit ec: ExecutionContext): Future[A]
+    def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[A]
+    def getOrElse[B >: A](default: => B): B
+    def recover[B >: A](f: PartialFunction[IO.Error, B]): IO[B]
+    def recoverWith[B >: A](f: PartialFunction[IO.Error, IO[B]]): IO[B]
     def failed: IO[IO.Error]
-    def flattenDeferred[U](implicit ev: T <:< IO.Defer[U]): IO.Defer[U]
+    def flattenDeferred[B](implicit ev: A <:< IO.Defer[B]): IO.Defer[B]
   }
 
-  implicit class IterableIOImplicit[T: ClassTag](iterable: Iterable[T]) {
+  implicit class IterableIOImplicit[A: ClassTag](iterable: Iterable[A]) {
 
-    def foreachIO[R](f: T => IO[R], failFast: Boolean = true): Option[IO.Failure[R]] = {
+    def foreachIO[R](f: A => IO[R], failFast: Boolean = true): Option[IO.Failure[R]] = {
       val it = iterable.iterator
       var failure: Option[IO.Failure[R]] = None
       while (it.hasNext && (failure.isEmpty || !failFast)) {
@@ -127,7 +127,7 @@ object IO {
     }
 
     //returns the first IO.Success(Some(_)).
-    def untilSome[R](f: T => IO[Option[R]]): IO[Option[(R, T)]] = {
+    def untilSome[R](f: A => IO[Option[R]]): IO[Option[(R, A)]] = {
       iterable.iterator foreach {
         item =>
           f(item) match {
@@ -146,7 +146,7 @@ object IO {
       IO.none
     }
 
-    def untilSomeResult[R](f: T => IO[Option[R]]): IO[Option[R]] = {
+    def untilSomeResult[R](f: A => IO[Option[R]]): IO[Option[R]] = {
       iterable.iterator foreach {
         item =>
           f(item) match {
@@ -165,7 +165,7 @@ object IO {
       IO.none
     }
 
-    def mapIO[R: ClassTag](block: T => IO[R],
+    def mapIO[R: ClassTag](block: A => IO[R],
                            recover: (Slice[R], IO.Failure[Slice[R]]) => Unit = (_: Slice[R], _: IO.Failure[Slice[R]]) => (),
                            failFast: Boolean = true): IO[Slice[R]] = {
       val it = iterable.iterator
@@ -189,7 +189,7 @@ object IO {
       }
     }
 
-    def flatMapIO[R: ClassTag](ioBlock: T => IO[Iterable[R]],
+    def flatMapIO[R: ClassTag](ioBlock: A => IO[Iterable[R]],
                                recover: (Iterable[R], IO.Failure[Slice[R]]) => Unit = (_: Iterable[R], _: IO.Failure[Iterable[R]]) => (),
                                failFast: Boolean = true): IO[Iterable[R]] = {
       val it = iterable.iterator
@@ -216,7 +216,7 @@ object IO {
 
     def foldLeftIO[R: ClassTag](r: R,
                                 failFast: Boolean = true,
-                                recover: (R, IO.Failure[R]) => Unit = (_: R, _: IO.Failure[R]) => ())(f: (R, T) => IO[R]): IO[R] = {
+                                recover: (R, IO.Failure[R]) => Unit = (_: R, _: IO.Failure[R]) => ())(f: (R, A) => IO[R]): IO[R] = {
       val it = iterable.iterator
       var failure: Option[IO.Failure[R]] = None
       var result: R = r
@@ -282,7 +282,7 @@ object IO {
 
   object Error {
 
-    def apply[T](exception: Throwable): IO.Error =
+    def apply[A](exception: Throwable): IO.Error =
       exception match {
         //known Exception that can occur which can return their typed Error version.
         case exception: IO.Exception.Busy => exception.error
@@ -309,7 +309,7 @@ object IO {
 
         //Fatal error. This error is not expected to occur on a healthy database. This error would indicate corruption.
         //AppendixRepairer can be used to repair map files.
-        case exception => Error.Fatal(exception)
+        case exception: Throwable => Error.Fatal(exception)
       }
 
     sealed trait Busy extends Error {
@@ -413,7 +413,7 @@ object IO {
     case class Fatal(exception: Throwable) extends Error
   }
 
-  @inline final def tryOrNone[T](block: => T): Option[T] =
+  @inline final def tryOrNone[A](block: => A): Option[A] =
     try
       Option(block)
     catch {
@@ -421,14 +421,14 @@ object IO {
         None
     }
 
-  @inline final def apply[T](f: => T): IO[T] =
+  @inline final def apply[A](f: => A): IO[A] =
     try IO.Success(f) catch {
       case ex: Throwable =>
         IO.Failure(IO.Error(ex))
     }
 
   object CatchLeak {
-    @inline final def apply[T](f: => IO[T]): IO[T] =
+    @inline final def apply[A](f: => IO[A]): IO[A] =
       try
         f
       catch {
@@ -437,7 +437,7 @@ object IO {
       }
   }
 
-  def fromTry[T](tryBlock: Try[T]): IO[T] =
+  def fromTry[A](tryBlock: Try[A]): IO[A] =
     tryBlock match {
       case scala.util.Success(value) =>
         IO.Success(value)
@@ -446,72 +446,72 @@ object IO {
         IO.Failure(exception)
     }
 
-  def fromFuture[T](future: Future[T])(implicit ec: ExecutionContext): IO.Defer[T] =
+  def fromFuture[A](future: Future[A])(implicit ec: ExecutionContext): IO.Defer[A] =
     IO.Defer(future)
 
   object Success {
-    def apply[T](value: T): IO.Success[T] =
+    def apply[A](value: A): IO.Success[A] =
       new Success(value)
   }
 
-  final case class Success[+T](value: T) extends IO.Defer[T] with IO[T] {
+  final case class Success[+A](value: A) extends IO.Defer[A] with IO[A] {
     override def isFailure: Boolean = false
     override def isSuccess: Boolean = true
     override def isDeferred: Boolean = false
-    override def get: T = value
-    override def exists(f: T => Boolean): Boolean = f(value)
-    override def run: IO.Success[T] = this
-    override def runIfFileExists: IO.Success[T] = this
-    override def runBlocking: IO.Success[T] = this
-    override def runBlockingIfFileExists: IO[T] = this
-    override def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = Future.successful(value)
-    override def runInFuture(implicit ec: ExecutionContext): Future[T] = Future.successful(value)
-    override def getOrElse[U >: T](default: => U): U = get
-    override def orElse[U >: T](default: => IO[U]): IO.Success[U] = this
-    override def flatMap[U](f: T => IO[U]): IO[U] = IO.CatchLeak(f(get))
-    override def flatMap[U](f: T => IO.Defer[U]): IO.Defer[U] = f(get)
-    override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = get
-    override def flattenDeferred[U](implicit ev: T <:< IO.Defer[U]): IO.Defer[U] = get
-    override def foreach[U](f: T => U): Unit = f(get)
-    override def map[U](f: T => U): IO[U] = IO[U](f(get))
-    override def mapDeferred[U](f: T => U): IO.Defer[U] = IO(f(get)).asInstanceOf[IO.Defer[U]]
-    override def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] = this
-    override def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U] = this
+    override def get: A = value
+    override def exists(f: A => Boolean): Boolean = f(value)
+    override def run: IO.Success[A] = this
+    override def runIfFileExists: IO.Success[A] = this
+    override def runBlocking: IO.Success[A] = this
+    override def runBlockingIfFileExists: IO[A] = this
+    override def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[A] = Future.successful(value)
+    override def runInFuture(implicit ec: ExecutionContext): Future[A] = Future.successful(value)
+    override def getOrElse[B >: A](default: => B): B = get
+    override def orElse[B >: A](default: => IO[B]): IO.Success[B] = this
+    override def flatMap[B](f: A => IO[B]): IO[B] = IO.CatchLeak(f(get))
+    override def flatMap[B](f: A => IO.Defer[B]): IO.Defer[B] = f(get)
+    override def flatten[B](implicit ev: A <:< IO[B]): IO[B] = get
+    override def flattenDeferred[B](implicit ev: A <:< IO.Defer[B]): IO.Defer[B] = get
+    override def foreach[B](f: A => B): Unit = f(get)
+    override def map[B](f: A => B): IO[B] = IO[B](f(get))
+    override def mapDeferred[B](f: A => B): IO.Defer[B] = IO(f(get)).asInstanceOf[IO.Defer[B]]
+    override def recover[B >: A](f: PartialFunction[IO.Error, B]): IO[B] = this
+    override def recoverWith[B >: A](f: PartialFunction[IO.Error, IO[B]]): IO[B] = this
     override def failed: IO[IO.Error] = Failure(Error.Fatal(new UnsupportedOperationException("IO.Success.failed")))
-    override def toOption: Option[T] = Some(get)
-    override def toEither: Either[IO.Error, T] = Right(get)
-    override def filter(p: T => Boolean): IO[T] =
+    override def toOption: Option[A] = Some(get)
+    override def toEither: Either[IO.Error, A] = Right(get)
+    override def filter(p: A => Boolean): IO[A] =
       IO.CatchLeak(if (p(get)) this else IO.Failure(Error.Fatal(new NoSuchElementException("Predicate does not hold for " + get))))
-    override def toFuture: Future[T] = Future.successful(get)
-    override def toTry: scala.util.Try[T] = scala.util.Success(get)
-    override def onFailureSideEffect(f: IO.Failure[T] => Unit): IO.Success[T] = this
-    override def onSuccessSideEffect(f: T => Unit): IO.Success[T] = {
+    override def toFuture: Future[A] = Future.successful(get)
+    override def toTry: scala.util.Try[A] = scala.util.Success(get)
+    override def onFailureSideEffect(f: IO.Failure[A] => Unit): IO.Success[A] = this
+    override def onSuccessSideEffect(f: A => Unit): IO.Success[A] = {
       try f(get) finally {}
       this
     }
-    override def onCompleteSideEffect(f: IO[T] => Unit): IO[T] = {
+    override def onCompleteSideEffect(f: IO[A] => Unit): IO[A] = {
       try f(this) finally {}
       this
     }
-    override def asDeferred: IO.Defer[T] = this
-    override def asIO: IO[T] = this
+    override def asDeferred: IO.Defer[A] = this
+    override def asIO: IO[A] = this
   }
 
   object Defer {
 
-    @inline final def recover[T](f: => T): IO.Defer[T] =
+    @inline final def recover[A](f: => A): IO.Defer[A] =
       try IO.Success(f) catch {
         case ex: Throwable =>
           recover(ex, f)
       }
 
-    @inline final def recoverIfFileExists[T](f: => T): IO.Defer[T] =
+    @inline final def recoverIfFileExists[A](f: => A): IO.Defer[A] =
       try IO.Success(f) catch {
         case ex: Throwable =>
           recoverIfFileExists(ex, f)
       }
 
-    def recover[T](failure: IO.Failure[T], operation: => T): IO.Defer[T] =
+    def recover[A](failure: IO.Failure[A], operation: => A): IO.Defer[A] =
       failure.error match {
         case busy: Error.Busy =>
           IO.Defer(operation, busy)
@@ -527,7 +527,7 @@ object IO {
           failure
       }
 
-    def recover[T](exception: Throwable, operation: => T): IO.Defer[T] =
+    def recover[A](exception: Throwable, operation: => A): IO.Defer[A] =
       Error(exception) match {
         case error: Error.Busy =>
           IO.Deferred(operation, error)
@@ -536,7 +536,7 @@ object IO {
           IO.Failure(other)
       }
 
-    def recoverIfFileExists[T](exception: Throwable, operation: => T): IO.Defer[T] =
+    def recoverIfFileExists[A](exception: Throwable, operation: => A): IO.Defer[A] =
       Error(exception) match {
         //@formatter:off
         case error: Error.FileNotFound => IO.Failure(error)
@@ -547,10 +547,10 @@ object IO {
         //@formatter:on
       }
 
-    @inline final def apply[T](value: => T, error: Error.Busy): IO.Defer[T] =
+    @inline final def apply[A](value: => A, error: Error.Busy): IO.Defer[A] =
       new Deferred(_ => value, error)
 
-    final def apply[T](future: Future[T])(implicit ec: ExecutionContext): IO.Defer[T] = {
+    final def apply[A](future: Future[A])(implicit ec: ExecutionContext): IO.Defer[A] = {
       val error = IO.Error.BusyFuture(Reserve(()))
       future onComplete {
         _ =>
@@ -568,14 +568,14 @@ object IO {
   }
 
   object Deferred {
-    @inline final def apply[T](value: => T, error: Error.Busy): Deferred[T] =
+    @inline final def apply[A](value: => A, error: Error.Busy): Deferred[A] =
       new Deferred(_ => value, error)
   }
 
-  final case class Deferred[T](value: Unit => T,
-                               error: Error.Busy) extends IO.Defer[T] {
+  final case class Deferred[A](value: Unit => A,
+                               error: Error.Busy) extends IO.Defer[A] {
 
-    @volatile private var _value: Option[T] = None
+    @volatile private var _value: Option[A] = None
 
     def isValueDefined: Boolean =
       _value.isDefined
@@ -591,22 +591,22 @@ object IO {
     /**
       * Runs composed functions does not perform any recovery.
       */
-    private def forceGet: T =
+    private def forceGet: A =
       _value getOrElse {
         val got = value()
         _value = Some(got)
         got
       }
 
-    override def runBlockingIfFileExists: IO[T] = {
+    override def runBlockingIfFileExists: IO[A] = {
       @tailrec
-      def doGet(later: IO.Deferred[T]): IO[T] = {
+      def doGet(later: IO.Deferred[A]): IO[A] = {
         Reserve.blockUntilFree(later.error.reserve)
         later.runIfFileExists match {
           case success @ IO.Success(_) =>
             success
 
-          case later: IO.Deferred[T] =>
+          case later: IO.Deferred[A] =>
             doGet(later)
 
           case failure @ IO.Failure(_) =>
@@ -620,16 +620,16 @@ object IO {
     /**
       * Opens all [[IO.Defer]] types to read the final value in a blocking manner.
       */
-    def runBlocking: IO[T] = {
+    def runBlocking: IO[A] = {
 
       @tailrec
-      def doGet(later: IO.Deferred[T]): IO[T] = {
+      def doGet(later: IO.Deferred[A]): IO[A] = {
         Reserve.blockUntilFree(later.error.reserve)
         later.run match {
           case success @ IO.Success(_) =>
             success
 
-          case later: IO.Deferred[T] =>
+          case later: IO.Deferred[A] =>
             doGet(later)
 
           case failure @ IO.Failure(_) =>
@@ -643,14 +643,14 @@ object IO {
     /**
       * Opens all [[IO.Defer]] types to read the final value in a non-blocking manner.
       */
-    def runInFuture(implicit ec: ExecutionContext): Future[T] = {
+    def runInFuture(implicit ec: ExecutionContext): Future[A] = {
 
-      def doGet(later: IO.Deferred[T]): Future[T] =
+      def doGet(later: IO.Deferred[A]): Future[A] =
         Reserve.future(later.error.reserve).map(_ => later.run) flatMap {
           case IO.Success(value) =>
             Future.successful(value)
 
-          case later: IO.Deferred[T] =>
+          case later: IO.Deferred[A] =>
             doGet(later)
 
           case IO.Failure(error) =>
@@ -663,14 +663,14 @@ object IO {
     /**
       * Opens all [[IO.Defer]] types to read the final value in a non-blocking manner.
       */
-    def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = {
+    def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[A] = {
 
-      def doGet(later: IO.Deferred[T]): Future[T] =
+      def doGet(later: IO.Deferred[A]): Future[A] =
         Reserve.future(later.error.reserve).map(_ => later.runIfFileExists) flatMap {
           case IO.Success(value) =>
             Future.successful(value)
 
-          case later: IO.Deferred[T] =>
+          case later: IO.Deferred[A] =>
             doGet(later)
 
           case IO.Failure(error) =>
@@ -686,99 +686,99 @@ object IO {
       * @throws [[IO.Exception.Busy]]. Used for Java API.
       */
     @throws[IO.Exception.Busy]
-    def get: T =
+    def get: A =
       if (_value.isDefined || !isBusy)
         forceGet
       else
         throw IO.Exception.Busy(error)
 
-    def run: IO.Defer[T] =
+    def run: IO.Defer[A] =
       if (_value.isDefined || !isBusy)
         IO.Defer.recover(get)
       else
         this
 
-    def runIfFileExists: IO.Defer[T] =
+    def runIfFileExists: IO.Defer[A] =
       if (_value.isDefined || !isBusy)
         IO.Defer.recoverIfFileExists(get)
       else
         this
 
-    def getOrElse[U >: T](default: => U): U =
+    def getOrElse[B >: A](default: => B): B =
       IO(forceGet).getOrElse(default)
 
-    def flatMap[U](f: T => IO.Defer[U]): IO.Deferred[U] =
+    def flatMap[B](f: A => IO.Defer[B]): IO.Deferred[B] =
       IO.Deferred(
         value = _ => f(get).get,
         error = error
       )
 
-    def flattenDeferred[U](implicit ev: T <:< IO.Defer[U]): IO.Defer[U] = forceGet
-    def map[U](f: T => U): IO.Defer[U] = IO.Deferred[U]((_: Unit) => f(forceGet), error)
-    def mapDeferred[U](f: T => U): IO.Defer[U] = map(f)
-    def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] = IO(forceGet).recover(f)
-    def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U] = IO(forceGet).recoverWith(f)
+    def flattenDeferred[B](implicit ev: A <:< IO.Defer[B]): IO.Defer[B] = forceGet
+    def map[B](f: A => B): IO.Defer[B] = IO.Deferred[B]((_: Unit) => f(forceGet), error)
+    def mapDeferred[B](f: A => B): IO.Defer[B] = map(f)
+    def recover[B >: A](f: PartialFunction[IO.Error, B]): IO[B] = IO(forceGet).recover(f)
+    def recoverWith[B >: A](f: PartialFunction[IO.Error, IO[B]]): IO[B] = IO(forceGet).recoverWith(f)
     def failed: IO[IO.Error] = IO(forceGet).failed
   }
 
   object Failure {
     val overlappingPushSegments = IO.Failure(IO.Error.OverlappingPushSegment)
 
-    @inline final def apply[T](exception: Throwable): IO.Failure[T] =
-      IO.Failure[T](IO.Error(exception))
+    @inline final def apply[A](exception: Throwable): IO.Failure[A] =
+      IO.Failure[A](IO.Error(exception))
 
-    @inline final def apply[T](message: String): IO.Failure[T] =
-      IO.Failure[T](IO.Error(new Exception(message)))
+    @inline final def apply[A](message: String): IO.Failure[A] =
+      IO.Failure[A](IO.Error(new Exception(message)))
   }
 
-  final case class Failure[+T](error: Error) extends IO.Defer[T] with IO[T] {
+  final case class Failure[+A](error: Error) extends IO.Defer[A] with IO[A] {
     override def isFailure: Boolean = true
     override def isSuccess: Boolean = false
     override def isDeferred: Boolean = false
-    override def get: T = throw error.exception
-    override def run: IO.Failure[T] = this
-    override def runIfFileExists: IO.Failure[T] = this
-    override def runBlocking: IO.Failure[T] = this
-    override def runBlockingIfFileExists: IO[T] = this
-    override def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = Future.failed(error.exception)
-    override def runInFuture(implicit ec: ExecutionContext): Future[T] = Future.failed(error.exception)
-    override def getOrElse[U >: T](default: => U): U = default
-    override def orElse[U >: T](default: => IO[U]): IO[U] = IO.CatchLeak(default)
-    override def flatMap[U](f: T => IO[U]): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
-    override def flatMap[U](f: T => IO.Defer[U]): IO.Defer[U] = this.asInstanceOf[IO.Defer[U]]
-    override def flatten[U](implicit ev: T <:< IO[U]): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
-    override def flattenDeferred[U](implicit ev: T <:< IO.Defer[U]): IO.Defer[U] = this.asInstanceOf[IO.Defer[U]]
-    override def foreach[U](f: T => U): Unit = ()
-    override def map[U](f: T => U): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
-    override def mapDeferred[U](f: T => U): IO.Defer[U] = this.asInstanceOf[IO.Defer[U]]
-    override def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] =
+    override def get: A = throw error.exception
+    override def run: IO.Failure[A] = this
+    override def runIfFileExists: IO.Failure[A] = this
+    override def runBlocking: IO.Failure[A] = this
+    override def runBlockingIfFileExists: IO[A] = this
+    override def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[A] = Future.failed(error.exception)
+    override def runInFuture(implicit ec: ExecutionContext): Future[A] = Future.failed(error.exception)
+    override def getOrElse[B >: A](default: => B): B = default
+    override def orElse[B >: A](default: => IO[B]): IO[B] = IO.CatchLeak(default)
+    override def flatMap[B](f: A => IO[B]): IO.Failure[B] = this.asInstanceOf[IO.Failure[B]]
+    override def flatMap[B](f: A => IO.Defer[B]): IO.Defer[B] = this.asInstanceOf[IO.Defer[B]]
+    override def flatten[B](implicit ev: A <:< IO[B]): IO.Failure[B] = this.asInstanceOf[IO.Failure[B]]
+    override def flattenDeferred[B](implicit ev: A <:< IO.Defer[B]): IO.Defer[B] = this.asInstanceOf[IO.Defer[B]]
+    override def foreach[B](f: A => B): Unit = ()
+    override def map[B](f: A => B): IO.Failure[B] = this.asInstanceOf[IO.Failure[B]]
+    override def mapDeferred[B](f: A => B): IO.Defer[B] = this.asInstanceOf[IO.Defer[B]]
+    override def recover[B >: A](f: PartialFunction[IO.Error, B]): IO[B] =
       IO.CatchLeak(if (f isDefinedAt error) IO.Success(f(error)) else this)
 
-    override def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U] =
+    override def recoverWith[B >: A](f: PartialFunction[IO.Error, IO[B]]): IO[B] =
       IO.CatchLeak(if (f isDefinedAt error) f(error) else this)
 
     override def failed: IO[IO.Error] = IO.Success(error)
-    override def toOption: Option[T] = None
-    override def toEither: Either[IO.Error, T] = Left(error)
-    override def filter(p: T => Boolean): IO.Failure[T] = this
-    override def toFuture: Future[T] = Future.failed(error.exception)
-    override def toTry: scala.util.Try[T] = scala.util.Failure(error.exception)
-    override def onFailureSideEffect(f: IO.Failure[T] => Unit): IO.Failure[T] = {
+    override def toOption: Option[A] = None
+    override def toEither: Either[IO.Error, A] = Left(error)
+    override def filter(p: A => Boolean): IO.Failure[A] = this
+    override def toFuture: Future[A] = Future.failed(error.exception)
+    override def toTry: scala.util.Try[A] = scala.util.Failure(error.exception)
+    override def onFailureSideEffect(f: IO.Failure[A] => Unit): IO.Failure[A] = {
       try f(this) finally {}
       this
     }
-    override def onCompleteSideEffect(f: IO[T] => Unit): IO[T] = onFailureSideEffect(f)
-    override def onSuccessSideEffect(f: T => Unit): IO.Failure[T] = this
+    override def onCompleteSideEffect(f: IO[A] => Unit): IO[A] = onFailureSideEffect(f)
+    override def onSuccessSideEffect(f: A => Unit): IO.Failure[A] = this
     def exception: Throwable = error.exception
-    def recoverToDeferred[U](operation: => IO.Defer[U]): IO.Defer[U] =
+    def recoverToDeferred[B](operation: => IO.Defer[B]): IO.Defer[B] =
     //it's already know it's a failure, do not run it again on recovery, just flatMap onto operation.
       IO.Defer.recover(this, ()) flatMap {
         _ =>
           operation
       }
 
-    override def asDeferred: IO.Defer[T] = this
-    override def asIO: IO[T] = this
-    override def exists(f: T => Boolean): Boolean = false
+    override def asDeferred: IO.Defer[A] = this
+    override def asIO: IO[A] = this
+    override def exists(f: A => Boolean): Boolean = false
   }
 }
