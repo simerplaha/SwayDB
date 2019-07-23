@@ -26,7 +26,7 @@ import swaydb.core.util.Bytes
 import swaydb.core.util.TimeUtil._
 import swaydb.data.slice.Reader
 import swaydb.data.util.ByteSizeOf
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 import scala.annotation.implicitNotFound
 import scala.concurrent.duration

@@ -63,7 +63,7 @@ object ErrorHandler {
     override def reserve(e: Unit): Option[Reserve[Unit]] = None
   }
 
-  implicit object CoreErrorHandler extends ErrorHandler[IO.Error] {
+  implicit object SIOErrorHandler extends ErrorHandler[IO.Error] {
     override def toException(e: IO.Error): Throwable =
       e.exception
 

@@ -34,7 +34,7 @@ import swaydb.data.slice.Slice
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 class HashIndexBlockSpec extends TestBase {
 

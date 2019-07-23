@@ -24,7 +24,7 @@ import swaydb.core.data.Transient
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.MaxKey
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 private[core] object GroupKeyCompressor {
 

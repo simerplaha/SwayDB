@@ -27,7 +27,7 @@ import swaydb.core.util.TimeUtil._
 import swaydb.IO._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 import scala.annotation.implicitNotFound
 import scala.collection.mutable

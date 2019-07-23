@@ -26,7 +26,7 @@ import swaydb.core.IOValues._
 import swaydb.core.TestBase
 
 import scala.collection.mutable.ListBuffer
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 class LevelRefSpec extends TestBase with MockFactory {
 

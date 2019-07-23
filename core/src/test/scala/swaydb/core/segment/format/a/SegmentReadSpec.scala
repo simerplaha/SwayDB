@@ -42,7 +42,7 @@ import swaydb.serializers._
 
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 class SegmentReadSpec0 extends SegmentReadSpec {
   val keyValuesCount = 100

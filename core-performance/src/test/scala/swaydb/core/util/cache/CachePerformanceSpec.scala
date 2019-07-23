@@ -24,7 +24,7 @@ import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.util.Benchmark
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 class CachePerformanceSpec extends WordSpec with Matchers {
 

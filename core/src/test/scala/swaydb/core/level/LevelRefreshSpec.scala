@@ -37,7 +37,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.concurrent.duration._
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 class LevelRefreshSpec0 extends LevelRefreshSpec
 

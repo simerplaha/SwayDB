@@ -27,7 +27,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.MapEntryWriter
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 import scala.reflect.ClassTag
 

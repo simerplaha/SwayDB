@@ -30,7 +30,7 @@ import swaydb.data.Reserve
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 class CacheSpec extends WordSpec with Matchers with MockFactory {
 

@@ -25,7 +25,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteUtil
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 private[swaydb] object Bytes {
 

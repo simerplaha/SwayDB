@@ -29,7 +29,7 @@ import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.IO._
 import swaydb.data.slice.Slice
 import swaydb.data.Reserve
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 import scala.annotation.tailrec
 import scala.util.hashing.MurmurHash3

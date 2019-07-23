@@ -30,7 +30,7 @@ import swaydb.core.io.file.BufferCleaner.State
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 private[core] object Cleaner {
   def apply(handle: MethodHandle): Cleaner =

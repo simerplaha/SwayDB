@@ -32,7 +32,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.util.Try
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 class BinarySearchIndexBlockSpec extends TestBase {
 

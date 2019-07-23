@@ -27,7 +27,7 @@ import swaydb.data.util.ByteUtil
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 class BytesSpec extends WordSpec with Matchers {
 

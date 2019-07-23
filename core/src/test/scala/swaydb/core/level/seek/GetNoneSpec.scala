@@ -33,7 +33,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.Reserve
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionValues {
 

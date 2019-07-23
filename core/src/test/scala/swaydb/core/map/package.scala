@@ -30,7 +30,7 @@ import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.ExecutionContext
 import scala.util.Random
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 package object map {
 

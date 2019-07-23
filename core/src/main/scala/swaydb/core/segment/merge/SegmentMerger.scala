@@ -31,7 +31,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer

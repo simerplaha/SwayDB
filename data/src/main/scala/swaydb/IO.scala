@@ -44,12 +44,12 @@ sealed trait IO[+E, +A] {
   def isFailure: Boolean
   def isSuccess: Boolean
   def isDeferred: Boolean
-  def getOrElse[F >: E, B >: A](default: => B): B
+  def getOrElse[B >: A](default: => B): B
   def orElse[F >: E : ErrorHandler, B >: A](default: => IO[F, B]): IO[F, B]
   def get: A
   def foreach[B](f: A => B): Unit
   def map[B](f: A => B): IO[E, B]
-  def flatMap[F, B](f: A => IO[F, B]): IO[F, B]
+  def flatMap[F >: E, B](f: A => IO[F, B]): IO[F, B]
   def asDeferred: IO.Defer[E, A]
   def asIO: IO[E, A]
   def exists(f: A => Boolean): Boolean
@@ -57,7 +57,7 @@ sealed trait IO[+E, +A] {
   @inline final def withFilter(p: A => Boolean): WithFilter = new WithFilter(p)
   class WithFilter(p: A => Boolean) {
     def map[B](f: A => B): IO[E, B] = IO.this filter p map f
-    def flatMap[F, B](f: A => IO[F, B]): IO[F, B] = IO.this filter p flatMap f
+    def flatMap[F >: E, B](f: A => IO[F, B]): IO[F, B] = IO.this filter p flatMap f
     def foreach[B](f: A => B): Unit = IO.this filter p foreach f
     def withFilter(q: A => Boolean): WithFilter = new WithFilter(x => p(x) && q(x))
   }
@@ -279,7 +279,7 @@ object IO {
     def runBlockingIfFileExists: IO[E, A]
     def runInFuture(implicit ec: ExecutionContext): Future[A]
     def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[A]
-    def getOrElse[F >: E, B >: A](default: => B): B
+    def getOrElse[B >: A](default: => B): B
     def recover[F >: E : ErrorHandler, B >: A](f: PartialFunction[F, B]): IO[F, B]
     def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[F, IO[F, B]]): IO[F, B]
     def failed: IO[Nothing, E]
@@ -463,9 +463,9 @@ object IO {
     override def runBlockingIfFileExists: IO[E, A] = this
     override def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[A] = Future.successful(value)
     override def runInFuture(implicit ec: ExecutionContext): Future[A] = Future.successful(value)
-    override def getOrElse[F >: E, B >: A](default: => B): B = get
+    override def getOrElse[B >: A](default: => B): B = get
     override def orElse[F >: E : ErrorHandler, B >: A](default: => IO[F, B]): IO.Success[F, B] = this
-    override def flatMap[F, B](f: A => IO[F, B]): IO[F, B] = f(get)
+    override def flatMap[F >: E, B](f: A => IO[F, B]): IO[F, B] = f(get)
     override def flatMap[F: ErrorHandler, B](f: A => IO.Defer[F, B]): IO.Defer[F, B] = f(get)
     override def flatten[F, B](implicit ev: A <:< IO[F, B]): IO[F, B] = get
     override def flattenDeferred[F, B](implicit ev: A <:< IO.Defer[F, B]): IO.Defer[F, B] = get
@@ -693,7 +693,7 @@ object IO {
       else
         this
 
-    def getOrElse[F >: E, B >: A](default: => B): B =
+    def getOrElse[B >: A](default: => B): B =
       IO[E, B](forceGet).getOrElse(default)
 
     def flatMap[F: ErrorHandler, B](f: A => IO.Defer[F, B]): IO.Deferred[F, B] =
@@ -733,9 +733,9 @@ object IO {
     override def runBlockingIfFileExists: IO[E, A] = this
     override def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[A] = Future.failed(exception)
     override def runInFuture(implicit ec: ExecutionContext): Future[A] = Future.failed(exception)
-    override def getOrElse[F >: E, B >: A](default: => B): B = default
+    override def getOrElse[B >: A](default: => B): B = default
     override def orElse[F >: E : ErrorHandler, B >: A](default: => IO[F, B]): IO[F, B] = IO.CatchLeak(default)
-    override def flatMap[F, B](f: A => IO[F, B]): IO.Failure[F, B] = this.asInstanceOf[IO.Failure[F, B]]
+    override def flatMap[F >: E, B](f: A => IO[F, B]): IO.Failure[F, B] = this.asInstanceOf[IO.Failure[F, B]]
     override def flatMap[F: ErrorHandler, B](f: A => IO.Defer[F, B]): IO.Defer[F, B] = this.asInstanceOf[IO.Defer[F, B]]
     override def flatten[F, B](implicit ev: A <:< IO[F, B]): IO.Failure[F, B] = this.asInstanceOf[IO.Failure[F, B]]
     override def flattenDeferred[F, B](implicit ev: A <:< IO.Defer[F, B]): IO.Defer[F, B] = this.asInstanceOf[IO.Defer[F, B]]

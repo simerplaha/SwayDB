@@ -26,7 +26,7 @@ import swaydb.core.util.Bytes
 import swaydb.data.slice.Reader
 
 import scala.annotation.implicitNotFound
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 @implicitNotFound("Type class implementation not found for TimeReader of type ${T}")
 sealed trait TimeReader[-T] {

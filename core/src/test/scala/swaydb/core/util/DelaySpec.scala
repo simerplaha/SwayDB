@@ -25,7 +25,7 @@ import swaydb.IO
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 class DelaySpec extends WordSpec with Matchers with Eventually {
 

@@ -29,7 +29,7 @@ import swaydb.data.config.{IOAction, IOStrategy, RandomKeyIndex, UncompressedBlo
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 import scala.annotation.tailrec
 import scala.collection.mutable

@@ -29,7 +29,7 @@ import swaydb.core.io.file.IOEffect
 import swaydb.core.segment.Segment
 import swaydb.data.config.Dir
 import swaydb.data.order.KeyOrder
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 class PathsDistributorSpec extends TestBase with MockFactory {
 

@@ -29,7 +29,7 @@ import swaydb.core.util.FiniteDurationUtil._
 import swaydb.IO._
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer

@@ -26,7 +26,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.IO._
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 private[core] object ApplyMerger {
 

@@ -31,7 +31,7 @@ import swaydb.core.util.Extension
 import swaydb.core.util.PipeOps._
 import swaydb.IO._
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 import scala.collection.JavaConverters._
 

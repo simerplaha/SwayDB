@@ -26,7 +26,7 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.FunctionUtil
 import swaydb.data.config.IOStrategy
 import swaydb.data.Reserve
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 private[core] object Cache {
 

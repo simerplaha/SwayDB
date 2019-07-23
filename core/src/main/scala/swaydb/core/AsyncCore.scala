@@ -19,7 +19,7 @@
 
 package swaydb.core
 
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 import swaydb.IO.SIO
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.SwayFunction

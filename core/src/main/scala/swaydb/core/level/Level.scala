@@ -54,7 +54,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 private[core] object Level extends LazyLogging {
 
@@ -1303,7 +1303,7 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix contains minKey
 
   override def bloomFilterKeyValueCount: IO[IO.Error, Int] =
-    appendix.foldLeft(IO(0)) {
+    appendix.foldLeft(IO[IO.Error, Int](0)) {
       case (currentTotal, (_, segment)) =>
         segment.getBloomFilterKeyValueCount() flatMap {
           segmentSize =>

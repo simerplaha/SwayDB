@@ -30,7 +30,7 @@ import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.MaxKey
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 
 private[core] object SegmentCache {
 

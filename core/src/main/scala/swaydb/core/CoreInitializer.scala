@@ -22,7 +22,7 @@ package swaydb.core
 import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.ErrorHandler.CoreErrorHandler
+import swaydb.ErrorHandler.SIOErrorHandler
 import swaydb.IO
 import swaydb.IO.SIO
 import swaydb.core.actor.WiredActor
