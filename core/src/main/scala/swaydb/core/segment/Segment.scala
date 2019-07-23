@@ -41,7 +41,7 @@ import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.MaxKey
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
@@ -50,7 +50,7 @@ import scala.concurrent.duration.Deadline
 private[core] object Segment extends LazyLogging {
 
   val emptyIterable = Iterable.empty[Segment]
-  val emptyIterableIO = IO.Success[Nothing, Iterable[Segment]](emptyIterable)(ErrorHandler.NothingErrorHandler)
+  val emptyIterableIO = IO.Success[Nothing, Iterable[Segment]](emptyIterable)(ErrorHandler.Nothing)
 
   def memory(path: Path,
              createdInLevel: Long,

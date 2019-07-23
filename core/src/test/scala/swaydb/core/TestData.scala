@@ -22,8 +22,8 @@ package swaydb.core
 import java.nio.file.Path
 
 import org.scalatest.Matchers._
-import swaydb.ErrorHandler.NothingErrorHandler
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.Nothing
+import swaydb.ErrorHandler.CoreError
 import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
@@ -2686,6 +2686,6 @@ object TestData {
             block = ValuesBlock(offset, 0, None),
             bytes = bytes
           )
-        )(NothingErrorHandler)
+        )(Nothing)
     }
 }

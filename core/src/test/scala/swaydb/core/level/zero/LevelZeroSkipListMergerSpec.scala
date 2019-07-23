@@ -31,7 +31,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.JavaConverters._
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
   implicit val keyOrder = swaydb.data.order.KeyOrder.default

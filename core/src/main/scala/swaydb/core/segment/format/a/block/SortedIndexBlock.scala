@@ -34,7 +34,7 @@ import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 import scala.annotation.tailrec
 

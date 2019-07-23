@@ -45,25 +45,25 @@ object ErrorHandler {
         None
     }
 
-  object NothingErrorHandler extends ErrorHandler[Nothing] {
+  object Nothing extends ErrorHandler[Nothing] {
     override def toException(e: Nothing): Throwable = new Exception("Nothing value.")
     override def fromException[F <: Nothing](e: Throwable): F = throw e
     override def reserve(e: Nothing): Option[Reserve[Unit]] = None
   }
 
-  implicit object ThrowableErrorHandler extends ErrorHandler[Throwable] {
+  implicit object Throwable extends ErrorHandler[Throwable] {
     override def toException(e: Throwable): Throwable = e
     override def fromException[F <: Throwable](e: Throwable): F = throw e
     override def reserve(e: Throwable): Option[Reserve[Unit]] = None
   }
 
-  implicit object UnitErrorHandler extends ErrorHandler[Unit] {
+  implicit object Unit extends ErrorHandler[Unit] {
     override def toException(e: Unit): Throwable = new Exception("Unit value.")
     override def fromException[F <: Unit](e: Throwable): F = Unit.asInstanceOf[F]
     override def reserve(e: Unit): Option[Reserve[Unit]] = None
   }
 
-  implicit object SIOErrorHandler extends ErrorHandler[IO.Error] {
+  implicit object CoreError extends ErrorHandler[IO.Error] {
     override def toException(e: IO.Error): Throwable =
       e.exception
 
@@ -76,7 +76,6 @@ object ErrorHandler {
           Some(busy.reserve)
 
         case Error.OverlappingPushSegment |
-             Error.OverlappingPushSegment |
              Error.NoSegmentsRemoved |
              Error.NotSentToNextLevel |
              _: Error.ReceivedKeyValuesToMergeWithoutTargetSegment |

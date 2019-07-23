@@ -37,7 +37,7 @@ import swaydb.serializers._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 class CompactionSpec0 extends CompactionSpec
 

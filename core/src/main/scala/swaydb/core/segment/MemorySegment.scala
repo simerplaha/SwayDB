@@ -39,7 +39,7 @@ import swaydb.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.MaxKey
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.Deadline

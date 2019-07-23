@@ -31,7 +31,7 @@ import swaydb.IO._
 import swaydb.data.api.grouping.Compression
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Deadline

@@ -27,7 +27,7 @@ import swaydb.data.Base._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
-import swaydb.ErrorHandler.ThrowableErrorHandler
+import swaydb.ErrorHandler.Throwable
 import swaydb.IO.Error
 
 class IOFailureSpec extends WordSpec with Matchers {

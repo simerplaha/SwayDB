@@ -34,7 +34,7 @@ import swaydb.core.util.Extension
 import swaydb.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._

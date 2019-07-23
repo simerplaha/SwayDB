@@ -29,7 +29,7 @@ import swaydb.data.compression.LZ4Compressor.{Fast, High}
 import swaydb.data.compression.LZ4Instance
 import swaydb.data.compression.LZ4Instance._
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.ThrowableErrorHandler
+import swaydb.ErrorHandler.Throwable
 
 private[swaydb] sealed trait CompressorInternal {
   val minCompressionPercentage: Double

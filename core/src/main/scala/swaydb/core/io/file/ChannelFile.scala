@@ -26,7 +26,7 @@ import java.nio.file.{Path, StandardOpenOption}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 private[file] object ChannelFile {
   def write(path: Path): IO[IO.Error, ChannelFile] =

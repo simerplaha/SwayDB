@@ -34,7 +34,7 @@ import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.MaxKey
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 import scala.concurrent.duration.Deadline
 

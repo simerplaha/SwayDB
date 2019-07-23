@@ -31,7 +31,7 @@ import swaydb.IO._
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 import swaydb.data.Reserve
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 import scala.annotation.tailrec
 

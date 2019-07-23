@@ -20,7 +20,7 @@
 package swaydb.core.util.cache
 
 import swaydb.IO
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 object Lazy {
   def value[T](synchronised: Boolean, stored: Boolean): LazyValue[T] =

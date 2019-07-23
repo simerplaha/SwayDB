@@ -19,7 +19,7 @@
 
 package swaydb.data.io
 
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 import swaydb.IO.{SIO, TIO}
 import swaydb.{ErrorHandler, IO}
 

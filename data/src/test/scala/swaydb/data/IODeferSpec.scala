@@ -29,7 +29,7 @@ import swaydb.data.Base._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 class IODeferSpec extends WordSpec with Matchers {
 

@@ -25,7 +25,7 @@ import swaydb.IO
 import swaydb.data.compression.{DecompressorId, LZ4Decompressor, LZ4Instance}
 import swaydb.data.slice.Slice
 import swaydb.data.util.PipeOps._
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 private[swaydb] sealed trait DecompressorInternal {
 

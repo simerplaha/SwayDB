@@ -27,7 +27,7 @@ import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.util.cache.Cache
 import swaydb.data.slice.Reader
 
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 object UpdateReader extends EntryReader[Persistent.Update] {
 

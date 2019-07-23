@@ -21,7 +21,7 @@ package swaydb.core.map.serializer
 
 import swaydb.IO
 import swaydb.macros.SealedList
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 sealed trait RangeValueId {
   val id: Int

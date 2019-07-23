@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.block.reader
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 class BlockReaderCacheSpec extends WordSpec with Matchers {
 

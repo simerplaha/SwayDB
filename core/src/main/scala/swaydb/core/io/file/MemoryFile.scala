@@ -24,7 +24,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.ThrowableErrorHandler
+import swaydb.ErrorHandler.Throwable
 
 private[file] object MemoryFile {
   def apply(path: Path, bytes: Slice[Byte]): DBFileType =

@@ -31,7 +31,7 @@ import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 object SegmentFooterBlock {
   val blockName = this.getClass.getSimpleName.dropRight(1)

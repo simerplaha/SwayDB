@@ -7,7 +7,7 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.KeyOrder
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 class SegmentBlockCacheSpec extends TestBase {
   implicit val order = KeyOrder.default

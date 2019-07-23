@@ -47,7 +47,7 @@ import scala.util.Random
 import swaydb.core.io.file.DBFile
 import org.scalatest.OptionValues._
 import swaydb.core.segment.format.a.block.SegmentIO
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 class MapSpec extends TestBase {
 

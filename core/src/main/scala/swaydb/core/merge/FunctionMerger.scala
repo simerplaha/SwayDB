@@ -25,7 +25,7 @@ import swaydb.core.data.{Memory, SwayFunction, SwayFunctionOutput, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.SIOErrorHandler
+import swaydb.ErrorHandler.CoreError
 
 private[core] object FunctionMerger {
 
