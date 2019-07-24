@@ -19,6 +19,7 @@
 
 package swaydb
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.Reserve
 
 trait ErrorHandler[-E] {
@@ -27,7 +28,7 @@ trait ErrorHandler[-E] {
   def reserve(e: E): Option[Reserve[Unit]]
 }
 
-object ErrorHandler {
+object ErrorHandler extends LazyLogging {
   def toException[E](error: E)(implicit errorHandler: ErrorHandler[E]): Throwable =
     errorHandler.toException(error)
 
@@ -39,8 +40,7 @@ object ErrorHandler {
       errorHandler.reserve(e)
     catch {
       case exception: Throwable =>
-        //todo - log this instead.
-        exception.printStackTrace()
+        logger.error("Failed to fetch Reserve. Stopping recovery.", exception)
         None
     }
 
@@ -55,5 +55,4 @@ object ErrorHandler {
     override def fromException[F <: Throwable](e: Throwable): F = e.asInstanceOf[F]
     override def reserve(e: Throwable): Option[Reserve[Unit]] = None
   }
-
 }

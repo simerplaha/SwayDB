@@ -82,11 +82,14 @@ object Tag {
 
   implicit val sio: Tag[Core.IO] =
     new Tag[Core.IO] {
-      override def apply[A](a: => A): Core.IO[A] = Core.IO(a)
+
+      import Core.IO.Error.ErrorHandler
+
+      override def apply[A](a: => A): Core.IO[A] = IO(a)
       override def map[A, B](a: A)(f: A => B): Core.IO[B] = IO(f(a))
       override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
       override def flatMap[A, B](fa: Core.IO[A])(f: A => Core.IO[B]): Core.IO[B] = fa.flatMap(f)
-      override def success[A](value: A): Core.IO[A] = IO.Success(value)
+      override def success[A](value: A): Core.IO[A] = Core.IO.successful(value)
       override def failure[A](exception: Throwable): Core.IO[A] = IO.failed(exception)
       override def none[A]: Core.IO[Option[A]] = IO.none
       override def toFuture[A](a: Core.IO[A]): Future[A] = a.toFuture

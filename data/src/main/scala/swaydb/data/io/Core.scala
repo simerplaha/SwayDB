@@ -37,6 +37,9 @@ object Core {
     def apply[T](f: => T): Core.IO[T] =
       swaydb.IO[Core.IO.Error, T](f)(Core.IO.Error.ErrorHandler)
 
+    def successful[T](f: T): swaydb.IO.Success[Core.IO.Error, T] =
+      swaydb.IO.successful[Core.IO.Error, T](f)
+
     /**
       * Exception types for all known [[Error]]s that can occur. Each [[Error]] can be converted to
       * Exception which which can then be converted back to [[Error]].

@@ -84,7 +84,7 @@ lazy val data =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies ++= testDependencies
+      libraryDependencies ++= commonDependencies
     ).dependsOn(macros % "compile-internal")
 
 lazy val api =
