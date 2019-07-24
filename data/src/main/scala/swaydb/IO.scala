@@ -88,7 +88,6 @@ object IO {
   val emptySeqBytes: Success[Nothing, Seq[Slice[Byte]]] = IO.Success(Seq.empty[Slice[Byte]])(Nothing)
   val ok: Success[Nothing, OK.type] = IO.Success(OK)(Nothing)
 
-
   sealed trait Defer[+E, +A] {
     def isFailure: Boolean
     def isSuccess: Boolean
@@ -543,7 +542,6 @@ object IO {
     new IO.Failure[E, A](ErrorHandler.fromException[E](new Exception(message)))
 
   final case class Failure[+E: ErrorHandler, +A](error: E) extends IO.Defer[E, A] with IO[E, A] {
-
     override def isFailure: Boolean = true
     override def isSuccess: Boolean = false
     override def isDeferred: Boolean = false

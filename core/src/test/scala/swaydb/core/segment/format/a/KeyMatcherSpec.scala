@@ -28,6 +28,7 @@ import swaydb.core.segment.format.a.block.KeyMatcher.Result._
 import swaydb.core.segment.format.a.block.{KeyMatcher, ValuesBlock}
 import swaydb.core.util.cache.Cache
 import swaydb.data.MaxKey
+import swaydb.data.io.Core
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -76,7 +77,7 @@ class KeyMatcherSpec extends TestBase {
       * A tuple indicates a range's (fromKey, toKey)
       */
 
-    val noneRangeValueCache = Cache.empty[ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)]((None, Value.Remove(None, Time.empty)))
+    val noneRangeValueCache = Cache.empty[Core.IO.Error, ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)]((None, Value.Remove(None, Time.empty)))
 
     implicit def toRange(tuple: (Int, Int)): Persistent.Range =
       Persistent.Range(tuple._1, tuple._2, noneRangeValueCache, 0, 0, 0, 0, 0, 0, isPrefixCompressed)

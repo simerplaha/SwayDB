@@ -1317,7 +1317,7 @@ private[core] object Persistent {
   object Put {
     def fromCache(key: Slice[Byte],
                   deadline: Option[Deadline],
-                  valueCache: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  valueCache: Cache[Core.IO.Error, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                   time: Time,
                   nextIndexOffset: Int,
                   nextIndexSize: Int,
@@ -1350,7 +1350,7 @@ private[core] object Persistent {
 
   case class Put(private var _key: Slice[Byte],
                  deadline: Option[Deadline],
-                 private val valueCache: Cache[ValuesBlock.Offset, Option[Slice[Byte]]],
+                 private val valueCache: Cache[Core.IO.Error, ValuesBlock.Offset, Option[Slice[Byte]]],
                  private var _time: Time,
                  nextIndexOffset: Int,
                  nextIndexSize: Int,
@@ -1415,7 +1415,7 @@ private[core] object Persistent {
   object Update {
     def fromCache(key: Slice[Byte],
                   deadline: Option[Deadline],
-                  valueCache: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  valueCache: Cache[Core.IO.Error, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                   time: Time,
                   nextIndexOffset: Int,
                   nextIndexSize: Int,
@@ -1448,7 +1448,7 @@ private[core] object Persistent {
 
   case class Update(private var _key: Slice[Byte],
                     deadline: Option[Deadline],
-                    private val valueCache: Cache[ValuesBlock.Offset, Option[Slice[Byte]]],
+                    private val valueCache: Cache[Core.IO.Error, ValuesBlock.Offset, Option[Slice[Byte]]],
                     private var _time: Time,
                     nextIndexOffset: Int,
                     nextIndexSize: Int,
@@ -1545,7 +1545,7 @@ private[core] object Persistent {
 
   object Function {
     def fromCache(key: Slice[Byte],
-                  valueCache: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  valueCache: Cache[Core.IO.Error, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                   time: Time,
                   nextIndexOffset: Int,
                   nextIndexSize: Int,
@@ -1576,7 +1576,7 @@ private[core] object Persistent {
   }
 
   case class Function(private var _key: Slice[Byte],
-                      private val valueCache: Cache[ValuesBlock.Offset, Slice[Byte]],
+                      private val valueCache: Cache[Core.IO.Error, ValuesBlock.Offset, Slice[Byte]],
                       private var _time: Time,
                       nextIndexOffset: Int,
                       nextIndexSize: Int,
@@ -1631,7 +1631,7 @@ private[core] object Persistent {
     def fromCache(key: Slice[Byte],
                   time: Time,
                   deadline: Option[Deadline],
-                  valueCache: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  valueCache: Cache[Core.IO.Error, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                   nextIndexOffset: Int,
                   nextIndexSize: Int,
                   indexOffset: Int,
@@ -1669,7 +1669,7 @@ private[core] object Persistent {
   case class PendingApply(private var _key: Slice[Byte],
                           private var _time: Time,
                           deadline: Option[Deadline],
-                          valueCache: Cache[ValuesBlock.Offset, Slice[Value.Apply]],
+                          valueCache: Cache[Core.IO.Error, ValuesBlock.Offset, Slice[Value.Apply]],
                           nextIndexOffset: Int,
                           nextIndexSize: Int,
                           indexOffset: Int,
@@ -1716,7 +1716,7 @@ private[core] object Persistent {
 
   object Range {
     def apply(key: Slice[Byte],
-              valueCache: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              valueCache: Cache[Core.IO.Error, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               nextIndexOffset: Int,
               nextIndexSize: Int,
               indexOffset: Int,
@@ -1754,7 +1754,7 @@ private[core] object Persistent {
 
   case class Range(private var _fromKey: Slice[Byte],
                    private var _toKey: Slice[Byte],
-                   valueCache: Cache[ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)],
+                   valueCache: Cache[Core.IO.Error, ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)],
                    nextIndexOffset: Int,
                    nextIndexSize: Int,
                    indexOffset: Int,
@@ -1803,7 +1803,7 @@ private[core] object Persistent {
 
   object Group {
     def apply(key: Slice[Byte],
-              valueCache: Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              valueCache: Cache[Core.IO.Error, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               nextIndexOffset: Int,
               nextIndexSize: Int,
               indexOffset: Int,

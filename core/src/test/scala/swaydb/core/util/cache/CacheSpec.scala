@@ -67,17 +67,17 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
   /**
     * Return a partial cache with applied configuration which requires the cache body.
     */
-  def getTestCache(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean, stored: Boolean): (Unit => IO[Core.IO.Error, Int]) => Cache[Unit, Int] =
+  def getTestCache(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean, stored: Boolean): (Unit => IO[Core.IO.Error, Int]) => Cache[Core.IO.Error, Unit, Int] =
     if (isBlockIO)
       Cache.blockIO[Unit, Int](getBlockIO(isConcurrent, isSynchronised, isReserved, stored), Core.IO.Error.BusyFuture(Reserve()))
     else if (isConcurrent)
-      Cache.concurrentIO[Unit, Int](synchronised = false, stored = stored)
+      Cache.concurrentIO[Core.IO.Error, Unit, Int](synchronised = false, stored = stored)
     else if (isSynchronised)
-      Cache.concurrentIO[Unit, Int](synchronised = true, stored = stored)
+      Cache.concurrentIO[Core.IO.Error, Unit, Int](synchronised = true, stored = stored)
     else if (isReserved)
       Cache.reservedIO[Unit, Int](stored = stored, Core.IO.Error.BusyFuture(Reserve()))
     else
-      Cache.concurrentIO[Unit, Int](synchronised = false, stored = stored) //then it's concurrent
+      Cache.concurrentIO[Core.IO.Error, Unit, Int](synchronised = false, stored = stored) //then it's concurrent
 
   "Cache.io" should {
     "fetch data only once on success" in {
@@ -208,11 +208,11 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     }
 
     "clear all flatMapped caches" in {
-      val cache = Cache.concurrentIO[Unit, Int](randomBoolean(), true)(_ => IO(1))
+      val cache = Cache.concurrentIO[Core.IO.Error, Unit, Int](randomBoolean(), true)(_ => IO(1))
       cache.value() shouldBe IO.Success(1)
       cache.isCached shouldBe true
 
-      val nestedCache = Cache.concurrentIO[Int, Int](randomBoolean(), true)(int => IO(int + 1))
+      val nestedCache = Cache.concurrentIO[Core.IO.Error, Int, Int](randomBoolean(), true)(int => IO(int + 1))
 
       val flatMapCache = cache.flatMap(nestedCache)
       flatMapCache.value() shouldBe IO.Success(2)

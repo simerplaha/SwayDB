@@ -2681,8 +2681,8 @@ object TestData {
       )
   }
 
-  def buildSingleValueCache(bytes: Slice[Byte]): Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
-    Cache.concurrentIO[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](randomBoolean(), randomBoolean()) {
+  def buildSingleValueCache(bytes: Slice[Byte]): Cache[Core.IO.Error, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+    Cache.concurrentIO[Core.IO.Error, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](randomBoolean(), randomBoolean()) {
       offset =>
         IO[Nothing, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](
           UnblockedReader(

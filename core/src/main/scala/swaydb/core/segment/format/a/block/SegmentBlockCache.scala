@@ -59,7 +59,7 @@ class SegmentBlockCache(id: String,
   /**
     * Builds a required cache for [[SortedIndexBlock]].
     */
-  def buildBlockInfoCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]): Cache[BlockRefReader[O], B] =
+  def buildBlockInfoCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]): Cache[Core.IO.Error, BlockRefReader[O], B] =
     Cache.blockIO[BlockRefReader[O], B](
       blockIO = ref => blockIO(IOAction.ReadDataOverview(ref.offset.size)),
       reserveError = Core.IO.Error.ReservedValue(Reserve())
@@ -70,7 +70,7 @@ class SegmentBlockCache(id: String,
           .flatMap(blockOps.readBlock)
     }
 
-  def buildBlockInfoCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]): Cache[Option[BlockRefReader[O]], Option[B]] =
+  def buildBlockInfoCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]): Cache[Core.IO.Error, Option[BlockRefReader[O]], Option[B]] =
     Cache.blockIO[Option[BlockRefReader[O]], Option[B]](
       blockIO = ref => ref.map(ref => blockIO(IOAction.ReadDataOverview(ref.offset.size))) getOrElse IOStrategy.defaultBlockInfoStored,
       reserveError = Core.IO.Error.ReservedValue(Reserve())
@@ -168,7 +168,7 @@ class SegmentBlockCache(id: String,
   private[block] val binarySearchIndexReaderCache =
     buildBlockReaderCacheOptional[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](binarySearchIndexBlockIO)
 
-  private[block] val valuesReaderCache: Cache[Option[BlockedReader[ValuesBlock.Offset, ValuesBlock]], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
+  private[block] val valuesReaderCache: Cache[Core.IO.Error, Option[BlockedReader[ValuesBlock.Offset, ValuesBlock]], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
     buildBlockReaderCacheOptional[ValuesBlock.Offset, ValuesBlock](valuesBlockIO)
 
   private[block] val allCaches =
@@ -188,7 +188,7 @@ class SegmentBlockCache(id: String,
       createSegmentBlockReader().flatMap(footerBlockCache.value(_))
     }
 
-  def getBlockOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[Option[BlockRefReader[O]], Option[B]], offset: SegmentFooterBlock => Option[O]) =
+  def getBlockOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[Core.IO.Error, Option[BlockRefReader[O]], Option[B]], offset: SegmentFooterBlock => Option[O]) =
     cache getOrElse {
       getFooter() flatMap {
         footer =>
@@ -202,7 +202,7 @@ class SegmentBlockCache(id: String,
       }
     }
 
-  def getBlock[O <: BlockOffset, B <: Block[O]](cache: Cache[BlockRefReader[O], B], offset: SegmentFooterBlock => O) =
+  def getBlock[O <: BlockOffset, B <: Block[O]](cache: Cache[Core.IO.Error, BlockRefReader[O], B], offset: SegmentFooterBlock => O) =
     cache getOrElse {
       getFooter() flatMap {
         footer =>
@@ -228,7 +228,7 @@ class SegmentBlockCache(id: String,
   def getValues(): IO[Core.IO.Error, Option[ValuesBlock]] =
     getBlockOptional(valuesBlockCache, _.valuesOffset)
 
-  def createReaderOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]], getBlock: => IO[Core.IO.Error, Option[B]]): IO[Core.IO.Error, Option[UnblockedReader[O, B]]] = {
+  def createReaderOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[Core.IO.Error, Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]], getBlock: => IO[Core.IO.Error, Option[B]]): IO[Core.IO.Error, Option[UnblockedReader[O, B]]] = {
     cache getOrElse {
       getBlock flatMap {
         block =>
@@ -244,7 +244,7 @@ class SegmentBlockCache(id: String,
     }
   }.map(_.map(_.copy()))
 
-  def createReader[O <: BlockOffset, B <: Block[O]](cache: Cache[BlockedReader[O, B], UnblockedReader[O, B]], getBlock: => IO[Core.IO.Error, B]): IO[Core.IO.Error, UnblockedReader[O, B]] = {
+  def createReader[O <: BlockOffset, B <: Block[O]](cache: Cache[Core.IO.Error, BlockedReader[O, B], UnblockedReader[O, B]], getBlock: => IO[Core.IO.Error, B]): IO[Core.IO.Error, UnblockedReader[O, B]] = {
     cache getOrElse {
       getBlock flatMap {
         block =>
