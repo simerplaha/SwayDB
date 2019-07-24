@@ -24,7 +24,7 @@ import java.nio.file.{NoSuchFileException, Paths}
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.IO
 import swaydb.data.Base._
-import swaydb.ErrorHandler.Throwable
+import swaydb.ErrorHandler.CoreError
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -99,8 +99,6 @@ class IOSuccessSpec extends WordSpec with Matchers {
 
       nested.flatten.flatten.flatten.asInstanceOf[IO.Failure[IO.Error, Int]].failed.get.exception.getMessage shouldBe "Kaboom!"
     }
-
-
 
     "invoke onCompleteSideEffect" in {
       var invoked = false

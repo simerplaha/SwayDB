@@ -451,6 +451,9 @@ object IO {
   def fromFuture[E: ErrorHandler, A](future: Future[A])(implicit ec: ExecutionContext): IO.Defer[E, A] =
     IO.Defer[E, A](future)
 
+  def successful[E: ErrorHandler, A](value: A): IO.Success[E, A] =
+    new Success[E, A](value)
+
   final case class Success[+E: ErrorHandler, +A](value: A) extends IO.Defer[E, A] with IO[E, A] {
     override def isFailure: Boolean = false
     override def isSuccess: Boolean = true
