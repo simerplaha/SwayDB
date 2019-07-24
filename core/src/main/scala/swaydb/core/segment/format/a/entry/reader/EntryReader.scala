@@ -21,7 +21,6 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.IO
 import swaydb.core.data.Persistent
-import swaydb.core.segment.SegmentException
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id._
@@ -84,7 +83,7 @@ object EntryReader {
           previous = previous,
           reader = entryReader
         )
-    } getOrElse IO.Failure(Core.Error.Fatal(SegmentException.InvalidKeyValueId(baseId)))
+    } getOrElse IO.failed(Core.Exception.InvalidKeyValueId(baseId))
 
   def read(indexReader: Reader[Core.Error.Private],
            mightBeCompressed: Boolean,
@@ -195,6 +194,6 @@ object EntryReader {
             entryReader = PendingApplyReader
           )
         else
-          IO.Failure(Core.Error.Fatal(SegmentException.InvalidKeyValueId(keyValueId)))
+          IO.failed[Core.Error.Private, Persistent](Core.Exception.InvalidKeyValueId(keyValueId))
     }
 }

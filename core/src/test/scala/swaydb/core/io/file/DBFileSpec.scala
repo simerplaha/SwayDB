@@ -28,11 +28,10 @@ import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.queue.{FileLimiter, FileLimiterItem}
-import swaydb.core.segment.SegmentException
-import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.core.util.Benchmark
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestLimitQueues}
+import swaydb.data.io.Core
 import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.slice.Slice
 
@@ -79,7 +78,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       bytes.size shouldBe 2
 
-      DBFile.write(testFile, bytes).failed.runIO.exception shouldBe SegmentException.FailedToWriteAllBytes(10, 2, bytes.size)
+      DBFile.write(testFile, bytes).failed.runIO.exception shouldBe Core.Exception.FailedToWriteAllBytes(10, 2, bytes.size)
     }
 
     "fail to write if the file already exists" in {
@@ -152,7 +151,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       bytes.size shouldBe 2
 
       val channelFile = DBFile.channelWrite(testFile, autoClose = true).runIO
-      channelFile.append(bytes).failed.runIO.exception shouldBe SegmentException.FailedToWriteAllBytes(10, 2, bytes.size)
+      channelFile.append(bytes).failed.runIO.exception shouldBe Core.Exception.FailedToWriteAllBytes(10, 2, bytes.size)
       channelFile.close.runIO
     }
 
@@ -284,7 +283,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       bytes.size shouldBe 2
 
-      DBFile.mmapWriteAndRead(testFile, autoClose = true, bytes).failed.runIO.exception shouldBe SegmentException.FailedToWriteAllBytes(0, 2, bytes.size)
+      DBFile.mmapWriteAndRead(testFile, autoClose = true, bytes).failed.runIO.exception shouldBe Core.Exception.FailedToWriteAllBytes(0, 2, bytes.size)
     }
 
     "fail to write if the file already exists" in {
@@ -749,7 +748,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val bytes = randomBytesSlice(100)
       val file = DBFile.memory(randomFilePath, bytes, autoClose = true).runIO
 
-      file.copyTo(randomFilePath).failed.runIO.exception shouldBe CannotCopyInMemoryFiles(file.path)
+      file.copyTo(randomFilePath).failed.runIO.exception shouldBe Core.Exception.CannotCopyInMemoryFiles(file.path)
     }
   }
 

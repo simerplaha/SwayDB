@@ -25,8 +25,6 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.queue.{FileLimiter, FileLimiterItem}
-import swaydb.core.segment.SegmentException
-import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.data.Reserve
 import swaydb.data.io.Core
 import swaydb.data.io.Core.Error.Private.ErrorHandler
@@ -78,7 +76,7 @@ object DBFile {
     bytes.foldLeftIO(0) {
       case (written, bytes) =>
         if (!bytes.isFull)
-          IO.Failure(Core.Error.Fatal(SegmentException.FailedToWriteAllBytes(0, bytes.size, bytes.size)))
+          IO.failed(Core.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size))
         else
           IO.Success(written + bytes.size)
     } flatMap {
@@ -101,7 +99,7 @@ object DBFile {
                        bytes: Slice[Byte])(implicit limiter: FileLimiter): IO[Core.Error.Private, DBFile] =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull)
-      IO.Failure(Core.Error.Fatal(SegmentException.FailedToWriteAllBytes(0, bytes.size, bytes.size)))
+      IO.failed(Core.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size))
     else
       mmapInit(
         path = path,
@@ -204,7 +202,7 @@ class DBFile(val path: Path,
   //if it's an in memory files return failure as Memory files cannot be copied.
   def copyTo(toPath: Path): IO[Core.Error.Private, Path] =
     if (file.map(_.memory).getOrElse(false))
-      IO.Failure(Core.Error.Fatal(CannotCopyInMemoryFiles(path)))
+      IO.failed(Core.Exception.CannotCopyInMemoryFiles(path))
     else
       forceSave() flatMap {
         _ =>

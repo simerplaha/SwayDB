@@ -36,7 +36,6 @@ import swaydb.core.level.seek._
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.segment.SegmentException.SegmentFileMissing
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.{Segment, SegmentAssigner}
 import swaydb.core.util.CollectionUtil._
@@ -168,7 +167,7 @@ private[core] object Level extends LazyLogging {
                 if (segment.existsOnDisk)
                   IO.unit
                 else
-                  IO.Failure(Core.Error.Fatal(SegmentFileMissing(segment.path)))
+                  IO.failed(Core.Exception.SegmentFileMissing(segment.path))
             } match {
               case Some(IO.Failure(error)) =>
                 IO.Failure(error)

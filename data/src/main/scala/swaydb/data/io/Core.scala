@@ -66,7 +66,13 @@ object Core {
         new SegmentCorruptionException(message, new Exception(message))
     }
     case class SegmentCorruptionException(message: String, cause: Throwable) extends Exception(message, cause)
+    case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int) extends Exception(s"Failed to write all bytes written: $written, expected : $expected, bytesSize: $bytesSize")
+    case class CannotCopyInMemoryFiles(file: Path) extends Exception(s"Cannot copy in-memory files $file")
+    case class SegmentFileMissing(path: Path) extends Exception(s"$path: Segment file missing.")
+    case class InvalidKeyValueId(id: Int) extends Exception(s"Invalid keyValueId: $id.")
+
     case class InvalidDecompressorId(id: Int) extends Exception(s"Invalid decompressor id: $id")
+
   }
 
   sealed trait Error {
@@ -96,16 +102,7 @@ object Core {
             case busy: Error.Busy =>
               Some(busy.reserve)
 
-            case Error.OverlappingPushSegment |
-                 Error.UnableToLockDirectory(_) |
-                 Error.Corruption(_, _) |
-                 Error.NoSegmentsRemoved |
-                 Error.NotSentToNextLevel |
-                 _: Error.FunctionNotFound |
-                 _: Error.Initialisation |
-                 _: Error.ReceivedKeyValuesToMergeWithoutTargetSegment |
-                 _: Error.ReadOnlyBuffer |
-                 _: Error.Fatal =>
+            case _: Error =>
               None
           }
       }
@@ -171,6 +168,11 @@ object Core {
         case exception: Exception.OverlappingFileLock => Core.Error.UnableToLockDirectory(exception)
 
         case exception: ReadOnlyBufferException => Error.ReadOnlyBuffer(exception)
+
+        case exception: Exception.FailedToWriteAllBytes => Error.FailedToWriteAllBytes(exception.written, exception.expected, exception.bytesSize, exception)
+        case exception: Exception.CannotCopyInMemoryFiles => Error.CannotCopyInMemoryFiles(exception.file, exception)
+        case exception: Exception.SegmentFileMissing => Error.SegmentFileMissing(exception.path, exception)
+        case exception: Exception.InvalidKeyValueId => Error.InvalidKeyValueId(exception.id, exception)
 
         case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
           Error.Corruption("Please see the exception to find out the cause", exception)
@@ -279,6 +281,12 @@ object Core {
 
     case class UnableToLockDirectory(exception: Core.Exception.OverlappingFileLock) extends Error.Initialisation
     case class Corruption(message: String, exception: Throwable) extends Error.API with Error.Initialisation
+    case class SegmentFileMissing(path: Path, exception: Throwable) extends Error.Initialisation
+
+    case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int, exception: Throwable) extends Error.Private
+    case class CannotCopyInMemoryFiles(file: Path, exception: Throwable) extends Error.Private
+    case class InvalidKeyValueId(id: Int, exception: Throwable) extends Error.Private
+
     /**
       * Error that are not known and indicate something unexpected went wrong like a file corruption.
       *
