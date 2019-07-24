@@ -135,7 +135,7 @@
 //                         previous: (Key[K], Option[V]),
 //                         isReverse: Boolean,
 //                         mapsOnly: Boolean,
-//                         thisMapKeyBytes: Slice[Byte])(implicit keySerializer: Serializer[K]): IO[Core.IO.Error, Option[(Key[K], Option[V])]] =
+//                         thisMapKeyBytes: Slice[Byte])(implicit keySerializer: Serializer[K]): IO[Core.Error, Option[(Key[K], Option[V])]] =
 //    stream.next(previous) match {
 //      case IO.Success(some @ Some((key, value))) =>
 //        checkStep(key = key, isReverse = isReverse, mapsOnly = mapsOnly, thisMapKeyBytes = thisMapKeyBytes) match {
@@ -223,7 +223,7 @@
 //  def isReverse: Boolean =
 //    self.map.reverseIteration
 //
-//  private def headOptionInner: IO[Core.IO.Error, Option[(Key[K], Option[V])]] = {
+//  private def headOptionInner: IO[Core.Error, Option[(Key[K], Option[V])]] = {
 //    val stream = map.stream
 //    map.headOption match {
 //      case IO.Success(someKeyValue @ Some(keyValue @ (key, _))) =>
@@ -257,7 +257,7 @@
 //    }
 //  }
 //
-//  override def headOption: IO[Core.IO.Error, Option[(K, V)]] =
+//  override def headOption: IO[Core.Error, Option[(K, V)]] =
 //    headOptionInner.map(_.map(MapStream.toKV(_)))
 //
 //  override def drop(count: Int): swaydb.Stream[(K, V), IO] =
@@ -302,14 +302,14 @@
 //        */
 //      private var previousRaw: (Key[K], Option[V]) = _
 //
-//      override def headOption: IO[Core.IO.Error, Option[(K, V)]] =
+//      override def headOption: IO[Core.Error, Option[(K, V)]] =
 //        self.headOptionInner.map(_.map {
 //          raw =>
 //            previousRaw = raw
 //            MapStream.toKV(raw)
 //        })
 //
-//      override private[swaydb] def next(previous: (K, V)): IO[Core.IO.Error, Option[(K, V)]] =
+//      override private[swaydb] def next(previous: (K, V)): IO[Core.Error, Option[(K, V)]] =
 //        MapStream.step(
 //          stream = self.map.stream,
 //          previous = previousRaw,
@@ -343,7 +343,7 @@
 //    * because from is always set in [[swaydb.extensions.Maps]] and regardless from where the iteration starts the
 //    * most efficient way to fetch the last is from the key [[endSubMapsKey]].
 //    */
-//  override def lastOption: IO[Core.IO.Error, Option[(K, V)]] =
+//  override def lastOption: IO[Core.Error, Option[(K, V)]] =
 //    reverse.headOption
 //
 //  override def toString(): String =

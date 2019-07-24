@@ -32,7 +32,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 class SegmentBlockSpec extends TestBase {
 

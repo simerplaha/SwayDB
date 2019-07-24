@@ -188,7 +188,7 @@
 //  /**
 //    * Returns None if the map does not exist or returns the value.
 //    */
-//  def getValue(): IO[Core.IO.Error, Option[V]] =
+//  def getValue(): IO[Core.Error, Option[V]] =
 //    map.get(Key.MapStart(mapKey)).map(_.flatten)
 //
 //  def updateValue(value: V): IO[Map[K, V]] =
@@ -341,7 +341,7 @@
 //    *
 //    * @return Returns None is the key does not exist.
 //    */
-//  def get(key: K): IO[Core.IO.Error, Option[V]] =
+//  def get(key: K): IO[Core.Error, Option[V]] =
 //    map.get(Key.MapEntry(mapKey, key)) flatMap {
 //      case Some(value) =>
 //        IO.Success(value)
@@ -354,7 +354,7 @@
 //    *
 //    * This function is mostly used for Set databases where partial ordering on the Key is provided.
 //    */
-//  def getKey(key: K): IO[Core.IO.Error, Option[K]] =
+//  def getKey(key: K): IO[Core.Error, Option[K]] =
 //    map.getKey(Key.MapEntry(mapKey, key)) flatMap {
 //      case Some(key) =>
 //        key match {
@@ -367,7 +367,7 @@
 //        IO.none
 //    }
 //
-//  def getKeyValue(key: K): IO[Core.IO.Error, Option[(K, V)]] =
+//  def getKeyValue(key: K): IO[Core.Error, Option[(K, V)]] =
 //    map.getKeyValue(Key.MapEntry(mapKey, key)) flatMap {
 //      case Some((key, value)) =>
 //        key match {
@@ -421,13 +421,13 @@
 //  def valueSize(value: V): Int =
 //    map valueSize Some(value)
 //
-//  def expiration(key: K): IO[Core.IO.Error, Option[Deadline]] =
+//  def expiration(key: K): IO[Core.Error, Option[Deadline]] =
 //    map expiration Key.MapEntry(mapKey, key)
 //
-//  def timeLeft(key: K): IO[Core.IO.Error, Option[FiniteDuration]] =
+//  def timeLeft(key: K): IO[Core.Error, Option[FiniteDuration]] =
 //    expiration(key).map(_.map(_.timeLeft))
 //
-//  def closeDatabase(): IO[Core.IO.Error, Unit] =
+//  def closeDatabase(): IO[Core.Error, Unit] =
 //    baseMap().close()
 //
 //  private[swaydb] def baseMap(): swaydb.Map[Key[K], Option[V], IO] =

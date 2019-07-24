@@ -33,7 +33,7 @@ import swaydb.core.queue.FileLimiter
 import swaydb.data.io.Core
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 private[core] object PersistentTimer extends LazyLogging {
 
@@ -59,7 +59,7 @@ private[core] object PersistentTimer extends LazyLogging {
                                        timeOrder: TimeOrder[Slice[Byte]],
                                        functionStore: FunctionStore,
                                        writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                       reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[Core.IO.Error, PersistentTimer] = {
+                                       reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[Core.Error, PersistentTimer] = {
     implicit val limiter = FileLimiter.empty
 
     Map.persistent[Slice[Byte], Slice[Byte]](
@@ -85,7 +85,7 @@ private[core] object PersistentTimer extends LazyLogging {
                     )
                   }
                 else
-                  IO.Failure(Core.IO.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
+                  IO.Failure(Core.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
             }
 
           case None =>
@@ -100,7 +100,7 @@ private[core] object PersistentTimer extends LazyLogging {
                     )
                   }
                 else
-                  IO.Failure(Core.IO.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
+                  IO.Failure(Core.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
             }
         }
     }
@@ -151,6 +151,6 @@ private[core] class PersistentTimer(mod: Long,
       Time(nextTime)
     }
 
-  override def close: IO[Core.IO.Error, Unit] =
+  override def close: IO[Core.Error, Unit] =
     map.close()
 }

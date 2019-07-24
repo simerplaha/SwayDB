@@ -27,5 +27,5 @@ trait BlockOps[O <: BlockOffset, B <: Block[O]] {
 
   def createOffset(start: Int, size: Int): O
 
-  def readBlock(header: Block.Header[O]): IO[Core.IO.Error, B]
+  def readBlock(header: Block.Header[O]): IO[Core.Error, B]
 }

@@ -40,7 +40,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.JavaConverters._
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 class MapsSpec extends TestBase {
 

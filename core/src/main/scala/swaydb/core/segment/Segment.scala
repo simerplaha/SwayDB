@@ -40,7 +40,7 @@ import swaydb.core.util.{FiniteDurationUtil, IDGenerator, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.config.Dir
 import swaydb.data.io.Core
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -61,7 +61,7 @@ private[core] object Segment extends LazyLogging {
                                              fileLimiter: FileLimiter,
                                              groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                              keyValueLimiter: KeyValueLimiter,
-                                             segmentIO: SegmentIO): IO[Core.IO.Error, Segment] =
+                                             segmentIO: SegmentIO): IO[Core.Error, Segment] =
     if (keyValues.isEmpty) {
       IO.failed(new Exception("Empty key-values submitted to memory Segment."))
     } else {
@@ -126,7 +126,7 @@ private[core] object Segment extends LazyLogging {
                                                  functionStore: FunctionStore,
                                                  keyValueLimiter: KeyValueLimiter,
                                                  fileOpenLimiter: FileLimiter,
-                                                 segmentIO: SegmentIO): IO[Core.IO.Error, Segment] =
+                                                 segmentIO: SegmentIO): IO[Core.Error, Segment] =
     SegmentBlock.writeClosed(
       keyValues = keyValues,
       createdInLevel = createdInLevel,
@@ -136,7 +136,7 @@ private[core] object Segment extends LazyLogging {
         if (result.isEmpty) {
           //This is fatal!! Empty Segments should never be created. If this does have for whatever reason it should
           //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
-          IO.Failure(Core.IO.Error.Fatal(new Exception("Empty key-values submitted to persistent Segment.")))
+          IO.Failure(Core.Error.Fatal(new Exception("Empty key-values submitted to persistent Segment.")))
         } else {
           val writeResult =
           //if both read and writes are mmaped. Keep the file open.
@@ -208,7 +208,7 @@ private[core] object Segment extends LazyLogging {
                                                                 keyValueLimiter: KeyValueLimiter,
                                                                 fileOpenLimiter: FileLimiter,
                                                                 compression: Option[KeyValueGroupingStrategyInternal],
-                                                                segmentIO: SegmentIO): IO[Core.IO.Error, Slice[Segment]] =
+                                                                segmentIO: SegmentIO): IO[Core.Error, Slice[Segment]] =
     segment match {
       case segment: PersistentSegment =>
         val nextPath = fetchNextPath
@@ -272,7 +272,7 @@ private[core] object Segment extends LazyLogging {
                                                                 keyValueLimiter: KeyValueLimiter,
                                                                 fileOpenLimiter: FileLimiter,
                                                                 compression: Option[KeyValueGroupingStrategyInternal],
-                                                                segmentIO: SegmentIO): IO[Core.IO.Error, Slice[Segment]] =
+                                                                segmentIO: SegmentIO): IO[Core.Error, Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
       minSegmentSize = minSegmentSize,
@@ -300,7 +300,7 @@ private[core] object Segment extends LazyLogging {
               ),
 
           recover =
-            (segments: Slice[Segment], _: IO.Failure[Core.IO.Error, Slice[Segment]]) =>
+            (segments: Slice[Segment], _: IO.Failure[Core.Error, Slice[Segment]]) =>
               segments foreach {
                 segmentToDelete =>
                   segmentToDelete.delete onFailureSideEffect {
@@ -326,7 +326,7 @@ private[core] object Segment extends LazyLogging {
                                                                fileLimiter: FileLimiter,
                                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                                keyValueLimiter: KeyValueLimiter,
-                                                               segmentIO: SegmentIO): IO[Core.IO.Error, Slice[Segment]] =
+                                                               segmentIO: SegmentIO): IO[Core.Error, Slice[Segment]] =
     segment.getAll() flatMap {
       keyValues =>
         copyToMemory(
@@ -358,7 +358,7 @@ private[core] object Segment extends LazyLogging {
                                                                fileLimiter: FileLimiter,
                                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                                keyValueLimiter: KeyValueLimiter,
-                                                               segmentIO: SegmentIO): IO[Core.IO.Error, Slice[Segment]] =
+                                                               segmentIO: SegmentIO): IO[Core.Error, Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
       minSegmentSize = minSegmentSize,
@@ -396,7 +396,7 @@ private[core] object Segment extends LazyLogging {
                                          functionStore: FunctionStore,
                                          keyValueLimiter: KeyValueLimiter,
                                          fileOpenLimiter: FileLimiter,
-                                         segmentIO: SegmentIO): IO[Core.IO.Error, Segment] = {
+                                         segmentIO: SegmentIO): IO[Core.Error, Segment] = {
 
     val fileIO =
       if (mmapReads)
@@ -434,7 +434,7 @@ private[core] object Segment extends LazyLogging {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
                                   keyValueLimiter: KeyValueLimiter,
-                                  fileOpenLimiter: FileLimiter): IO[Core.IO.Error, Segment] = {
+                                  fileOpenLimiter: FileLimiter): IO[Core.Error, Segment] = {
 
     implicit val segmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
 
@@ -586,7 +586,7 @@ private[core] object Segment extends LazyLogging {
   /**
     * Pre condition: Segments should be sorted with their minKey in ascending order.
     */
-  def getAllKeyValues(segments: Iterable[Segment]): IO[Core.IO.Error, Slice[KeyValue.ReadOnly]] =
+  def getAllKeyValues(segments: Iterable[Segment]): IO[Core.Error, Slice[KeyValue.ReadOnly]] =
     if (segments.isEmpty)
       IO.Success(Slice.create[KeyValue.ReadOnly](0))
     else if (segments.size == 1)
@@ -603,7 +603,7 @@ private[core] object Segment extends LazyLogging {
           }
       }
 
-  def deleteSegments(segments: Iterable[Segment]): IO[Core.IO.Error, Int] =
+  def deleteSegments(segments: Iterable[Segment]): IO[Core.Error, Int] =
     segments.foldLeftIO(0, failFast = false) {
       case (deleteCount, segment) =>
         segment.delete map {
@@ -676,7 +676,7 @@ private[core] object Segment extends LazyLogging {
   def overlapsWithBusySegments(inputSegments: Iterable[Segment],
                                busySegments: Iterable[Segment],
                                appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    segmentIO: SegmentIO): IO[Core.IO.Error, Boolean] =
+                                                                    segmentIO: SegmentIO): IO[Core.Error, Boolean] =
     if (busySegments.isEmpty)
       IO.`false`
     else
@@ -694,7 +694,7 @@ private[core] object Segment extends LazyLogging {
   def overlapsWithBusySegments(map: Map[Slice[Byte], Memory.SegmentResponse],
                                busySegments: Iterable[Segment],
                                appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    groupIO: SegmentIO): IO[Core.IO.Error, Boolean] =
+                                                                    groupIO: SegmentIO): IO[Core.Error, Boolean] =
     if (busySegments.isEmpty)
       IO.`false`
     else {
@@ -718,7 +718,7 @@ private[core] object Segment extends LazyLogging {
     } getOrElse IO.`false`
 
   def getNearestDeadline(deadline: Option[Deadline],
-                         keyValue: KeyValue): IO[Core.IO.Error, Option[Deadline]] =
+                         keyValue: KeyValue): IO[Core.Error, Option[Deadline]] =
     keyValue match {
       case readOnly: KeyValue.ReadOnly =>
         getNearestDeadline(deadline, readOnly)
@@ -728,7 +728,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def getNearestDeadline(deadline: Option[Deadline],
-                         next: KeyValue.ReadOnly): IO[Core.IO.Error, Option[Deadline]] =
+                         next: KeyValue.ReadOnly): IO[Core.Error, Option[Deadline]] =
     next match {
       case readOnly: KeyValue.ReadOnly.Put =>
         IO(FiniteDurationUtil.getNearestDeadline(deadline, readOnly.deadline))
@@ -812,7 +812,7 @@ private[core] object Segment extends LazyLogging {
         )
     }
 
-  def getNearestDeadline(keyValues: Iterable[KeyValue]): IO[Core.IO.Error, Option[Deadline]] =
+  def getNearestDeadline(keyValues: Iterable[KeyValue]): IO[Core.Error, Option[Deadline]] =
     keyValues.foldLeftIO(Option.empty[Deadline])(getNearestDeadline)
 
   def getNearestDeadlineSegment(previous: Segment,
@@ -851,9 +851,9 @@ private[core] trait Segment extends FileLimiterItem {
   val minMaxFunctionId: Option[MinMax[Slice[Byte]]]
   private[segment] def cache: ConcurrentSkipListMap[Slice[Byte], _ <: KeyValue.ReadOnly]
 
-  def createdInLevel: IO[Core.IO.Error, Int]
+  def createdInLevel: IO[Core.Error, Int]
 
-  def isGrouped: IO[Core.IO.Error, Boolean]
+  def isGrouped: IO[Core.Error, Boolean]
 
   def path: Path
 
@@ -868,7 +868,7 @@ private[core] trait Segment extends FileLimiterItem {
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.IO.Error, Slice[Segment]]
+                                                                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error, Slice[Segment]]
 
   def refresh(minSegmentSize: Long,
               removeDeletes: Boolean,
@@ -880,33 +880,33 @@ private[core] trait Segment extends FileLimiterItem {
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.IO.Error, Slice[Segment]]
+                                                                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error, Slice[Segment]]
 
   def getFromCache(key: Slice[Byte]): Option[KeyValue.ReadOnly]
 
-  def mightContainKey(key: Slice[Byte]): IO[Core.IO.Error, Boolean]
+  def mightContainKey(key: Slice[Byte]): IO[Core.Error, Boolean]
 
-  def mightContainFunction(key: Slice[Byte]): IO[Core.IO.Error, Boolean]
+  def mightContainFunction(key: Slice[Byte]): IO[Core.Error, Boolean]
 
-  def get(key: Slice[Byte]): IO[Core.IO.Error, Option[KeyValue.ReadOnly.SegmentResponse]]
+  def get(key: Slice[Byte]): IO[Core.Error, Option[KeyValue.ReadOnly.SegmentResponse]]
 
-  def lower(key: Slice[Byte]): IO[Core.IO.Error, Option[KeyValue.ReadOnly.SegmentResponse]]
+  def lower(key: Slice[Byte]): IO[Core.Error, Option[KeyValue.ReadOnly.SegmentResponse]]
 
-  def higher(key: Slice[Byte]): IO[Core.IO.Error, Option[KeyValue.ReadOnly.SegmentResponse]]
+  def higher(key: Slice[Byte]): IO[Core.Error, Option[KeyValue.ReadOnly.SegmentResponse]]
 
-  def floorHigherHint(key: Slice[Byte]): IO[Core.IO.Error, Option[Slice[Byte]]]
+  def floorHigherHint(key: Slice[Byte]): IO[Core.Error, Option[Slice[Byte]]]
 
-  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Core.IO.Error, Slice[KeyValue.ReadOnly]]
+  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Core.Error, Slice[KeyValue.ReadOnly]]
 
-  def delete: IO[Core.IO.Error, Unit]
+  def delete: IO[Core.Error, Unit]
 
   def deleteSegmentsEventually: Unit
 
-  def close: IO[Core.IO.Error, Unit]
+  def close: IO[Core.Error, Unit]
 
-  def getHeadKeyValueCount(): IO[Core.IO.Error, Int]
+  def getHeadKeyValueCount(): IO[Core.Error, Int]
 
-  def getBloomFilterKeyValueCount(): IO[Core.IO.Error, Int]
+  def getBloomFilterKeyValueCount(): IO[Core.Error, Int]
 
   def clearCachedKeyValues(): Unit
 
@@ -920,13 +920,13 @@ private[core] trait Segment extends FileLimiterItem {
 
   def cachedKeyValueSize: Int
 
-  def hasRange: IO[Core.IO.Error, Boolean]
+  def hasRange: IO[Core.Error, Boolean]
 
-  def hasPut: IO[Core.IO.Error, Boolean]
+  def hasPut: IO[Core.Error, Boolean]
 
   def isFooterDefined: Boolean
 
-  def hasBloomFilter: IO[Core.IO.Error, Boolean]
+  def hasBloomFilter: IO[Core.Error, Boolean]
 
   def isOpen: Boolean
 

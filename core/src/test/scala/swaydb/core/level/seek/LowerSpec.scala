@@ -29,7 +29,7 @@ import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 class LowerSpec extends WordSpec with Matchers {
 

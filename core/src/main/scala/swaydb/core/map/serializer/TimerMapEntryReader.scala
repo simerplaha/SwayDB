@@ -27,7 +27,7 @@ import swaydb.data.slice.{Reader, Slice}
 object TimerMapEntryReader {
 
   implicit object TimerPutMapEntryReader extends MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]] {
-    override def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, Option[MapEntry.Put[Slice[Byte], Slice[Byte]]]] =
+    override def read(reader: Reader[Core.Error]): IO[Core.Error, Option[MapEntry.Put[Slice[Byte], Slice[Byte]]]] =
       for {
         id <- reader.readIntUnsigned()
         keySize <- reader.readIntUnsigned()

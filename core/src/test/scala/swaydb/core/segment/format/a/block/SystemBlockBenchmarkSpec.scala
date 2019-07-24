@@ -27,7 +27,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration._
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 class SystemBlockBenchmarkSpec extends TestBase {
 

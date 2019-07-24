@@ -26,5 +26,5 @@ import swaydb.data.slice.Slice
 
 trait CurrentGetter {
 
-  def get(key: Slice[Byte]): IO[Core.IO.Error, Option[KeyValue.ReadOnly.SegmentResponse]]
+  def get(key: Slice[Byte]): IO[Core.Error, Option[KeyValue.ReadOnly.SegmentResponse]]
 }

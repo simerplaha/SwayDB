@@ -38,48 +38,48 @@ private[file] object MemoryFile {
 private[file] class MemoryFile(val path: Path,
                                private var bytes: Slice[Byte]) extends LazyLogging with DBFileType {
 
-  override def close(): IO[Core.IO.Error, Unit] =
+  override def close(): IO[Core.Error, Unit] =
     IO.unit
 
-  override def append(slice: Slice[Byte]): IO[Core.IO.Error, Unit] =
+  override def append(slice: Slice[Byte]): IO[Core.Error, Unit] =
     IO.failed(new UnsupportedOperationException("Memory files are immutable. Cannot append."))
 
-  override def append(slice: Iterable[Slice[Byte]]): IO[Core.IO.Error, Unit] =
+  override def append(slice: Iterable[Slice[Byte]]): IO[Core.Error, Unit] =
     IO.failed(new UnsupportedOperationException("Memory files are immutable. Cannot append."))
 
-  override def read(position: Int, size: Int): IO[Core.IO.Error, Slice[Byte]] =
+  override def read(position: Int, size: Int): IO[Core.Error, Slice[Byte]] =
     IO(bytes.slice(position, position + size - 1))
 
-  override def get(position: Int): IO[Core.IO.Error, Byte] =
+  override def get(position: Int): IO[Core.Error, Byte] =
     IO(bytes.get(position))
 
-  override def readAll: IO[Core.IO.Error, Slice[Byte]] =
+  override def readAll: IO[Core.Error, Slice[Byte]] =
     IO(bytes)
 
-  override def fileSize: IO[Core.IO.Error, Long] =
+  override def fileSize: IO[Core.Error, Long] =
     IO(bytes.size)
 
-  override def isMemoryMapped: IO[Core.IO.Error, Boolean] =
+  override def isMemoryMapped: IO[Core.Error, Boolean] =
     IO.`false`
 
-  override def isLoaded: IO[Core.IO.Error, Boolean] =
+  override def isLoaded: IO[Core.Error, Boolean] =
     IO.`true`
 
   override def isOpen: Boolean =
     true
 
-  override def isFull: IO[Core.IO.Error, Boolean] =
+  override def isFull: IO[Core.Error, Boolean] =
     IO.`true`
 
   override def memory: Boolean = true
 
-  override def delete(): IO[Core.IO.Error, Unit] =
+  override def delete(): IO[Core.Error, Unit] =
     close map {
       _ =>
         //null bytes for GC
         bytes = null
     }
 
-  override def forceSave(): IO[Core.IO.Error, Unit] =
+  override def forceSave(): IO[Core.Error, Unit] =
     IO.unit
 }

@@ -32,7 +32,7 @@ import swaydb.data.api.grouping.Compression
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.io.Core
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Deadline
@@ -200,7 +200,7 @@ private[core] object SegmentBlock {
                                          minMaxFunction: Option[MinMax[Slice[Byte]]],
                                          nearestDeadline: Option[Deadline])
 
-  def read(header: Block.Header[Offset]): IO[Core.IO.Error, SegmentBlock] =
+  def read(header: Block.Header[Offset]): IO[Core.Error, SegmentBlock] =
     IO {
       SegmentBlock(
         offset = header.offset,
@@ -231,10 +231,10 @@ private[core] object SegmentBlock {
                        binarySearchIndex: Option[BinarySearchIndexBlock.State],
                        bloomFilter: Option[BloomFilterBlock.State],
                        currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
-                       currentNearestDeadline: Option[Deadline]): IO[Core.IO.Error, DeadlineAndFunctionId] = {
+                       currentNearestDeadline: Option[Deadline]): IO[Core.Error, DeadlineAndFunctionId] = {
 
     def writeOne(rootGroup: Option[Transient.Group],
-                 keyValue: Transient): IO[Core.IO.Error, Unit] =
+                 keyValue: Transient): IO[Core.Error, Unit] =
       keyValue match {
         case childGroup: Transient.Group =>
           writeMany(
@@ -278,7 +278,7 @@ private[core] object SegmentBlock {
 
     @tailrec
     def writeMany(rootGroup: Option[Transient.Group],
-                  keyValues: Slice[Transient]): IO[Core.IO.Error, Unit] =
+                  keyValues: Slice[Transient]): IO[Core.Error, Unit] =
       keyValues.headOption match {
         case Some(keyValue) =>
           writeOne(rootGroup, keyValue)
@@ -477,7 +477,7 @@ private[core] object SegmentBlock {
                           binarySearchIndex: Option[BinarySearchIndexBlock.State],
                           bloomFilter: Option[BloomFilterBlock.State],
                           currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
-                          currentNearestDeadline: Option[Deadline]): IO[Core.IO.Error, DeadlineAndFunctionId] =
+                          currentNearestDeadline: Option[Deadline]): IO[Core.Error, DeadlineAndFunctionId] =
     SortedIndexBlock
       .write(keyValue = keyValue, state = sortedIndex)
       .flatMap(_ => values.map(ValuesBlock.write(keyValue, _)) getOrElse IO.unit)
@@ -500,7 +500,7 @@ private[core] object SegmentBlock {
                           binarySearchIndex: Option[BinarySearchIndexBlock.State],
                           bloomFilter: Option[BloomFilterBlock.State],
                           minMaxFunction: Option[MinMax[Slice[Byte]]],
-                          nearestDeadline: Option[Deadline]): IO[Core.IO.Error, ClosedBlocks] =
+                          nearestDeadline: Option[Deadline]): IO[Core.Error, ClosedBlocks] =
     for {
       sortedIndexClosed <- SortedIndexBlock.close(sortedIndex)
       valuesClosed <- values.map(values => ValuesBlock.close(values).map(Some(_))) getOrElse IO.none
@@ -523,7 +523,7 @@ private[core] object SegmentBlock {
                     valuesBlock: Option[ValuesBlock.State],
                     hashIndexBlock: Option[HashIndexBlock.State],
                     binarySearchIndexBlock: Option[BinarySearchIndexBlock.State],
-                    bloomFilterBlock: Option[BloomFilterBlock.State]): IO[Core.IO.Error, ClosedBlocks] =
+                    bloomFilterBlock: Option[BloomFilterBlock.State]): IO[Core.Error, ClosedBlocks] =
     keyValues.foldLeftIO(DeadlineAndFunctionId(None, None)) {
       case (nearestDeadlineMinMaxFunctionId, keyValue) =>
         writeBlocks(
@@ -560,7 +560,7 @@ private[core] object SegmentBlock {
 
   def writeClosed(keyValues: Iterable[Transient],
                   createdInLevel: Int,
-                  segmentConfig: SegmentBlock.Config): IO[Core.IO.Error, SegmentBlock.Closed] =
+                  segmentConfig: SegmentBlock.Config): IO[Core.Error, SegmentBlock.Closed] =
     if (keyValues.isEmpty)
       SegmentBlock.Closed.emptyIO
     else
@@ -579,7 +579,7 @@ private[core] object SegmentBlock {
 
   def writeOpen(keyValues: Iterable[Transient],
                 createdInLevel: Int,
-                segmentConfig: SegmentBlock.Config): IO[Core.IO.Error, SegmentBlock.Open] =
+                segmentConfig: SegmentBlock.Config): IO[Core.Error, SegmentBlock.Open] =
     if (keyValues.isEmpty)
       Open.emptyIO
     else {
@@ -616,7 +616,7 @@ private[core] object SegmentBlock {
     }
 
   private def close(footerBlock: SegmentFooterBlock.State,
-                    closedBlocks: ClosedBlocks): IO[Core.IO.Error, SegmentBlock.Open] =
+                    closedBlocks: ClosedBlocks): IO[Core.Error, SegmentBlock.Open] =
     IO {
       val headerSize = SegmentBlock.headerSize(true)
       val headerBytes = Slice.create[Byte](headerSize)
@@ -653,7 +653,7 @@ private[core] object SegmentBlock {
     override def createOffset(start: Int, size: Int): Offset =
       SegmentBlock.Offset(start, size)
 
-    override def readBlock(header: Block.Header[SegmentBlock.Offset]): IO[Core.IO.Error, SegmentBlock] =
+    override def readBlock(header: Block.Header[SegmentBlock.Offset]): IO[Core.Error, SegmentBlock] =
       SegmentBlock.read(header)
   }
 

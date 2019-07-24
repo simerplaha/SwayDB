@@ -67,7 +67,7 @@ object Set extends LazyLogging {
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                      fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                     cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Core.IO.Error, swaydb.Set[T, Core.IO]] =
+                                                                                     cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Core.Error, swaydb.Set[T, Core.IO]] =
     BlockingCore(
       config =
         DefaultEventuallyPersistentConfig(

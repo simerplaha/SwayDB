@@ -28,7 +28,7 @@ import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.io.Core
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 private[core] object ValuesBlock {
 
@@ -40,7 +40,7 @@ private[core] object ValuesBlock {
   val emptyUnblocked: UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
     UnblockedReader.empty[ValuesBlock.Offset, ValuesBlock](ValuesBlock.empty)(ValuesBlockOps)
 
-  val emptyUnblockedIO: IO[Core.IO.Error, UnblockedReader[Offset, ValuesBlock]] =
+  val emptyUnblockedIO: IO[Core.Error, UnblockedReader[Offset, ValuesBlock]] =
     IO(emptyUnblocked)
 
   def unblocked(bytes: Slice[Byte])(implicit blockOps: BlockOps[ValuesBlock.Offset, ValuesBlock]): UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
@@ -77,8 +77,8 @@ private[core] object ValuesBlock {
                     blockIO: IOAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
-  def valuesBlockNotInitialised: IO.Failure[Core.IO.Error, Nothing] =
-    IO.Failure(Core.IO.Error.Fatal("Value block not initialised."))
+  def valuesBlockNotInitialised: IO.Failure[Core.Error, Nothing] =
+    IO.Failure(Core.Error.Fatal("Value block not initialised."))
 
   case class State(var _bytes: Slice[Byte],
                    headerSize: Int,
@@ -146,7 +146,7 @@ private[core] object ValuesBlock {
       keyValue.valueEntryBytes foreach state.bytes.addAll
     }
 
-  def close(state: State): IO[Core.IO.Error, State] =
+  def close(state: State): IO[Core.Error, State] =
     Block.block(
       headerSize = state.headerSize,
       bytes = state.bytes,
@@ -169,7 +169,7 @@ private[core] object ValuesBlock {
       compressionInfo = header.compressionInfo
     )
 
-  def read(fromOffset: Int, length: Int, reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): IO[Core.IO.Error, Option[Slice[Byte]]] =
+  def read(fromOffset: Int, length: Int, reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): IO[Core.Error, Option[Slice[Byte]]] =
     if (length == 0)
       IO.none
     else
@@ -177,12 +177,12 @@ private[core] object ValuesBlock {
         .moveTo(fromOffset)
         .read(length)
         .map(Some(_))
-        .recoverWith[Core.IO.Error, Option[Slice[Byte]]] {
+        .recoverWith[Core.Error, Option[Slice[Byte]]] {
           case error =>
             error.exception match {
               case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
                 IO.Failure(
-                  Core.IO.Error.Fatal(
+                  Core.Error.Fatal(
                     SegmentCorruptionException(
                       message = s"Corrupted Segment: Failed to value bytes of length $length from offset $fromOffset",
                       cause = exception
@@ -207,7 +207,7 @@ private[core] object ValuesBlock {
     override def createOffset(start: Int, size: Int): Offset =
       ValuesBlock.Offset(start = start, size = size)
 
-    override def readBlock(header: Block.Header[Offset]): IO[Core.IO.Error, ValuesBlock] =
+    override def readBlock(header: Block.Header[Offset]): IO[Core.Error, ValuesBlock] =
       IO(ValuesBlock.read(header))
   }
 }

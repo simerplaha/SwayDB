@@ -50,7 +50,7 @@ import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{Dir, IOStrategy, RecoveryMode}
 import swaydb.data.io.Core
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
@@ -123,10 +123,10 @@ object TestData {
                                                  segmentIO: SegmentIO = SegmentIO.random,
                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000))) {
 
-    def tryReopen: IO[Core.IO.Error, Segment] =
+    def tryReopen: IO[Core.Error, Segment] =
       tryReopen(segment.path)
 
-    def tryReopen(path: Path): IO[Core.IO.Error, Segment] =
+    def tryReopen(path: Path): IO[Core.Error, Segment] =
       Segment(
         path = path,
         mmapReads = randomBoolean(),
@@ -162,7 +162,7 @@ object TestData {
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
-    def putKeyValuesTest(keyValues: Slice[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): IO[Core.IO.Error, Unit] =
+    def putKeyValuesTest(keyValues: Slice[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): IO[Core.Error, Unit] =
       if (keyValues.isEmpty)
         IO.unit
       else if (!level.isEmpty)
@@ -181,7 +181,7 @@ object TestData {
           bloomFilterConfig = level.bloomFilterConfig
         ) flatMap {
           segments =>
-            import swaydb.data.io.Core.IO.Error.ErrorHandler
+            import swaydb.data.io.Core.Error.ErrorHandler
             segments should have size 1
             segments mapIO {
               segment =>
@@ -207,7 +207,7 @@ object TestData {
           bloomFilterConfig = level.bloomFilterConfig
         ) flatMap {
           segments =>
-            import swaydb.data.io.Core.IO.Error.ErrorHandler
+            import swaydb.data.io.Core.Error.ErrorHandler
             segments should have size 1
             segments mapIO {
               segment =>
@@ -220,7 +220,7 @@ object TestData {
     def reopen: Level =
       reopen()
 
-    def tryReopen: IO[Core.IO.Error, Level] =
+    def tryReopen: IO[Core.Error, Level] =
       tryReopen()
 
     def reopen(segmentSize: Long = level.segmentSize,
@@ -236,7 +236,7 @@ object TestData {
     def tryReopen(segmentSize: Long = level.segmentSize,
                   throttle: LevelMeter => Throttle = level.throttle,
                   nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                  fileOpenLimiter: FileLimiter = fileOpenLimiter): IO[Core.IO.Error, Level] =
+                                                                  fileOpenLimiter: FileLimiter = fileOpenLimiter): IO[Core.Error, Level] =
       level.releaseLocks flatMap {
         _ =>
           level.closeSegments flatMap {
@@ -298,7 +298,7 @@ object TestData {
       reopened.runIO
     }
 
-    def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly]): IO[Core.IO.Error, Unit] =
+    def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly]): IO[Core.Error, Unit] =
       if (keyValues.isEmpty)
         IO.unit
       else
@@ -2579,7 +2579,7 @@ object TestData {
                                 timeOrder: TimeOrder[Slice[Byte]],
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
-                                functionStore: FunctionStore): IO[Core.IO.Error, Option[KeyValue.ReadOnly.Put]] =
+                                functionStore: FunctionStore): IO[Core.Error, Option[KeyValue.ReadOnly.Put]] =
       Higher(key, Seek.Read, Seek.Read).runBlocking
   }
 
@@ -2588,7 +2588,7 @@ object TestData {
                                 timeOrder: TimeOrder[Slice[Byte]],
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
-                                functionStore: FunctionStore): IO[Core.IO.Error, Option[KeyValue.ReadOnly.Put]] =
+                                functionStore: FunctionStore): IO[Core.Error, Option[KeyValue.ReadOnly.Put]] =
       Lower(key, Seek.Read, Seek.Read).runBlocking
   }
 
@@ -2681,8 +2681,8 @@ object TestData {
       )
   }
 
-  def buildSingleValueCache(bytes: Slice[Byte]): Cache[Core.IO.Error, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
-    Cache.concurrentIO[Core.IO.Error, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](randomBoolean(), randomBoolean()) {
+  def buildSingleValueCache(bytes: Slice[Byte]): Cache[Core.Error, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+    Cache.concurrentIO[Core.Error, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](randomBoolean(), randomBoolean()) {
       offset =>
         IO[Nothing, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](
           UnblockedReader(

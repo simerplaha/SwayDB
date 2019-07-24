@@ -42,7 +42,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
 import swaydb.data.util.StorageUnits._
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 import scala.concurrent.ExecutionContext
 import scala.util.Random
@@ -257,7 +257,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val keyValues = randomKeyValues(keyValuesCount)
         val segmentsToMerge = TestSegment(keyValues).runIO
         val level = TestLevel()
-        level.put(Seq(segmentsToMerge), Seq(), Seq()).failed.runIO shouldBe Core.IO.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size)
+        level.put(Seq(segmentsToMerge), Seq(), Seq()).failed.runIO shouldBe Core.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size)
       }
 
       "revert copy if merge fails" in {

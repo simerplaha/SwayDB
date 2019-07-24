@@ -31,7 +31,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.util.Try
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 class SegmentSearcherSpec extends TestBase with MockFactory {
   implicit val order = KeyOrder.default

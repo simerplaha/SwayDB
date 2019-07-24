@@ -25,7 +25,7 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.data.io.Core
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 private[core] object SegmentSearcher extends LazyLogging {
 
@@ -37,7 +37,7 @@ private[core] object SegmentSearcher extends LazyLogging {
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
              hasRange: Boolean,
-             hashIndexSearchOnly: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Core.IO.Error, Option[Persistent]] =
+             hashIndexSearchOnly: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Core.Error, Option[Persistent]] =
     hashIndexReader map {
       hashIndexReader =>
         HashIndexBlock.search(
@@ -81,7 +81,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                      end: Option[Persistent],
                      binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                      sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                     valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Core.IO.Error, Option[Persistent]] =
+                     valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Core.Error, Option[Persistent]] =
     binarySearchIndexReader map {
       binarySearchIndexReader =>
         BinarySearchIndexBlock.search(
@@ -120,7 +120,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                    end: Option[Persistent],
                    binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Core.IO.Error, Option[Persistent]] =
+                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Core.Error, Option[Persistent]] =
     start map {
       start =>
         SortedIndexBlock.searchHigherSeekOne(
@@ -165,7 +165,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                                  end: Option[Persistent],
                                  binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Core.IO.Error, Option[Persistent]] =
+                                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Core.Error, Option[Persistent]] =
     binarySearchIndexReader map {
       binarySearchIndexReader =>
         BinarySearchIndexBlock.searchHigher(
@@ -218,7 +218,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                   end: Option[Persistent],
                   binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Core.IO.Error, Option[Persistent]] =
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Core.Error, Option[Persistent]] =
     binarySearchIndexReader map {
       binarySearchIndexReader =>
         BinarySearchIndexBlock.searchLower(

@@ -27,7 +27,7 @@ import swaydb.core.merge._
 import swaydb.data.io.Core
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 import scala.annotation.tailrec
 
@@ -62,7 +62,7 @@ private[core] object Lower {
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
-           functionStore: FunctionStore): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]] =
+           functionStore: FunctionStore): IO.Defer[Core.Error, Option[KeyValue.ReadOnly.Put]] =
     Lower(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   def seeker(key: Slice[Byte],
@@ -71,7 +71,7 @@ private[core] object Lower {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   currentWalker: CurrentWalker,
                                   nextWalker: NextWalker,
-                                  functionStore: FunctionStore): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]] =
+                                  functionStore: FunctionStore): IO.Defer[Core.Error, Option[KeyValue.ReadOnly.Put]] =
     Lower(key, currentSeek, nextSeek)
 
   /**
@@ -88,7 +88,7 @@ private[core] object Lower {
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  currentWalker: CurrentWalker,
                                  nextWalker: NextWalker,
-                                 functionStore: FunctionStore): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]] = {
+                                 functionStore: FunctionStore): IO.Defer[Core.Error, Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
     (currentSeek, nextSeek) match {

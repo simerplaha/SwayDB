@@ -33,7 +33,7 @@ import swaydb.core.util.Benchmark
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
@@ -771,7 +771,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
   //      val result: List[IO.Later[_]] =
   //        ios.toList collect {
   //          case io: IO.Failure[_] =>
-  //            io.recoverToAsync(IO.Async((), Core.IO.Error.None)).asInstanceOf[IO.Later[_]]
+  //            io.recoverToAsync(IO.Async((), Core.Error.None)).asInstanceOf[IO.Later[_]]
   //        }
   //
   //      result.size should be >= 1

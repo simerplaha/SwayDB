@@ -33,7 +33,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 import scala.util.{Failure, Success, Try}
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 class LevelReadSomeSpec0 extends LevelReadSomeSpec
 

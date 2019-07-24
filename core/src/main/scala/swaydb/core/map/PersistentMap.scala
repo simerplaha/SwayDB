@@ -35,7 +35,7 @@ import swaydb.IO._
 import swaydb.data.io.Core
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -55,7 +55,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                             limiter: FileLimiter,
                                                                             reader: MapEntryReader[MapEntry[K, V]],
                                                                             writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                            skipListMerger: SkipListMerger[K, V]): IO[Core.IO.Error, RecoveryResult[PersistentMap[K, V]]] = {
+                                                                            skipListMerger: SkipListMerger[K, V]): IO[Core.Error, RecoveryResult[PersistentMap[K, V]]] = {
     IOEffect.createDirectoryIfAbsent(folder)
     val skipList: ConcurrentSkipListMap[K, V] = new ConcurrentSkipListMap[K, V](keyOrder)
 
@@ -86,7 +86,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                   functionStore: FunctionStore,
                                                                   reader: MapEntryReader[MapEntry[K, V]],
                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                  skipListMerger: SkipListMerger[K, V]): IO[Core.IO.Error, PersistentMap[K, V]] = {
+                                                                  skipListMerger: SkipListMerger[K, V]): IO[Core.Error, PersistentMap[K, V]] = {
     IOEffect.createDirectoryIfAbsent(folder)
     val skipList: ConcurrentSkipListMap[K, V] = new ConcurrentSkipListMap[K, V](keyOrder)
 
@@ -104,7 +104,7 @@ private[map] object PersistentMap extends LazyLogging {
     }
   }
 
-  private[map] def firstFile(folder: Path, memoryMapped: Boolean, fileSize: Long)(implicit limiter: FileLimiter): IO[Core.IO.Error, DBFile] =
+  private[map] def firstFile(folder: Path, memoryMapped: Boolean, fileSize: Long)(implicit limiter: FileLimiter): IO[Core.Error, DBFile] =
     if (memoryMapped)
       DBFile.mmapInit(folder.resolve(0.toLogFileId), fileSize, autoClose = false)
     else
@@ -120,7 +120,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                     keyOrder: KeyOrder[K],
                                                                     limiter: FileLimiter,
                                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                                    functionStore: FunctionStore): IO[Core.IO.Error, (RecoveryResult[DBFile], Boolean)] = {
+                                                                    functionStore: FunctionStore): IO[Core.Error, (RecoveryResult[DBFile], Boolean)] = {
     //read all existing logs and populate skipList
     var hasRange: Boolean = false
     folder.files(Extension.Log) mapIO {
@@ -184,7 +184,7 @@ private[map] object PersistentMap extends LazyLogging {
                                   fileSize: Long,
                                   skipList: ConcurrentSkipListMap[K, V])(implicit reader: MapEntryReader[MapEntry[K, V]],
                                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                         limiter: FileLimiter): Option[IO[Core.IO.Error, DBFile]] =
+                                                                         limiter: FileLimiter): Option[IO[Core.Error, DBFile]] =
     oldFiles.lastOption map {
       lastFile =>
         nextFile(lastFile, mmap, fileSize, skipList) flatMap {
@@ -211,7 +211,7 @@ private[map] object PersistentMap extends LazyLogging {
                                   size: Long,
                                   skipList: ConcurrentSkipListMap[K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                          mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                         limiter: FileLimiter): IO[Core.IO.Error, DBFile] =
+                                                                         limiter: FileLimiter): IO[Core.Error, DBFile] =
     currentFile.path.incrementFileId flatMap {
       nextPath =>
         val bytes = MapCodec.write(skipList)
@@ -279,7 +279,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
       _writeCount
     }
 
-  override def write(mapEntry: MapEntry[K, V]): IO[Core.IO.Error, Boolean] =
+  override def write(mapEntry: MapEntry[K, V]): IO[Core.Error, Boolean] =
     stateIDLock.synchronized {
       persist(mapEntry) onSuccessSideEffect {
         _ =>
@@ -299,7 +299,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
     * Range, Update or key-values with deadline.
     */
   @tailrec
-  private def persist(entry: MapEntry[K, V]): IO[Core.IO.Error, Boolean] =
+  private def persist(entry: MapEntry[K, V]): IO[Core.Error, Boolean] =
     if ((bytesWritten + entry.totalByteSize) <= actualFileSize)
       currentFile.append(MapCodec.write(entry)) map {
         _ =>
@@ -334,13 +334,13 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
       }
     }
 
-  override def close(): IO[Core.IO.Error, Unit] =
+  override def close(): IO[Core.Error, Unit] =
     currentFile.close
 
   override def exists =
     currentFile.existsOnDisk
 
-  override def delete: IO[Core.IO.Error, Unit] =
+  override def delete: IO[Core.Error, Unit] =
     currentFile.delete() flatMap {
       _ =>
         IOEffect.delete(path) map {
@@ -355,6 +355,6 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   override def pathOption: Option[Path] =
     Some(path)
 
-  override def fileId: IO[Core.IO.Error, Long] =
+  override def fileId: IO[Core.Error, Long] =
     path.fileId.map(_._1)
 }

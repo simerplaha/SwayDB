@@ -142,7 +142,7 @@ private[core] trait LevelRef {
 
   def inMemory: Boolean
 
-  def releaseLocks: IO[Core.IO.Error, Unit]
+  def releaseLocks: IO[Core.Error, Unit]
 
   def nextLevel: Option[NextLevel]
 
@@ -152,27 +152,27 @@ private[core] trait LevelRef {
 
   def rootPath: Path
 
-  def head: IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]]
+  def head: IO.Defer[Core.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def last: IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]]
+  def last: IO.Defer[Core.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def get(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): IO.Defer[Core.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def ceiling(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]]
+  def ceiling(key: Slice[Byte]): IO.Defer[Core.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def floor(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]]
+  def floor(key: Slice[Byte]): IO.Defer[Core.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def mightContainKey(key: Slice[Byte]): IO[Core.IO.Error, Boolean]
+  def mightContainKey(key: Slice[Byte]): IO[Core.Error, Boolean]
 
-  def lower(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]]
+  def lower(key: Slice[Byte]): IO.Defer[Core.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def higher(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]]
+  def higher(key: Slice[Byte]): IO.Defer[Core.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def headKey: IO.Defer[Core.IO.Error, Option[Slice[Byte]]]
+  def headKey: IO.Defer[Core.Error, Option[Slice[Byte]]]
 
-  def lastKey: IO.Defer[Core.IO.Error, Option[Slice[Byte]]]
+  def lastKey: IO.Defer[Core.Error, Option[Slice[Byte]]]
 
-  def bloomFilterKeyValueCount: IO[Core.IO.Error, Int]
+  def bloomFilterKeyValueCount: IO[Core.Error, Int]
 
   def isEmpty: Boolean
 
@@ -218,9 +218,9 @@ private[core] trait LevelRef {
 
   def sizeOfSegments: Long
 
-  def close: IO[Core.IO.Error, Unit]
+  def close: IO[Core.Error, Unit]
 
-  def closeSegments(): IO[Core.IO.Error, Unit]
+  def closeSegments(): IO[Core.Error, Unit]
 
   def meterFor(levelNumber: Int): Option[LevelMeter]
 
@@ -234,5 +234,5 @@ private[core] trait LevelRef {
 
   def nextCompactionDelay: FiniteDuration
 
-  def delete: IO[Core.IO.Error, Unit]
+  def delete: IO[Core.Error, Unit]
 }

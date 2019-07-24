@@ -32,7 +32,7 @@ import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 object SegmentFooterBlock {
   val blockName = this.getClass.getSimpleName.dropRight(1)
@@ -91,7 +91,7 @@ object SegmentFooterBlock {
       hasPut = keyValues.last.stats.segmentHasPut
     )
 
-  def writeAndClose(state: State, closedBlocks: ClosedBlocks): IO[Core.IO.Error, State] =
+  def writeAndClose(state: State, closedBlocks: ClosedBlocks): IO[Core.Error, State] =
     IO {
       val values = closedBlocks.values
       val sortedIndex = closedBlocks.sortedIndex
@@ -167,7 +167,7 @@ object SegmentFooterBlock {
     }
 
   //all these functions are wrapper with a try catch block with value only to make it easier to read.
-  def read(reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): IO[Core.IO.Error, SegmentFooterBlock] =
+  def read(reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): IO[Core.Error, SegmentFooterBlock] =
     try {
       val segmentBlockSize = reader.size.get.toInt
       val footerStartOffset = reader.moveTo(segmentBlockSize - ByteSizeOf.int).readInt().get
@@ -177,7 +177,7 @@ object SegmentFooterBlock {
       val formatId = footerReader.readIntUnsigned().get
       if (formatId != SegmentBlock.formatId) {
         val message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}"
-        return IO.Failure(Core.IO.Error.Fatal(SegmentCorruptionException(message = message, cause = new Exception(message))))
+        return IO.Failure(Core.Error.Fatal(SegmentCorruptionException(message = message, cause = new Exception(message))))
       }
       assert(formatId == SegmentBlock.formatId, s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}")
       val createdInLevel = footerReader.readIntUnsigned().get
@@ -264,7 +264,7 @@ object SegmentFooterBlock {
         exception match {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
             IO.Failure(
-              Core.IO.Error.Fatal(
+              Core.Error.Fatal(
                 SegmentCorruptionException(
                   message = "Corrupted Segment: Failed to read footer bytes",
                   cause = exception
@@ -284,8 +284,8 @@ object SegmentFooterBlock {
     override def createOffset(start: Int, size: Int): Offset =
       SegmentFooterBlock.Offset(start, size)
 
-    override def readBlock(header: Block.Header[Offset]): IO[Core.IO.Error, SegmentFooterBlock] =
-      IO.Failure(Core.IO.Error.Fatal("Footers do not have block header readers."))
+    override def readBlock(header: Block.Header[Offset]): IO[Core.Error, SegmentFooterBlock] =
+      IO.Failure(Core.Error.Fatal("Footers do not have block header readers."))
   }
 }
 

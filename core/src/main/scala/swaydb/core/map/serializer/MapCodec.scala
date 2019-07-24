@@ -27,7 +27,7 @@ import swaydb.core.util.CRC32
 import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 import scala.collection.JavaConverters._
 
@@ -66,7 +66,7 @@ private[core] object MapCodec extends LazyLogging {
     * THIS FUNCTION NEED REFACTORING.
     */
   def read[K, V](bytes: Slice[Byte],
-                 dropCorruptedTailEntries: Boolean)(implicit mapReader: MapEntryReader[MapEntry[K, V]]): IO[Core.IO.Error, RecoveryResult[Option[MapEntry[K, V]]]] =
+                 dropCorruptedTailEntries: Boolean)(implicit mapReader: MapEntryReader[MapEntry[K, V]]): IO[Core.Error, RecoveryResult[Option[MapEntry[K, V]]]] =
     Reader(bytes).foldLeftIO(RecoveryResult(Option.empty[MapEntry[K, V]], IO.unit)) {
       case (recovery, reader) =>
         reader.hasAtLeast(ByteSizeOf.long) match {

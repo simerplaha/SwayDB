@@ -32,7 +32,7 @@ import swaydb.data.config.IOAction
 import swaydb.data.io.Core
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 /**
   * A block is a group of compressed or uncompressed bytes.
@@ -68,7 +68,7 @@ private[core] object Block extends LazyLogging {
                         val decompressedLength: Int)
 
   case class Header[O](compressionInfo: Option[CompressionInfo],
-                       headerReader: Reader[Core.IO.Error],
+                       headerReader: Reader[Core.Error],
                        headerSize: Int,
                        offset: O)
 
@@ -99,7 +99,7 @@ private[core] object Block extends LazyLogging {
   def block(headerSize: Int,
             bytes: Slice[Byte],
             compressions: Seq[CompressionInternal],
-            blockName: String): IO[Core.IO.Error, Slice[Byte]] =
+            blockName: String): IO[Core.Error, Slice[Byte]] =
     compressions.untilSome(_.compressor.compress(headerSize, bytes.drop(headerSize))) flatMap {
       case Some((compressedBytes, compression)) =>
         IO {
@@ -129,7 +129,7 @@ private[core] object Block extends LazyLogging {
 
   def unblock(headerSize: Int,
               bytes: Slice[Byte],
-              blockName: String): IO[Core.IO.Error, Slice[Byte]] =
+              blockName: String): IO[Core.Error, Slice[Byte]] =
     IO {
       bytes moveWritePosition 0
       bytes addIntUnsigned headerSize
@@ -141,7 +141,7 @@ private[core] object Block extends LazyLogging {
 
   def block(openSegment: SegmentBlock.Open,
             compressions: Seq[CompressionInternal],
-            blockName: String): IO[Core.IO.Error, SegmentBlock.Closed] =
+            blockName: String): IO[Core.Error, SegmentBlock.Closed] =
     if (compressions.isEmpty) {
       logger.debug(s"No compression strategies provided for Segment level compression for $blockName. Storing ${openSegment.segmentSize}.bytes uncompressed.")
       IO {
@@ -172,7 +172,7 @@ private[core] object Block extends LazyLogging {
 
   private def readCompressionInfo(formatID: Int,
                                   headerSize: Int,
-                                  reader: Reader[Core.IO.Error]): IO[Core.IO.Error, Option[CompressionInfo]] =
+                                  reader: Reader[Core.Error]): IO[Core.Error, Option[CompressionInfo]] =
     if (formatID == compressedBlockID) {
       for {
         decompressor <- reader.readIntUnsigned() flatMap (DecompressorInternal(_))
@@ -193,7 +193,7 @@ private[core] object Block extends LazyLogging {
         SegmentException.SegmentCorruptionException(message, new Exception(message))
       }
 
-  def readHeader[O <: BlockOffset](reader: BlockRefReader[O])(implicit blockOps: BlockOps[O, _]): IO[Core.IO.Error, Block.Header[O]] = {
+  def readHeader[O <: BlockOffset](reader: BlockRefReader[O])(implicit blockOps: BlockOps[O, _]): IO[Core.Error, Block.Header[O]] = {
     for {
       headerSize <- reader.readIntUnsigned()
       headerReader <- reader.read(headerSize - Bytes.sizeOf(headerSize)).map(Reader(_))
@@ -215,10 +215,10 @@ private[core] object Block extends LazyLogging {
     }
   }
 
-  def unblock[O <: BlockOffset, B <: Block[O]](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, B]): IO[Core.IO.Error, UnblockedReader[O, B]] =
+  def unblock[O <: BlockOffset, B <: Block[O]](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, B]): IO[Core.Error, UnblockedReader[O, B]] =
     unblock(BlockRefReader(bytes))
 
-  def unblock[O <: BlockOffset, B <: Block[O]](ref: BlockRefReader[O])(implicit blockOps: BlockOps[O, B]): IO[Core.IO.Error, UnblockedReader[O, B]] =
+  def unblock[O <: BlockOffset, B <: Block[O]](ref: BlockRefReader[O])(implicit blockOps: BlockOps[O, B]): IO[Core.Error, UnblockedReader[O, B]] =
     BlockedReader(ref) flatMap {
       blockedReader =>
         Block.unblock[O, B](
@@ -228,7 +228,7 @@ private[core] object Block extends LazyLogging {
     }
 
   def unblock[O <: BlockOffset, B <: Block[O]](reader: BlockedReader[O, B],
-                                               readAllIfUncompressed: Boolean)(implicit blockOps: BlockOps[O, B]): IO[Core.IO.Error, UnblockedReader[O, B]] =
+                                               readAllIfUncompressed: Boolean)(implicit blockOps: BlockOps[O, B]): IO[Core.Error, UnblockedReader[O, B]] =
     reader.block.compressionInfo match {
       case Some(compressionInfo) =>
         reader
@@ -256,7 +256,7 @@ private[core] object Block extends LazyLogging {
                 }
               else
                 IO.Failure(
-                  Core.IO.Error.Fatal(
+                  Core.Error.Fatal(
                     SegmentCorruptionException(s"Decompressed bytes size (${decompressedBytes.size}) != decompressedLength (${compressionInfo.decompressedLength}).")
                   )
                 )

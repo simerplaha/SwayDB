@@ -23,34 +23,34 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.data.io.Core
 import swaydb.data.slice.{Reader, Slice}
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 private[core] class GroupReader(decompressedValuesSize: Int,
                                 startIndexOffset: Int,
                                 endIndexOffset: Int,
-                                valuesDecompressor: () => IO[Core.IO.Error, Reader[Core.IO.Error]],
-                                indexReader: Reader[Core.IO.Error]) extends Reader[Core.IO.Error] with LazyLogging {
+                                valuesDecompressor: () => IO[Core.Error, Reader[Core.Error]],
+                                indexReader: Reader[Core.Error]) extends Reader[Core.Error] with LazyLogging {
 
   private var position: Int = 0
 
-  override def size: IO[Core.IO.Error, Long] =
+  override def size: IO[Core.Error, Long] =
     indexReader.size map (_ + decompressedValuesSize)
 
-  def moveTo(newPosition: Long): Reader[Core.IO.Error] = {
+  def moveTo(newPosition: Long): Reader[Core.Error] = {
     position = newPosition.toInt max 0
     this
   }
 
-  def hasMore: IO[Core.IO.Error, Boolean] =
+  def hasMore: IO[Core.Error, Boolean] =
     size.map(position < _)
 
-  def hasAtLeast(atLeastSize: Long): IO[Core.IO.Error, Boolean] =
+  def hasAtLeast(atLeastSize: Long): IO[Core.Error, Boolean] =
     size map {
       size =>
         (size - position) >= atLeastSize
     }
 
-  override def copy(): Reader[Core.IO.Error] =
+  override def copy(): Reader[Core.Error] =
     new GroupReader(
       decompressedValuesSize = decompressedValuesSize,
       startIndexOffset = startIndexOffset,
@@ -62,7 +62,7 @@ private[core] class GroupReader(decompressedValuesSize: Int,
   override def getPosition: Int =
     position
 
-  override def get(): IO[Core.IO.Error, Int] =
+  override def get(): IO[Core.Error, Int] =
     if (position >= startIndexOffset) {
       indexReader.moveTo(position - startIndexOffset).get() map {
         byte =>
@@ -99,6 +99,6 @@ private[core] class GroupReader(decompressedValuesSize: Int,
 
   override def isFile: Boolean = false
 
-  override def readRemaining(): IO[Core.IO.Error, Slice[Byte]] =
+  override def readRemaining(): IO[Core.Error, Slice[Byte]] =
     IO.failed(new IllegalStateException(s"Function readRemaining() on ${this.getClass.getSimpleName} is not supported!"))
 }

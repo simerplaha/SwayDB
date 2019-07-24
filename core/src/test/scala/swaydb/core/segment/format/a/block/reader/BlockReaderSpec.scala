@@ -27,16 +27,16 @@ import swaydb.core.io.reader.FileReader
 import swaydb.core.segment.format.a.block.{BlockOffset, ValuesBlock}
 import swaydb.data.io.Core
 import swaydb.data.slice.{Reader, Slice}
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 class BlockReaderSpec extends TestBase with MockFactory {
 
   object BlockReader {
-    def apply(blockReader: Reader[Core.IO.Error], blockOffset: BlockOffset, _blockSize: Int): BlockReader =
+    def apply(blockReader: Reader[Core.Error], blockOffset: BlockOffset, _blockSize: Int): BlockReader =
       new BlockReader {
         override private[reader] def reader = blockReader
         override def offset: BlockOffset = blockOffset
-        override def copy(): Reader[Core.IO.Error] = apply(blockReader.copy(), blockOffset, _blockSize)
+        override def copy(): Reader[Core.Error] = apply(blockReader.copy(), blockOffset, _blockSize)
         def blockSize = _blockSize
       }
   }

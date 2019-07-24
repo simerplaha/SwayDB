@@ -27,7 +27,7 @@ import swaydb.core.util.Bytes
 import swaydb.core.util.PipeOps._
 import swaydb.data.io.Core
 import swaydb.data.slice.{Reader, Slice}
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 import scala.annotation.implicitNotFound
 
@@ -55,7 +55,7 @@ object RangeValueSerializer {
     override def bytesRequired(fromValue: Unit, rangeValue: Value.Remove): Int =
       Bytes.sizeOf(id) + ValueSerializer.bytesRequired(rangeValue)
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Unit, Remove)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Unit, Remove)] =
       ValueSerializer.read[Value.Remove](reader).map(remove => ((), remove))
   }
 
@@ -69,7 +69,7 @@ object RangeValueSerializer {
     override def bytesRequired(fromValue: Unit, rangeValue: Value.Update): Int =
       Bytes.sizeOf(id) + ValueSerializer.bytesRequired(rangeValue)
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Unit, Value.Update)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Unit, Value.Update)] =
       ValueSerializer.read[Value.Update](reader).map(update => ((), update))
   }
 
@@ -83,7 +83,7 @@ object RangeValueSerializer {
     override def bytesRequired(fromValue: Unit, rangeValue: Value.Function): Int =
       Bytes.sizeOf(id) + ValueSerializer.bytesRequired(rangeValue)
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Unit, Value.Function)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Unit, Value.Function)] =
       ValueSerializer.read[Value.Function](reader).map(function => ((), function))
   }
 
@@ -97,7 +97,7 @@ object RangeValueSerializer {
     override def bytesRequired(fromValue: Unit, rangeValue: Value.PendingApply): Int =
       Bytes.sizeOf(id) + ValueSerializer.bytesRequired(rangeValue)
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Unit, Value.PendingApply)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Unit, Value.PendingApply)] =
       ValueSerializer.read[Value.PendingApply](reader).map(put => ((), put))
   }
 
@@ -125,7 +125,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Remove, Value.Remove)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Remove, Value.Remove)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Remove](fromValueBytes) flatMap {
@@ -159,7 +159,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Remove, Value.Update)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Remove, Value.Update)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Remove](fromValueBytes) flatMap {
@@ -193,7 +193,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Remove, Value.Function)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Remove, Value.Function)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Remove](fromValueBytes) flatMap {
@@ -227,7 +227,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Remove, Value.PendingApply)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Remove, Value.PendingApply)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Remove](fromValueBytes) flatMap {
@@ -265,7 +265,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Put, Remove)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Put, Remove)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Put](fromValueBytes) flatMap {
@@ -299,7 +299,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Put, Value.Update)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Put, Value.Update)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Put](fromValueBytes) flatMap {
@@ -333,7 +333,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Put, Value.Function)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Put, Value.Function)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Put](fromValueBytes) flatMap {
@@ -367,7 +367,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Put, Value.PendingApply)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Put, Value.PendingApply)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Put](fromValueBytes) flatMap {
@@ -403,7 +403,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Update, Value.Remove)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Update, Value.Remove)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Update](fromValueBytes) flatMap {
@@ -437,7 +437,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Update, Value.Update)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Update, Value.Update)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Update](fromValueBytes) flatMap {
@@ -470,7 +470,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Update, Value.Function)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Update, Value.Function)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Update](fromValueBytes) flatMap {
@@ -503,7 +503,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Update, Value.PendingApply)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Update, Value.PendingApply)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Update](fromValueBytes) flatMap {
@@ -539,7 +539,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Function, Value.Remove)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Function, Value.Remove)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Function](fromValueBytes) flatMap {
@@ -572,7 +572,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Function, Value.Update)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Function, Value.Update)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Function](fromValueBytes) flatMap {
@@ -605,7 +605,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Function, Value.Function)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Function, Value.Function)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Function](fromValueBytes) flatMap {
@@ -638,7 +638,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.Function, Value.PendingApply)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.Function, Value.PendingApply)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Function](fromValueBytes) flatMap {
@@ -674,7 +674,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.PendingApply, Value.Remove)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.PendingApply, Value.Remove)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.PendingApply](fromValueBytes) flatMap {
@@ -707,7 +707,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.PendingApply, Value.Update)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.PendingApply, Value.Update)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.PendingApply](fromValueBytes) flatMap {
@@ -740,7 +740,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.PendingApply, Value.Function)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.PendingApply, Value.Function)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.PendingApply](fromValueBytes) flatMap {
@@ -773,7 +773,7 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Value.PendingApply, Value.PendingApply)] =
+    def read(reader: Reader[Core.Error]): IO[Core.Error, (Value.PendingApply, Value.PendingApply)] =
       reader.readIntUnsigned().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.PendingApply](fromValueBytes) flatMap {
@@ -912,7 +912,7 @@ object RangeValueSerializer {
   }
 
   private def read(rangeId: Int,
-                   reader: Reader[Core.IO.Error]): IO[Core.IO.Error, (Option[Value.FromValue], Value.RangeValue)] =
+                   reader: Reader[Core.Error]): IO[Core.Error, (Option[Value.FromValue], Value.RangeValue)] =
     rangeId match {
       case RemoveRemoveSerializer.id =>
         RemoveRemoveSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
@@ -969,7 +969,7 @@ object RangeValueSerializer {
         UnitPendingApplySerializer.read(reader) map { case (_, rangeValue) => (None, rangeValue) }
     }
 
-  def read(bytes: Slice[Byte]): IO[Core.IO.Error, (Option[Value.FromValue], Value.RangeValue)] =
+  def read(bytes: Slice[Byte]): IO[Core.Error, (Option[Value.FromValue], Value.RangeValue)] =
     Reader(bytes) ==> {
       reader =>
         reader.readIntUnsigned() flatMap {

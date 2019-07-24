@@ -34,7 +34,7 @@ class IOFailureSpec extends WordSpec with Matchers {
 
   "IO.Failure" should {
     "set boolean" in {
-      val io = IO.Failure(Core.IO.Error.OpeningFile(Paths.get(""), Reserve()))
+      val io = IO.Failure(Core.Error.OpeningFile(Paths.get(""), Reserve()))
       io.isFailure shouldBe true
       io.isDeferred shouldBe false
       io.isSuccess shouldBe false
@@ -69,7 +69,7 @@ class IOFailureSpec extends WordSpec with Matchers {
     }
 
     "flatMap on failure" in {
-      val failure = IO.Failure(Core.IO.Error.NoSuchFile(new NoSuchFileException("")))
+      val failure = IO.Failure(Core.Error.NoSuchFile(new NoSuchFileException("")))
 
       failure.asDeferred flatMap {
         _ =>
@@ -78,14 +78,14 @@ class IOFailureSpec extends WordSpec with Matchers {
     }
 
     "flatten on successes with failure" in {
-      val io = IO.Success(IO.Failure(Core.IO.Error.Fatal(new Exception("Kaboom!"))))
+      val io = IO.Success(IO.Failure(Core.Error.Fatal(new Exception("Kaboom!"))))
 
       io.flatten.asInstanceOf[IO.Failure[Throwable, Int]].exception.getMessage shouldBe "Kaboom!"
     }
 
     "flatten on failure with success" in {
       val io =
-        IO.Failure(Core.IO.Error.Fatal(new Exception("Kaboom!"))).asIO map {
+        IO.Failure(Core.Error.Fatal(new Exception("Kaboom!"))).asIO map {
           _ =>
             IO.Success(11)
         }
@@ -95,8 +95,8 @@ class IOFailureSpec extends WordSpec with Matchers {
 
     "recover" in {
       val failure =
-        IO.Failure(Core.IO.Error.NoSuchFile(new NoSuchFileException(""))) recover {
-          case _: Core.IO.Error =>
+        IO.Failure(Core.Error.NoSuchFile(new NoSuchFileException(""))) recover {
+          case _: Core.Error =>
             1
         }
 
@@ -105,10 +105,10 @@ class IOFailureSpec extends WordSpec with Matchers {
 
     "recoverWith" in {
       val failure =
-        IO.Failure(Core.IO.Error.NoSuchFile(new NoSuchFileException("")))
-          .recoverWith[Core.IO.Error, Unit] {
-          case error: Core.IO.Error =>
-            IO.Failure(Core.IO.Error.Fatal(new Exception("recovery exception")))
+        IO.Failure(Core.Error.NoSuchFile(new NoSuchFileException("")))
+          .recoverWith[Core.Error, Unit] {
+          case error: Core.Error =>
+            IO.Failure(Core.Error.Fatal(new Exception("recovery exception")))
         }
 
       failure.failed.get.exception.getMessage shouldBe "recovery exception"

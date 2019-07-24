@@ -27,7 +27,7 @@ import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
 import swaydb.data.io.Core
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
@@ -244,8 +244,8 @@ private[level] object Compaction extends LazyLogging {
       case IO.Failure(error) =>
         error match {
           //do not log the stack if the IO.Failure to merge was ContainsOverlappingBusySegments.
-          case Core.IO.Error.OverlappingPushSegment =>
-            logger.debug(s"Level(${zero.levelNumber}): Failed to push", Core.IO.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
+          case Core.Error.OverlappingPushSegment =>
+            logger.debug(s"Level(${zero.levelNumber}): Failed to push", Core.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
           case _ =>
             logger.error(s"Level(${zero.levelNumber}): Failed to push", error.exception)
         }
@@ -265,7 +265,7 @@ private[level] object Compaction extends LazyLogging {
     }
 
   private[compaction] def pushForward(level: NextLevel,
-                                      segmentsToPush: Int)(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Int] =
+                                      segmentsToPush: Int)(implicit ec: ExecutionContext): IO.Defer[Core.Error, Int] =
     level.nextLevel map {
       nextLevel =>
         val (copyable, mergeable) = level.optimalSegmentsPushForward(take = segmentsToPush)
@@ -298,7 +298,7 @@ private[level] object Compaction extends LazyLogging {
   def runLastLevelCompaction(level: NextLevel,
                              checkExpired: Boolean,
                              remainingCompactions: Int,
-                             segmentsCompacted: Int)(implicit ec: ExecutionContext): IO[Core.IO.Error, Int] =
+                             segmentsCompacted: Int)(implicit ec: ExecutionContext): IO[Core.Error, Int] =
     if (level.hasNextLevel || remainingCompactions <= 0)
       IO.Success(segmentsCompacted)
     else if (checkExpired)
@@ -410,13 +410,13 @@ private[level] object Compaction extends LazyLogging {
 
   private[compaction] def putForward(segments: Iterable[Segment],
                                      thisLevel: NextLevel,
-                                     nextLevel: NextLevel)(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Int] =
+                                     nextLevel: NextLevel)(implicit ec: ExecutionContext): IO.Defer[Core.Error, Int] =
     if (segments.isEmpty)
       IO.zero
     else
       nextLevel.put(segments) match {
         case IO.Success(_) =>
-          thisLevel.removeSegments(segments) recoverWith[Core.IO.Error, Int] {
+          thisLevel.removeSegments(segments) recoverWith[Core.Error, Int] {
             case _ =>
               IO.Success(segments.size)
           } asDeferred

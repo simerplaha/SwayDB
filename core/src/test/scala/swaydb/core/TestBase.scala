@@ -253,7 +253,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                                                fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                segmentIO: SegmentIO = SegmentIO.random,
-                                                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Core.IO.Error, Segment] =
+                                                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Core.Error, Segment] =
       if (levelStorage.memory)
         Segment.memory(
           path = path,

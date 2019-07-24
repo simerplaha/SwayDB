@@ -25,15 +25,15 @@ import swaydb.data.io.Core
 
 private[core] object ExceptionUtil extends LazyLogging {
 
-  def logFailure(message: => String, failure: IO.Failure[Core.IO.Error, _]): Unit =
+  def logFailure(message: => String, failure: IO.Failure[Core.Error, _]): Unit =
     logFailure(message, failure.error)
 
-  def logFailure(message: => String, error: Core.IO.Error): Unit =
+  def logFailure(message: => String, error: Core.Error): Unit =
     error match {
-      case Core.IO.Error.Fatal(exception) =>
+      case Core.Error.Fatal(exception) =>
         logger.error(message, exception)
 
-      case _: Core.IO.Error =>
+      case _: Core.Error =>
         if (logger.underlying.isTraceEnabled) logger.trace(message, error.exception)
     }
 }

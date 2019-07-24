@@ -26,91 +26,91 @@ import java.nio.file.{NoSuchFileException, Paths}
 
 import org.scalatest.{FlatSpec, Matchers}
 import swaydb.data.io.Core
-import swaydb.data.io.Core.IO.Exception.NullMappedByteBuffer
+import swaydb.data.io.Core.Exception.NullMappedByteBuffer
 
 class IOErrorSpec extends FlatSpec with Matchers {
 
   it should "convert known Exception to known Error types and vice versa" in {
 
-    var error: Core.IO.Error = Core.IO.Error.OpeningFile(Paths.get("/some/path"), Reserve())
-    var exception: Throwable = Core.IO.Exception.OpeningFile(Paths.get("/some/path"), Reserve())
+    var error: Core.Error = Core.Error.OpeningFile(Paths.get("/some/path"), Reserve())
+    var exception: Throwable = Core.Exception.OpeningFile(Paths.get("/some/path"), Reserve())
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe a[Core.IO.Error.OpeningFile]
+    Core.Error(exception) shouldBe a[Core.Error.OpeningFile]
 
     //BUSY Errors
-    error = Core.IO.Error.NoSuchFile(Some(Paths.get("/some/path")), None)
+    error = Core.Error.NoSuchFile(Some(Paths.get("/some/path")), None)
     exception = new NoSuchFileException("/some/path")
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe a[Core.IO.Error.NoSuchFile]
+    Core.Error(exception) shouldBe a[Core.Error.NoSuchFile]
 
-    error = Core.IO.Error.FileNotFound(new FileNotFoundException("some_file.sh"))
+    error = Core.Error.FileNotFound(new FileNotFoundException("some_file.sh"))
     exception = new FileNotFoundException("some_file.sh")
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe a[Core.IO.Error.FileNotFound]
+    Core.Error(exception) shouldBe a[Core.Error.FileNotFound]
 
-    error = Core.IO.Error.AsynchronousClose(new AsynchronousCloseException())
+    error = Core.Error.AsynchronousClose(new AsynchronousCloseException())
     exception = new AsynchronousCloseException()
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe a[Core.IO.Error.AsynchronousClose]
+    Core.Error(exception) shouldBe a[Core.Error.AsynchronousClose]
 
-    error = Core.IO.Error.ClosedChannel(new ClosedChannelException())
+    error = Core.Error.ClosedChannel(new ClosedChannelException())
     exception = new ClosedChannelException()
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe a[Core.IO.Error.ClosedChannel]
+    Core.Error(exception) shouldBe a[Core.Error.ClosedChannel]
 
-    error = Core.IO.Error.NullMappedByteBuffer(NullMappedByteBuffer(new NullPointerException(), Reserve()))
-    exception = Core.IO.Exception.NullMappedByteBuffer(new NullPointerException(), Reserve())
-    Core.IO.Error(exception) shouldBe a[Core.IO.Error.NullMappedByteBuffer]
+    error = Core.Error.NullMappedByteBuffer(NullMappedByteBuffer(new NullPointerException(), Reserve()))
+    exception = Core.Exception.NullMappedByteBuffer(new NullPointerException(), Reserve())
+    Core.Error(exception) shouldBe a[Core.Error.NullMappedByteBuffer]
 
-    error = Core.IO.Error.DecompressingIndex(Reserve())
+    error = Core.Error.DecompressingIndex(Reserve())
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe a[Core.IO.Error.DecompressingIndex]
+    Core.Error(exception) shouldBe a[Core.Error.DecompressingIndex]
 
-    error = Core.IO.Error.DecompressingValues(Reserve())
+    error = Core.Error.DecompressingValues(Reserve())
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe a[Core.IO.Error.DecompressingValues]
+    Core.Error(exception) shouldBe a[Core.Error.DecompressingValues]
 
-    error = Core.IO.Error.ReadingHeader(Reserve())
+    error = Core.Error.ReadingHeader(Reserve())
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe a[Core.IO.Error.ReadingHeader]
+    Core.Error(exception) shouldBe a[Core.Error.ReadingHeader]
 
-    error = Core.IO.Error.ReservedValue(Reserve())
+    error = Core.Error.ReservedValue(Reserve())
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe a[Core.IO.Error.ReservedValue]
+    Core.Error(exception) shouldBe a[Core.Error.ReservedValue]
 
     //OTHER Errors
-    error = Core.IO.Error.OverlappingPushSegment
+    error = Core.Error.OverlappingPushSegment
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe Core.IO.Error.OverlappingPushSegment
+    Core.Error(exception) shouldBe Core.Error.OverlappingPushSegment
 
-    error = Core.IO.Error.NoSegmentsRemoved
+    error = Core.Error.NoSegmentsRemoved
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe Core.IO.Error.NoSegmentsRemoved
+    Core.Error(exception) shouldBe Core.Error.NoSegmentsRemoved
 
-    error = Core.IO.Error.NotSentToNextLevel
+    error = Core.Error.NotSentToNextLevel
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe Core.IO.Error.NotSentToNextLevel
+    Core.Error(exception) shouldBe Core.Error.NotSentToNextLevel
 
-    error = Core.IO.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(1)
+    error = Core.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(1)
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe Core.IO.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(1)
+    Core.Error(exception) shouldBe Core.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(1)
 
-    error = Core.IO.Error.ReadOnlyBuffer(new ReadOnlyBufferException)
+    error = Core.Error.ReadOnlyBuffer(new ReadOnlyBufferException)
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe a[Core.IO.Error.ReadOnlyBuffer]
+    Core.Error(exception) shouldBe a[Core.Error.ReadOnlyBuffer]
 
-    error = Core.IO.Error.Fatal(new Exception("Something bad happened"))
+    error = Core.Error.Fatal(new Exception("Something bad happened"))
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.IO.Error(exception) shouldBe a[Core.IO.Error.Fatal]
+    Core.Error(exception) shouldBe a[Core.Error.Fatal]
   }
 }

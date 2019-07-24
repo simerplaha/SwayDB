@@ -35,7 +35,7 @@ import swaydb.data.slice.Slice
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
-import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core.Error.ErrorHandler
 
 class HashIndexBlockSpec extends TestBase {
 
@@ -248,13 +248,13 @@ class HashIndexBlockSpec extends TestBase {
 
         println(s"ListMap created with size: ${indexOffsetMap.size}")
 
-        def findKey(indexOffset: Int, key: Slice[Byte]): IO[Core.IO.Error, Option[Transient]] =
+        def findKey(indexOffset: Int, key: Slice[Byte]): IO[Core.Error, Option[Transient]] =
           indexOffsetMap.get(indexOffset) match {
             case Some(keyValues) =>
               IO(keyValues.find(_.key equiv key))
 
             case None =>
-              IO.Failure(Core.IO.Error.Fatal(s"Got index that does not exist: $indexOffset"))
+              IO.Failure(Core.Error.Fatal(s"Got index that does not exist: $indexOffset"))
           }
 
         val hashIndexReader = Block.unblock(BlockRefReader(state.bytes)).get
