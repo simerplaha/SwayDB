@@ -45,7 +45,7 @@ private[swaydb] object DecompressorInternal {
       id =>
         IO(apply(id))
     } getOrElse {
-      IO.failed(DecompressException.InvalidDecompressorId(id))
+      IO.failed(Core.Exception.InvalidDecompressorId(id))
     }
 
   def apply(instance: LZ4Instance,

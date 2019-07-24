@@ -66,6 +66,7 @@ object Core {
         new SegmentCorruptionException(message, new Exception(message))
     }
     case class SegmentCorruptionException(message: String, cause: Throwable) extends Exception(message, cause)
+    case class InvalidDecompressorId(id: Int) extends Exception(s"Invalid decompressor id: $id")
   }
 
   sealed trait Error {
@@ -78,11 +79,11 @@ object Core {
       * Private Errors a restricted to DB's internals only. They should
       * not go out to the clients.
       */
-    private[swaydb] sealed trait Private extends Error
+    sealed trait Private extends Error
     sealed trait Initialisation extends Private
     sealed trait API extends Private
 
-    private[swaydb] object Private {
+    object Private {
       implicit object ErrorHandler extends ErrorHandler[Error.Private] {
         override def toException(e: Error.Private): Throwable =
           e.exception
@@ -101,6 +102,7 @@ object Core {
                  Error.NoSegmentsRemoved |
                  Error.NotSentToNextLevel |
                  _: Error.FunctionNotFound |
+                 _: Error.Initialisation |
                  _: Error.ReceivedKeyValuesToMergeWithoutTargetSegment |
                  _: Error.ReadOnlyBuffer |
                  _: Error.Fatal =>
