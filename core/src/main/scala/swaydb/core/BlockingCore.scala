@@ -29,11 +29,11 @@ import swaydb.core.map.timer.Timer
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.io.{Core, Tag}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.{IO, Prepare}
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -48,7 +48,7 @@ private[swaydb] object BlockingCore {
             fileOpenLimiterEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[Core.Error.Private, BlockingCore[Tag.CoreIO]] =
+                                              functionStore: FunctionStore): IO[Core.Error.Public, BlockingCore[Tag.CoreIO]] =
     CoreInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
@@ -62,7 +62,7 @@ private[swaydb] object BlockingCore {
   def apply(config: LevelZeroConfig)(implicit mmapCleanerEC: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[Core.Error.Private, BlockingCore[Tag.CoreIO]] =
+                                     functionStore: FunctionStore): IO[Core.Error.Public, BlockingCore[Tag.CoreIO]] =
     CoreInitializer(
       config = config,
       bufferCleanerEC = mmapCleanerEC
@@ -110,7 +110,7 @@ private[swaydb] object BlockingCore {
     }
 }
 
-private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO[Core.Error.Private, Unit])(implicit tag: Tag[T]) extends Core[T] {
+private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO[Core.Error.Public, Unit])(implicit tag: Tag[T]) extends Core[T] {
 
   def put(key: Slice[Byte]): T[IO.OK] =
     tag.fromIO(zero.put(key))

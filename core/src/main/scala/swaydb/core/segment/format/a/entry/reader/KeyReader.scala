@@ -24,8 +24,8 @@ import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
 import swaydb.data.io.Core
-import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.slice.{Reader, Slice}
 
 object KeyReader {
 

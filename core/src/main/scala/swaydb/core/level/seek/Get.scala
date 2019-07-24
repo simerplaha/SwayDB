@@ -25,9 +25,9 @@ import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.annotation.tailrec
 

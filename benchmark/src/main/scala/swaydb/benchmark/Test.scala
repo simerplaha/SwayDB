@@ -23,7 +23,7 @@ import java.nio.file.Path
 
 import swaydb._
 import swaydb.data.config.MMAP
-import swaydb.data.io.{Core, Tag}
+import swaydb.data.io.Tag
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default.{SliceOptionSerializer, SliceSerializer}
 

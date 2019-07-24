@@ -20,14 +20,14 @@
 package swaydb.core.merge
 
 import swaydb.IO
+import swaydb.IO._
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.function.FunctionStore
-import swaydb.IO._
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 private[core] object ApplyMerger {
 

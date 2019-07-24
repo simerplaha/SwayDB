@@ -23,7 +23,7 @@ import org.scalatest.OptionValues._
 import swaydb._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
-import swaydb.data.io.{Core, Tag}
+import swaydb.data.io.Tag
 import swaydb.serializers.Default._
 
 class SwayDBSpec0 extends SwayDBSpec {

@@ -33,6 +33,7 @@ import swaydb.core.util.Extension
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.RecoveryMode
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -40,7 +41,6 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.JavaConverters._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class MapsSpec extends TestBase {
 

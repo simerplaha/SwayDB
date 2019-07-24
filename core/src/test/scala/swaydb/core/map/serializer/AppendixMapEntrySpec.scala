@@ -31,13 +31,13 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.{TestBase, TestLimitQueues}
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.JavaConverters._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class AppendixMapEntrySpec extends TestBase {
 

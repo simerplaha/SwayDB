@@ -25,9 +25,9 @@ import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.core.util.TimeUtil._
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.slice.Reader
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.annotation.implicitNotFound
 import scala.concurrent.duration

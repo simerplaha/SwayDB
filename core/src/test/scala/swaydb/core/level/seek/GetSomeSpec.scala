@@ -29,11 +29,11 @@ import swaydb.core.TestData._
 import swaydb.core.data.{SwayFunctionOutput, Value}
 import swaydb.core.merge.{FixedMerger, FunctionMerger, PendingApplyMerger}
 import swaydb.core.{TestData, TestTimer}
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionValues {
 

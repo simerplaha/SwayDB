@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
-import swaydb.data.config.{IOStrategy, IOAction}
+import swaydb.data.config.{IOAction, IOStrategy}
 
 object SegmentIO {
 

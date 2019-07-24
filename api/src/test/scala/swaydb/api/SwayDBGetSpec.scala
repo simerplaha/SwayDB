@@ -24,7 +24,7 @@ import swaydb._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
-import swaydb.data.io.{Core, Tag}
+import swaydb.data.io.Tag
 import swaydb.serializers.Default._
 
 import scala.concurrent.duration._

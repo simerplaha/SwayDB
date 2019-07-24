@@ -21,16 +21,16 @@ package swaydb.core.segment.merge
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
+import swaydb.IO._
 import swaydb.core.data.Transient.Group
 import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, GroupingStrategy, KeyValueGroupingStrategyInternal}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
-import swaydb.IO._
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer

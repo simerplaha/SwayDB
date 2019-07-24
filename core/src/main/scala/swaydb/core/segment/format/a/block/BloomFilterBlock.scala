@@ -21,16 +21,16 @@ package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
+import swaydb.IO._
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil, MurmurHash3Generic, Options}
-import swaydb.IO._
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 private[core] object BloomFilterBlock extends LazyLogging {
 

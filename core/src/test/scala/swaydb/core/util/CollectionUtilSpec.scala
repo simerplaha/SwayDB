@@ -24,7 +24,6 @@ import swaydb.core.util.CollectionUtil._
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class CollectionUtilSpec extends WordSpec with Matchers {
 

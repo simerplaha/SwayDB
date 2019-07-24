@@ -23,6 +23,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
+import swaydb.IO._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect
 import swaydb.core.level.AppendixSkipListMerger
@@ -32,14 +33,13 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.Extension
-import swaydb.IO._
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 private[swaydb] object AppendixRepairer extends LazyLogging {
 

@@ -30,7 +30,7 @@ import swaydb.core.TestData._
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.MMAP
-import swaydb.data.io.{Core, Tag}
+import swaydb.data.io.Tag
 import swaydb.serializers.Default._
 import swaydb.simulation.Domain._
 import swaydb.simulation.ProductCommand._

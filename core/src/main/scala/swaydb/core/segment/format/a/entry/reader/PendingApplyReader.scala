@@ -26,8 +26,8 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.util.cache.Cache
 import swaydb.data.io.Core
-import swaydb.data.slice.Reader
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.slice.Reader
 
 object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
 

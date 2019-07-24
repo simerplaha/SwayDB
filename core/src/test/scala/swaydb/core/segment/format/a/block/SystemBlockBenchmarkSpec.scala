@@ -23,11 +23,11 @@ import swaydb.IO
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.util.Benchmark
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class SystemBlockBenchmarkSpec extends TestBase {
 

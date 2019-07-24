@@ -20,14 +20,14 @@
 package swaydb.core.util.cache
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{ErrorHandler, IO}
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.FunctionUtil
-import swaydb.data.config.IOStrategy
 import swaydb.data.Reserve
+import swaydb.data.config.IOStrategy
 import swaydb.data.io.Core
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.{ErrorHandler, IO}
 
 private[core] object Cache {
 

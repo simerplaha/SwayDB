@@ -21,7 +21,7 @@ package swaydb.benchmark
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Benchmark
-import swaydb.data.io.{Core, Tag}
+import swaydb.data.io.Tag
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default.{LongSerializer, StringSerializer}
 

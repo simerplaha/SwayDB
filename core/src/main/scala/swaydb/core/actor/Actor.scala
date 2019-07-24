@@ -25,7 +25,6 @@ import java.util.concurrent.{ConcurrentLinkedQueue, TimeUnit}
 import java.util.function.IntUnaryOperator
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
 import swaydb.core.util.Delay
 
 import scala.concurrent.duration.{FiniteDuration, _}

@@ -21,7 +21,7 @@ package swaydb.data.io
 
 import java.io.FileNotFoundException
 import java.nio.ReadOnlyBufferException
-import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
+import java.nio.channels.{AsynchronousCloseException, ClosedChannelException, OverlappingFileLockException}
 import java.nio.file.{NoSuchFileException, Path}
 
 import swaydb.ErrorHandler
@@ -60,6 +60,7 @@ object Core {
       * @param functionID the id of the missing function.
       */
     case class FunctionNotFound(functionID: Slice[Byte]) extends Exception("Function not found for ID.")
+    case class OverlappingFileLock(exception: OverlappingFileLockException) extends Exception("Failed to get directory lock.")
   }
 
   sealed trait Error {
@@ -68,10 +69,15 @@ object Core {
 
   object Error {
 
+    /**
+      * Private Errors a restricted to DB's internals only. They should
+      * not go out to the clients.
+      */
     private[swaydb] sealed trait Private extends Error
     sealed trait Public extends Private
+    sealed trait Initialisation extends Public
 
-    object Private {
+    private[swaydb] object Private {
       implicit object ErrorHandler extends ErrorHandler[Error.Private] {
         override def toException(e: Error.Private): Throwable =
           e.exception
@@ -85,6 +91,7 @@ object Core {
               Some(busy.reserve)
 
             case Error.OverlappingPushSegment |
+                 Error.UnableToLockDirectory(_) |
                  Error.NoSegmentsRemoved |
                  Error.NotSentToNextLevel |
                  _: Error.FunctionNotFound |
@@ -93,6 +100,19 @@ object Core {
                  _: Error.Fatal =>
               None
           }
+      }
+    }
+
+    object Public {
+      implicit object ErrorHandler extends ErrorHandler[Error.Public] {
+        override def toException(e: Error.Public): Throwable =
+          e.exception
+
+        override def fromException[F <: Error.Public](e: Throwable): F =
+          Error(e).asInstanceOf[F]
+
+        override def reserve(e: Error.Public): Option[Reserve[Unit]] =
+          None
       }
     }
 
@@ -119,6 +139,7 @@ object Core {
         case Exception.OverlappingPushSegment => Error.OverlappingPushSegment
         case Exception.NoSegmentsRemoved => Error.NoSegmentsRemoved
         case Exception.NotSentToNextLevel => Error.NotSentToNextLevel
+        case exception: Exception.OverlappingFileLock => Core.Error.UnableToLockDirectory(exception)
 
         case exception: ReadOnlyBufferException => Error.ReadOnlyBuffer(exception)
 
@@ -217,6 +238,10 @@ object Core {
 
     case class ReadOnlyBuffer(exception: ReadOnlyBufferException) extends Private
 
+    case class FunctionNotFound(functionID: Slice[Byte]) extends Public {
+      override def exception: Throwable = Core.Exception.FunctionNotFound(functionID)
+    }
+
     /**
       * Error that are not known and indicate something unexpected went wrong like a file corruption.
       *
@@ -227,9 +252,9 @@ object Core {
       def apply(message: String): Fatal =
         new Fatal(new Exception(message))
     }
-    case class Fatal(exception: Throwable) extends Public
-    case class FunctionNotFound(functionID: Slice[Byte]) extends Public {
-      override def exception: Throwable = Core.Exception.FunctionNotFound(functionID)
-    }
+    case class Fatal(exception: Throwable) extends Public with Initialisation
+
+    case class UnableToLockDirectory(exception: Core.Exception.OverlappingFileLock) extends Initialisation
+
   }
 }

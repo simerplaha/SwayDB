@@ -28,11 +28,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.IO._
-import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
 import swaydb.data.Reserve
 import swaydb.data.io.Core
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 
 import scala.annotation.tailrec
 

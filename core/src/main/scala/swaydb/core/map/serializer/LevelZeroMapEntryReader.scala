@@ -25,8 +25,8 @@ import swaydb.IO
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.map.MapEntry
 import swaydb.data.io.Core
-import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.slice.{Reader, Slice}
 
 import scala.concurrent.duration.Deadline
 

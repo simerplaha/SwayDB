@@ -73,7 +73,7 @@ class IOFailureSpec extends WordSpec with Matchers {
 
       failure.asDeferred flatMap {
         _ =>
-          IO.failed(new IllegalThreadStateException)
+          IO.failed[Core.Error.Private, Unit](new IllegalThreadStateException)
       } shouldBe failure
     }
 
@@ -107,7 +107,7 @@ class IOFailureSpec extends WordSpec with Matchers {
       val failure =
         IO.Failure(Core.Error.NoSuchFile(new NoSuchFileException("")))
           .recoverWith[Core.Error.Private, Unit] {
-          case error: Core.Error =>
+          case error: Core.Error.Private =>
             IO.Failure(Core.Error.Fatal(new Exception("recovery exception")))
         }
 

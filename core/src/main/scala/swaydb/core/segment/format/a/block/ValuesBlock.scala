@@ -27,8 +27,8 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.io.Core
-import swaydb.data.slice.Slice
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.slice.Slice
 
 private[core] object ValuesBlock {
 

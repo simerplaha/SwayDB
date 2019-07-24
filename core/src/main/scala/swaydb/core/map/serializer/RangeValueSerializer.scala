@@ -26,8 +26,8 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.core.util.PipeOps._
 import swaydb.data.io.Core
-import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.slice.{Reader, Slice}
 
 import scala.annotation.implicitNotFound
 

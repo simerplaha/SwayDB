@@ -31,6 +31,7 @@ import swaydb.core.data.Memory
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
 import swaydb.core.{TestBase, TestTimer}
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -38,7 +39,6 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.JavaConverters._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class LevelZeroMapEntrySpec extends TestBase {
 

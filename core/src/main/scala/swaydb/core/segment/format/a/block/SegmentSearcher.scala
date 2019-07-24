@@ -23,9 +23,9 @@ import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 private[core] object SegmentSearcher extends LazyLogging {
 

@@ -22,7 +22,7 @@ package swaydb.api
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.Stream
 import swaydb.core.RunThis._
-import swaydb.data.io.{Core, Tag}
+import swaydb.data.io.Tag
 import swaydb.data.io.Tag._
 
 import scala.concurrent.duration._

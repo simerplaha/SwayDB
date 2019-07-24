@@ -21,18 +21,18 @@ package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
+import swaydb.IO._
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.util.Bytes
-import swaydb.IO._
 import swaydb.data.config.IOAction
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 /**
   * A block is a group of compressed or uncompressed bytes.

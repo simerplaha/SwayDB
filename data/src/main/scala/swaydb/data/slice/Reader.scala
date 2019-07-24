@@ -21,8 +21,8 @@ package swaydb.data.slice
 
 import java.nio.charset.{Charset, StandardCharsets}
 
-import swaydb.{ErrorHandler, IO}
 import swaydb.data.util.ByteUtil
+import swaydb.{ErrorHandler, IO}
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag

@@ -28,11 +28,11 @@ import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.config.IOStrategy
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class SegmentBlockSpec extends TestBase {
 

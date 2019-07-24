@@ -23,7 +23,7 @@ package swaydb.api
 import swaydb._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
-import swaydb.data.io.{Core, Tag}
+import swaydb.data.io.Tag
 import swaydb.serializers.Default._
 
 class ScalaMapSpec0 extends ScalaMapSpec {

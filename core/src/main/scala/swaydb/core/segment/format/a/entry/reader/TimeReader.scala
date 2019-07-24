@@ -24,10 +24,10 @@ import swaydb.core.data.{KeyValue, Time}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.slice.Reader
 
 import scala.annotation.implicitNotFound
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 @implicitNotFound("Type class implementation not found for TimeReader of type ${T}")
 sealed trait TimeReader[-T] {

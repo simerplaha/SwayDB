@@ -29,7 +29,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class RemoveMergerSpec extends WordSpec with Matchers {
 

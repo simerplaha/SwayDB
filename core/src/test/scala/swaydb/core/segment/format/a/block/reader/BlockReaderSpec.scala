@@ -26,8 +26,8 @@ import swaydb.core.TestData._
 import swaydb.core.io.reader.FileReader
 import swaydb.core.segment.format.a.block.{BlockOffset, ValuesBlock}
 import swaydb.data.io.Core
-import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.slice.{Reader, Slice}
 
 class BlockReaderSpec extends TestBase with MockFactory {
 

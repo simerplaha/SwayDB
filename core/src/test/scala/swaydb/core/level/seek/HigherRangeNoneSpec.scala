@@ -26,11 +26,11 @@ import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.{TestData, TestTimer}
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 

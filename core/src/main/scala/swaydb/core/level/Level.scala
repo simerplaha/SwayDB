@@ -25,6 +25,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
+import swaydb.IO._
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -41,21 +42,20 @@ import swaydb.core.segment.{Segment, SegmentAssigner}
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.ExceptionUtil._
 import swaydb.core.util.{MinMax, _}
-import swaydb.IO._
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.Dir
+import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import swaydb.data.io.Core
 
 private[core] object Level extends LazyLogging {
 

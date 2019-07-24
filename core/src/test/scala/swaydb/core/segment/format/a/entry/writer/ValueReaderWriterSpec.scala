@@ -26,10 +26,10 @@ import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, BaseEntryIdFormatA, TransientToKeyValueIdBinder}
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.{TestBase, TestTimer}
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 /**
   * These tests can also be within [[swaydb.core.data.TransientSpec]] because they are

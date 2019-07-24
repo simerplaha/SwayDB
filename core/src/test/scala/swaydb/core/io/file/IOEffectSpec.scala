@@ -25,8 +25,8 @@ import swaydb.core.IOValues._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.util.{Benchmark, Extension}
-import swaydb.data.util.StorageUnits._
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.util.StorageUnits._
 
 class IOEffectSpec extends TestBase {
 

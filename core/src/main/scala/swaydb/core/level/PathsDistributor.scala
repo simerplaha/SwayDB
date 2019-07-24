@@ -27,10 +27,10 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.segment.Segment
 import swaydb.data.config.Dir
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 private[core] case class Distribution(path: Path,
                                       distributionRatio: Int,

@@ -40,12 +40,13 @@ import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util._
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.MaxKey
 import swaydb.data.config.Dir
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.StorageUnits._
-import swaydb.data.MaxKey
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -53,7 +54,6 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class SegmentWriteSpec0 extends SegmentWriteSpec
 

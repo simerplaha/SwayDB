@@ -29,11 +29,11 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 import scala.util.{Failure, Success, Try}
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class LevelReadSomeSpec0 extends LevelReadSomeSpec
 

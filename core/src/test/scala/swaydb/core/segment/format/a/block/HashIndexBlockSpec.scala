@@ -29,13 +29,13 @@ import swaydb.core.segment.format.a.block.HashIndexBlock.HashIndexBlockOps
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.data.config.RandomKeyIndex.RequiredSpace
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class HashIndexBlockSpec extends TestBase {
 

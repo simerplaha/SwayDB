@@ -19,35 +19,34 @@
 
 package swaydb.core.map
 
-import java.nio.file.{FileAlreadyExistsException, Files, Path, Paths}
+import java.nio.file.{FileAlreadyExistsException, Files, Path}
 import java.util.concurrent.ConcurrentSkipListMap
 
-import swaydb.core.data.{Memory, Persistent, Transient, Value}
+import org.scalatest.OptionValues._
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOValues._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.data.{Memory, Transient, Value}
+import swaydb.core.io.file.DBFile
+import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.serializer._
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
+import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.Extension
-import swaydb.core.io.file.IOEffect._
-import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOValues._
 
 import scala.collection.JavaConverters._
-import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.core.io.file.DBFile
-import org.scalatest.OptionValues._
-import swaydb.core.segment.format.a.block.SegmentIO
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class MapSpec extends TestBase {
 
@@ -642,8 +641,8 @@ class MapSpec extends TestBase {
   "Randomly inserting data into Map and recovering the Map" should {
     "result in the recovered Map to have the same skipList as the Map before recovery" in {
 
-      import LevelZeroMapEntryWriter._
       import LevelZeroMapEntryReader._
+      import LevelZeroMapEntryWriter._
 
       //run this test multiple times to randomly generate multiple combinations of overlapping key-value with optionally & randomly added Put, Remove, Range or Update.
       (1 to 100) foreach {

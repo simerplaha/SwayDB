@@ -29,10 +29,10 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class LevelRemoveSegmentSpec0 extends LevelRemoveSegmentSpec
 

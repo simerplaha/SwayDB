@@ -25,6 +25,7 @@ import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
+import swaydb.IO._
 import swaydb.core.data.Memory.{Group, SegmentResponse}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -35,12 +36,11 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
-import swaydb.IO._
-import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
 import swaydb.data.MaxKey
 import swaydb.data.io.Core
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.Deadline

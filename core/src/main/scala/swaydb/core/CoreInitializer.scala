@@ -23,7 +23,6 @@ import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.core.actor.WiredActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
@@ -36,11 +35,11 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
+import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.{Core, Tag}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-import swaydb.data.io.Core.Error.Private.ErrorHandler
-import swaydb.data.io.{Core, Tag}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
@@ -75,7 +74,7 @@ private[core] object CoreInitializer extends LazyLogging {
   def apply(config: LevelZeroConfig,
             bufferCleanerEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore): IO[Core.Error.Private, BlockingCore[Tag.CoreIO]] = {
+                                               functionStore: FunctionStore): IO[Core.Error.Public, BlockingCore[Tag.CoreIO]] = {
     implicit val fileLimiter = FileLimiter.empty
     implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
     if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(bufferCleanerEC)
@@ -86,10 +85,13 @@ private[core] object CoreInitializer extends LazyLogging {
       nextLevel = None,
       throttle = config.throttle,
       acceleration = config.acceleration
-    ) map {
-      zero =>
+    ) match {
+      case IO.Success(zero) =>
         addShutdownHook(zero, None)
-        BlockingCore(zero, () => IO.unit)
+        IO(BlockingCore(zero, () => IO.unit))
+
+      case IO.Failure(error) =>
+        IO.failed(error.exception)
     }
   }
 
@@ -138,7 +140,7 @@ private[core] object CoreInitializer extends LazyLogging {
             fileOpenLimiterEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[Core.Error.Private, BlockingCore[Tag.CoreIO]] = {
+                                              functionStore: FunctionStore): IO[Core.Error.Public, BlockingCore[Tag.CoreIO]] = {
     implicit val fileOpenLimiter: FileLimiter =
       FileLimiter(maxSegmentsOpen, segmentCloserDelay)(fileOpenLimiterEC)
 
@@ -257,6 +259,16 @@ private[core] object CoreInitializer extends LazyLogging {
       }
 
     logger.info(s"Starting ${config.otherLevels.size} configured Levels.")
-    createLevels(config.otherLevels.reverse, None)
+
+    /**
+      * Convert [[swaydb.data.io.Core.Error.Private]] to [[swaydb.data.io.Core.Error.Public]]
+      */
+    createLevels(config.otherLevels.reverse, None) match {
+      case IO.Success(core) =>
+        IO(core)
+
+      case IO.Failure(error) =>
+        IO.failed(error.exception)
+    }
   }
 }

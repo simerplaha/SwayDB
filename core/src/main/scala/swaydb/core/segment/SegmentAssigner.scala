@@ -26,9 +26,9 @@ import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.segment.merge.MergeList
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.annotation.tailrec
 import scala.collection.mutable

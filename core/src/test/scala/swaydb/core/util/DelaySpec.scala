@@ -22,10 +22,10 @@ package swaydb.core.util
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.IO
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class DelaySpec extends WordSpec with Matchers with Eventually {
 

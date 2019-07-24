@@ -28,10 +28,10 @@ import swaydb.IO
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.core.io.file.BufferCleaner.State
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 private[core] object Cleaner {
   def apply(handle: MethodHandle): Cleaner =

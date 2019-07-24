@@ -22,8 +22,8 @@ package swaydb.core.io.reader
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.data.io.Core
-import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.slice.{Reader, Slice}
 
 private[core] class GroupReader(decompressedValuesSize: Int,
                                 startIndexOffset: Int,

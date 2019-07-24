@@ -20,15 +20,15 @@
 package swaydb.core.map.serializer
 
 import swaydb.IO
+import swaydb.IO._
 import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.core.util.TimeUtil._
-import swaydb.IO._
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.annotation.implicitNotFound
 import scala.collection.mutable

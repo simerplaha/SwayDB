@@ -24,14 +24,14 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.IO
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.data.config.IOStrategy
 import swaydb.data.Reserve
+import swaydb.data.config.IOStrategy
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class CacheSpec extends WordSpec with Matchers with MockFactory {
 

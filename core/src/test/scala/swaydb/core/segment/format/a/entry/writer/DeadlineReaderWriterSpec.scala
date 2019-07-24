@@ -27,12 +27,12 @@ import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
 import swaydb.core.segment.format.a.entry.reader.DeadlineReader
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.concurrent.duration._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 

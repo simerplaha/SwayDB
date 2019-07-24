@@ -31,11 +31,11 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{Bytes, MinMax}
-import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.MaxKey
 import swaydb.data.io.Core
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.{Reader, Slice}
 
 import scala.concurrent.duration.Deadline
 

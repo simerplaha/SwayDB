@@ -19,13 +19,13 @@
 
 package swaydb.core
 
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.SwayFunction
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.util.Delay
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.io.{Core, Tag}
 import swaydb.data.slice.Slice
 import swaydb.{IO, Prepare}
@@ -33,8 +33,8 @@ import swaydb.{IO, Prepare}
 import scala.concurrent.duration.Deadline
 import scala.concurrent.{ExecutionContext, Future}
 
-private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Core.Error.Private, Unit])(implicit ec: ExecutionContext,
-                                                                                               tag: Tag.Async[T]) extends Core[T] {
+private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Core.Error.Public, Unit])(implicit ec: ExecutionContext,
+                                                                                                        tag: Tag.Async[T]) extends Core[T] {
 
   private val block = BlockingCore[Tag.CoreIO](zero, onClose)(Tag.sio)
 

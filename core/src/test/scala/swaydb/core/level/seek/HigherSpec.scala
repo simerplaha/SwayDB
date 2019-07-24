@@ -29,7 +29,6 @@ import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class HigherSpec extends WordSpec with Matchers {
 

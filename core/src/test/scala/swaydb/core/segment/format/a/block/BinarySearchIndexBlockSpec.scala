@@ -27,13 +27,13 @@ import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.Bytes
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.util.Try
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class BinarySearchIndexBlockSpec extends TestBase {
 

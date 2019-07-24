@@ -29,11 +29,11 @@ import swaydb.core.data._
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class MapCodecSpec extends TestBase {
 

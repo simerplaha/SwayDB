@@ -27,7 +27,6 @@ import swaydb.data.slice.Slice
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class ValueSerializerSpec extends WordSpec with Matchers {
 

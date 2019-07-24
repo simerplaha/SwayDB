@@ -29,10 +29,10 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._

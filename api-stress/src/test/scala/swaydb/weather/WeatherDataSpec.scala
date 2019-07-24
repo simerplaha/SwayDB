@@ -28,7 +28,7 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.util.Benchmark
 import swaydb.data.accelerate.Accelerator
-import swaydb.data.io.{Core, Tag}
+import swaydb.data.io.Tag
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 

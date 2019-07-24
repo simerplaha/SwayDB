@@ -19,21 +19,21 @@
 
 package swaydb.core.segment.format.a
 
+import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.core.CommonAssertions._
+import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
+import swaydb.core.data.Transient
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.segment.format.a.block.HashIndexBlock
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.IOValues._
-import org.scalatest.OptionValues._
-import swaydb.core.data.Transient
-import swaydb.core.segment.format.a.block.HashIndexBlock
 
 class SegmentLowerSpec0 extends SegmentLowerSpec {
   val keyValuesCount = 100

@@ -22,17 +22,17 @@ package swaydb.core.segment.format.a.block
 import java.util.concurrent.ConcurrentSkipListMap
 
 import swaydb.IO
+import swaydb.IO._
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Memory, Transient}
 import swaydb.core.function.FunctionStore
 import swaydb.core.segment.{DeadlineAndFunctionId, Segment}
 import swaydb.core.util.{Bytes, MinMax}
-import swaydb.IO._
 import swaydb.data.api.grouping.Compression
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.io.Core
-import swaydb.data.slice.Slice
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Deadline

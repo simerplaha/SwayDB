@@ -23,7 +23,7 @@ package swaydb.api
 import swaydb._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
-import swaydb.data.io.{Core, Tag}
+import swaydb.data.io.Tag
 import swaydb.serializers.Default._
 
 class ScalaSetSpec0 extends ScalaSetSpec {
@@ -80,9 +80,7 @@ sealed trait ScalaSetSpec extends TestBaseEmbedded {
   "Expire" when {
     "put" in {
       val db = newDB()
-
       db.asScala.add(1)
-
       db.asScala.contains(1) shouldBe true
     }
 

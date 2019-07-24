@@ -23,10 +23,10 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.IO
 import swaydb.core.RunThis._
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class LazySpec extends WordSpec with Matchers with MockFactory {
 

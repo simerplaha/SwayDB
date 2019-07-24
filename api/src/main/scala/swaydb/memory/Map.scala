@@ -26,7 +26,7 @@ import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
-import swaydb.data.io.{Core, Tag}
+import swaydb.data.io.Tag
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

@@ -32,11 +32,11 @@ import swaydb.core.segment.{Segment, SegmentCache}
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.cache.{Cache, NoIO}
 import swaydb.core.util.{Bytes, MinMax}
+import swaydb.data.MaxKey
+import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.MaxKey
-import swaydb.data.io.Core.Error.Private.ErrorHandler
-import swaydb.data.io.Core
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 

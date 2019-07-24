@@ -26,15 +26,15 @@ import swaydb.core.actor.WiredActor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.util.Delay
 import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
+import swaydb.data.Reserve
 import swaydb.data.compaction.CompactionExecutionContext
+import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.Reserve
-import swaydb.data.io.Core
 
 import scala.collection.mutable
 import scala.concurrent.duration._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class CompactorSpec0 extends CompactorSpec
 

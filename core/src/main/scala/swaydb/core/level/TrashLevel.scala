@@ -27,8 +27,8 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.io.Core
-import swaydb.data.slice.Slice
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.slice.Slice
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

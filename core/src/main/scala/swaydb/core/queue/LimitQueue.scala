@@ -23,6 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

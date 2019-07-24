@@ -30,9 +30,9 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 object SegmentFooterBlock {
   val blockName = this.getClass.getSimpleName.dropRight(1)

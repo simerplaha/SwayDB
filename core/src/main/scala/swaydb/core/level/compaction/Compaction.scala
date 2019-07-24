@@ -26,8 +26,8 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
 import swaydb.data.io.Core
-import swaydb.data.slice.Slice
 import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext

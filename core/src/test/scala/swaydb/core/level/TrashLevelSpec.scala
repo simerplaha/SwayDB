@@ -27,11 +27,11 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.Throttle
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class TrashLevelSpec0 extends TrashLevelSpec
 

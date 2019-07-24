@@ -35,6 +35,7 @@ import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.MaxKey
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -42,7 +43,6 @@ import swaydb.serializers._
 
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class SegmentReadSpec0 extends SegmentReadSpec {
   val keyValuesCount = 100

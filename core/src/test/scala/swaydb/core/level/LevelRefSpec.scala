@@ -24,9 +24,9 @@ import java.nio.file.Path
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.IOValues._
 import swaydb.core.TestBase
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.collection.mutable.ListBuffer
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class LevelRefSpec extends TestBase with MockFactory {
 

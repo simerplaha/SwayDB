@@ -40,6 +40,8 @@ import swaydb.core.segment.Segment
 import swaydb.core.util.MinMax
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.Level0Storage
@@ -48,8 +50,6 @@ import swaydb.data.util.StorageUnits._
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.{Deadline, _}
-import swaydb.data.io.Core.Error.Private.ErrorHandler
-import swaydb.data.io.Core
 
 private[core] object LevelZero extends LazyLogging {
 

@@ -25,9 +25,9 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.map.{MapEntry, RecoveryResult}
 import swaydb.core.util.CRC32
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.collection.JavaConverters._
 

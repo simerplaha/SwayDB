@@ -23,10 +23,10 @@ import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 
-import swaydb.{ErrorHandler, IO}
+import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.{ByteSizeOf, ByteUtil}
-import swaydb.data.MaxKey
+import swaydb.{ErrorHandler, IO}
 
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom

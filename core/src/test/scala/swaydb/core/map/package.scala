@@ -24,13 +24,13 @@ import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.ExecutionContext
 import scala.util.Random
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 package object map {
 

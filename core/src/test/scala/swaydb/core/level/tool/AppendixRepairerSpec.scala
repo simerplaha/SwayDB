@@ -31,6 +31,7 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.compaction.Throttle
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
 import swaydb.data.slice.Slice
@@ -38,7 +39,6 @@ import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration.Duration
 import scala.util.Random
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class AppendixRepairerSpec extends TestBase {
 
