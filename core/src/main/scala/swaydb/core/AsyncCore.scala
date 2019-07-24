@@ -33,57 +33,56 @@ import swaydb.{IO, Prepare}
 import scala.concurrent.duration.Deadline
 import scala.concurrent.{ExecutionContext, Future}
 
-private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Core.Error.Public, Unit])(implicit ec: ExecutionContext,
-                                                                                                        tag: Tag.Async[T]) extends Core[T] {
-
+private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Core.Error.Initialisation, Unit])(implicit ec: ExecutionContext,
+                                                                                                                tag: Tag.Async[T]) extends Core[T] {
   private val block = BlockingCore[Tag.CoreIO](zero, onClose)(Tag.sio)
 
-  override def put(key: Slice[Byte]): T[IO.OK] =
+  override def put(key: Slice[Byte]): T[IO.Done] =
     tag.fromIO(block.put(key))
 
-  override def put(key: Slice[Byte], value: Slice[Byte]): T[IO.OK] =
+  override def put(key: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
     tag.fromIO(block.put(key, value))
 
-  override def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK] =
+  override def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
     tag.fromIO(block.put(key, value))
 
-  override def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.OK] =
+  override def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.Done] =
     tag.fromIO(block.put(key, value, removeAt))
 
-  override def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.OK] =
+  override def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.Done] =
     tag.fromIO(block.put(entries))
 
-  override def remove(key: Slice[Byte]): T[IO.OK] =
+  override def remove(key: Slice[Byte]): T[IO.Done] =
     tag.fromIO(block.remove(key))
 
-  override def remove(key: Slice[Byte], at: Deadline): T[IO.OK] =
+  override def remove(key: Slice[Byte], at: Deadline): T[IO.Done] =
     tag.fromIO(block.remove(key, at))
 
-  override def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.OK] =
+  override def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.Done] =
     tag.fromIO(block.remove(from, to))
 
-  override def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.OK] =
+  override def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.Done] =
     tag.fromIO(block.remove(from, to, at))
 
-  override def update(key: Slice[Byte], value: Slice[Byte]): T[IO.OK] =
+  override def update(key: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
     tag.fromIO(block.update(key, value))
 
-  override def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK] =
+  override def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
     tag.fromIO(block.update(key, value))
 
-  override def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.OK] =
+  override def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
     tag.fromIO(block.update(fromKey, to, value))
 
-  override def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK] =
+  override def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
     tag.fromIO(block.update(fromKey, to, value))
 
-  override def clear(): T[IO.OK] =
+  override def clear(): T[IO.Done] =
     tag.fromFuture(zero.clear().runInFuture)
 
-  override def function(key: Slice[Byte], function: Slice[Byte]): T[IO.OK] =
+  override def function(key: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
     tag.fromIO(block.function(key, function))
 
-  override def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.OK] =
+  override def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
     tag.fromIO(block.function(from, to, function))
 
   override def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =

@@ -32,24 +32,24 @@ import scala.concurrent.duration.Deadline
 
 private[swaydb] trait Core[T[_]] {
 
-  def put(key: Slice[Byte]): T[IO.OK]
-  def put(key: Slice[Byte], value: Slice[Byte]): T[IO.OK]
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK]
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.OK]
-  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.OK]
+  def put(key: Slice[Byte]): T[IO.Done]
+  def put(key: Slice[Byte], value: Slice[Byte]): T[IO.Done]
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done]
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.Done]
+  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.Done]
 
-  def remove(key: Slice[Byte]): T[IO.OK]
-  def remove(key: Slice[Byte], at: Deadline): T[IO.OK]
-  def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.OK]
-  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.OK]
+  def remove(key: Slice[Byte]): T[IO.Done]
+  def remove(key: Slice[Byte], at: Deadline): T[IO.Done]
+  def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.Done]
+  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.Done]
 
-  def update(key: Slice[Byte], value: Slice[Byte]): T[IO.OK]
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK]
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.OK]
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK]
+  def update(key: Slice[Byte], value: Slice[Byte]): T[IO.Done]
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done]
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.Done]
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done]
 
-  def function(key: Slice[Byte], function: Slice[Byte]): T[IO.OK]
-  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.OK]
+  def function(key: Slice[Byte], function: Slice[Byte]): T[IO.Done]
+  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.Done]
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction
 
   def head: T[Option[KeyValueTuple]]
@@ -88,5 +88,5 @@ private[swaydb] trait Core[T[_]] {
 
   def deadline(key: Slice[Byte]): T[Option[Deadline]]
 
-  def clear(): T[IO.OK]
+  def clear(): T[IO.Done]
 }

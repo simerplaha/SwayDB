@@ -896,6 +896,7 @@ private[core] object SegmentMerger extends LazyLogging {
           oldKeyValues.foreachIO(add) match {
             case Some(IO.Failure(error)) =>
               IO.Failure(error)
+
             case None =>
               IO.Success(splits)
           }

@@ -22,7 +22,6 @@ package swaydb.core.segment.format.a.block
 import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Transient
-import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
@@ -178,22 +177,20 @@ private[core] object ValuesBlock {
         .read(length)
         .map(Some(_))
         .recoverWith[Core.Error.Private, Option[Slice[Byte]]] {
-          case error =>
-            error.exception match {
-              case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
-                IO.Failure(
-                  Core.Error.Fatal(
-                    SegmentCorruptionException(
-                      message = s"Corrupted Segment: Failed to value bytes of length $length from offset $fromOffset",
-                      cause = exception
-                    )
-                  )
+        case error =>
+          error.exception match {
+            case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
+              IO.Failure(
+                Core.Error.Corruption(
+                  message = s"Corrupted Segment: Failed to value bytes of length $length from offset $fromOffset",
+                  exception = exception
                 )
+              )
 
-              case ex: Exception =>
-                IO.failed(ex)
-            }
-        }
+            case ex: Exception =>
+              IO.failed(ex)
+          }
+      }
 
   implicit object ValuesBlockOps extends BlockOps[ValuesBlock.Offset, ValuesBlock] {
     override def updateBlockOffset(block: ValuesBlock, start: Int, size: Int): ValuesBlock =

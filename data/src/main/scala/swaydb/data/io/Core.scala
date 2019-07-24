@@ -61,6 +61,11 @@ object Core {
       */
     case class FunctionNotFound(functionID: Slice[Byte]) extends Exception("Function not found for ID.")
     case class OverlappingFileLock(exception: OverlappingFileLockException) extends Exception("Failed to get directory lock.")
+    object SegmentCorruptionException {
+      def apply(message: String): SegmentCorruptionException =
+        new SegmentCorruptionException(message, new Exception(message))
+    }
+    case class SegmentCorruptionException(message: String, cause: Throwable) extends Exception(message, cause)
   }
 
   sealed trait Error {
@@ -74,8 +79,8 @@ object Core {
       * not go out to the clients.
       */
     private[swaydb] sealed trait Private extends Error
-    sealed trait Public extends Private
-    sealed trait Initialisation extends Public
+    sealed trait Initialisation extends Private
+    sealed trait API extends Private
 
     private[swaydb] object Private {
       implicit object ErrorHandler extends ErrorHandler[Error.Private] {
@@ -92,6 +97,7 @@ object Core {
 
             case Error.OverlappingPushSegment |
                  Error.UnableToLockDirectory(_) |
+                 Error.Corruption(_, _) |
                  Error.NoSegmentsRemoved |
                  Error.NotSentToNextLevel |
                  _: Error.FunctionNotFound |
@@ -103,17 +109,38 @@ object Core {
       }
     }
 
-    object Public {
-      implicit object ErrorHandler extends ErrorHandler[Error.Public] {
-        override def toException(e: Error.Public): Throwable =
-          e.exception
+    implicit object InitialisationErrorHandler extends ErrorHandler[Error.Initialisation] {
+      override def toException(e: Error.Initialisation): Throwable =
+        e.exception
 
-        override def fromException[F <: Error.Public](e: Throwable): F =
-          Error(e).asInstanceOf[F]
+      override def fromException[F <: Error.Initialisation](e: Throwable): F =
+        Error(e) match {
+          case initialisation: Error.Initialisation =>
+            initialisation.asInstanceOf[F]
 
-        override def reserve(e: Error.Public): Option[Reserve[Unit]] =
-          None
-      }
+          case other: Error =>
+            Error.Fatal(other.exception).asInstanceOf[F]
+        }
+
+      override def reserve(e: Error.Initialisation): Option[Reserve[Unit]] =
+        None
+    }
+
+    implicit object APIErrorHandler extends ErrorHandler[Error.API] {
+      override def toException(e: Error.API): Throwable =
+        e.exception
+
+      override def fromException[F <: Error.API](e: Throwable): F =
+        Error(e) match {
+          case initialisation: Error.API =>
+            initialisation.asInstanceOf[F]
+
+          case other: Error =>
+            Error.Fatal(other.exception).asInstanceOf[F]
+        }
+
+      override def reserve(e: Error.API): Option[Reserve[Unit]] =
+        None
     }
 
     def apply[T](exception: Throwable): Error =
@@ -142,6 +169,12 @@ object Core {
         case exception: Exception.OverlappingFileLock => Core.Error.UnableToLockDirectory(exception)
 
         case exception: ReadOnlyBufferException => Error.ReadOnlyBuffer(exception)
+
+        case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
+          Error.Corruption("Please see the exception to find out the cause", exception)
+
+        case exception: Exception.SegmentCorruptionException =>
+          Error.Corruption(exception.message, exception)
 
         //Fatal error. This error is not expected to occur on a healthy database. This error would indicate corruption.
         //AppendixRepairer can be used to repair map files.
@@ -238,10 +271,12 @@ object Core {
 
     case class ReadOnlyBuffer(exception: ReadOnlyBufferException) extends Private
 
-    case class FunctionNotFound(functionID: Slice[Byte]) extends Public {
+    case class FunctionNotFound(functionID: Slice[Byte]) extends Error.API {
       override def exception: Throwable = Core.Exception.FunctionNotFound(functionID)
     }
 
+    case class UnableToLockDirectory(exception: Core.Exception.OverlappingFileLock) extends Error.Initialisation
+    case class Corruption(message: String, exception: Throwable) extends Error.API with Error.Initialisation
     /**
       * Error that are not known and indicate something unexpected went wrong like a file corruption.
       *
@@ -252,9 +287,7 @@ object Core {
       def apply(message: String): Fatal =
         new Fatal(new Exception(message))
     }
-    case class Fatal(exception: Throwable) extends Public with Initialisation
 
-    case class UnableToLockDirectory(exception: Core.Exception.OverlappingFileLock) extends Initialisation
-
+    case class Fatal(exception: Throwable) extends Error.API with Error.Initialisation
   }
 }

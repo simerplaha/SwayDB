@@ -68,7 +68,6 @@ sealed trait SwayDBGetSpec extends TestBase {
 
   "SwayDB" should {
     "get" in {
-
       val db = newDB()
 
       (1 to 100) foreach {

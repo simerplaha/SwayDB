@@ -61,58 +61,58 @@ case class Set[A, T[_]](private val core: Core[T],
   def mightContainFunction(functionId: A): T[Boolean] =
     wrapCall(core mightContainFunction functionId)
 
-  def add(elem: A): T[IO.OK] =
+  def add(elem: A): T[IO.Done] =
     wrapCall(core.put(key = elem))
 
-  def add(elem: A, expireAt: Deadline): T[IO.OK] =
+  def add(elem: A, expireAt: Deadline): T[IO.Done] =
     wrapCall(core.put(elem, None, expireAt))
 
-  def add(elem: A, expireAfter: FiniteDuration): T[IO.OK] =
+  def add(elem: A, expireAfter: FiniteDuration): T[IO.Done] =
     wrapCall(core.put(elem, None, expireAfter.fromNow))
 
-  def add(elems: A*): T[IO.OK] =
+  def add(elems: A*): T[IO.Done] =
     add(elems)
 
-  def add(elems: Stream[A, T]): T[IO.OK] =
+  def add(elems: Stream[A, T]): T[IO.Done] =
     wrapCall(elems.materialize flatMap add)
 
-  def add(elems: Iterable[A]): T[IO.OK] =
+  def add(elems: Iterable[A]): T[IO.Done] =
     wrapCall(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None))))
 
-  def remove(elem: A): T[IO.OK] =
+  def remove(elem: A): T[IO.Done] =
     wrapCall(core.remove(elem))
 
-  def remove(from: A, to: A): T[IO.OK] =
+  def remove(from: A, to: A): T[IO.Done] =
     wrapCall(core.remove(from, to))
 
-  def remove(elems: A*): T[IO.OK] =
+  def remove(elems: A*): T[IO.Done] =
     remove(elems)
 
-  def remove(elems: Stream[A, T]): T[IO.OK] =
+  def remove(elems: Stream[A, T]): T[IO.Done] =
     wrapCall(elems.materialize flatMap remove)
 
-  def remove(elems: Iterable[A]): T[IO.OK] =
+  def remove(elems: Iterable[A]): T[IO.Done] =
     wrapCall(core.put(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
 
-  def expire(elem: A, after: FiniteDuration): T[IO.OK] =
+  def expire(elem: A, after: FiniteDuration): T[IO.Done] =
     wrapCall(core.remove(elem, after.fromNow))
 
-  def expire(elem: A, at: Deadline): T[IO.OK] =
+  def expire(elem: A, at: Deadline): T[IO.Done] =
     wrapCall(core.remove(elem, at))
 
-  def expire(from: A, to: A, after: FiniteDuration): T[IO.OK] =
+  def expire(from: A, to: A, after: FiniteDuration): T[IO.Done] =
     wrapCall(core.remove(from, to, after.fromNow))
 
-  def expire(from: A, to: A, at: Deadline): T[IO.OK] =
+  def expire(from: A, to: A, at: Deadline): T[IO.Done] =
     wrapCall(core.remove(from, to, at))
 
-  def expire(elems: (A, Deadline)*): T[IO.OK] =
+  def expire(elems: (A, Deadline)*): T[IO.Done] =
     expire(elems)
 
-  def expire(elems: Stream[(A, Deadline), T]): T[IO.OK] =
+  def expire(elems: Stream[(A, Deadline), T]): T[IO.Done] =
     wrapCall(elems.materialize flatMap expire)
 
-  def expire(elems: Iterable[(A, Deadline)]): T[IO.OK] =
+  def expire(elems: Iterable[(A, Deadline)]): T[IO.Done] =
     wrapCall {
       core.put {
         elems map {
@@ -126,7 +126,7 @@ case class Set[A, T[_]](private val core: Core[T],
       }
     }
 
-  def clear(): T[IO.OK] =
+  def clear(): T[IO.Done] =
     wrapCall(core.clear())
 
   def registerFunction(functionID: A, function: (A, Option[Deadline]) => Apply.Set[A]): A = {
@@ -134,19 +134,19 @@ case class Set[A, T[_]](private val core: Core[T],
     functionID
   }
 
-  def applyFunction(from: A, to: A, functionID: A): T[IO.OK] =
+  def applyFunction(from: A, to: A, functionID: A): T[IO.Done] =
     wrapCall(core.function(from, to, functionID))
 
-  def applyFunction(elem: A, function: A): T[IO.OK] =
+  def applyFunction(elem: A, function: A): T[IO.Done] =
     wrapCall(core.function(elem, function))
 
-  def commit(prepare: Prepare[A, Nothing]*): T[IO.OK] =
+  def commit(prepare: Prepare[A, Nothing]*): T[IO.Done] =
     wrapCall(core.put(prepare))
 
-  def commit(prepare: Stream[Prepare[A, Nothing], T]): T[IO.OK] =
+  def commit(prepare: Stream[Prepare[A, Nothing], T]): T[IO.Done] =
     wrapCall(prepare.materialize flatMap commit)
 
-  def commit(prepare: Iterable[Prepare[A, Nothing]]): T[IO.OK] =
+  def commit(prepare: Iterable[Prepare[A, Nothing]]): T[IO.Done] =
     wrapCall(core.put(prepare))
 
   def level0Meter: LevelZeroMeter =

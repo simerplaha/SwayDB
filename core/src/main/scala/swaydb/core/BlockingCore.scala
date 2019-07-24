@@ -48,7 +48,7 @@ private[swaydb] object BlockingCore {
             fileOpenLimiterEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[Core.Error.Public, BlockingCore[Tag.CoreIO]] =
+                                              functionStore: FunctionStore): IO[Core.Error.Initialisation, BlockingCore[Tag.CoreIO]] =
     CoreInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
@@ -62,7 +62,7 @@ private[swaydb] object BlockingCore {
   def apply(config: LevelZeroConfig)(implicit mmapCleanerEC: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[Core.Error.Public, BlockingCore[Tag.CoreIO]] =
+                                     functionStore: FunctionStore): IO[Core.Error.Initialisation, BlockingCore[Tag.CoreIO]] =
     CoreInitializer(
       config = config,
       bufferCleanerEC = mmapCleanerEC
@@ -110,18 +110,18 @@ private[swaydb] object BlockingCore {
     }
 }
 
-private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO[Core.Error.Public, Unit])(implicit tag: Tag[T]) extends Core[T] {
+private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO[Core.Error.Initialisation, Unit])(implicit tag: Tag[T]) extends Core[T] {
 
-  def put(key: Slice[Byte]): T[IO.OK] =
+  def put(key: Slice[Byte]): T[IO.Done] =
     tag.fromIO(zero.put(key))
 
-  def put(key: Slice[Byte], value: Slice[Byte]): T[IO.OK] =
+  def put(key: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
     tag.fromIO(zero.put(key, value))
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
     tag.fromIO(zero.put(key, value))
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.OK] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.Done] =
     tag.fromIO(zero.put(key, value, removeAt))
 
   /**
@@ -133,43 +133,43 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     * NOTE: If the default time order [[TimeOrder.long]] is used
     * Times should always be unique and in incremental order for *ALL* key values.
     */
-  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.OK] =
+  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.Done] =
     if (entries.isEmpty)
       tag.fromIO(IO.failed(new Exception("Cannot write empty batch")))
     else
       tag.fromIO(zero.put(BlockingCore.prepareToMapEntry(entries)(_).get)) //Gah .get! hmm.
 
-  def remove(key: Slice[Byte]): T[IO.OK] =
+  def remove(key: Slice[Byte]): T[IO.Done] =
     tag.fromIO(zero.remove(key))
 
-  def remove(key: Slice[Byte], at: Deadline): T[IO.OK] =
+  def remove(key: Slice[Byte], at: Deadline): T[IO.Done] =
     tag.fromIO(zero.remove(key, at))
 
-  def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.OK] =
+  def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.Done] =
     tag.fromIO(zero.remove(from, to))
 
-  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.OK] =
+  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.Done] =
     tag.fromIO(zero.remove(from, to, at))
 
-  def update(key: Slice[Byte], value: Slice[Byte]): T[IO.OK] =
+  def update(key: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
     tag.fromIO(zero.update(key, value))
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK] =
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
     tag.fromIO(zero.update(key, value))
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.OK] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
     tag.fromIO(zero.update(fromKey, to, value))
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
     tag.fromIO(zero.update(fromKey, to, value))
 
-  override def clear(): T[IO.OK] =
+  override def clear(): T[IO.Done] =
     tag.fromIO(zero.clear().runBlocking)
 
-  def function(key: Slice[Byte], function: Slice[Byte]): T[IO.OK] =
+  def function(key: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
     tag.fromIO(zero.applyFunction(key, function))
 
-  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.OK] =
+  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
     tag.fromIO(zero.applyFunction(from, to, function))
 
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =

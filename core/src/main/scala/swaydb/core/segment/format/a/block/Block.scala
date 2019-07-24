@@ -24,8 +24,6 @@ import swaydb.IO
 import swaydb.IO._
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.SegmentException
-import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.util.Bytes
 import swaydb.data.config.IOAction
@@ -188,9 +186,9 @@ private[core] object Block extends LazyLogging {
     else if (formatID == Block.uncompressedBlockId)
       IO.none
     else
-      IO.failed {
+      IO.Failure {
         val message = s"Invalid formatID: $formatID. Expected: ${Block.uncompressedBlockId} or ${Block.compressedBlockID}"
-        SegmentException.SegmentCorruptionException(message, new Exception(message))
+        Core.Error.Corruption(message, new Exception(message))
       }
 
   def readHeader[O <: BlockOffset](reader: BlockRefReader[O])(implicit blockOps: BlockOps[O, _]): IO[Core.Error.Private, Block.Header[O]] = {
@@ -255,11 +253,10 @@ private[core] object Block extends LazyLogging {
                   )
                 }
               else
-                IO.Failure(
-                  Core.Error.Fatal(
-                    SegmentCorruptionException(s"Decompressed bytes size (${decompressedBytes.size}) != decompressedLength (${compressionInfo.decompressedLength}).")
-                  )
-                )
+                IO.Failure {
+                  val message = s"Decompressed bytes size (${decompressedBytes.size}) != decompressedLength (${compressionInfo.decompressedLength})."
+                  Core.Error.Corruption(message, new Exception(message))
+                }
           }
 
       case None =>

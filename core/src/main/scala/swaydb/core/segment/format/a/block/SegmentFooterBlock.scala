@@ -22,7 +22,6 @@ package swaydb.core.segment.format.a.block
 import swaydb.IO
 import swaydb.core.data.Transient
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.block
 import swaydb.core.segment.format.a.block.Block.CompressionInfo
 import swaydb.core.segment.format.a.block.SegmentBlock.ClosedBlocks
@@ -177,7 +176,7 @@ object SegmentFooterBlock {
       val formatId = footerReader.readIntUnsigned().get
       if (formatId != SegmentBlock.formatId) {
         val message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}"
-        return IO.Failure(Core.Error.Fatal(SegmentCorruptionException(message = message, cause = new Exception(message))))
+        return IO.Failure(Core.Error.Corruption(message = message, new Exception(message)))
       }
       assert(formatId == SegmentBlock.formatId, s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}")
       val createdInLevel = footerReader.readIntUnsigned().get
@@ -190,7 +189,7 @@ object SegmentFooterBlock {
       val crcBytes = footerBytes.take(SegmentBlock.crcBytes)
       val crc = CRC32.forBytes(crcBytes)
       if (expectedCRC != crc) {
-        IO.failed(SegmentCorruptionException(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
+        IO.Failure(Core.Error.Corruption(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
       } else {
         val sortedIndexOffset =
           SortedIndexBlock.Offset(
@@ -264,11 +263,9 @@ object SegmentFooterBlock {
         exception match {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
             IO.Failure(
-              Core.Error.Fatal(
-                SegmentCorruptionException(
-                  message = "Corrupted Segment: Failed to read footer bytes",
-                  cause = exception
-                )
+              Core.Error.Corruption(
+                message = "Corrupted Segment: Failed to read footer bytes",
+                exception = exception
               )
             )
 

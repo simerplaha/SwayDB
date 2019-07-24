@@ -80,12 +80,12 @@ object Tag {
         }
     }
 
-  type CoreIO[T] = swaydb.IO[Core.Error.Public, T]
+  type CoreIO[T] = swaydb.IO[Core.Error.API, T]
 
   implicit val sio: Tag[CoreIO] =
     new Tag[CoreIO] {
 
-      import Core.Error.Public.ErrorHandler
+      import Core.Error.InitialisationErrorHandler
 
       override def apply[A](a: => A): CoreIO[A] = IO(a)
       override def map[A, B](a: A)(f: A => B): CoreIO[B] = IO(f(a))

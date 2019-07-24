@@ -25,7 +25,6 @@ import swaydb.IO._
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.cache.Cache
@@ -294,11 +293,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
             val atPosition: String = indexEntrySizeMayBe.map(size => s" of size $size") getOrElse ""
             IO.Failure(
-              Core.Error.Fatal(
-                SegmentCorruptionException(
-                  message = s"Corrupted Segment: Failed to read index entry at reader position ${indexReader.getPosition} - $atPosition}",
-                  cause = exception
-                )
+              Core.Error.Corruption(
+                message = s"Corrupted Segment: Failed to read index entry at reader position ${indexReader.getPosition} - $atPosition}",
+                exception = exception
               )
             )
 
@@ -343,11 +340,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
         exception match {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
             IO.Failure(
-              Core.Error.Fatal(
-                SegmentCorruptionException(
-                  message = s"Corrupted Segment: Failed to read index bytes",
-                  cause = exception
-                )
+              Core.Error.Corruption(
+                message = s"Corrupted Segment: Failed to read index bytes",
+                exception = exception
               )
             )
 
@@ -494,7 +489,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       hasMore = hasMore(next getOrElse previous)
     ) match {
       case KeyMatcher.Result.BehindFetchNext(previousKeyValue) =>
-//        assert(previous.key.readInt() <= previousKeyValue.key.readInt())
+        //        assert(previous.key.readInt() <= previousKeyValue.key.readInt())
         val readFrom = next getOrElse previousKeyValue
         readNextKeyValue(
           previous = readFrom,

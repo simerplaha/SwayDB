@@ -31,10 +31,10 @@ import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.segment.Segment
-import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.MaxKey
+import swaydb.data.io.Core
 import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -857,13 +857,13 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runIO.exception shouldBe a[ArrayIndexOutOfBoundsException]
 
           Files.write(segment2.path, bytes.dropRight(1))
-          Segment.getAllKeyValues(Seq(segment2)).failed.runIO.exception shouldBe a[SegmentCorruptionException]
+          Segment.getAllKeyValues(Seq(segment2)).failed.runIO shouldBe a[Core.Error.Corruption]
 
           Files.write(segment2.path, bytes.drop(10))
           Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runIO.exception shouldBe a[Exception]
 
           Files.write(segment2.path, bytes.dropRight(1))
-          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runIO.exception shouldBe a[SegmentCorruptionException]
+          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runIO shouldBe a[Core.Error.Corruption]
         }
       } else {
         //memory files do not require this test

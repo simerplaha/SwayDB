@@ -179,46 +179,46 @@ private[core] case class LevelZero(path: Path,
         nextLevel.map(_.releaseLocks) getOrElse IO.unit
     }
 
-  def assertKey(key: Slice[Byte])(block: => IO[Core.Error.Private, IO.OK]): IO[Core.Error.Private, IO.OK] =
+  def assertKey(key: Slice[Byte])(block: => IO[Core.Error.Private, IO.Done]): IO[Core.Error.Private, IO.Done] =
     if (key.isEmpty)
       IO.failed(new IllegalArgumentException("Input key(s) cannot be empty."))
     else
       block
 
-  def put(key: Slice[Byte]): IO[Core.Error.Private, IO.OK] =
+  def put(key: Slice[Byte]): IO[Core.Error.Private, IO.Done] =
     assertKey(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory.SegmentResponse](key, Memory.Put(key, None, None, timer.next)))
     }
 
-  def put(key: Slice[Byte], value: Slice[Byte]): IO[Core.Error.Private, IO.OK] =
+  def put(key: Slice[Byte], value: Slice[Byte]): IO[Core.Error.Private, IO.Done] =
     assertKey(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, Some(value), None, timer.next)))
     }
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): IO[Core.Error.Private, IO.OK] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): IO[Core.Error.Private, IO.Done] =
     assertKey(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, Some(removeAt), timer.next)))
     }
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Core.Error.Private, IO.OK] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Core.Error.Private, IO.Done] =
     assertKey(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, None, timer.next)))
     }
 
-  def put(entry: Timer => MapEntry[Slice[Byte], Memory.SegmentResponse]): IO[Core.Error.Private, IO.OK] =
+  def put(entry: Timer => MapEntry[Slice[Byte], Memory.SegmentResponse]): IO[Core.Error.Private, IO.Done] =
     maps write entry
 
-  def remove(key: Slice[Byte]): IO[Core.Error.Private, IO.OK] =
+  def remove(key: Slice[Byte]): IO[Core.Error.Private, IO.Done] =
     assertKey(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, None, timer.next)))
     }
 
-  def remove(key: Slice[Byte], at: Deadline): IO[Core.Error.Private, IO.OK] =
+  def remove(key: Slice[Byte], at: Deadline): IO[Core.Error.Private, IO.Done] =
     assertKey(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), timer.next)))
     }
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): IO[Core.Error.Private, IO.OK] =
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): IO[Core.Error.Private, IO.Done] =
     assertKey(fromKey) {
       assertKey(toKey) {
         if (fromKey equiv toKey)
@@ -234,7 +234,7 @@ private[core] case class LevelZero(path: Path,
       }
     }
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): IO[Core.Error.Private, IO.OK] =
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): IO[Core.Error.Private, IO.Done] =
     assertKey(fromKey) {
       assertKey(toKey) {
         if (fromKey equiv toKey)
@@ -250,20 +250,20 @@ private[core] case class LevelZero(path: Path,
       }
     }
 
-  def update(key: Slice[Byte], value: Slice[Byte]): IO[Core.Error.Private, IO.OK] =
+  def update(key: Slice[Byte], value: Slice[Byte]): IO[Core.Error.Private, IO.Done] =
     assertKey(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Update(key, Some(value), None, timer.next)))
     }
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Core.Error.Private, IO.OK] =
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Core.Error.Private, IO.Done] =
     assertKey(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Update(key, value, None, timer.next)))
     }
 
-  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Slice[Byte]): IO[Core.Error.Private, IO.OK] =
+  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Slice[Byte]): IO[Core.Error.Private, IO.Done] =
     update(fromKey, toKey, Some(value))
 
-  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Option[Slice[Byte]]): IO[Core.Error.Private, IO.OK] =
+  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Option[Slice[Byte]]): IO[Core.Error.Private, IO.Done] =
     assertKey(fromKey) {
       assertKey(toKey) {
         if (fromKey equiv toKey)
@@ -286,7 +286,7 @@ private[core] case class LevelZero(path: Path,
       }
     }
 
-  def clear(): IO.Defer[Core.Error.Private, IO.OK] =
+  def clear(): IO.Defer[Core.Error.Private, IO.Done] =
     headKey flatMap {
       case Some(headKey) =>
         lastKey flatMap {
@@ -294,17 +294,17 @@ private[core] case class LevelZero(path: Path,
             remove(headKey, lastKey).asDeferred
 
           case None =>
-            IO.ok //might have been removed by another thread?
+            IO.done //might have been removed by another thread?
         }
 
       case None =>
-        IO.ok
+        IO.done
     }
 
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
     functionStore.put(functionID, function)
 
-  def applyFunction(key: Slice[Byte], function: Slice[Byte]): IO[Core.Error.Private, IO.OK] =
+  def applyFunction(key: Slice[Byte], function: Slice[Byte]): IO[Core.Error.Private, IO.Done] =
     if (!functionStore.exists(function))
       IO.failed(new Exception("Function does not exists in function store."))
     else
@@ -312,7 +312,7 @@ private[core] case class LevelZero(path: Path,
         maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next)))
       }
 
-  def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): IO[Core.Error.Private, IO.OK] =
+  def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): IO[Core.Error.Private, IO.Done] =
     if (!functionStore.exists(function))
       IO.failed(new Exception("Function does not exists in function store."))
     else

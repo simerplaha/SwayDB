@@ -74,7 +74,7 @@ private[core] object CoreInitializer extends LazyLogging {
   def apply(config: LevelZeroConfig,
             bufferCleanerEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore): IO[Core.Error.Public, BlockingCore[Tag.CoreIO]] = {
+                                               functionStore: FunctionStore): IO[Core.Error.Initialisation, BlockingCore[Tag.CoreIO]] = {
     implicit val fileLimiter = FileLimiter.empty
     implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
     if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(bufferCleanerEC)
@@ -140,7 +140,7 @@ private[core] object CoreInitializer extends LazyLogging {
             fileOpenLimiterEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[Core.Error.Public, BlockingCore[Tag.CoreIO]] = {
+                                              functionStore: FunctionStore): IO[Core.Error.Initialisation, BlockingCore[Tag.CoreIO]] = {
     implicit val fileOpenLimiter: FileLimiter =
       FileLimiter(maxSegmentsOpen, segmentCloserDelay)(fileOpenLimiterEC)
 

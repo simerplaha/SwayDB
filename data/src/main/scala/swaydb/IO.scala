@@ -74,19 +74,19 @@ object IO {
   type TIO[T] = IO[Throwable, T]
   type NIO[T] = IO[Nothing, T]
 
-  sealed trait OK
-  final case object OK extends OK
+  sealed trait Done
+  final case object Done extends Done
 
-  val unit: IO.Success[Nothing, Unit] = IO.Success()(Nothing)
-  val none: IO.Success[Nothing, Option[Nothing]] = IO.Success(None)(Nothing)
-  val `false`: Success[Nothing, Boolean] = IO.Success(false)(Nothing)
-  val `true`: Success[Nothing, Boolean] = IO.Success(true)(Nothing)
-  val someTrue: IO[Nothing, Some[Boolean]] = IO.Success(Some(true))(Nothing)
-  val someFalse: IO[Nothing, Some[Boolean]] = IO.Success(Some(false))(Nothing)
-  val zero: Success[Nothing, Int] = IO.Success(0)(Nothing)
-  val emptyBytes: Success[Nothing, Slice[Byte]] = IO.Success(Slice.emptyBytes)(Nothing)
-  val emptySeqBytes: Success[Nothing, Seq[Slice[Byte]]] = IO.Success(Seq.empty[Slice[Byte]])(Nothing)
-  val ok: Success[Nothing, OK.type] = IO.Success(OK)(Nothing)
+  val unit: IO.Success[Nothing, Unit] = IO.Success()(ErrorHandler.Nothing)
+  val none: IO.Success[Nothing, Option[Nothing]] = IO.Success(None)(ErrorHandler.Nothing)
+  val `false`: Success[Nothing, Boolean] = IO.Success(false)(ErrorHandler.Nothing)
+  val `true`: Success[Nothing, Boolean] = IO.Success(true)(ErrorHandler.Nothing)
+  val someTrue: IO[Nothing, Some[Boolean]] = IO.Success(Some(true))(ErrorHandler.Nothing)
+  val someFalse: IO[Nothing, Some[Boolean]] = IO.Success(Some(false))(ErrorHandler.Nothing)
+  val zero: Success[Nothing, Int] = IO.Success(0)(ErrorHandler.Nothing)
+  val emptyBytes: Success[Nothing, Slice[Byte]] = IO.Success(Slice.emptyBytes)(ErrorHandler.Nothing)
+  val emptySeqBytes: Success[Nothing, Seq[Slice[Byte]]] = IO.Success(Seq.empty[Slice[Byte]])(ErrorHandler.Nothing)
+  val done: Success[Nothing, Done] = IO.Success(Done)(ErrorHandler.Nothing)
 
   sealed trait Defer[+E, +A] {
     def isFailure: Boolean
@@ -299,7 +299,7 @@ object IO {
     override def mapDeferred[B](f: A => B): IO.Defer[E, B] = IO[E, B](f(get)).asInstanceOf[IO.Defer[E, B]]
     override def recover[B >: A](f: PartialFunction[E, B]): IO[E, B] = this
     override def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO[F, B]]): IO[F, B] = this
-    override def failed: IO[Nothing, E] = IO.failed[Nothing, E](new UnsupportedOperationException("IO.Success.failed"))(Nothing)
+    override def failed: IO[Nothing, E] = IO.failed[Nothing, E](new UnsupportedOperationException("IO.Success.failed"))(ErrorHandler.Nothing)
     override def toOption: Option[A] = Some(get)
     override def toEither: Either[E, A] = Right(get)
     override def filter(p: A => Boolean): IO[E, A] =
@@ -567,7 +567,7 @@ object IO {
     override def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO[F, B]]): IO[F, B] =
       IO.CatchLeak(if (f isDefinedAt error) f(error) else this)
 
-    override def failed: IO.Success[Nothing, E] = IO.Success[Nothing, E](error)(Nothing)
+    override def failed: IO.Success[Nothing, E] = IO.Success[Nothing, E](error)(ErrorHandler.Nothing)
     override def toOption: Option[A] = None
     override def toEither: Either[E, A] = Left(error)
     override def filter(p: A => Boolean): IO.Failure[E, A] = this
