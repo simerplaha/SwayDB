@@ -474,11 +474,11 @@ object IO {
     override def mapDeferred[B](f: A => B): IO.Defer[E, B] = IO[E, B](f(get)).asInstanceOf[IO.Defer[E, B]]
     override def recover[B >: A](f: PartialFunction[E, B]): IO[E, B] = this
     override def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO[F, B]]): IO[F, B] = this
-    override def failed: IO[Nothing, E] = IO.Failure[Nothing, E](new UnsupportedOperationException("IO.Success.failed"))(Nothing)
+    override def failed: IO[Nothing, E] = IO.failed[Nothing, E](new UnsupportedOperationException("IO.Success.failed"))(Nothing)
     override def toOption: Option[A] = Some(get)
     override def toEither: Either[E, A] = Right(get)
     override def filter(p: A => Boolean): IO[E, A] =
-      IO.CatchLeak(if (p(get)) this else IO.Failure[E, A](new NoSuchElementException("Predicate does not hold for " + get)))
+      IO.CatchLeak(if (p(get)) this else IO.failed[E, A](new NoSuchElementException("Predicate does not hold for " + get)))
     override def toFuture: Future[A] = Future.successful(get)
     override def toTry: scala.util.Try[A] = scala.util.Success(get)
     override def onFailureSideEffect(f: IO.Failure[E, A] => Unit): IO.Success[E, A] = this
@@ -710,16 +710,11 @@ object IO {
     def failed: IO[Nothing, E] = IO[E, A](forceGet).failed
   }
 
-  object Failure {
-    @inline final def apply[E: ErrorHandler, A](exception: Throwable): IO.Failure[E, A] =
-      new IO.Failure[E, A](ErrorHandler.fromException[E](exception))
+  @inline final def failed[E: ErrorHandler, A](exception: Throwable): IO.Failure[E, A] =
+    new IO.Failure[E, A](ErrorHandler.fromException[E](exception))
 
-    @inline final def apply[E: ErrorHandler, A](message: String): IO.Failure[E, A] =
-      new IO.Failure[E, A](ErrorHandler.fromException[E](new Exception(message)))
-
-    @inline final def apply[A](error: IO.Error): IO.Failure[IO.Error, A] =
-      new IO.Failure[IO.Error, A](error)
-  }
+  @inline final def failed[E: ErrorHandler, A](message: String): IO.Failure[E, A] =
+    new IO.Failure[E, A](ErrorHandler.fromException[E](new Exception(message)))
 
   final case class Failure[+E: ErrorHandler, +A](error: E) extends IO.Defer[E, A] with IO[E, A] {
 

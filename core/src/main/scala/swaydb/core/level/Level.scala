@@ -139,7 +139,7 @@ private[core] object Level extends LazyLogging {
               //check if appendix folder/file was deleted.
               if ((!IOEffect.exists(appendixFolder) || appendixFolder.files(Extension.Log).isEmpty) && IOEffect.segmentFilesOnDisk(levelStorage.dirs.pathsSet.toSeq).nonEmpty) {
                 logger.info("{}: Failed to start Level. Appendix file is missing", appendixFolder)
-                IO.Failure(new IllegalStateException(s"Failed to start Level. Appendix file is missing '$appendixFolder'."))
+                IO.failed(new IllegalStateException(s"Failed to start Level. Appendix file is missing '$appendixFolder'."))
               } else {
                 IOEffect createDirectoriesIfAbsent appendixFolder
                 Map.persistent[Slice[Byte], Segment](
@@ -1037,7 +1037,7 @@ private[core] case class Level(dirs: Seq[Dir],
                   }
 
                 case None =>
-                  IO.Failure(new Exception(s"${paths.head}: Failed to create map entry"))
+                  IO.failed(new Exception(s"${paths.head}: Failed to create map entry"))
               } onFailureSideEffect {
                 failure =>
                   logFailure(s"${paths.head}: Failed to write key-values. Reverting", failure)
@@ -1121,7 +1121,7 @@ private[core] case class Level(dirs: Seq[Dir],
         IO.Success(value)
 
       case None =>
-        IO.Failure(new Exception("Failed to build map entry"))
+        IO.failed(new Exception("Failed to build map entry"))
     }
   }
 

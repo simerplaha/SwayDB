@@ -162,7 +162,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                     }
                 }
               else
-                IO.Failure(new IllegalArgumentException(s"Invalid entry type $entryId."))
+                IO.failed(new IllegalArgumentException(s"Invalid entry type $entryId."))
           }
       }
   }

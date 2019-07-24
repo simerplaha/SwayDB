@@ -137,7 +137,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     */
   def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.OK] =
     if (entries.isEmpty)
-      tag.fromIO(IO.Failure(new Exception("Cannot write empty batch")))
+      tag.fromIO(IO.failed(new Exception("Cannot write empty batch")))
     else
       tag.fromIO(zero.put(BlockingCore.prepareToMapEntry(entries)(_).get)) //Gah .get! hmm.
 

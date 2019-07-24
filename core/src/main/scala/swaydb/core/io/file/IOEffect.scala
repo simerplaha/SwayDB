@@ -115,7 +115,7 @@ private[core] object IOEffect extends LazyLogging {
       } getOrElse IO.unit
     } catch {
       case exception: Exception =>
-        IO.Failure(exception)
+        IO.failed(exception)
     }
 
   def writeUnclosed(channel: WritableByteChannel,
@@ -132,7 +132,7 @@ private[core] object IOEffect extends LazyLogging {
         IO.unit
     } catch {
       case exception: Exception =>
-        IO.Failure(exception)
+        IO.failed(exception)
     }
 
   def copy(copyFrom: Path,

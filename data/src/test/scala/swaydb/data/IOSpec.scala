@@ -50,7 +50,7 @@ class IOSpec extends WordSpec with Matchers {
           item => {
             iterations += 1
             if (item == 3)
-              IO.Failure(new Exception(s"result at item $item"))
+              IO.failed(new Exception(s"result at item $item"))
             else
               IO.Success(item)
           }
@@ -70,7 +70,7 @@ class IOSpec extends WordSpec with Matchers {
           item => {
             iterations += 1
             if (item == 3)
-              IO.Failure(new Exception(s"result at item $item"))
+              IO.failed(new Exception(s"result at item $item"))
             else {
               IO.Success(item)
             }
@@ -117,7 +117,7 @@ class IOSpec extends WordSpec with Matchers {
 
       val result: IO[Throwable, Slice[Int]] =
         slice.mapIO(
-          block = item => if (item == 3) IO.Failure(new Exception(s"Failed at $item")) else IO.Success(item),
+          block = item => if (item == 3) IO.failed(new Exception(s"Failed at $item")) else IO.Success(item),
           recover = (ints: Slice[Int], _: IO.Failure[Throwable, Slice[Int]]) => ints.foreach(intsCleanedUp += _)
         )
 
@@ -152,7 +152,7 @@ class IOSpec extends WordSpec with Matchers {
               IO(List(item.toString))
             }
             else {
-              IO.Failure(new Exception("Kaboom!"))
+              IO.failed(new Exception("Kaboom!"))
             }
         }
       result.failed.get.getMessage shouldBe "Kaboom!"
@@ -167,7 +167,7 @@ class IOSpec extends WordSpec with Matchers {
         slice.foldLeftIO(0) {
           case (count, item) =>
             if (item == "two")
-              IO.Failure(new Exception(s"Failed at $item"))
+              IO.failed(new Exception(s"Failed at $item"))
             else
               IO.Success(count + 1)
         }
@@ -269,7 +269,7 @@ class IOSpec extends WordSpec with Matchers {
         slice untilSome {
           item => {
             iterations += 1
-            IO.Failure(new Exception(s"Failed at $item"))
+            IO.failed(new Exception(s"Failed at $item"))
           }
         }
 

@@ -89,7 +89,7 @@ object Tag {
       override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
       override def flatMap[A, B](fa: SIO[A])(f: A => SIO[B]): SIO[B] = fa.flatMap(f)
       override def success[A](value: A): SIO[A] = IO.Success(value)
-      override def failure[A](exception: Throwable): SIO[A] = IO.Failure(exception)
+      override def failure[A](exception: Throwable): SIO[A] = IO.failed(exception)
       override def none[A]: SIO[Option[A]] = IO.none
       override def toFuture[A](a: SIO[A]): Future[A] = a.toFuture
 
@@ -109,7 +109,7 @@ object Tag {
                       operation(previousResult, next)
                     } catch {
                       case exception: Throwable =>
-                        return IO.Failure(exception)
+                        return IO.failed(exception)
                     }
                   fold(next, drop, currentSize + 1, nextResult)
                 }
@@ -134,7 +134,7 @@ object Tag {
                     operation(initial, first)
                   } catch {
                     case throwable: Throwable =>
-                      return IO.Failure(throwable)
+                      return IO.failed(throwable)
                   }
                 fold(first, drop, 1, next)
               }

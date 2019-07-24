@@ -89,7 +89,7 @@ private[core] object FunctionMerger {
               }
 
             case None =>
-              IO.Failure(IO.Exception.FunctionNotFound(function))
+              IO.failed(IO.Exception.FunctionNotFound(function))
           }
       }
 
@@ -179,7 +179,7 @@ private[core] object FunctionMerger {
               }
 
             case None =>
-              IO.Failure(IO.Exception.FunctionNotFound(function))
+              IO.failed(IO.Exception.FunctionNotFound(function))
           }
       }
     else
@@ -238,7 +238,7 @@ private[core] object FunctionMerger {
                   }
 
                 case None =>
-                  IO.Failure(IO.Exception.FunctionNotFound(function))
+                  IO.failed(IO.Exception.FunctionNotFound(function))
               }
           }
       }

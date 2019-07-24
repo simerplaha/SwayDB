@@ -131,7 +131,7 @@
 //                )
 //            }
 //        } getOrElse {
-//          IO.Failure(new Exception("Cannot put map with empty key."))
+//          IO.failed(new Exception("Cannot put map with empty key."))
 //        }
 //    }
 //
@@ -361,7 +361,7 @@
 //          case Key.MapEntry(_, dataKey) =>
 //            IO.Success(Some(dataKey))
 //          case got =>
-//            IO.Failure(new Exception(s"Unable to fetch key. Got: $got expected MapKey.Entry"))
+//            IO.failed(new Exception(s"Unable to fetch key. Got: $got expected MapKey.Entry"))
 //        }
 //      case None =>
 //        IO.none
@@ -376,11 +376,11 @@
 //              value =>
 //                IO.Success(Some(dataKey, value))
 //            } getOrElse {
-//              IO.Failure(new Exception("Value does not exist."))
+//              IO.failed(new Exception("Value does not exist."))
 //            }
 //
 //          case got =>
-//            IO.Failure(new Exception(s"Unable to fetch keyValue. Got: $got expected MapKey.Entry"))
+//            IO.failed(new Exception(s"Unable to fetch keyValue. Got: $got expected MapKey.Entry"))
 //        }
 //      case None =>
 //        IO.none

@@ -196,7 +196,7 @@ private[map] object PersistentMap extends LazyLogging {
                   nextFile.path,
                   failure.exception
                 )
-                IO.Failure(failure.exception)
+                IO.Failure(failure.error)
 
               case None =>
                 logger.info(s"Recovery successful")

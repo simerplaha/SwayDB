@@ -204,7 +204,7 @@ private[segment] case class MemorySegment(path: Path,
         IO.Success(Some(response))
 
       case _: Memory.Group =>
-        IO.Failure(new Exception("Get resulted in a Group when floorEntry should've fetched the Group instead."))
+        IO.failed(new Exception("Get resulted in a Group when floorEntry should've fetched the Group instead."))
     } getOrElse {
       IO.none
     }

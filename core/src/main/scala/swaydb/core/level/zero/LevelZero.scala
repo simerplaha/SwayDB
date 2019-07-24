@@ -180,7 +180,7 @@ private[core] case class LevelZero(path: Path,
 
   def assertKey(key: Slice[Byte])(block: => IO[IO.Error, IO.OK]): IO[IO.Error, IO.OK] =
     if (key.isEmpty)
-      IO.Failure(new IllegalArgumentException("Input key(s) cannot be empty."))
+      IO.failed(new IllegalArgumentException("Input key(s) cannot be empty."))
     else
       block
 
@@ -223,7 +223,7 @@ private[core] case class LevelZero(path: Path,
         if (fromKey equiv toKey)
           remove(fromKey)
         else if (fromKey > toKey)
-          IO.Failure(new Exception("fromKey should be less than or equal to toKey"))
+          IO.failed(new Exception("fromKey should be less than or equal to toKey"))
         else
           maps.write {
             timer =>
@@ -239,7 +239,7 @@ private[core] case class LevelZero(path: Path,
         if (fromKey equiv toKey)
           remove(fromKey)
         else if (fromKey > toKey)
-          IO.Failure(new Exception("fromKey should be less than or equal to toKey"))
+          IO.failed(new Exception("fromKey should be less than or equal to toKey"))
         else
           maps.write {
             timer =>
@@ -268,7 +268,7 @@ private[core] case class LevelZero(path: Path,
         if (fromKey equiv toKey)
           update(fromKey, value)
         else if (fromKey >= toKey)
-          IO.Failure(new Exception("fromKey should be less than or equal to toKey"))
+          IO.failed(new Exception("fromKey should be less than or equal to toKey"))
         else
           maps.write {
             timer =>
@@ -305,7 +305,7 @@ private[core] case class LevelZero(path: Path,
 
   def applyFunction(key: Slice[Byte], function: Slice[Byte]): IO[IO.Error, IO.OK] =
     if (!functionStore.exists(function))
-      IO.Failure(new Exception("Function does not exists in function store."))
+      IO.failed(new Exception("Function does not exists in function store."))
     else
       assertKey(key) {
         maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next)))
@@ -313,14 +313,14 @@ private[core] case class LevelZero(path: Path,
 
   def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): IO[IO.Error, IO.OK] =
     if (!functionStore.exists(function))
-      IO.Failure(new Exception("Function does not exists in function store."))
+      IO.failed(new Exception("Function does not exists in function store."))
     else
       assertKey(fromKey) {
         assertKey(toKey) {
           if (fromKey equiv toKey)
             applyFunction(fromKey, function)
           else if (fromKey >= toKey)
-            IO.Failure(new Exception("fromKey should be less than or equal to toKey"))
+            IO.failed(new Exception("fromKey should be less than or equal to toKey"))
           else
             maps.write {
               timer =>

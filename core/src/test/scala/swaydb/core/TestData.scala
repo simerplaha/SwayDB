@@ -24,7 +24,7 @@ import java.nio.file.Path
 import org.scalatest.Matchers._
 import swaydb.ErrorHandler.Nothing
 import swaydb.ErrorHandler.CoreError
-import swaydb.IO
+import swaydb.{ErrorHandler, IO}
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._

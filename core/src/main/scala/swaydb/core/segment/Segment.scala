@@ -62,7 +62,7 @@ private[core] object Segment extends LazyLogging {
                                              keyValueLimiter: KeyValueLimiter,
                                              segmentIO: SegmentIO): IO[IO.Error, Segment] =
     if (keyValues.isEmpty) {
-      IO.Failure(new Exception("Empty key-values submitted to memory Segment."))
+      IO.failed(new Exception("Empty key-values submitted to memory Segment."))
     } else {
       val bloomFilter: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](keyOrder)

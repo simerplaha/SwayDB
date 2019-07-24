@@ -99,5 +99,5 @@ private[core] class GroupReader(decompressedValuesSize: Int,
   override def isFile: Boolean = false
 
   override def readRemaining(): IO[IO.Error, Slice[Byte]] =
-    IO.Failure(new IllegalStateException(s"Function readRemaining() on ${this.getClass.getSimpleName} is not supported!"))
+    IO.failed(new IllegalStateException(s"Function readRemaining() on ${this.getClass.getSimpleName} is not supported!"))
 }

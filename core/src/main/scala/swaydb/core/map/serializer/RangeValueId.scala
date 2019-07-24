@@ -142,5 +142,5 @@ object RangeValueId {
   def apply(id: Int): IO[IO.Error, RangeValueId] =
     ids.get(id)
       .map(IO.Success(_))
-      .getOrElse(IO.Failure(new Exception(s"Invalid ${this.getClass.getSimpleName}: $id")))
+      .getOrElse(IO.failed(new Exception(s"Invalid ${this.getClass.getSimpleName}: $id")))
 }

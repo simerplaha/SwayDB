@@ -302,7 +302,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
             )
 
           case ex: Exception =>
-            IO.Failure(ex)
+            IO.failed(ex)
         }
     }
 
@@ -351,7 +351,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
             )
 
           case ex: Exception =>
-            IO.Failure(ex)
+            IO.failed(ex)
         }
     }
 

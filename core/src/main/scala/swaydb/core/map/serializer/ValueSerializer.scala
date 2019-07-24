@@ -235,7 +235,7 @@ object ValueSerializer {
                             applies
                         }
                       else
-                        IO.Failure(new Exception(s"Invalid id:$id"))
+                        IO.failed(new Exception(s"Invalid id:$id"))
                   }
               }
           }
@@ -301,7 +301,7 @@ object ValueSerializer {
       SeqOfBytesSerializer.read(reader) flatMap {
         bytes =>
           if (bytes.size != 2)
-            IO.Failure(new Exception(TupleOfBytesSerializer.getClass.getSimpleName + s".read did not return a tuple. Size = ${bytes.size}"))
+            IO.failed(new Exception(TupleOfBytesSerializer.getClass.getSimpleName + s".read did not return a tuple. Size = ${bytes.size}"))
           else
             IO.Success(bytes.head, bytes.last)
       }

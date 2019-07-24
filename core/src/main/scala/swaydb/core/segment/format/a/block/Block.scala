@@ -187,7 +187,7 @@ private[core] object Block extends LazyLogging {
     else if (formatID == Block.uncompressedBlockId)
       IO.none
     else
-      IO.Failure {
+      IO.failed {
         val message = s"Invalid formatID: $formatID. Expected: ${Block.uncompressedBlockId} or ${Block.compressedBlockID}"
         SegmentException.SegmentCorruptionException(message, new Exception(message))
       }

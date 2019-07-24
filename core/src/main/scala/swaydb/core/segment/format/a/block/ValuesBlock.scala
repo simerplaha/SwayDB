@@ -190,7 +190,7 @@ private[core] object ValuesBlock {
                 )
 
               case ex: Exception =>
-                IO.Failure(ex)
+                IO.failed(ex)
             }
         }
 

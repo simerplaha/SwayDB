@@ -41,7 +41,7 @@ class IOFailureSpec extends WordSpec with Matchers {
     }
 
     "get" in {
-      val io = IO.Failure(new IllegalAccessError)
+      val io = IO.failed(new IllegalAccessError)
 
       assertThrows[IllegalAccessError] {
         io.get
@@ -52,8 +52,8 @@ class IOFailureSpec extends WordSpec with Matchers {
     }
 
     "getOrElse & orElse return first io if both are Failures" in {
-      val io1 = IO.Failure(new IllegalAccessError)
-      val io2 = IO.Failure(new IllegalArgumentException)
+      val io1 = IO.failed(new IllegalAccessError)
+      val io2 = IO.failed(new IllegalArgumentException)
 
       (io1 getOrElse io2).exception shouldBe a[IllegalArgumentException]
 
@@ -61,7 +61,7 @@ class IOFailureSpec extends WordSpec with Matchers {
     }
 
     "flatMap on Success" in {
-      val failIO = IO.Failure(new IllegalThreadStateException)
+      val failIO = IO.failed(new IllegalThreadStateException)
       failIO.asDeferred flatMap {
         i =>
           IO.Success(1)
@@ -73,7 +73,7 @@ class IOFailureSpec extends WordSpec with Matchers {
 
       failure.asDeferred flatMap {
         _ =>
-          IO.Failure(new IllegalThreadStateException)
+          IO.failed(new IllegalThreadStateException)
       } shouldBe failure
     }
 

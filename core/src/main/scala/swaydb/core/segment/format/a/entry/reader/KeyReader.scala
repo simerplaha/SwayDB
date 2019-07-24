@@ -44,7 +44,7 @@ object KeyReader {
             }
         }
     } getOrElse {
-      IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
+      IO.failed(EntryReaderFailure.NoPreviousKeyValue)
     }
 
   def read(keyValueIdInt: Int,

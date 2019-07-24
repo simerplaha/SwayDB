@@ -128,7 +128,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true)(_ => mock.apply())
 
         cache.isCached shouldBe false
-        mock.expects() returning IO.Failure("Kaboom!") repeat 5.times
+        mock.expects() returning IO.failed("Kaboom!") repeat 5.times
         cache.getOrElse(IO(233)) shouldBe IO(233)
         cache.isCached shouldBe false
 
@@ -192,7 +192,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
         cache.isCached shouldBe false
 
-        mock.expects() returning IO.Failure("Kaboom!") repeat 2.times
+        mock.expects() returning IO.failed("Kaboom!") repeat 2.times
         cache.map(IO(_)).value().failed.get.exception.getMessage shouldBe "Kaboom!"
         cache.isCached shouldBe false
         cache.flatMap(Cache.reservedIO(true, IO.Error.BusyFuture(Reserve()))(int => IO.Success(int + 1))).value().failed.get.exception.getMessage shouldBe "Kaboom!"

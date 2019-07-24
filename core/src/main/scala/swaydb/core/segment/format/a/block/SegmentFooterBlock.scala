@@ -189,7 +189,7 @@ object SegmentFooterBlock {
       val crcBytes = footerBytes.take(SegmentBlock.crcBytes)
       val crc = CRC32.forBytes(crcBytes)
       if (expectedCRC != crc) {
-        IO.Failure(SegmentCorruptionException(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
+        IO.failed(SegmentCorruptionException(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
       } else {
         val sortedIndexOffset =
           SortedIndexBlock.Offset(
@@ -272,7 +272,7 @@ object SegmentFooterBlock {
             )
 
           case ex: Exception =>
-            IO.Failure(ex)
+            IO.failed(ex)
         }
     }
 

@@ -31,7 +31,7 @@ import swaydb.ErrorHandler.CoreError
 private[core] object GroupCompressor extends LazyLogging {
 
   def cannotGroupEmptyValues =
-    IO.Failure(new Exception("Cannot compress empty key-values"))
+    IO.failed(new Exception("Cannot compress empty key-values"))
 
   /**
     * Returns (fromKey, toKey, fullKey) where fullKey is compressed fromKey and toKey.
@@ -57,7 +57,7 @@ private[core] object GroupCompressor extends LazyLogging {
       //Cannot write key-values that belong to another Group or Segment. Groups key-values should have stats reset.
       val message = InvalidGroupKeyValuesHeadPosition(keyValues.head.stats.chainPosition)
       logger.error(message.getMessage)
-      IO.Failure(message)
+      IO.failed(message)
     } else {
       logger.debug(s"Compressing ${keyValues.size} key-values with previous key-value as ${previous.map(_.getClass.getSimpleName)}.")
       SegmentBlock.writeClosed(
