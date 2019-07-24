@@ -32,7 +32,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object Set {
-  def apply[T](api: Core[Core.IO])(implicit serializer: Serializer[T]): Set[T, Core.IO] =
+  def apply[T](api: Core[Tag.CoreIO])(implicit serializer: Serializer[T]): Set[T, Tag.CoreIO] =
     new Set(api, None)
 }
 
@@ -284,7 +284,7 @@ case class Set[A, T[_]](private val core: Core[T],
     copy(core = core.tagBlocking[O])
 
   def asScala: scala.collection.mutable.Set[A] =
-    ScalaSet[A](tagBlocking[Core.IO])
+    ScalaSet[A](tagBlocking[Tag.CoreIO])
 
   def close(): T[Unit] =
     wrapCall(core.close())

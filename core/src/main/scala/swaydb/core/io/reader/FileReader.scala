@@ -25,31 +25,31 @@ import swaydb.core.io.file.DBFile
 import swaydb.data.io.Core
 import swaydb.data.slice.{Reader, Slice}
 
-private[core] class FileReader(file: DBFile) extends Reader[Core.Error] with LazyLogging {
+private[core] class FileReader(file: DBFile) extends Reader[Core.Error.Private] with LazyLogging {
 
   private var position: Int = 0
 
-  def isLoaded: IO[Core.Error, Boolean] =
+  def isLoaded: IO[Core.Error.Private, Boolean] =
     file.isLoaded
 
-  override def size: IO[Core.Error, Long] =
+  override def size: IO[Core.Error.Private, Long] =
     file.fileSize
 
-  def moveTo(newPosition: Long): Reader[Core.Error] = {
+  def moveTo(newPosition: Long): Reader[Core.Error.Private] = {
     position = newPosition.toInt max 0
     this
   }
 
-  def hasMore: IO[Core.Error, Boolean] =
+  def hasMore: IO[Core.Error.Private, Boolean] =
     size.map(position < _)
 
-  def hasAtLeast(size: Long): IO[Core.Error, Boolean] =
+  def hasAtLeast(size: Long): IO[Core.Error.Private, Boolean] =
     file.fileSize map {
       fileSize =>
         (fileSize - position) >= size
     }
 
-  override def copy(): Reader[Core.Error] =
+  override def copy(): Reader[Core.Error.Private] =
     new FileReader(file)
 
   override def getPosition: Int = position
@@ -71,7 +71,7 @@ private[core] class FileReader(file: DBFile) extends Reader[Core.Error] with Laz
           bytes
       }
 
-  override def readRemaining(): IO[Core.Error, Slice[Byte]] =
+  override def readRemaining(): IO[Core.Error.Private, Slice[Byte]] =
     remaining flatMap read
 
   final override val isFile: Boolean =

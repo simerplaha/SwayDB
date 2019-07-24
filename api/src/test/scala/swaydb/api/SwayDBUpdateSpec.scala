@@ -24,7 +24,7 @@ import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
-import swaydb.data.io.Core
+import swaydb.data.io.{Core, Tag}
 import swaydb.serializers.Default._
 
 import scala.concurrent.duration._
@@ -32,7 +32,7 @@ import scala.concurrent.duration._
 class SwayDBUpdateSpec0 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, Core.IO] =
+  override def newDB(): Map[Int, String, Tag.CoreIO] =
     swaydb.persistent.Map[Int, String](dir = randomDir).value
 }
 
@@ -40,7 +40,7 @@ class SwayDBUpdateSpec1 extends SwayDBUpdateSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, Core.IO] =
+  override def newDB(): Map[Int, String, Tag.CoreIO] =
     swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).value
 }
 
@@ -48,14 +48,14 @@ class SwayDBUpdateSpec2 extends SwayDBUpdateSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Core.IO] =
+  override def newDB(): Map[Int, String, Tag.CoreIO] =
     swaydb.memory.Map[Int, String](mapSize = 1.byte).value
 }
 
 class SwayDBUpdateSpec3 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Core.IO] =
+  override def newDB(): Map[Int, String, Tag.CoreIO] =
     swaydb.memory.Map[Int, String]().value
 }
 
@@ -63,14 +63,14 @@ class SwayDBUpdateSpec4 extends SwayDBUpdateSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Core.IO] =
+  override def newDB(): Map[Int, String, Tag.CoreIO] =
     swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).value
 }
 
 class SwayDBUpdateSpec5 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Core.IO] =
+  override def newDB(): Map[Int, String, Tag.CoreIO] =
     swaydb.memory.zero.Map[Int, String]().value
 }
 
@@ -78,7 +78,7 @@ sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Map[Int, String, Core.IO]
+  def newDB(): Map[Int, String, Tag.CoreIO]
 
   "Updating" when {
     "Put" in {

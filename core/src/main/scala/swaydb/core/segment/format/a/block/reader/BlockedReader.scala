@@ -27,7 +27,7 @@ import swaydb.data.io.Core
 import swaydb.data.slice.{Reader, Slice}
 
 /**
-  * Reader[Core.Error] for the [[Block.CompressionInfo]] that skips [[Block.Header]] bytes.
+  * Reader[Core.Error.Private] for the [[Block.CompressionInfo]] that skips [[Block.Header]] bytes.
   */
 private[core] object BlockedReader {
 
@@ -38,7 +38,7 @@ private[core] object BlockedReader {
       block = block
     )
 
-  def apply[O <: BlockOffset, B <: Block[O]](ref: BlockRefReader[O])(implicit blockOps: BlockOps[O, B]): IO[Core.Error, BlockedReader[O, B]] =
+  def apply[O <: BlockOffset, B <: Block[O]](ref: BlockRefReader[O])(implicit blockOps: BlockOps[O, B]): IO[Core.Error.Private, BlockedReader[O, B]] =
     Block.readHeader(ref) flatMap {
       header =>
         blockOps.readBlock(header) map {
@@ -57,7 +57,7 @@ private[core] object BlockedReader {
     )
 }
 
-private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(private[reader] val reader: Reader[Core.Error],
+private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(private[reader] val reader: Reader[Core.Error.Private],
                                                                            val block: B) extends BlockReader with LazyLogging {
 
   def offset = block.offset
@@ -67,7 +67,7 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
     this
   }
 
-  def readAllAndGetReader()(implicit blockOps: BlockOps[O, B]): IO[Core.Error, BlockedReader[O, B]] =
+  def readAllAndGetReader()(implicit blockOps: BlockOps[O, B]): IO[Core.Error.Private, BlockedReader[O, B]] =
     readAll()
       .map {
         bytes =>

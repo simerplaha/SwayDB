@@ -20,14 +20,13 @@
 package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
-
 import swaydb.SwayDB
 import swaydb.configs.level.DefaultMemoryConfig
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
-import swaydb.data.io.Core
+import swaydb.data.io.{Core, Tag}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -55,7 +54,7 @@ object Set extends LazyLogging {
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                      fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                     cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): Core.IO[swaydb.Set[T, Core.IO]] =
+                                                                                     cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): Tag.CoreIO[swaydb.Set[T, Tag.CoreIO]] =
     BlockingCore(
       config = DefaultMemoryConfig(
         mapSize = mapSize,

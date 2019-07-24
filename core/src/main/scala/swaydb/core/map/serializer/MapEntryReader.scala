@@ -29,13 +29,13 @@ import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for MapEntryReader of type ${T}")
 trait MapEntryReader[T <: MapEntry[_, _]] {
-  def read(reader: Reader[Core.Error]): IO[Core.Error, Option[T]]
+  def read(reader: Reader[Core.Error.Private]): IO[Core.Error.Private, Option[T]]
 }
 
 object MapEntryReader {
-  def read[T <: MapEntry[_, _]](bytes: Slice[Byte])(implicit serializer: MapEntryReader[T]): IO[Core.Error, Option[T]] =
+  def read[T <: MapEntry[_, _]](bytes: Slice[Byte])(implicit serializer: MapEntryReader[T]): IO[Core.Error.Private, Option[T]] =
     serializer.read(Reader(bytes))
 
-  def read[T <: MapEntry[_, _]](reader: Reader[Core.Error])(implicit serializer: MapEntryReader[T]): IO[Core.Error, Option[T]] =
+  def read[T <: MapEntry[_, _]](reader: Reader[Core.Error.Private])(implicit serializer: MapEntryReader[T]): IO[Core.Error.Private, Option[T]] =
     serializer.read(reader)
 }

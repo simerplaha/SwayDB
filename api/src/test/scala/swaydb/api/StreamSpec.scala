@@ -33,8 +33,8 @@ class StreamFutureSpec extends StreamSpec[Future] {
   override def get[A](a: Future[A]): A = Await.result(a, 60.seconds)
 }
 
-class StreamIOSpec extends StreamSpec[Core.IO] {
-  override def get[A](a: Core.IO[A]): A = a.get
+class StreamIOSpec extends StreamSpec[Tag.CoreIO] {
+  override def get[A](a: Tag.CoreIO[A]): A = a.get
 }
 
 class StreamTrySpec extends StreamSpec[Try] {

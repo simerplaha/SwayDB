@@ -39,7 +39,7 @@ import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 private[swaydb] object AppendixRepairer extends LazyLogging {
 
@@ -47,7 +47,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
             strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               fileOpenLimiter: FileLimiter,
-                                              functionStore: FunctionStore): IO[Core.Error, Unit] = {
+                                              functionStore: FunctionStore): IO[Core.Error.Private, Unit] = {
     val reader =
       AppendixMapEntryReader(
         mmapSegmentsOnRead = false,
@@ -82,7 +82,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
 
   def applyRecovery(segment: Segment,
                     overlappingSegment: Segment,
-                    strategy: AppendixRepairStrategy): IO[Core.Error, Unit] =
+                    strategy: AppendixRepairStrategy): IO[Core.Error.Private, Unit] =
     strategy match {
       case KeepNew =>
         logger.info(
@@ -130,7 +130,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     }
 
   def checkOverlappingSegments(segments: Slice[Segment],
-                               strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Core.Error, Int] =
+                               strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Core.Error.Private, Int] =
     segments.foldLeftIO(1) {
       case (position, segment) =>
         logger.info("Checking for overlapping Segments for Segment {}", segment.path)
@@ -164,7 +164,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                                                  functionStore: FunctionStore,
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                  mapReader: MapEntryReader[MapEntry[Slice[Byte], Segment]],
-                                                 skipListMerger: SkipListMerger[Slice[Byte], Segment]): IO[Core.Error, Unit] =
+                                                 skipListMerger: SkipListMerger[Slice[Byte], Segment]): IO[Core.Error.Private, Unit] =
     IOEffect.walkDelete(appendixDir) flatMap {
       _ =>
         Map.persistent[Slice[Byte], Segment](

@@ -27,14 +27,14 @@ import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.util.cache.Cache
 import swaydb.data.io.Core
 import swaydb.data.slice.Reader
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 object RemoveReader extends EntryReader[Persistent.Remove] {
 
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
-                              indexReader: Reader[Core.Error],
-                              valueCache: Option[Cache[Core.Error, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
+                              indexReader: Reader[Core.Error.Private],
+                              valueCache: Option[Cache[Core.Error.Private, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -43,7 +43,7 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
                                                             valueLengthReader: ValueLengthReader[T],
-                                                            valueBytesReader: ValueReader[T]): IO[Core.Error, Persistent.Remove] =
+                                                            valueBytesReader: ValueReader[T]): IO[Core.Error.Private, Persistent.Remove] =
     deadlineReader.read(indexReader, previous) flatMap {
       deadline =>
         timeReader.read(indexReader, previous) flatMap {

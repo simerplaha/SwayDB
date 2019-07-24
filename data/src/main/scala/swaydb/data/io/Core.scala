@@ -30,9 +30,6 @@ import swaydb.data.slice.Slice
 
 object Core {
 
-  type IO[T] = swaydb.IO[Core.Error, T]
-
-
   /**
     * Exception types for all known [[Error]]s that can occur. Each [[Error]] can be converted to
     * Exception which which can then be converted back to [[Error]].
@@ -57,10 +54,6 @@ object Core {
     case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
 
     /**
-      * Does not have any direct [[Error]] type associated with it since missing functions should be considered as [[Error.Fatal]]
-      * and should be resolved otherwise compaction will fail and pause for that Segment and will only continue ones this function
-      * is available in function store.
-      *
       * [[functionID]] itself is not logged or printed to console since it may contain sensitive data but instead this Exception
       * with the [[functionID]] is returned to the client for reads and the exception's string message is only logged.
       *
@@ -74,26 +67,33 @@ object Core {
   }
 
   object Error {
-    implicit object ErrorHandler extends ErrorHandler[Error] {
-      override def toException(e: Error): Throwable =
-        e.exception
 
-      override def fromException[F <: Error](e: Throwable): F =
-        Error(e).asInstanceOf[F]
+    private[swaydb] sealed trait Private extends Error
+    sealed trait Public extends Private
 
-      override def reserve(e: Error): Option[Reserve[Unit]] =
-        e match {
-          case busy: Error.Busy =>
-            Some(busy.reserve)
+    object Private {
+      implicit object ErrorHandler extends ErrorHandler[Error.Private] {
+        override def toException(e: Error.Private): Throwable =
+          e.exception
 
-          case Error.OverlappingPushSegment |
-               Error.NoSegmentsRemoved |
-               Error.NotSentToNextLevel |
-               _: Error.ReceivedKeyValuesToMergeWithoutTargetSegment |
-               _: Error.ReadOnlyBuffer |
-               _: Error.Fatal =>
-            None
-        }
+        override def fromException[F <: Error.Private](e: Throwable): F =
+          Error(e).asInstanceOf[F]
+
+        override def reserve(e: Error.Private): Option[Reserve[Unit]] =
+          e match {
+            case busy: Error.Busy =>
+              Some(busy.reserve)
+
+            case Error.OverlappingPushSegment |
+                 Error.NoSegmentsRemoved |
+                 Error.NotSentToNextLevel |
+                 _: Error.FunctionNotFound |
+                 _: Error.ReceivedKeyValuesToMergeWithoutTargetSegment |
+                 _: Error.ReadOnlyBuffer |
+                 _: Error.Fatal =>
+              None
+          }
+      }
     }
 
     def apply[T](exception: Throwable): Error =
@@ -127,7 +127,7 @@ object Core {
         case exception: Throwable => Error.Fatal(exception)
       }
 
-    sealed trait Busy extends Error {
+    sealed trait Busy extends Private {
       def reserve: Reserve[Unit]
       def isFree: Boolean =
         !reserve.isBusy
@@ -144,6 +144,7 @@ object Core {
       def apply(path: Path) =
         new NoSuchFile(Some(path), None)
     }
+
     case class NoSuchFile(path: Option[Path], exp: Option[NoSuchFileException]) extends Busy {
       override def reserve: Reserve[Unit] = Reserve()
       override def exception: Throwable = exp getOrElse {
@@ -197,24 +198,24 @@ object Core {
       * This error can also be turned into Busy and LevelActor can use it to listen to when
       * there are no more overlapping Segments.
       */
-    case object OverlappingPushSegment extends Error {
+    case object OverlappingPushSegment extends Private {
       override def exception: Throwable = Exception.OverlappingPushSegment
     }
 
-    case object NoSegmentsRemoved extends Error {
+    case object NoSegmentsRemoved extends Private {
       override def exception: Throwable = Exception.NoSegmentsRemoved
     }
 
-    case object NotSentToNextLevel extends Error {
+    case object NotSentToNextLevel extends Private {
       override def exception: Throwable = Exception.NotSentToNextLevel
     }
 
-    case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Error {
+    case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Private {
       override def exception: Exception.ReceivedKeyValuesToMergeWithoutTargetSegment =
         Exception.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount)
     }
 
-    case class ReadOnlyBuffer(exception: ReadOnlyBufferException) extends Error
+    case class ReadOnlyBuffer(exception: ReadOnlyBufferException) extends Private
 
     /**
       * Error that are not known and indicate something unexpected went wrong like a file corruption.
@@ -226,6 +227,9 @@ object Core {
       def apply(message: String): Fatal =
         new Fatal(new Exception(message))
     }
-    case class Fatal(exception: Throwable) extends Error
+    case class Fatal(exception: Throwable) extends Public
+    case class FunctionNotFound(functionID: Slice[Byte]) extends Public {
+      override def exception: Throwable = Core.Exception.FunctionNotFound(functionID)
+    }
   }
 }

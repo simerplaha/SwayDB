@@ -19,7 +19,7 @@
 //
 //package swaydb.extensions
 //
-//import swaydb.data.io.Tag.Core.IO
+//import swaydb.data.io.Tag.Tag.CoreIO
 //import swaydb.{IO, Prepare}
 //import swaydb.data.order.KeyOrder
 //import swaydb.data.slice.Slice
@@ -31,7 +31,7 @@
 //    * Wraps the input [[swaydb.Map]] instance and returns a new [[Map]] instance
 //    * which contains extended APIs to create nested Maps.
 //    */
-//  def apply[K, V](map: swaydb.Map[Key[K], Option[V], Core.IO])(implicit keySerializer: Serializer[K],
+//  def apply[K, V](map: swaydb.Map[Key[K], Option[V], Tag.CoreIO])(implicit keySerializer: Serializer[K],
 //                                                          optionValueSerializer: Serializer[Option[V]],
 //                                                          keyOrder: KeyOrder[Slice[Byte]]): IO[IO.OK, Map[K, V]] = {
 //    implicit val mapKeySerializer = Key.serializer(keySerializer)

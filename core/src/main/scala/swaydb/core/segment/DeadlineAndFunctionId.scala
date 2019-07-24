@@ -29,7 +29,7 @@ import swaydb.IO._
 import swaydb.data.io.Core
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.concurrent.duration.Deadline
 
@@ -46,7 +46,7 @@ private[core] object DeadlineAndFunctionId {
 
   def apply(keyValues: Iterable[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                     keyValueLimiter: KeyValueLimiter,
-                                                    segmentIO: SegmentIO): IO[Core.Error, DeadlineAndFunctionId] =
+                                                    segmentIO: SegmentIO): IO[Core.Error.Private, DeadlineAndFunctionId] =
     keyValues.foldLeftIO(DeadlineAndFunctionId.empty) {
       case (minMax, keyValue) =>
         apply(
@@ -60,7 +60,7 @@ private[core] object DeadlineAndFunctionId {
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             next: KeyValue.ReadOnly)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                      keyValueLimiter: KeyValueLimiter,
-                                     segmentIO: SegmentIO): IO[Core.Error, DeadlineAndFunctionId] =
+                                     segmentIO: SegmentIO): IO[Core.Error.Private, DeadlineAndFunctionId] =
     next match {
       case readOnly: KeyValue.ReadOnly.Put =>
         IO {

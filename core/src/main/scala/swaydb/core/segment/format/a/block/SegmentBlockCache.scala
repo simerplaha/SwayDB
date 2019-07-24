@@ -59,7 +59,7 @@ class SegmentBlockCache(id: String,
   /**
     * Builds a required cache for [[SortedIndexBlock]].
     */
-  def buildBlockInfoCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]): Cache[Core.Error, BlockRefReader[O], B] =
+  def buildBlockInfoCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]): Cache[Core.Error.Private, BlockRefReader[O], B] =
     Cache.blockIO[BlockRefReader[O], B](
       blockIO = ref => blockIO(IOAction.ReadDataOverview(ref.offset.size)),
       reserveError = Core.Error.ReservedValue(Reserve())
@@ -70,7 +70,7 @@ class SegmentBlockCache(id: String,
           .flatMap(blockOps.readBlock)
     }
 
-  def buildBlockInfoCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]): Cache[Core.Error, Option[BlockRefReader[O]], Option[B]] =
+  def buildBlockInfoCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]): Cache[Core.Error.Private, Option[BlockRefReader[O]], Option[B]] =
     Cache.blockIO[Option[BlockRefReader[O]], Option[B]](
       blockIO = ref => ref.map(ref => blockIO(IOAction.ReadDataOverview(ref.offset.size))) getOrElse IOStrategy.defaultBlockInfoStored,
       reserveError = Core.Error.ReservedValue(Reserve())
@@ -168,7 +168,7 @@ class SegmentBlockCache(id: String,
   private[block] val binarySearchIndexReaderCache =
     buildBlockReaderCacheOptional[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](binarySearchIndexBlockIO)
 
-  private[block] val valuesReaderCache: Cache[Core.Error, Option[BlockedReader[ValuesBlock.Offset, ValuesBlock]], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
+  private[block] val valuesReaderCache: Cache[Core.Error.Private, Option[BlockedReader[ValuesBlock.Offset, ValuesBlock]], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
     buildBlockReaderCacheOptional[ValuesBlock.Offset, ValuesBlock](valuesBlockIO)
 
   private[block] val allCaches =
@@ -178,17 +178,17 @@ class SegmentBlockCache(id: String,
       sortedIndexReaderCache, valuesReaderCache
     )
 
-  private[block] def createSegmentBlockReader(): IO[Core.Error, UnblockedReader[SegmentBlock.Offset, SegmentBlock]] =
+  private[block] def createSegmentBlockReader(): IO[Core.Error.Private, UnblockedReader[SegmentBlock.Offset, SegmentBlock]] =
     segmentBlockReaderCache
       .value(segmentBlockRef.copy())
       .map(_.copy())
 
-  def getFooter(): IO[Core.Error, SegmentFooterBlock] =
+  def getFooter(): IO[Core.Error.Private, SegmentFooterBlock] =
     footerBlockCache getOrElse {
       createSegmentBlockReader().flatMap(footerBlockCache.value(_))
     }
 
-  def getBlockOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[Core.Error, Option[BlockRefReader[O]], Option[B]], offset: SegmentFooterBlock => Option[O]) =
+  def getBlockOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[Core.Error.Private, Option[BlockRefReader[O]], Option[B]], offset: SegmentFooterBlock => Option[O]) =
     cache getOrElse {
       getFooter() flatMap {
         footer =>
@@ -202,7 +202,7 @@ class SegmentBlockCache(id: String,
       }
     }
 
-  def getBlock[O <: BlockOffset, B <: Block[O]](cache: Cache[Core.Error, BlockRefReader[O], B], offset: SegmentFooterBlock => O) =
+  def getBlock[O <: BlockOffset, B <: Block[O]](cache: Cache[Core.Error.Private, BlockRefReader[O], B], offset: SegmentFooterBlock => O) =
     cache getOrElse {
       getFooter() flatMap {
         footer =>
@@ -213,22 +213,22 @@ class SegmentBlockCache(id: String,
       }
     }
 
-  def getHashIndex(): IO[Core.Error, Option[HashIndexBlock]] =
+  def getHashIndex(): IO[Core.Error.Private, Option[HashIndexBlock]] =
     getBlockOptional(hashIndexBlockCache, _.hashIndexOffset)
 
-  def getBloomFilter(): IO[Core.Error, Option[BloomFilterBlock]] =
+  def getBloomFilter(): IO[Core.Error.Private, Option[BloomFilterBlock]] =
     getBlockOptional(bloomFilterBlockCache, _.bloomFilterOffset)
 
-  def getBinarySearchIndex(): IO[Core.Error, Option[BinarySearchIndexBlock]] =
+  def getBinarySearchIndex(): IO[Core.Error.Private, Option[BinarySearchIndexBlock]] =
     getBlockOptional(binarySearchIndexBlockCache, _.binarySearchIndexOffset)
 
-  def getSortedIndex(): IO[Core.Error, SortedIndexBlock] =
+  def getSortedIndex(): IO[Core.Error.Private, SortedIndexBlock] =
     getBlock(sortedIndexBlockCache, _.sortedIndexOffset)
 
-  def getValues(): IO[Core.Error, Option[ValuesBlock]] =
+  def getValues(): IO[Core.Error.Private, Option[ValuesBlock]] =
     getBlockOptional(valuesBlockCache, _.valuesOffset)
 
-  def createReaderOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[Core.Error, Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]], getBlock: => IO[Core.Error, Option[B]]): IO[Core.Error, Option[UnblockedReader[O, B]]] = {
+  def createReaderOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[Core.Error.Private, Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]], getBlock: => IO[Core.Error.Private, Option[B]]): IO[Core.Error.Private, Option[UnblockedReader[O, B]]] = {
     cache getOrElse {
       getBlock flatMap {
         block =>
@@ -244,7 +244,7 @@ class SegmentBlockCache(id: String,
     }
   }.map(_.map(_.copy()))
 
-  def createReader[O <: BlockOffset, B <: Block[O]](cache: Cache[Core.Error, BlockedReader[O, B], UnblockedReader[O, B]], getBlock: => IO[Core.Error, B]): IO[Core.Error, UnblockedReader[O, B]] = {
+  def createReader[O <: BlockOffset, B <: Block[O]](cache: Cache[Core.Error.Private, BlockedReader[O, B], UnblockedReader[O, B]], getBlock: => IO[Core.Error.Private, B]): IO[Core.Error.Private, UnblockedReader[O, B]] = {
     cache getOrElse {
       getBlock flatMap {
         block =>
@@ -257,19 +257,19 @@ class SegmentBlockCache(id: String,
     }
   }.map(_.copy())
 
-  def createHashIndexReader(): IO[Core.Error, Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]]] =
+  def createHashIndexReader(): IO[Core.Error.Private, Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]]] =
     createReaderOptional(hashIndexReaderCache, getHashIndex())
 
-  def createBloomFilterReader(): IO[Core.Error, Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]] =
+  def createBloomFilterReader(): IO[Core.Error.Private, Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]] =
     createReaderOptional(bloomFilterReaderCache, getBloomFilter())
 
-  def createBinarySearchIndexReader(): IO[Core.Error, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]]] =
+  def createBinarySearchIndexReader(): IO[Core.Error.Private, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]]] =
     createReaderOptional(binarySearchIndexReaderCache, getBinarySearchIndex())
 
-  def createValuesReader(): IO[Core.Error, Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
+  def createValuesReader(): IO[Core.Error.Private, Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
     createReaderOptional(valuesReaderCache, getValues())
 
-  def createSortedIndexReader(): IO[Core.Error, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] =
+  def createSortedIndexReader(): IO[Core.Error.Private, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] =
     createReader(sortedIndexReaderCache, getSortedIndex())
 
   def readAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None) =
@@ -289,7 +289,7 @@ class SegmentBlockCache(id: String,
         }
     }
 
-  def readAllBytes(): IO[Core.Error, Slice[Byte]] =
+  def readAllBytes(): IO[Core.Error.Private, Slice[Byte]] =
     segmentBlockRef.copy().readAll()
 
   def clear(): Unit =

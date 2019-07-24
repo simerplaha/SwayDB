@@ -22,14 +22,13 @@ package swaydb.persistent.zero
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-
 import swaydb.SwayDB
 import swaydb.configs.level.DefaultPersistentZeroConfig
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{Dir, RecoveryMode}
-import swaydb.data.io.Core
+import swaydb.data.io.Tag
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -50,7 +49,7 @@ object Map extends LazyLogging {
                   acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                        ec: ExecutionContext = SwayDB.defaultExecutionContext): Core.IO[swaydb.Map[K, V, Core.IO]] =
+                                                                                        ec: ExecutionContext = SwayDB.defaultExecutionContext): Tag.CoreIO[swaydb.Map[K, V, Tag.CoreIO]] =
     BlockingCore(
       config = DefaultPersistentZeroConfig(
         dir = dir,
@@ -61,6 +60,6 @@ object Map extends LazyLogging {
       )
     ) map {
       db =>
-        swaydb.Map[K, V, Core.IO](db)
+        swaydb.Map[K, V, Tag.CoreIO](db)
     }
 }

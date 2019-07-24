@@ -30,7 +30,7 @@ import swaydb.IO._
 import swaydb.data.slice.Slice
 import swaydb.data.Reserve
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.annotation.tailrec
 import scala.util.hashing.MurmurHash3
@@ -38,14 +38,14 @@ import scala.util.hashing.MurmurHash3
 object DBFile {
 
   def write(path: Path,
-            bytes: Slice[Byte]): IO[Core.Error, Path] =
+            bytes: Slice[Byte]): IO[Core.Error.Private, Path] =
     IOEffect.write(path, bytes)
 
   def write(path: Path,
-            bytes: Iterable[Slice[Byte]]): IO[Core.Error, Path] =
+            bytes: Iterable[Slice[Byte]]): IO[Core.Error.Private, Path] =
     IOEffect.write(path, bytes)
 
-  def channelWrite(path: Path, autoClose: Boolean)(implicit limiter: FileLimiter): IO[Core.Error, DBFile] =
+  def channelWrite(path: Path, autoClose: Boolean)(implicit limiter: FileLimiter): IO[Core.Error.Private, DBFile] =
     ChannelFile.write(path) map {
       file =>
         new DBFile(
@@ -57,7 +57,7 @@ object DBFile {
         )
     }
 
-  def channelRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit limiter: FileLimiter): IO[Core.Error, DBFile] =
+  def channelRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit limiter: FileLimiter): IO[Core.Error.Private, DBFile] =
     if (checkExists && IOEffect.notExists(path))
       IO.Failure(Core.Error.NoSuchFile(path))
     else
@@ -73,7 +73,7 @@ object DBFile {
 
   def mmapWriteAndRead(path: Path,
                        autoClose: Boolean,
-                       bytes: Iterable[Slice[Byte]])(implicit limiter: FileLimiter): IO[Core.Error, DBFile] =
+                       bytes: Iterable[Slice[Byte]])(implicit limiter: FileLimiter): IO[Core.Error.Private, DBFile] =
   //do not write bytes if the Slice has empty bytes.
     bytes.foldLeftIO(0) {
       case (written, bytes) =>
@@ -98,7 +98,7 @@ object DBFile {
 
   def mmapWriteAndRead(path: Path,
                        autoClose: Boolean,
-                       bytes: Slice[Byte])(implicit limiter: FileLimiter): IO[Core.Error, DBFile] =
+                       bytes: Slice[Byte])(implicit limiter: FileLimiter): IO[Core.Error.Private, DBFile] =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull)
       IO.Failure(Core.Error.Fatal(SegmentException.FailedToWriteAllBytes(0, bytes.size, bytes.size)))
@@ -115,7 +115,7 @@ object DBFile {
           }
       }
 
-  def mmapRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit limiter: FileLimiter): IO[Core.Error, DBFile] =
+  def mmapRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit limiter: FileLimiter): IO[Core.Error.Private, DBFile] =
     if (checkExists && IOEffect.notExists(path))
       IO.Failure(Core.Error.NoSuchFile(path))
     else
@@ -131,7 +131,7 @@ object DBFile {
 
   def mmapInit(path: Path,
                bufferSize: Long,
-               autoClose: Boolean)(implicit limiter: FileLimiter): IO[Core.Error, DBFile] =
+               autoClose: Boolean)(implicit limiter: FileLimiter): IO[Core.Error.Private, DBFile] =
     MMAPFile.write(path, bufferSize) map {
       file =>
         new DBFile(
@@ -145,7 +145,7 @@ object DBFile {
 
   def memory(path: Path,
              bytes: Slice[Byte],
-             autoClose: Boolean)(implicit limiter: FileLimiter): IO[Core.Error, DBFile] =
+             autoClose: Boolean)(implicit limiter: FileLimiter): IO[Core.Error.Private, DBFile] =
     IO {
       new DBFile(
         path = path,
@@ -178,7 +178,7 @@ class DBFile(val path: Path,
   def existsInMemory =
     file.isDefined
 
-  def delete(): IO[Core.Error, Unit] =
+  def delete(): IO[Core.Error.Private, Unit] =
   //close the file
     close flatMap {
       _ =>
@@ -191,7 +191,7 @@ class DBFile(val path: Path,
         }
     }
 
-  def close: IO[Core.Error, Unit] =
+  def close: IO[Core.Error.Private, Unit] =
     file map {
       fileType =>
         fileType.close() map {
@@ -202,7 +202,7 @@ class DBFile(val path: Path,
     } getOrElse IO.unit
 
   //if it's an in memory files return failure as Memory files cannot be copied.
-  def copyTo(toPath: Path): IO[Core.Error, Path] =
+  def copyTo(toPath: Path): IO[Core.Error.Private, Path] =
     if (file.map(_.memory).getOrElse(false))
       IO.Failure(Core.Error.Fatal(CannotCopyInMemoryFiles(path)))
     else
@@ -218,7 +218,7 @@ class DBFile(val path: Path,
   /**
     * Use [[openFile]] instead to disallow multiple concurrently opened files.
     */
-  private def tryOpen(): IO[Core.Error, DBFileType] =
+  private def tryOpen(): IO[Core.Error.Private, DBFileType] =
     file match {
       case Some(openedFile) =>
         IO.Success(openedFile)
@@ -257,7 +257,7 @@ class DBFile(val path: Path,
     }
 
   @tailrec
-  private def openFile(maxTries: Int = 1): IO[Core.Error, DBFileType] =
+  private def openFile(maxTries: Int = 1): IO[Core.Error.Private, DBFileType] =
     file match {
       case Some(openedFile) =>
         IO.Success(openedFile)
@@ -277,7 +277,7 @@ class DBFile(val path: Path,
   def append(slice: Iterable[Slice[Byte]]) =
     openFile() flatMap (_.append(slice))
 
-  def read(position: Int, size: Int): IO[Core.Error, Slice[Byte]] =
+  def read(position: Int, size: Int): IO[Core.Error.Private, Slice[Byte]] =
     if (size == 0)
       IO.emptyBytes
     else
@@ -305,10 +305,10 @@ class DBFile(val path: Path,
   def isLoaded =
     openFile() flatMap (_.isLoaded)
 
-  def isFull: IO[Core.Error, Boolean] =
+  def isFull: IO[Core.Error.Private, Boolean] =
     openFile() flatMap (_.isFull)
 
-  def forceSave(): IO[Core.Error, Unit] =
+  def forceSave(): IO[Core.Error.Private, Unit] =
     file.map(_.forceSave()) getOrElse IO.unit
 
   def persistent: Boolean =

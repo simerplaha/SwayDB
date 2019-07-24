@@ -40,7 +40,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.MaxKey
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.Deadline
@@ -97,7 +97,7 @@ private[segment] case class MemorySegment(path: Path,
                    bloomFilterConfig: BloomFilterBlock.Config,
                    segmentConfig: SegmentBlock.Config,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
-                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error, Slice[Segment]] =
+                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error.Private, Slice[Segment]] =
     if (deleted)
       IO.Failure(Core.Error.NoSuchFile(path))
     else
@@ -128,7 +128,7 @@ private[segment] case class MemorySegment(path: Path,
                     ),
 
                 recover =
-                  (segments: Slice[Segment], _: IO.Failure[Core.Error, Iterable[Segment]]) =>
+                  (segments: Slice[Segment], _: IO.Failure[Core.Error.Private, Iterable[Segment]]) =>
                     segments foreach {
                       segmentToDelete =>
                         segmentToDelete.delete onFailureSideEffect {
@@ -150,7 +150,7 @@ private[segment] case class MemorySegment(path: Path,
                        bloomFilterConfig: BloomFilterBlock.Config,
                        segmentConfig: SegmentBlock.Config,
                        targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
-                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error, Slice[Segment]] =
+                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error.Private, Slice[Segment]] =
     if (deleted)
       IO.Failure(Core.Error.NoSuchFile(path))
     else
@@ -180,7 +180,7 @@ private[segment] case class MemorySegment(path: Path,
                     ),
 
                 recover =
-                  (segments: Slice[Segment], _: IO.Failure[Core.Error, Iterable[Segment]]) =>
+                  (segments: Slice[Segment], _: IO.Failure[Core.Error.Private, Iterable[Segment]]) =>
                     segments foreach {
                       segmentToDelete =>
                         segmentToDelete.delete onFailureSideEffect {
@@ -199,7 +199,7 @@ private[segment] case class MemorySegment(path: Path,
     * Basic value does not perform floor checks on the cache which are only required if the Segment contains
     * range or groups.
     */
-  private def doBasicGet(key: Slice[Byte]): IO[Core.Error, Option[Memory.SegmentResponse]] =
+  private def doBasicGet(key: Slice[Byte]): IO[Core.Error.Private, Option[Memory.SegmentResponse]] =
     Option(cache.get(key)) map {
       case response: Memory.SegmentResponse =>
         IO.Success(Some(response))
@@ -210,7 +210,7 @@ private[segment] case class MemorySegment(path: Path,
       IO.none
     }
 
-  override def get(key: Slice[Byte]): IO[Core.Error, Option[Memory.SegmentResponse]] =
+  override def get(key: Slice[Byte]): IO[Core.Error.Private, Option[Memory.SegmentResponse]] =
     if (deleted)
       IO.Failure(Core.Error.NoSuchFile(path))
     else
@@ -250,7 +250,7 @@ private[segment] case class MemorySegment(path: Path,
             IO.none
       }
 
-  def mightContainKey(key: Slice[Byte]): IO[Core.Error, Boolean] =
+  def mightContainKey(key: Slice[Byte]): IO[Core.Error.Private, Boolean] =
     bloomFilterReader map {
       reader =>
         BloomFilterBlock.mightContain(
@@ -259,7 +259,7 @@ private[segment] case class MemorySegment(path: Path,
         )
     } getOrElse IO.`true`
 
-  override def mightContainFunction(key: Slice[Byte]): IO[Core.Error, Boolean] =
+  override def mightContainFunction(key: Slice[Byte]): IO[Core.Error.Private, Boolean] =
     IO {
       minMaxFunctionId.exists {
         minMaxFunctionId =>
@@ -270,7 +270,7 @@ private[segment] case class MemorySegment(path: Path,
       }
     }
 
-  override def lower(key: Slice[Byte]): IO[Core.Error, Option[Memory.SegmentResponse]] =
+  override def lower(key: Slice[Byte]): IO[Core.Error.Private, Option[Memory.SegmentResponse]] =
     if (deleted)
       IO.Failure(Core.Error.NoSuchFile(path))
     else
@@ -296,7 +296,7 @@ private[segment] case class MemorySegment(path: Path,
     * Basic value does not perform floor checks on the cache which are only required if the Segment contains
     * range or groups.
     */
-  private def doBasicHigher(key: Slice[Byte]): IO[Core.Error, Option[Memory.SegmentResponse]] =
+  private def doBasicHigher(key: Slice[Byte]): IO[Core.Error.Private, Option[Memory.SegmentResponse]] =
     Option(cache.higherEntry(key)).map(_.getValue) map {
       case response: Memory.SegmentResponse =>
         IO.Success(Some(response))
@@ -311,7 +311,7 @@ private[segment] case class MemorySegment(path: Path,
       IO.none
     }
 
-  def floorHigherHint(key: Slice[Byte]): IO[Core.Error, Option[Slice[Byte]]] =
+  def floorHigherHint(key: Slice[Byte]): IO[Core.Error.Private, Option[Slice[Byte]]] =
     if (deleted)
       IO.Failure(Core.Error.NoSuchFile(path))
     else
@@ -328,7 +328,7 @@ private[segment] case class MemorySegment(path: Path,
             None
       }
 
-  override def higher(key: Slice[Byte]): IO[Core.Error, Option[Memory.SegmentResponse]] =
+  override def higher(key: Slice[Byte]): IO[Core.Error.Private, Option[Memory.SegmentResponse]] =
     if (deleted)
       IO.Failure(Core.Error.NoSuchFile(path))
     else if (_hasRange || _hasGroup)
@@ -360,7 +360,7 @@ private[segment] case class MemorySegment(path: Path,
     else
       doBasicHigher(key)
 
-  override def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Core.Error, Slice[KeyValue.ReadOnly]] =
+  override def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Core.Error.Private, Slice[KeyValue.ReadOnly]] =
     if (deleted)
       IO.Failure(Core.Error.NoSuchFile(path))
     else
@@ -375,7 +375,7 @@ private[segment] case class MemorySegment(path: Path,
         slice
       }
 
-  override def delete: IO[Core.Error, Unit] = {
+  override def delete: IO[Core.Error.Private, Unit] = {
     //cache should not be cleared.
     logger.trace(s"{}: DELETING FILE", path)
     if (deleted)
@@ -386,10 +386,10 @@ private[segment] case class MemorySegment(path: Path,
       }
   }
 
-  override val close: IO[Core.Error, Unit] =
+  override val close: IO[Core.Error.Private, Unit] =
     IO.unit
 
-  override def getBloomFilterKeyValueCount(): IO[Core.Error, Int] =
+  override def getBloomFilterKeyValueCount(): IO[Core.Error.Private, Int] =
     if (deleted)
       IO.Failure(Core.Error.NoSuchFile(path))
     else
@@ -404,7 +404,7 @@ private[segment] case class MemorySegment(path: Path,
           }
       }
 
-  override def getHeadKeyValueCount(): IO[Core.Error, Int] =
+  override def getHeadKeyValueCount(): IO[Core.Error.Private, Int] =
     if (deleted)
       IO.Failure(Core.Error.NoSuchFile(path))
     else
@@ -425,10 +425,10 @@ private[segment] case class MemorySegment(path: Path,
   override def existsOnDisk: Boolean =
     false
 
-  override def hasRange: IO[Core.Error, Boolean] =
+  override def hasRange: IO[Core.Error.Private, Boolean] =
     IO(_hasRange)
 
-  override def hasPut: IO[Core.Error, Boolean] =
+  override def hasPut: IO[Core.Error.Private, Boolean] =
     IO(_hasPut)
 
   override def isFooterDefined: Boolean =
@@ -437,13 +437,13 @@ private[segment] case class MemorySegment(path: Path,
   override def deleteSegmentsEventually: Unit =
     fileLimiter.delete(this)
 
-  override def createdInLevel: IO[Core.Error, Int] =
+  override def createdInLevel: IO[Core.Error.Private, Int] =
     IO(_createdInLevel)
 
-  override def isGrouped: IO[Core.Error, Boolean] =
+  override def isGrouped: IO[Core.Error.Private, Boolean] =
     IO(_isGrouped)
 
-  override def hasBloomFilter: IO[Core.Error, Boolean] =
+  override def hasBloomFilter: IO[Core.Error.Private, Boolean] =
     IO(bloomFilterReader.isDefined)
 
   override def clearCachedKeyValues(): Unit =

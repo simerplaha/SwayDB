@@ -379,7 +379,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     copy(core = core.tagBlocking[T2])
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V](tagBlocking[Core.IO](Tag.sio))
+    ScalaMap[K, V](tagBlocking[Tag.CoreIO](Tag.sio))
 
   def close(): T[Unit] =
     wrapCall(core.close())

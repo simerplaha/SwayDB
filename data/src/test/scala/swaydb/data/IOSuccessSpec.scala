@@ -25,7 +25,7 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.IO
 import swaydb.data.Base._
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -96,9 +96,9 @@ class IOSuccessSpec extends WordSpec with Matchers {
     }
 
     "flatten on successes with failure" in {
-      val nested: IO[Core.Error, IO[Core.Error, IO[Core.Error, IO[Core.Error, Int]]]] = IO.Success(IO.Success(IO.Success(IO.Failure(Core.Error.Fatal(new Exception("Kaboom!"))))))
+      val nested: IO[Core.Error.Private, IO[Core.Error.Private, IO[Core.Error.Private, IO[Core.Error.Private, Int]]]] = IO.Success(IO.Success(IO.Success(IO.Failure(Core.Error.Fatal(new Exception("Kaboom!"))))))
 
-      nested.flatten.flatten.flatten.asInstanceOf[IO.Failure[Core.Error, Int]].failed.get.exception.getMessage shouldBe "Kaboom!"
+      nested.flatten.flatten.flatten.asInstanceOf[IO.Failure[Core.Error.Private, Int]].failed.get.exception.getMessage shouldBe "Kaboom!"
     }
 
     "invoke onCompleteSideEffect" in {

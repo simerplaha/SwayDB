@@ -38,7 +38,7 @@ import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration.Duration
 import scala.util.Random
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class AppendixRepairerSpec extends TestBase {
 

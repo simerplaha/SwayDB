@@ -33,7 +33,7 @@ class IOSpec extends WordSpec with Matchers {
   "CatchLeak" when {
     "exception" in {
       val exception = new Exception("Failed")
-      IO.CatchLeak[Core.Error, Unit](throw exception).failed.get shouldBe Core.Error.Fatal(exception)
+      IO.CatchLeak[Core.Error.Private, Unit](throw exception).failed.get shouldBe Core.Error.Fatal(exception)
     }
 
     "no exception" in {

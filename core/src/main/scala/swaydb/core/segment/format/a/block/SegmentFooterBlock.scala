@@ -32,7 +32,7 @@ import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 object SegmentFooterBlock {
   val blockName = this.getClass.getSimpleName.dropRight(1)
@@ -91,7 +91,7 @@ object SegmentFooterBlock {
       hasPut = keyValues.last.stats.segmentHasPut
     )
 
-  def writeAndClose(state: State, closedBlocks: ClosedBlocks): IO[Core.Error, State] =
+  def writeAndClose(state: State, closedBlocks: ClosedBlocks): IO[Core.Error.Private, State] =
     IO {
       val values = closedBlocks.values
       val sortedIndex = closedBlocks.sortedIndex
@@ -167,7 +167,7 @@ object SegmentFooterBlock {
     }
 
   //all these functions are wrapper with a try catch block with value only to make it easier to read.
-  def read(reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): IO[Core.Error, SegmentFooterBlock] =
+  def read(reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): IO[Core.Error.Private, SegmentFooterBlock] =
     try {
       val segmentBlockSize = reader.size.get.toInt
       val footerStartOffset = reader.moveTo(segmentBlockSize - ByteSizeOf.int).readInt().get
@@ -284,7 +284,7 @@ object SegmentFooterBlock {
     override def createOffset(start: Int, size: Int): Offset =
       SegmentFooterBlock.Offset(start, size)
 
-    override def readBlock(header: Block.Header[Offset]): IO[Core.Error, SegmentFooterBlock] =
+    override def readBlock(header: Block.Header[Offset]): IO[Core.Error.Private, SegmentFooterBlock] =
       IO.Failure(Core.Error.Fatal("Footers do not have block header readers."))
   }
 }

@@ -28,21 +28,21 @@ import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.implicitNotFound
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 @implicitNotFound("Type class implementation not found for ValueOffsetReader of type ${T}")
 sealed trait ValueOffsetReader[-T] {
   def isPrefixCompressed: Boolean
 
-  def read(indexReader: Reader[Core.Error],
-           previous: Option[Persistent]): IO[Core.Error, Int]
+  def read(indexReader: Reader[Core.Error.Private],
+           previous: Option[Persistent]): IO[Core.Error.Private, Int]
 }
 
 object ValueOffsetReader {
 
-  private def readOffset(indexReader: Reader[Core.Error],
+  private def readOffset(indexReader: Reader[Core.Error.Private],
                          previous: Option[Persistent],
-                         commonBytes: Int): IO[Core.Error, Int] =
+                         commonBytes: Int): IO[Core.Error.Private, Int] =
     previous.map(_.valueOffset) map {
       previousValueOffset =>
         indexReader.read(ByteSizeOf.int - commonBytes) map {
@@ -56,40 +56,40 @@ object ValueOffsetReader {
   implicit object ValueOffsetOneCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.OneCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: Reader[Core.Error],
-                      previous: Option[Persistent]): IO[Core.Error, Int] =
+    override def read(indexReader: Reader[Core.Error.Private],
+                      previous: Option[Persistent]): IO[Core.Error.Private, Int] =
       readOffset(indexReader, previous, 1)
   }
 
   implicit object ValueOffsetTwoCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.TwoCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: Reader[Core.Error],
-                      previous: Option[Persistent]): IO[Core.Error, Int] =
+    override def read(indexReader: Reader[Core.Error.Private],
+                      previous: Option[Persistent]): IO[Core.Error.Private, Int] =
       readOffset(indexReader, previous, 2)
   }
 
   implicit object ValueOffsetThreeCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.ThreeCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: Reader[Core.Error],
-                      previous: Option[Persistent]): IO[Core.Error, Int] =
+    override def read(indexReader: Reader[Core.Error.Private],
+                      previous: Option[Persistent]): IO[Core.Error.Private, Int] =
       readOffset(indexReader, previous, 3)
   }
 
   implicit object ValueOffsetUncompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: Reader[Core.Error],
-                      previous: Option[Persistent]): IO[Core.Error, Int] =
+    override def read(indexReader: Reader[Core.Error.Private],
+                      previous: Option[Persistent]): IO[Core.Error.Private, Int] =
       indexReader.readIntUnsigned()
   }
 
   implicit object ValueOffsetReaderValueOffsetFullyCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.FullyCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: Reader[Core.Error],
-                      previous: Option[Persistent]): IO[Core.Error, Int] =
+    override def read(indexReader: Reader[Core.Error.Private],
+                      previous: Option[Persistent]): IO[Core.Error.Private, Int] =
       previous map {
         previous =>
           IO.Success(previous.valueOffset)
@@ -99,8 +99,8 @@ object ValueOffsetReader {
   implicit object ValueOffsetReaderNoValue extends ValueOffsetReader[BaseEntryId.Value.NoValue] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: Reader[Core.Error],
-                      previous: Option[Persistent]): IO[Core.Error, Int] =
+    override def read(indexReader: Reader[Core.Error.Private],
+                      previous: Option[Persistent]): IO[Core.Error.Private, Int] =
       IO.zero
   }
 

@@ -35,7 +35,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.MaxKey
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.concurrent.duration.Deadline
 
@@ -64,7 +64,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                                                            compression: Option[KeyValueGroupingStrategyInternal]) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
-    override def read(reader: Reader[Core.Error]): IO[Core.Error, Option[MapEntry.Put[Slice[Byte], Segment]]] =
+    override def read(reader: Reader[Core.Error.Private]): IO[Core.Error.Private, Option[MapEntry.Put[Slice[Byte], Segment]]] =
       for {
         segmentPathLength <- reader.readIntUnsigned()
         segmentPathBytes <- reader.read(segmentPathLength).map(_.unslice())
@@ -131,7 +131,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
   }
 
   implicit object AppendixRemoveReader extends MapEntryReader[MapEntry.Remove[Slice[Byte]]] {
-    override def read(reader: Reader[Core.Error]): IO[Core.Error, Option[MapEntry.Remove[Slice[Byte]]]] =
+    override def read(reader: Reader[Core.Error.Private]): IO[Core.Error.Private, Option[MapEntry.Remove[Slice[Byte]]]] =
       for {
         minKeyLength <- reader.readIntUnsigned()
         minKey <- reader.read(minKeyLength).map(_.unslice())
@@ -141,7 +141,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
   }
 
   implicit object AppendixReader extends MapEntryReader[MapEntry[Slice[Byte], Segment]] {
-    override def read(reader: Reader[Core.Error]): IO[Core.Error, Option[MapEntry[Slice[Byte], Segment]]] =
+    override def read(reader: Reader[Core.Error.Private]): IO[Core.Error.Private, Option[MapEntry[Slice[Byte], Segment]]] =
       reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
         case (previousEntry, reader) =>
           reader.readIntUnsigned() flatMap {

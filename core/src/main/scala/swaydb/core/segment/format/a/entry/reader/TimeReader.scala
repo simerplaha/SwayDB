@@ -27,14 +27,14 @@ import swaydb.data.io.Core
 import swaydb.data.slice.Reader
 
 import scala.annotation.implicitNotFound
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 @implicitNotFound("Type class implementation not found for TimeReader of type ${T}")
 sealed trait TimeReader[-T] {
   def isPrefixCompressed: Boolean
 
-  def read(indexReader: Reader[Core.Error],
-           previous: Option[KeyValue.ReadOnly]): IO[Core.Error, Time]
+  def read(indexReader: Reader[Core.Error.Private],
+           previous: Option[KeyValue.ReadOnly]): IO[Core.Error.Private, Time]
 }
 
 /**
@@ -46,16 +46,16 @@ object TimeReader {
   implicit object NoTimeReader extends TimeReader[BaseEntryId.Time.NoTime] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: Reader[Core.Error],
-                      previous: Option[KeyValue.ReadOnly]): IO[Core.Error, Time] =
+    override def read(indexReader: Reader[Core.Error.Private],
+                      previous: Option[KeyValue.ReadOnly]): IO[Core.Error.Private, Time] =
       Time.successEmpty
   }
 
   implicit object UnCompressedTimeReader extends TimeReader[BaseEntryId.Time.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: Reader[Core.Error],
-                      previous: Option[KeyValue.ReadOnly]): IO[Core.Error, Time] =
+    override def read(indexReader: Reader[Core.Error.Private],
+                      previous: Option[KeyValue.ReadOnly]): IO[Core.Error.Private, Time] =
       indexReader.readIntUnsigned() flatMap {
         timeSize =>
           indexReader.read(timeSize) map {
@@ -69,8 +69,8 @@ object TimeReader {
 
     override def isPrefixCompressed: Boolean = true
 
-    def readTime(indexReader: Reader[Core.Error],
-                 previousTime: Time): IO[Core.Error, Time] =
+    def readTime(indexReader: Reader[Core.Error.Private],
+                 previousTime: Time): IO[Core.Error.Private, Time] =
       indexReader.readIntUnsigned() flatMap {
         commonBytes =>
           indexReader.readIntUnsigned() flatMap {
@@ -83,8 +83,8 @@ object TimeReader {
           }
       }
 
-    override def read(indexReader: Reader[Core.Error],
-                      previous: Option[KeyValue.ReadOnly]): IO[Core.Error, Time] =
+    override def read(indexReader: Reader[Core.Error.Private],
+                      previous: Option[KeyValue.ReadOnly]): IO[Core.Error.Private, Time] =
       previous map {
         case previous: KeyValue.ReadOnly.Put =>
           readTime(indexReader, previous.time)

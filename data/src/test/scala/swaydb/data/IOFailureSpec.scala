@@ -106,7 +106,7 @@ class IOFailureSpec extends WordSpec with Matchers {
     "recoverWith" in {
       val failure =
         IO.Failure(Core.Error.NoSuchFile(new NoSuchFileException("")))
-          .recoverWith[Core.Error, Unit] {
+          .recoverWith[Core.Error.Private, Unit] {
           case error: Core.Error =>
             IO.Failure(Core.Error.Fatal(new Exception("recovery exception")))
         }

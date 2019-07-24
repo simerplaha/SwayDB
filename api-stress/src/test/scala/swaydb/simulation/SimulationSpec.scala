@@ -30,7 +30,7 @@ import swaydb.core.TestData._
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.MMAP
-import swaydb.data.io.Core
+import swaydb.data.io.{Core, Tag}
 import swaydb.serializers.Default._
 import swaydb.simulation.Domain._
 import swaydb.simulation.ProductCommand._
@@ -87,7 +87,7 @@ class Memory_Persistent_SimulationSpec extends SimulationSpec {
 
 sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
-  def db: swaydb.Map[Long, Domain, Core.IO]
+  def db: swaydb.Map[Long, Domain, Tag.CoreIO]
 
   val ids = new AtomicInteger(0)
   val functionIDs = new AtomicInteger(0)

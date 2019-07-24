@@ -29,7 +29,7 @@ private[core] trait CompactionStrategy[S] {
 
   def createAndListen(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext],
-                      copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[Core.Error, WiredActor[CompactionStrategy[CompactorState], CompactorState]]
+                      copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[Core.Error.Private, WiredActor[CompactionStrategy[CompactorState], CompactorState]]
 
   def wakeUp(state: S,
              forwardCopyOnAllLevels: Boolean,

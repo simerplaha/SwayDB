@@ -7,7 +7,7 @@ import swaydb.core.segment.format.a.block.Block.CompressionInfo
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.data.config.IOAction
 import swaydb.data.slice.Slice
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class BlockSpec extends TestBase {
 

@@ -28,7 +28,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
 import swaydb.data.config._
-import swaydb.data.io.Core
+import swaydb.data.io.{Core, Tag}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -71,7 +71,6 @@ object Map extends LazyLogging {
     * @param ec                         ExecutionContext
     * @tparam K Type of key
     * @tparam V Type of value
-    *
     * @return Database instance
     */
   def apply[K, V](dir: Path,
@@ -96,7 +95,7 @@ object Map extends LazyLogging {
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                         fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Core.Error, swaydb.Map[K, V, Core.IO]] =
+                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Core.Error.Private, swaydb.Map[K, V, Tag.CoreIO]] =
     BlockingCore(
       config =
         DefaultEventuallyPersistentConfig(
@@ -124,6 +123,6 @@ object Map extends LazyLogging {
       cacheLimiterEC = cacheLimiterEC
     ) map {
       db =>
-        swaydb.Map[K, V, Core.IO](db)
+        swaydb.Map[K, V, Tag.CoreIO](db)
     }
 }

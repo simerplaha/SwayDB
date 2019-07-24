@@ -29,34 +29,34 @@ private[file] trait DBFileType {
 
   def path: Path
 
-  def delete(): IO[Core.Error, Unit]
+  def delete(): IO[Core.Error.Private, Unit]
 
-  def close(): IO[Core.Error, Unit]
+  def close(): IO[Core.Error.Private, Unit]
 
-  def append(slice: Slice[Byte]): IO[Core.Error, Unit]
+  def append(slice: Slice[Byte]): IO[Core.Error.Private, Unit]
 
-  def append(slice: Iterable[Slice[Byte]]): IO[Core.Error, Unit]
+  def append(slice: Iterable[Slice[Byte]]): IO[Core.Error.Private, Unit]
 
-  def read(position: Int, size: Int): IO[Core.Error, Slice[Byte]]
+  def read(position: Int, size: Int): IO[Core.Error.Private, Slice[Byte]]
 
-  def get(position: Int): IO[Core.Error, Byte]
+  def get(position: Int): IO[Core.Error.Private, Byte]
 
-  def readAll: IO[Core.Error, Slice[Byte]]
+  def readAll: IO[Core.Error.Private, Slice[Byte]]
 
-  def fileSize: IO[Core.Error, Long]
+  def fileSize: IO[Core.Error.Private, Long]
 
-  def isMemoryMapped: IO[Core.Error, Boolean]
+  def isMemoryMapped: IO[Core.Error.Private, Boolean]
 
-  def isLoaded: IO[Core.Error, Boolean]
+  def isLoaded: IO[Core.Error.Private, Boolean]
 
   def isOpen: Boolean
 
-  def isFull: IO[Core.Error, Boolean]
+  def isFull: IO[Core.Error.Private, Boolean]
 
   def memory: Boolean
 
   def persistent: Boolean =
     !memory
 
-  def forceSave(): IO[Core.Error, Unit]
+  def forceSave(): IO[Core.Error.Private, Unit]
 }

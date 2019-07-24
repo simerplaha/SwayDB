@@ -35,7 +35,7 @@ import swaydb.data.io.Core
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.annotation.tailrec
 
@@ -50,7 +50,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     override def createOffset(start: Int, size: Int): Offset =
       SortedIndexBlock.Offset(start = start, size = size)
 
-    override def readBlock(header: Block.Header[Offset]): IO[Core.Error, SortedIndexBlock] =
+    override def readBlock(header: Block.Header[Offset]): IO[Core.Error.Private, SortedIndexBlock] =
       SortedIndexBlock.read(header)
   }
 
@@ -148,7 +148,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     )
   }
 
-  def write(keyValue: Transient, state: SortedIndexBlock.State): IO[Core.Error, Unit] =
+  def write(keyValue: Transient, state: SortedIndexBlock.State): IO[Core.Error.Private, Unit] =
     IO {
       if (state.enableAccessPositionIndex) {
         state.bytes addIntUnsigned (keyValue.indexEntryBytes.size + keyValue.stats.thisKeyValueAccessIndexPositionByteSize)
@@ -160,7 +160,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       }
     }
 
-  def close(state: State): IO[Core.Error, State] =
+  def close(state: State): IO[Core.Error.Private, State] =
     Block.block(
       headerSize = state.headerSize,
       bytes = state.bytes,
@@ -177,7 +177,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           IO.Success(state)
     }
 
-  def read(header: Block.Header[SortedIndexBlock.Offset]): IO[Core.Error, SortedIndexBlock] =
+  def read(header: Block.Header[SortedIndexBlock.Offset]): IO[Core.Error.Private, SortedIndexBlock] =
     for {
       enableAccessPositionIndex <- header.headerReader.readBoolean()
       hasPrefixCompression <- header.headerReader.readBoolean()
@@ -193,7 +193,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   private def readNextKeyValue(previous: Persistent,
                                indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Core.Error, Persistent] =
+                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Core.Error.Private, Persistent] =
     readNextKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
       indexReader = indexReader moveTo previous.nextIndexOffset,
@@ -203,7 +203,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   private def readNextKeyValue(fromPosition: Int,
                                indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Core.Error, Persistent] =
+                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Core.Error.Private, Persistent] =
     readNextKeyValue(
       indexEntrySizeMayBe = None,
       indexReader = indexReader moveTo fromPosition,
@@ -215,7 +215,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   private def readNextKeyValue(indexEntrySizeMayBe: Option[Int],
                                indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                               previous: Option[Persistent]): IO[Core.Error, Persistent] =
+                               previous: Option[Persistent]): IO[Core.Error.Private, Persistent] =
     try {
       val positionBeforeRead = indexReader.getPosition
       //size of the index entry to read
@@ -268,7 +268,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       def valueCache =
         valuesReader map {
           valuesReader =>
-            Cache.concurrentIO[Core.Error, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](synchronised = false, stored = false) {
+            Cache.concurrentIO[Core.Error.Private, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](synchronised = false, stored = false) {
               offset =>
                 if (offset.size == 0)
                   ValuesBlock.emptyUnblockedIO
@@ -310,7 +310,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def readAll(keyValueCount: Int,
               sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-              addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Core.Error, Slice[KeyValue.ReadOnly]] =
+              addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Core.Error.Private, Slice[KeyValue.ReadOnly]] =
     try {
       sortedIndexReader moveTo 0
       val readSortedIndexReader = sortedIndexReader.readAllAndGetReader().get
@@ -359,7 +359,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def search(key: Slice[Byte],
              startFrom: Option[Persistent],
              indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Core.Error, Option[Persistent]] =
+             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Core.Error.Private, Option[Persistent]] =
     if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
       IO.Failure(Core.Error.Fatal("startFrom key is greater than target key."))
     else
@@ -373,7 +373,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def searchHigher(key: Slice[Byte],
                    startFrom: Option[Persistent],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Core.Error, Option[Persistent]] =
+                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Core.Error.Private, Option[Persistent]] =
     if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
       IO.Failure(Core.Error.Fatal("startFrom key is greater than target key."))
     else
@@ -387,7 +387,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def searchHigherSeekOne(key: Slice[Byte],
                           startFrom: Persistent,
                           indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                          valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Core.Error, Option[Persistent]] =
+                          valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Core.Error.Private, Option[Persistent]] =
     if (order.gt(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
       IO.Failure(Core.Error.Fatal("startFrom key is greater than target key."))
     else
@@ -401,7 +401,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def searchLower(key: Slice[Byte],
                   startFrom: Option[Persistent],
                   indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Core.Error, Option[Persistent]] =
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[Core.Error.Private, Option[Persistent]] =
     if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
       IO.Failure(Core.Error.Fatal("startFrom key is greater than target key."))
     else
@@ -415,7 +415,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   private def search(matcher: KeyMatcher,
                      startFrom: Option[Persistent],
                      indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                     valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Core.Error, Option[Persistent]] =
+                     valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Core.Error.Private, Option[Persistent]] =
     startFrom match {
       case Some(startFrom) =>
         matchOrNextAndPersistent(
@@ -447,7 +447,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def findAndMatchOrNextPersistent(matcher: KeyMatcher,
                                    fromOffset: Int,
                                    indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Core.Error, Option[Persistent]] =
+                                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Core.Error.Private, Option[Persistent]] =
     readNextKeyValue(
       fromPosition = fromOffset,
       indexReader = indexReader,
@@ -466,7 +466,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def findAndMatchOrNextMatch(matcher: KeyMatcher,
                               fromOffset: Int,
                               sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Core.Error, KeyMatcher.Result] =
+                              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Core.Error.Private, KeyMatcher.Result] =
     readNextKeyValue(
       fromPosition = fromOffset,
       indexReader = sortedIndex,
@@ -487,7 +487,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                   next: Option[Persistent],
                   matcher: KeyMatcher,
                   indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Core.Error, KeyMatcher.Result.Complete] =
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Core.Error.Private, KeyMatcher.Result.Complete] =
     matcher(
       previous = previous,
       next = next,
@@ -522,7 +522,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                                next: Option[Persistent],
                                matcher: KeyMatcher,
                                indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Core.Error, Option[Persistent]] =
+                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Core.Error.Private, Option[Persistent]] =
     matchOrNext(
       previous = previous,
       next = next,

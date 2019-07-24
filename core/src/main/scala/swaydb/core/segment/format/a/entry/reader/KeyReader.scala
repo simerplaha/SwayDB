@@ -25,16 +25,16 @@ import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
 import swaydb.data.io.Core
 import swaydb.data.slice.{Reader, Slice}
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 object KeyReader {
 
-  private def uncompressed(indexReader: Reader[Core.Error],
-                           previous: Option[KeyValue.ReadOnly]): IO[Core.Error, Slice[Byte]] =
+  private def uncompressed(indexReader: Reader[Core.Error.Private],
+                           previous: Option[KeyValue.ReadOnly]): IO[Core.Error.Private, Slice[Byte]] =
     indexReader.readRemaining()
 
-  private def compressed(indexReader: Reader[Core.Error],
-                         previous: Option[KeyValue.ReadOnly]): IO[Core.Error, Slice[Byte]] =
+  private def compressed(indexReader: Reader[Core.Error.Private],
+                         previous: Option[KeyValue.ReadOnly]): IO[Core.Error.Private, Slice[Byte]] =
     previous map {
       previous =>
         indexReader.readIntUnsigned() flatMap {
@@ -49,9 +49,9 @@ object KeyReader {
     }
 
   def read(keyValueIdInt: Int,
-           indexReader: Reader[Core.Error],
+           indexReader: Reader[Core.Error.Private],
            previous: Option[KeyValue.ReadOnly],
-           keyValueId: KeyValueId): IO[Core.Error, (Slice[Byte], Boolean)] =
+           keyValueId: KeyValueId): IO[Core.Error.Private, (Slice[Byte], Boolean)] =
     if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt))
       KeyReader.compressed(indexReader, previous) map (key => (key, true))
     else if (keyValueId.isKeyValueId_UncompressedKey(keyValueIdInt))

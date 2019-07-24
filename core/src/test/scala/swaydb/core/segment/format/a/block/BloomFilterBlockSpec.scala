@@ -32,7 +32,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.util.Random
-import swaydb.data.io.Core.Error.ErrorHandler
+import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 class BloomFilterBlockSpec extends TestBase {
 

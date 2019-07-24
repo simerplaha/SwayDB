@@ -19,7 +19,7 @@
 
 package swaydb
 
-import swaydb.data.io.Core
+import swaydb.data.io.Tag
 
 import scala.collection.{TraversableOnce, mutable}
 
@@ -28,7 +28,7 @@ import scala.collection.{TraversableOnce, mutable}
   */
 private[swaydb] object ScalaMap {
 
-  def apply[K, V](db: Map[K, V, Core.IO]): mutable.Map[K, V] =
+  def apply[K, V](db: Map[K, V, Tag.CoreIO]): mutable.Map[K, V] =
     new mutable.Map[K, V] {
       override def get(key: K): Option[V] =
         db.get(key).get
