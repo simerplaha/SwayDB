@@ -26,7 +26,7 @@ import swaydb.core.RunThis._
 
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.ErrorHandler.CoreError
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 
 class LazySpec extends WordSpec with Matchers with MockFactory {
 

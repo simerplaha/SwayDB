@@ -23,6 +23,7 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.ErrorHandler.Throwable
 import swaydb.IO
 import swaydb.IO._
+import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
@@ -32,7 +33,7 @@ class IOSpec extends WordSpec with Matchers {
   "CatchLeak" when {
     "exception" in {
       val exception = new Exception("Failed")
-      IO.CatchLeak[IO.Error, Unit](throw exception).failed.get shouldBe IO.Error.Fatal(exception)
+      IO.CatchLeak[Core.IO.Error, Unit](throw exception).failed.get shouldBe Core.IO.Error.Fatal(exception)
     }
 
     "no exception" in {

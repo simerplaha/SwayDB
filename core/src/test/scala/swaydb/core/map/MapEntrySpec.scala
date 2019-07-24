@@ -41,7 +41,7 @@ import swaydb.serializers._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import swaydb.ErrorHandler.CoreError
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 
 class MapEntrySpec extends TestBase {
 

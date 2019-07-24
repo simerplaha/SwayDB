@@ -21,17 +21,18 @@ package swaydb.core.level.seek
 
 import swaydb.IO
 import swaydb.core.data.KeyValue
+import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 
 trait NextWalker extends NextGetter {
 
   def levelNumber: String
 
-  def higher(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]]
+  def higher(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def lower(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]]
+  def lower(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]]
 
-  def get(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]]
 
   def hasStateChanged(previousState: Long): Boolean
 

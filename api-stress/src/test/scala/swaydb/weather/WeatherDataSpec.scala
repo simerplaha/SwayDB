@@ -21,7 +21,6 @@ package swaydb.weather
 
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.BeforeAndAfterAll
-import swaydb.IO.SIO
 import swaydb.configs.level.DefaultGroupingStrategy
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
@@ -29,6 +28,7 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.util.Benchmark
 import swaydb.data.accelerate.Accelerator
+import swaydb.data.io.Core
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 
@@ -53,7 +53,7 @@ class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
 
 sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark with BeforeAndAfterAll {
 
-  val db: swaydb.Map[Int, WeatherData, SIO]
+  val db: swaydb.Map[Int, WeatherData, Core.IO]
 
   override protected def afterAll(): Unit = {
     db.close().get

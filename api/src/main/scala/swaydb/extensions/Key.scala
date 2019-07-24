@@ -86,7 +86,7 @@
 //    }
 //
 //  private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): IO[Seq[K]] = {
-//    def readOne(reader: Reader): IO[IO.Error, Option[K]] =
+//    def readOne(reader: Reader): IO[Core.IO.Error, Option[K]] =
 //      reader
 //        .readIntUnsigned()
 //        .flatMap(reader.read)

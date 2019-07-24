@@ -22,6 +22,7 @@ package swaydb.core.util
 import java.util.{Timer, TimerTask}
 
 import swaydb.IO
+import swaydb.data.io.Core
 
 import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
@@ -67,7 +68,7 @@ object Delay {
   def future[T](delayFor: FiniteDuration)(block: => T)(implicit ctx: ExecutionContext): Future[T] =
     apply(delayFor)(Future(block))
 
-  def futureFromIO[T](delayFor: FiniteDuration)(block: => IO[IO.Error, T])(implicit ctx: ExecutionContext): Future[T] =
+  def futureFromIO[T](delayFor: FiniteDuration)(block: => IO[Core.IO.Error, T])(implicit ctx: ExecutionContext): Future[T] =
     apply(delayFor)(Future(block).flatMap(_.toFuture))
 
   def task(delayFor: FiniteDuration)(block: => Unit): TimerTask =

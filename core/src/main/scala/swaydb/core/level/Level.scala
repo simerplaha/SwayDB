@@ -48,19 +48,20 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import swaydb.ErrorHandler.CoreError
+import swaydb.data.io.Core
 
 private[core] object Level extends LazyLogging {
 
   val emptySegmentsToPush = (Iterable.empty[Segment], Iterable.empty[Segment])
 
-  def acquireLock(storage: LevelStorage.Persistent): IO[IO.Error, Option[FileLock]] =
+  def acquireLock(storage: LevelStorage.Persistent): IO[Core.IO.Error, Option[FileLock]] =
     IO {
       IOEffect createDirectoriesIfAbsent storage.dir
       val lockFile = storage.dir.resolve("LOCK")
@@ -74,7 +75,7 @@ private[core] object Level extends LazyLogging {
       Some(lock)
     }
 
-  def acquireLock(levelStorage: LevelStorage): IO[IO.Error, Option[FileLock]] =
+  def acquireLock(levelStorage: LevelStorage): IO[Core.IO.Error, Option[FileLock]] =
     levelStorage match {
       case persistent: LevelStorage.Persistent =>
         acquireLock(persistent)
@@ -100,7 +101,7 @@ private[core] object Level extends LazyLogging {
                                                functionStore: FunctionStore,
                                                keyValueLimiter: KeyValueLimiter,
                                                fileOpenLimiter: FileLimiter,
-                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[IO.Error, Level] = {
+                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.IO.Error, Level] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
       lock =>
@@ -131,7 +132,7 @@ private[core] object Level extends LazyLogging {
         implicit val merger = AppendixSkipListMerger
 
         //initialise appendix
-        val appendix: IO[IO.Error, Map[Slice[Byte], Segment]] =
+        val appendix: IO[Core.IO.Error, Map[Slice[Byte], Segment]] =
           appendixStorage match {
             case AppendixStorage.Persistent(mmap, appendixFlushCheckpointSize) =>
               logger.info("{}: Initialising appendix.", levelStorage.dir)
@@ -167,7 +168,7 @@ private[core] object Level extends LazyLogging {
                 if (segment.existsOnDisk)
                   IO.unit
                 else
-                  IO.Failure(IO.Error.Fatal(SegmentFileMissing(segment.path)))
+                  IO.Failure(Core.IO.Error.Fatal(SegmentFileMissing(segment.path)))
             } match {
               case Some(IO.Failure(error)) =>
                 IO.Failure(error)
@@ -235,7 +236,7 @@ private[core] object Level extends LazyLogging {
   def isSmallSegment(segment: Segment, levelSegmentSize: Long): Boolean =
     segment.segmentSize < levelSegmentSize * 0.40
 
-  def deleteUncommittedSegments(dirs: Seq[Dir], appendixSegments: Iterable[Segment]): IO[IO.Error, Unit] =
+  def deleteUncommittedSegments(dirs: Seq[Dir], appendixSegments: Iterable[Segment]): IO[Core.IO.Error, Unit] =
     dirs.flatMap(_.path.files(Extension.Seg)) foreachIO {
       segmentToDelete =>
         val toDelete =
@@ -305,7 +306,7 @@ private[core] object Level extends LazyLogging {
     segmentsToCollapse
   }
 
-  def delete(level: NextLevel): IO[IO.Error, Unit] =
+  def delete(level: NextLevel): IO[Core.IO.Error, Unit] =
     level.close flatMap {
       _ =>
         level
@@ -355,13 +356,13 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private implicit val currentWalker =
     new CurrentWalker {
-      override def get(key: Slice[Byte]): IO.Defer[IO.Error, Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[ReadOnly.Put]] =
         self get key
 
-      override def higher(key: Slice[Byte]): IO[IO.Error, Option[ReadOnly.SegmentResponse]] =
+      override def higher(key: Slice[Byte]): IO[Core.IO.Error, Option[ReadOnly.SegmentResponse]] =
         higherInThisLevel(key)
 
-      override def lower(key: Slice[Byte]): IO[IO.Error, Option[ReadOnly.SegmentResponse]] =
+      override def lower(key: Slice[Byte]): IO[Core.IO.Error, Option[ReadOnly.SegmentResponse]] =
         self lowerInThisLevel key
 
       override def levelNumber: String =
@@ -370,13 +371,13 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private implicit val nextWalker =
     new NextWalker {
-      override def higher(key: Slice[Byte]): IO.Defer[IO.Error, Option[ReadOnly.Put]] =
+      override def higher(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[ReadOnly.Put]] =
         higherInNextLevel(key)
 
-      override def lower(key: Slice[Byte]): IO.Defer[IO.Error, Option[ReadOnly.Put]] =
+      override def lower(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[ReadOnly.Put]] =
         lowerFromNextLevel(key)
 
-      override def get(key: Slice[Byte]): IO.Defer[IO.Error, Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[ReadOnly.Put]] =
         getFromNextLevel(key)
 
       override def hasStateChanged(previousState: Long): Boolean =
@@ -391,7 +392,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private implicit val currentGetter =
     new CurrentGetter {
-      override def get(key: Slice[Byte]): IO[IO.Error, Option[ReadOnly.SegmentResponse]] =
+      override def get(key: Slice[Byte]): IO[Core.IO.Error, Option[ReadOnly.SegmentResponse]] =
         getFromThisLevel(key)
     }
 
@@ -413,7 +414,7 @@ private[core] case class Level(dirs: Seq[Dir],
         self.segmentCountAndLevelSize
     }
 
-  private def appendixWriteLocked(initialMapEntry: MapEntry[Slice[Byte], Segment]): IO[IO.Error, Boolean] = {
+  private def appendixWriteLocked(initialMapEntry: MapEntry[Slice[Byte], Segment]): IO[Core.IO.Error, Boolean] = {
     appendixReadWriteLock.writeLock().lock()
     try
       appendix write initialMapEntry
@@ -435,7 +436,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def appendixPath: Path =
     rootPath.resolve("appendix")
 
-  def releaseLocks: IO[IO.Error, Unit] =
+  def releaseLocks: IO[Core.IO.Error, Unit] =
     IOEffect.release(lock) flatMap {
       _ =>
         nextLevel.map(_.releaseLocks) getOrElse IO.unit
@@ -463,7 +464,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def ensureRelease[T](key: Slice[Byte])(f: => T): T =
     try f finally ReserveRange.free(key)
 
-  private[level] def reserve(segments: Iterable[Segment]): IO[IO.Error, Either[Future[Unit], Slice[Byte]]] =
+  private[level] def reserve(segments: Iterable[Segment]): IO[Core.IO.Error, Either[Future[Unit], Slice[Byte]]] =
     SegmentAssigner.assignMinMaxOnly(
       inputSegments = segments,
       targetSegments = appendix.values().asScala
@@ -477,7 +478,7 @@ private[core] case class Level(dirs: Seq[Dir],
           .getOrElse(Left(Delay.futureUnit))
     }
 
-  private[level] def reserve(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[IO.Error, Either[Future[Unit], Slice[Byte]]] =
+  private[level] def reserve(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Core.IO.Error, Either[Future[Unit], Slice[Byte]]] =
     SegmentAssigner.assignMinMaxOnly(
       map = map,
       targetSegments = appendix.values().asScala
@@ -543,10 +544,10 @@ private[core] case class Level(dirs: Seq[Dir],
       maxKeyInclusive = segment.maxKey.inclusive
     )
 
-  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit] =
+  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Unit] =
     put(Seq(segment))
 
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit] = {
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Unit] = {
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
     reserve(segments).asDeferred flatMap {
       case Left(future) =>
@@ -579,14 +580,14 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private[level] def put(segmentsToMerge: Iterable[Segment],
                          segmentsToCopy: Iterable[Segment],
-                         targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): IO[IO.Error, Unit] =
+                         targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Core.IO.Error, Unit] =
     if (segmentsToCopy.nonEmpty)
       copyForwardOrCopyLocal(segmentsToCopy) flatMap {
         newlyCopiedSegments =>
           if (newlyCopiedSegments.nonEmpty) //all Segments were copied.
             buildNewMapEntry(newlyCopiedSegments, None, None) flatMap {
               copiedSegmentsEntry =>
-                val putResult: IO[IO.Error, Unit] =
+                val putResult: IO[Core.IO.Error, Unit] =
                   if (segmentsToMerge.nonEmpty)
                     merge(
                       segments = segmentsToMerge,
@@ -620,7 +621,7 @@ private[core] case class Level(dirs: Seq[Dir],
         appendEntry = None
       )
 
-  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit] = {
+  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Unit] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
     reserve(map).asDeferred flatMap {
       case Left(future) =>
@@ -662,7 +663,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
     * @return empty if copied into next Level else Segments copied into this Level.
     */
-  private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[IO.Error, Iterable[Segment]] =
+  private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[Core.IO.Error, Iterable[Segment]] =
     forward(map) flatMap {
       copied =>
         if (copied)
@@ -674,7 +675,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
     * Returns segments that were not forwarded.
     */
-  private def forward(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[IO.Error, Boolean] = {
+  private def forward(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[Core.IO.Error, Boolean] = {
     logger.trace(s"{}: forwarding {} Map", paths.head, map.pathOption)
     nextLevel map {
       nextLevel =>
@@ -691,7 +692,7 @@ private[core] case class Level(dirs: Seq[Dir],
     } getOrElse IO.`false`
   }
 
-  private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[IO.Error, Iterable[Segment]] = {
+  private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Core.IO.Error, Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Map", paths.head, map.pathOption)
 
     def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
@@ -740,7 +741,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
     * Returns newly created Segments.
     */
-  private def copyForwardOrCopyLocal(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[IO.Error, Iterable[Segment]] =
+  private def copyForwardOrCopyLocal(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Core.IO.Error, Iterable[Segment]] =
     forward(segments) match {
       case IO.Success(segmentsNotForwarded) =>
         if (segmentsNotForwarded.isEmpty)
@@ -756,7 +757,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
     * Returns segments that were not forwarded.
     */
-  private def forward(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[IO.Error, Iterable[Segment]] = {
+  private def forward(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Core.IO.Error, Iterable[Segment]] = {
     logger.trace(s"{}: Copying forward {} Segments", paths.head, segments.map(_.path.toString))
     nextLevel map {
       nextLevel =>
@@ -774,7 +775,7 @@ private[core] case class Level(dirs: Seq[Dir],
     } getOrElse IO.Success(segments)
   }
 
-  private[level] def copy(segments: Iterable[Segment]): IO[IO.Error, Iterable[Segment]] = {
+  private[level] def copy(segments: Iterable[Segment]): IO[Core.IO.Error, Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Segments", paths.head, segments.map(_.path.toString))
     segments.flatMapIO[Segment](
       ioBlock =
@@ -834,7 +835,7 @@ private[core] case class Level(dirs: Seq[Dir],
     )
   }
 
-  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit] = {
+  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Unit] = {
     logger.debug("{}: Running refresh.", paths.head)
     reserve(Seq(segment)).asDeferred flatMap {
       case Left(future) =>
@@ -883,7 +884,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def removeSegments(segments: Iterable[Segment]): IO[IO.Error, Int] = {
+  def removeSegments(segments: Iterable[Segment]): IO[Core.IO.Error, Int] = {
     //create this list which is a copy of segments. Segments can be iterable only once if it's a Java iterable.
     //this copy is for second read to delete the segments after the MapEntry is successfully created.
     logger.trace(s"{}: Removing Segments {}", paths.head, segments.map(_.path.toString))
@@ -910,16 +911,16 @@ private[core] case class Level(dirs: Seq[Dir],
               IO.zero
             }
             else
-              Segment.deleteSegments(segmentsToRemove).recoverWith[IO.Error, Int] {
+              Segment.deleteSegments(segmentsToRemove).recoverWith[Core.IO.Error, Int] {
                 case exception =>
                   logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
                   IO.zero
               }
         }
-    } getOrElse IO.Failure(IO.Error.NoSegmentsRemoved)
+    } getOrElse IO.Failure(Core.IO.Error.NoSegmentsRemoved)
   }
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[IO.Error, Int] = {
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Int] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
     if (segments.isEmpty || appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
       IO.zero
@@ -982,7 +983,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private def merge(segments: Iterable[Segment],
                     targetSegments: Iterable[Segment],
-                    appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[IO.Error, Unit] = {
+                    appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Core.IO.Error, Unit] = {
     logger.trace(s"{}: Merging segments {}", paths.head, segments.map(_.path.toString))
     Segment.getAllKeyValues(segments) flatMap {
       keyValues =>
@@ -999,14 +1000,14 @@ private[core] case class Level(dirs: Seq[Dir],
     */
   private[core] def putKeyValues(keyValues: Slice[KeyValue.ReadOnly],
                                  targetSegments: Iterable[Segment],
-                                 appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[IO.Error, Unit] = {
+                                 appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Core.IO.Error, Unit] = {
     logger.trace(s"{}: Merging {} KeyValues.", paths.head, keyValues.size)
     SegmentAssigner.assign(keyValues, targetSegments) flatMap {
       assignments =>
         logger.trace(s"{}: Assigned segments {} for {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
         if (assignments.isEmpty) {
           logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", paths.head, keyValues.size)
-          IO.Failure(IO.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size))
+          IO.Failure(Core.IO.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size))
         } else {
           logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
           putAssignedKeyValues(assignments) flatMap {
@@ -1057,7 +1058,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  private def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue.ReadOnly]]): IO[IO.Error, Slice[(Segment, Slice[Segment])]] =
+  private def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue.ReadOnly]]): IO[Core.IO.Error, Slice[(Segment, Slice[Segment])]] =
     assignedSegments.mapIO[(Segment, Slice[Segment])](
       block = {
         case (targetSegment, assignedKeyValues) =>
@@ -1096,7 +1097,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def buildNewMapEntry(newSegments: Iterable[Segment],
                        originalSegmentMayBe: Option[Segment] = None,
-                       initialMapEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[IO.Error, MapEntry[Slice[Byte], Segment]] = {
+                       initialMapEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Core.IO.Error, MapEntry[Slice[Byte], Segment]] = {
     import keyOrder._
 
     var removeOriginalSegments = true
@@ -1125,7 +1126,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def getFromThisLevel(key: Slice[Byte]): IO[IO.Error, Option[KeyValue.ReadOnly.SegmentResponse]] =
+  def getFromThisLevel(key: Slice[Byte]): IO[Core.IO.Error, Option[KeyValue.ReadOnly.SegmentResponse]] =
     appendixWithReadLocked(_.floor(key)) match {
       case Some(segment) =>
         segment get key
@@ -1134,13 +1135,13 @@ private[core] case class Level(dirs: Seq[Dir],
         IO.none
     }
 
-  def getFromNextLevel(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]] =
+  def getFromNextLevel(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]] =
     nextLevel.map(_.get(key)) getOrElse IO.none
 
-  override def get(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]] =
+  override def get(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]] =
     Get(key)
 
-  private def mightContainKeyInThisLevel(key: Slice[Byte]): IO[IO.Error, Boolean] =
+  private def mightContainKeyInThisLevel(key: Slice[Byte]): IO[Core.IO.Error, Boolean] =
     appendixWithReadLocked(_.floor(key)) match {
       case Some(segment) =>
         segment mightContainKey key
@@ -1149,7 +1150,7 @@ private[core] case class Level(dirs: Seq[Dir],
         IO.`false`
     }
 
-  private def mightContainFunctionInThisLevel(functionId: Slice[Byte]): IO[IO.Error, Boolean] =
+  private def mightContainFunctionInThisLevel(functionId: Slice[Byte]): IO[Core.IO.Error, Boolean] =
     IO {
       appendix.values().asScala exists {
         segment =>
@@ -1163,7 +1164,7 @@ private[core] case class Level(dirs: Seq[Dir],
       }
     }
 
-  override def mightContainKey(key: Slice[Byte]): IO[IO.Error, Boolean] =
+  override def mightContainKey(key: Slice[Byte]): IO[Core.IO.Error, Boolean] =
     mightContainKeyInThisLevel(key) flatMap {
       yes =>
         if (yes)
@@ -1172,7 +1173,7 @@ private[core] case class Level(dirs: Seq[Dir],
           nextLevel.map(_.mightContainKey(key)) getOrElse IO.`false`
     }
 
-  override def mightContainFunction(functionId: Slice[Byte]): IO[IO.Error, Boolean] =
+  override def mightContainFunction(functionId: Slice[Byte]): IO[Core.IO.Error, Boolean] =
     mightContainFunctionInThisLevel(functionId) flatMap {
       yes =>
         if (yes)
@@ -1181,13 +1182,13 @@ private[core] case class Level(dirs: Seq[Dir],
           nextLevel.map(_.mightContainFunction(functionId)) getOrElse IO.`false`
     }
 
-  private def lowerInThisLevel(key: Slice[Byte]): IO[IO.Error, Option[ReadOnly.SegmentResponse]] =
+  private def lowerInThisLevel(key: Slice[Byte]): IO[Core.IO.Error, Option[ReadOnly.SegmentResponse]] =
     appendixWithReadLocked(_.lowerValue(key)).map(_.lower(key)) getOrElse IO.none
 
-  private def lowerFromNextLevel(key: Slice[Byte]): IO.Defer[IO.Error, Option[ReadOnly.Put]] =
+  private def lowerFromNextLevel(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[ReadOnly.Put]] =
     nextLevel.map(_.lower(key)) getOrElse IO.none
 
-  override def floor(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]] =
+  override def floor(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]] =
     get(key) match {
       case success @ IO.Success(Some(_)) =>
         success
@@ -1202,20 +1203,20 @@ private[core] case class Level(dirs: Seq[Dir],
         failed
     }
 
-  override def lower(key: Slice[Byte]): IO.Defer[IO.Error, Option[ReadOnly.Put]] =
+  override def lower(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[ReadOnly.Put]] =
     Lower(
       key = key,
       currentSeek = Seek.Read,
       nextSeek = Seek.Read
     )
 
-  private def higherFromFloorSegment(key: Slice[Byte]): IO[IO.Error, Option[ReadOnly.SegmentResponse]] =
+  private def higherFromFloorSegment(key: Slice[Byte]): IO[Core.IO.Error, Option[ReadOnly.SegmentResponse]] =
     appendixWithReadLocked(_.floor(key)).map(_.higher(key)) getOrElse IO.none
 
-  private def higherFromHigherSegment(key: Slice[Byte]): IO[IO.Error, Option[ReadOnly.SegmentResponse]] =
+  private def higherFromHigherSegment(key: Slice[Byte]): IO[Core.IO.Error, Option[ReadOnly.SegmentResponse]] =
     appendixWithReadLocked(_.higherValue(key)).map(_.higher(key)) getOrElse IO.none
 
-  private[core] def higherInThisLevel(key: Slice[Byte]): IO[IO.Error, Option[KeyValue.ReadOnly.SegmentResponse]] =
+  private[core] def higherInThisLevel(key: Slice[Byte]): IO[Core.IO.Error, Option[KeyValue.ReadOnly.SegmentResponse]] =
     higherFromFloorSegment(key) flatMap {
       fromFloor =>
         if (fromFloor.isDefined)
@@ -1224,10 +1225,10 @@ private[core] case class Level(dirs: Seq[Dir],
           higherFromHigherSegment(key)
     }
 
-  private def higherInNextLevel(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]] =
+  private def higherInNextLevel(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]] =
     nextLevel.map(_.higher(key)) getOrElse IO.none
 
-  def ceiling(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]] =
+  def ceiling(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]] =
     get(key) match {
       case success @ IO.Success(Some(_)) =>
         success
@@ -1242,7 +1243,7 @@ private[core] case class Level(dirs: Seq[Dir],
         failed
     }
 
-  override def higher(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]] =
+  override def higher(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]] =
     Higher(
       key = key,
       currentSeek = Seek.Read,
@@ -1253,7 +1254,7 @@ private[core] case class Level(dirs: Seq[Dir],
     * Does a quick appendix lookup.
     * It does not check if the returned key is removed. Use [[Level.head]] instead.
     */
-  override def headKey: IO.Defer[IO.Error, Option[Slice[Byte]]] =
+  override def headKey: IO.Defer[Core.IO.Error, Option[Slice[Byte]]] =
     nextLevel.map(_.headKey) getOrElse IO.none mapDeferred {
       nextLevelFirstKey =>
         MinMax.min(appendixWithReadLocked(_.firstKey), nextLevelFirstKey)(keyOrder)
@@ -1263,13 +1264,13 @@ private[core] case class Level(dirs: Seq[Dir],
     * Does a quick appendix lookup.
     * It does not check if the returned key is removed. Use [[Level.last]] instead.
     */
-  override def lastKey: IO.Defer[IO.Error, Option[Slice[Byte]]] =
+  override def lastKey: IO.Defer[Core.IO.Error, Option[Slice[Byte]]] =
     nextLevel.map(_.lastKey) getOrElse IO.none mapDeferred {
       nextLevelLastKey =>
         MinMax.max(appendixWithReadLocked(_.lastValue()).map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
     }
 
-  override def head: IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]] =
+  override def head: IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]] =
     headKey match {
       case IO.Success(firstKey) =>
         firstKey.map(ceiling) getOrElse IO.none
@@ -1302,8 +1303,8 @@ private[core] case class Level(dirs: Seq[Dir],
   def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean =
     appendix contains minKey
 
-  override def bloomFilterKeyValueCount: IO[IO.Error, Int] =
-    appendix.foldLeft(IO[IO.Error, Int](0)) {
+  override def bloomFilterKeyValueCount: IO[Core.IO.Error, Int] =
+    appendix.foldLeft(IO[Core.IO.Error, Int](0)) {
       case (currentTotal, (_, segment)) =>
         segment.getBloomFilterKeyValueCount() flatMap {
           segmentSize =>
@@ -1415,7 +1416,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def hasKeyValuesToExpire: Boolean =
     Segment.getNearestDeadlineSegment(segmentsInLevel()).isDefined
 
-  def close: IO[IO.Error, Unit] =
+  def close: IO[Core.IO.Error, Unit] =
     (nextLevel.map(_.close) getOrElse IO.unit) flatMap {
       _ =>
         appendix.close() onFailureSideEffect {
@@ -1432,7 +1433,7 @@ private[core] case class Level(dirs: Seq[Dir],
         }
     }
 
-  def closeSegments(): IO[IO.Error, Unit] = {
+  def closeSegments(): IO[Core.IO.Error, Unit] = {
     segmentsInLevel().foreachIO(_.close, failFast = false) foreach {
       failure =>
         logger.error("{}: Failed to close Segment file.", paths.head, failure.exception)
@@ -1456,6 +1457,6 @@ private[core] case class Level(dirs: Seq[Dir],
   override def nextThrottlePushCount: Int =
     throttle(meter).segmentsToPush
 
-  override def delete: IO[IO.Error, Unit] =
+  override def delete: IO[Core.IO.Error, Unit] =
     Level.delete(self)
 }

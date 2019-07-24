@@ -20,51 +20,51 @@
 package swaydb.api
 
 import org.scalatest.OptionValues._
-import swaydb.IO.SIO
 import swaydb._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
+import swaydb.data.io.Core
 import swaydb.serializers.Default._
 
 import scala.concurrent.duration._
 
 class SwayDBGetSpec0 extends SwayDBGetSpec {
-  override def newDB(): Map[Int, String, SIO] =
+  override def newDB(): Map[Int, String, Core.IO] =
     swaydb.persistent.Map[Int, String](randomDir).value
 }
 
 class SwayDBGetSpec1 extends SwayDBGetSpec {
 
-  override def newDB(): Map[Int, String, SIO] =
+  override def newDB(): Map[Int, String, Core.IO] =
     swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).value
 }
 
 class SwayDBGetSpec2 extends SwayDBGetSpec {
 
-  override def newDB(): Map[Int, String, SIO] =
+  override def newDB(): Map[Int, String, Core.IO] =
     swaydb.memory.Map[Int, String](mapSize = 1.byte).value
 }
 
 class SwayDBGetSpec3 extends SwayDBGetSpec {
-  override def newDB(): Map[Int, String, SIO] =
+  override def newDB(): Map[Int, String, Core.IO] =
     swaydb.memory.Map[Int, String]().value
 }
 
 class SwayDBGetSpec4 extends SwayDBGetSpec {
 
-  override def newDB(): Map[Int, String, SIO] =
+  override def newDB(): Map[Int, String, Core.IO] =
     swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).value
 }
 
 class SwayDBGetSpec5 extends SwayDBGetSpec {
-  override def newDB(): Map[Int, String, SIO] =
+  override def newDB(): Map[Int, String, Core.IO] =
     swaydb.memory.zero.Map[Int, String]().value
 }
 
 sealed trait SwayDBGetSpec extends TestBase {
 
-  def newDB(): Map[Int, String, SIO]
+  def newDB(): Map[Int, String, Core.IO]
 
   "SwayDB" should {
     "get" in {

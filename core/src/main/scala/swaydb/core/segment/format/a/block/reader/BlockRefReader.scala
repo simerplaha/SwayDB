@@ -24,11 +24,12 @@ import swaydb.IO
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block._
+import swaydb.data.io.Core
 import swaydb.data.slice.{Reader, Slice}
 
 private[core] object BlockRefReader {
 
-  def apply(file: DBFile): IO[IO.Error, BlockRefReader[SegmentBlock.Offset]] =
+  def apply(file: DBFile): IO[Core.IO.Error, BlockRefReader[SegmentBlock.Offset]] =
     file.fileSize map {
       fileSize =>
         new BlockRefReader(
@@ -43,7 +44,7 @@ private[core] object BlockRefReader {
       reader = Reader(bytes)
     )
 
-  def apply[O <: BlockOffset](reader: Reader[IO.Error])(implicit blockOps: BlockOps[O, _]): IO[IO.Error, BlockRefReader[O]] =
+  def apply[O <: BlockOffset](reader: Reader[Core.IO.Error])(implicit blockOps: BlockOps[O, _]): IO[Core.IO.Error, BlockRefReader[O]] =
     reader.size map {
       readerSize =>
         new BlockRefReader(
@@ -72,14 +73,14 @@ private[core] object BlockRefReader {
 }
 
 private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
-                                                             private[reader] val reader: Reader[IO.Error]) extends BlockReader with LazyLogging {
+                                                             private[reader] val reader: Reader[Core.IO.Error]) extends BlockReader with LazyLogging {
 
   override def moveTo(newPosition: Long): BlockRefReader[O] = {
     super.moveTo(newPosition)
     this
   }
 
-  def readAllAndGetReader()(implicit blockOps: BlockOps[O, _]): IO[IO.Error, BlockRefReader[O]] =
+  def readAllAndGetReader()(implicit blockOps: BlockOps[O, _]): IO[Core.IO.Error, BlockRefReader[O]] =
     readAll() map (BlockRefReader(_))
 
   def copy(): BlockRefReader[O] =

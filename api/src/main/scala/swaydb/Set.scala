@@ -19,13 +19,12 @@
 
 package swaydb
 
-import swaydb.IO.SIO
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.Tag
 import swaydb.data.io.Tag._
+import swaydb.data.io.{Core, Tag}
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
@@ -33,7 +32,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object Set {
-  def apply[T](api: Core[SIO])(implicit serializer: Serializer[T]): Set[T, SIO] =
+  def apply[T](api: Core[Core.IO])(implicit serializer: Serializer[T]): Set[T, Core.IO] =
     new Set(api, None)
 }
 
@@ -285,7 +284,7 @@ case class Set[A, T[_]](private val core: Core[T],
     copy(core = core.tagBlocking[O])
 
   def asScala: scala.collection.mutable.Set[A] =
-    ScalaSet[A](tagBlocking[SIO])
+    ScalaSet[A](tagBlocking[Core.IO])
 
   def close(): T[Unit] =
     wrapCall(core.close())

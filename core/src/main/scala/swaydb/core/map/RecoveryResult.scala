@@ -22,6 +22,7 @@ package swaydb.core.map
 import swaydb.IO
 import swaydb.core.io.file.DBFile
 import swaydb.data.config.RecoveryMode
+import swaydb.data.io.Core
 
 /**
   * Files can be partially recovered based on the value set for [[RecoveryMode]].
@@ -32,4 +33,4 @@ import swaydb.data.config.RecoveryMode
   * This instance will only contain failure if the file was partially recovered. If there was a full failure then
   * a [[IO]] outside this instance should return the failure.
   */
-sealed case class RecoveryResult[T](item: T, result: IO[IO.Error, Unit])
+sealed case class RecoveryResult[T](item: T, result: IO[Core.IO.Error, Unit])

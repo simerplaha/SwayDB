@@ -22,6 +22,7 @@ package swaydb.core.merge
 import swaydb.IO
 import swaydb.core.data.Value
 import swaydb.core.function.FunctionStore
+import swaydb.data.io.Core
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
@@ -30,7 +31,7 @@ private[core] object ValueMerger {
   def apply(key: Slice[Byte],
             newRangeValue: Value.RangeValue,
             oldFromValue: Value.FromValue)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                           functionStore: FunctionStore): IO[IO.Error, Value.FromValue] =
+                                           functionStore: FunctionStore): IO[Core.IO.Error, Value.FromValue] =
     FixedMerger(
       newKeyValue = newRangeValue.toMemory(key),
       oldKeyValue = oldFromValue.toMemory(key)
@@ -39,7 +40,7 @@ private[core] object ValueMerger {
   def apply(key: Slice[Byte],
             newRangeValue: Value.FromValue,
             oldFromValue: Value.FromValue)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                           functionStore: FunctionStore): IO[IO.Error, Value.FromValue] =
+                                           functionStore: FunctionStore): IO[Core.IO.Error, Value.FromValue] =
     FixedMerger(
       newKeyValue = newRangeValue.toMemory(key),
       oldKeyValue = oldFromValue.toMemory(key)
@@ -47,7 +48,7 @@ private[core] object ValueMerger {
 
   def apply(newRangeValue: Value.RangeValue,
             oldRangeValue: Value.RangeValue)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                             functionStore: FunctionStore): IO[IO.Error, Value.RangeValue] =
+                                             functionStore: FunctionStore): IO[Core.IO.Error, Value.RangeValue] =
     FixedMerger(
       newKeyValue = newRangeValue.toMemory(Slice.emptyBytes),
       oldKeyValue = oldRangeValue.toMemory(Slice.emptyBytes)

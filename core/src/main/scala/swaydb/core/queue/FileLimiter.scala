@@ -22,6 +22,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
+import swaydb.data.io.Core
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -39,9 +40,9 @@ private[swaydb] trait FileLimiter {
 private[core] trait FileLimiterItem {
   def path: Path
 
-  def delete(): IO[IO.Error, Unit]
+  def delete(): IO[Core.IO.Error, Unit]
 
-  def close(): IO[IO.Error, Unit]
+  def close(): IO[Core.IO.Error, Unit]
 
   def isOpen: Boolean
 }

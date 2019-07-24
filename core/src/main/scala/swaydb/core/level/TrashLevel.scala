@@ -26,8 +26,9 @@ import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.io.Core
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.CoreError
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -52,7 +53,7 @@ private[core] object TrashLevel extends NextLevel {
   override val hasNextLevel: Boolean =
     false
 
-  override val bloomFilterKeyValueCount: IO[IO.Error, Int] =
+  override val bloomFilterKeyValueCount: IO[Core.IO.Error, Int] =
     IO.zero
 
   override val segmentsCount: Int =
@@ -109,36 +110,36 @@ private[core] object TrashLevel extends NextLevel {
   override val sizeOfSegments: Long =
     0
 
-  override def releaseLocks: IO[IO.Error, Unit] =
+  override def releaseLocks: IO[Core.IO.Error, Unit] =
     IO.unit
 
-  override val close: IO[IO.Error, Unit] =
+  override val close: IO[Core.IO.Error, Unit] =
     IO.unit
 
   override def meterFor(levelNumber: Int): Option[LevelMeter] =
     None
 
-  override def mightContainKey(key: Slice[Byte]): IO[IO.Error, Boolean] =
+  override def mightContainKey(key: Slice[Byte]): IO[Core.IO.Error, Boolean] =
     IO.`false`
 
-  override def mightContainFunction(key: Slice[Byte]): IO[IO.Error, Boolean] =
+  override def mightContainFunction(key: Slice[Byte]): IO[Core.IO.Error, Boolean] =
     IO.`false`
 
   override val isTrash: Boolean = true
 
-  override def ceiling(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]] =
+  override def ceiling(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]] =
     IO.none
 
-  override def floor(key: Slice[Byte]): IO.Defer[IO.Error, Option[KeyValue.ReadOnly.Put]] =
+  override def floor(key: Slice[Byte]): IO.Defer[Core.IO.Error, Option[KeyValue.ReadOnly.Put]] =
     IO.none
 
-  override val headKey: IO.Defer[IO.Error, Option[Slice[Byte]]] =
+  override val headKey: IO.Defer[Core.IO.Error, Option[Slice[Byte]]] =
     IO.none
 
-  override val lastKey: IO.Defer[IO.Error, Option[Slice[Byte]]] =
+  override val lastKey: IO.Defer[Core.IO.Error, Option[Slice[Byte]]] =
     IO.none
 
-  override def closeSegments(): IO[IO.Error, Unit] =
+  override def closeSegments(): IO[Core.IO.Error, Unit] =
     IO.unit
 
   override def levelNumber: Int = -1
@@ -151,16 +152,16 @@ private[core] object TrashLevel extends NextLevel {
   override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     (segments, Iterable.empty)
 
-  override def put(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit] =
+  override def put(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Unit] =
     IO.unit
 
-  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit] =
+  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Unit] =
     IO.unit
 
-  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit] =
+  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Unit] =
     IO.unit
 
-  override def removeSegments(segments: Iterable[Segment]): IO[IO.Error, Int] =
+  override def removeSegments(segments: Iterable[Segment]): IO[Core.IO.Error, Int] =
     IO.Success(segments.size)
 
   override val meter: LevelMeter =
@@ -172,10 +173,10 @@ private[core] object TrashLevel extends NextLevel {
       override def nextLevelMeter: Option[LevelMeter] = None
     }
 
-  override def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit] =
+  override def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Unit] =
     IO.unit
 
-  override def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[IO.Error, Int] =
+  override def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Int] =
     IO.Success(segments.size)
 
   override def isZero: Boolean =
@@ -209,5 +210,5 @@ private[core] object TrashLevel extends NextLevel {
   override def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
     true
 
-  override def delete: IO[IO.Error, Unit] = IO.unit
+  override def delete: IO[Core.IO.Error, Unit] = IO.unit
 }

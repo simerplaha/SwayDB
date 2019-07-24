@@ -20,11 +20,11 @@
 package swaydb
 
 import org.scalatest.OptionValues._
-import swaydb.IO.SIO
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
+import swaydb.data.io.Core
 import swaydb.serializers.Default._
 
 import scala.concurrent.duration._
@@ -32,7 +32,7 @@ import scala.concurrent.duration._
 class SwayDBExpireSpec0 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, SIO] =
+  override def newDB(): Map[Int, String, Core.IO] =
     swaydb.persistent.Map[Int, String](dir = randomDir).value
 }
 
@@ -40,7 +40,7 @@ class SwayDBExpireSpec1 extends SwayDBExpireSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, SIO] =
+  override def newDB(): Map[Int, String, Core.IO] =
     swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).value
 }
 
@@ -48,14 +48,14 @@ class SwayDBExpireSpec2 extends SwayDBExpireSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, SIO] =
+  override def newDB(): Map[Int, String, Core.IO] =
     swaydb.memory.Map[Int, String](mapSize = 1.byte).value
 }
 
 class SwayDBExpireSpec3 extends SwayDBExpireSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, SIO] =
+  override def newDB(): Map[Int, String, Core.IO] =
     swaydb.memory.Map[Int, String]().value
 }
 
@@ -63,14 +63,14 @@ class SwayDBExpireSpec4 extends SwayDBExpireSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, SIO] =
+  override def newDB(): Map[Int, String, Core.IO] =
     swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).value
 }
 
 class SwayDBExpireSpec5 extends SwayDBExpireSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, SIO] =
+  override def newDB(): Map[Int, String, Core.IO] =
     swaydb.memory.zero.Map[Int, String]().value
 }
 
@@ -78,7 +78,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Map[Int, String, SIO]
+  def newDB(): Map[Int, String, Core.IO]
 
   "Expire" when {
     "Put" in {
@@ -210,7 +210,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
 
   "Expire" when {
     "Update" in {
-      val db: Map[Int, String, SIO] = newDB()
+      val db: Map[Int, String, Core.IO] = newDB()
 
       val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 

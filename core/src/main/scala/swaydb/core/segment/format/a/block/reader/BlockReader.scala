@@ -22,12 +22,13 @@ package swaydb.core.segment.format.a.block.reader
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.segment.format.a.block.BlockOffset
+import swaydb.data.io.Core
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 import swaydb.data.slice.{Reader, Slice}
-import swaydb.ErrorHandler.CoreError
 
-protected trait BlockReader extends Reader[IO.Error] with LazyLogging {
+protected trait BlockReader extends Reader[Core.IO.Error] with LazyLogging {
 
-  private[reader] def reader: Reader[IO.Error]
+  private[reader] def reader: Reader[Core.IO.Error]
 
   def offset: BlockOffset
 
@@ -39,7 +40,7 @@ protected trait BlockReader extends Reader[IO.Error] with LazyLogging {
 
   override val isFile: Boolean = reader.isFile
 
-  override val size: IO[IO.Error, Long] =
+  override val size: IO[Core.IO.Error, Long] =
     IO(offset.size)
 
   override def moveTo(position: Long): BlockReader = {
@@ -47,13 +48,13 @@ protected trait BlockReader extends Reader[IO.Error] with LazyLogging {
     this
   }
 
-  def hasMore: IO[IO.Error, Boolean] =
+  def hasMore: IO[Core.IO.Error, Boolean] =
     hasAtLeast(1)
 
-  def hasAtLeast(atLeastSize: Long): IO[IO.Error, Boolean] =
+  def hasAtLeast(atLeastSize: Long): IO[Core.IO.Error, Boolean] =
     hasAtLeast(position, atLeastSize)
 
-  def hasAtLeast(fromPosition: Long, atLeastSize: Long): IO[IO.Error, Boolean] =
+  def hasAtLeast(fromPosition: Long, atLeastSize: Long): IO[Core.IO.Error, Boolean] =
     size map {
       size =>
         (size - fromPosition) >= atLeastSize
@@ -66,7 +67,7 @@ protected trait BlockReader extends Reader[IO.Error] with LazyLogging {
 
   def cachedBytes = cache.bytes
 
-  override def get(): IO[IO.Error, Int] =
+  override def get(): IO[Core.IO.Error, Int] =
     if (isFile)
       read(1).map(_.head)
     else
@@ -82,7 +83,7 @@ protected trait BlockReader extends Reader[IO.Error] with LazyLogging {
                   got
               }
           else
-            IO.Failure(IO.Error.Fatal(s"Has no more bytes. Position: $getPosition"))
+            IO.Failure(Core.IO.Error.Fatal(s"Has no more bytes. Position: $getPosition"))
       }
 
   def readFromCache(position: Int, size: Int): Slice[Byte] =
@@ -91,7 +92,7 @@ protected trait BlockReader extends Reader[IO.Error] with LazyLogging {
     else
       Slice.emptyBytes
 
-  override def read(size: Int): IO[IO.Error, Slice[Byte]] = {
+  override def read(size: Int): IO[Core.IO.Error, Slice[Byte]] = {
     val fromCache =
       if (blockSize <= 0)
         Slice.emptyBytes
@@ -152,17 +153,17 @@ protected trait BlockReader extends Reader[IO.Error] with LazyLogging {
       }
   }
 
-  def readAll(): IO[IO.Error, Slice[Byte]] =
+  def readAll(): IO[Core.IO.Error, Slice[Byte]] =
     reader
       .moveTo(offset.start)
       .read(offset.size)
 
-  def readAllOrNone(): IO[IO.Error, Option[Slice[Byte]]] =
+  def readAllOrNone(): IO[Core.IO.Error, Option[Slice[Byte]]] =
     if (offset.size == 0)
       IO.none
     else
       readAll().map(Some(_))
 
-  override def readRemaining(): IO[IO.Error, Slice[Byte]] =
+  override def readRemaining(): IO[Core.IO.Error, Slice[Byte]] =
     remaining flatMap read
 }

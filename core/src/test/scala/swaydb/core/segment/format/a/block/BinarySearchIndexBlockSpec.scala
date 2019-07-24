@@ -26,13 +26,14 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.Bytes
+import swaydb.data.io.Core
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.util.Try
-import swaydb.ErrorHandler.CoreError
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 
 class BinarySearchIndexBlockSpec extends TestBase {
 
@@ -43,7 +44,7 @@ class BinarySearchIndexBlockSpec extends TestBase {
     runThis(10.times) {
       val largestValue = values.last
 
-      def matcher(valueToFind: Int)(valueFound: Int): IO[IO.Error, KeyMatcher.Result] =
+      def matcher(valueToFind: Int)(valueFound: Int): IO[Core.IO.Error, KeyMatcher.Result] =
         IO {
           if (valueToFind == valueFound)
             KeyMatcher.Result.Matched(None, null, None)

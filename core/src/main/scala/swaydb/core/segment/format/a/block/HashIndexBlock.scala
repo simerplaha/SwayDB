@@ -26,10 +26,11 @@ import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.config.{IOAction, IOStrategy, RandomKeyIndex, UncompressedBlockInfo}
+import swaydb.data.io.Core
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.ErrorHandler.CoreError
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -208,7 +209,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     }
   }
 
-  def close(state: State): IO[IO.Error, Option[State]] =
+  def close(state: State): IO[Core.IO.Error, Option[State]] =
     if (state.bytes.isEmpty || !state.hasMinimumHits)
       IO.none
     else
@@ -233,7 +234,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           }
       }
 
-  def read(header: Block.Header[HashIndexBlock.Offset]): IO[IO.Error, HashIndexBlock] =
+  def read(header: Block.Header[HashIndexBlock.Offset]): IO[Core.IO.Error, HashIndexBlock] =
     for {
       allocatedBytes <- header.headerReader.readInt()
       maxProbe <- header.headerReader.readInt()
@@ -263,7 +264,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     */
   def write(key: Slice[Byte],
             value: Int,
-            state: State): IO[IO.Error, Boolean] = {
+            state: State): IO[Core.IO.Error, Boolean] = {
 
     //add 1 to each offset to avoid 0 offsets.
     //0 bytes are reserved as empty bucket markers.
@@ -319,7 +320,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     */
   private[block] def search[R](key: Slice[Byte],
                                reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                               assertValue: Int => IO[IO.Error, Option[R]]): IO[IO.Error, Option[R]] = {
+                               assertValue: Int => IO[Core.IO.Error, Option[R]]): IO[Core.IO.Error, Option[R]] = {
 
     val hash = key.##
     val hash1 = hash >>> 32
@@ -328,7 +329,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     val hashIndex = reader.block
 
     @tailrec
-    def doFind(probe: Int, checkedHashIndexes: mutable.HashSet[Int]): IO[IO.Error, Option[R]] =
+    def doFind(probe: Int, checkedHashIndexes: mutable.HashSet[Int]): IO[Core.IO.Error, Option[R]] =
       if (probe >= hashIndex.maxProbe) {
         IO.none
       } else {
@@ -373,7 +374,7 @@ private[core] object HashIndexBlock extends LazyLogging {
                       }
 
                   case IO.Failure(error) =>
-                    IO.Failure[IO.Error, Option[R]](error = error)
+                    IO.Failure[Core.IO.Error, Option[R]](error = error)
                 }
               }
 
@@ -391,7 +392,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   def search(key: Slice[Byte],
              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[IO.Error, Option[Persistent]] = {
+             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Core.IO.Error, Option[Persistent]] = {
     val matcher =
       if (sortedIndexReader.block.hasPrefixCompression)
         KeyMatcher.Get.WhilePrefixCompressed(key)
@@ -419,7 +420,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     override def createOffset(start: Int, size: Int): Offset =
       HashIndexBlock.Offset(start = start, size = size)
 
-    override def readBlock(header: Block.Header[Offset]): IO[IO.Error, HashIndexBlock] =
+    override def readBlock(header: Block.Header[Offset]): IO[Core.IO.Error, HashIndexBlock] =
       HashIndexBlock.read(header)
   }
 }

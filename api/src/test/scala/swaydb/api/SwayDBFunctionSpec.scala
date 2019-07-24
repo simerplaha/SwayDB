@@ -19,48 +19,49 @@
 
 package swaydb
 
-import swaydb.IO.SIO
+
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
+import swaydb.data.io.Core
 import swaydb.serializers.Default._
 
 class SwayDBFunctionSpec0 extends SwayDBFunctionSpec {
-  override def newDB(): Map[Int, Int, SIO] =
+  override def newDB(): Map[Int, Int, Core.IO] =
     swaydb.persistent.Map[Int, Int](randomDir).value
 }
 
 class SwayDBFunctionSpec1 extends SwayDBFunctionSpec {
 
-  override def newDB(): Map[Int, Int, SIO] =
+  override def newDB(): Map[Int, Int, Core.IO] =
     swaydb.persistent.Map[Int, Int](randomDir, mapSize = 1.byte).value
 }
 
 class SwayDBFunctionSpec2 extends SwayDBFunctionSpec {
 
-  override def newDB(): Map[Int, Int, SIO] =
+  override def newDB(): Map[Int, Int, Core.IO] =
     swaydb.memory.Map[Int, Int](mapSize = 1.byte).value
 }
 
 class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
-  override def newDB(): Map[Int, Int, SIO] =
+  override def newDB(): Map[Int, Int, Core.IO] =
     swaydb.memory.Map[Int, Int]().value
 }
 
 class SwayDBFunctionSpec4 extends SwayDBFunctionSpec {
 
-  override def newDB(): Map[Int, Int, SIO] =
+  override def newDB(): Map[Int, Int, Core.IO] =
     swaydb.memory.zero.Map[Int, Int](mapSize = 1.byte).value
 }
 
 class SwayDBFunctionSpec5 extends SwayDBFunctionSpec {
-  override def newDB(): Map[Int, Int, SIO] =
+  override def newDB(): Map[Int, Int, Core.IO] =
     swaydb.memory.zero.Map[Int, Int]().value
 }
 
 sealed trait SwayDBFunctionSpec extends TestBase {
 
-  def newDB(): Map[Int, Int, SIO]
+  def newDB(): Map[Int, Int, Core.IO]
 
   "SwayDB" should {
     "perform concurrent atomic updates to a single key" in {

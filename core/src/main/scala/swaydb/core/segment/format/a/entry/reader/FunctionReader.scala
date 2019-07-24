@@ -25,14 +25,15 @@ import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.util.cache.Cache
+import swaydb.data.io.Core
 import swaydb.data.slice.Reader
-import swaydb.ErrorHandler.CoreError
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 
 object FunctionReader extends EntryReader[Persistent.Function] {
 
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
-                              indexReader: Reader[IO.Error],
+                              indexReader: Reader[Core.IO.Error],
                               valueCache: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
@@ -42,7 +43,7 @@ object FunctionReader extends EntryReader[Persistent.Function] {
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
                                                             valueLengthReader: ValueLengthReader[T],
-                                                            valueBytesReader: ValueReader[T]): IO[IO.Error, Persistent.Function] =
+                                                            valueBytesReader: ValueReader[T]): IO[Core.IO.Error, Persistent.Function] =
     valueBytesReader.read(indexReader, previous) flatMap {
       valueOffsetAndLength =>
         timeReader.read(indexReader, previous) flatMap {

@@ -22,7 +22,6 @@ package swaydb
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO.SIO
 import swaydb.core.BlockingCore
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -30,6 +29,7 @@ import swaydb.core.level.tool.AppendixRepairer
 import swaydb.core.queue.FileLimiter
 import swaydb.data.MaxKey
 import swaydb.data.config._
+import swaydb.data.io.Core
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
@@ -92,7 +92,7 @@ object SwayDB extends LazyLogging {
                                                           valueSerializer: Serializer[V],
                                                           keyOrder: KeyOrder[Slice[Byte]],
                                                           fileOpenLimiterEC: ExecutionContext,
-                                                          cacheLimiterEC: ExecutionContext): IO[IO.Error, swaydb.Map[K, V, SIO]] =
+                                                          cacheLimiterEC: ExecutionContext): IO[Core.IO.Error, swaydb.Map[K, V, Core.IO]] =
     BlockingCore(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
@@ -103,7 +103,7 @@ object SwayDB extends LazyLogging {
       cacheLimiterEC = cacheLimiterEC
     ) map {
       db =>
-        swaydb.Map[K, V, SIO](db)
+        swaydb.Map[K, V, Core.IO](db)
     }
 
   def apply[T](config: SwayDBPersistentConfig,
@@ -113,7 +113,7 @@ object SwayDB extends LazyLogging {
                segmentsOpenCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                        keyOrder: KeyOrder[Slice[Byte]],
                                                        fileOpenLimiterEC: ExecutionContext,
-                                                       cacheLimiterEC: ExecutionContext): IO[IO.Error, swaydb.Set[T, SIO]] =
+                                                       cacheLimiterEC: ExecutionContext): IO[Core.IO.Error, swaydb.Set[T, Core.IO]] =
     BlockingCore(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
@@ -133,7 +133,7 @@ object SwayDB extends LazyLogging {
                                                    valueSerializer: Serializer[V],
                                                    keyOrder: KeyOrder[Slice[Byte]],
                                                    fileOpenLimiterEC: ExecutionContext,
-                                                   cacheLimiterEC: ExecutionContext): IO[IO.Error, swaydb.Map[K, V, SIO]] =
+                                                   cacheLimiterEC: ExecutionContext): IO[Core.IO.Error, swaydb.Map[K, V, Core.IO]] =
     BlockingCore(
       config = config,
       maxOpenSegments = 0,
@@ -144,7 +144,7 @@ object SwayDB extends LazyLogging {
       cacheLimiterEC = cacheLimiterEC
     ) map {
       db =>
-        swaydb.Map[K, V, SIO](db)
+        swaydb.Map[K, V, Core.IO](db)
     }
 
   def apply[T](config: SwayDBMemoryConfig,
@@ -152,7 +152,7 @@ object SwayDB extends LazyLogging {
                cacheCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                 keyOrder: KeyOrder[Slice[Byte]],
                                                 fileOpenLimiterEC: ExecutionContext,
-                                                cacheLimiterEC: ExecutionContext): IO[IO.Error, swaydb.Set[T, SIO]] =
+                                                cacheLimiterEC: ExecutionContext): IO[Core.IO.Error, swaydb.Set[T, Core.IO]] =
     BlockingCore(
       config = config,
       maxOpenSegments = 0,
@@ -168,7 +168,7 @@ object SwayDB extends LazyLogging {
 
   def apply[T](config: LevelZeroConfig)(implicit serializer: Serializer[T],
                                         keyOrder: KeyOrder[Slice[Byte]],
-                                        ec: ExecutionContext): IO[IO.Error, swaydb.Set[T, SIO]] =
+                                        ec: ExecutionContext): IO[Core.IO.Error, swaydb.Set[T, Core.IO]] =
     BlockingCore(
       config = config
     ) map {
@@ -228,11 +228,11 @@ object SwayDB extends LazyLogging {
                         repairStrategy: AppendixRepairStrategy)(implicit serializer: Serializer[K],
                                                                 fileLimiter: FileLimiter,
                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                ec: ExecutionContext = defaultExecutionContext): IO[IO.Error, RepairResult[K]] =
+                                                                ec: ExecutionContext = defaultExecutionContext): IO[Core.IO.Error, RepairResult[K]] =
   //convert to typed result.
     AppendixRepairer(levelPath, repairStrategy) match {
-      case IO.Failure(IO.Error.Fatal(OverlappingSegmentsException(segmentInfo, overlappingSegmentInfo))) =>
-        IO.Success[IO.Error, RepairResult[K]](
+      case IO.Failure(Core.IO.Error.Fatal(OverlappingSegmentsException(segmentInfo, overlappingSegmentInfo))) =>
+        IO.Success[Core.IO.Error, RepairResult[K]](
           OverlappingSegments[K](
             segmentInfo =
               SegmentInfo(
@@ -270,6 +270,6 @@ object SwayDB extends LazyLogging {
         IO.Failure(error)
 
       case IO.Success(_) =>
-        IO.Success[IO.Error, RepairResult[K]](RepairResult.Repaired)
+        IO.Success[Core.IO.Error, RepairResult[K]](RepairResult.Repaired)
     }
 }

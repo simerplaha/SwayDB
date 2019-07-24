@@ -30,7 +30,7 @@ import swaydb.data.config.Dir
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
-import swaydb.ErrorHandler.CoreError
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 
 private[core] case class Distribution(path: Path,
                                       distributionRatio: Int,

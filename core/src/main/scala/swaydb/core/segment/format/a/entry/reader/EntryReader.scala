@@ -27,12 +27,13 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
 import swaydb.core.util.cache.Cache
+import swaydb.data.io.Core
 import swaydb.data.slice.Reader
 
 trait EntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
-                              indexReader: Reader[IO.Error],
+                              indexReader: Reader[Core.IO.Error],
                               valueCache: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
@@ -42,7 +43,7 @@ trait EntryReader[E] {
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
                                                             valueLengthReader: ValueLengthReader[T],
-                                                            valueBytesReader: ValueReader[T]): IO[IO.Error, E]
+                                                            valueBytesReader: ValueReader[T]): IO[Core.IO.Error, E]
 }
 
 object EntryReader {
@@ -61,14 +62,14 @@ object EntryReader {
   def read[T](baseId: Int,
               keyValueId: Int,
               mightBeCompressed: Boolean,
-              indexReader: Reader[IO.Error],
+              indexReader: Reader[Core.IO.Error],
               valueCache: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
               accessPosition: Int,
               previous: Option[Persistent],
-              entryReader: EntryReader[T]): IO[IO.Error, T] =
+              entryReader: EntryReader[T]): IO[Core.IO.Error, T] =
     findReader(baseId = baseId, mightBeCompressed = mightBeCompressed) flatMap {
       entry =>
         entry.read(
@@ -83,16 +84,16 @@ object EntryReader {
           previous = previous,
           reader = entryReader
         )
-    } getOrElse IO.Failure(IO.Error.Fatal(SegmentException.InvalidKeyValueId(baseId)))
+    } getOrElse IO.Failure(Core.IO.Error.Fatal(SegmentException.InvalidKeyValueId(baseId)))
 
-  def read(indexReader: Reader[IO.Error],
+  def read(indexReader: Reader[Core.IO.Error],
            mightBeCompressed: Boolean,
            valueCache: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
            indexOffset: Int,
            nextIndexOffset: Int,
            nextIndexSize: Int,
            accessPosition: Int,
-           previous: Option[Persistent]): IO[IO.Error, Persistent] =
+           previous: Option[Persistent]): IO[Core.IO.Error, Persistent] =
     indexReader.readIntUnsigned() flatMap {
       keyValueId =>
         if (KeyValueId.Put.hasKeyValueId(keyValueId))
@@ -194,6 +195,6 @@ object EntryReader {
             entryReader = PendingApplyReader
           )
         else
-          IO.Failure(IO.Error.Fatal(SegmentException.InvalidKeyValueId(keyValueId)))
+          IO.Failure(Core.IO.Error.Fatal(SegmentException.InvalidKeyValueId(keyValueId)))
     }
 }

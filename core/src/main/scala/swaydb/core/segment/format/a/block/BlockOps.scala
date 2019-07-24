@@ -20,11 +20,12 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.IO
+import swaydb.data.io.Core
 
 trait BlockOps[O <: BlockOffset, B <: Block[O]] {
   def updateBlockOffset(block: B, start: Int, size: Int): B
 
   def createOffset(start: Int, size: Int): O
 
-  def readBlock(header: Block.Header[O]): IO[IO.Error, B]
+  def readBlock(header: Block.Header[O]): IO[Core.IO.Error, B]
 }

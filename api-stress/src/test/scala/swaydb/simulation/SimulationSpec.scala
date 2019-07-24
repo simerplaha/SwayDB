@@ -24,13 +24,13 @@ import java.util.concurrent.atomic.AtomicInteger
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.WordSpec
 import swaydb.Apply
-import swaydb.IO.SIO
 import swaydb.configs.level.DefaultGroupingStrategy
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.MMAP
+import swaydb.data.io.Core
 import swaydb.serializers.Default._
 import swaydb.simulation.Domain._
 import swaydb.simulation.ProductCommand._
@@ -87,7 +87,7 @@ class Memory_Persistent_SimulationSpec extends SimulationSpec {
 
 sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
-  def db: swaydb.Map[Long, Domain, SIO]
+  def db: swaydb.Map[Long, Domain, Core.IO]
 
   val ids = new AtomicInteger(0)
   val functionIDs = new AtomicInteger(0)

@@ -30,9 +30,10 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
 import swaydb.core.queue.FileLimiter
+import swaydb.data.io.Core
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.CoreError
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 
 private[core] object PersistentTimer extends LazyLogging {
 
@@ -58,7 +59,7 @@ private[core] object PersistentTimer extends LazyLogging {
                                        timeOrder: TimeOrder[Slice[Byte]],
                                        functionStore: FunctionStore,
                                        writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                       reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[IO.Error, PersistentTimer] = {
+                                       reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[Core.IO.Error, PersistentTimer] = {
     implicit val limiter = FileLimiter.empty
 
     Map.persistent[Slice[Byte], Slice[Byte]](
@@ -84,7 +85,7 @@ private[core] object PersistentTimer extends LazyLogging {
                     )
                   }
                 else
-                  IO.Failure(IO.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
+                  IO.Failure(Core.IO.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
             }
 
           case None =>
@@ -99,7 +100,7 @@ private[core] object PersistentTimer extends LazyLogging {
                     )
                   }
                 else
-                  IO.Failure(IO.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
+                  IO.Failure(Core.IO.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
             }
         }
     }
@@ -150,6 +151,6 @@ private[core] class PersistentTimer(mod: Long,
       Time(nextTime)
     }
 
-  override def close: IO[IO.Error, Unit] =
+  override def close: IO[Core.IO.Error, Unit] =
     map.close()
 }

@@ -19,11 +19,6 @@
 
 package swaydb
 
-import java.io.FileNotFoundException
-import java.nio.ReadOnlyBufferException
-import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
-import java.nio.file.{NoSuchFileException, Path}
-
 import swaydb.ErrorHandler._
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
@@ -77,7 +72,7 @@ sealed trait IO[+E, +A] {
 object IO {
 
   type TIO[T] = IO[Throwable, T]
-  type SIO[T] = IO[IO.Error, T]
+  type NIO[T] = IO[Nothing, T]
 
   sealed trait OK
   final case object OK extends OK
@@ -93,178 +88,6 @@ object IO {
   val emptySeqBytes: Success[Nothing, Seq[Slice[Byte]]] = IO.Success(Seq.empty[Slice[Byte]])(Nothing)
   val ok: Success[Nothing, OK.type] = IO.Success(OK)(Nothing)
 
-  /**
-    * Exception types for all known [[IO.Error]]s that can occur. Each [[IO.Error]] can be converted to
-    * Exception which which can then be converted back to [[IO.Error]].
-    *
-    * SwayDB's code itself does not use these exception it uses [[IO.Error]] type. These types are handy when
-    * converting an [[IO]] type to [[scala.util.Try]] by the client using [[IO.toTry]].
-    */
-  object Exception {
-    case class Busy(error: Error.Busy) extends Exception("Is busy")
-    case class OpeningFile(file: Path, busy: Reserve[Unit]) extends Exception(s"Failed to open file $file")
-
-    case class DecompressingIndex(busy: Reserve[Unit]) extends Exception("Failed to decompress index")
-    case class DecompressionValues(busy: Reserve[Unit]) extends Exception("Failed to decompress values")
-    case class ReservedValue(busy: Reserve[Unit]) extends Exception("Failed to fetch value")
-    case class ReadingHeader(busy: Reserve[Unit]) extends Exception("Failed to read header")
-    case class NullMappedByteBuffer(exception: Exception, busy: Reserve[Unit]) extends Exception(exception)
-    case class BusyFuture(busy: Reserve[Unit]) extends Exception("Busy future")
-
-    case object OverlappingPushSegment extends Exception("Contains overlapping busy Segments")
-    case object NoSegmentsRemoved extends Exception("No Segments Removed")
-    case object NotSentToNextLevel extends Exception("Not sent to next Level")
-    case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
-
-    /**
-      * Does not have any direct [[IO.Error]] type associated with it since missing functions should be considered as [[IO.Error.Fatal]]
-      * and should be resolved otherwise compaction will fail and pause for that Segment and will only continue ones this function
-      * is available in function store.
-      *
-      * [[functionID]] itself is not logged or printed to console since it may contain sensitive data but instead this Exception
-      * with the [[functionID]] is returned to the client for reads and the exception's string message is only logged.
-      *
-      * @param functionID the id of the missing function.
-      */
-    case class FunctionNotFound(functionID: Slice[Byte]) extends Exception("Function not found for ID.")
-  }
-
-  sealed trait Error {
-    def exception: Throwable
-  }
-
-  object Error {
-
-    def apply[T](exception: Throwable): IO.Error =
-      exception match {
-        //known Exception that can occur which can return their typed Error version.
-        case exception: IO.Exception.Busy => exception.error
-        case exception: IO.Exception.OpeningFile => Error.OpeningFile(exception.file, exception.busy)
-        case exception: IO.Exception.DecompressingIndex => Error.DecompressingIndex(exception.busy)
-        case exception: IO.Exception.DecompressionValues => Error.DecompressingValues(exception.busy)
-        case exception: IO.Exception.ReservedValue => Error.ReservedValue(exception.busy)
-        case exception: IO.Exception.ReadingHeader => Error.ReadingHeader(exception.busy)
-        case exception: IO.Exception.ReceivedKeyValuesToMergeWithoutTargetSegment => Error.ReceivedKeyValuesToMergeWithoutTargetSegment(exception.keyValueCount)
-        case exception: IO.Exception.NullMappedByteBuffer => Error.NullMappedByteBuffer(exception)
-
-        case IO.Exception.OverlappingPushSegment => Error.OverlappingPushSegment
-        case IO.Exception.NoSegmentsRemoved => Error.NoSegmentsRemoved
-        case IO.Exception.NotSentToNextLevel => Error.NotSentToNextLevel
-
-        //the following Exceptions will occur when a file was being read but
-        //it was closed or deleted when it was being read. There is no AtomicBoolean busy
-        //associated with these exception and should simply be retried.
-        case exception: NoSuchFileException => Error.NoSuchFile(exception)
-        case exception: FileNotFoundException => Error.FileNotFound(exception)
-        case exception: AsynchronousCloseException => Error.AsynchronousClose(exception)
-        case exception: ClosedChannelException => Error.ClosedChannel(exception)
-        case exception: ReadOnlyBufferException => Error.ReadOnlyBuffer(exception)
-
-        //Fatal error. This error is not expected to occur on a healthy database. This error would indicate corruption.
-        //AppendixRepairer can be used to repair map files.
-        case exception: Throwable => Error.Fatal(exception)
-      }
-
-    sealed trait Busy extends Error {
-      def reserve: Reserve[Unit]
-      def isFree: Boolean =
-        !reserve.isBusy
-    }
-
-    case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Busy {
-      override def exception: IO.Exception.OpeningFile = IO.Exception.OpeningFile(file, reserve)
-    }
-
-    object NoSuchFile {
-      def apply(exception: NoSuchFileException) =
-        new NoSuchFile(None, Some(exception))
-
-      def apply(path: Path) =
-        new NoSuchFile(Some(path), None)
-    }
-    case class NoSuchFile(path: Option[Path], exp: Option[NoSuchFileException]) extends Busy {
-      override def reserve: Reserve[Unit] = Reserve()
-      override def exception: Throwable = exp getOrElse {
-        path match {
-          case Some(path) =>
-            new NoSuchFileException(path.toString)
-          case None =>
-            new NoSuchFileException("No path set.")
-        }
-      }
-    }
-
-    case class FileNotFound(exception: FileNotFoundException) extends Busy {
-      override def reserve: Reserve[Unit] = Reserve()
-    }
-
-    case class AsynchronousClose(exception: AsynchronousCloseException) extends Busy {
-      override def reserve: Reserve[Unit] = Reserve()
-    }
-
-    case class ClosedChannel(exception: ClosedChannelException) extends Busy {
-      override def reserve: Reserve[Unit] = Reserve()
-    }
-
-    case class NullMappedByteBuffer(exception: IO.Exception.NullMappedByteBuffer) extends Busy {
-      override def reserve: Reserve[Unit] = Reserve()
-    }
-
-    case class DecompressingIndex(reserve: Reserve[Unit]) extends Busy {
-      override def exception: IO.Exception.DecompressingIndex = IO.Exception.DecompressingIndex(reserve)
-    }
-
-    case class DecompressingValues(reserve: Reserve[Unit]) extends Busy {
-      override def exception: IO.Exception.DecompressionValues = IO.Exception.DecompressionValues(reserve)
-    }
-
-    case class ReadingHeader(reserve: Reserve[Unit]) extends Busy {
-      override def exception: IO.Exception.ReadingHeader = IO.Exception.ReadingHeader(reserve)
-    }
-
-    case class ReservedValue(reserve: Reserve[Unit]) extends Busy {
-      override def exception: IO.Exception.ReservedValue = IO.Exception.ReservedValue(reserve)
-    }
-
-    case class BusyFuture(reserve: Reserve[Unit]) extends Busy {
-      override def exception: IO.Exception.BusyFuture = IO.Exception.BusyFuture(reserve)
-    }
-
-    /**
-      * This error can also be turned into Busy and LevelActor can use it to listen to when
-      * there are no more overlapping Segments.
-      */
-    case object OverlappingPushSegment extends Error {
-      override def exception: Throwable = IO.Exception.OverlappingPushSegment
-    }
-
-    case object NoSegmentsRemoved extends Error {
-      override def exception: Throwable = IO.Exception.NoSegmentsRemoved
-    }
-
-    case object NotSentToNextLevel extends Error {
-      override def exception: Throwable = IO.Exception.NotSentToNextLevel
-    }
-
-    case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Error {
-      override def exception: IO.Exception.ReceivedKeyValuesToMergeWithoutTargetSegment =
-        IO.Exception.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount)
-    }
-
-    case class ReadOnlyBuffer(exception: ReadOnlyBufferException) extends Error
-
-    /**
-      * Error that are not known and indicate something unexpected went wrong like a file corruption.
-      *
-      * Pre-cautions are implemented in place to even recover from these failures using tools like AppendixRepairer.
-      * This Error is not expected to occur on healthy databases.
-      */
-    object Fatal {
-      def apply(message: String): Fatal =
-        new Fatal(new Exception(message))
-    }
-    case class Fatal(exception: Throwable) extends Error
-  }
 
   sealed trait Defer[+E, +A] {
     def isFailure: Boolean

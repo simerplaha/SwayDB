@@ -23,25 +23,26 @@ import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
+import swaydb.data.io.Core
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.implicitNotFound
-import swaydb.ErrorHandler.CoreError
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 
 @implicitNotFound("Type class implementation not found for ValueLengthReader of type ${T}")
 sealed trait ValueLengthReader[-T] {
   def isPrefixCompressed: Boolean
 
-  def read(indexReader: Reader[IO.Error],
-           previous: Option[Persistent]): IO[IO.Error, Int]
+  def read(indexReader: Reader[Core.IO.Error],
+           previous: Option[Persistent]): IO[Core.IO.Error, Int]
 }
 
 object ValueLengthReader {
 
-  private def readLength(indexReader: Reader[IO.Error],
+  private def readLength(indexReader: Reader[Core.IO.Error],
                          previous: Option[Persistent],
-                         commonBytes: Int): IO[IO.Error, Int] =
+                         commonBytes: Int): IO[Core.IO.Error, Int] =
     previous.map(_.valueLength) map {
       previousValueLength =>
         indexReader.read(ByteSizeOf.int - commonBytes) map {
@@ -55,32 +56,32 @@ object ValueLengthReader {
   implicit object ValueLengthOneCompressed extends ValueLengthReader[BaseEntryId.ValueLength.OneCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: Reader[IO.Error],
-                      previous: Option[Persistent]): IO[IO.Error, Int] =
+    override def read(indexReader: Reader[Core.IO.Error],
+                      previous: Option[Persistent]): IO[Core.IO.Error, Int] =
       readLength(indexReader, previous, 1)
   }
 
   implicit object ValueLengthTwoCompressed extends ValueLengthReader[BaseEntryId.ValueLength.TwoCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: Reader[IO.Error],
-                      previous: Option[Persistent]): IO[IO.Error, Int] =
+    override def read(indexReader: Reader[Core.IO.Error],
+                      previous: Option[Persistent]): IO[Core.IO.Error, Int] =
       readLength(indexReader, previous, 2)
   }
 
   implicit object ValueLengthThreeCompressed extends ValueLengthReader[BaseEntryId.ValueLength.ThreeCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: Reader[IO.Error],
-                      previous: Option[Persistent]): IO[IO.Error, Int] =
+    override def read(indexReader: Reader[Core.IO.Error],
+                      previous: Option[Persistent]): IO[Core.IO.Error, Int] =
       readLength(indexReader, previous, 3)
   }
 
   implicit object ValueLengthFullyCompressed extends ValueLengthReader[BaseEntryId.ValueLength.FullyCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: Reader[IO.Error],
-                      previous: Option[Persistent]): IO[IO.Error, Int] =
+    override def read(indexReader: Reader[Core.IO.Error],
+                      previous: Option[Persistent]): IO[Core.IO.Error, Int] =
       previous map {
         previous =>
           IO.Success(previous.valueLength)
@@ -90,16 +91,16 @@ object ValueLengthReader {
   implicit object ValueLengthUncompressed extends ValueLengthReader[BaseEntryId.ValueLength.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: Reader[IO.Error],
-                      previous: Option[Persistent]): IO[IO.Error, Int] =
+    override def read(indexReader: Reader[Core.IO.Error],
+                      previous: Option[Persistent]): IO[Core.IO.Error, Int] =
       indexReader.readIntUnsigned()
   }
 
   implicit object NoValue extends ValueLengthReader[BaseEntryId.Value.NoValue] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: Reader[IO.Error],
-                      previous: Option[Persistent]): IO[IO.Error, Int] =
+    override def read(indexReader: Reader[Core.IO.Error],
+                      previous: Option[Persistent]): IO[Core.IO.Error, Int] =
       IO.zero
   }
 }

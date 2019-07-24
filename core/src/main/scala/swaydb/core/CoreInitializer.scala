@@ -22,9 +22,8 @@ package swaydb.core
 import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.ErrorHandler.CoreError
 import swaydb.IO
-import swaydb.IO.SIO
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 import swaydb.core.actor.WiredActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
@@ -40,6 +39,8 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
+import swaydb.data.io.Core.IO.Error.ErrorHandler
+import swaydb.data.io.Core
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
@@ -74,7 +75,7 @@ private[core] object CoreInitializer extends LazyLogging {
   def apply(config: LevelZeroConfig,
             bufferCleanerEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore): IO[IO.Error, BlockingCore[SIO]] = {
+                                               functionStore: FunctionStore): IO[Core.IO.Error, BlockingCore[Core.IO]] = {
     implicit val fileLimiter = FileLimiter.empty
     implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
     if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(bufferCleanerEC)
@@ -112,7 +113,7 @@ private[core] object CoreInitializer extends LazyLogging {
   def startCompaction(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext],
                       copyForwardAllOnStart: Boolean)(implicit compactionStrategy: CompactionStrategy[CompactorState],
-                                                      compactionOrdering: CompactionOrdering): IO[IO.Error, Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]]] =
+                                                      compactionOrdering: CompactionOrdering): IO[Core.IO.Error, Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]]] =
     compactionStrategy.createAndListen(
       zero = zero,
       executionContexts = executionContexts,
@@ -137,7 +138,7 @@ private[core] object CoreInitializer extends LazyLogging {
             fileOpenLimiterEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[IO.Error, BlockingCore[SIO]] = {
+                                              functionStore: FunctionStore): IO[Core.IO.Error, BlockingCore[Core.IO]] = {
     implicit val fileOpenLimiter: FileLimiter =
       FileLimiter(maxSegmentsOpen, segmentCloserDelay)(fileOpenLimiterEC)
 
@@ -154,7 +155,7 @@ private[core] object CoreInitializer extends LazyLogging {
 
     def createLevel(id: Long,
                     nextLevel: Option[NextLevel],
-                    config: LevelConfig): IO[IO.Error, NextLevel] =
+                    config: LevelConfig): IO[Core.IO.Error, NextLevel] =
       config match {
         case config: MemoryLevelConfig =>
           implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
@@ -203,7 +204,7 @@ private[core] object CoreInitializer extends LazyLogging {
       }
 
     def createLevels(levelConfigs: List[LevelConfig],
-                     previousLowerLevel: Option[NextLevel]): IO[IO.Error, BlockingCore[SIO]] =
+                     previousLowerLevel: Option[NextLevel]): IO[Core.IO.Error, BlockingCore[Core.IO]] =
       levelConfigs match {
         case Nil =>
           createLevel(

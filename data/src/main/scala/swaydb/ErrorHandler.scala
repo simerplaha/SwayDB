@@ -19,7 +19,6 @@
 
 package swaydb
 
-import swaydb.IO.Error
 import swaydb.data.Reserve
 
 trait ErrorHandler[-E] {
@@ -57,25 +56,4 @@ object ErrorHandler {
     override def reserve(e: Throwable): Option[Reserve[Unit]] = None
   }
 
-  implicit object CoreError extends ErrorHandler[IO.Error] {
-    override def toException(e: IO.Error): Throwable =
-      e.exception
-
-    override def fromException[F <: Error](e: Throwable): F =
-      IO.Error(e).asInstanceOf[F]
-
-    override def reserve(e: IO.Error): Option[Reserve[Unit]] =
-      e match {
-        case busy: Error.Busy =>
-          Some(busy.reserve)
-
-        case Error.OverlappingPushSegment |
-             Error.NoSegmentsRemoved |
-             Error.NotSentToNextLevel |
-             _: Error.ReceivedKeyValuesToMergeWithoutTargetSegment |
-             _: Error.ReadOnlyBuffer |
-             _: Error.Fatal =>
-          None
-      }
-  }
 }

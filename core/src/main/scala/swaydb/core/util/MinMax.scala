@@ -23,6 +23,7 @@ import swaydb.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Transient, Value}
 import swaydb.core.function.FunctionStore
+import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -142,7 +143,7 @@ private[core] object MinMax {
     )(FunctionStore.order)
 
   def minMaxFunction(function: ReadOnly.Function,
-                     current: Option[MinMax[Slice[Byte]]]): IO[IO.Error, MinMax[Slice[Byte]]] =
+                     current: Option[MinMax[Slice[Byte]]]): IO[Core.IO.Error, MinMax[Slice[Byte]]] =
     function.getOrFetchFunction map {
       function =>
         minMax(
@@ -172,7 +173,7 @@ private[core] object MinMax {
     )
 
   def minMaxFunction(range: KeyValue.ReadOnly.Range,
-                     current: Option[MinMax[Slice[Byte]]]): IO[IO.Error, Option[MinMax[Slice[Byte]]]] =
+                     current: Option[MinMax[Slice[Byte]]]): IO[Core.IO.Error, Option[MinMax[Slice[Byte]]]] =
     range.fetchFromAndRangeValue map {
       case (fromValue, rangeValue) =>
         minMaxFunction(

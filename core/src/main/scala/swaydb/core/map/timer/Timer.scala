@@ -26,13 +26,14 @@ import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
+import swaydb.data.io.Core
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 private[core] trait Timer {
   def next: Time
 
-  def close: IO[IO.Error, Unit]
+  def close: IO[Core.IO.Error, Unit]
 }
 
 private[core] object Timer {
@@ -48,7 +49,7 @@ private[core] object Timer {
                                             timeOrder: TimeOrder[Slice[Byte]],
                                             functionStore: FunctionStore,
                                             writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[IO.Error, PersistentTimer] =
+                                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[Core.IO.Error, PersistentTimer] =
     PersistentTimer(
       path = path,
       mmap = mmap,

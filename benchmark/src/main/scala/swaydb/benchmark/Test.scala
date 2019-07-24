@@ -21,14 +21,14 @@ package swaydb.benchmark
 
 import java.nio.file.Path
 
-import swaydb.IO.SIO
 import swaydb._
 import swaydb.data.config.MMAP
+import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default.{SliceOptionSerializer, SliceSerializer}
 
 sealed trait Test {
-  val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], SIO]
+  val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], Core.IO]
 
   def randomWrite: Boolean
 

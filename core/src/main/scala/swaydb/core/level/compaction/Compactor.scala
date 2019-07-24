@@ -28,8 +28,9 @@ import swaydb.core.util.FiniteDurationUtil
 import swaydb.core.util.FiniteDurationUtil._
 import swaydb.IO._
 import swaydb.data.compaction.CompactionExecutionContext
+import swaydb.data.io.Core
 import swaydb.data.slice.Slice
-import swaydb.ErrorHandler.CoreError
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -50,9 +51,9 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
     * @return return the root parent Actor with child Actors.
     */
   def createActor(levels: List[LevelRef],
-                  executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering): IO[IO.Error, WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+                  executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering): IO[Core.IO.Error, WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     if (levels.size != executionContexts.size)
-      IO.Failure(IO.Error.Fatal(new IllegalStateException(s"Number of ExecutionContexts(${executionContexts.size}) is not the same as number of Levels(${levels.size}).")))
+      IO.Failure(Core.IO.Error.Fatal(new IllegalStateException(s"Number of ExecutionContexts(${executionContexts.size}) is not the same as number of Levels(${levels.size}).")))
     else
       levels
         .zip(executionContexts)
@@ -70,7 +71,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
               case None =>
                 //this will never occur because during configuration Level0 is only allowed to have Create
                 //so Shared can never happen with Create.
-                IO.Failure(IO.Error.Fatal(new IllegalStateException("Shared ExecutionContext submitted without Create.")))
+                IO.Failure(Core.IO.Error.Fatal(new IllegalStateException("Shared ExecutionContext submitted without Create.")))
             }
         }
         .map {
@@ -222,7 +223,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
   }
 
   def createCompactor(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext])(implicit compactionOrdering: CompactionOrdering): IO[IO.Error, WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+                      executionContexts: List[CompactionExecutionContext])(implicit compactionOrdering: CompactionOrdering): IO[Core.IO.Error, WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     zero.nextLevel map {
       nextLevel =>
         logger.debug(s"Level(${zero.levelNumber}): Creating actor.")
@@ -230,7 +231,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
           levels = zero +: LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
           executionContexts = executionContexts
         )
-    } getOrElse IO.Failure(IO.Error.Fatal(new Exception("Compaction not started because there is no lower level.")))
+    } getOrElse IO.Failure(Core.IO.Error.Fatal(new Exception("Compaction not started because there is no lower level.")))
 
   /**
     * Note: [[LevelZero.onNextMapCallback]] does not support thread-safe updates so it should be
@@ -249,7 +250,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
 
   def createAndListen(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext],
-                      copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[IO.Error, WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+                      copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[Core.IO.Error, WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     createCompactor(
       zero = zero,
       executionContexts = executionContexts

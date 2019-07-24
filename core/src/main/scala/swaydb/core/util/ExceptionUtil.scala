@@ -21,18 +21,19 @@ package swaydb.core.util
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
+import swaydb.data.io.Core
 
 private[core] object ExceptionUtil extends LazyLogging {
 
-  def logFailure(message: => String, failure: IO.Failure[IO.Error, _]): Unit =
+  def logFailure(message: => String, failure: IO.Failure[Core.IO.Error, _]): Unit =
     logFailure(message, failure.error)
 
-  def logFailure(message: => String, error: IO.Error): Unit =
+  def logFailure(message: => String, error: Core.IO.Error): Unit =
     error match {
-      case IO.Error.Fatal(exception) =>
+      case Core.IO.Error.Fatal(exception) =>
         logger.error(message, exception)
 
-      case _: IO.Error =>
+      case _: Core.IO.Error =>
         if (logger.underlying.isTraceEnabled) logger.trace(message, error.exception)
     }
 }

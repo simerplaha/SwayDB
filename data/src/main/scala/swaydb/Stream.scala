@@ -19,9 +19,8 @@
 
 package swaydb
 
-import swaydb.IO.SIO
 import swaydb.Stream.StreamBuilder
-import swaydb.data.io.Tag
+import swaydb.data.io.{Core, Tag}
 import swaydb.data.io.Tag._
 
 import scala.collection.generic.CanBuildFrom
@@ -311,10 +310,10 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamed[A, T] { se
     *
     * @param timeout If the current stream is async/future based then the timeout is used else it's ignored.
     */
-  def toIO[E: ErrorHandler](timeout: FiniteDuration): Stream[A, SIO] =
-    new Stream[A, SIO] {
-      override def headOption: SIO[Option[A]] = self.tag.toIO(self.headOption, timeout)
-      override private[swaydb] def next(previous: A): SIO[Option[A]] = self.tag.toIO(self.next(previous), timeout)
+  def toIO[E: ErrorHandler](timeout: FiniteDuration): Stream[A, Core.IO] =
+    new Stream[A, Core.IO] {
+      override def headOption: Core.IO[Option[A]] = self.tag.toIO(self.headOption, timeout)
+      override private[swaydb] def next(previous: A): Core.IO[Option[A]] = self.tag.toIO(self.next(previous), timeout)
     }
 
   /**

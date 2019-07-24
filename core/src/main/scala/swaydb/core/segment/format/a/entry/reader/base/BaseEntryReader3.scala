@@ -26,20 +26,21 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.cache.Cache
+import swaydb.data.io.Core
 import swaydb.data.slice.Reader
 
 private[core] object BaseEntryReader3 extends BaseEntryReader {
 
   def read[T](baseId: Int,
               keyValueId: Int,
-              indexReader: Reader[IO.Error],
+              indexReader: Reader[Core.IO.Error],
               valueCache: Option[Cache[ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
               accessPosition: Int,
               previous: Option[Persistent],
-              reader: EntryReader[T]): Option[IO[IO.Error, T]] =
+              reader: EntryReader[T]): Option[IO[Core.IO.Error, T]] =
   //GENERATED CONDITIONS
     if (baseId == 862)
       Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthUncompressed.DeadlineTwoCompressed, keyValueId, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, accessPosition, previous))

@@ -23,8 +23,8 @@ import java.io.FileNotFoundException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.Paths
 
-import swaydb.IO
-import swaydb.IO.Exception.NullMappedByteBuffer
+import swaydb.data.io.Core
+import swaydb.data.io.Core.IO.Exception.NullMappedByteBuffer
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -37,20 +37,20 @@ object Base {
       Await.result(f, 10.seconds)
   }
 
-  def busyErrors(busyBoolean: Reserve[Unit] = Reserve()): List[IO.Error.Busy] =
+  def busyErrors(busyBoolean: Reserve[Unit] = Reserve()): List[Core.IO.Error.Busy] =
     List(
-      IO.Error.OpeningFile(Paths.get("/some/path"), busyBoolean),
-      IO.Error.NoSuchFile(Some(Paths.get("/some/path")), None),
-      IO.Error.FileNotFound(new FileNotFoundException("")),
-      IO.Error.AsynchronousClose(new AsynchronousCloseException()),
-      IO.Error.ClosedChannel(new ClosedChannelException),
-      IO.Error.NullMappedByteBuffer(NullMappedByteBuffer(new NullPointerException, busyBoolean)),
-      IO.Error.DecompressingIndex(busyBoolean),
-      IO.Error.DecompressingValues(busyBoolean),
-      IO.Error.ReadingHeader(busyBoolean),
-      IO.Error.ReservedValue(busyBoolean)
+      Core.IO.Error.OpeningFile(Paths.get("/some/path"), busyBoolean),
+      Core.IO.Error.NoSuchFile(Some(Paths.get("/some/path")), None),
+      Core.IO.Error.FileNotFound(new FileNotFoundException("")),
+      Core.IO.Error.AsynchronousClose(new AsynchronousCloseException()),
+      Core.IO.Error.ClosedChannel(new ClosedChannelException),
+      Core.IO.Error.NullMappedByteBuffer(NullMappedByteBuffer(new NullPointerException, busyBoolean)),
+      Core.IO.Error.DecompressingIndex(busyBoolean),
+      Core.IO.Error.DecompressingValues(busyBoolean),
+      Core.IO.Error.ReadingHeader(busyBoolean),
+      Core.IO.Error.ReservedValue(busyBoolean)
     )
 
-  def randomBusyException(busyBoolean: Reserve[Unit] = Reserve()): IO.Error.Busy =
+  def randomBusyException(busyBoolean: Reserve[Unit] = Reserve()): Core.IO.Error.Busy =
     Random.shuffle(busyErrors(busyBoolean)).head
 }

@@ -22,13 +22,13 @@ package swaydb.eventually.persistent
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO.SIO
 import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultGroupingStrategy}
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
 import swaydb.data.config._
+import swaydb.data.io.Core
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -96,7 +96,7 @@ object Map extends LazyLogging {
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                         fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[IO.Error, swaydb.Map[K, V, SIO]] =
+                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Core.IO.Error, swaydb.Map[K, V, Core.IO]] =
     BlockingCore(
       config =
         DefaultEventuallyPersistentConfig(
@@ -124,6 +124,6 @@ object Map extends LazyLogging {
       cacheLimiterEC = cacheLimiterEC
     ) map {
       db =>
-        swaydb.Map[K, V, SIO](db)
+        swaydb.Map[K, V, Core.IO](db)
     }
 }

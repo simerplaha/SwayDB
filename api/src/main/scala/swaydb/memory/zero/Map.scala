@@ -20,12 +20,13 @@
 package swaydb.memory.zero
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO.SIO
+
 import swaydb.SwayDB
 import swaydb.configs.level.DefaultMemoryZeroConfig
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.data.io.Core
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -46,7 +47,7 @@ object Map extends LazyLogging {
                   acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                        ec: ExecutionContext = SwayDB.defaultExecutionContext): SIO[swaydb.Map[K, V, SIO]] =
+                                                                                        ec: ExecutionContext = SwayDB.defaultExecutionContext): Core.IO[swaydb.Map[K, V, Core.IO]] =
     BlockingCore(
       config = DefaultMemoryZeroConfig(
         mapSize = mapSize,
@@ -54,6 +55,6 @@ object Map extends LazyLogging {
       )
     ) map {
       db =>
-        swaydb.Map[K, V, SIO](db)
+        swaydb.Map[K, V, Core.IO](db)
     }
 }

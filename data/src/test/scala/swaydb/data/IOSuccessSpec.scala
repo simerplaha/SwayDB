@@ -24,7 +24,8 @@ import java.nio.file.{NoSuchFileException, Paths}
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.IO
 import swaydb.data.Base._
-import swaydb.ErrorHandler.CoreError
+import swaydb.data.io.Core
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -56,7 +57,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
     }
 
     "getOrElse return second io first is failure" in {
-      val io = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("")))
+      val io = IO.Failure(Core.IO.Error.NoSuchFile(new NoSuchFileException("")))
 
       io getOrElse 2 shouldBe 2
 
@@ -71,7 +72,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
     }
 
     "flatMap on failure" in {
-      val failure = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("")))
+      val failure = IO.Failure(Core.IO.Error.NoSuchFile(new NoSuchFileException("")))
 
       IO.Success(1).asIO flatMap {
         _ =>
@@ -83,7 +84,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
       val async =
         IO.Success(1).asDeferred flatMap {
           int =>
-            IO.Defer(int + 1, IO.Error.OpeningFile(Paths.get(""), Reserve()))
+            IO.Defer(int + 1, Core.IO.Error.OpeningFile(Paths.get(""), Reserve()))
         }
 
       async.get shouldBe 2
@@ -95,9 +96,9 @@ class IOSuccessSpec extends WordSpec with Matchers {
     }
 
     "flatten on successes with failure" in {
-      val nested: IO[IO.Error, IO[IO.Error, IO[IO.Error, IO[IO.Error, Int]]]] = IO.Success(IO.Success(IO.Success(IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))))))
+      val nested: IO[Core.IO.Error, IO[Core.IO.Error, IO[Core.IO.Error, IO[Core.IO.Error, Int]]]] = IO.Success(IO.Success(IO.Success(IO.Failure(Core.IO.Error.Fatal(new Exception("Kaboom!"))))))
 
-      nested.flatten.flatten.flatten.asInstanceOf[IO.Failure[IO.Error, Int]].failed.get.exception.getMessage shouldBe "Kaboom!"
+      nested.flatten.flatten.flatten.asInstanceOf[IO.Failure[Core.IO.Error, Int]].failed.get.exception.getMessage shouldBe "Kaboom!"
     }
 
     "invoke onCompleteSideEffect" in {

@@ -32,7 +32,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.concurrent.duration._
-import swaydb.ErrorHandler.CoreError
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 
 class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 

@@ -19,25 +19,24 @@
 
 package swaydb.core
 
-import swaydb.ErrorHandler.CoreError
-import swaydb.IO.SIO
+import swaydb.data.io.Core.IO.Error.ErrorHandler
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.SwayFunction
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.util.Delay
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.Tag
+import swaydb.data.io.{Core, Tag}
 import swaydb.data.slice.Slice
 import swaydb.{IO, Prepare}
 
 import scala.concurrent.duration.Deadline
 import scala.concurrent.{ExecutionContext, Future}
 
-private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[IO.Error, Unit])(implicit ec: ExecutionContext,
+private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Core.IO.Error, Unit])(implicit ec: ExecutionContext,
                                                                                                tag: Tag.Async[T]) extends Core[T] {
 
-  private val block = BlockingCore[SIO](zero, onClose)(Tag.sio)
+  private val block = BlockingCore[Core.IO](zero, onClose)(Tag.sio)
 
   override def put(key: Slice[Byte]): T[IO.OK] =
     tag.fromIO(block.put(key))
@@ -116,7 +115,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[IO
             } recoverWith {
               case error =>
                 error match {
-                  case _: IO.Error.Busy =>
+                  case _: Core.IO.Error.Busy =>
                     headFuture
 
                   case failure =>
@@ -143,7 +142,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[IO
             } recoverWith {
               case error =>
                 error match {
-                  case _: IO.Error.Busy =>
+                  case _: Core.IO.Error.Busy =>
                     lastFuture
 
                   case failure =>
@@ -185,7 +184,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[IO
             } recoverWith {
               case error =>
                 error match {
-                  case _: IO.Error.Busy =>
+                  case _: Core.IO.Error.Busy =>
                     getFuture(key)
 
                   case failure =>
@@ -212,7 +211,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[IO
             } recoverWith {
               case error =>
                 error match {
-                  case _: IO.Error.Busy =>
+                  case _: Core.IO.Error.Busy =>
                     getKeyValueFuture(key)
 
                   case failure =>
@@ -236,7 +235,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[IO
             } recoverWith {
               case error =>
                 error match {
-                  case _: IO.Error.Busy =>
+                  case _: Core.IO.Error.Busy =>
                     beforeFuture(key)
 
                   case failure =>
@@ -263,7 +262,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[IO
             } recoverWith {
               case error =>
                 error match {
-                  case _: IO.Error.Busy =>
+                  case _: Core.IO.Error.Busy =>
                     afterFuture(key)
 
                   case failure =>

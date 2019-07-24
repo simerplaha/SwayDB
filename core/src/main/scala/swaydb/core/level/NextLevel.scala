@@ -25,6 +25,7 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
@@ -70,21 +71,21 @@ trait NextLevel extends LevelRef {
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
 
-  def mightContainFunction(key: Slice[Byte]): IO[IO.Error, Boolean]
+  def mightContainFunction(key: Slice[Byte]): IO[Core.IO.Error, Boolean]
 
-  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit]
+  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Unit]
 
-  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit]
+  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Unit]
 
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit]
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Unit]
 
-  def removeSegments(segments: Iterable[Segment]): IO[IO.Error, Int]
+  def removeSegments(segments: Iterable[Segment]): IO[Core.IO.Error, Int]
 
   def meter: LevelMeter
 
-  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[IO.Error, Unit]
+  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Unit]
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[IO.Error, Int]
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[Core.IO.Error, Int]
 
   def reverseNextLevels: ListBuffer[NextLevel] = {
     val levels = ListBuffer.empty[NextLevel]
@@ -119,5 +120,5 @@ trait NextLevel extends LevelRef {
 
   def groupingStrategy: Option[KeyValueGroupingStrategyInternal]
 
-  def delete: IO[IO.Error, Unit]
+  def delete: IO[Core.IO.Error, Unit]
 }
