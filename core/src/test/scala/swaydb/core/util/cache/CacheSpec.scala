@@ -27,6 +27,7 @@ import swaydb.core.TestData._
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
 import swaydb.data.io.Core
+import swaydb.data.io.Core.Error
 import swaydb.data.io.Core.Error.Private.ErrorHandler
 
 import scala.concurrent.Future
@@ -65,9 +66,13 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
       IOStrategy.ConcurrentIO(cacheOnAccess = stored) //then it's concurrent
 
   /**
-    * Return a partial cache with applied configuration which requires the cache body.
-    */
-  def getTestCache(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean, stored: Boolean): (Unit => IO[Core.Error.Private, Int]) => Cache[Core.Error.Private, Unit, Int] =
+   * Return a partial cache with applied configuration which requires the cache body.
+   */
+  def getTestCache(isBlockIO: Boolean,
+                   isConcurrent: Boolean,
+                   isSynchronised: Boolean,
+                   isReserved: Boolean,
+                   stored: Boolean): (Unit => IO[Core.Error.Private, Int]) => Cache[Core.Error.Private, Unit, Int] =
     if (isBlockIO)
       Cache.blockIO[Unit, Int](getBlockIO(isConcurrent, isSynchronised, isReserved, stored), Core.Error.BusyFuture(Reserve()))
     else if (isConcurrent)
@@ -79,7 +84,15 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     else
       Cache.concurrentIO[Core.Error.Private, Unit, Int](synchronised = false, stored = stored) //then it's concurrent
 
-  "Cache.io" should {
+  "valueIO" should {
+    "always return initial value" in {
+      val cache: Cache[Error.Private, Unit, Int] = Cache.valueIO(10)
+      cache.get should contain(IO.Success(10))
+      cache.value(()).get shouldBe 10
+    }
+  }
+
+  "it" should {
     "fetch data only once on success" in {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
         val mock = mockFunction[IO[Core.Error.Private, Int]]
@@ -351,7 +364,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     }
   }
 
-  "Cache.value" should {
+  "value" should {
     "cache function's output" in {
       def doTest(isSynchronised: Boolean) = {
         @volatile var got1 = false

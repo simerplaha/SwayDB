@@ -31,16 +31,13 @@ import swaydb.{ErrorHandler, IO}
 
 private[core] object Cache {
 
-  def empty[E: ErrorHandler, I, O](emptyOutput: O): Cache[E, I, O] =
-    Cache.concurrentIO[E, I, O](synchronised = false, stored = false) {
-      _ =>
-        IO(emptyOutput)
-    }
-
-  def emptyNoIO[I, O](empty: O): NoIO[I, O] =
-    Cache.noIO(synchronised = false, stored = false) {
-      _ =>
-        empty
+  def valueIO[E: ErrorHandler, I, O](output: O): Cache[E, I, O] =
+    new Cache[E, I, O] {
+      override def value(i: => I): IO[E, O] = IO(output)
+      override def isCached: Boolean = true
+      override def clear(): Unit = ()
+      override def get(): Option[IO.Success[E, O]] = Option(IO.Success(output))
+      override def getOrElse(f: => IO[E, O]): IO[E, O] = IO(output)
     }
 
   def emptyValuesBlock[E: ErrorHandler]: Cache[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
@@ -99,9 +96,9 @@ private[core] object Cache {
 }
 
 /**
-  * Caches a value on read. Used for IO operations where the output does not change.
-  * For example: A file's size.
-  */
+ * Caches a value on read. Used for IO operations where the output does not change.
+ * For example: A file's size.
+ */
 private[core] sealed abstract class Cache[E: ErrorHandler, I, O] extends LazyLogging { self =>
   def value(i: => I): IO[E, O]
   def isCached: Boolean
@@ -115,11 +112,11 @@ private[core] sealed abstract class Cache[E: ErrorHandler, I, O] extends LazyLog
     get().map(_.map(Some(_))) getOrElse f
 
   /**
-    * An adapter function that applies the map function to the input on each invocation.
-    * The result does not get stored in this cache.
-    *
-    * [[mapStored]] Or [[flatMap]] functions are used for where storage is required.
-    */
+   * An adapter function that applies the map function to the input on each invocation.
+   * The result does not get stored in this cache.
+   *
+   * [[mapStored]] Or [[flatMap]] functions are used for where storage is required.
+   */
   def map[O2](f: O => IO[E, O2]): Cache[E, I, O2] =
     new Cache[E, I, O2] {
       override def value(i: => I): IO[E, O2] = self.value(i).flatMap(f)
@@ -197,9 +194,9 @@ private class SynchronisedIO[E: ErrorHandler, I, O](fetch: I => IO[E, O],
 }
 
 /**
-  * Caches a value on read. Used for IO operations where the output does not change.
-  * For example: A file's size.
-  */
+ * Caches a value on read. Used for IO operations where the output does not change.
+ * For example: A file's size.
+ */
 private class ReservedIO[I, O](fetch: I => IO[Core.Error.Private, O], lazyIO: LazyIO[Core.Error.Private, O], error: Core.Error.Busy) extends Cache[Core.Error.Private, I, O] {
 
   override def value(i: => I): IO[Core.Error.Private, O] =
@@ -227,9 +224,9 @@ private class ReservedIO[I, O](fetch: I => IO[Core.Error.Private, O], lazyIO: La
 }
 
 /**
-  * Caches a value on read. Used for IO operations where the output does not change.
-  * For example: A file's size.
-  */
+ * Caches a value on read. Used for IO operations where the output does not change.
+ * For example: A file's size.
+ */
 class NoIO[I, O](fetch: I => O, lazyValue: LazyValue[O]) {
 
   def value(input: => I): O =

@@ -35,7 +35,7 @@ object ErrorHandler extends LazyLogging {
   def fromException[E](exception: Throwable)(implicit errorHandler: ErrorHandler[E]): E =
     errorHandler.fromException(exception)
 
-  def shouldRecover[E](e: E)(implicit errorHandler: ErrorHandler[E]): Option[Reserve[Unit]] =
+  def reserve[E](e: E)(implicit errorHandler: ErrorHandler[E]): Option[Reserve[Unit]] =
     try
       errorHandler.reserve(e)
     catch {

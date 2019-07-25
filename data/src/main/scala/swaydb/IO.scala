@@ -19,7 +19,6 @@
 
 package swaydb
 
-import swaydb.ErrorHandler._
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
 
@@ -328,14 +327,14 @@ object IO {
       }
 
     def recover[E: ErrorHandler, A](failure: IO.Failure[E, A], operation: => A): IO.Defer[E, A] =
-      ErrorHandler.shouldRecover(failure.error) map {
+      ErrorHandler.reserve(failure.error) map {
         _ =>
           IO.Deferred(operation, failure.error)
       } getOrElse failure
 
     def recover[E: ErrorHandler, A](exception: Throwable, operation: => A): IO.Defer[E, A] = {
       val error = ErrorHandler.fromException[E](exception)
-      ErrorHandler.shouldRecover(error) map {
+      ErrorHandler.reserve(error) map {
         _ =>
           IO.Deferred(operation, error)
       } getOrElse IO.Failure(error)
@@ -387,7 +386,7 @@ object IO {
     def isFailure: Boolean = false
     def isSuccess: Boolean = false
     def isDeferred: Boolean = true
-    def isBusy = ErrorHandler.shouldRecover(error).exists(_.isBusy)
+    def isBusy = ErrorHandler.reserve(error).exists(_.isBusy)
 
     /**
       * Runs composed functions does not perform any recovery.
@@ -402,7 +401,7 @@ object IO {
     override def runBlockingIfFileExists: IO[E, A] = {
       @tailrec
       def doGet(later: IO.Deferred[E, A]): IO[E, A] = {
-        ErrorHandler.shouldRecover(later.error) match {
+        ErrorHandler.reserve(later.error) match {
           case Some(reserve) =>
             Reserve.blockUntilFree(reserve)
             later.runIfFileExists match {
@@ -431,7 +430,7 @@ object IO {
 
       @tailrec
       def doGet(later: IO.Deferred[E, A]): IO[E, A] = {
-        ErrorHandler.shouldRecover(later.error) match {
+        ErrorHandler.reserve(later.error) match {
           case Some(reserve) =>
             Reserve.blockUntilFree(reserve)
             later.run match {
@@ -459,7 +458,7 @@ object IO {
     def runInFuture(implicit ec: ExecutionContext): Future[A] = {
 
       def doGet(later: IO.Deferred[E, A]): Future[A] =
-        ErrorHandler.shouldRecover(later.error) map {
+        ErrorHandler.reserve(later.error) map {
           reserve =>
             Reserve.future(reserve).map(_ => later.run) flatMap {
               case IO.Success(value) =>
@@ -482,7 +481,7 @@ object IO {
     def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[A] = {
 
       def doGet(later: IO.Deferred[E, A]): Future[A] =
-        ErrorHandler.shouldRecover(later.error) map {
+        ErrorHandler.reserve(later.error) map {
           reserve =>
             Reserve.future(reserve).map(_ => later.runIfFileExists) flatMap {
               case IO.Success(value) =>
