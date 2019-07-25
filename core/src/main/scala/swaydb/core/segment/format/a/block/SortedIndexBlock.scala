@@ -253,7 +253,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           }.get
       }
 
-      val sortedIndexReader = Reader(indexEntryBytesAndNextIndexEntrySize.take(indexSize))
+      val sortedIndexReader = Reader[swaydb.Error.Segment](indexEntryBytesAndNextIndexEntrySize.take(indexSize))
 
       val accessPosition =
         if (indexReader.block.enableAccessPositionIndex)

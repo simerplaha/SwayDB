@@ -28,7 +28,7 @@ import java.nio.charset.{Charset, StandardCharsets}
  */
 class SliceReaderUnsafe(slice: Slice[Byte]) {
 
-  private val sliceReader = SliceReaderSafe[Throwable](slice)
+  private val sliceReader = SliceReader[swaydb.Error.IO](slice)
 
   val size: Long =
     sliceReader.size.get

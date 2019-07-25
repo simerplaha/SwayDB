@@ -24,7 +24,7 @@ import swaydb.{ErrorHandler, IO}
 /**
  * http://www.swaydb.io/slice/byte-slice
  */
-private[swaydb] case class SliceReaderSafe[E: ErrorHandler](slice: Slice[Byte]) extends Reader[E] {
+private[swaydb] case class SliceReader[E >: swaydb.Error.IO: ErrorHandler](slice: Slice[Byte]) extends Reader[E] {
 
   private var position: Int = 0
 
@@ -64,7 +64,7 @@ private[swaydb] case class SliceReaderSafe[E: ErrorHandler](slice: Slice[Byte]) 
     position
 
   override def copy(): Reader[E] =
-    SliceReaderSafe(slice)
+    SliceReader(slice)
 
   override def readRemaining(): IO[E, Slice[Byte]] =
     remaining flatMap read

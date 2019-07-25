@@ -27,7 +27,7 @@ import swaydb.{ErrorHandler, IO}
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
-private[swaydb] abstract class Reader[E: ErrorHandler] { self =>
+private[swaydb] abstract class Reader[E >: swaydb.Error.IO : ErrorHandler] { self =>
 
   def get(): IO[E, Int]
 

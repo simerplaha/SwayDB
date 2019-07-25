@@ -193,7 +193,7 @@ private[core] object Block extends LazyLogging {
   def readHeader[O <: BlockOffset](reader: BlockRefReader[O])(implicit blockOps: BlockOps[O, _]): IO[swaydb.Error.Segment, Block.Header[O]] = {
     for {
       headerSize <- reader.readIntUnsigned()
-      headerReader <- reader.read(headerSize - Bytes.sizeOf(headerSize)).map(Reader(_))
+      headerReader <- reader.read(headerSize - Bytes.sizeOf(headerSize)).map(Reader[swaydb.Error.Segment](_))
       formatID <- headerReader.get()
       compressionInfo <- {
         Block.readCompressionInfo(

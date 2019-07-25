@@ -250,7 +250,7 @@ object Slice {
       slice
     }
 
-    def readIntSigned[E: ErrorHandler](): IO[E, Int] =
+    def readIntSigned[E >: swaydb.Error.IO : ErrorHandler](): IO[E, Int] =
       ByteUtil.readSignedInt(slice)
 
     def addIntUnsigned(int: Int): Slice[Byte] = {
@@ -258,7 +258,7 @@ object Slice {
       slice
     }
 
-    def readIntUnsigned[E: ErrorHandler](): IO[E, Int] =
+    def readIntUnsigned[E >: swaydb.Error.IO : ErrorHandler](): IO[E, Int] =
       ByteUtil.readUnsignedInt(slice)
 
     def addLong(long: Long): Slice[Byte] = {
@@ -274,7 +274,7 @@ object Slice {
       slice
     }
 
-    def readLongUnsigned[E: ErrorHandler](): IO[E, Long] =
+    def readLongUnsigned[E >: swaydb.Error.IO : ErrorHandler](): IO[E, Long] =
       ByteUtil.readUnsignedLong(slice)
 
     def addLongSigned(long: Long): Slice[Byte] = {
@@ -282,7 +282,7 @@ object Slice {
       slice
     }
 
-    def readLongSigned[E: ErrorHandler](): IO[E, Long] =
+    def readLongSigned[E >: swaydb.Error.IO : ErrorHandler](): IO[E, Long] =
       ByteUtil.readSignedLong(slice)
 
     def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] = {
@@ -305,8 +305,8 @@ object Slice {
     def createReaderUnsafe() =
       new SliceReaderUnsafe(slice)
 
-    def createReaderSafe[E: ErrorHandler]() =
-      SliceReaderSafe(slice)
+    def createReaderSafe[E >: swaydb.Error.IO : ErrorHandler]() =
+      SliceReader(slice)
   }
 
   implicit class SliceImplicit[T](slice: Slice[T]) {

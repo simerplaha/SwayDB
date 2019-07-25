@@ -70,7 +70,7 @@ class SegmentBlockSpec extends TestBase {
             createdInLevel = randomNextInt(10)
           ).runIO
 
-        val reader = Reader(closedSegment.flattenSegmentBytes)
+        val reader = Reader[swaydb.Error.Segment](closedSegment.flattenSegmentBytes)
         assertReads(keyValues, reader)
         val persistentReader = createRandomFileReader(closedSegment.flattenSegmentBytes)
         assertReads(keyValues, persistentReader)
@@ -113,7 +113,7 @@ class SegmentBlockSpec extends TestBase {
 
         bytes.isFull shouldBe true
 
-        Seq(Reader(bytes), createRandomFileReader(bytes)) foreach {
+        Seq(Reader[swaydb.Error.Segment](bytes), createRandomFileReader(bytes)) foreach {
           reader =>
             val readGroup = readAll(reader).runIO.asInstanceOf[Slice[KeyValue.ReadOnly.Group]]
             val allKeyValuesForGroups = readGroup.flatMap(_.segment.getAll().runIO)
@@ -207,7 +207,7 @@ class SegmentBlockSpec extends TestBase {
           ).runIO.flattenSegmentBytes
 
         //in memory
-        assertReads(keyValues, Reader(bytes.unslice()))
+        assertReads(keyValues, Reader[swaydb.Error.Segment](bytes.unslice()))
         //on disk
         assertReads(keyValues, createRandomFileReader(bytes))
       }
@@ -230,7 +230,7 @@ class SegmentBlockSpec extends TestBase {
       deadline shouldBe empty
 
       //in memory
-      assertReads(keyValues, Reader(bytes))
+      assertReads(keyValues, Reader[swaydb.Error.Segment](bytes))
       //on disk
       assertReads(keyValues, createRandomFileReader(bytes))
     }
@@ -258,7 +258,7 @@ class SegmentBlockSpec extends TestBase {
       if (!setDeadlines) deadline shouldBe empty
 
       //in memory
-      assertReads(keyValues, Reader(bytes))
+      assertReads(keyValues, Reader[swaydb.Error.Segment](bytes))
       //on disk
       assertReads(keyValues, createRandomFileReader(bytes))
     }
@@ -280,16 +280,16 @@ class SegmentBlockSpec extends TestBase {
       //            createdInLevel = 0
       //          ).runIO.flattenSegment
       //
-      //        //        val result = SegmentBlock.read(SegmentBlock.Offset(0, bytes.size), Reader(bytes.drop(2)))
+      //        //        val result = SegmentBlock.read(SegmentBlock.Offset(0, bytes.size), Reader[swaydb.Error.Segment](bytes.drop(2)))
       //        //        if(result.isSuccess)
       //        //          println("debug")
       //        //        result.failed.runIO.exception shouldBe a[SegmentCorruptionException]
       //
-      //        SegmentBlock.read(SegmentBlock.Offset(0, bytes.size), Reader(bytes)) map {
+      //        SegmentBlock.read(SegmentBlock.Offset(0, bytes.size), Reader[swaydb.Error.Segment](bytes)) map {
       //          segmentBlock =>
-      //            SegmentBlock.readFooter(segmentBlock.createBlockReader(Reader(bytes.drop(1)))).failed.runIO.exception shouldBe a[SegmentCorruptionException]
-      //            SegmentBlock.readFooter(segmentBlock.createBlockReader(Reader(bytes.dropRight(1)))).failed.runIO.exception shouldBe a[SegmentCorruptionException]
-      //            SegmentBlock.readFooter(segmentBlock.createBlockReader(Reader(bytes.slice(10, 20)))).failed.runIO.exception shouldBe a[SegmentCorruptionException]
+      //            SegmentBlock.readFooter(segmentBlock.createBlockReader(Reader[swaydb.Error.Segment](bytes.drop(1)))).failed.runIO.exception shouldBe a[SegmentCorruptionException]
+      //            SegmentBlock.readFooter(segmentBlock.createBlockReader(Reader[swaydb.Error.Segment](bytes.dropRight(1)))).failed.runIO.exception shouldBe a[SegmentCorruptionException]
+      //            SegmentBlock.readFooter(segmentBlock.createBlockReader(Reader[swaydb.Error.Segment](bytes.slice(10, 20)))).failed.runIO.exception shouldBe a[SegmentCorruptionException]
       //        } get
       //      }
     }
