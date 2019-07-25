@@ -20,6 +20,7 @@
 package swaydb.core.level.compaction
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Level.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.WiredActor
@@ -28,8 +29,6 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.util.FiniteDurationUtil
 import swaydb.core.util.FiniteDurationUtil._
 import swaydb.data.compaction.CompactionExecutionContext
-import swaydb.data.io.Core
-import swaydb.Error.Level.ErrorHandler
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable
@@ -38,18 +37,18 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
 
 /**
-  * Compactor = Compaction Actor.
-  *
-  * Implements Actor functions.
-  */
+ * Compactor = Compaction Actor.
+ *
+ * Implements Actor functions.
+ */
 private[core] object Compactor extends CompactionStrategy[CompactorState] with LazyLogging {
 
   /**
-    * Split levels into compaction groups with dedicated or shared ExecutionContexts based on
-    * the input [[CompactionExecutionContext]] config.
-    *
-    * @return return the root parent Actor with child Actors.
-    */
+   * Split levels into compaction groups with dedicated or shared ExecutionContexts based on
+   * the input [[CompactionExecutionContext]] config.
+   *
+   * @return return the root parent Actor with child Actors.
+   */
   def createActor(levels: List[LevelRef],
                   executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering): IO[swaydb.Error.Level, WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     if (levels.size != executionContexts.size)
@@ -234,9 +233,9 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
     } getOrElse IO.Failure(swaydb.Error.Fatal(new Exception("Compaction not started because there is no lower level.")))
 
   /**
-    * Note: [[LevelZero.onNextMapCallback]] does not support thread-safe updates so it should be
-    * called on the same thread as LevelZero's initialisation thread.
-    */
+   * Note: [[LevelZero.onNextMapCallback]] does not support thread-safe updates so it should be
+   * called on the same thread as LevelZero's initialisation thread.
+   */
   def listen(zero: LevelZero,
              actor: WiredActor[CompactionStrategy[CompactorState], CompactorState]) =
     zero onNextMapCallback (

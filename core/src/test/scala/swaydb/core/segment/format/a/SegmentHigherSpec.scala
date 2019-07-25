@@ -130,7 +130,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
             randomFixedKeyValue(10),
             randomRangeKeyValue(11, 20),
             randomRangeKeyValue(20, 30),
-            randomGroup(Slice(randomFixedKeyValue(30),randomRangeKeyValue(40, 50)).toTransient).toMemory
+            randomGroup(Slice(randomFixedKeyValue(30), randomRangeKeyValue(40, 50)).toTransient).toMemory
           ).toTransient,
           assert =
             (keyValues, segment) => {

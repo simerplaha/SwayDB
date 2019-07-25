@@ -24,9 +24,9 @@ sealed trait IOStrategy {
 object IOStrategy {
 
   /**
-    * The default [[IOStrategy]] strategy used for all [[IOAction.ReadCompressedData]]
-    * or [[IOAction.ReadUncompressedData]] blocks.
-    */
+   * The default [[IOStrategy]] strategy used for all [[IOAction.ReadCompressedData]]
+   * or [[IOAction.ReadUncompressedData]] blocks.
+   */
   val defaultSynchronisedStoredIfCompressed: IOAction => IOStrategy.SynchronisedIO =
     (dataType: IOAction) =>
       IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed)
@@ -36,9 +36,9 @@ object IOStrategy {
       IOStrategy.SynchronisedIO(cacheOnAccess = true)
 
   /**
-    * The default [[IOStrategy]] strategy used for all [[IOAction.ReadDataOverview]].
-    * BlockInfos are never individually unless the entire Segment is compressed.
-    */
+   * The default [[IOStrategy]] strategy used for all [[IOAction.ReadDataOverview]].
+   * BlockInfos are never individually unless the entire Segment is compressed.
+   */
   val defaultBlockInfoStored =
     IOStrategy.ConcurrentIO(true)
 

@@ -30,8 +30,8 @@ private[core] sealed trait TransientToKeyValueIdBinder[T] {
 }
 
 /**
-  * Glue objects to map [[Transient]] key-values to [[KeyValueId]].
-  */
+ * Glue objects to map [[Transient]] key-values to [[KeyValueId]].
+ */
 private[core] object TransientToKeyValueIdBinder {
 
   implicit object RemoveBinder extends TransientToKeyValueIdBinder[Transient.Remove] {

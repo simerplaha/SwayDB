@@ -22,7 +22,6 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
-import swaydb.data.io.Core
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

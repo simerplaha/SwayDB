@@ -24,14 +24,13 @@ import swaydb.configs.level.DefaultMemoryZeroConfig
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.Error
 import swaydb.data.io.Tag
-import swaydb.data.io.Tag.CoreIO
+import swaydb.data.io.Tag.API
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{IO, SwayDB}
+import swaydb.{Error, IO, SwayDB}
 
 import scala.concurrent.ExecutionContext
 
@@ -41,14 +40,14 @@ object Map extends LazyLogging {
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
   /**
-    * A single level zero only database. Does not need compaction.
-    */
+   * A single level zero only database. Does not need compaction.
+   */
 
   def apply[K, V](mapSize: Int = 4.mb,
                   acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                        ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.BootUp, swaydb.Map[K, V, CoreIO]] =
+                                                                                        ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.BootUp, swaydb.Map[K, V, API]] =
     BlockingCore(
       config = DefaultMemoryZeroConfig(
         mapSize = mapSize,
@@ -56,6 +55,6 @@ object Map extends LazyLogging {
       )
     ) map {
       db =>
-        swaydb.Map[K, V, Tag.CoreIO](db)
+        swaydb.Map[K, V, Tag.API](db)
     }
 }

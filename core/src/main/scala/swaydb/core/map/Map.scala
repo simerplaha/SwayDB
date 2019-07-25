@@ -28,7 +28,6 @@ import swaydb.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
-import swaydb.data.io.Core
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -224,5 +223,5 @@ private[core] trait Map[K, V] {
   def close(): IO[swaydb.Error.Map, Unit]
 
   def fileId: IO[swaydb.Error.Map, Long] =
-    IO.Success(0)
+    IO.Success[swaydb.Error.Map, Long](0)
 }

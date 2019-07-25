@@ -24,6 +24,7 @@ import java.nio.file.{Path, StandardOpenOption}
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Level.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.data.KeyValue.ReadOnly
@@ -43,8 +44,6 @@ import swaydb.core.util.ExceptionUtil._
 import swaydb.core.util.{MinMax, _}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.Dir
-import swaydb.data.io.Core
-import swaydb.Error.Level.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
@@ -230,8 +229,8 @@ private[core] object Level extends LazyLogging {
     }
 
   /**
-    * A Segment is considered small if it's size is less than 40% of the default [[Level.segmentSize]]
-    */
+   * A Segment is considered small if it's size is less than 40% of the default [[Level.segmentSize]]
+   */
   def isSmallSegment(segment: Segment, levelSegmentSize: Long): Boolean =
     segment.segmentSize < levelSegmentSize * 0.40
 
@@ -661,8 +660,8 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   /**
-    * @return empty if copied into next Level else Segments copied into this Level.
-    */
+   * @return empty if copied into next Level else Segments copied into this Level.
+   */
   private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[Segment]] =
     forward(map) flatMap {
       copied =>
@@ -673,8 +672,8 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   /**
-    * Returns segments that were not forwarded.
-    */
+   * Returns segments that were not forwarded.
+   */
   private def forward(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Boolean] = {
     logger.trace(s"{}: forwarding {} Map", paths.head, map.pathOption)
     nextLevel map {
@@ -739,8 +738,8 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   /**
-    * Returns newly created Segments.
-    */
+   * Returns newly created Segments.
+   */
   private def copyForwardOrCopyLocal(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[Segment]] =
     forward(segments) match {
       case IO.Success(segmentsNotForwarded) =>
@@ -755,8 +754,8 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   /**
-    * Returns segments that were not forwarded.
-    */
+   * Returns segments that were not forwarded.
+   */
   private def forward(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[Segment]] = {
     logger.trace(s"{}: Copying forward {} Segments", paths.head, segments.map(_.path.toString))
     nextLevel map {
@@ -996,8 +995,8 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   /**
-    * @return Newly created Segments.
-    */
+   * @return Newly created Segments.
+   */
   private[core] def putKeyValues(keyValues: Slice[KeyValue.ReadOnly],
                                  targetSegments: Iterable[Segment],
                                  appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[swaydb.Error.Level, Unit] = {
@@ -1251,9 +1250,9 @@ private[core] case class Level(dirs: Seq[Dir],
     )
 
   /**
-    * Does a quick appendix lookup.
-    * It does not check if the returned key is removed. Use [[Level.head]] instead.
-    */
+   * Does a quick appendix lookup.
+   * It does not check if the returned key is removed. Use [[Level.head]] instead.
+   */
   override def headKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
     nextLevel.map(_.headKey) getOrElse IO.none mapDeferred {
       nextLevelFirstKey =>
@@ -1261,9 +1260,9 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   /**
-    * Does a quick appendix lookup.
-    * It does not check if the returned key is removed. Use [[Level.last]] instead.
-    */
+   * Does a quick appendix lookup.
+   * It does not check if the returned key is removed. Use [[Level.last]] instead.
+   */
   override def lastKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
     nextLevel.map(_.lastKey) getOrElse IO.none mapDeferred {
       nextLevelLastKey =>
@@ -1419,7 +1418,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def close: IO[swaydb.Error.Close, Unit] =
     (nextLevel.map(_.close) getOrElse IO.unit) flatMap {
       _ =>
-        import swaydb.Error.Close.ErrorHandler
+
         appendix.close() onFailureSideEffect {
           failure =>
             logger.error("{}: Failed to close appendix", paths.head, failure)

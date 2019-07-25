@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a.block
 
 import java.util.concurrent.ConcurrentSkipListMap
 
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.compression.CompressionInternal
@@ -30,8 +31,6 @@ import swaydb.core.segment.{DeadlineAndFunctionId, Segment}
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.api.grouping.Compression
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec

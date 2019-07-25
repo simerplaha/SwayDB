@@ -22,6 +22,7 @@ package swaydb.core.level.tool
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Level.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.function.FunctionStore
@@ -33,8 +34,6 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.Extension
-import swaydb.data.io.Core
-import swaydb.Error.Level.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}

@@ -23,6 +23,7 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentLinkedDeque
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Map.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.brake.BrakePedal
@@ -34,8 +35,6 @@ import swaydb.core.map.timer.Timer
 import swaydb.core.queue.FileLimiter
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.RecoveryMode
-import swaydb.data.io.Core
-import swaydb.Error.Map.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -129,8 +128,8 @@ private[core] object Maps extends LazyLogging {
                                                               mapReader: MapEntryReader[MapEntry[K, V]],
                                                               skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, Seq[Map[K, V]]] = {
     /**
-      * Performs corruption handling based on the the value set for [[RecoveryMode]].
-      */
+     * Performs corruption handling based on the the value set for [[RecoveryMode]].
+     */
     def applyRecoveryMode(exception: Throwable,
                           mapPath: Path,
                           otherMapsPaths: List[Path],
@@ -177,8 +176,8 @@ private[core] object Maps extends LazyLogging {
       }
 
     /**
-      * Start recovery for all the input maps.
-      */
+     * Start recovery for all the input maps.
+     */
     @tailrec
     def doRecovery(maps: List[Path],
                    recoveredMaps: ListBuffer[Map[K, V]]): IO[swaydb.Error.Map, Seq[Map[K, V]]] =
@@ -307,10 +306,10 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     }
 
   /**
-    * @param entry entry to add
-    * @return IO.Success(true) when new map gets added to maps. This return value is currently used
-    *         in LevelZero to determine if there is a map that should be converted Segment.
-    */
+   * @param entry entry to add
+   * @return IO.Success(true) when new map gets added to maps. This return value is currently used
+   *         in LevelZero to determine if there is a map that should be converted Segment.
+   */
   @tailrec
   private def persist(entry: MapEntry[K, V]): IO[swaydb.Error.Map, IO.Done] =
     currentMap.write(entry) match {

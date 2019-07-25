@@ -19,11 +19,10 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Reader
 
 import scala.annotation.implicitNotFound

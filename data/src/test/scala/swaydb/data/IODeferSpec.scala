@@ -24,7 +24,6 @@ import java.nio.file.Paths
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.IO
 import swaydb.data.Base._
-import swaydb.data.io.Core
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

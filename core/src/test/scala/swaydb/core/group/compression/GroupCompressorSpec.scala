@@ -33,10 +33,10 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 /**
-  * [[swaydb.core.group.compression.GroupCompressor]] is always invoked directly from [[Transient.Group]] there these test cases initialise the Group
-  * to find full code coverage.
-  *
-  */
+ * [[swaydb.core.group.compression.GroupCompressor]] is always invoked directly from [[Transient.Group]] there these test cases initialise the Group
+ * to find full code coverage.
+ *
+ */
 class GroupCompressorSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default

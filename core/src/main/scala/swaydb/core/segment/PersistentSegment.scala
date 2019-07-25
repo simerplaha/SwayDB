@@ -23,6 +23,7 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.data.{Persistent, _}
@@ -37,8 +38,6 @@ import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.config.Dir
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -134,8 +133,8 @@ private[segment] case class PersistentSegment(file: DBFile,
     file copyTo toPath
 
   /**
-    * Default targetPath is set to this [[PersistentSegment]]'s parent directory.
-    */
+   * Default targetPath is set to this [[PersistentSegment]]'s parent directory.
+   */
   def put(newKeyValues: Slice[KeyValue.ReadOnly],
           minSegmentSize: Long,
           removeDeletes: Boolean,

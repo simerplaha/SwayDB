@@ -22,7 +22,6 @@ package swaydb.core.io.file
 import java.nio.file.Path
 
 import swaydb.IO
-import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 
 private[file] trait DBFileType {

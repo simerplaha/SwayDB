@@ -35,8 +35,8 @@ object CollectionUtil {
     }
 
     /**
-      * Used for cases when multiple iterators over a list eg: collect & then fold is costly.
-      */
+     * Used for cases when multiple iterators over a list eg: collect & then fold is costly.
+     */
     def foldLeftWhile[B](initial: B, condition: T => Boolean)(op: (B, T) => B): B = {
       var result = initial
       items foreachBreak {
@@ -50,9 +50,9 @@ object CollectionUtil {
   }
 
   /**
-    * Groups items ensuring if the input groupSize is > 1 then the output groups
-    * should not contain a single item. Single items value merged into their previous gorup.
-    */
+   * Groups items ensuring if the input groupSize is > 1 then the output groups
+   * should not contain a single item. Single items value merged into their previous gorup.
+   */
   def groupedMergeSingles[T](groupSize: Int,
                              items: List[T]): List[List[T]] =
     if (groupSize <= 0) {
@@ -66,9 +66,9 @@ object CollectionUtil {
     }
 
   /**
-    * Groups items ensuring if the input groupSize is > 1 then the output groups
-    * should not contain a single item. Single items value merged into their previous gorup.
-    */
+   * Groups items ensuring if the input groupSize is > 1 then the output groups
+   * should not contain a single item. Single items value merged into their previous gorup.
+   */
   def groupedMergeSingles[T](groupSize: Int,
                              items: List[T],
                              splitAt: Int): List[List[T]] = {

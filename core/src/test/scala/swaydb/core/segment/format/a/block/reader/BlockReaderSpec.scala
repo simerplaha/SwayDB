@@ -20,13 +20,12 @@
 package swaydb.core.segment.format.a.block.reader
 
 import org.scalamock.scalatest.MockFactory
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.io.reader.FileReader
 import swaydb.core.segment.format.a.block.{BlockOffset, ValuesBlock}
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.{Reader, Slice}
 
 class BlockReaderSpec extends TestBase with MockFactory {

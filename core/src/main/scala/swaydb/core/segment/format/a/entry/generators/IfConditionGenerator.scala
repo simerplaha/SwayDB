@@ -28,8 +28,8 @@ import swaydb.core.segment.format.a.entry.reader.base.BaseEntryReader
 import scala.collection.JavaConverters._
 
 /**
-  * Generates if conditions for all readers.
-  */
+ * Generates if conditions for all readers.
+ */
 object IfConditionGenerator extends App {
   implicit class Implicits(entryId: BaseEntryId) {
     def name =

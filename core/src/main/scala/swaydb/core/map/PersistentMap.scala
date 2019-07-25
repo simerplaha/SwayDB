@@ -23,6 +23,7 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Map.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.data.Memory
@@ -32,8 +33,6 @@ import swaydb.core.io.file.{DBFile, IOEffect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
 import swaydb.core.util.Extension
-import swaydb.data.io.Core
-import swaydb.Error.Map.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -173,12 +172,12 @@ private[map] object PersistentMap extends LazyLogging {
   }
 
   /**
-    * Creates nextFile by persisting the entries in skipList to the new file. This function does not
-    * re-read oldFiles to apply the existing entries to skipList, skipList should already be populated with new entries.
-    * This is to ensure that before deleting any of the old entries, a new file is successful created.
-    *
-    * oldFiles value deleted after the recovery is successful. In case of a failure an error message is logged.
-    */
+   * Creates nextFile by persisting the entries in skipList to the new file. This function does not
+   * re-read oldFiles to apply the existing entries to skipList, skipList should already be populated with new entries.
+   * This is to ensure that before deleting any of the old entries, a new file is successful created.
+   *
+   * oldFiles value deleted after the recovery is successful. In case of a failure an error message is logged.
+   */
   private[map] def nextFile[K, V](oldFiles: Iterable[DBFile],
                                   mmap: Boolean,
                                   fileSize: Long,
@@ -288,16 +287,16 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
     }
 
   /**
-    * Before writing the Entry, check to ensure if the current [[MapEntry]] requires a merge write or direct write.
-    *
-    * Merge write should be used when
-    * - The entry contains a [[Memory.Range]] key-value.
-    * - The entry contains a [[Memory.Update]] Update key-value.
-    * - The entry contains a [[Memory.Remove]] with deadline key-value. Removes without deadlines do not require merging.
-    *
-    * Note: These check are not required for Appendix writes because Appendix entries current do not use
-    * Range, Update or key-values with deadline.
-    */
+   * Before writing the Entry, check to ensure if the current [[MapEntry]] requires a merge write or direct write.
+   *
+   * Merge write should be used when
+   * - The entry contains a [[Memory.Range]] key-value.
+   * - The entry contains a [[Memory.Update]] Update key-value.
+   * - The entry contains a [[Memory.Remove]] with deadline key-value. Removes without deadlines do not require merging.
+   *
+   * Note: These check are not required for Appendix writes because Appendix entries current do not use
+   * Range, Update or key-values with deadline.
+   */
   @tailrec
   private def persist(entry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] =
     if ((bytesWritten + entry.totalByteSize) <= actualFileSize)

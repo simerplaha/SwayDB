@@ -30,10 +30,10 @@ import scala.reflect.ClassTag
 import scala.util.Try
 
 /**
-  * [[IO.Success]] and [[IO.Failure]] are similar to types in [[scala.util.Try]].
-  *
-  * [[IO.Defer]] is for performing synchronous and asynchronous IO.
-  */
+ * [[IO.Success]] and [[IO.Failure]] are similar to types in [[scala.util.Try]].
+ *
+ * [[IO.Defer]] is for performing synchronous and asynchronous IO.
+ */
 sealed trait IO[+E, +A] {
   def isFailure: Boolean
   def isSuccess: Boolean
@@ -389,8 +389,8 @@ object IO {
     def isBusy = ErrorHandler.reserve(error).exists(_.isBusy)
 
     /**
-      * Runs composed functions does not perform any recovery.
-      */
+     * Runs composed functions does not perform any recovery.
+     */
     private def forceGet: A =
       _value getOrElse {
         val got = value()
@@ -424,8 +424,8 @@ object IO {
     }
 
     /**
-      * Opens all [[IO.Defer]] types to read the final value in a blocking manner.
-      */
+     * Opens all [[IO.Defer]] types to read the final value in a blocking manner.
+     */
     def runBlocking: IO[E, A] = {
 
       @tailrec
@@ -453,8 +453,8 @@ object IO {
     }
 
     /**
-      * Opens all [[IO.Defer]] types to read the final value in a non-blocking manner.
-      */
+     * Opens all [[IO.Defer]] types to read the final value in a non-blocking manner.
+     */
     def runInFuture(implicit ec: ExecutionContext): Future[A] = {
 
       def doGet(later: IO.Deferred[E, A]): Future[A] =
@@ -476,8 +476,8 @@ object IO {
     }
 
     /**
-      * Opens all [[IO.Defer]] types to read the final value in a non-blocking manner.
-      */
+     * Opens all [[IO.Defer]] types to read the final value in a non-blocking manner.
+     */
     def runInFutureIfFileExists(implicit ec: ExecutionContext): Future[A] = {
 
       def doGet(later: IO.Deferred[E, A]): Future[A] =

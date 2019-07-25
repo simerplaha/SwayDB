@@ -20,6 +20,7 @@
 package swaydb.core.segment.format.a.entry.writer
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
@@ -27,7 +28,6 @@ import swaydb.core.data.{Time, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
 import swaydb.core.segment.format.a.entry.reader.TimeReader
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

@@ -24,11 +24,11 @@ import swaydb.data.io.Tag
 import scala.collection.{TraversableOnce, mutable}
 
 /**
-  * Scala collections are blocking and requires an IO Set from SwayDB to build a Set.
-  */
+ * Scala collections are blocking and requires an IO Set from SwayDB to build a Set.
+ */
 private[swaydb] object ScalaSet {
 
-  def apply[A](db: Set[A, Tag.CoreIO]): mutable.Set[A] =
+  def apply[A](db: Set[A, Tag.API]): mutable.Set[A] =
     new mutable.Set[A] {
 
       override def contains(elem: A): Boolean =

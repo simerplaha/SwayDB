@@ -26,7 +26,6 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.cache.Cache
-import swaydb.data.io.Core
 import swaydb.data.slice.Reader
 
 private[core] object BaseEntryReaderUncompressed extends BaseEntryReader {

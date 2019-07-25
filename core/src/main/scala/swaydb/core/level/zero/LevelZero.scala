@@ -24,6 +24,7 @@ import java.nio.file.{Path, Paths, StandardOpenOption}
 import java.util
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Level.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
@@ -40,8 +41,6 @@ import swaydb.core.segment.Segment
 import swaydb.core.util.MinMax
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.Core
-import swaydb.Error.Level.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.Level0Storage
@@ -564,11 +563,11 @@ private[core] case class LevelZero(path: Path,
     )
 
   /**
-    * Higher cannot use an iterator because a single Map can value read requests multiple times for cases where a Map contains a range
-    * to fetch ceiling key.
-    *
-    * Higher queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
-    */
+   * Higher cannot use an iterator because a single Map can value read requests multiple times for cases where a Map contains a range
+   * to fetch ceiling key.
+   *
+   * Higher queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
+   */
   def higher(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     findHigher(
       key = key,
@@ -624,11 +623,11 @@ private[core] case class LevelZero(path: Path,
     )
 
   /**
-    * Lower cannot use an iterator because a single Map can value read requests multiple times for cases where a Map contains a range
-    * to fetch ceiling key.
-    *
-    * Lower queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
-    */
+   * Lower cannot use an iterator because a single Map can value read requests multiple times for cases where a Map contains a range
+   * to fetch ceiling key.
+   *
+   * Lower queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
+   */
   def lower(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     findLower(
       key = key,

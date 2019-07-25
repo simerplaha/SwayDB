@@ -35,8 +35,8 @@ import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
 
 /**
-  * Documentation - http://swaydb.io/slice
-  */
+ * Documentation - http://swaydb.io/slice
+ */
 object Slice {
 
   val emptyBytes = Slice.create[Byte](0)
@@ -154,8 +154,8 @@ object Slice {
   }
 
   /**
-    * Boolean indicates if the toKey is inclusive.
-    */
+   * Boolean indicates if the toKey is inclusive.
+   */
   def intersects[T](range1: (Slice[T], Slice[T], Boolean),
                     range2: (Slice[T], Slice[T], Boolean))(implicit ordering: Ordering[Slice[T]]): Boolean = {
     import ordering._
@@ -180,9 +180,9 @@ object Slice {
 
   implicit class SlicesImplicits[T: ClassTag](slices: Slice[Slice[T]]) {
     /**
-      * Closes this Slice and children Slices which disables
-      * more data to be written to any of the Slices.
-      */
+     * Closes this Slice and children Slices which disables
+     * more data to be written to any of the Slices.
+     */
     def closeAll(): Slice[Slice[T]] = {
       val newSlices = Slice.create[Slice[T]](slices.close().size)
       slices foreach {
@@ -215,8 +215,8 @@ object Slice {
   }
 
   /**
-    * http://www.swaydb.io/slice/byte-slice
-    */
+   * http://www.swaydb.io/slice/byte-slice
+   */
   implicit class ByteSliceImplicits(slice: Slice[Byte]) {
 
     def addByte(value: Byte): Slice[Byte] = {
@@ -382,15 +382,15 @@ object Slice {
 }
 
 /**
-  * An Iterable type that holds offset references to an Array without creating copies of the original array when creating
-  * sub-slices.
-  *
-  * @param array      Array to create Slices for
-  * @param fromOffset start offset
-  * @param toOffset   end offset
-  * @param written    items written
-  * @tparam T The type of this Slice
-  */
+ * An Iterable type that holds offset references to an Array without creating copies of the original array when creating
+ * sub-slices.
+ *
+ * @param array      Array to create Slices for
+ * @param fromOffset start offset
+ * @param toOffset   end offset
+ * @param written    items written
+ * @tparam T The type of this Slice
+ */
 class Slice[+T: ClassTag] private(array: Array[T],
                                   val fromOffset: Int,
                                   val toOffset: Int,
@@ -414,12 +414,12 @@ class Slice[+T: ClassTag] private(array: Array[T],
     !isEmpty
 
   /**
-    * Create a new Slice for the offsets.
-    *
-    * @param fromOffset start offset
-    * @param toOffset   end offset
-    * @return Slice for the given offsets
-    */
+   * Create a new Slice for the offsets.
+   *
+   * @param fromOffset start offset
+   * @param toOffset   end offset
+   * @return Slice for the given offsets
+   */
   override def slice(fromOffset: Int, toOffset: Int): Slice[T] =
     if (toOffset < 0) {
       Slice.empty[T]
@@ -562,8 +562,8 @@ class Slice[+T: ClassTag] private(array: Array[T],
   }
 
   /**
-    * Returns a new non-writable slice. Unless position is moved manually.
-    */
+   * Returns a new non-writable slice. Unless position is moved manually.
+   */
   def close(): Slice[T] =
     if (allocatedSize == size)
       this
@@ -614,9 +614,9 @@ class Slice[+T: ClassTag] private(array: Array[T],
     this.array.asInstanceOf[Array[_]]
 
   /**
-    * Returns the original Array if Slice is not a sub Slice
-    * else returns a new copied Array from the offsets defined for this Slice.
-    */
+   * Returns the original Array if Slice is not a sub Slice
+   * else returns a new copied Array from the offsets defined for this Slice.
+   */
   override def toArray[B >: T](implicit evidence$1: ClassTag[B]): Array[B] =
     if (size == array.length)
       array.asInstanceOf[Array[B]]
@@ -702,8 +702,8 @@ class Slice[+T: ClassTag] private(array: Array[T],
     (array.asInstanceOf[Array[X]], fromOffset, size)
 
   /**
-    * Return a new ordered Slice.
-    */
+   * Return a new ordered Slice.
+   */
   def sorted[B >: T](implicit ordering: Ordering[B]): Slice[B] =
     Slice(toArrayCopy.sorted(ordering))
 

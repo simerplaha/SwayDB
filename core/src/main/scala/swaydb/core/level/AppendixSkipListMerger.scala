@@ -28,9 +28,9 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 /**
-  * Default [[SkipListMerger]] implementation for Level's Appendix. Currently appendix does not implement
-  * Range APIs so merger should never be used.
-  */
+ * Default [[SkipListMerger]] implementation for Level's Appendix. Currently appendix does not implement
+ * Range APIs so merger should never be used.
+ */
 object AppendixSkipListMerger extends SkipListMerger[Slice[Byte], Segment] {
   override def insert(insertKey: Slice[Byte],
                       insertValue: Segment,

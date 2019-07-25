@@ -24,11 +24,11 @@ import swaydb.data.io.Tag
 import scala.collection.{TraversableOnce, mutable}
 
 /**
-  * Scala collections are blocking and requires an IO Map from SwayDB to build a Map.
-  */
+ * Scala collections are blocking and requires an IO Map from SwayDB to build a Map.
+ */
 private[swaydb] object ScalaMap {
 
-  def apply[K, V](db: Map[K, V, Tag.CoreIO]): mutable.Map[K, V] =
+  def apply[K, V](db: Map[K, V, Tag.API]): mutable.Map[K, V] =
     new mutable.Map[K, V] {
       override def get(key: K): Option[V] =
         db.get(key).get

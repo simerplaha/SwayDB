@@ -20,13 +20,12 @@
 package swaydb.core.util.cache
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.util.Benchmark
 import swaydb.data.Reserve
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 
 class CachePerformanceSpec extends WordSpec with Matchers {
 

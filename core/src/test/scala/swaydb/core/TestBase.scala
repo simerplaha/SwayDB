@@ -47,7 +47,6 @@ import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
-import swaydb.data.io.Core
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
@@ -392,18 +391,18 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     createRandomFileReader(createFile(bytes))
 
   /**
-    * Runs multiple asserts on individual levels and also one by one merges key-values from upper levels
-    * to lower levels and asserts the results are still the same.
-    *
-    * The tests written only need to define a 3 level test case and this function will create a 4 level database
-    * and run multiple passes for the test merging key-values from levels into lower levels asserting the results
-    * are the same after merge.
-    *
-    * Note: Tests for decremental time is not required because in reality upper Level cannot have lower time key-values
-    * that are not merged into lower Level already. So there will never be a situation where upper Level's keys are
-    * ignored completely due to it having a lower or equal time to lower Level. If it has a lower or same time this means
-    * that it has already been merged into lower Levels already making the upper Level's read always valid.
-    */
+   * Runs multiple asserts on individual levels and also one by one merges key-values from upper levels
+   * to lower levels and asserts the results are still the same.
+   *
+   * The tests written only need to define a 3 level test case and this function will create a 4 level database
+   * and run multiple passes for the test merging key-values from levels into lower levels asserting the results
+   * are the same after merge.
+   *
+   * Note: Tests for decremental time is not required because in reality upper Level cannot have lower time key-values
+   * that are not merged into lower Level already. So there will never be a situation where upper Level's keys are
+   * ignored completely due to it having a lower or equal time to lower Level. If it has a lower or same time this means
+   * that it has already been merged into lower Levels already making the upper Level's read always valid.
+   */
   def assertLevel(level0KeyValues: (Slice[Memory], Slice[Memory], TestTimer) => Slice[Memory] = (_, _, _) => Slice.empty,
                   assertLevel0: (Slice[Memory], Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _, _) => (),
                   level1KeyValues: (Slice[Memory], TestTimer) => Slice[Memory] = (_, _) => Slice.empty,
@@ -431,9 +430,9 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     val testTimer: TestTimer = TestTimer.Incremental()
 
     /**
-      * If [[throttleOn]] is true then enable fast throttling
-      * so that this test covers as many scenarios as possible.
-      */
+     * If [[throttleOn]] is true then enable fast throttling
+     * so that this test covers as many scenarios as possible.
+     */
     val levelThrottle: LevelMeter => Throttle = if (throttleOn) _ => Throttle(Duration.Zero, randomNextInt(3) max 1) else _ => Throttle(Duration.Zero, 0)
     val levelZeroThrottle: LevelZeroMeter => FiniteDuration = if (throttleOn) _ => Duration.Zero else _ => 365.days
 
@@ -660,7 +659,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       assert(keyValues, segment) //same Segment but test with cleared cache.
 
       val segmentReopened = segment.reopen //reopen
-      if(closeAfterCreate) segmentReopened.close.value
+      if (closeAfterCreate) segmentReopened.close.value
       assert(keyValues, segmentReopened)
       if (testAgainAfterAssert) assert(keyValues, segmentReopened)
       segmentReopened.close.value

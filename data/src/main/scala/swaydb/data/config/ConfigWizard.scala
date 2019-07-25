@@ -31,8 +31,8 @@ import scala.concurrent.duration.FiniteDuration
 sealed trait PersistentConfig
 
 /**
-  * http://swaydb.io#configuring-levels
-  */
+ * http://swaydb.io#configuring-levels
+ */
 object ConfigWizard {
   def addPersistentLevel0(dir: Path,
                           mapSize: Long,

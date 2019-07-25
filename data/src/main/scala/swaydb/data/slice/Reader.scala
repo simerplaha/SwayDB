@@ -50,7 +50,7 @@ private[swaydb] abstract class Reader[E: ErrorHandler] { self =>
 
   def isFile: Boolean
 
-  def skip(skip: Long): Reader[E]=
+  def skip(skip: Long): Reader[E] =
     moveTo(getPosition + skip)
 
   def readBoolean(): IO[E, Boolean] =
@@ -100,7 +100,7 @@ private[swaydb] abstract class Reader[E: ErrorHandler] { self =>
 
   def copy(): Reader[E]
 
-  def reset(): Reader[E]=
+  def reset(): Reader[E] =
     this moveTo 0
 
   @tailrec

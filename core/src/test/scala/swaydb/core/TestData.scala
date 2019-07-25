@@ -22,6 +22,7 @@ package swaydb.core
 import java.nio.file.Path
 
 import org.scalatest.Matchers._
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.ErrorHandler.Nothing
 import swaydb.IO
 import swaydb.compression.CompressionInternal
@@ -49,8 +50,6 @@ import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{Dir, IOStrategy, RecoveryMode}
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
@@ -67,8 +66,8 @@ import scala.util.Random
 object TestData {
 
   /**
-    * Sequential time bytes generator.
-    */
+   * Sequential time bytes generator.
+   */
 
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
 
@@ -158,9 +157,8 @@ object TestData {
                                            compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000)),
                                            segmentIO: SegmentIO = SegmentIO.random) {
 
-    import swaydb.IO._
-
     import swaydb.Error.Level.ErrorHandler
+    import swaydb.IO._
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
@@ -911,8 +909,8 @@ object TestData {
     )
 
   /**
-    * Removes can occur by [[Memory.Remove]], [[Memory.Update]] with expiry or [[Memory.Function]] with remove output.
-    */
+   * Removes can occur by [[Memory.Remove]], [[Memory.Update]] with expiry or [[Memory.Function]] with remove output.
+   */
   def randomRemoveOrUpdateOrFunctionRemove(key: Slice[Byte],
                                            addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Fixed =
     if (randomBoolean())
@@ -946,8 +944,8 @@ object TestData {
     )
 
   /**
-    * Creates remove ranges of random range slices slice for all input key-values.
-    */
+   * Creates remove ranges of random range slices slice for all input key-values.
+   */
   def randomRemoveRanges(keyValues: Iterable[Memory])(implicit testTimer: TestTimer = TestTimer.Incremental()): Iterator[Memory.Range] =
     keyValues
       .grouped(randomIntMax(100) max 1)
@@ -1923,8 +1921,8 @@ object TestData {
   implicit class MemoryTypeImplicits(memory: Memory.type) {
 
     /**
-      * Memory.Put
-      */
+     * Memory.Put
+     */
     def put(key: Slice[Byte],
             value: Slice[Byte])(implicit testTimer: TestTimer): Memory.Put =
       Memory.Put(key, Some(value), None, testTimer.next)
@@ -1968,8 +1966,8 @@ object TestData {
       Memory.Put(key, value, deadline, testTimer.next)
 
     /**
-      * Memory.Update
-      */
+     * Memory.Update
+     */
     def update(key: Slice[Byte],
                value: Slice[Byte])(implicit testTimer: TestTimer): Memory.Update =
       Memory.Update(key, Some(value), None, testTimer.next)
@@ -2007,8 +2005,8 @@ object TestData {
       Memory.Update(key, value, deadline, testTimer.next)
 
     /**
-      * Memory.Remove
-      */
+     * Memory.Remove
+     */
 
     def remove(key: Slice[Byte]): Memory.Remove =
       Memory.Remove(key, None, Time.empty)
@@ -2027,11 +2025,11 @@ object TestData {
   implicit class TransientTypeImplicits(transient: Transient.type) {
 
     /**
-      * Transient.Remove
-      *
-      * @param key
-      * @return
-      */
+     * Transient.Remove
+     *
+     * @param key
+     * @return
+     */
     def remove(key: Slice[Byte])(implicit testTimer: TestTimer): Transient.Remove =
       Transient.Remove(
         key = key,
@@ -2516,10 +2514,10 @@ object TestData {
     }(collection.breakOut)
 
   /**
-    * Randomly updates all key-values using one of the many update methods.
-    *
-    * Used for testing all updates work for all existing put key-values.
-    */
+   * Randomly updates all key-values using one of the many update methods.
+   *
+   * Used for testing all updates work for all existing put key-values.
+   */
   def randomUpdate(keyValues: Iterable[KeyValue.ReadOnly.Put],
                    updatedValue: Option[Slice[Byte]],
                    deadline: Option[Deadline],

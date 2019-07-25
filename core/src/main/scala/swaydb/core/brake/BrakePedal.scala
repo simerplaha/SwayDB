@@ -27,12 +27,12 @@ private[core] class BrakePedal(private var brakeFor: FiniteDuration,
                                private val releaseRate: FiniteDuration) extends LazyLogging {
 
   /**
-    * Blocking back-pressure.
-    *
-    * Blocks current thread and decrements the next block with the release rate.
-    *
-    * @return true if the brake is complete else false.
-    */
+   * Blocking back-pressure.
+   *
+   * Blocks current thread and decrements the next block with the release rate.
+   *
+   * @return true if the brake is complete else false.
+   */
   def applyBrakes(): Boolean = {
     logger.warn(s"Braking for: {}", brakeFor)
     Thread.sleep(brakeFor.toMillis)

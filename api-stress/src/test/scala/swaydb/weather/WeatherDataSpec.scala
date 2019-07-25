@@ -53,7 +53,7 @@ class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
 
 sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark with BeforeAndAfterAll {
 
-  val db: swaydb.Map[Int, WeatherData, Tag.CoreIO]
+  val db: swaydb.Map[Int, WeatherData, Tag.API]
 
   override protected def afterAll(): Unit = {
     db.close().get

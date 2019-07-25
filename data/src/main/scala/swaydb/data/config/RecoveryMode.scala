@@ -28,25 +28,25 @@ sealed trait RecoveryMode {
 object RecoveryMode {
 
   /**
-    * Returns failure immediately if a corruption is detected.
-    */
+   * Returns failure immediately if a corruption is detected.
+   */
   case object ReportFailure extends RecoveryMode {
     override val drop: Boolean = false
   }
 
   /**
-    * Keeps all entries until a corrupted entry in the Log file is detected and then
-    * drops all entries after the corruption.
-    */
+   * Keeps all entries until a corrupted entry in the Log file is detected and then
+   * drops all entries after the corruption.
+   */
   case object DropCorruptedTailEntries extends RecoveryMode {
     override val drop: Boolean = true
   }
 
   /**
-    * Keeps all entries until a corrupted entry in the Log file is detected and then
-    * drops all entries after the corruption and also ignores all the
-    * subsequent Map files after the corrupted file.
-    */
+   * Keeps all entries until a corrupted entry in the Log file is detected and then
+   * drops all entries after the corruption and also ignores all the
+   * subsequent Map files after the corrupted file.
+   */
   case object DropCorruptedTailEntriesAndMaps extends RecoveryMode {
     override val drop: Boolean = true
   }

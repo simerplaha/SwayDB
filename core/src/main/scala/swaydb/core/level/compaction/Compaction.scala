@@ -20,13 +20,12 @@
 package swaydb.core.level.compaction
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Level.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
-import swaydb.data.io.Core
-import swaydb.Error.Level.ErrorHandler
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -34,14 +33,14 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 /**
-  * This object does not implement any concurrency which should be handled by an Actor.
-  *
-  * It just implements functions that given a Level and it's [[CompactorState]] mutates the state
-  * such to reflect it's current compaction state. This state can then used to determine
-  * how the next compaction should occur.
-  *
-  * State mutation is necessary to avoid unnecessary garbage during compaction. Functions returning Unit mutate the state.
-  */
+ * This object does not implement any concurrency which should be handled by an Actor.
+ *
+ * It just implements functions that given a Level and it's [[CompactorState]] mutates the state
+ * such to reflect it's current compaction state. This state can then used to determine
+ * how the next compaction should occur.
+ *
+ * State mutation is necessary to avoid unnecessary garbage during compaction. Functions returning Unit mutate the state.
+ */
 private[level] object Compaction extends LazyLogging {
 
   val awaitPullTimeout = 6.seconds.fromNow
@@ -370,9 +369,9 @@ private[level] object Compaction extends LazyLogging {
       }
 
   /**
-    * Runs lazy error checks. Ignores all errors and continues copying
-    * each Level starting from the lowest level first.
-    */
+   * Runs lazy error checks. Ignores all errors and continues copying
+   * each Level starting from the lowest level first.
+   */
   private[compaction] def copyForwardForEach(levels: Slice[LevelRef])(implicit ec: ExecutionContext): Int =
     levels.foldLeft(0) {
       case (totalCopies, level: NextLevel) =>

@@ -20,14 +20,14 @@
 package swaydb.core.segment.merge
 
 /**
-  * Mutable data type to hold the state of currently being merged key-values and provides functions
-  * to mutate it's state.
-  *
-  * This cannot be immutable as it will add a lot to GC workload.
-  *
-  * A Segment can easily have over 100,000 key-values to merge and an immutable
-  * version of this class would create the same number of of MergeList instances in-memory.
-  */
+ * Mutable data type to hold the state of currently being merged key-values and provides functions
+ * to mutate it's state.
+ *
+ * This cannot be immutable as it will add a lot to GC workload.
+ *
+ * A Segment can easily have over 100,000 key-values to merge and an immutable
+ * version of this class would create the same number of of MergeList instances in-memory.
+ */
 private[core] sealed trait MergeList[H <: T, T] extends Iterable[T] {
 
   def headOption: Option[T]

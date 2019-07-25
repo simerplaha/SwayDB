@@ -25,13 +25,12 @@ import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
-import swaydb.Error
-import swaydb.data.io.Tag.CoreIO
+import swaydb.data.io.Tag.API
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{IO, SwayDB}
+import swaydb.{Error, IO, SwayDB}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -42,8 +41,8 @@ object Set extends LazyLogging {
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
   /**
-    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
-    */
+   * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
+   */
   def apply[T](mapSize: Int = 4.mb,
                segmentSize: Int = 2.mb,
                cacheSize: Int = 500.mb, //cacheSize for memory database is used for evicting decompressed key-values
@@ -55,7 +54,7 @@ object Set extends LazyLogging {
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                      fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                     cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.BootUp, swaydb.Set[T, CoreIO]] =
+                                                                                     cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.BootUp, swaydb.Set[T, API]] =
     BlockingCore(
       config = DefaultMemoryConfig(
         mapSize = mapSize,

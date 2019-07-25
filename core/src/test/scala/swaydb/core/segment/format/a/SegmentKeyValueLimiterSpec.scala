@@ -38,8 +38,8 @@ import swaydb.data.util.StorageUnits._
 import scala.concurrent.duration._
 
 /**
-  * These class has tests to assert the behavior of [[KeyValueLimiter]] on [[swaydb.core.segment.Segment]]s.
-  */
+ * These class has tests to assert the behavior of [[KeyValueLimiter]] on [[swaydb.core.segment.Segment]]s.
+ */
 class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
 
   val keyValuesCount = 100
@@ -49,9 +49,9 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
 
   "MemorySegment" should {
     /**
-      * Test that [[Memory.Group]] key-values are never dropped from the [[swaydb.core.segment.MemorySegment]]'s cache.
-      * They should only be uncompressed.
-      */
+     * Test that [[Memory.Group]] key-values are never dropped from the [[swaydb.core.segment.MemorySegment]]'s cache.
+     * They should only be uncompressed.
+     */
     "not drop head Group on memory-overflow" in {
       //create a group
       val groupKeyValues = randomizedKeyValues(1000, addPut = true, addGroups = false)

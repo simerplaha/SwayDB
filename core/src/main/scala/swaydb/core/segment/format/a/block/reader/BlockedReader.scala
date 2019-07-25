@@ -23,12 +23,11 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps, SegmentBlock}
-import swaydb.data.io.Core
 import swaydb.data.slice.{Reader, Slice}
 
 /**
-  * Reader[swaydb.Error.Segment] for the [[Block.CompressionInfo]] that skips [[Block.Header]] bytes.
-  */
+ * Reader[swaydb.Error.Segment] for the [[Block.CompressionInfo]] that skips [[Block.Header]] bytes.
+ */
 private[core] object BlockedReader {
 
   def apply[O <: BlockOffset, B <: Block[O]](block: B,

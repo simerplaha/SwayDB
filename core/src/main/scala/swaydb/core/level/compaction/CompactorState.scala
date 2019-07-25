@@ -32,8 +32,8 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 /**
-  * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
-  */
+ * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
+ */
 private[core] case class CompactorState(levels: Slice[LevelRef],
                                         child: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]],
                                         ordering: Ordering[LevelRef],

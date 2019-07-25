@@ -24,12 +24,12 @@ import swaydb.data.slice.Slice
 object KeyOrder {
 
   /**
-    * Default ordering.
-    *
-    * Custom key-ordering can be implemented.
-    * Documentation: http://www.swaydb.io/custom-key-ordering
-    *
-    */
+   * Default ordering.
+   *
+   * Custom key-ordering can be implemented.
+   * Documentation: http://www.swaydb.io/custom-key-ordering
+   *
+   */
   val default, lexicographic: KeyOrder[Slice[Byte]] = new KeyOrder[Slice[Byte]] {
     def compare(a: Slice[Byte], b: Slice[Byte]): Int = {
       val minimum = java.lang.Math.min(a.size, b.size)
@@ -45,8 +45,8 @@ object KeyOrder {
   }
 
   /**
-    * Provides the default reverse ordering.
-    */
+   * Provides the default reverse ordering.
+   */
   val reverse: KeyOrder[Slice[Byte]] =
     new KeyOrder[Slice[Byte]] {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int =

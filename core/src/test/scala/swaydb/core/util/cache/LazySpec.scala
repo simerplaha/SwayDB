@@ -21,9 +21,9 @@ package swaydb.core.util.cache
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.RunThis._
-import swaydb.Error.Segment.ErrorHandler
 
 import scala.concurrent.duration._
 import scala.util.Random

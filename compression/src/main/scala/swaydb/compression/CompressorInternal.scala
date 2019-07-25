@@ -29,7 +29,6 @@ import swaydb.IO
 import swaydb.data.compression.LZ4Compressor.{Fast, High}
 import swaydb.data.compression.LZ4Instance
 import swaydb.data.compression.LZ4Instance._
-import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 
 private[swaydb] sealed trait CompressorInternal {
@@ -76,8 +75,8 @@ private[swaydb] object CompressorInternal extends LazyLogging {
     }
 
   /**
-    * @return true if the compression satisfies the minimum compression requirement else false.
-    */
+   * @return true if the compression satisfies the minimum compression requirement else false.
+   */
   def isCompressionSatisfied(minCompressionPercentage: Double,
                              compressedLength: Int,
                              originalLength: Int,

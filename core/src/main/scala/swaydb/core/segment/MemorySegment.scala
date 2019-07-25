@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.data.Memory.{Group, SegmentResponse}
@@ -37,8 +38,6 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
 import swaydb.data.MaxKey
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -71,14 +70,14 @@ private[segment] case class MemorySegment(path: Path,
   import keyOrder._
 
   /**
-    * Adds the new Group to the queue only if it is not already in the Queue.
-    *
-    * This function is always invoked before reading the Group itself therefore if the header is not already
-    * populated, it means that this is a newly fetched/decompressed Group and should be added to the [[keyValueLimiter]].
-    *
-    * [[keyValueLimiter]] never removes [[Memory.Group]] key-value but instead uncompressed and re-adds them to the skipList.
-    *
-    */
+   * Adds the new Group to the queue only if it is not already in the Queue.
+   *
+   * This function is always invoked before reading the Group itself therefore if the header is not already
+   * populated, it means that this is a newly fetched/decompressed Group and should be added to the [[keyValueLimiter]].
+   *
+   * [[keyValueLimiter]] never removes [[Memory.Group]] key-value but instead uncompressed and re-adds them to the skipList.
+   *
+   */
   private def addToQueueMayBe(group: Memory.Group): Unit = {
     val groupSegment = group.segment
     //If the group is already initialised then this Group is already in the Limit queue as the queue always pre-reads the header
@@ -196,9 +195,9 @@ private[segment] case class MemorySegment(path: Path,
     Option(cache.get(key))
 
   /**
-    * Basic value does not perform floor checks on the cache which are only required if the Segment contains
-    * range or groups.
-    */
+   * Basic value does not perform floor checks on the cache which are only required if the Segment contains
+   * range or groups.
+   */
   private def doBasicGet(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     Option(cache.get(key)) map {
       case response: Memory.SegmentResponse =>
@@ -293,9 +292,9 @@ private[segment] case class MemorySegment(path: Path,
       }
 
   /**
-    * Basic value does not perform floor checks on the cache which are only required if the Segment contains
-    * range or groups.
-    */
+   * Basic value does not perform floor checks on the cache which are only required if the Segment contains
+   * range or groups.
+   */
   private def doBasicHigher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     Option(cache.higherEntry(key)).map(_.getValue) map {
       case response: Memory.SegmentResponse =>

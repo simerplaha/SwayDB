@@ -25,7 +25,6 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
@@ -53,8 +52,8 @@ object NextLevel {
 }
 
 /**
-  * Levels that can have upper Levels or Levels that upper Levels can merge Segments or Maps into.
-  */
+ * Levels that can have upper Levels or Levels that upper Levels can merge Segments or Maps into.
+ */
 trait NextLevel extends LevelRef {
 
   def paths: PathsDistributor

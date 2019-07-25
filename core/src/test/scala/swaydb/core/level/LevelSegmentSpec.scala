@@ -22,6 +22,7 @@ package swaydb.core.level
 import java.nio.file.{FileAlreadyExistsException, Files, NoSuchFileException}
 
 import org.scalamock.scalatest.MockFactory
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
@@ -37,8 +38,6 @@ import swaydb.core.util.PipeOps._
 import swaydb.core.util.{Extension, IDGenerator}
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.config.Dir
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage

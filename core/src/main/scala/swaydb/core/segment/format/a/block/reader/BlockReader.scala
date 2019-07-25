@@ -20,10 +20,9 @@
 package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.segment.format.a.block.BlockOffset
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.{Reader, Slice}
 
 protected trait BlockReader extends Reader[swaydb.Error.Segment] with LazyLogging {
@@ -129,10 +128,10 @@ protected trait BlockReader extends Reader[swaydb.Error.Segment] with LazyLoggin
                 bytes =>
 
                   /**
-                    * [[size]] can be larger than [[blockSize]]. If the seeks are smaller than [[blockSize]]
-                    * then cache the entire bytes since it's known that a minimum of [[blockSize]] is allowed to be cached.
-                    * If seeks are too large then cache only the extra tail bytes which are currently un-read by the client.
-                    */
+                   * [[size]] can be larger than [[blockSize]]. If the seeks are smaller than [[blockSize]]
+                   * then cache the entire bytes since it's known that a minimum of [[blockSize]] is allowed to be cached.
+                   * If seeks are too large then cache only the extra tail bytes which are currently un-read by the client.
+                   */
                   if (isFile && blockSize > 0) {
                     logger.debug(s"BlockReader #${this.hashCode()}: Seek from disk: ${bytes.size}.bytes")
                     if (bytes.size <= blockSize)

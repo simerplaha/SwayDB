@@ -120,9 +120,9 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
             randomFixedKeyValue(10),
             randomRangeKeyValue(11, 20),
             randomRangeKeyValue(20, 30),
-            randomGroup(Slice(randomFixedKeyValue(30),randomRangeKeyValue(40, 50)).toTransient).toMemory
+            randomGroup(Slice(randomFixedKeyValue(30), randomRangeKeyValue(40, 50)).toTransient).toMemory
           ).toTransient(
-            hashIndexConfig = HashIndexBlock.Config(10, 0, 0, _.requiredSpace * 10, _ => randomIOStrategy(), _=> Seq.empty)
+            hashIndexConfig = HashIndexBlock.Config(10, 0, 0, _.requiredSpace * 10, _ => randomIOStrategy(), _ => Seq.empty)
           ),
 
           assert =

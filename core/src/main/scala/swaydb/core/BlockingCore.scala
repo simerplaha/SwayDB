@@ -19,6 +19,7 @@
 
 package swaydb.core
 
+import swaydb.Error.Level.ErrorHandler
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.{Memory, SwayFunction, Time, Value}
 import swaydb.core.function.FunctionStore
@@ -29,8 +30,7 @@ import swaydb.core.map.timer.Timer
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}
-import swaydb.Error.Level.ErrorHandler
-import swaydb.data.io.{Core, Tag}
+import swaydb.data.io.Tag
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.{IO, Prepare}
@@ -48,7 +48,7 @@ private[swaydb] object BlockingCore {
             fileOpenLimiterEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[swaydb.Error.BootUp, BlockingCore[Tag.CoreIO]] =
+                                              functionStore: FunctionStore): IO[swaydb.Error.BootUp, BlockingCore[Tag.API]] =
     CoreInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
@@ -62,7 +62,7 @@ private[swaydb] object BlockingCore {
   def apply(config: LevelZeroConfig)(implicit mmapCleanerEC: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[swaydb.Error.BootUp, BlockingCore[Tag.CoreIO]] =
+                                     functionStore: FunctionStore): IO[swaydb.Error.BootUp, BlockingCore[Tag.API]] =
     CoreInitializer(
       config = config,
       bufferCleanerEC = mmapCleanerEC
@@ -125,14 +125,14 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(zero.put(key, value, removeAt))
 
   /**
-    * Each [[Prepare]] requires a new next [[Time]] for cases where a batch contains overriding keys.
-    *
-    * Same time indicates that the later Prepare in this batch with the same time as newer Prepare has already applied
-    * to the newer prepare therefore ignoring the newer prepare.
-    *
-    * NOTE: If the default time order [[TimeOrder.long]] is used
-    * Times should always be unique and in incremental order for *ALL* key values.
-    */
+   * Each [[Prepare]] requires a new next [[Time]] for cases where a batch contains overriding keys.
+   *
+   * Same time indicates that the later Prepare in this batch with the same time as newer Prepare has already applied
+   * to the newer prepare therefore ignoring the newer prepare.
+   *
+   * NOTE: If the default time order [[TimeOrder.long]] is used
+   * Times should always be unique and in incremental order for *ALL* key values.
+   */
   def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.Done] =
     if (entries.isEmpty)
       tag.fromIO(IO.failed(new Exception("Cannot write empty batch")))

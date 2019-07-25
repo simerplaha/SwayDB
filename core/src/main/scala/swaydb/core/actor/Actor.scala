@@ -32,22 +32,22 @@ import scala.concurrent.{ExecutionContext, Future}
 
 private[swaydb] sealed trait ActorRef[-T] {
   /**
-    * Submits message to Actor's queue and starts message execution if not already running.
-    */
+   * Submits message to Actor's queue and starts message execution if not already running.
+   */
   def !(message: T): Unit
 
   /**
-    * Submits message to Actor's queue but does not trigger the message execution.
-    *
-    * Used when guaranteed submission of the message is the only requirement.
-    *
-    * Used in timer actors where messages value processed after a delay interval.
-    */
+   * Submits message to Actor's queue but does not trigger the message execution.
+   *
+   * Used when guaranteed submission of the message is the only requirement.
+   *
+   * Used in timer actors where messages value processed after a delay interval.
+   */
   def submit(message: T): Unit
 
   /**
-    * Sends a message to this actor with delay
-    */
+   * Sends a message to this actor with delay
+   */
   def schedule(message: T, delay: FiniteDuration): TimerTask
 
   def hasMessages: Boolean
@@ -60,18 +60,18 @@ private[swaydb] object Actor {
   private[actor] val incrementDelayBy = 100.millisecond
 
   /**
-    * Basic stateless Actor that processes all incoming messages sequentially.
-    *
-    * On each message send (!) the Actor is woken up if it's not already running.
-    */
+   * Basic stateless Actor that processes all incoming messages sequentially.
+   *
+   * On each message send (!) the Actor is woken up if it's not already running.
+   */
   def apply[T](execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
     apply[T, Unit]()(execution)
 
   /**
-    * Basic stateful Actor that processes all incoming messages sequentially.
-    *
-    * On each message send (!) the Actor is woken up if it's not already running.
-    */
+   * Basic stateful Actor that processes all incoming messages sequentially.
+   *
+   * On each message send (!) the Actor is woken up if it's not already running.
+   */
   def apply[T, S](state: S)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
     new Actor[T, S](
       state = state,
@@ -84,17 +84,17 @@ private[swaydb] object Actor {
     )
 
   /**
-    * Stateless [[timer]] actor
-    */
+   * Stateless [[timer]] actor
+   */
   def timer[T](fixedDelay: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
     timer((), fixedDelay)(execution)
 
   /**
-    * Processes messages at regular intervals.
-    *
-    * If there are no messages in the queue the timer
-    * is stopped and restarted only when a new message is added the queue.
-    */
+   * Processes messages at regular intervals.
+   *
+   * If there are no messages in the queue the timer
+   * is stopped and restarted only when a new message is added the queue.
+   */
   def timer[T, S](state: S,
                   fixedDelay: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
     new Actor[T, S](
@@ -104,17 +104,17 @@ private[swaydb] object Actor {
     )
 
   /**
-    * Stateless [[timerLoop]]
-    */
+   * Stateless [[timerLoop]]
+   */
   def timerLoop[T](initialDelay: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
     timerLoop((), initialDelay)(execution)
 
   /**
-    * Checks the message queue for new messages at regular intervals
-    * indefinitely and processes them if the queue is non-empty.
-    *
-    * Use .submit instead of !. There should be a type-safe way of handling this but.
-    */
+   * Checks the message queue for new messages at regular intervals
+   * indefinitely and processes them if the queue is non-empty.
+   *
+   * Use .submit instead of !. There should be a type-safe way of handling this but.
+   */
   def timerLoop[T, S](state: S,
                       initialDelay: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
     new Actor[T, S](
@@ -124,12 +124,12 @@ private[swaydb] object Actor {
     )
 
   /**
-    * Adjust delay based on the input parameter.
-    *
-    * It basically decides if the delay should be incremented or decremented to control
-    * message overflow as quickly without hogging the thread for too long and without
-    * keep messages in-memory for too long.
-    */
+   * Adjust delay based on the input parameter.
+   *
+   * It basically decides if the delay should be incremented or decremented to control
+   * message overflow as quickly without hogging the thread for too long and without
+   * keep messages in-memory for too long.
+   */
   private[actor] def adjustDelay(currentQueueSize: Int,
                                  defaultQueueSize: Int,
                                  previousDelay: FiniteDuration,
@@ -203,8 +203,8 @@ private[swaydb] class Actor[T, +S](val state: S,
     }
 
   /**
-    * @param runNow ignores default delays and processes actor.
-    */
+   * @param runNow ignores default delays and processes actor.
+   */
   private def processMessages(runNow: Boolean): Unit =
     if (!terminated && (loop || !queue.isEmpty) && busy.compareAndSet(false, true)) {
       clearTask()

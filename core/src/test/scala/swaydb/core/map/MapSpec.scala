@@ -23,6 +23,7 @@ import java.nio.file.{FileAlreadyExistsException, Files, Path}
 import java.util.concurrent.ConcurrentSkipListMap
 
 import org.scalatest.OptionValues._
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
@@ -38,7 +39,6 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.Extension
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

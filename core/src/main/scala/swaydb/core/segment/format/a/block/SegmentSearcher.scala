@@ -19,11 +19,10 @@
 package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 

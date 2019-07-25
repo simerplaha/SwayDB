@@ -38,20 +38,20 @@ private[core] object KeyValueWriter {
   }
 
   /**
-    * Returns the index bytes and value bytes for the key-value and also the used
-    * value offset information for writing the next key-value.
-    *
-    * Each key also has a meta block which can be used to backward compatibility to store
-    * more information for that key in the future that does not fit the current key format.
-    *
-    * Currently all keys are being stored under EmptyMeta.
-    *
-    * Note: No extra bytes are required to differentiate between a key that has meta or no meta block.
-    *
-    * @param binder                  [[BaseEntryIdFormat]] for this key-value's type.
-    * @param compressDuplicateValues Compresses duplicate values if set to true.
-    * @return indexEntry, valueBytes, valueOffsetBytes, nextValuesOffsetPosition
-    */
+   * Returns the index bytes and value bytes for the key-value and also the used
+   * value offset information for writing the next key-value.
+   *
+   * Each key also has a meta block which can be used to backward compatibility to store
+   * more information for that key in the future that does not fit the current key format.
+   *
+   * Currently all keys are being stored under EmptyMeta.
+   *
+   * Note: No extra bytes are required to differentiate between a key that has meta or no meta block.
+   *
+   * @param binder                  [[BaseEntryIdFormat]] for this key-value's type.
+   * @param compressDuplicateValues Compresses duplicate values if set to true.
+   * @return indexEntry, valueBytes, valueOffsetBytes, nextValuesOffsetPosition
+   */
   def write[T <: Transient](current: T,
                             currentTime: Time,
                             compressDuplicateValues: Boolean,

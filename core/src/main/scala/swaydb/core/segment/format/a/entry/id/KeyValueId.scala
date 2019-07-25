@@ -40,8 +40,8 @@ sealed trait KeyValueId {
     keyValueId >= minKey_Uncompressed_KeyValueId && keyValueId <= maxKey_Uncompressed_KeyValueId
 
   /**
-    * Given persisted entryID convert it to [[BaseEntryId]].
-    */
+   * Given persisted entryID convert it to [[BaseEntryId]].
+   */
   def adjustKeyValueIdToBaseId(keyValueId: Int): Int =
     if (isKeyValueId_CompressedKey(keyValueId))
       if (minKey_Compressed_KeyValueId == KeyValueId.Put.minKey_Compressed_KeyValueId)
@@ -102,9 +102,9 @@ object KeyValueId {
   }
 
   /**
-    * Reserve 1 & 2 bytes ids for Put and Group. All the following key-values
-    * disappear in last Level but [[Put]] and [[Group]] are kept unless deleted.
-    */
+   * Reserve 1 & 2 bytes ids for Put and Group. All the following key-values
+   * disappear in last Level but [[Put]] and [[Group]] are kept unless deleted.
+   */
   object Range extends KeyValueId {
     override val minKey_Compressed_KeyValueId: Int = 16384
     override val maxKey_Compressed_KeyValueId: Int = minKey_Compressed_KeyValueId + reservedKeysPerGroup

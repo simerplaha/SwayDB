@@ -19,14 +19,13 @@
 
 package swaydb.core.segment
 
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.map.Map
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.segment.merge.MergeList
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -66,12 +65,12 @@ private[core] object SegmentAssigner {
             currentAssignments add keyValue
           catch {
             /**
-              * ArrayIndexOutOfBoundsException can occur when the size of an unopened Group's key-value was not accounted
-              * for at the time of Slice initialisation.
-              *
-              * This failure is not expected to occur often and it will be more efficient to extend the exiting assignments Slice
-              * whenever required.
-              */
+             * ArrayIndexOutOfBoundsException can occur when the size of an unopened Group's key-value was not accounted
+             * for at the time of Slice initialisation.
+             *
+             * This failure is not expected to occur often and it will be more efficient to extend the exiting assignments Slice
+             * whenever required.
+             */
             case _: ArrayIndexOutOfBoundsException =>
               val initial = Slice.create[KeyValue.ReadOnly](currentAssignments.size + remainingKeyValues + 1)
               initial addAll currentAssignments

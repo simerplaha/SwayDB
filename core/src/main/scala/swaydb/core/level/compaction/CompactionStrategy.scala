@@ -23,7 +23,6 @@ import swaydb.IO
 import swaydb.core.actor.WiredActor
 import swaydb.core.level.zero.LevelZero
 import swaydb.data.compaction.CompactionExecutionContext
-import swaydb.data.io.Core
 
 private[core] trait CompactionStrategy[S] {
 

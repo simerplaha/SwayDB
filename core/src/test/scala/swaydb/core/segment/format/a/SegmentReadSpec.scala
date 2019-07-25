@@ -23,6 +23,7 @@ import java.nio.file.{Files, NoSuchFileException}
 
 import org.scalatest.OptionValues._
 import org.scalatest.concurrent.ScalaFutures
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
@@ -34,8 +35,6 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.MaxKey
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -692,7 +691,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8)).toTransient) ::
           TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)).toTransient) ::
           Nil
-      }.map(_.runIO)
+        }.map(_.runIO)
 
       //0-1
       //          3-4       7-8
@@ -733,7 +732,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient) ::
           TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8)).toTransient) ::
           Nil
-      }.map(_.runIO)
+        }.map(_.runIO)
       Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runIO shouldBe true
 
       //               5-6
@@ -751,7 +750,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8)).toTransient) ::
           TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)).toTransient) ::
           Nil
-      }.map(_.runIO)
+        }.map(_.runIO)
 
       //0-1
       //          3-4       7-8
@@ -792,7 +791,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient) ::
           TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8)).toTransient) ::
           Nil
-      }.map(_.runIO)
+        }.map(_.runIO)
       Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runIO shouldBe true
 
       //               5-6

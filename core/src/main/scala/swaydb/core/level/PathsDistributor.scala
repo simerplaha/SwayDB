@@ -24,10 +24,10 @@ import java.util
 import java.util.concurrent.ConcurrentLinkedDeque
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.segment.Segment
 import swaydb.data.config.Dir
-import swaydb.Error.Segment.ErrorHandler
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -100,8 +100,8 @@ private[core] object PathsDistributor {
   }
 
   /**
-    * Given the current size of the Level returns the distributions expected.
-    */
+   * Given the current size of the Level returns the distributions expected.
+   */
   def distribute(size: Int,
                  distributions: Array[Distribution])(implicit order: Ordering[Distribution] = order): Array[Distribution] = {
 

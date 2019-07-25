@@ -24,7 +24,6 @@ import swaydb.IO
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block._
-import swaydb.data.io.Core
 import swaydb.data.slice.{Reader, Slice}
 
 private[core] object BlockRefReader {

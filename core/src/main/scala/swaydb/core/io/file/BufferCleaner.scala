@@ -24,11 +24,10 @@ import java.nio.file.Path
 import java.nio.{ByteBuffer, MappedByteBuffer}
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.IO.ErrorHandler
 import swaydb.IO
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.core.io.file.BufferCleaner.State
-import swaydb.data.io.Core
-import swaydb.Error.IO.ErrorHandler
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -99,8 +98,8 @@ private[core] object BufferCleaner extends LazyLogging {
     }
 
   /**
-    * Mutates the state after cleaner is initialised. Do not copy state to avoid necessary GC workload.
-    */
+   * Mutates the state after cleaner is initialised. Do not copy state to avoid necessary GC workload.
+   */
   private[file] def clean(state: State, buffer: MappedByteBuffer, path: Path): IO[swaydb.Error.IO, State] =
     state.cleaner map {
       cleaner =>

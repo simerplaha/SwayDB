@@ -21,11 +21,10 @@ package swaydb.core.map.serializer
 
 import java.util.concurrent.TimeUnit
 
+import swaydb.Error.Map.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.map.MapEntry
-import swaydb.data.io.Core
-import swaydb.Error.Map.ErrorHandler
 import swaydb.data.slice.{Reader, Slice}
 
 import scala.concurrent.duration.Deadline

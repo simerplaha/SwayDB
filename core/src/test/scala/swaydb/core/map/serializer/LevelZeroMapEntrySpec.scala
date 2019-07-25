@@ -22,6 +22,7 @@ package swaydb.core.map.serializer
 import java.util.concurrent.ConcurrentSkipListMap
 
 import org.scalatest.OptionValues._
+import swaydb.Error.Map.ErrorHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
@@ -36,7 +37,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.Error.Map.ErrorHandler
 
 import scala.collection.JavaConverters._
 

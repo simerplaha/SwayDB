@@ -28,13 +28,13 @@ import swaydb.data.Reserve
 import swaydb.data.slice.Slice
 
 
-protected[swaydb] sealed trait Error {
+protected sealed trait Error {
   def exception: Throwable
 }
 
 object Error {
 
-  private trait DerivedErrorHandler[T <: swaydb.Error] extends ErrorHandler[T] {
+  private[Error] trait BaseErrorHandler[T <: swaydb.Error] extends ErrorHandler[T] {
     override def toException(e: T): Throwable =
       e.exception
 
@@ -67,35 +67,35 @@ object Error {
   sealed trait API extends Error
 
   object Segment {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.Segment]
+    implicit object ErrorHandler extends BaseErrorHandler[Error.Segment]
   }
 
   object Level {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.Level]
+    implicit object ErrorHandler extends BaseErrorHandler[Error.Level]
   }
 
   object Map {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.Map]
+    implicit object ErrorHandler extends BaseErrorHandler[Error.Map]
   }
 
   object BootUp {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.BootUp]
+    implicit object ErrorHandler extends BaseErrorHandler[Error.BootUp]
   }
 
   object Close {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.Close]
+    implicit object ErrorHandler extends BaseErrorHandler[Error.Close]
   }
 
   object Delete {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.Delete]
+    implicit object ErrorHandler extends BaseErrorHandler[Error.Delete]
   }
 
   object API {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.API]
+    implicit object ErrorHandler extends BaseErrorHandler[Error.API]
   }
 
   object IO {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.IO]
+    implicit object ErrorHandler extends BaseErrorHandler[Error.IO]
   }
 
   def apply[T](exception: Throwable): Error =
@@ -263,7 +263,7 @@ object Error {
     def apply(message: String): Fatal =
       new Fatal(new Exception(message))
 
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.Fatal]
+    implicit object ErrorHandler extends BaseErrorHandler[Error.Fatal]
   }
 
   case class Fatal(exception: Throwable)

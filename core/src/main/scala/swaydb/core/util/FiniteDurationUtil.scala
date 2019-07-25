@@ -42,12 +42,12 @@ object FiniteDurationUtil {
   }
 
   /**
-    * Key-values such as Groups and Ranges can contain deadlines internally.
-    *
-    * Groups's internal key-value can contain deadline and Range's from and range value contain deadline.
-    * Be sure to extract those before checking for nearest deadline. Use other [[getNearestDeadline]]
-    * functions instead that take key-value as input to fetch the correct nearest deadline.
-    */
+   * Key-values such as Groups and Ranges can contain deadlines internally.
+   *
+   * Groups's internal key-value can contain deadline and Range's from and range value contain deadline.
+   * Be sure to extract those before checking for nearest deadline. Use other [[getNearestDeadline]]
+   * functions instead that take key-value as input to fetch the correct nearest deadline.
+   */
   def getNearestDeadline(deadline: Option[Deadline],
                          next: Option[Deadline]): Option[Deadline] =
 

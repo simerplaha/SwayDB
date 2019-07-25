@@ -20,14 +20,13 @@
 package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.config.{IOAction, IOStrategy, RandomKeyIndex, UncompressedBlockInfo}
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -36,8 +35,8 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 
 /**
-  * HashIndex.
-  */
+ * HashIndex.
+ */
 private[core] object HashIndexBlock extends LazyLogging {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
@@ -172,8 +171,8 @@ private[core] object HashIndexBlock extends LazyLogging {
   }
 
   /**
-    * Number of bytes required to build a high probability index.
-    */
+   * Number of bytes required to build a high probability index.
+   */
   def optimalBytesRequired(keyCounts: Int,
                            minimumNumberOfKeys: Int,
                            largestValue: Int,
@@ -260,8 +259,8 @@ private[core] object HashIndexBlock extends LazyLogging {
     ((hash & Int.MaxValue) % (totalBlockSpace - writeAbleLargestValueSize - headerSize)) + headerSize
 
   /**
-    * Mutates the slice and adds writes the indexOffset to it's hash index.
-    */
+   * Mutates the slice and adds writes the indexOffset to it's hash index.
+   */
   def write(key: Slice[Byte],
             value: Int,
             state: State): IO[swaydb.Error.Segment, Boolean] = {
@@ -314,10 +313,10 @@ private[core] object HashIndexBlock extends LazyLogging {
   }
 
   /**
-    * Finds a key in the hash index.
-    *
-    * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
-    */
+   * Finds a key in the hash index.
+   *
+   * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
+   */
   private[block] def search[R](key: Slice[Byte],
                                reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                                assertValue: Int => IO[swaydb.Error.Segment, Option[R]]): IO[swaydb.Error.Segment, Option[R]] = {

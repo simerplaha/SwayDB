@@ -20,13 +20,12 @@
 package swaydb.core.group.compression
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.Transient
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.data.MaxKey
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 
 private[core] object GroupCompressor extends LazyLogging {
@@ -35,10 +34,10 @@ private[core] object GroupCompressor extends LazyLogging {
     IO.failed(new Exception("Cannot compress empty key-values"))
 
   /**
-    * Returns (fromKey, toKey, fullKey) where fullKey is compressed fromKey and toKey.
-    *
-    * Pre-requisite: keyValues should be non-empty.
-    */
+   * Returns (fromKey, toKey, fullKey) where fullKey is compressed fromKey and toKey.
+   *
+   * Pre-requisite: keyValues should be non-empty.
+   */
   def buildCompressedKey(keyValues: Iterable[Transient]): (Slice[Byte], MaxKey[Slice[Byte]], Slice[Byte]) =
     GroupKeyCompressor.compress(keyValues.headOption, keyValues.last)
 

@@ -19,12 +19,11 @@
 
 package swaydb.core.util
 
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.PipeOps._
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteUtil
 
@@ -153,12 +152,12 @@ private[swaydb] object Bytes {
     )
 
   /**
-    * Merges the input bytes into a single byte array extracting common bytes.
-    *
-    * If there are no common bytes the compress will result in 2 more additional bytes.
-    *
-    * tail bytes are also appended to the the result. When decompressing tail bytes should be stripped.
-    */
+   * Merges the input bytes into a single byte array extracting common bytes.
+   *
+   * If there are no common bytes the compress will result in 2 more additional bytes.
+   *
+   * tail bytes are also appended to the the result. When decompressing tail bytes should be stripped.
+   */
   def compressJoin(left: Slice[Byte],
                    right: Slice[Byte],
                    tail: Slice[Byte]): Slice[Byte] = {
@@ -197,16 +196,16 @@ private[swaydb] object Bytes {
           commonBytes <- reader.readIntUnsigned()
           hasMore <- reader.hasAtLeast(lastBytesRead + 1) //if there are more bytes to read.
           right <-
-          if (!hasMore && commonBytes == leftBytesSize) //if right was fully compressed then right == left, return left.
-            IO.Success(left)
-          else
-            reader.readIntUnsigned() flatMap {
-              rightSize =>
-                reader.read(rightSize) map {
-                  right =>
-                    decompress(left, right, commonBytes)
-                }
-            }
+            if (!hasMore && commonBytes == leftBytesSize) //if right was fully compressed then right == left, return left.
+              IO.Success(left)
+            else
+              reader.readIntUnsigned() flatMap {
+                rightSize =>
+                  reader.read(rightSize) map {
+                    right =>
+                      decompress(left, right, commonBytes)
+                  }
+              }
         } yield {
           (left, right)
         }

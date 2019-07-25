@@ -26,11 +26,10 @@ import java.nio.{BufferOverflowException, MappedByteBuffer}
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.IO.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.data.Reserve
-import swaydb.data.io.Core
-import swaydb.Error.IO.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 
@@ -86,14 +85,14 @@ private[file] class MMAPFile(val path: Path,
   private val open = new AtomicBoolean(true)
 
   /**
-    * [[buffer]] is set to null for safely clearing it from the RAM. Setting it to null
-    * will throw [[NullPointerException]] which should be recovered into typed busy error
-    * [[swaydb.Error.NullMappedByteBuffer]] so this request will get retried.
-    *
-    * [[NullPointerException]] should not leak outside.
-    *
-    * FIXME - Switch to using Option.
-    */
+   * [[buffer]] is set to null for safely clearing it from the RAM. Setting it to null
+   * will throw [[NullPointerException]] which should be recovered into typed busy error
+   * [[swaydb.Error.NullMappedByteBuffer]] so this request will get retried.
+   *
+   * [[NullPointerException]] should not leak outside.
+   *
+   * FIXME - Switch to using Option.
+   */
   def recoverFromNullPointer[T](f: => T): IO[swaydb.Error.IO, T] =
     IO[swaydb.Error.IO, T](f) recoverWith {
       case swaydb.Error.Fatal(ex: NullPointerException) =>

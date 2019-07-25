@@ -19,11 +19,10 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.KeyMatcher.Result.{AheadOrNoneOrEnd, BehindFetchNext, BehindStopped, Matched}
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -67,10 +66,10 @@ private[core] object KeyMatcher {
     sealed trait Behind {
       def previous: Persistent
     }
-    case class BehindFetchNext(previous: Persistent) extends InComplete with Behind{
+    case class BehindFetchNext(previous: Persistent) extends InComplete with Behind {
       val asIO = IO.Success(this)
     }
-    case class BehindStopped(previous: Persistent) extends Complete with Behind{
+    case class BehindStopped(previous: Persistent) extends Complete with Behind {
       val asIO = IO.Success(this)
     }
     case object AheadOrNoneOrEnd extends Complete {

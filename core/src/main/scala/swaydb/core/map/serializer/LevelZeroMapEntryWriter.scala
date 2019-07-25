@@ -25,8 +25,8 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 /**
-  * TODO move to using varints and see if that makes a difference in performance.
-  */
+ * TODO move to using varints and see if that makes a difference in performance.
+ */
 object LevelZeroMapEntryWriter {
 
   implicit object Level0RemoveWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.Remove]] {
@@ -183,8 +183,8 @@ object LevelZeroMapEntryWriter {
     override val isUpdate: Boolean = true
 
     /**
-      * No need to write time since it can be computed from applies.
-      */
+     * No need to write time since it can be computed from applies.
+     */
     override def write(entry: MapEntry.Put[Slice[Byte], Memory.PendingApply], bytes: Slice[Byte]): Unit = {
       val appliesBytesRequired = ValueSerializer.bytesRequired(entry.value.applies)
       ValueSerializer.write(entry.value.applies) {

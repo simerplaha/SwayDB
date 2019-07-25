@@ -23,14 +23,13 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
-import swaydb.data.io.Core
 import swaydb.data.slice.{Reader, Slice}
 
 /**
-  * A typed object that indicates that block is already decompressed and now is reading data bytes.
-  *
-  * [[Block.unblock]] creates the object and should be the only function that creates it.
-  */
+ * A typed object that indicates that block is already decompressed and now is reading data bytes.
+ *
+ * [[Block.unblock]] creates the object and should be the only function that creates it.
+ */
 
 private[core] object UnblockedReader {
 

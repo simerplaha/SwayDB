@@ -20,9 +20,9 @@
 package swaydb.core.queue
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.actor.{Actor, ActorRef}
-import swaydb.Error.Segment.ErrorHandler
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
@@ -40,16 +40,16 @@ private[core] object LimitQueue {
 }
 
 /**
-  * Evicts items from Queue (if the queue exceeds the limit) at regular intervals of delays.
-  *
-  * Next delay is adjusted based on the current overflow. If elements value added to the queue more
-  * frequently than the eviction occurs then the next eviction delay is adjusted to run more often.
-  *
-  * @param limit        max size of the queue
-  * @param onEvict      function on trigger on evicted item
-  * @param defaultDelay interval delays to run overflow checks which is adjust
-  *                     during runtime based on the frequency of items being added and the size of overflow.
-  */
+ * Evicts items from Queue (if the queue exceeds the limit) at regular intervals of delays.
+ *
+ * Next delay is adjusted based on the current overflow. If elements value added to the queue more
+ * frequently than the eviction occurs then the next eviction delay is adjusted to run more often.
+ *
+ * @param limit        max size of the queue
+ * @param onEvict      function on trigger on evicted item
+ * @param defaultDelay interval delays to run overflow checks which is adjust
+ *                     during runtime based on the frequency of items being added and the size of overflow.
+ */
 private[core] class LimitQueue[T](limit: Long,
                                   onEvict: T => Unit,
                                   defaultDelay: FiniteDuration,

@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 import org.scalatest.Matchers._
 import org.scalatest.OptionValues._
 import org.scalatest.exceptions.TestFailedException
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
@@ -49,8 +50,6 @@ import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReade
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.config.IOStrategy
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.StorageUnits._
@@ -1117,10 +1116,10 @@ object CommonAssertions {
     }
 
   /**
-    * If all key-values are non put key-values then searching higher for each key-value
-    * can result in a very long search time. Considering using shuffleTake which
-    * randomly selects a batch to assert for None higher.
-    */
+   * If all key-values are non put key-values then searching higher for each key-value
+   * can result in a very long search time. Considering using shuffleTake which
+   * randomly selects a batch to assert for None higher.
+   */
   def assertHigherNone(keyValues: Iterable[KeyValue],
                        level: LevelRef,
                        shuffleTake: Option[Int] = None) = {
@@ -1284,8 +1283,8 @@ object CommonAssertions {
     assertHigher(unzipGroups(keyValues), getHigher = key => IO(segment.higher(key).runIO))
 
   /**
-    * Asserts that all key-values are returned in order when fetching higher in sequence.
-    */
+   * Asserts that all key-values are returned in order when fetching higher in sequence.
+   */
   def assertHigher(_keyValues: Iterable[KeyValue],
                    getHigher: Slice[Byte] => IO[swaydb.Error.Level, Option[KeyValue]]): Unit = {
     import KeyOrder.default._

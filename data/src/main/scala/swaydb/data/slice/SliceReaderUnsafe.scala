@@ -22,10 +22,10 @@ package swaydb.data.slice
 import java.nio.charset.{Charset, StandardCharsets}
 
 /**
-  * Wrapper around SliceReader to perform eager fetches.
-  *
-  * SliceReader is used internally and should not be exposed to the API.
-  */
+ * Wrapper around SliceReader to perform eager fetches.
+ *
+ * SliceReader is used internally and should not be exposed to the API.
+ */
 class SliceReaderUnsafe(slice: Slice[Byte]) {
 
   private val sliceReader = SliceReaderSafe[Throwable](slice)
@@ -86,15 +86,15 @@ class SliceReaderUnsafe(slice: Slice[Byte]) {
     sliceReader.readRemaining().get
 
   /**
-    * Note: This function does not operate on the original Slice if the String being read is a
-    * sub-slice of another Slice. Another copy of the Array that represent the String's bytes will be created.
-    *
-    * This is because
-    * {{{
-    *   new String(array, offset, size, charset)
-    * }}}
-    * requires an Array and not an Iterable. Slice currently does not expose the internal Array.
-    */
+   * Note: This function does not operate on the original Slice if the String being read is a
+   * sub-slice of another Slice. Another copy of the Array that represent the String's bytes will be created.
+   *
+   * This is because
+   * {{{
+   *   new String(array, offset, size, charset)
+   * }}}
+   * requires an Array and not an Iterable. Slice currently does not expose the internal Array.
+   */
   def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): String =
     sliceReader.readRemainingAsString(charset).get
 

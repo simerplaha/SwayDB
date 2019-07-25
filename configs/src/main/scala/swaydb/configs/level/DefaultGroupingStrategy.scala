@@ -26,20 +26,20 @@ import swaydb.data.util.StorageUnits._
 object DefaultGroupingStrategy {
 
   /**
-    * Default grouping Strategy the last Level of the Persistent configuration. It uses 3 three compression types
-    * with minimum compression requirement of 10%.
-    *
-    * All there compression libraries are used and compressions are executed in their order until a successful compression is achieved.
-    * 1. LZ4's fastest Java instance with Fast compressor and decompressor.
-    * 2. Snappy
-    * 3. UnCompressedGroup - No compression, key-values are just grouped.
-    *
-    * After key-values are Grouped, the Groups can also be grouped which will result in nested Groups. Although nested Groups
-    * can give high compression but they it can also have .
-    * Either [[GroupGroupingStrategy.Count]] or [[GroupGroupingStrategy.Size]] can be used check documentation on the website for more info.
-    *
-    * By default currently nested Group compression is not used because the default file sizes are too small (2.mb) to be creating nested Groups.
-    */
+   * Default grouping Strategy the last Level of the Persistent configuration. It uses 3 three compression types
+   * with minimum compression requirement of 10%.
+   *
+   * All there compression libraries are used and compressions are executed in their order until a successful compression is achieved.
+   * 1. LZ4's fastest Java instance with Fast compressor and decompressor.
+   * 2. Snappy
+   * 3. UnCompressedGroup - No compression, key-values are just grouped.
+   *
+   * After key-values are Grouped, the Groups can also be grouped which will result in nested Groups. Although nested Groups
+   * can give high compression but they it can also have .
+   * Either [[GroupGroupingStrategy.Count]] or [[GroupGroupingStrategy.Size]] can be used check documentation on the website for more info.
+   *
+   * By default currently nested Group compression is not used because the default file sizes are too small (2.mb) to be creating nested Groups.
+   */
   def apply(groupKeyValuesAtSize: Int = 1.mb,
             minCompressionPercentage: Double = 10.0) =
     KeyValueGroupingStrategy.Size( //Grouping strategy for key-values

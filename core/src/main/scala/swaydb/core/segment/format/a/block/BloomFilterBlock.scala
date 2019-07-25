@@ -20,6 +20,7 @@
 package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.compression.CompressionInternal
@@ -27,8 +28,6 @@ import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil, MurmurHash3Generic, Options}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -234,8 +233,8 @@ private[core] object BloomFilterBlock extends LazyLogging {
       None
 
   /**
-    * Initialise bloomFilter if key-values do no contain remove range.
-    */
+   * Initialise bloomFilter if key-values do no contain remove range.
+   */
   def init(numberOfKeys: Int,
            falsePositiveRate: Double,
            compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Option[BloomFilterBlock.State] =

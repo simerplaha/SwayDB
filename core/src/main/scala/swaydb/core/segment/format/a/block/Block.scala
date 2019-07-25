@@ -20,6 +20,7 @@
 package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
@@ -27,14 +28,12 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.util.Bytes
 import swaydb.data.config.IOAction
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 /**
-  * A block is a group of compressed or uncompressed bytes.
-  */
+ * A block is a group of compressed or uncompressed bytes.
+ */
 private[core] trait Block[O <: BlockOffset] {
   def offset: O
   def headerSize: Int
@@ -85,15 +84,15 @@ private[core] object Block extends LazyLogging {
       Block.headerSizeNoCompression
 
   /**
-    * Compress the bytes and update the header with the compression information.
-    * The bytes should make sure it has enough space to write compression information.
-    *
-    * Mutation is required here because compression is expensive. Instead of copying and merging we
-    * ask the compressor to allocate empty header bytes to the compressed array.
-    *
-    * Others using this function should ensure that [[headerSize]] is accounted for in the byte size calculations.
-    * They should also allocate enough bytes to write the total headerSize.
-    */
+   * Compress the bytes and update the header with the compression information.
+   * The bytes should make sure it has enough space to write compression information.
+   *
+   * Mutation is required here because compression is expensive. Instead of copying and merging we
+   * ask the compressor to allocate empty header bytes to the compressed array.
+   *
+   * Others using this function should ensure that [[headerSize]] is accounted for in the byte size calculations.
+   * They should also allocate enough bytes to write the total headerSize.
+   */
   def block(headerSize: Int,
             bytes: Slice[Byte],
             compressions: Seq[CompressionInternal],

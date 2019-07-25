@@ -22,8 +22,8 @@ package swaydb.data.slice
 import swaydb.{ErrorHandler, IO}
 
 /**
-  * http://www.swaydb.io/slice/byte-slice
-  */
+ * http://www.swaydb.io/slice/byte-slice
+ */
 private[swaydb] case class SliceReaderSafe[E: ErrorHandler](slice: Slice[Byte]) extends Reader[E] {
 
   private var position: Int = 0

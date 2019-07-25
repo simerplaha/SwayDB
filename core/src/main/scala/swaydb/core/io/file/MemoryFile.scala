@@ -24,7 +24,6 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.ErrorHandler.Throwable
 import swaydb.IO
-import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 
 private[file] object MemoryFile {

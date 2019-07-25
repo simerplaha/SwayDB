@@ -31,7 +31,7 @@ import scala.util.Random
 
 case class Runner(test: Test) extends Benchmark with LazyLogging {
 
-  private val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], Tag.CoreIO] = test.map
+  private val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], Tag.API] = test.map
   private val randomWrite: Boolean = test.randomWrite
   private val randomRead: Boolean = test.randomRead
   private val forwardIteration: Boolean = test.forwardIteration

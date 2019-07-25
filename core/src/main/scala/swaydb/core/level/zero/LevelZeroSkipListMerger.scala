@@ -32,11 +32,11 @@ import swaydb.data.slice.Slice
 import scala.collection.JavaConverters._
 
 /**
-  * When inserting key-values that alter existing Range key-values in the skipList, they should be inserted into the skipList atomically and should only
-  * replace existing keys if all the new inserts have overwritten all the key ranges in the conflicting Range key-value.
-  *
-  * reverse on the merge results ensures that changes happen atomically.
-  */
+ * When inserting key-values that alter existing Range key-values in the skipList, they should be inserted into the skipList atomically and should only
+ * replace existing keys if all the new inserts have overwritten all the key ranges in the conflicting Range key-value.
+ *
+ * reverse on the merge results ensures that changes happen atomically.
+ */
 object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.SegmentResponse] {
 
   //.get is no good. Memory key-values will never result in failure since they do not perform IO (no side-effects).
@@ -50,8 +50,8 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.Segmen
     ).get.asInstanceOf[Memory.Fixed]
 
   /**
-    * Inserts a [[Memory.Fixed]] key-value into skipList.
-    */
+   * Inserts a [[Memory.Fixed]] key-value into skipList.
+   */
   def insert(insert: Memory.Fixed,
              skipList: ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
@@ -84,9 +84,9 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.Segmen
   }
 
   /**
-    * Inserts the input [[Memory.Range]] key-value into skipList and always maintaining the previous state of
-    * the skipList before applying the new state so that all read queries read the latest write.
-    */
+   * Inserts the input [[Memory.Range]] key-value into skipList and always maintaining the previous state of
+   * the skipList before applying the new state so that all read queries read the latest write.
+   */
   def insert(insert: Memory.Range,
              skipList: ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],

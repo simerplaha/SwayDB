@@ -19,14 +19,13 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 
 private[core] object ValuesBlock {
@@ -177,20 +176,20 @@ private[core] object ValuesBlock {
         .read(length)
         .map(Some(_))
         .recoverWith[swaydb.Error.Segment, Option[Slice[Byte]]] {
-        case error =>
-          error.exception match {
-            case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
-              IO.Failure(
-                swaydb.Error.Corruption(
-                  message = s"Corrupted Segment: Failed to value bytes of length $length from offset $fromOffset",
-                  exception = exception
+          case error =>
+            error.exception match {
+              case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
+                IO.Failure(
+                  swaydb.Error.Corruption(
+                    message = s"Corrupted Segment: Failed to value bytes of length $length from offset $fromOffset",
+                    exception = exception
+                  )
                 )
-              )
 
-            case ex: Exception =>
-              IO.failed(ex)
-          }
-      }
+              case ex: Exception =>
+                IO.failed(ex)
+            }
+        }
 
   implicit object ValuesBlockOps extends BlockOps[ValuesBlock.Offset, ValuesBlock] {
     override def updateBlockOffset(block: ValuesBlock, start: Int, size: Int): ValuesBlock =

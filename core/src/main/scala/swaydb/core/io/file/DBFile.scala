@@ -22,12 +22,11 @@ package swaydb.core.io.file
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.IO.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.queue.{FileLimiter, FileLimiterItem}
 import swaydb.data.Reserve
-import swaydb.data.io.Core
-import swaydb.Error.IO.ErrorHandler
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -155,10 +154,10 @@ object DBFile {
     }
 }
 /**
-  * Wrapper class for different file types of [[DBFileType]].
-  *
-  * Responsible for lazy loading files for reads and opening closed files in a thread safe manner.
-  */
+ * Wrapper class for different file types of [[DBFileType]].
+ *
+ * Responsible for lazy loading files for reads and opening closed files in a thread safe manner.
+ */
 class DBFile(val path: Path,
              memoryMapped: Boolean,
              val memory: Boolean,
@@ -214,8 +213,8 @@ class DBFile(val path: Path,
       }
 
   /**
-    * Use [[openFile]] instead to disallow multiple concurrently opened files.
-    */
+   * Use [[openFile]] instead to disallow multiple concurrently opened files.
+   */
   private def tryOpen(): IO[swaydb.Error.IO, DBFileType] =
     file match {
       case Some(openedFile) =>

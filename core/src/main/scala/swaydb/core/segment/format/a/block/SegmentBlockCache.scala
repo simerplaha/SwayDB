@@ -26,7 +26,6 @@ import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader,
 import swaydb.core.util.cache.Cache
 import swaydb.data.Reserve
 import swaydb.data.config.{IOAction, IOStrategy}
-import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 
 object SegmentBlockCache {

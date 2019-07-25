@@ -20,19 +20,18 @@
 package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{IO, SwayDB}
 import swaydb.configs.level.DefaultMemoryConfig
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
-import swaydb.Error
 import swaydb.data.io.Tag
-import swaydb.data.io.Tag.CoreIO
+import swaydb.data.io.Tag.API
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
+import swaydb.{Error, IO, SwayDB}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -43,22 +42,21 @@ object Map extends LazyLogging {
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
   /**
-    * A 2 Leveled (Level0 & Level1), in-memory database.
-    *
-    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
-    *
-    * @param mapSize         size of Level0 maps before they are converted into Segments
-    * @param segmentSize     size of Level1 Segments
-    * @param acceleration    Controls the write speed.
-    * @param keySerializer   Converts keys to Bytes
-    * @param valueSerializer Converts values to Bytes
-    * @param keyOrder        Sort order for keys
-    * @param ec
-    * @tparam K
-    * @tparam V
-    *
-    * @return
-    */
+   * A 2 Leveled (Level0 & Level1), in-memory database.
+   *
+   * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
+   *
+   * @param mapSize         size of Level0 maps before they are converted into Segments
+   * @param segmentSize     size of Level1 Segments
+   * @param acceleration    Controls the write speed.
+   * @param keySerializer   Converts keys to Bytes
+   * @param valueSerializer Converts values to Bytes
+   * @param keyOrder        Sort order for keys
+   * @param ec
+   * @tparam K
+   * @tparam V
+   * @return
+   */
 
   def apply[K, V](mapSize: Int = 4.mb,
                   segmentSize: Int = 2.mb,
@@ -72,7 +70,7 @@ object Map extends LazyLogging {
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                         fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.BootUp, swaydb.Map[K, V, CoreIO]] =
+                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.BootUp, swaydb.Map[K, V, API]] =
     BlockingCore(
       config = DefaultMemoryConfig(
         mapSize = mapSize,
@@ -92,6 +90,6 @@ object Map extends LazyLogging {
       cacheLimiterEC = cacheLimiterEC
     ) map {
       db =>
-        swaydb.Map[K, V, Tag.CoreIO](db)
+        swaydb.Map[K, V, Tag.API](db)
     }
 }

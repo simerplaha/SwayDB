@@ -19,13 +19,12 @@
 
 package swaydb.core.level.seek
 
+import swaydb.Error.Level.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge._
-import swaydb.data.io.Core
-import swaydb.Error.Level.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -34,8 +33,8 @@ import scala.annotation.tailrec
 private[core] object Lower {
 
   /**
-    * Check and returns the FromValue if it's a valid lower key-value for the input key.
-    */
+   * Check and returns the FromValue if it's a valid lower key-value for the input key.
+   */
   def lowerFromValue(key: Slice[Byte],
                      fromKey: Slice[Byte],
                      fromValue: Option[Value.FromValue])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Memory.Put] = {
@@ -75,12 +74,12 @@ private[core] object Lower {
     Lower(key, currentSeek, nextSeek)
 
   /**
-    * May be use trampolining instead and split the matches into their own functions to reduce
-    * repeated boilerplate code & if does not effect read performance or adds to GC workload.
-    *
-    * This and [[Higher]] share a lot of the same code for certain [[Seek]] steps. Again trampolining
-    * could help share this code and removing duplicates but only if there is no performance penalty.
-    */
+   * May be use trampolining instead and split the matches into their own functions to reduce
+   * repeated boilerplate code & if does not effect read performance or adds to GC workload.
+   *
+   * This and [[Higher]] share a lot of the same code for certain [[Seek]] steps. Again trampolining
+   * could help share this code and removing duplicates but only if there is no performance penalty.
+   */
   @tailrec
   def apply(key: Slice[Byte],
             currentSeek: Seek.Current,
@@ -93,10 +92,10 @@ private[core] object Lower {
 
     (currentSeek, nextSeek) match {
       /** ********************************************************
-        * ******************                   *******************
-        * ******************  Current on Next  *******************
-        * ******************                   *******************
-        * ********************************************************/
+       * ******************                   *******************
+       * ******************  Current on Next  *******************
+       * ******************                   *******************
+       * ********************************************************/
 
       case (Seek.Read, Seek.Read) =>
         currentWalker.lower(key) match {
@@ -288,10 +287,10 @@ private[core] object Lower {
         }
 
       /** *********************************************************
-        * ******************                    *******************
-        * ******************  Current on Stash  *******************
-        * ******************                    *******************
-        * *********************************************************/
+       * ******************                    *******************
+       * ******************  Current on Stash  *******************
+       * ******************                    *******************
+       * *********************************************************/
 
       case (Seek.Current.Stop, Seek.Next.Stash(next, nextStateID)) =>
         if (nextWalker.hasStateChanged(nextStateID))
@@ -326,10 +325,10 @@ private[core] object Lower {
           (current, next) match {
 
             /** **********************************************
-              * ******************         *******************
-              * ******************  Fixed  *******************
-              * ******************         *******************
-              * **********************************************/
+             * ******************         *******************
+             * ******************  Fixed  *******************
+             * ******************         *******************
+             * **********************************************/
 
             case (current: KeyValue.ReadOnly.Fixed, next: KeyValue.ReadOnly.Fixed) =>
               //    2
@@ -368,12 +367,12 @@ private[core] object Lower {
                 IO.Success(Some(next))
 
             /** *********************************************
-              * *********************************************
-              * ******************       ********************
-              * ****************** RANGE ********************
-              * ******************       ********************
-              * *********************************************
-              * *********************************************/
+             * *********************************************
+             * ******************       ********************
+             * ****************** RANGE ********************
+             * ******************       ********************
+             * *********************************************
+             * *********************************************/
             case (current: KeyValue.ReadOnly.Range, next: KeyValue.ReadOnly.Fixed) =>
               //             22 (input)
               //10 - 20         (current)
@@ -475,10 +474,10 @@ private[core] object Lower {
           }
 
       /** ********************************************************
-        * ******************                   *******************
-        * ******************  Current on Stop  *******************
-        * ******************                   *******************
-        * ********************************************************/
+       * ******************                   *******************
+       * ******************  Current on Stop  *******************
+       * ******************                   *******************
+       * ********************************************************/
 
       case (Seek.Read, Seek.Next.Stop(nextStateID)) =>
         if (nextWalker.hasStateChanged(nextStateID))

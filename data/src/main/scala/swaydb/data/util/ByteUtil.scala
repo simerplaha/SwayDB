@@ -91,15 +91,15 @@ object ByteUtil {
     bytes addAll string.getBytes(charsets)
 
   /** **************************************************
-    * Credit - https://github.com/larroy/varint-scala
-    *
-    * Duplicate functions here. This code
-    * is crucial for read performance and the most frequently used.
-    * Creating reader on each read will be expensive therefore the functions are repeated
-    * for slice and reader.
-    *
-    * Need to re-evaluate this code and see if abstract functions can be used.
-    * ************************************************/
+   * Credit - https://github.com/larroy/varint-scala
+   *
+   * Duplicate functions here. This code
+   * is crucial for read performance and the most frequently used.
+   * Creating reader on each read will be expensive therefore the functions are repeated
+   * for slice and reader.
+   *
+   * Need to re-evaluate this code and see if abstract functions can be used.
+   * ************************************************/
 
   def writeSignedInt(x: Int, slice: Slice[Byte]): Unit =
     writeUnsignedInt((x << 1) ^ (x >> 31), slice)
@@ -178,8 +178,8 @@ object ByteUtil {
     }
 
   /**
-    * @return Tuple where the first integer is the unsigned integer and the second is the number of bytes read.
-    */
+   * @return Tuple where the first integer is the unsigned integer and the second is the number of bytes read.
+   */
   def readLastUnsignedInt[E: ErrorHandler](slice: Slice[Byte]): IO[E, (Int, Int)] =
     IO {
       var index = slice.size - 1

@@ -25,7 +25,6 @@ import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.cache.Cache
-import swaydb.data.io.Core
 import swaydb.data.slice.Reader
 
 private[core] trait BaseEntryReader {

@@ -24,14 +24,13 @@ import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicLong
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Map.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
 import swaydb.core.queue.FileLimiter
-import swaydb.data.io.Core
-import swaydb.Error.Map.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -107,19 +106,19 @@ private[core] object PersistentTimer extends LazyLogging {
   }
 
   /**
-    * Stores next checkpoint time to Map.
-    *
-    * Why throw exceptions?
-    * Writes are ALWAYS expected to succeed but unexpected failures can still occur.
-    * Since nextTime is called for each written key-value having an IO wrapper
-    * for each [[PersistentTimer.next]] call can increase in-memory objects which can cause
-    * performance issues.
-    *
-    * Throwing exception on failure is temporarily solution since failures are not expected and if failure does occur
-    * it would be due to file system permission issue.
-    *
-    * Possibly needs a better solution.
-    */
+   * Stores next checkpoint time to Map.
+   *
+   * Why throw exceptions?
+   * Writes are ALWAYS expected to succeed but unexpected failures can still occur.
+   * Since nextTime is called for each written key-value having an IO wrapper
+   * for each [[PersistentTimer.next]] call can increase in-memory objects which can cause
+   * performance issues.
+   *
+   * Throwing exception on failure is temporarily solution since failures are not expected and if failure does occur
+   * it would be due to file system permission issue.
+   *
+   * Possibly needs a better solution.
+   */
   private[timer] def checkpoint(nextTime: Long,
                                 mod: Long,
                                 map: PersistentMap[Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) =

@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -28,8 +29,6 @@ import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.HashIndexBlock.HashIndexBlockOps
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.data.config.RandomKeyIndex.RequiredSpace
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -46,8 +45,8 @@ class HashIndexBlockSpec extends TestBase {
   import keyOrder._
 
   /**
-    * Asserts that both HashIndexes will eventually result in the same index.
-    */
+   * Asserts that both HashIndexes will eventually result in the same index.
+   */
   def assertHashIndexes(keyValues: Iterable[Transient],
                         hashIndex1: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                         hashIndex2: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock])(implicit order: KeyOrder[Slice[Byte]]) = {

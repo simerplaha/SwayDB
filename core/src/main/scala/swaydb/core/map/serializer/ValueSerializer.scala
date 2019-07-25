@@ -19,14 +19,13 @@
 
 package swaydb.core.map.serializer
 
+import swaydb.Error.IO.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.core.util.TimeUtil._
-import swaydb.data.io.Core
-import swaydb.Error.IO.ErrorHandler
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -256,8 +255,8 @@ object ValueSerializer {
   }
 
   /**
-    * Serializer for a tuple of Option bytes and sequence bytes.
-    */
+   * Serializer for a tuple of Option bytes and sequence bytes.
+   */
   implicit object SeqOfBytesSerializer extends ValueSerializer[Seq[Slice[Byte]]] {
 
     override def write(values: Seq[Slice[Byte]], bytes: Slice[Byte]): Unit =
@@ -288,8 +287,8 @@ object ValueSerializer {
   }
 
   /**
-    * Serializer for a tuple of Option bytes and sequence bytes.
-    */
+   * Serializer for a tuple of Option bytes and sequence bytes.
+   */
   implicit object TupleOfBytesSerializer extends ValueSerializer[(Slice[Byte], Slice[Byte])] {
 
     override def write(value: (Slice[Byte], Slice[Byte]), bytes: Slice[Byte]): Unit =
@@ -309,8 +308,8 @@ object ValueSerializer {
   }
 
   /**
-    * Serializer for a tuple of Option bytes and sequence bytes.
-    */
+   * Serializer for a tuple of Option bytes and sequence bytes.
+   */
   implicit object TupleBytesAndOptionBytesSerializer extends ValueSerializer[(Slice[Byte], Option[Slice[Byte]])] {
 
     override def write(value: (Slice[Byte], Option[Slice[Byte]]), bytes: Slice[Byte]): Unit =
@@ -350,8 +349,8 @@ object ValueSerializer {
   }
 
   /**
-    * Serializer for a tuple of Option bytes and sequence bytes.
-    */
+   * Serializer for a tuple of Option bytes and sequence bytes.
+   */
   implicit object IntMapListBufferSerializer extends ValueSerializer[mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]]] {
     val formatId = 0.toByte
 
@@ -404,8 +403,8 @@ object ValueSerializer {
       }
 
     /**
-      * Calculates the number of bytes required with minimal information about the RangeFilter.
-      */
+     * Calculates the number of bytes required with minimal information about the RangeFilter.
+     */
     def optimalBytesRequired(numberOfRanges: Int,
                              maxUncommonBytesToStore: Int,
                              rangeFilterCommonPrefixes: Iterable[Int]): Int =
@@ -418,10 +417,10 @@ object ValueSerializer {
 
 
     /**
-      * This is not currently used by RangeFilter, [[optimalBytesRequired]] is used instead
-      * for faster calculation without long iterations. The size is almost always accurate and very rarely adds a few extra bytes.
-      * See tests.
-      */
+     * This is not currently used by RangeFilter, [[optimalBytesRequired]] is used instead
+     * for faster calculation without long iterations. The size is almost always accurate and very rarely adds a few extra bytes.
+     * See tests.
+     */
     override def bytesRequired(map: mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]]): Int =
       map.foldLeft(ByteSizeOf.byte) {
         case (totalSize, (int, tuples)) =>

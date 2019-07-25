@@ -19,15 +19,5 @@
 
 package swaydb.data.io
 
-import java.io.FileNotFoundException
-import java.nio.ReadOnlyBufferException
-import java.nio.channels.{AsynchronousCloseException, ClosedChannelException, OverlappingFileLockException}
-import java.nio.file.{NoSuchFileException, Path}
-
-import swaydb.ErrorHandler
-import swaydb.data.Reserve
-import swaydb.data.slice.Slice
-
 object Core {
-
 }

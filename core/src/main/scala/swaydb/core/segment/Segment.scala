@@ -23,6 +23,7 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.data._
@@ -39,8 +40,6 @@ import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.{FiniteDurationUtil, IDGenerator, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.config.Dir
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -420,13 +419,13 @@ private[core] object Segment extends LazyLogging {
   }
 
   /**
-    * Reads the [[PersistentSegment]] when the min, max keys & fileSize is not known.
-    *
-    * This function requires the Segment to be opened and read. After the Segment is successfully
-    * read the file is closed.
-    *
-    * This function is only used for Appendix file recovery initialization.
-    */
+   * Reads the [[PersistentSegment]] when the min, max keys & fileSize is not known.
+   *
+   * This function requires the Segment to be opened and read. After the Segment is successfully
+   * read the file is closed.
+   *
+   * This function is only used for Appendix file recovery initialization.
+   */
   def apply(path: Path,
             mmapReads: Boolean,
             mmapWrites: Boolean,
@@ -584,8 +583,8 @@ private[core] object Segment extends LazyLogging {
     segments2.exists(_.path == segment.path)
 
   /**
-    * Pre condition: Segments should be sorted with their minKey in ascending order.
-    */
+   * Pre condition: Segments should be sorted with their minKey in ascending order.
+   */
   def getAllKeyValues(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
     if (segments.isEmpty)
       IO.Success(Slice.create[KeyValue.ReadOnly](0))

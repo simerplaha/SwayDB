@@ -32,10 +32,10 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
-  * Map database API.
-  *
-  * For documentation check - http://swaydb.io/tag/
-  */
+ * Map database API.
+ *
+ * For documentation check - http://swaydb.io/tag/
+ */
 case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
                            private val from: Option[From[K]] = None,
                            private[swaydb] val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
@@ -173,16 +173,16 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     wrapCall(core.put(prepare))
 
   /**
-    * Returns target value for the input key.
-    */
+   * Returns target value for the input key.
+   */
   def get(key: K): T[Option[V]] =
     wrapCall(core.get(key).map(_.map(_.read[V])))
 
   /**
-    * Returns target full key for the input partial key.
-    *
-    * This function is mostly used for Set databases where partial ordering on the Key is provided.
-    */
+   * Returns target full key for the input partial key.
+   *
+   * This function is mostly used for Set databases where partial ordering on the Key is provided.
+   */
   def getKey(key: K): T[Option[K]] =
     wrapCall(core.getKey(key).map(_.map(_.read[K])))
 
@@ -366,20 +366,20 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     copy(reverseIteration = true)
 
   /**
-    * Returns an Async API of type O where the [[Tag]] is known.
-    */
+   * Returns an Async API of type O where the [[Tag]] is known.
+   */
   def tagAsync[T2[_]](implicit ec: ExecutionContext,
                       tag: Tag.Async[T2]): Map[K, V, T2] =
     copy(core = core.tagAsync[T2])
 
   /**
-    * Returns an blocking API of type O where the [[Tag]] is known.
-    */
+   * Returns an blocking API of type O where the [[Tag]] is known.
+   */
   def tagBlocking[T2[_]](implicit tag: Tag[T2]): Map[K, V, T2] =
     copy(core = core.tagBlocking[T2])
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V](tagBlocking[Tag.CoreIO](Tag.sio))
+    ScalaMap[K, V](tagBlocking[Tag.API](Tag.sio))
 
   def close(): T[Unit] =
     wrapCall(core.close())

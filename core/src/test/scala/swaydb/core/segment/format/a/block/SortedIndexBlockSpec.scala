@@ -119,13 +119,13 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       //values are not required for this test. Create an empty reader.
       val testValuesReader = if (keyValues.last.stats.segmentValuesSize == 0) None else Some(ValuesBlock.emptyUnblocked)
       /**
-        * TEST - READ ALL
-        */
+       * TEST - READ ALL
+       */
       val readAllKeyValues = SortedIndexBlock.readAll(keyValues.size, unblockedReader, testValuesReader).get
       assetEqual(keyValues, readAllKeyValues)
       /**
-        * TEST - READ ONE BY ONE
-        */
+       * TEST - READ ONE BY ONE
+       */
       val searchedKeyValues = ListBuffer.empty[Persistent]
       keyValues.foldLeft(Option.empty[Persistent]) {
         case (previous, keyValue) =>
@@ -140,8 +140,8 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       assetEqual(keyValues, searchedKeyValues)
 
       /**
-        * TEST - searchHigherSeekOne & seekHigher
-        */
+       * TEST - searchHigherSeekOne & seekHigher
+       */
       val searchedKeyValuesSeekOne = mutable.SortedSet.empty[Persistent](Ordering.by[Persistent, Slice[Byte]](_.key)(order))
       keyValues.foldLeft((Option.empty[Persistent], Option.empty[Persistent])) {
         case ((previousPrevious, previous), keyValue) =>

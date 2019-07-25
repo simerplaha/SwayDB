@@ -19,14 +19,13 @@
 
 package swaydb.core.map.serializer
 
+import swaydb.Error.IO.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.Value
 import swaydb.core.data.Value.{Put, Remove, Update}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.core.util.PipeOps._
-import swaydb.data.io.Core
-import swaydb.Error.IO.ErrorHandler
 import swaydb.data.slice.{Reader, Slice}
 
 import scala.annotation.implicitNotFound
@@ -42,8 +41,8 @@ sealed trait RangeValueSerializer[F, R] {
 object RangeValueSerializer {
 
   /**
-    * Single
-    */
+   * Single
+   */
 
   implicit object UnitRemoveSerializer extends RangeValueSerializer[Unit, Value.Remove] {
 
@@ -102,8 +101,8 @@ object RangeValueSerializer {
   }
 
   /**
-    * Remove
-    */
+   * Remove
+   */
   implicit object RemoveRemoveSerializer extends RangeValueSerializer[Value.Remove, Value.Remove] {
 
     val id = swaydb.core.map.serializer.RemoveRemoveRange.id
@@ -241,8 +240,8 @@ object RangeValueSerializer {
   }
 
   /**
-    * Put
-    */
+   * Put
+   */
 
   implicit object PutRemoveSerializer extends RangeValueSerializer[Value.Put, Value.Remove] {
 
@@ -381,8 +380,8 @@ object RangeValueSerializer {
   }
 
   /**
-    * Update
-    */
+   * Update
+   */
   implicit object UpdateRemoveSerializer extends RangeValueSerializer[Value.Update, Value.Remove] {
     val id = swaydb.core.map.serializer.UpdateRemoveRange.id
 
@@ -517,8 +516,8 @@ object RangeValueSerializer {
   }
 
   /**
-    * Function
-    */
+   * Function
+   */
   implicit object FunctionRemoveSerializer extends RangeValueSerializer[Value.Function, Value.Remove] {
     val id = swaydb.core.map.serializer.FunctionRemoveRange.id
 
@@ -652,8 +651,8 @@ object RangeValueSerializer {
   }
 
   /**
-    * Function
-    */
+   * Function
+   */
   implicit object PendingApplyRemoveSerializer extends RangeValueSerializer[Value.PendingApply, Value.Remove] {
     val id = swaydb.core.map.serializer.PendingApplyRemoveRange.id
 

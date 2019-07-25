@@ -20,6 +20,7 @@
 package swaydb.core.segment.merge
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.data.Transient.Group
@@ -27,8 +28,6 @@ import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, GroupingStrategy, KeyValueGroupingStrategyInternal}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -36,9 +35,9 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 /**
-  * SegmentGroups will always group key-values with Groups at the head of key-value List. Groups cannot be randomly
-  * added in the middle.
-  */
+ * SegmentGroups will always group key-values with Groups at the head of key-value List. Groups cannot be randomly
+ * added in the middle.
+ */
 private[merge] object SegmentGrouper extends LazyLogging {
   //Read key-values during merge are always cleared by GC after the merge therefore in-memory key-value
   //management of these key-values is not required.
@@ -92,11 +91,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
     }
 
   /**
-    * All groups should be in the head of the List. If the key-value list contains a random key-value in between
-    * the groups which is not a Group, this functions will return failure.
-    *
-    * @return IO.Success key-values to Group and the last Group. IO.Failure if the head of the List does not contain all the Group.
-    */
+   * All groups should be in the head of the List. If the key-value list contains a random key-value in between
+   * the groups which is not a Group, this functions will return failure.
+   *
+   * @return IO.Success key-values to Group and the last Group. IO.Failure if the head of the List does not contain all the Group.
+   */
   private def keyValuesToGroup(segmentKeyValues: Iterable[Transient],
                                groupingStrategy: KeyValueGroupingStrategyInternal,
                                force: Boolean): IO[swaydb.Error.Segment, Option[(Slice[Transient], Option[Transient.Group])]] =
@@ -244,10 +243,10 @@ private[merge] object SegmentGrouper extends LazyLogging {
     } getOrElse IO.none
 
   /**
-    * Mutates the input key-values by grouping them. Should not be accessed outside this class.
-    *
-    * @return returns the last group in the List if grouping was successful else None.
-    */
+   * Mutates the input key-values by grouping them. Should not be accessed outside this class.
+   *
+   * @return returns the last group in the List if grouping was successful else None.
+   */
   private[segment] def group(segmentKeyValues: ListBuffer[Transient],
                              groupingStrategy: KeyValueGroupingStrategyInternal,
                              createdInLevel: Int,
@@ -388,11 +387,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
     def doAdd(keyValueToAdd: Option[Transient] => Transient): IO[swaydb.Error.Segment, Unit] = {
 
       /**
-        * Tries adding key-value to the current split/Segment. If force is true then the key-value will value added to
-        * current split regardless of size limitation.
-        *
-        * @return Returns false if force is false and the key-value does not fit in the current Segment else true is returned on successful insert.
-        */
+       * Tries adding key-value to the current split/Segment. If force is true then the key-value will value added to
+       * current split regardless of size limitation.
+       *
+       * @return Returns false if force is false and the key-value does not fit in the current Segment else true is returned on successful insert.
+       */
       def addToCurrentSplit(force: Boolean): Boolean = {
         val currentSplitsLastKeyValue = splits.lastOption.flatMap(_.lastOption)
 

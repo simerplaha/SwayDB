@@ -44,8 +44,8 @@ object DefaultPersistentConfig {
     }
 
   /**
-    * Default configuration for a persistent 8 Leveled database.
-    */
+   * Default configuration for a persistent 8 Leveled database.
+   */
   def apply(dir: Path,
             otherDirs: Seq[Dir],
             mapSize: Int,

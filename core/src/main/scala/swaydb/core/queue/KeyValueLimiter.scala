@@ -88,8 +88,8 @@ private class KeyValueLimiterImpl(cacheSize: Long,
     }
 
   /**
-    * Lazy initialisation because this queue is not require for Memory database that do not use compression.
-    */
+   * Lazy initialisation because this queue is not require for Memory database that do not use compression.
+   */
   private lazy val queue = LimitQueue[Command](cacheSize, delay, keyValueWeigher) {
     command =>
       for {
@@ -100,9 +100,9 @@ private class KeyValueLimiterImpl(cacheSize: Long,
           case group: KeyValue.ReadOnly.Group =>
 
             /**
-              * Before removing Group, check if removes cache key-values it is enough,
-              * if it's already clear only then remove.
-              */
+             * Before removing Group, check if removes cache key-values it is enough,
+             * if it's already clear only then remove.
+             */
             if (!group.isBlockCacheEmpty) {
               group.clearBlockCache()
               add(group, skipList)
@@ -134,10 +134,10 @@ private class KeyValueLimiterImpl(cacheSize: Long,
     queue ! Command.WeighAndAdd(new WeakReference(keyValue), new WeakReference[ConcurrentSkipListMap[Slice[Byte], _]](skipList))
 
   /**
-    * If there was failure reading the Group's header guess it's weight. Successful reads are priority over 100% cache's accuracy.
-    * The cache's will eventually adjust to be accurate but until then guessed weights should be used. The accuracy of guessed
-    * weights can also be used.
-    */
+   * If there was failure reading the Group's header guess it's weight. Successful reads are priority over 100% cache's accuracy.
+   * The cache's will eventually adjust to be accurate but until then guessed weights should be used. The accuracy of guessed
+   * weights can also be used.
+   */
   def add(keyValue: KeyValue.ReadOnly.Group,
           skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit = {
     val weight = keyValue.valueLength

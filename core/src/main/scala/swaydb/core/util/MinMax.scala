@@ -23,7 +23,6 @@ import swaydb.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Transient, Value}
 import swaydb.core.function.FunctionStore
-import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -62,15 +61,15 @@ private[core] object MinMax {
     }
 
   /**
-    * Picks the smallest of the two. Favours left if equal.
-    */
+   * Picks the smallest of the two. Favours left if equal.
+   */
   def min[T](left: Option[T],
              right: Option[T])(implicit ordering: Ordering[T]): Option[T] =
     pickOne[T](left, right, minimum)
 
   /**
-    * Picks the largest of the two. Favours left if equal.
-    */
+   * Picks the largest of the two. Favours left if equal.
+   */
   def max[T](left: Option[T],
              right: Option[T])(implicit ordering: Ordering[T]): Option[T] =
     pickOne[T](left, right, maximum)

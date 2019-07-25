@@ -30,16 +30,16 @@ import swaydb.data.slice.Slice
 import scala.collection.mutable.ListBuffer
 
 /**
-  * [[MapEntry]]s can be batched via ++ function.
-  *
-  * Batched MapEntries are checksum and persisted as one batch operation.
-  *
-  * Batched MapEntries mutable (ListBuffer) to speed up boot-up time for Map recovery.
-  * It should be changed to immutable List. Need to fix this.
-  *
-  * @tparam K Key type
-  * @tparam V Value type
-  */
+ * [[MapEntry]]s can be batched via ++ function.
+ *
+ * Batched MapEntries are checksum and persisted as one batch operation.
+ *
+ * Batched MapEntries mutable (ListBuffer) to speed up boot-up time for Map recovery.
+ * It should be changed to immutable List. Need to fix this.
+ *
+ * @tparam K Key type
+ * @tparam V Value type
+ */
 private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
 
   def applyTo[T >: V](map: ConcurrentSkipListMap[K, T]): Unit
@@ -51,11 +51,11 @@ private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
   def entriesCount: Int
 
   /**
-    * Each map entry computes the bytes required for the entry on creation.
-    * The total of all _entries are added to compute the file size of the Byte array to be persisted.
-    *
-    * This ensures that only single iteration will be required to create the final Byte array.
-    */
+   * Each map entry computes the bytes required for the entry on creation.
+   * The total of all _entries are added to compute the file size of the Byte array to be persisted.
+   *
+   * This ensures that only single iteration will be required to create the final Byte array.
+   */
   val entryBytesSize: Int
 
   def totalByteSize: Int =
@@ -86,8 +86,8 @@ private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
 private[swaydb] object MapEntry {
 
   /**
-    * Returns a combined Entry with duplicates removed from oldEntry, favouring newer duplicate entries.
-    */
+   * Returns a combined Entry with duplicates removed from oldEntry, favouring newer duplicate entries.
+   */
   def distinct[V](newEntry: MapEntry[Slice[Byte], V],
                   oldEntry: MapEntry[Slice[Byte], V])(implicit keyOrder: KeyOrder[Slice[Byte]]): MapEntry[Slice[Byte], V] = {
     import keyOrder._

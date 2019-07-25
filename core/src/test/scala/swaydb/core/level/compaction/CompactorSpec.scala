@@ -20,6 +20,7 @@
 package swaydb.core.level.compaction
 
 import org.scalamock.scalatest.MockFactory
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.RunThis._
 import swaydb.core.actor.WiredActor
@@ -28,8 +29,6 @@ import swaydb.core.util.Delay
 import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
 import swaydb.data.Reserve
 import swaydb.data.compaction.CompactionExecutionContext
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

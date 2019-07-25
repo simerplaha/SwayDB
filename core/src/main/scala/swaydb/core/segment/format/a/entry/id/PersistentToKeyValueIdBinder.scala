@@ -30,8 +30,8 @@ private[core] sealed trait PersistentToKeyValueIdBinder[T] {
 }
 
 /**
-  * Glue objects to map [[Persistent]] key-values to [[KeyValueId]].
-  */
+ * Glue objects to map [[Persistent]] key-values to [[KeyValueId]].
+ */
 private[core] object PersistentToKeyValueIdBinder {
 
   implicit object RemoveBinder extends PersistentToKeyValueIdBinder[Persistent.Remove] {

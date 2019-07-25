@@ -22,14 +22,13 @@ package swaydb.core.segment
 import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.data.MaxKey
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -69,13 +68,13 @@ private[core] class SegmentCache(id: String,
   import keyOrder._
 
   /**
-    * Notes for why use putIfAbsent before adding to cache:
-    *
-    * Sometimes file seeks will be done if the last known cached key-value's ranges are smaller than the
-    * key being searched. For example: Search key is 10, but the last lower cache key-value range is 1-5.
-    * here it's unknown if a lower key 7 exists without doing a file seek. This is also one of the reasons
-    * reverse iterations are slower than forward.
-    */
+   * Notes for why use putIfAbsent before adding to cache:
+   *
+   * Sometimes file seeks will be done if the last known cached key-value's ranges are smaller than the
+   * key being searched. For example: Search key is 10, but the last lower cache key-value range is 1-5.
+   * here it's unknown if a lower key 7 exists without doing a file seek. This is also one of the reasons
+   * reverse iterations are slower than forward.
+   */
   private def addToCache(keyValue: Persistent.SegmentResponse): Unit = {
     if (unsliceKey) keyValue.unsliceKeys
     if (keyValueCache.putIfAbsent(keyValue.key, keyValue) == null)

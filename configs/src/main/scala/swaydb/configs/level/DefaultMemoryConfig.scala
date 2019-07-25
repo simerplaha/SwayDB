@@ -43,8 +43,8 @@ object DefaultMemoryConfig {
     }
 
   /**
-    * Default configuration for 2 leveled Memory database.
-    */
+   * Default configuration for 2 leveled Memory database.
+   */
   def apply(mapSize: Int,
             segmentSize: Int,
             mightContainFalsePositiveRate: Double,

@@ -193,9 +193,9 @@ class BlockSpec extends TestBase {
 
   "unblocking nested compressed block" in {
     /**
-      * This test compressed 2 blocks into a root block and then decompresses.
-      * Format: { rootBlock: {childBlock1: header+child1Bytes} {childBlock2: header+child2Bytes} }
-      */
+     * This test compressed 2 blocks into a root block and then decompresses.
+     * Format: { rootBlock: {childBlock1: header+child1Bytes} {childBlock2: header+child2Bytes} }
+     */
 
     val child1Bytes = Slice.fill[Byte](20)(1.toByte)
     val child2Bytes = Slice.fill[Byte](20)(2.toByte)

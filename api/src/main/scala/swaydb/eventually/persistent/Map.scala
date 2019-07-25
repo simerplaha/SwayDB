@@ -28,7 +28,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
 import swaydb.data.config._
-import swaydb.data.io.{Core, Tag}
+import swaydb.data.io.Tag
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -44,35 +44,35 @@ object Map extends LazyLogging {
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
   /**
-    * A 3 Leveled in-memory database where the 3rd is persistent.
-    *
-    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
-    *
-    * @param dir                        Root directory for all Level where appendix folder & files are created
-    * @param otherDirs                  Secondary directories for all Levels where Segments get distributed.
-    * @param maxOpenSegments            Number of concurrent Segments opened
-    * @param mapSize                    Size of LevelZero's maps (WAL)
-    * @param maxMemoryLevelSize         Total size of in-memory Level (Level1) before Segments gets pushed to persistent Level (Level2)
-    * @param maxSegmentsToPush          Numbers of Segments to push from in-memory Level (Level1) to persistent Level (Level2)
-    * @param memoryLevelSegmentSize     Size of Level1's Segments
-    * @param persistentLevelSegmentSize Size of Level2's Segments
-    * @param mmapPersistentSegments     Memory-maps Level2 Segments
-    * @param mmapPersistentAppendix     Memory-maps Level2's appendix file
-    * @param cacheSize                  Size of
-    * @param cacheCheckDelay            Sets the max interval at which key-values get dropped from the cache. The delays
-    *                                   are dynamically adjusted based on the current size of the cache to stay close the set
-    *                                   cacheSize.
-    * @param segmentsOpenCheckDelay     Sets the max interval at which Segments get closed. The delays
-    *                                   are dynamically adjusted based on the current number of open Segments.
-    * @param acceleration               Controls the write speed.
-    * @param keySerializer              Converts keys to Bytes
-    * @param valueSerializer            Converts values to Bytes
-    * @param keyOrder                   Sort order for keys
-    * @param ec                         ExecutionContext
-    * @tparam K Type of key
-    * @tparam V Type of value
-    * @return Database instance
-    */
+   * A 3 Leveled in-memory database where the 3rd is persistent.
+   *
+   * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
+   *
+   * @param dir                        Root directory for all Level where appendix folder & files are created
+   * @param otherDirs                  Secondary directories for all Levels where Segments get distributed.
+   * @param maxOpenSegments            Number of concurrent Segments opened
+   * @param mapSize                    Size of LevelZero's maps (WAL)
+   * @param maxMemoryLevelSize         Total size of in-memory Level (Level1) before Segments gets pushed to persistent Level (Level2)
+   * @param maxSegmentsToPush          Numbers of Segments to push from in-memory Level (Level1) to persistent Level (Level2)
+   * @param memoryLevelSegmentSize     Size of Level1's Segments
+   * @param persistentLevelSegmentSize Size of Level2's Segments
+   * @param mmapPersistentSegments     Memory-maps Level2 Segments
+   * @param mmapPersistentAppendix     Memory-maps Level2's appendix file
+   * @param cacheSize                  Size of
+   * @param cacheCheckDelay            Sets the max interval at which key-values get dropped from the cache. The delays
+   *                                   are dynamically adjusted based on the current size of the cache to stay close the set
+   *                                   cacheSize.
+   * @param segmentsOpenCheckDelay     Sets the max interval at which Segments get closed. The delays
+   *                                   are dynamically adjusted based on the current number of open Segments.
+   * @param acceleration               Controls the write speed.
+   * @param keySerializer              Converts keys to Bytes
+   * @param valueSerializer            Converts values to Bytes
+   * @param keyOrder                   Sort order for keys
+   * @param ec                         ExecutionContext
+   * @tparam K Type of key
+   * @tparam V Type of value
+   * @return Database instance
+   */
   def apply[K, V](dir: Path,
                   maxOpenSegments: Int = 1000,
                   mapSize: Int = 4.mb,
@@ -95,7 +95,7 @@ object Map extends LazyLogging {
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                         fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Error.BootUp, swaydb.Map[K, V, Tag.CoreIO]] =
+                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Error.BootUp, swaydb.Map[K, V, Tag.API]] =
     BlockingCore(
       config =
         DefaultEventuallyPersistentConfig(
@@ -123,6 +123,6 @@ object Map extends LazyLogging {
       cacheLimiterEC = cacheLimiterEC
     ) map {
       db =>
-        swaydb.Map[K, V, Tag.CoreIO](db)
+        swaydb.Map[K, V, Tag.API](db)
     }
 }

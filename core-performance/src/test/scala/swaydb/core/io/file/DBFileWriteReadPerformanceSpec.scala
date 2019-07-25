@@ -40,11 +40,11 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
 
       val bytes = (1 to 1000) map (_ => randomBytesSlice(chunkSize))
       /**
-        * Benchmark file channel write
-        * Round 1: 1.441824636 seconds
-        * Round 2: 1.328009528 seconds
-        * Round 3: 1.3148811 seconds
-        */
+       * Benchmark file channel write
+       * Round 1: 1.441824636 seconds
+       * Round 2: 1.328009528 seconds
+       * Round 3: 1.3148811 seconds
+       */
       val channelFile = DBFile.channelWrite(randomFilePath, autoClose = true).runIO
       benchmark("FileChannel write benchmark") {
         bytes foreach channelFile.append
@@ -54,12 +54,12 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
       readChannelFile.fileSize.runIO shouldBe bytes.size * chunkSize
 
       /**
-        * Benchmark memory mapped files write
-        *
-        * Round 1: 0.535362744 seconds
-        * Round 2: 0.58952584 seconds
-        * Round 3: 0.542235514 seconds
-        */
+       * Benchmark memory mapped files write
+       *
+       * Round 1: 0.535362744 seconds
+       * Round 2: 0.58952584 seconds
+       * Round 3: 0.542235514 seconds
+       */
 
       val mmapFile = DBFile.mmapInit(randomFilePath, bytes.size * chunkSize, autoClose = true).runIO
       benchmark("mmap write benchmark") {
@@ -79,11 +79,11 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
       file.close.runIO
 
       /**
-        * Benchmark file channel read
-        * Round 1: 1.925951908 seconds
-        * Round 2: 1.875866228 seconds
-        * Round 3: 1.842739196 seconds
-        */
+       * Benchmark file channel read
+       * Round 1: 1.925951908 seconds
+       * Round 2: 1.875866228 seconds
+       * Round 3: 1.842739196 seconds
+       */
 
       val channelFile = DBFile.channelRead(file.path, autoClose = true).runIO
       benchmark("FileChannel value benchmark") {
@@ -95,12 +95,12 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
       channelFile.close.runIO
 
       /**
-        * Benchmark memory mapped file read
-        *
-        * Round 1: 0.991568638 seconds
-        * Round 2: 0.965750206 seconds
-        * Round 3: 1.044735106 seconds
-        */
+       * Benchmark memory mapped file read
+       *
+       * Round 1: 0.991568638 seconds
+       * Round 2: 0.965750206 seconds
+       * Round 3: 1.044735106 seconds
+       */
       val mmapFile = DBFile.mmapRead(file.path, autoClose = true).runIO
       benchmark("mmap value benchmark") {
         bytes.indices foreach {
@@ -125,11 +125,11 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
       file.close.runIO
 
       /**
-        * Benchmark file channel read
-        * Round 1: 0.865503958 seconds
-        * Round 2: 0.905543536 seconds
-        * Round 3: 0.819253382 seconds
-        */
+       * Benchmark file channel read
+       * Round 1: 0.865503958 seconds
+       * Round 2: 0.905543536 seconds
+       * Round 3: 0.819253382 seconds
+       */
 
       val channelFile = DBFile.channelRead(file.path, autoClose = true).runIO
       benchmark("FileChannel read benchmark") {
@@ -143,12 +143,12 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
       channelFile.close.runIO
 
       /**
-        * Benchmark memory mapped file read
-        *
-        * Round 1: 0.55484872 seconds
-        * Round 2: 0.54580672 seconds
-        * Round 3: 0.463990916 seconds
-        */
+       * Benchmark memory mapped file read
+       *
+       * Round 1: 0.55484872 seconds
+       * Round 2: 0.54580672 seconds
+       * Round 3: 0.463990916 seconds
+       */
       val mmapFile = DBFile.mmapRead(file.path, autoClose = true).runIO
 
       benchmark("mmap read benchmark") {
@@ -161,12 +161,12 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
       }
 
       /**
-        * Benchmark memory mapped file read
-        *
-        * Round 1: 0.340598993 seconds
-        * Round 2: 0.434818876 seconds
-        * Round 3: 0.398627637 seconds
-        */
+       * Benchmark memory mapped file read
+       *
+       * Round 1: 0.340598993 seconds
+       * Round 2: 0.434818876 seconds
+       * Round 3: 0.398627637 seconds
+       */
       benchmark("mmap read again benchmark") {
         bytes.foldLeft(0) {
           case (index, byteSlice) =>
@@ -178,12 +178,12 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
       mmapFile.close.runIO
 
       /**
-        * Benchmark memory file read
-        *
-        * Round 1: 0.07953418 seconds
-        * Round 2: TestData.falsePositiveRate29407648 seconds
-        * Round 3: 0.090982974 seconds
-        */
+       * Benchmark memory file read
+       *
+       * Round 1: 0.07953418 seconds
+       * Round 2: TestData.falsePositiveRate29407648 seconds
+       * Round 3: 0.090982974 seconds
+       */
       val memoryFile = DBFile.memory(file.path, allBytes, autoClose = true).runIO
       benchmark("memory read benchmark") {
         bytes.foldLeft(0) {

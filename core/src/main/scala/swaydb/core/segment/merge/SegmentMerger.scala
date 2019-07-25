@@ -20,6 +20,7 @@
 package swaydb.core.segment.merge
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.data.KeyValue.ReadOnly
@@ -29,8 +30,6 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.merge.{FixedMerger, ValueMerger}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -41,10 +40,10 @@ private[core] object SegmentMerger extends LazyLogging {
   implicit val keyValueLimiter = KeyValueLimiter.none
 
   /**
-    * If the last Segment is too small, this function merges the last Segment with the previous Segment's key-value.
-    *
-    * It also executes grouping on the last un-grouped key-values if compression type (grouping) is provided.
-    */
+   * If the last Segment is too small, this function merges the last Segment with the previous Segment's key-value.
+   *
+   * It also executes grouping on the last un-grouped key-values if compression type (grouping) is provided.
+   */
   @tailrec
   def completeMerge(segments: ListBuffer[ListBuffer[Transient]],
                     minSegmentSize: Long,
@@ -146,7 +145,7 @@ private[core] object SegmentMerger extends LazyLogging {
           minSegmentSize = minSegmentSize,
           forInMemory = forInMemory,
           isLastLevel = isLastLevel,
-          createdInLevel= createdInLevel,
+          createdInLevel = createdInLevel,
           valuesConfig = valuesConfig,
           sortedIndexConfig = sortedIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,
@@ -175,10 +174,10 @@ private[core] object SegmentMerger extends LazyLogging {
   }
 
   /**
-    * TODO: Both inputs are Memory so temporarily it's OK to call .find because Memory key-values do not do IO. But this should be fixed and .find should not be invoked.
-    *
-    * Need a type class implementation on executing side effects of merging key-values, one for [[Memory]] key-values and other for [[Persistent]] key-value types.
-    */
+   * TODO: Both inputs are Memory so temporarily it's OK to call .find because Memory key-values do not do IO. But this should be fixed and .find should not be invoked.
+   *
+   * Need a type class implementation on executing side effects of merging key-values, one for [[Memory]] key-values and other for [[Persistent]] key-value types.
+   */
   def merge(newKeyValues: Slice[Memory.SegmentResponse],
             oldKeyValues: Slice[Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                          timeOrder: TimeOrder[Slice[Byte]],
@@ -189,7 +188,7 @@ private[core] object SegmentMerger extends LazyLogging {
       minSegmentSize = Int.MaxValue,
       isLastLevel = false,
       forInMemory = true,
-      createdInLevel= 0,
+      createdInLevel = 0,
       valuesConfig = ValuesBlock.Config.disabled,
       sortedIndexConfig = SortedIndexBlock.Config.disabled,
       binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
@@ -344,8 +343,8 @@ private[core] object SegmentMerger extends LazyLogging {
             }
 
         /**
-          * When the input is an overwrite key-value and the existing is a range key-value.
-          */
+         * When the input is an overwrite key-value and the existing is a range key-value.
+         */
         case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldRangeKeyValue: ReadOnly.Range)) =>
           if (newKeyValue.key < oldRangeKeyValue.fromKey)
             add(newKeyValue) match {
@@ -406,8 +405,8 @@ private[core] object SegmentMerger extends LazyLogging {
             }
 
         /**
-          * When the input is a range and the existing is a fixed key-value.
-          */
+         * When the input is a range and the existing is a fixed key-value.
+         */
         case (Some(newRangeKeyValue: ReadOnly.Range), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>
           if (oldKeyValue.key >= newRangeKeyValue.toKey)
             add(newRangeKeyValue) match {
@@ -484,8 +483,8 @@ private[core] object SegmentMerger extends LazyLogging {
             }
 
         /**
-          * When both the key-values are ranges.
-          */
+         * When both the key-values are ranges.
+         */
         case (Some(newRangeKeyValue: ReadOnly.Range), Some(oldRangeKeyValue: ReadOnly.Range)) =>
           if (newRangeKeyValue.toKey <= oldRangeKeyValue.fromKey)
             add(newRangeKeyValue) match {
@@ -715,8 +714,8 @@ private[core] object SegmentMerger extends LazyLogging {
             }
 
         /**
-          * When the input is a Fixed key-value and the existing is a Group key-value.
-          */
+         * When the input is a Fixed key-value and the existing is a Group key-value.
+         */
         case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldGroupKeyValue: ReadOnly.Group)) =>
           if (newKeyValue.key < oldGroupKeyValue.minKey)
             add(newKeyValue) match {
@@ -745,8 +744,8 @@ private[core] object SegmentMerger extends LazyLogging {
             }
 
         /**
-          * When the input is a Group and the existing is a Fixed key-value.
-          */
+         * When the input is a Group and the existing is a Fixed key-value.
+         */
         case (Some(newGroupKeyValue: ReadOnly.Group), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>
           if (newGroupKeyValue.maxKey lessThan oldKeyValue.key)
             add(newGroupKeyValue) match {
@@ -775,8 +774,8 @@ private[core] object SegmentMerger extends LazyLogging {
             }
 
         /**
-          * When the input is a Range key-value and the existing is a Group key-value.
-          */
+         * When the input is a Range key-value and the existing is a Group key-value.
+         */
         case (Some(newRangeKeyValue: KeyValue.ReadOnly.Range), Some(oldGroupKeyValue: ReadOnly.Group)) =>
           if (newRangeKeyValue.toKey <= oldGroupKeyValue.minKey)
             add(newRangeKeyValue) match {
@@ -817,8 +816,8 @@ private[core] object SegmentMerger extends LazyLogging {
             }
 
         /**
-          * When the input is a Group and the existing is a Range key-value.
-          */
+         * When the input is a Group and the existing is a Range key-value.
+         */
         case (Some(newGroupKeyValue: ReadOnly.Group), Some(oldRangeKeyValue: KeyValue.ReadOnly.Range)) =>
           if (newGroupKeyValue.maxKey lessThan oldRangeKeyValue.fromKey)
             add(newGroupKeyValue) match {
@@ -847,8 +846,8 @@ private[core] object SegmentMerger extends LazyLogging {
             }
 
         /**
-          * When both are Groups.
-          */
+         * When both are Groups.
+         */
         case (Some(newGroupKeyValue: ReadOnly.Group), Some(oldGroupKeyValue: KeyValue.ReadOnly.Group)) =>
           if (newGroupKeyValue.maxKey lessThan oldGroupKeyValue.minKey)
             add(newGroupKeyValue) match {

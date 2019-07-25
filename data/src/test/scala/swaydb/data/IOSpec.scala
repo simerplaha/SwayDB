@@ -23,7 +23,6 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.ErrorHandler.Throwable
 import swaydb.IO
 import swaydb.IO._
-import swaydb.data.io.Core
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer

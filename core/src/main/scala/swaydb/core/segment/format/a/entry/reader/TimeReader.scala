@@ -19,12 +19,11 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.{KeyValue, Time}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Reader
 
 import scala.annotation.implicitNotFound
@@ -38,9 +37,9 @@ sealed trait TimeReader[-T] {
 }
 
 /**
-  * Time is always set for only Fixed key-values.
-  * Group and Range key-values do not have time set.
-  */
+ * Time is always set for only Fixed key-values.
+ * Group and Range key-values do not have time set.
+ */
 object TimeReader {
 
   implicit object NoTimeReader extends TimeReader[BaseEntryId.Time.NoTime] {

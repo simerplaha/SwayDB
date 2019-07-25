@@ -22,6 +22,7 @@ package swaydb.core.map
 import java.nio.file.{Files, NoSuchFileException}
 
 import org.scalatest.OptionValues._
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.TestData._
@@ -33,7 +34,6 @@ import swaydb.core.util.Extension
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.RecoveryMode
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

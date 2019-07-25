@@ -29,11 +29,11 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Future, Promise}
 
 /**
-  * Reserves a range of keys for processing by a single thread.
-  *
-  * This is used to ensure that multiple threads do not concurrent perform compaction on overlapping keys within
-  * the same Level.
-  */
+ * Reserves a range of keys for processing by a single thread.
+ *
+ * This is used to ensure that multiple threads do not concurrent perform compaction on overlapping keys within
+ * the same Level.
+ */
 object ReserveRange extends LazyLogging {
 
   case class Range[T](from: Slice[Byte], to: Slice[Byte], toInclusive: Boolean, reserve: Reserve[T])

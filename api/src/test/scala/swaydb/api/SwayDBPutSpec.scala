@@ -32,7 +32,7 @@ import scala.concurrent.duration._
 class SwayDBPutSpec0 extends SwayDBPutSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, Tag.CoreIO] =
+  override def newDB(): Map[Int, String, Tag.API] =
     swaydb.persistent.Map[Int, String](dir = randomDir).value
 }
 
@@ -40,7 +40,7 @@ class SwayDBPutSpec1 extends SwayDBPutSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Tag.CoreIO] =
+  override def newDB(): Map[Int, String, Tag.API] =
     swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).value
 }
 
@@ -48,14 +48,14 @@ class SwayDBPutSpec2 extends SwayDBPutSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Tag.CoreIO] =
+  override def newDB(): Map[Int, String, Tag.API] =
     swaydb.memory.Map[Int, String](mapSize = 1.byte).value
 }
 
 class SwayDBPutSpec3 extends SwayDBPutSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Tag.CoreIO] =
+  override def newDB(): Map[Int, String, Tag.API] =
     swaydb.memory.Map[Int, String]().value
 }
 
@@ -63,14 +63,14 @@ class SwayDBPutSpec4 extends SwayDBPutSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Tag.CoreIO] =
+  override def newDB(): Map[Int, String, Tag.API] =
     swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).value
 }
 
 class SwayDBPutSpec5 extends SwayDBPutSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Tag.CoreIO] =
+  override def newDB(): Map[Int, String, Tag.API] =
     swaydb.memory.zero.Map[Int, String]().value
 }
 
@@ -78,9 +78,9 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Map[Int, String, Tag.CoreIO]
+  def newDB(): Map[Int, String, Tag.API]
 
-  def doGet(db: Map[Int, String, Tag.CoreIO]) = {
+  def doGet(db: Map[Int, String, Tag.API]) = {
     (1 to keyValueCount) foreach {
       i =>
         db.expiration(i).value shouldBe empty

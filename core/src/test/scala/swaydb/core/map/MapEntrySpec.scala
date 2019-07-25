@@ -22,6 +22,8 @@ package swaydb.core.map
 import java.util.concurrent.ConcurrentSkipListMap
 
 import org.scalatest.OptionValues._
+import swaydb.Error.Map.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.TestData._
@@ -33,13 +35,11 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.Error.Map.ErrorHandler
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._

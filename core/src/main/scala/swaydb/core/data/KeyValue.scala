@@ -19,6 +19,7 @@
 
 package swaydb.core.data
 
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
@@ -33,8 +34,6 @@ import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.cache.{Cache, NoIO}
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -50,32 +49,32 @@ private[core] sealed trait KeyValue {
 private[core] object KeyValue {
 
   /**
-    * Read-only instances are only created for Key-values read from disk for Persistent Segments
-    * and are stored in-memory after merge for Memory Segments.
-    */
+   * Read-only instances are only created for Key-values read from disk for Persistent Segments
+   * and are stored in-memory after merge for Memory Segments.
+   */
   sealed trait ReadOnly extends KeyValue {
     def indexEntryDeadline: Option[Deadline]
   }
 
   /**
-    * Key-values that can be added to [[KeyValueLimiter]].
-    *
-    * These key-values can remain in memory depending on the cacheSize and are dropped or uncompressed on overflow.
-    *
-    * Only [[KeyValue.ReadOnly.Group]] && [[Persistent.SegmentResponse]] key-values are [[CacheAble]].
-    *
-    * Only [[Memory.Group]] key-values are uncompressed and every other key-value is dropped.
-    */
+   * Key-values that can be added to [[KeyValueLimiter]].
+   *
+   * These key-values can remain in memory depending on the cacheSize and are dropped or uncompressed on overflow.
+   *
+   * Only [[KeyValue.ReadOnly.Group]] && [[Persistent.SegmentResponse]] key-values are [[CacheAble]].
+   *
+   * Only [[Memory.Group]] key-values are uncompressed and every other key-value is dropped.
+   */
   sealed trait CacheAble extends ReadOnly {
     def valueLength: Int
   }
 
   object ReadOnly {
     /**
-      * An API response type expected from a [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
-      *
-      * Key-value types like [[Group]] are processed within [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
-      */
+     * An API response type expected from a [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
+     *
+     * Key-value types like [[Group]] are processed within [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
+     */
     sealed trait SegmentResponse extends KeyValue with ReadOnly
 
     sealed trait Fixed extends SegmentResponse {
@@ -1245,9 +1244,9 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble {
   def isPrefixCompressed: Boolean
 
   /**
-    * This function is NOT thread-safe and is mutable. It should always be invoke at the time of creation
-    * and before inserting into the Segment's cache.
-    */
+   * This function is NOT thread-safe and is mutable. It should always be invoke at the time of creation
+   * and before inserting into the Segment's cache.
+   */
   def unsliceKeys: Unit
 }
 

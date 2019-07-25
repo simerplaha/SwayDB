@@ -25,7 +25,6 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.FunctionUtil
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
-import swaydb.data.io.Core
 import swaydb.{ErrorHandler, IO}
 
 private[core] object Cache {
@@ -52,7 +51,7 @@ private[core] object Cache {
     )
 
   def reservedIO[E: ErrorHandler, ER <: E with swaydb.Error.ReservedIO, I, O](stored: Boolean,
-                                                                            reserveError: ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
+                                                                              reserveError: ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
     new ReservedIO[E, ER, I, O](
       fetch = fetch,
       lazyIO = Lazy.io(synchronised = false, stored = stored),
@@ -69,7 +68,7 @@ private[core] object Cache {
     )
 
   def blockIO[E: ErrorHandler, ER <: E with swaydb.Error.ReservedIO, I, O](blockIO: I => IOStrategy,
-                                                                         reserveError: => ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
+                                                                           reserveError: => ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
     new BlockIOCache[E, I, O](
       Cache.noIO[I, Cache[E, I, O]](synchronised = false, stored = true) {
         i =>
@@ -199,8 +198,8 @@ private class SynchronisedIO[E: ErrorHandler, I, O](fetch: I => IO[E, O],
  * For example: A file's size.
  */
 private class ReservedIO[E: ErrorHandler, ER <: E with swaydb.Error.ReservedIO, I, O](fetch: I => IO[E, O],
-                                                                                    lazyIO: LazyIO[E, O],
-                                                                                    error: ER) extends Cache[E, I, O] {
+                                                                                      lazyIO: LazyIO[E, O],
+                                                                                      error: ER) extends Cache[E, I, O] {
 
   override def value(i: => I): IO[E, O] =
     lazyIO.getOrElse {

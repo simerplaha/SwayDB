@@ -28,7 +28,6 @@ import swaydb.core.segment.format.a.block.KeyMatcher.Result._
 import swaydb.core.segment.format.a.block.{KeyMatcher, ValuesBlock}
 import swaydb.core.util.cache.Cache
 import swaydb.data.MaxKey
-import swaydb.data.io.Core
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -44,13 +43,13 @@ class KeyMatcherSpec extends TestBase {
   }
 
   /**
-    * These implicits are just to make it easier to read the test cases.
-    * The tests are normally for the match to Key in the following array
-    *
-    * -1, 0, 1, 2
-    *
-    * Tests check for keys to match in all positions (before and after each key)
-    */
+   * These implicits are just to make it easier to read the test cases.
+   * The tests are normally for the match to Key in the following array
+   *
+   * -1, 0, 1, 2
+   *
+   * Tests check for keys to match in all positions (before and after each key)
+   */
 
   val whichKeyValue = Random.shuffle((1 to 5).toList).head
   var isPrefixCompressed = randomBoolean()
@@ -73,9 +72,9 @@ class KeyMatcherSpec extends TestBase {
   object RangeImplicits {
 
     /**
-      * Convenience implicits to make it easier to read the test cases.
-      * A tuple indicates a range's (fromKey, toKey)
-      */
+     * Convenience implicits to make it easier to read the test cases.
+     * A tuple indicates a range's (fromKey, toKey)
+     */
 
     val noneRangeValueCache = Cache.valueIO[swaydb.Error.Segment, ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)]((None, Value.Remove(None, Time.empty)))
 
@@ -89,11 +88,11 @@ class KeyMatcherSpec extends TestBase {
   object GroupImplicits {
 
     /**
-      * Convenience implicits to make it easier to read the test cases.
-      * A tuple (_1, _2) indicates a Groups minKey & maxKey where the maxKey is [[MaxKey.Fixed]]
-      *
-      * A tuple of tuple (_1, (_1, _2)) indicates a Groups minKey & maxKey where the maxKey is [[MaxKey.Range]]
-      */
+     * Convenience implicits to make it easier to read the test cases.
+     * A tuple (_1, _2) indicates a Groups minKey & maxKey where the maxKey is [[MaxKey.Fixed]]
+     *
+     * A tuple of tuple (_1, (_1, _2)) indicates a Groups minKey & maxKey where the maxKey is [[MaxKey.Range]]
+     */
     implicit def toGroupFixed(tuple: (Int, Int)): Group =
       Group(
         _minKey = tuple._1,

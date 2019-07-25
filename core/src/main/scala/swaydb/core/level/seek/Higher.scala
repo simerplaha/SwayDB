@@ -19,13 +19,12 @@
 
 package swaydb.core.level.seek
 
+import swaydb.Error.Level.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge._
-import swaydb.data.io.Core
-import swaydb.Error.Level.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -34,8 +33,8 @@ import scala.annotation.tailrec
 private[core] object Higher {
 
   /**
-    * Check and returns the FromValue if it's a valid higher key-value for the input key
-    */
+   * Check and returns the FromValue if it's a valid higher key-value for the input key
+   */
   def higherFromValue(key: Slice[Byte],
                       fromKey: Slice[Byte],
                       fromValue: Option[Value.FromValue])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Memory.Put] = {
@@ -66,8 +65,8 @@ private[core] object Higher {
     Higher(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   /**
-    * Just another function that is not tailrec for delayed Higher fetches.
-    */
+   * Just another function that is not tailrec for delayed Higher fetches.
+   */
   private def seeker(key: Slice[Byte],
                      currentSeek: Seek.Current,
                      nextSeek: Seek.Next)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -78,12 +77,12 @@ private[core] object Higher {
     Higher(key, currentSeek, nextSeek)
 
   /**
-    * May be use trampolining instead and split the matches into their own functions to reduce
-    * repeated boilerplate code & if does not effect read performance or adds to GC workload.
-    *
-    * This and [[Lower]] share a lot of the same code for certain [[Seek]] steps. Again trampolining
-    * could help share this code and removing duplicates but only if there is no performance penalty.
-    */
+   * May be use trampolining instead and split the matches into their own functions to reduce
+   * repeated boilerplate code & if does not effect read performance or adds to GC workload.
+   *
+   * This and [[Lower]] share a lot of the same code for certain [[Seek]] steps. Again trampolining
+   * could help share this code and removing duplicates but only if there is no performance penalty.
+   */
   @tailrec
   def apply(key: Slice[Byte],
             currentSeek: Seek.Current,
@@ -98,10 +97,10 @@ private[core] object Higher {
 
     (currentSeek, nextSeek) match {
       /** *********************************************************
-        * ******************                    *******************
-        * ******************  Current on Fetch  *******************
-        * ******************                    *******************
-        * ********************************************************/
+       * ******************                    *******************
+       * ******************  Current on Fetch  *******************
+       * ******************                    *******************
+       * ********************************************************/
 
       case (Seek.Read, Seek.Read) =>
         currentWalker.higher(key) match {
@@ -253,10 +252,10 @@ private[core] object Higher {
         }
 
       /** *********************************************************
-        * ******************                    *******************
-        * ******************  Current on Stash  *******************
-        * ******************                    *******************
-        * *********************************************************/
+       * ******************                    *******************
+       * ******************  Current on Stash  *******************
+       * ******************                    *******************
+       * *********************************************************/
 
       case (Seek.Current.Stop, Seek.Next.Stash(next, nextStateID)) =>
         if (nextWalker.hasStateChanged(nextStateID))
@@ -291,10 +290,10 @@ private[core] object Higher {
           (current, next) match {
 
             /** **********************************************
-              * ******************         *******************
-              * ******************  Fixed  *******************
-              * ******************         *******************
-              * **********************************************/
+             * ******************         *******************
+             * ******************  Fixed  *******************
+             * ******************         *******************
+             * **********************************************/
 
             case (current: KeyValue.ReadOnly.Fixed, next: KeyValue.ReadOnly.Fixed) =>
               //    2
@@ -333,12 +332,12 @@ private[core] object Higher {
                 IO.Success(Some(next))
 
             /** *********************************************
-              * *********************************************
-              * ******************       ********************
-              * ****************** RANGE ********************
-              * ******************       ********************
-              * *********************************************
-              * *********************************************/
+             * *********************************************
+             * ******************       ********************
+             * ****************** RANGE ********************
+             * ******************       ********************
+             * *********************************************
+             * *********************************************/
             case (current: KeyValue.ReadOnly.Range, next: KeyValue.ReadOnly.Fixed) =>
               //   10 - 20
               //1
@@ -459,10 +458,10 @@ private[core] object Higher {
           }
 
       /** ********************************************************
-        * ******************                   *******************
-        * ******************  Current on Stop  *******************
-        * ******************                   *******************
-        * ********************************************************/
+       * ******************                   *******************
+       * ******************  Current on Stop  *******************
+       * ******************                   *******************
+       * ********************************************************/
 
       case (Seek.Read, Seek.Next.Stop(nextStateID)) =>
         if (nextWalker.hasStateChanged(nextStateID))

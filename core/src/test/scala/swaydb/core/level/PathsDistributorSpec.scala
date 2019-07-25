@@ -22,13 +22,13 @@ package swaydb.core.level
 import java.nio.file.{Path, Paths}
 
 import org.scalamock.scalatest.MockFactory
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.io.file.IOEffect
 import swaydb.core.segment.Segment
 import swaydb.data.config.Dir
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.KeyOrder
 
 class PathsDistributorSpec extends TestBase with MockFactory {

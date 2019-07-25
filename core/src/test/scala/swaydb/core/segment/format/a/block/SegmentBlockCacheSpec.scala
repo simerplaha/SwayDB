@@ -63,10 +63,10 @@ class SegmentBlockCacheSpec extends TestBase {
       segmentBlockCache.readAll().get shouldBe keyValues
 
       /**
-        * One by one fetch everything from [[SegmentBlockCache]] and assert.
-        */
+       * One by one fetch everything from [[SegmentBlockCache]] and assert.
+       */
       //on init, nothing is cached.
-//      segmentBlockCache.isCached shouldBe false
+      //      segmentBlockCache.isCached shouldBe false
 
       //      //getSegmentBlock
       //      segmentBlockCache.segmentBlockReaderCache.isCached shouldBe false

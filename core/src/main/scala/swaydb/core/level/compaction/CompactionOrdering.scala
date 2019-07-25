@@ -29,8 +29,8 @@ private[swaydb] sealed trait CompactionOrdering {
 private[swaydb] object DefaultCompactionOrdering extends CompactionOrdering {
 
   /**
-    * Given the Level returns the ordering for [[LevelRef]].
-    */
+   * Given the Level returns the ordering for [[LevelRef]].
+   */
   def ordering(levelState: LevelRef => LevelCompactionState) =
     new Ordering[LevelRef] {
       override def compare(left: LevelRef, right: LevelRef): Int = {

@@ -22,7 +22,6 @@ package swaydb.core.io.reader
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.io.file.DBFile
-import swaydb.data.io.Core
 import swaydb.data.slice.{Reader, Slice}
 
 private[core] class FileReader(file: DBFile) extends Reader[swaydb.Error.Segment] with LazyLogging {

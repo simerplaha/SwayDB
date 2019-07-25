@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, Time, Transient}
 import swaydb.core.io.reader.Reader
@@ -26,23 +27,22 @@ import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, BaseEntryIdFormatA, TransientToKeyValueIdBinder}
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 /**
-  * These tests can also be within [[swaydb.core.data.TransientSpec]] because they are
-  * asserting on the result of [[Transient.valueEntryBytes]] and [[Transient.indexEntryBytes]].
-  *
-  * The scope of these tests are larger than it should. ValueWriter should remove references to KeyValue
-  * but currently it is like that for performance reasons. We do not value to serialise values to bytes unless
-  * [[ValueWriter]] decides to do so.
-  *
-  * Need a simpler way of testing these but this will do for now.
-  *
-  * What being doing is here is that a transient key-value is serialised and re-read byte [[EntryReader]].
-  */
+ * These tests can also be within [[swaydb.core.data.TransientSpec]] because they are
+ * asserting on the result of [[Transient.valueEntryBytes]] and [[Transient.indexEntryBytes]].
+ *
+ * The scope of these tests are larger than it should. ValueWriter should remove references to KeyValue
+ * but currently it is like that for performance reasons. We do not value to serialise values to bytes unless
+ * [[ValueWriter]] decides to do so.
+ *
+ * Need a simpler way of testing these but this will do for now.
+ *
+ * What being doing is here is that a transient key-value is serialised and re-read byte [[EntryReader]].
+ */
 class ValueReaderWriterSpec extends TestBase {
   implicit val timer = TestTimer.Empty
 

@@ -20,7 +20,6 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.IO
-import swaydb.data.io.Core
 
 trait BlockOps[O <: BlockOffset, B <: Block[O]] {
   def updateBlockOffset(block: B, start: Int, size: Int): B

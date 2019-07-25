@@ -55,8 +55,8 @@ private[swaydb] object KeyValueGroupingStrategyInternal {
   val none = Option.empty[KeyValueGroupingStrategyInternal]
 
   /**
-    * Converts public type KeyValueGroupingStrategy to internal KeyValueGroupingStrategy which the core understands.
-    */
+   * Converts public type KeyValueGroupingStrategy to internal KeyValueGroupingStrategy which the core understands.
+   */
   def apply(groupingStrategy: swaydb.data.api.grouping.KeyValueGroupingStrategy): KeyValueGroupingStrategyInternal =
     groupingStrategy match {
       case grouping: swaydb.data.api.grouping.KeyValueGroupingStrategy.Count =>
@@ -112,8 +112,8 @@ private[swaydb] sealed trait GroupGroupingStrategyInternal extends GroupingStrat
 private[swaydb] object GroupGroupingStrategyInternal {
 
   /**
-    * Converts public type GroupGroupingStrategy to internal GroupGroupingStrategy which the core understands.
-    */
+   * Converts public type GroupGroupingStrategy to internal GroupGroupingStrategy which the core understands.
+   */
   def apply(groupingStrategy: swaydb.data.api.grouping.GroupGroupingStrategy): GroupGroupingStrategyInternal =
     groupingStrategy match {
       case grouping: swaydb.data.api.grouping.GroupGroupingStrategy.Count =>

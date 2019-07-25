@@ -21,10 +21,9 @@ package swaydb.compression
 
 import net.jpountz.lz4.{LZ4Factory, LZ4FastDecompressor, LZ4SafeDecompressor}
 import org.xerial.snappy
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.data.compression.{DecompressorId, LZ4Decompressor, LZ4Instance}
-import swaydb.data.io.Core
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.data.util.PipeOps._
 

@@ -44,8 +44,8 @@ object DefaultEventuallyPersistentConfig {
     }
 
   /**
-    * Default configuration for in-memory 3 leveled database that is persistent for the 3rd Level.
-    */
+   * Default configuration for in-memory 3 leveled database that is persistent for the 3rd Level.
+   */
   def apply(dir: Path,
             otherDirs: Seq[Dir],
             mapSize: Int,

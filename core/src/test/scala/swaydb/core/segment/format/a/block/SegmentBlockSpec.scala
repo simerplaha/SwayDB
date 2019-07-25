@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
@@ -28,7 +29,6 @@ import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.config.IOStrategy
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

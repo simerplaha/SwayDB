@@ -22,7 +22,6 @@ package swaydb.core.merge
 import swaydb.IO
 import swaydb.core.data.Value
 import swaydb.core.function.FunctionStore
-import swaydb.data.io.Core
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 

@@ -19,10 +19,7 @@
 
 package swaydb.core.map.serializer
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.Paths
-import java.util.concurrent.TimeUnit
-
+import swaydb.Error.Map.ErrorHandler
 import swaydb.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
@@ -30,14 +27,8 @@ import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
-import swaydb.core.util.{Bytes, MinMax}
-import swaydb.data.MaxKey
-import swaydb.data.io.Core
-import swaydb.Error.Map.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
-
-import scala.concurrent.duration.Deadline
 
 object AppendixMapEntryReader {
   def apply(mmapSegmentsOnRead: Boolean,
