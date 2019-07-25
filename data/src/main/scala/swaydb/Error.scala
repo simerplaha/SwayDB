@@ -34,7 +34,7 @@ protected[swaydb] sealed trait Error {
 
 object Error {
 
-  abstract class DerivedErrorHandler[T <: swaydb.Error](recover: Boolean) extends ErrorHandler[T] {
+  private trait DerivedErrorHandler[T <: swaydb.Error] extends ErrorHandler[T] {
     override def toException(e: T): Throwable =
       e.exception
 
@@ -48,16 +48,13 @@ object Error {
       }
 
     override def reserve(e: T): Option[Reserve[Unit]] =
-      if (recover)
-        e match {
-          case busy: Error.ReservedIO =>
-            Some(busy.reserve)
+      e match {
+        case busy: Error.ReservedIO =>
+          Some(busy.reserve)
 
-          case _: Error =>
-            None
-        }
-      else
-        None
+        case _: Error =>
+          None
+      }
   }
 
   sealed trait Level extends Error
@@ -70,35 +67,35 @@ object Error {
   sealed trait API extends Error
 
   object Segment {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.Segment](recover = true)
+    implicit object ErrorHandler extends DerivedErrorHandler[Error.Segment]
   }
 
   object Level {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.Level](recover = true)
+    implicit object ErrorHandler extends DerivedErrorHandler[Error.Level]
   }
 
   object Map {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.Map](recover = false)
+    implicit object ErrorHandler extends DerivedErrorHandler[Error.Map]
   }
 
   object BootUp {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.BootUp](recover = false)
+    implicit object ErrorHandler extends DerivedErrorHandler[Error.BootUp]
   }
 
   object Close {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.Close](recover = false)
+    implicit object ErrorHandler extends DerivedErrorHandler[Error.Close]
   }
 
   object Delete {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.Delete](recover = false)
+    implicit object ErrorHandler extends DerivedErrorHandler[Error.Delete]
   }
 
   object API {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.API](recover = false)
+    implicit object ErrorHandler extends DerivedErrorHandler[Error.API]
   }
 
   object IO {
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.IO](recover = false)
+    implicit object ErrorHandler extends DerivedErrorHandler[Error.IO]
   }
 
   def apply[T](exception: Throwable): Error =
@@ -266,7 +263,7 @@ object Error {
     def apply(message: String): Fatal =
       new Fatal(new Exception(message))
 
-    implicit object ErrorHandler extends DerivedErrorHandler[Error.Fatal](recover = false)
+    implicit object ErrorHandler extends DerivedErrorHandler[Error.Fatal]
   }
 
   case class Fatal(exception: Throwable)
