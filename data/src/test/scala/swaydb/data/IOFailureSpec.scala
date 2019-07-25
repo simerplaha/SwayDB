@@ -26,6 +26,7 @@ import swaydb.ErrorHandler.Throwable
 import swaydb.IO
 import swaydb.data.Base._
 import swaydb.data.io.Core
+import Core.Error.Private.ErrorHandler
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
@@ -41,7 +42,7 @@ class IOFailureSpec extends WordSpec with Matchers {
     }
 
     "get" in {
-      val io = IO.failed(new IllegalAccessError)
+      val io = IO.failed[Throwable, Unit](new IllegalAccessError)
 
       assertThrows[IllegalAccessError] {
         io.get
@@ -52,19 +53,19 @@ class IOFailureSpec extends WordSpec with Matchers {
     }
 
     "getOrElse & orElse return first io if both are Failures" in {
-      val io1 = IO.failed(new IllegalAccessError)
-      val io2 = IO.failed(new IllegalArgumentException)
+      val io1 = IO.failed[Throwable, Unit](new IllegalAccessError)
+      val io2 = IO.failed[Throwable, Unit](new IllegalArgumentException)
 
-      (io1 getOrElse io2).exception shouldBe a[IllegalArgumentException]
+      (io1 getOrElse io2) shouldBe a[IO.Failure[IllegalArgumentException, Unit]]
 
       io1 orElse io2 shouldBe io2
     }
 
     "flatMap on Success" in {
-      val failIO = IO.failed(new IllegalThreadStateException)
+      val failIO = IO.failed[Throwable, Int](new IllegalThreadStateException)
       failIO.asDeferred flatMap {
         i =>
-          IO.Success(1)
+          IO.Success[Throwable, Int](1)
       } shouldBe failIO
     }
 
@@ -77,17 +78,11 @@ class IOFailureSpec extends WordSpec with Matchers {
       } shouldBe failure
     }
 
-    "flatten on successes with failure" in {
-      val io = IO.Success(IO.Failure(Core.Error.Fatal(new Exception("Kaboom!"))))
-
-      io.flatten.asInstanceOf[IO.Failure[Throwable, Int]].exception.getMessage shouldBe "Kaboom!"
-    }
-
     "flatten on failure with success" in {
       val io =
-        IO.Failure(Core.Error.Fatal(new Exception("Kaboom!"))).asIO map {
+        IO.Failure[Core.Error.Private, Int](Core.Error.Fatal(new Exception("Kaboom!"))).asIO map {
           _ =>
-            IO.Success(11)
+            IO.Success[Core.Error.Private, Unit](11)
         }
 
       io.flatten.asInstanceOf[IO.Failure[Throwable, Int]].exception.getMessage shouldBe "Kaboom!"
@@ -100,16 +95,16 @@ class IOFailureSpec extends WordSpec with Matchers {
             1
         }
 
-      failure shouldBe IO.Success(1)
+      failure shouldBe IO.Success[Core.Error.Private, Int](1)
     }
 
     "recoverWith" in {
       val failure =
         IO.Failure(Core.Error.NoSuchFile(new NoSuchFileException("")))
           .recoverWith[Core.Error.Private, Unit] {
-          case error: Core.Error.Private =>
-            IO.Failure(Core.Error.Fatal(new Exception("recovery exception")))
-        }
+            case error: Core.Error.Private =>
+              IO.Failure(Core.Error.Fatal(new Exception("recovery exception")))
+          }
 
       failure.failed.get.exception.getMessage shouldBe "recovery exception"
     }
@@ -124,14 +119,14 @@ class IOFailureSpec extends WordSpec with Matchers {
                   IO.Failure(busy) recoverToDeferred {
                     IO.Failure(busy) recoverToDeferred {
                       IO.Failure(busy) recoverToDeferred {
-                        IO.Success(100)
+                        IO.Success[Core.Error.Private, Int](100)
                       }
                     }
                   }
                 }
               }
             }
-          failure.runBlocking shouldBe IO.Success(100)
+          failure.runBlocking shouldBe IO.Success[Core.Error.Private, Int](100)
       }
     }
 

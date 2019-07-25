@@ -43,7 +43,6 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 [Read more](http://swaydb.io/).
 
-
 ## Demo Streaming API
 ```scala
 //Iteration: fetch all key-values withing range 10 to 90, update values and batch write updated key-values

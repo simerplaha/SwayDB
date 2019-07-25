@@ -85,7 +85,7 @@ object Tag {
   implicit val sio: Tag[CoreIO] =
     new Tag[CoreIO] {
 
-      import Core.Error.InitialisationErrorHandler
+      import Core.Error.Initialisation.ErrorHandler
 
       override def apply[A](a: => A): CoreIO[A] = IO(a)
       override def map[A, B](a: A)(f: A => B): CoreIO[B] = IO(f(a))

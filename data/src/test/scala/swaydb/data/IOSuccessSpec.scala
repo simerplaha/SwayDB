@@ -96,9 +96,9 @@ class IOSuccessSpec extends WordSpec with Matchers {
     }
 
     "flatten on successes with failure" in {
-      val nested: IO[Core.Error.Private, IO[Core.Error.Private, IO[Core.Error.Private, IO[Core.Error.Private, Int]]]] = IO.Success(IO.Success(IO.Success(IO.Failure(Core.Error.Fatal(new Exception("Kaboom!"))))))
+      val nested = IO.Success(IO.Success(IO.Success(IO.Failure(Core.Error.Fatal(new Exception("Kaboom!"))))))
 
-      nested.flatten.flatten.flatten.asInstanceOf[IO.Failure[Core.Error.Private, Int]].failed.get.exception.getMessage shouldBe "Kaboom!"
+      nested.flatten.flatten.flatten.failed.get.exception.getMessage shouldBe "Kaboom!"
     }
 
     "invoke onCompleteSideEffect" in {

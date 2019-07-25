@@ -31,14 +31,14 @@ import swaydb.data.slice.Slice
 object Core {
 
   /**
-    * Exception types for all known [[Error]]s that can occur. Each [[Error]] can be converted to
-    * Exception which which can then be converted back to [[Error]].
-    *
-    * SwayDB's code itself does not use these exception it uses [[Error]] type. These types are handy when
-    * converting an [[IO]] type to [[scala.util.Try]] by the client using [[toTry]].
-    */
+   * Exception types for all known [[Error]]s that can occur. Each [[Error]] can be converted to
+   * Exception which which can then be converted back to [[Error]].
+   *
+   * SwayDB's code itself does not use these exception it uses [[Error]] type. These types are handy when
+   * converting an [[IO]] type to [[scala.util.Try]] by the client using [[toTry]].
+   */
   object Exception {
-    case class Busy(error: Error.Busy) extends Exception("Is busy")
+    case class Busy(error: Error.Reserved) extends Exception("Is busy")
     case class OpeningFile(file: Path, busy: Reserve[Unit]) extends Exception(s"Failed to open file $file")
 
     case class DecompressingIndex(busy: Reserve[Unit]) extends Exception("Failed to decompress index")
@@ -51,14 +51,14 @@ object Core {
     case object OverlappingPushSegment extends Exception("Contains overlapping busy Segments")
     case object NoSegmentsRemoved extends Exception("No Segments Removed")
     case object NotSentToNextLevel extends Exception("Not sent to next Level")
-    case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
+    case class MergeKeyValuesWithoutTargetSegment(keyValueCount: Int) extends Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
 
     /**
-      * [[functionID]] itself is not logged or printed to console since it may contain sensitive data but instead this Exception
-      * with the [[functionID]] is returned to the client for reads and the exception's string message is only logged.
-      *
-      * @param functionID the id of the missing function.
-      */
+     * [[functionID]] itself is not logged or printed to console since it may contain sensitive data but instead this Exception
+     * with the [[functionID]] is returned to the client for reads and the exception's string message is only logged.
+     *
+     * @param functionID the id of the missing function.
+     */
     case class FunctionNotFound(functionID: Slice[Byte]) extends Exception("Function not found for ID.")
     case class OverlappingFileLock(exception: OverlappingFileLockException) extends Exception("Failed to get directory lock.")
     object SegmentCorruptionException {
@@ -81,65 +81,50 @@ object Core {
 
   object Error {
 
-    /**
-      * Private Errors a restricted to DB's internals only. They should
-      * not go out to the clients.
-      */
-    sealed trait Private extends Error
-    sealed trait Initialisation extends Private
-    sealed trait API extends Private
+    abstract class DerivedErrorHandler[T <: Core.Error](recover: Boolean) extends ErrorHandler[T] {
+      override def toException(e: T): Throwable =
+        e.exception
 
-    object Private {
-      implicit object ErrorHandler extends ErrorHandler[Error.Private] {
-        override def toException(e: Error.Private): Throwable =
-          e.exception
+      override def fromException[F <: T](e: Throwable): F =
+        Error(e) match {
+          case error: T =>
+            error.asInstanceOf[F]
 
-        override def fromException[F <: Error.Private](e: Throwable): F =
-          Error(e).asInstanceOf[F]
+          case otherError: Error =>
+            Error.Fatal(otherError.exception).asInstanceOf[F]
+        }
 
-        override def reserve(e: Error.Private): Option[Reserve[Unit]] =
+      override def reserve(e: T): Option[Reserve[Unit]] =
+        if (recover)
           e match {
-            case busy: Error.Busy =>
+            case busy: Error.Reserved =>
               Some(busy.reserve)
 
             case _: Error =>
               None
           }
-      }
+        else
+          None
     }
 
-    implicit object InitialisationErrorHandler extends ErrorHandler[Error.Initialisation] {
-      override def toException(e: Error.Initialisation): Throwable =
-        e.exception
+    /**
+     * Private Errors a restricted to DB's internals only. They should
+     * not go out to the clients.
+     */
+    sealed trait Private extends Error
+    sealed trait Initialisation extends Private
+    sealed trait API extends Private
 
-      override def fromException[F <: Error.Initialisation](e: Throwable): F =
-        Error(e) match {
-          case initialisation: Error.Initialisation =>
-            initialisation.asInstanceOf[F]
-
-          case other: Error =>
-            Error.Fatal(other.exception).asInstanceOf[F]
-        }
-
-      override def reserve(e: Error.Initialisation): Option[Reserve[Unit]] =
-        None
+    object Private {
+      implicit object ErrorHandler extends DerivedErrorHandler[Error.Private](recover = true)
     }
 
-    implicit object APIErrorHandler extends ErrorHandler[Error.API] {
-      override def toException(e: Error.API): Throwable =
-        e.exception
+    object Initialisation {
+      implicit object ErrorHandler extends DerivedErrorHandler[Error.Private](recover = false)
+    }
 
-      override def fromException[F <: Error.API](e: Throwable): F =
-        Error(e) match {
-          case initialisation: Error.API =>
-            initialisation.asInstanceOf[F]
-
-          case other: Error =>
-            Error.Fatal(other.exception).asInstanceOf[F]
-        }
-
-      override def reserve(e: Error.API): Option[Reserve[Unit]] =
-        None
+    object API {
+      implicit object ErrorHandler extends DerivedErrorHandler[Error.API](recover = false)
     }
 
     def apply[T](exception: Throwable): Error =
@@ -151,7 +136,7 @@ object Core {
         case exception: Exception.DecompressionValues => Error.DecompressingValues(exception.busy)
         case exception: Exception.ReservedValue => Error.ReservedValue(exception.busy)
         case exception: Exception.ReadingHeader => Error.ReadingHeader(exception.busy)
-        case exception: Exception.ReceivedKeyValuesToMergeWithoutTargetSegment => Error.ReceivedKeyValuesToMergeWithoutTargetSegment(exception.keyValueCount)
+        case exception: Exception.MergeKeyValuesWithoutTargetSegment => Error.ReceivedKeyValuesToMergeWithoutTargetSegment(exception.keyValueCount)
         case exception: Exception.NullMappedByteBuffer => Error.NullMappedByteBuffer(exception)
 
         //the following Exceptions will occur when a file was being read but
@@ -185,13 +170,13 @@ object Core {
         case exception: Throwable => Error.Fatal(exception)
       }
 
-    sealed trait Busy extends Private {
+    sealed trait Reserved extends Private {
       def reserve: Reserve[Unit]
       def isFree: Boolean =
         !reserve.isBusy
     }
 
-    case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Busy {
+    case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Reserved {
       override def exception: Exception.OpeningFile = Exception.OpeningFile(file, reserve)
     }
 
@@ -203,7 +188,7 @@ object Core {
         new NoSuchFile(Some(path), None)
     }
 
-    case class NoSuchFile(path: Option[Path], exp: Option[NoSuchFileException]) extends Busy {
+    case class NoSuchFile(path: Option[Path], exp: Option[NoSuchFileException]) extends Reserved {
       override def reserve: Reserve[Unit] = Reserve()
       override def exception: Throwable = exp getOrElse {
         path match {
@@ -216,46 +201,46 @@ object Core {
       }
     }
 
-    case class FileNotFound(exception: FileNotFoundException) extends Busy {
+    case class FileNotFound(exception: FileNotFoundException) extends Reserved {
       override def reserve: Reserve[Unit] = Reserve()
     }
 
-    case class AsynchronousClose(exception: AsynchronousCloseException) extends Busy {
+    case class AsynchronousClose(exception: AsynchronousCloseException) extends Reserved {
       override def reserve: Reserve[Unit] = Reserve()
     }
 
-    case class ClosedChannel(exception: ClosedChannelException) extends Busy {
+    case class ClosedChannel(exception: ClosedChannelException) extends Reserved {
       override def reserve: Reserve[Unit] = Reserve()
     }
 
-    case class NullMappedByteBuffer(exception: Exception.NullMappedByteBuffer) extends Busy {
+    case class NullMappedByteBuffer(exception: Exception.NullMappedByteBuffer) extends Reserved {
       override def reserve: Reserve[Unit] = Reserve()
     }
 
-    case class DecompressingIndex(reserve: Reserve[Unit]) extends Busy {
+    case class DecompressingIndex(reserve: Reserve[Unit]) extends Reserved {
       override def exception: Exception.DecompressingIndex = Exception.DecompressingIndex(reserve)
     }
 
-    case class DecompressingValues(reserve: Reserve[Unit]) extends Busy {
+    case class DecompressingValues(reserve: Reserve[Unit]) extends Reserved {
       override def exception: Exception.DecompressionValues = Exception.DecompressionValues(reserve)
     }
 
-    case class ReadingHeader(reserve: Reserve[Unit]) extends Busy {
+    case class ReadingHeader(reserve: Reserve[Unit]) extends Reserved {
       override def exception: Exception.ReadingHeader = Exception.ReadingHeader(reserve)
     }
 
-    case class ReservedValue(reserve: Reserve[Unit]) extends Busy {
+    case class ReservedValue(reserve: Reserve[Unit]) extends Reserved {
       override def exception: Exception.ReservedValue = Exception.ReservedValue(reserve)
     }
 
-    case class BusyFuture(reserve: Reserve[Unit]) extends Busy {
+    case class ReservedFuture(reserve: Reserve[Unit]) extends Reserved {
       override def exception: Exception.BusyFuture = Exception.BusyFuture(reserve)
     }
 
     /**
-      * This error can also be turned into Busy and LevelActor can use it to listen to when
-      * there are no more overlapping Segments.
-      */
+     * This error can also be turned into Busy and LevelActor can use it to listen to when
+     * there are no more overlapping Segments.
+     */
     case object OverlappingPushSegment extends Private {
       override def exception: Throwable = Exception.OverlappingPushSegment
     }
@@ -269,8 +254,8 @@ object Core {
     }
 
     case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Private {
-      override def exception: Exception.ReceivedKeyValuesToMergeWithoutTargetSegment =
-        Exception.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount)
+      override def exception: Exception.MergeKeyValuesWithoutTargetSegment =
+        Exception.MergeKeyValuesWithoutTargetSegment(keyValueCount)
     }
 
     case class ReadOnlyBuffer(exception: ReadOnlyBufferException) extends Private
@@ -288,11 +273,11 @@ object Core {
     case class InvalidKeyValueId(id: Int, exception: Throwable) extends Error.Private
 
     /**
-      * Error that are not known and indicate something unexpected went wrong like a file corruption.
-      *
-      * Pre-cautions are implemented in place to even recover from these failures using tools like AppendixRepairer.
-      * This Error is not expected to occur on healthy databases.
-      */
+     * Error that are not known and indicate something unexpected went wrong like a file corruption.
+     *
+     * Pre-cautions are implemented in place to even recover from these failures using tools like AppendixRepairer.
+     * This Error is not expected to occur on healthy databases.
+     */
     object Fatal {
       def apply(message: String): Fatal =
         new Fatal(new Exception(message))

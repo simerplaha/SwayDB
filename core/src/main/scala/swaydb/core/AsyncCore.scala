@@ -114,7 +114,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Co
             } recoverWith {
               case error =>
                 error match {
-                  case _: Core.Error.Busy =>
+                  case _: Core.Error.Reserved =>
                     headFuture
 
                   case failure =>
@@ -141,7 +141,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Co
             } recoverWith {
               case error =>
                 error match {
-                  case _: Core.Error.Busy =>
+                  case _: Core.Error.Reserved =>
                     lastFuture
 
                   case failure =>
@@ -183,7 +183,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Co
             } recoverWith {
               case error =>
                 error match {
-                  case _: Core.Error.Busy =>
+                  case _: Core.Error.Reserved =>
                     getFuture(key)
 
                   case failure =>
@@ -210,7 +210,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Co
             } recoverWith {
               case error =>
                 error match {
-                  case _: Core.Error.Busy =>
+                  case _: Core.Error.Reserved =>
                     getKeyValueFuture(key)
 
                   case failure =>
@@ -234,7 +234,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Co
             } recoverWith {
               case error =>
                 error match {
-                  case _: Core.Error.Busy =>
+                  case _: Core.Error.Reserved =>
                     beforeFuture(key)
 
                   case failure =>
@@ -261,7 +261,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Co
             } recoverWith {
               case error =>
                 error match {
-                  case _: Core.Error.Busy =>
+                  case _: Core.Error.Reserved =>
                     afterFuture(key)
 
                   case failure =>

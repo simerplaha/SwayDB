@@ -74,13 +74,13 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
                    isReserved: Boolean,
                    stored: Boolean): (Unit => IO[Core.Error.Private, Int]) => Cache[Core.Error.Private, Unit, Int] =
     if (isBlockIO)
-      Cache.blockIO[Unit, Int](getBlockIO(isConcurrent, isSynchronised, isReserved, stored), Core.Error.BusyFuture(Reserve()))
+      Cache.blockIO[Core.Error.Private, Core.Error.ReservedFuture, Unit, Int](getBlockIO(isConcurrent, isSynchronised, isReserved, stored), Core.Error.ReservedFuture(Reserve()))
     else if (isConcurrent)
       Cache.concurrentIO[Core.Error.Private, Unit, Int](synchronised = false, stored = stored)
     else if (isSynchronised)
       Cache.concurrentIO[Core.Error.Private, Unit, Int](synchronised = true, stored = stored)
     else if (isReserved)
-      Cache.reservedIO[Unit, Int](stored = stored, Core.Error.BusyFuture(Reserve()))
+      Cache.reservedIO[Core.Error.Private, Core.Error.ReservedFuture, Unit, Int](stored = stored, Core.Error.ReservedFuture(Reserve()))
     else
       Cache.concurrentIO[Core.Error.Private, Unit, Int](synchronised = false, stored = stored) //then it's concurrent
 
@@ -209,7 +209,9 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         mock.expects() returning IO.failed("Kaboom!") repeat 2.times
         cache.map(IO(_)).value().failed.get.exception.getMessage shouldBe "Kaboom!"
         cache.isCached shouldBe false
-        cache.flatMap(Cache.reservedIO(true, Core.Error.BusyFuture(Reserve()))(int => IO.Success(int + 1))).value().failed.get.exception.getMessage shouldBe "Kaboom!"
+        cache.flatMap(
+          Cache.reservedIO[Core.Error.Private, Core.Error.ReservedFuture, Int, Int](true, Core.Error.ReservedFuture(Reserve()))(int => IO.Success(int + 1))
+        ).value().failed.get.exception.getMessage shouldBe "Kaboom!"
         cache.isCached shouldBe false
 
         mock.expects() returning IO(222)
@@ -307,14 +309,14 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
           val simpleCache =
             if (blockIO)
-              Cache.blockIO[Unit, Int](blockIO = _ => IOStrategy.ReservedIO(true), Core.Error.ReservedValue(Reserve())) {
+              Cache.blockIO[Core.Error.Private, Core.Error.ReservedValue, Unit, Int](blockIO = _ => IOStrategy.ReservedIO(true), Core.Error.ReservedValue(Reserve())) {
                 _ =>
                   invokeCount += 1
                   sleep(5.millisecond) //delay access
                   IO.Success(10)
               }
             else
-              Cache.reservedIO[Unit, Int](stored = true, Core.Error.ReservedValue(Reserve())) {
+              Cache.reservedIO[Core.Error.Private, Core.Error.ReservedValue, Unit, Int](stored = true, Core.Error.ReservedValue(Reserve())) {
                 _ =>
                   invokeCount += 1
                   sleep(5.millisecond) //delay access

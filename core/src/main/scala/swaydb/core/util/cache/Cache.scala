@@ -26,7 +26,6 @@ import swaydb.core.util.FunctionUtil
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.{ErrorHandler, IO}
 
 private[core] object Cache {
@@ -52,8 +51,9 @@ private[core] object Cache {
       lazyIO = Lazy.io(synchronised = synchronised, stored = stored)
     )
 
-  def reservedIO[I, O](stored: Boolean, reserveError: Core.Error.Busy)(fetch: I => IO[Core.Error.Private, O]): Cache[Core.Error.Private, I, O] =
-    new ReservedIO(
+  def reservedIO[E: ErrorHandler, ER <: E with Core.Error.Reserved, I, O](stored: Boolean,
+                                                                          reserveError: ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
+    new ReservedIO[E, ER, I, O](
       fetch = fetch,
       lazyIO = Lazy.io(synchronised = false, stored = stored),
       error = reserveError
@@ -68,25 +68,26 @@ private[core] object Cache {
       )
     )
 
-  def blockIO[I, O](blockIO: I => IOStrategy, reserveError: => Core.Error.Busy)(fetch: I => IO[Core.Error.Private, O]): Cache[Core.Error.Private, I, O] =
-    new BlockIOCache[Core.Error.Private, I, O](
-      Cache.noIO[I, Cache[Core.Error.Private, I, O]](synchronised = false, stored = true) {
+  def blockIO[E: ErrorHandler, ER <: E with Core.Error.Reserved, I, O](blockIO: I => IOStrategy,
+                                                                       reserveError: => ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
+    new BlockIOCache[E, I, O](
+      Cache.noIO[I, Cache[E, I, O]](synchronised = false, stored = true) {
         i =>
           FunctionUtil.safe((_: I) => IOStrategy.ConcurrentIO(false), blockIO)(i) match {
             case IOStrategy.ConcurrentIO(cacheOnAccess) =>
-              Cache.concurrentIO[Core.Error.Private, I, O](
+              Cache.concurrentIO[E, I, O](
                 synchronised = false,
                 stored = cacheOnAccess
               )(fetch)
 
             case IOStrategy.SynchronisedIO(cacheOnAccess) =>
-              Cache.concurrentIO[Core.Error.Private, I, O](
+              Cache.concurrentIO[E, I, O](
                 synchronised = true,
                 stored = cacheOnAccess
               )(fetch)
 
             case IOStrategy.ReservedIO(cacheOnAccess) =>
-              Cache.reservedIO[I, O](
+              Cache.reservedIO[E, ER, I, O](
                 stored = cacheOnAccess,
                 reserveError = reserveError
               )(fetch)
@@ -197,10 +198,12 @@ private class SynchronisedIO[E: ErrorHandler, I, O](fetch: I => IO[E, O],
  * Caches a value on read. Used for IO operations where the output does not change.
  * For example: A file's size.
  */
-private class ReservedIO[I, O](fetch: I => IO[Core.Error.Private, O], lazyIO: LazyIO[Core.Error.Private, O], error: Core.Error.Busy) extends Cache[Core.Error.Private, I, O] {
+private class ReservedIO[E: ErrorHandler, ER <: E with Core.Error.Reserved, I, O](fetch: I => IO[E, O],
+                                                                                  lazyIO: LazyIO[E, O],
+                                                                                  error: ER) extends Cache[E, I, O] {
 
-  override def value(i: => I): IO[Core.Error.Private, O] =
-    lazyIO getOrElse {
+  override def value(i: => I): IO[E, O] =
+    lazyIO.getOrElse {
       if (Reserve.setBusyOrGet((), error.reserve).isEmpty)
         try
           lazyIO getOrElse (lazyIO set fetch(i)) //check if it's set again in the block.
@@ -213,13 +216,13 @@ private class ReservedIO[I, O](fetch: I => IO[Core.Error.Private, O], lazyIO: La
   override def isCached: Boolean =
     lazyIO.isDefined
 
-  override def getOrElse(f: => IO[Core.Error.Private, O]): IO[Core.Error.Private, O] =
+  override def getOrElse(f: => IO[E, O]): IO[E, O] =
     lazyIO getOrElse f
 
   override def clear() =
     lazyIO.clear()
 
-  override def get(): Option[IO.Success[Core.Error.Private, O]] =
+  override def get(): Option[IO.Success[E, O]] =
     lazyIO.get()
 }
 

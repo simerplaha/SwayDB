@@ -186,7 +186,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             } recoverWith {
               case error =>
                 error match {
-                  case _: Core.Error.Busy =>
+                  case _: Core.Error.Reserved =>
                     headIO
 
                   case failure =>
@@ -213,7 +213,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             } recoverWith {
               case error =>
                 error match {
-                  case _: Core.Error.Busy =>
+                  case _: Core.Error.Reserved =>
                     lastIO
 
                   case failure =>
@@ -258,7 +258,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             } recoverWith[Core.Error.Private, Option[Option[Slice[Byte]]]] {
               case error =>
                 error match {
-                  case _: Core.Error.Busy =>
+                  case _: Core.Error.Reserved =>
                     getIO(key)
 
                   case failure =>
@@ -285,7 +285,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             } recoverWith[Core.Error.Private, Option[KeyValueTuple]] {
               case error =>
                 error match {
-                  case _: Core.Error.Busy =>
+                  case _: Core.Error.Reserved =>
                     getKeyValueIO(key)
 
                   case failure =>
@@ -309,7 +309,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             } recoverWith[Core.Error.Private, Option[KeyValueTuple]] {
               case error =>
                 error match {
-                  case _: Core.Error.Busy =>
+                  case _: Core.Error.Reserved =>
                     beforeIO(key)
 
                   case failure =>
@@ -336,7 +336,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             } recoverWith {
               case error =>
                 error match {
-                  case _: Core.Error.Busy =>
+                  case _: Core.Error.Reserved =>
                     afterIO(key)
 
                   case failure =>

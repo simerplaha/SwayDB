@@ -23,8 +23,8 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
 
-private[swaydb] class Reserve[T](@volatile var info: Option[T],
-                                 private[data] val promises: ListBuffer[Promise[Unit]]) {
+class Reserve[T](@volatile var info: Option[T],
+                 private[data] val promises: ListBuffer[Promise[Unit]]) {
   def savePromise(promise: Promise[Unit]): Unit =
     promises += promise
 
@@ -35,7 +35,7 @@ private[swaydb] class Reserve[T](@volatile var info: Option[T],
     !isBusy
 }
 
-private[swaydb] object Reserve {
+object Reserve {
   private val blockingTimeout = 5.seconds.toMillis
   private val futureUnit = Future.successful(())
 
