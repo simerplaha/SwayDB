@@ -35,14 +35,14 @@ import swaydb.data.slice.Slice
  */
 object Exception {
   case class Busy(error: Error.ReservedIO) extends Exception("Is busy")
-  case class OpeningFile(file: Path, busy: Reserve[Unit]) extends Exception(s"Failed to open file $file")
+  case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Exception(s"Failed to open file $file")
 
-  case class DecompressingIndex(busy: Reserve[Unit]) extends Exception("Failed to decompress index")
-  case class DecompressionValues(busy: Reserve[Unit]) extends Exception("Failed to decompress values")
-  case class ReservedValue(busy: Reserve[Unit]) extends Exception("Failed to fetch value")
-  case class ReadingHeader(busy: Reserve[Unit]) extends Exception("Failed to read header")
-  case class NullMappedByteBuffer(exception: Exception, busy: Reserve[Unit]) extends Exception(exception)
-  case class BusyFuture(busy: Reserve[Unit]) extends Exception("Busy future")
+  case class DecompressingIndex(reserve: Reserve[Unit]) extends Exception("Failed to decompress index")
+  case class DecompressionValues(reserve: Reserve[Unit]) extends Exception("Failed to decompress values")
+  case class ReservedValue(reserve: Reserve[Unit]) extends Exception("Failed to fetch value")
+  case class ReadingHeader(reserve: Reserve[Unit]) extends Exception("Failed to read header")
+  case class NullMappedByteBuffer(exception: Exception, reserve: Reserve[Unit]) extends Exception(exception)
+  case class BusyFuture(reserve: Reserve[Unit]) extends Exception("Busy future")
 
   case object OverlappingPushSegment extends Exception("Contains overlapping busy Segments")
   case object NoSegmentsRemoved extends Exception("No Segments Removed")

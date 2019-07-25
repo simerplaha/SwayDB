@@ -102,11 +102,11 @@ object Error {
     exception match {
       //known Exception that can occur which can return their typed Error version.
       case exception: Exception.Busy => exception.error
-      case exception: Exception.OpeningFile => Error.OpeningFile(exception.file, exception.busy)
-      case exception: Exception.DecompressingIndex => Error.DecompressingIndex(exception.busy)
-      case exception: Exception.DecompressionValues => Error.DecompressingValues(exception.busy)
-      case exception: Exception.ReservedValue => Error.ReservedValue(exception.busy)
-      case exception: Exception.ReadingHeader => Error.ReadingHeader(exception.busy)
+      case exception: Exception.OpeningFile => Error.OpeningFile(exception.file, exception.reserve)
+      case exception: Exception.DecompressingIndex => Error.DecompressingIndex(exception.reserve)
+      case exception: Exception.DecompressionValues => Error.DecompressingValues(exception.reserve)
+      case exception: Exception.ReservedValue => Error.ReservedValue(exception.reserve)
+      case exception: Exception.ReadingHeader => Error.ReadingHeader(exception.reserve)
       case exception: Exception.MergeKeyValuesWithoutTargetSegment => Error.ReceivedKeyValuesToMergeWithoutTargetSegment(exception.keyValueCount)
       case exception: Exception.NullMappedByteBuffer => Error.NullMappedByteBuffer(exception)
 

@@ -72,15 +72,15 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
                    isReserved: Boolean,
                    stored: Boolean): (Unit => IO[swaydb.Error.Segment, Int]) => Cache[swaydb.Error.Segment, Unit, Int] =
     if (isBlockIO)
-      Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedFuture, Unit, Int](getBlockIO(isConcurrent, isSynchronised, isReserved, stored), swaydb.Error.ReservedFuture(Reserve()))
+      Cache.blockIO(getBlockIO(isConcurrent, isSynchronised, isReserved, stored), swaydb.Error.ReservedFuture(Reserve()))
     else if (isConcurrent)
-      Cache.concurrentIO[swaydb.Error.Segment, Unit, Int](synchronised = false, stored = stored)
+      Cache.concurrentIO(synchronised = false, stored = stored)
     else if (isSynchronised)
-      Cache.concurrentIO[swaydb.Error.Segment, Unit, Int](synchronised = true, stored = stored)
+      Cache.concurrentIO(synchronised = true, stored = stored)
     else if (isReserved)
       Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedFuture, Unit, Int](stored = stored, swaydb.Error.ReservedFuture(Reserve()))
     else
-      Cache.concurrentIO[swaydb.Error.Segment, Unit, Int](synchronised = false, stored = stored) //then it's concurrent
+      Cache.concurrentIO(synchronised = false, stored = stored) //then it's concurrent
 
   "valueIO" should {
     "always return initial value" in {
@@ -349,7 +349,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
           //eventually it's freed
           eventual {
-            failure.asInstanceOf[swaydb.Exception.ReservedValue].busy.isBusy shouldBe false
+            failure.asInstanceOf[swaydb.Exception.ReservedValue].reserve.isBusy shouldBe false
           }
 
           if (blockIO)
