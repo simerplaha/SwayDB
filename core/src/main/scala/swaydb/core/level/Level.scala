@@ -25,7 +25,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ErrorHandler
-import swaydb.IO
+import swaydb.{Error, IO}
 import swaydb.IO._
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
@@ -148,7 +148,18 @@ private[core] object Level extends LazyLogging {
                   initialWriteCount = 0,
                   fileSize = appendixFlushCheckpointSize,
                   dropCorruptedTailEntries = false
-                ).map(_.item)
+                ).map(_.item) recoverWith {
+                  case io: Error.IO =>
+                    IO.Failure(io)
+
+                  case Error.Fatal(exception) =>
+
+                    /**
+                     * Segment specific errors get converts to Fatal by [[AppendixMapEntryReader]] which here gets convert back
+                     * to typed [[swaydb.Error.Segment]].
+                     */
+                    IO.Failure(ErrorHandler.fromException[swaydb.Error.Segment](exception))
+                }
               }
 
             case AppendixStorage.Memory =>

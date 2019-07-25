@@ -19,7 +19,7 @@
 
 package swaydb.core.util
 
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.IO.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
@@ -187,7 +187,7 @@ private[swaydb] object Bytes {
     }
   }
 
-  def decompressJoin(bytes: Slice[Byte]): IO[swaydb.Error.Segment, (Slice[Byte], Slice[Byte])] =
+  def decompressJoin(bytes: Slice[Byte]): IO[swaydb.Error.IO, (Slice[Byte], Slice[Byte])] =
     Reader(bytes) ==> {
       reader =>
         for {
