@@ -73,9 +73,11 @@ object Core {
 
     case class InvalidDecompressorId(id: Int) extends Exception(s"Invalid decompressor id: $id")
 
+    case class NotAnIntFile(path: Path) extends Throwable
+    case class UnknownExtension(path: Path) extends Throwable
   }
 
-  protected[data] sealed trait Error {
+  protected[swaydb] sealed trait Error {
     def exception: Throwable
   }
 
@@ -180,6 +182,9 @@ object Core {
         case exception: Exception.SegmentFileMissing => Error.SegmentFileMissing(exception.path, exception)
         case exception: Exception.InvalidKeyValueId => Error.InvalidKeyValueId(exception.id, exception)
 
+        case exception: Exception.NotAnIntFile => Error.NotAnIntFile(exception)
+        case exception: Exception.UnknownExtension => Error.UnknownExtension(exception)
+
         case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
           Error.Corruption("Please see the exception to find out the cause", exception)
 
@@ -256,6 +261,13 @@ object Core {
 
     case class ReservedFuture(reserve: Reserve[Unit]) extends ReservedIO {
       override def exception: Exception.BusyFuture = Exception.BusyFuture(reserve)
+    }
+
+    case class NotAnIntFile(exception: Exception.NotAnIntFile) extends Error.IO {
+      def path = exception.path
+    }
+    case class UnknownExtension(exception: Exception.UnknownExtension) extends Error.IO {
+      def path = exception.path
     }
 
     /**

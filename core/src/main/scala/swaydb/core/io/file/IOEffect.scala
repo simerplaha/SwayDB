@@ -36,9 +36,6 @@ import swaydb.data.slice.Slice
 
 import scala.collection.JavaConverters._
 
-case class NotAnIntFile(path: Path) extends Throwable
-case class UnknownExtension(path: Path) extends Throwable
-
 private[core] object IOEffect extends LazyLogging {
 
   implicit class PathExtensionImplicits(path: Path) {
@@ -245,7 +242,7 @@ private[core] object IOEffect extends LazyLogging {
     val extensionIndex = fileName.lastIndexOf(".")
     val extIndex = if (extensionIndex <= 0) fileName.length else extensionIndex
 
-    IO(fileName.substring(0, extIndex).toLong) orElse IO.failed(NotAnIntFile(path)) flatMap {
+    IO(fileName.substring(0, extIndex).toLong) orElse IO.failed(Core.Exception.NotAnIntFile(path)) flatMap {
       fileId =>
         val ext = fileName.substring(extIndex + 1, fileName.length)
         if (ext == Extension.Log.toString)
@@ -254,7 +251,7 @@ private[core] object IOEffect extends LazyLogging {
           IO.Success(fileId, Extension.Seg)
         else {
           logger.error("Unknown extension for file {}", path)
-          IO.failed(UnknownExtension(path))
+          IO.failed(Core.Exception.UnknownExtension(path))
         }
     }
   }

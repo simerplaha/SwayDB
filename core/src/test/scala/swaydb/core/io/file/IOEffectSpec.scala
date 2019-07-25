@@ -25,6 +25,7 @@ import swaydb.core.IOValues._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.util.{Benchmark, Extension}
+import swaydb.data.io.Core
 import swaydb.data.io.Core.Error.Segment.ErrorHandler
 import swaydb.data.util.StorageUnits._
 
@@ -39,12 +40,12 @@ class IOEffectSpec extends TestBase {
 
     "fail if the file's name is not an integer" in {
       val path = Paths.get("/one/notInt.log")
-      IOEffect.fileId(path).failed.runIO.exception shouldBe NotAnIntFile(path)
+      IOEffect.fileId(path).failed.runIO.exception shouldBe Core.Exception.NotAnIntFile(path)
     }
 
     "fail if the file has invalid extension" in {
       val path = Paths.get("/one/1.txt")
-      IOEffect.fileId(path).failed.runIO.exception shouldBe UnknownExtension(path)
+      IOEffect.fileId(path).failed.runIO.exception shouldBe Core.Exception.UnknownExtension(path)
     }
   }
 
