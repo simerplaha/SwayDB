@@ -72,13 +72,13 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
                    isReserved: Boolean,
                    stored: Boolean): (Unit => IO[swaydb.Error.Segment, Int]) => Cache[swaydb.Error.Segment, Unit, Int] =
     if (isBlockIO)
-      Cache.blockIO(getBlockIO(isConcurrent, isSynchronised, isReserved, stored), swaydb.Error.ReservedFuture(Reserve()))
+      Cache.blockIO(getBlockIO(isConcurrent, isSynchronised, isReserved, stored), swaydb.Error.ReservedValue(Reserve()))
     else if (isConcurrent)
       Cache.concurrentIO(synchronised = false, stored = stored)
     else if (isSynchronised)
       Cache.concurrentIO(synchronised = true, stored = stored)
     else if (isReserved)
-      Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedFuture, Unit, Int](stored = stored, swaydb.Error.ReservedFuture(Reserve()))
+      Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedValue, Unit, Int](stored = stored, swaydb.Error.ReservedValue(Reserve()))
     else
       Cache.concurrentIO(synchronised = false, stored = stored) //then it's concurrent
 
@@ -208,7 +208,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.map(IO(_)).value().failed.get.exception.getMessage shouldBe "Kaboom!"
         cache.isCached shouldBe false
         cache.flatMap(
-          Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedFuture, Int, Int](true, swaydb.Error.ReservedFuture(Reserve()))(int => IO.Success(int + 1))
+          Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedValue, Int, Int](true, swaydb.Error.ReservedValue(Reserve()))(int => IO.Success(int + 1))
         ).value().failed.get.exception.getMessage shouldBe "Kaboom!"
         cache.isCached shouldBe false
 

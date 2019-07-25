@@ -23,8 +23,7 @@ import swaydb.PrepareImplicits._
 import swaydb.core.Core
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.Tag
-import swaydb.data.io.Tag._
+import swaydb.Tag._
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 

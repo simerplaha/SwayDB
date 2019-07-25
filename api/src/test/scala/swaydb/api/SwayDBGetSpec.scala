@@ -20,11 +20,10 @@
 package swaydb.api
 
 import org.scalatest.OptionValues._
-import swaydb._
+import swaydb.{Tag, _}
 import swaydb.core.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
-import swaydb.data.io.Tag
 import swaydb.serializers.Default._
 
 import scala.concurrent.duration._

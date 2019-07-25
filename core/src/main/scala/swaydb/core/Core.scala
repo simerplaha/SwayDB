@@ -23,9 +23,8 @@ import swaydb.core.data.KeyValue.KeyValueTuple
 import swaydb.core.data.SwayFunction
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.Tag
 import swaydb.data.slice.Slice
-import swaydb.{IO, Prepare}
+import swaydb.{IO, Prepare, Tag}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline

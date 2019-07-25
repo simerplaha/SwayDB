@@ -29,7 +29,6 @@ import swaydb.core.level.tool.AppendixRepairer
 import swaydb.core.queue.FileLimiter
 import swaydb.data.MaxKey
 import swaydb.data.config._
-import swaydb.data.io.Tag
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._

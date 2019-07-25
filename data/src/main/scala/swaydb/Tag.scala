@@ -17,9 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.io
-
-import swaydb.{ErrorHandler, IO}
+package swaydb
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._

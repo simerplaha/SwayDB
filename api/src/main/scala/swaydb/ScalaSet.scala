@@ -19,8 +19,6 @@
 
 package swaydb
 
-import swaydb.data.io.Tag
-
 import scala.collection.{TraversableOnce, mutable}
 
 /**

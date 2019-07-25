@@ -42,7 +42,6 @@ object Exception {
   case class ReservedValue(reserve: Reserve[Unit]) extends Exception("Failed to fetch value")
   case class ReadingHeader(reserve: Reserve[Unit]) extends Exception("Failed to read header")
   case class NullMappedByteBuffer(exception: Exception, reserve: Reserve[Unit]) extends Exception(exception)
-  case class BusyFuture(reserve: Reserve[Unit]) extends Exception("Busy future")
 
   case object OverlappingPushSegment extends Exception("Contains overlapping busy Segments")
   case object NoSegmentsRemoved extends Exception("No Segments Removed")

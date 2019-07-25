@@ -19,7 +19,7 @@
 //
 //package swaydb.extensions
 //
-//import swaydb.data.io.Tag.Tag.CoreIO
+//import swaydb.Tag.Tag.CoreIO
 //import swaydb.{IO, Prepare}
 //import swaydb.data.order.KeyOrder
 //import swaydb.data.slice.Slice

@@ -207,10 +207,6 @@ object Error {
     override def exception: Exception.ReservedValue = Exception.ReservedValue(reserve)
   }
 
-  case class ReservedFuture(reserve: Reserve[Unit]) extends ReservedIO {
-    override def exception: Exception.BusyFuture = Exception.BusyFuture(reserve)
-  }
-
   case class NotAnIntFile(exception: Exception.NotAnIntFile) extends Error.IO {
     def path = exception.path
   }

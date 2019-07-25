@@ -20,10 +20,9 @@
 package swaydb.api
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.Stream
+import swaydb.{Stream, Tag}
 import swaydb.core.RunThis._
-import swaydb.data.io.Tag
-import swaydb.data.io.Tag._
+import swaydb.Tag._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}

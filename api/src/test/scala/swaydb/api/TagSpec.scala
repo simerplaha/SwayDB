@@ -20,7 +20,7 @@
 package swaydb.api
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.data.io.Tag
+import swaydb.Tag
 
 import scala.util.Try
 
