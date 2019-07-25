@@ -72,7 +72,7 @@ object Map extends LazyLogging {
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                         fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Initialisation, swaydb.Map[K, V, CoreIO]] =
+                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.BootUp, swaydb.Map[K, V, CoreIO]] =
     BlockingCore(
       config = DefaultMemoryConfig(
         mapSize = mapSize,

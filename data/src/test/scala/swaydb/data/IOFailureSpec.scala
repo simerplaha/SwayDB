@@ -26,7 +26,7 @@ import swaydb.ErrorHandler.Throwable
 import swaydb.IO
 import swaydb.data.Base._
 import swaydb.data.io.Core
-import Core.Error.Private.ErrorHandler
+import Core.Error.Segment.ErrorHandler
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
@@ -74,15 +74,15 @@ class IOFailureSpec extends WordSpec with Matchers {
 
       failure.asDeferred flatMap {
         _ =>
-          IO.failed[Core.Error.Private, Unit](new IllegalThreadStateException)
+          IO.failed[Core.Error.Segment, Unit](new IllegalThreadStateException)
       } shouldBe failure
     }
 
     "flatten on failure with success" in {
       val io =
-        IO.Failure[Core.Error.Private, Int](Core.Error.Fatal(new Exception("Kaboom!"))).asIO map {
+        IO.Failure[Core.Error.Segment, Int](Core.Error.Fatal(new Exception("Kaboom!"))).asIO map {
           _ =>
-            IO.Success[Core.Error.Private, Unit](11)
+            IO.Success[Core.Error.Segment, Unit](11)
         }
 
       io.flatten.asInstanceOf[IO.Failure[Throwable, Int]].exception.getMessage shouldBe "Kaboom!"
@@ -95,14 +95,14 @@ class IOFailureSpec extends WordSpec with Matchers {
             1
         }
 
-      failure shouldBe IO.Success[Core.Error.Private, Int](1)
+      failure shouldBe IO.Success[Core.Error.Segment, Int](1)
     }
 
     "recoverWith" in {
       val failure =
         IO.Failure(Core.Error.NoSuchFile(new NoSuchFileException("")))
-          .recoverWith[Core.Error.Private, Unit] {
-            case error: Core.Error.Private =>
+          .recoverWith[Core.Error.Segment, Unit] {
+            case error: Core.Error.Segment =>
               IO.Failure(Core.Error.Fatal(new Exception("recovery exception")))
           }
 
@@ -119,14 +119,14 @@ class IOFailureSpec extends WordSpec with Matchers {
                   IO.Failure(busy) recoverToDeferred {
                     IO.Failure(busy) recoverToDeferred {
                       IO.Failure(busy) recoverToDeferred {
-                        IO.Success[Core.Error.Private, Int](100)
+                        IO.Success[Core.Error.Segment, Int](100)
                       }
                     }
                   }
                 }
               }
             }
-          failure.runBlocking shouldBe IO.Success[Core.Error.Private, Int](100)
+          failure.runBlocking shouldBe IO.Success[Core.Error.Segment, Int](100)
       }
     }
 

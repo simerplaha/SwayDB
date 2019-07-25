@@ -24,7 +24,7 @@ import java.nio.file.Path
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.IOValues._
 import swaydb.core.TestBase
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Segment.ErrorHandler
 
 import scala.collection.mutable.ListBuffer
 

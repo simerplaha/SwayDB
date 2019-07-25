@@ -30,7 +30,8 @@ import swaydb.IO._
 import swaydb.core.util.Extension
 import swaydb.core.util.PipeOps._
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error
+import swaydb.data.io.Core.Error.IO.ErrorHandler
 import swaydb.data.slice.Slice
 
 import scala.collection.JavaConverters._
@@ -64,7 +65,7 @@ private[core] object IOEffect extends LazyLogging {
   }
 
   def write(to: Path,
-            bytes: Slice[Byte]): IO[Core.Error.Private, Path] =
+            bytes: Slice[Byte]): IO[Core.Error.IO, Path] =
     IO(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
       channel =>
         try {
@@ -78,7 +79,7 @@ private[core] object IOEffect extends LazyLogging {
     }
 
   def write(to: Path,
-            bytes: Iterable[Slice[Byte]]): IO[Core.Error.Private, Path] =
+            bytes: Iterable[Slice[Byte]]): IO[Core.Error.IO, Path] =
     IO(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
       channel =>
         try {
@@ -92,7 +93,7 @@ private[core] object IOEffect extends LazyLogging {
     }
 
   def replace(bytes: Slice[Byte],
-              to: Path): IO[Core.Error.Private, Path] =
+              to: Path): IO[Core.Error.IO, Path] =
     IO(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE)) flatMap {
       channel =>
         try {
@@ -106,7 +107,7 @@ private[core] object IOEffect extends LazyLogging {
     }
 
   def writeUnclosed(channel: WritableByteChannel,
-                    bytes: Iterable[Slice[Byte]]): IO[Core.Error.Private, Unit] =
+                    bytes: Iterable[Slice[Byte]]): IO[Core.Error.IO, Unit] =
     try {
       bytes foreachIO {
         bytes =>
@@ -118,7 +119,7 @@ private[core] object IOEffect extends LazyLogging {
     }
 
   def writeUnclosed(channel: WritableByteChannel,
-                    bytes: Slice[Byte]): IO[Core.Error.Private, Unit] =
+                    bytes: Slice[Byte]): IO[Core.Error.IO, Unit] =
     try {
       val written = channel write bytes.toByteBufferWrap
 
@@ -135,26 +136,26 @@ private[core] object IOEffect extends LazyLogging {
     }
 
   def copy(copyFrom: Path,
-           copyTo: Path): IO[Core.Error.Private, Path] =
+           copyTo: Path): IO[Core.Error.IO, Path] =
     IO {
       Files.copy(copyFrom, copyTo)
     }
 
-  def delete(path: Path): IO[Core.Error.Private, Unit] =
+  def delete(path: Path): IO[Core.Error.IO, Unit] =
     IO(Files.delete(path))
 
-  def deleteIfExists(path: Path): IO[Core.Error.Private, Unit] =
+  def deleteIfExists(path: Path): IO[Core.Error.IO, Unit] =
     if (exists(path))
       delete(path)
     else
       IO.unit
 
-  def createFile(path: Path): IO[Core.Error.Private, Path] =
+  def createFile(path: Path): IO[Core.Error.IO, Path] =
     IO {
       Files.createFile(path)
     }
 
-  def createFileIfAbsent(path: Path): IO[Core.Error.Private, Path] =
+  def createFileIfAbsent(path: Path): IO[Core.Error.IO, Path] =
     if (exists(path))
       IO.Success(path)
     else
@@ -178,7 +179,7 @@ private[core] object IOEffect extends LazyLogging {
     else
       Files.createDirectories(path)
 
-  def walkDelete(folder: Path): IO[Core.Error.Private, Unit] =
+  def walkDelete(folder: Path): IO[Core.Error.IO, Unit] =
     IO {
       if (exists(folder))
         Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
@@ -196,7 +197,7 @@ private[core] object IOEffect extends LazyLogging {
         })
     }
 
-  def release(lock: FileLock): IO[Core.Error.Private, Unit] =
+  def release(lock: FileLock): IO[Core.Error.IO, Unit] =
     IO {
       lock.release()
       lock.close()
@@ -210,7 +211,7 @@ private[core] object IOEffect extends LazyLogging {
       stream.close()
   }
 
-  def release(lock: Option[FileLock]): IO[Core.Error.Private, Unit] =
+  def release(lock: Option[FileLock]): IO[Core.Error.IO, Unit] =
     lock.map(release) getOrElse IO.unit
 
   implicit class FileIdImplicits(id: Long) {
@@ -224,7 +225,7 @@ private[core] object IOEffect extends LazyLogging {
       s"$id.${Extension.Seg}"
   }
 
-  def incrementFileId(path: Path): IO[Core.Error.Private, Path] =
+  def incrementFileId(path: Path): IO[Core.Error.IO, Path] =
     fileId(path) map {
       case (id, ext) =>
         path.getParent.resolve((id + 1) + "." + ext.toString)
@@ -239,7 +240,7 @@ private[core] object IOEffect extends LazyLogging {
   def folderId(path: Path): Long =
     path.getFileName.toString.toLong
 
-  def fileId(path: Path): IO[Core.Error.Private, (Long, Extension)] = {
+  def fileId(path: Path): IO[Core.Error.IO, (Long, Extension)] = {
     val fileName = path.getFileName.toString
     val extensionIndex = fileName.lastIndexOf(".")
     val extIndex = if (extensionIndex <= 0) fileName.length else extensionIndex
@@ -285,9 +286,9 @@ private[core] object IOEffect extends LazyLogging {
       .flatMap(_.files(Extension.Seg))
       .sortBy(_.getFileName.fileId.get._1)
 
-  def readAll(path: Path): IO[Core.Error.Private, Slice[Byte]] =
+  def readAll(path: Path): IO[Core.Error.IO, Slice[Byte]] =
     IO(Slice(Files.readAllBytes(path)))
 
-  def size(path: Path): IO[Core.Error.Private, Long] =
+  def size(path: Path): IO[Core.Error.IO, Long] =
     IO(Files.size(path))
 }

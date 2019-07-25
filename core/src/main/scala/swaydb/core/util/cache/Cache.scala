@@ -51,8 +51,8 @@ private[core] object Cache {
       lazyIO = Lazy.io(synchronised = synchronised, stored = stored)
     )
 
-  def reservedIO[E: ErrorHandler, ER <: E with Core.Error.Reserved, I, O](stored: Boolean,
-                                                                          reserveError: ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
+  def reservedIO[E: ErrorHandler, ER <: E with Core.Error.ReservedIO, I, O](stored: Boolean,
+                                                                            reserveError: ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
     new ReservedIO[E, ER, I, O](
       fetch = fetch,
       lazyIO = Lazy.io(synchronised = false, stored = stored),
@@ -68,8 +68,8 @@ private[core] object Cache {
       )
     )
 
-  def blockIO[E: ErrorHandler, ER <: E with Core.Error.Reserved, I, O](blockIO: I => IOStrategy,
-                                                                       reserveError: => ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
+  def blockIO[E: ErrorHandler, ER <: E with Core.Error.ReservedIO, I, O](blockIO: I => IOStrategy,
+                                                                         reserveError: => ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
     new BlockIOCache[E, I, O](
       Cache.noIO[I, Cache[E, I, O]](synchronised = false, stored = true) {
         i =>
@@ -198,9 +198,9 @@ private class SynchronisedIO[E: ErrorHandler, I, O](fetch: I => IO[E, O],
  * Caches a value on read. Used for IO operations where the output does not change.
  * For example: A file's size.
  */
-private class ReservedIO[E: ErrorHandler, ER <: E with Core.Error.Reserved, I, O](fetch: I => IO[E, O],
-                                                                                  lazyIO: LazyIO[E, O],
-                                                                                  error: ER) extends Cache[E, I, O] {
+private class ReservedIO[E: ErrorHandler, ER <: E with Core.Error.ReservedIO, I, O](fetch: I => IO[E, O],
+                                                                                    lazyIO: LazyIO[E, O],
+                                                                                    error: ER) extends Cache[E, I, O] {
 
   override def value(i: => I): IO[E, O] =
     lazyIO.getOrElse {

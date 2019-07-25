@@ -32,7 +32,7 @@ import swaydb.core.util.Benchmark
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 
 class DBFileSpec extends TestBase with Benchmark with MockFactory {

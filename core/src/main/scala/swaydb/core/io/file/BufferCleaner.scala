@@ -28,7 +28,7 @@ import swaydb.IO
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.core.io.file.BufferCleaner.State
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.IO.ErrorHandler
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -75,7 +75,7 @@ private[core] object BufferCleaner extends LazyLogging {
     MethodHandles.foldArguments(cleanDroppedArgument, cleaner)
   }
 
-  private[file] def initialiseCleaner(state: State, buffer: MappedByteBuffer, path: Path): IO[Core.Error.Private, State] =
+  private[file] def initialiseCleaner(state: State, buffer: MappedByteBuffer, path: Path): IO[Core.Error.IO, State] =
     IO {
       val cleaner = java9Cleaner()
       cleaner.invoke(buffer)
@@ -101,7 +101,7 @@ private[core] object BufferCleaner extends LazyLogging {
   /**
     * Mutates the state after cleaner is initialised. Do not copy state to avoid necessary GC workload.
     */
-  private[file] def clean(state: State, buffer: MappedByteBuffer, path: Path): IO[Core.Error.Private, State] =
+  private[file] def clean(state: State, buffer: MappedByteBuffer, path: Path): IO[Core.Error.IO, State] =
     state.cleaner map {
       cleaner =>
         IO {

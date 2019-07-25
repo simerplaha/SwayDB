@@ -29,7 +29,6 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -51,7 +50,7 @@ private[core] object Map extends LazyLogging {
                                                                     limiter: FileLimiter,
                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                     reader: MapEntryReader[MapEntry[K, V]],
-                                                                    skipListMerge: SkipListMerger[K, V]): IO[Core.Error.Private, RecoveryResult[PersistentMap[K, V]]] =
+                                                                    skipListMerge: SkipListMerger[K, V]): IO[Core.Error.Map, RecoveryResult[PersistentMap[K, V]]] =
     PersistentMap(
       folder = folder,
       mmap = mmap,
@@ -71,7 +70,7 @@ private[core] object Map extends LazyLogging {
                                                  limiter: FileLimiter,
                                                  reader: MapEntryReader[MapEntry[K, V]],
                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                 skipListMerger: SkipListMerger[K, V]): IO[Core.Error.Private, PersistentMap[K, V]] =
+                                                 skipListMerger: SkipListMerger[K, V]): IO[Core.Error.Map, PersistentMap[K, V]] =
     PersistentMap(
       folder = folder,
       mmap = mmap,
@@ -105,9 +104,9 @@ private[core] trait Map[K, V] {
 
   def incrementWriteCountStateId: Long
 
-  def write(mapEntry: MapEntry[K, V]): IO[Core.Error.Private, Boolean]
+  def write(mapEntry: MapEntry[K, V]): IO[Core.Error.Map, Boolean]
 
-  def delete: IO[Core.Error.Private, Unit]
+  def delete: IO[Core.Error.Map, Unit]
 
   def size: Int =
     skipList.size()
@@ -222,8 +221,8 @@ private[core] trait Map[K, V] {
   def pathOption: Option[Path] =
     None
 
-  def close(): IO[Core.Error.Private, Unit]
+  def close(): IO[Core.Error.Map, Unit]
 
-  def fileId: IO[Core.Error.Private, Long] =
+  def fileId: IO[Core.Error.Map, Long] =
     IO.Success(0)
 }

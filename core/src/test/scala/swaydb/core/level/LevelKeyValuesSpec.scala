@@ -331,7 +331,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val targetSegment = TestSegment(keyValues = targetSegmentKeyValues, path = testSegmentFile.resolveSibling("10.seg")).runIO
 
       val keyValues = randomPutKeyValues()
-      val function = PrivateMethod[IO[Core.Error.Private, Unit]]('putKeyValues)
+      val function = PrivateMethod[IO[Core.Error.Segment, Unit]]('putKeyValues)
       (level invokePrivate function(keyValues, Seq(targetSegment), None)).runIO
 
       targetSegment.existsOnDisk shouldBe false //target Segment should be deleted
@@ -358,7 +358,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       keyValues.add(Memory.put(1234, 12345))
       keyValues.add(Persistent.Put(1235, None, null, Time.empty, 10, 10, 10, 10, 10, 0, false)) //give it a null Reader so that it fails reading the value.
 
-      val function = PrivateMethod[IO[Core.Error.Private, Unit]]('putKeyValues)
+      val function = PrivateMethod[IO[Core.Error.Segment, Unit]]('putKeyValues)
       val failed = level invokePrivate function(keyValues, Iterable(targetSegment), None)
       failed.isFailure shouldBe true
       failed.failed.get.exception shouldBe a[NullPointerException]

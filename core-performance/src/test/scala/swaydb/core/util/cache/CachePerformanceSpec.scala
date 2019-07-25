@@ -26,7 +26,7 @@ import swaydb.core.RunThis._
 import swaydb.core.util.Benchmark
 import swaydb.data.Reserve
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Segment.ErrorHandler
 
 class CachePerformanceSpec extends WordSpec with Matchers {
 
@@ -35,7 +35,7 @@ class CachePerformanceSpec extends WordSpec with Matchers {
   "initialising caches" in {
     Benchmark("initialising 1 million concurrent caches") {
       runThis(range.size.times) {
-        Cache.blockIO[Core.Error.Private, Core.Error.ReservedFuture, Int, Int](_ => randomIOStrategy(), Core.Error.ReservedFuture(Reserve())) {
+        Cache.blockIO[Core.Error.Segment, Core.Error.ReservedFuture, Int, Int](_ => randomIOStrategy(), Core.Error.ReservedFuture(Reserve())) {
           int =>
             IO.Success(int)
         }
@@ -45,7 +45,7 @@ class CachePerformanceSpec extends WordSpec with Matchers {
 
   "reading concurrentIO" when {
     "stored & concurrent" in {
-      val cache = Cache.concurrentIO[Core.Error.Private, Int, Int](false, true)(int => IO.Success(int))
+      val cache = Cache.concurrentIO[Core.Error.Segment, Int, Int](false, true)(int => IO.Success(int))
 
       Benchmark("reading stored") {
         range foreach {
@@ -63,7 +63,7 @@ class CachePerformanceSpec extends WordSpec with Matchers {
     }
 
     "stored & synchronised" in {
-      val cache = Cache.concurrentIO[Core.Error.Private, Int, Int](true, true)(int => IO.Success(int))
+      val cache = Cache.concurrentIO[Core.Error.Segment, Int, Int](true, true)(int => IO.Success(int))
 
       Benchmark("reading stored") {
         range foreach {
@@ -81,7 +81,7 @@ class CachePerformanceSpec extends WordSpec with Matchers {
     }
 
     "not stored" in {
-      val cache = Cache.concurrentIO[Core.Error.Private, Int, Int](false, false)(int => IO.Success(int))
+      val cache = Cache.concurrentIO[Core.Error.Segment, Int, Int](false, false)(int => IO.Success(int))
 
       Benchmark("reading not stored") {
         range foreach {

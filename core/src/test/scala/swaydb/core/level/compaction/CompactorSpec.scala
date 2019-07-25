@@ -29,7 +29,7 @@ import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
 import swaydb.data.Reserve
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

@@ -30,7 +30,6 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -46,6 +45,7 @@ class Level0MapEntrySpec extends TestBase {
   "MapEntryWriterLevel0 & MapEntryReaderLevel0" should {
 
     "Write random entries" in {
+      import swaydb.data.io.Core.Error.Map.ErrorHandler
 
       def assert[V <: Memory.SegmentResponse](addEntry: MapEntry.Put[Slice[Byte], V])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], V]],
                                                                                       reader: MapEntryReader[MapEntry.Put[Slice[Byte], V]]) = {
@@ -124,6 +124,7 @@ class Level0MapEntrySpec extends TestBase {
 
     "write, remove & update key-value" in {
       import LevelZeroMapEntryWriter.{Level0PutWriter, Level0RangeWriter, Level0RemoveWriter, Level0UpdateWriter}
+      import swaydb.data.io.Core.Error.Map.ErrorHandler
 
       val put1 = Memory.put(1, randomStringOption, randomDeadlineOption)
       val put2 = Memory.put(2, randomStringOption, randomDeadlineOption)

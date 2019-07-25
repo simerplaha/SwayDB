@@ -30,7 +30,7 @@ import swaydb.core.data.{SwayFunctionOutput, Value}
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.Reserve
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

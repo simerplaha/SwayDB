@@ -28,11 +28,11 @@ trait NextWalker extends NextGetter {
 
   def levelNumber: String
 
-  def higher(key: Slice[Byte]): IO.Defer[Core.Error.Private, Option[KeyValue.ReadOnly.Put]]
+  def higher(key: Slice[Byte]): IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def lower(key: Slice[Byte]): IO.Defer[Core.Error.Private, Option[KeyValue.ReadOnly.Put]]
+  def lower(key: Slice[Byte]): IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def get(key: Slice[Byte]): IO.Defer[Core.Error.Private, Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
   def hasStateChanged(previousState: Long): Boolean
 

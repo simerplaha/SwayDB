@@ -26,7 +26,7 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Level.ErrorHandler
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -265,7 +265,7 @@ private[level] object Compaction extends LazyLogging {
     }
 
   private[compaction] def pushForward(level: NextLevel,
-                                      segmentsToPush: Int)(implicit ec: ExecutionContext): IO.Defer[Core.Error.Private, Int] =
+                                      segmentsToPush: Int)(implicit ec: ExecutionContext): IO.Defer[Core.Error.Level, Int] =
     level.nextLevel map {
       nextLevel =>
         val (copyable, mergeable) = level.optimalSegmentsPushForward(take = segmentsToPush)
@@ -298,7 +298,7 @@ private[level] object Compaction extends LazyLogging {
   def runLastLevelCompaction(level: NextLevel,
                              checkExpired: Boolean,
                              remainingCompactions: Int,
-                             segmentsCompacted: Int)(implicit ec: ExecutionContext): IO[Core.Error.Private, Int] =
+                             segmentsCompacted: Int)(implicit ec: ExecutionContext): IO[Core.Error.Level, Int] =
     if (level.hasNextLevel || remainingCompactions <= 0)
       IO.Success(segmentsCompacted)
     else if (checkExpired)
@@ -410,13 +410,13 @@ private[level] object Compaction extends LazyLogging {
 
   private[compaction] def putForward(segments: Iterable[Segment],
                                      thisLevel: NextLevel,
-                                     nextLevel: NextLevel)(implicit ec: ExecutionContext): IO.Defer[Core.Error.Private, Int] =
+                                     nextLevel: NextLevel)(implicit ec: ExecutionContext): IO.Defer[Core.Error.Level, Int] =
     if (segments.isEmpty)
       IO.zero
     else
       nextLevel.put(segments) match {
         case IO.Success(_) =>
-          thisLevel.removeSegments(segments) recoverWith[Core.Error.Private, Int] {
+          thisLevel.removeSegments(segments) recoverWith[Core.Error.Level, Int] {
             case _ =>
               IO.Success(segments.size)
           } asDeferred

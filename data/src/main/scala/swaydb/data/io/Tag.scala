@@ -61,7 +61,7 @@ object Tag {
       override def failure[A](exception: Throwable): Try[A] = scala.util.Failure(exception)
 
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Try], drop: Int, take: Option[Int])(operation: (U, A) => U): Try[U] =
-        sio.foldLeft(initial, after, stream.toIO[Core.Error.Private](10.seconds), drop, take)(operation).toTry //use ioWrap and convert that result to try.
+        sio.foldLeft(initial, after, stream.toIO[Core.Error.API](10.seconds), drop, take)(operation).toTry //use ioWrap and convert that result to try.
 
       @tailrec
       override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Try])(condition: A => Boolean): Try[Option[A]] =
@@ -85,7 +85,7 @@ object Tag {
   implicit val sio: Tag[CoreIO] =
     new Tag[CoreIO] {
 
-      import Core.Error.Initialisation.ErrorHandler
+      import Core.Error.BootUp.ErrorHandler
 
       override def apply[A](a: => A): CoreIO[A] = IO(a)
       override def map[A, B](a: A)(f: A => B): CoreIO[B] = IO(f(a))

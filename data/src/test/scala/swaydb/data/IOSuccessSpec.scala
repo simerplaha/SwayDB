@@ -25,7 +25,7 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.IO
 import swaydb.data.Base._
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Segment.ErrorHandler
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

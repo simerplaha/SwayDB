@@ -30,7 +30,7 @@ import swaydb.core.merge.{FixedMerger, ValueMerger}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -55,7 +55,7 @@ private[core] object SegmentMerger extends LazyLogging {
                     sortedIndexConfig: SortedIndexBlock.Config,
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                     hashIndexConfig: HashIndexBlock.Config,
-                    bloomFilterConfig: BloomFilterBlock.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error.Private, ListBuffer[ListBuffer[Transient]]] = {
+                    bloomFilterConfig: BloomFilterBlock.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error.Segment, ListBuffer[ListBuffer[Transient]]] = {
     //if there are any small Segments, merge them into previous Segment.
     val noSmallSegments =
       if (segments.length >= 2 && ((forMemory && segments.last.lastOption.map(_.stats.memorySegmentSize).getOrElse(0) < minSegmentSize) || segments.last.lastOption.map(_.stats.segmentSize).getOrElse(0) < minSegmentSize)) {
@@ -136,7 +136,7 @@ private[core] object SegmentMerger extends LazyLogging {
             hashIndexConfig: HashIndexBlock.Config,
             bloomFilterConfig: BloomFilterBlock.Config,
             segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error.Private, Iterable[Iterable[Transient]]] = {
+                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error.Segment, Iterable[Iterable[Transient]]] = {
     val splits = ListBuffer[ListBuffer[Transient]](ListBuffer())
     keyValues foreachIO {
       keyValue =>
@@ -237,7 +237,7 @@ private[core] object SegmentMerger extends LazyLogging {
             segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
-                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error.Private, Iterable[Iterable[Transient]]] =
+                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error.Segment, Iterable[Iterable[Transient]]] =
     merge(
       newKeyValues = MergeList(newKeyValues),
       oldKeyValues = MergeList(oldKeyValues),
@@ -283,13 +283,13 @@ private[core] object SegmentMerger extends LazyLogging {
                     segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                           timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore,
-                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error.Private, ListBuffer[ListBuffer[Transient]]] = {
+                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error.Segment, ListBuffer[ListBuffer[Transient]]] = {
 
     import keyOrder._
 
     implicit val groupIO = groupingStrategy.map(_.groupIO) getOrElse segmentIO
 
-    def add(nextKeyValue: KeyValue.ReadOnly): IO[Core.Error.Private, Unit] =
+    def add(nextKeyValue: KeyValue.ReadOnly): IO[Core.Error.Segment, Unit] =
       SegmentGrouper.addKeyValue(
         keyValueToAdd = nextKeyValue,
         splits = splits,
@@ -307,7 +307,7 @@ private[core] object SegmentMerger extends LazyLogging {
 
     @tailrec
     def doMerge(newKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
-                oldKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly]): IO[Core.Error.Private, ListBuffer[ListBuffer[Transient]]] =
+                oldKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly]): IO[Core.Error.Segment, ListBuffer[ListBuffer[Transient]]] =
       (newKeyValues.headOption, oldKeyValues.headOption) match {
 
         case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>

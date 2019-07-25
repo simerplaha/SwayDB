@@ -40,9 +40,9 @@ private[swaydb] trait FileLimiter {
 private[core] trait FileLimiterItem {
   def path: Path
 
-  def delete(): IO[Core.Error.Private, Unit]
+  def delete(): IO[Core.Error.Segment, Unit]
 
-  def close(): IO[Core.Error.Private, Unit]
+  def close(): IO[Core.Error.Segment, Unit]
 
   def isOpen: Boolean
 }

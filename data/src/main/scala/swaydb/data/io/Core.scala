@@ -38,7 +38,7 @@ object Core {
    * converting an [[IO]] type to [[scala.util.Try]] by the client using [[toTry]].
    */
   object Exception {
-    case class Busy(error: Error.Reserved) extends Exception("Is busy")
+    case class Busy(error: Error.ReservedIO) extends Exception("Is busy")
     case class OpeningFile(file: Path, busy: Reserve[Unit]) extends Exception(s"Failed to open file $file")
 
     case class DecompressingIndex(busy: Reserve[Unit]) extends Exception("Failed to decompress index")
@@ -75,7 +75,7 @@ object Core {
 
   }
 
-  sealed trait Error {
+  protected[data] sealed trait Error {
     def exception: Throwable
   }
 
@@ -97,7 +97,7 @@ object Core {
       override def reserve(e: T): Option[Reserve[Unit]] =
         if (recover)
           e match {
-            case busy: Error.Reserved =>
+            case busy: Error.ReservedIO =>
               Some(busy.reserve)
 
             case _: Error =>
@@ -107,24 +107,45 @@ object Core {
           None
     }
 
-    /**
-     * Private Errors a restricted to DB's internals only. They should
-     * not go out to the clients.
-     */
-    sealed trait Private extends Error
-    sealed trait Initialisation extends Private
-    sealed trait API extends Private
+    sealed trait Level extends Error
+    sealed trait Map extends Level
+    sealed trait Segment extends Level
+    sealed trait BootUp extends Error
+    sealed trait Delete extends Level
+    sealed trait Close extends Delete
+    sealed trait IO extends Segment with Map with Close
+    sealed trait API extends Error
 
-    object Private {
-      implicit object ErrorHandler extends DerivedErrorHandler[Error.Private](recover = true)
+    object Segment {
+      implicit object ErrorHandler extends DerivedErrorHandler[Error.Segment](recover = true)
     }
 
-    object Initialisation {
-      implicit object ErrorHandler extends DerivedErrorHandler[Error.Private](recover = false)
+    object Level {
+      implicit object ErrorHandler extends DerivedErrorHandler[Error.Level](recover = true)
+    }
+
+    object Map {
+      implicit object ErrorHandler extends DerivedErrorHandler[Error.Map](recover = false)
+    }
+
+    object BootUp {
+      implicit object ErrorHandler extends DerivedErrorHandler[Error.BootUp](recover = false)
+    }
+
+    object Close {
+      implicit object ErrorHandler extends DerivedErrorHandler[Error.Close](recover = false)
+    }
+
+    object Delete {
+      implicit object ErrorHandler extends DerivedErrorHandler[Error.Delete](recover = false)
     }
 
     object API {
       implicit object ErrorHandler extends DerivedErrorHandler[Error.API](recover = false)
+    }
+
+    object IO {
+      implicit object ErrorHandler extends DerivedErrorHandler[Error.IO](recover = false)
     }
 
     def apply[T](exception: Throwable): Error =
@@ -170,13 +191,13 @@ object Core {
         case exception: Throwable => Error.Fatal(exception)
       }
 
-    sealed trait Reserved extends Private {
+    sealed trait ReservedIO extends Error.Segment {
       def reserve: Reserve[Unit]
       def isFree: Boolean =
         !reserve.isBusy
     }
 
-    case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Reserved {
+    case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends ReservedIO with Error.IO {
       override def exception: Exception.OpeningFile = Exception.OpeningFile(file, reserve)
     }
 
@@ -188,7 +209,7 @@ object Core {
         new NoSuchFile(Some(path), None)
     }
 
-    case class NoSuchFile(path: Option[Path], exp: Option[NoSuchFileException]) extends Reserved {
+    case class NoSuchFile(path: Option[Path], exp: Option[NoSuchFileException]) extends ReservedIO with Error.IO {
       override def reserve: Reserve[Unit] = Reserve()
       override def exception: Throwable = exp getOrElse {
         path match {
@@ -201,39 +222,39 @@ object Core {
       }
     }
 
-    case class FileNotFound(exception: FileNotFoundException) extends Reserved {
+    case class FileNotFound(exception: FileNotFoundException) extends ReservedIO with Error.IO {
       override def reserve: Reserve[Unit] = Reserve()
     }
 
-    case class AsynchronousClose(exception: AsynchronousCloseException) extends Reserved {
+    case class AsynchronousClose(exception: AsynchronousCloseException) extends ReservedIO with Error.IO {
       override def reserve: Reserve[Unit] = Reserve()
     }
 
-    case class ClosedChannel(exception: ClosedChannelException) extends Reserved {
+    case class ClosedChannel(exception: ClosedChannelException) extends ReservedIO with Error.IO {
       override def reserve: Reserve[Unit] = Reserve()
     }
 
-    case class NullMappedByteBuffer(exception: Exception.NullMappedByteBuffer) extends Reserved {
+    case class NullMappedByteBuffer(exception: Exception.NullMappedByteBuffer) extends ReservedIO with Error.IO {
       override def reserve: Reserve[Unit] = Reserve()
     }
 
-    case class DecompressingIndex(reserve: Reserve[Unit]) extends Reserved {
+    case class DecompressingIndex(reserve: Reserve[Unit]) extends ReservedIO {
       override def exception: Exception.DecompressingIndex = Exception.DecompressingIndex(reserve)
     }
 
-    case class DecompressingValues(reserve: Reserve[Unit]) extends Reserved {
+    case class DecompressingValues(reserve: Reserve[Unit]) extends ReservedIO {
       override def exception: Exception.DecompressionValues = Exception.DecompressionValues(reserve)
     }
 
-    case class ReadingHeader(reserve: Reserve[Unit]) extends Reserved {
+    case class ReadingHeader(reserve: Reserve[Unit]) extends ReservedIO {
       override def exception: Exception.ReadingHeader = Exception.ReadingHeader(reserve)
     }
 
-    case class ReservedValue(reserve: Reserve[Unit]) extends Reserved {
+    case class ReservedValue(reserve: Reserve[Unit]) extends ReservedIO {
       override def exception: Exception.ReservedValue = Exception.ReservedValue(reserve)
     }
 
-    case class ReservedFuture(reserve: Reserve[Unit]) extends Reserved {
+    case class ReservedFuture(reserve: Reserve[Unit]) extends ReservedIO {
       override def exception: Exception.BusyFuture = Exception.BusyFuture(reserve)
     }
 
@@ -241,36 +262,36 @@ object Core {
      * This error can also be turned into Busy and LevelActor can use it to listen to when
      * there are no more overlapping Segments.
      */
-    case object OverlappingPushSegment extends Private {
+    case object OverlappingPushSegment extends Error.Level {
       override def exception: Throwable = Exception.OverlappingPushSegment
     }
 
-    case object NoSegmentsRemoved extends Private {
+    case object NoSegmentsRemoved extends Error.Level {
       override def exception: Throwable = Exception.NoSegmentsRemoved
     }
 
-    case object NotSentToNextLevel extends Private {
+    case object NotSentToNextLevel extends Error.Level {
       override def exception: Throwable = Exception.NotSentToNextLevel
     }
 
-    case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Private {
+    case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Error.Level {
       override def exception: Exception.MergeKeyValuesWithoutTargetSegment =
         Exception.MergeKeyValuesWithoutTargetSegment(keyValueCount)
     }
 
-    case class ReadOnlyBuffer(exception: ReadOnlyBufferException) extends Private
+    case class ReadOnlyBuffer(exception: ReadOnlyBufferException) extends Error.IO
 
-    case class FunctionNotFound(functionID: Slice[Byte]) extends Error.API {
+    case class FunctionNotFound(functionID: Slice[Byte]) extends Error.API with Error.Segment {
       override def exception: Throwable = Core.Exception.FunctionNotFound(functionID)
     }
 
-    case class UnableToLockDirectory(exception: Core.Exception.OverlappingFileLock) extends Error.Initialisation
-    case class Corruption(message: String, exception: Throwable) extends Error.API with Error.Initialisation
-    case class SegmentFileMissing(path: Path, exception: Throwable) extends Error.Initialisation
+    case class UnableToLockDirectory(exception: Core.Exception.OverlappingFileLock) extends Error.BootUp
+    case class Corruption(message: String, exception: Throwable) extends Error.API with Error.BootUp with Error.Segment
+    case class SegmentFileMissing(path: Path, exception: Throwable) extends Error.BootUp
 
-    case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int, exception: Throwable) extends Error.Private
-    case class CannotCopyInMemoryFiles(file: Path, exception: Throwable) extends Error.Private
-    case class InvalidKeyValueId(id: Int, exception: Throwable) extends Error.Private
+    case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int, exception: Throwable) extends Error.IO
+    case class CannotCopyInMemoryFiles(file: Path, exception: Throwable) extends Error.Level
+    case class InvalidKeyValueId(id: Int, exception: Throwable) extends Error.Segment
 
     /**
      * Error that are not known and indicate something unexpected went wrong like a file corruption.
@@ -281,8 +302,18 @@ object Core {
     object Fatal {
       def apply(message: String): Fatal =
         new Fatal(new Exception(message))
+
+      implicit object ErrorHandler extends DerivedErrorHandler[Error.Fatal](recover = false)
     }
 
-    case class Fatal(exception: Throwable) extends Error.API with Error.Initialisation
+    case class Fatal(exception: Throwable)
+      extends Error.API
+        with Error.BootUp
+        with Error.IO
+        with Error.Segment
+        with Error.Level
+        with Error.Map
+        with Error.Close
+        with Error.Delete
   }
 }

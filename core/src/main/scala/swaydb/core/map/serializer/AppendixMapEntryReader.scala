@@ -33,7 +33,7 @@ import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Map.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 
@@ -64,74 +64,75 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                                                            compression: Option[KeyValueGroupingStrategyInternal]) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
-    override def read(reader: Reader[Core.Error.Private]): IO[Core.Error.Private, Option[MapEntry.Put[Slice[Byte], Segment]]] =
-      for {
-        segmentPathLength <- reader.readIntUnsigned()
-        segmentPathBytes <- reader.read(segmentPathLength).map(_.unslice())
-        segmentPath <- IO(Paths.get(new String(segmentPathBytes.toArray, StandardCharsets.UTF_8)))
-        segmentSize <- reader.readIntUnsigned()
-        minKeyLength <- reader.readIntUnsigned()
-        minKey <- reader.read(minKeyLength).map(_.unslice())
-        maxKeyId <- reader.readIntUnsigned()
-        maxKeyLength <- reader.readIntUnsigned()
-        maxKeyBytes <- reader.read(maxKeyLength).map(_.unslice())
-        maxKey <- {
-          if (maxKeyId == 1)
-            IO.Success(MaxKey.Fixed(maxKeyBytes))
-          else {
-            Bytes.decompressJoin(maxKeyBytes) map {
-              case (fromKey, toKey) =>
-                MaxKey.Range(fromKey, toKey)
-            }
-          }
-        }
-        nearestExpiryDeadline <- {
-          reader.readLongUnsigned() map {
-            deadlineNanos =>
-              if (deadlineNanos == 0)
-                None
-              else
-                Some(Deadline(deadlineNanos, TimeUnit.NANOSECONDS))
-          }
-        }
-        minMaxFunctionId <- {
-          reader.readIntUnsigned() flatMap {
-            minIdSize =>
-              if (minIdSize == 0)
-                IO.none
-              else
-                for {
-                  minId <- reader.read(minIdSize)
-                  maxIdSize <- reader.readIntUnsigned()
-                  maxId <- if (maxIdSize == 0) IO.none else reader.read(maxIdSize).map(Some(_))
-                } yield Some(MinMax(minId, maxId))
-          }
-        }
-        segment <- {
-          Segment(
-            path = segmentPath,
-            mmapReads = mmapSegmentsOnRead,
-            mmapWrites = mmapSegmentsOnWrite,
-            minKey = minKey,
-            maxKey = maxKey,
-            segmentSize = segmentSize,
-            minMaxFunctionId = minMaxFunctionId,
-            nearestExpiryDeadline = nearestExpiryDeadline,
-            checkExists = false
-          )
-        }
-      } yield {
-        Some(
-          MapEntry.Put(
-            key = minKey,
-            value = segment
-          )(AppendixMapEntryWriter.AppendixPutWriter)
-        )
-      }
+    override def read(reader: Reader[Core.Error.Map]): IO[Core.Error.Map, Option[MapEntry.Put[Slice[Byte], Segment]]] =
+    //      for {
+    //        segmentPathLength <- reader.readIntUnsigned()
+    //        segmentPathBytes <- reader.read(segmentPathLength).map(_.unslice())
+    //        segmentPath <- IO(Paths.get(new String(segmentPathBytes.toArray, StandardCharsets.UTF_8)))
+    //        segmentSize <- reader.readIntUnsigned()
+    //        minKeyLength <- reader.readIntUnsigned()
+    //        minKey <- reader.read(minKeyLength).map(_.unslice())
+    //        maxKeyId <- reader.readIntUnsigned()
+    //        maxKeyLength <- reader.readIntUnsigned()
+    //        maxKeyBytes <- reader.read(maxKeyLength).map(_.unslice())
+    //        maxKey <- {
+    //          if (maxKeyId == 1)
+    //            IO.Success(MaxKey.Fixed(maxKeyBytes))
+    //          else {
+    //            Bytes.decompressJoin(maxKeyBytes) map {
+    //              case (fromKey, toKey) =>
+    //                MaxKey.Range(fromKey, toKey)
+    //            }
+    //          }
+    //        }
+    //        nearestExpiryDeadline <- {
+    //          reader.readLongUnsigned() map {
+    //            deadlineNanos =>
+    //              if (deadlineNanos == 0)
+    //                None
+    //              else
+    //                Some(Deadline(deadlineNanos, TimeUnit.NANOSECONDS))
+    //          }
+    //        }
+    //        minMaxFunctionId <- {
+    //          reader.readIntUnsigned() flatMap {
+    //            minIdSize =>
+    //              if (minIdSize == 0)
+    //                IO.none
+    //              else
+    //                for {
+    //                  minId <- reader.read(minIdSize)
+    //                  maxIdSize <- reader.readIntUnsigned()
+    //                  maxId <- if (maxIdSize == 0) IO.none else reader.read(maxIdSize).map(Some(_))
+    //                } yield Some(MinMax(minId, maxId))
+    //          }
+    //        }
+    //        segment <- {
+    //          Segment(
+    //            path = segmentPath,
+    //            mmapReads = mmapSegmentsOnRead,
+    //            mmapWrites = mmapSegmentsOnWrite,
+    //            minKey = minKey,
+    //            maxKey = maxKey,
+    //            segmentSize = segmentSize,
+    //            minMaxFunctionId = minMaxFunctionId,
+    //            nearestExpiryDeadline = nearestExpiryDeadline,
+    //            checkExists = false
+    //          )
+    //        }
+    //      } yield {
+    //        Some(
+    //          MapEntry.Put(
+    //            key = minKey,
+    //            value = segment
+    //          )(AppendixMapEntryWriter.AppendixPutWriter)
+    //        )
+    //      }
+      ???
   }
 
   implicit object AppendixRemoveReader extends MapEntryReader[MapEntry.Remove[Slice[Byte]]] {
-    override def read(reader: Reader[Core.Error.Private]): IO[Core.Error.Private, Option[MapEntry.Remove[Slice[Byte]]]] =
+    override def read(reader: Reader[Core.Error.Map]): IO[Core.Error.Map, Option[MapEntry.Remove[Slice[Byte]]]] =
       for {
         minKeyLength <- reader.readIntUnsigned()
         minKey <- reader.read(minKeyLength).map(_.unslice())
@@ -141,7 +142,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
   }
 
   implicit object AppendixReader extends MapEntryReader[MapEntry[Slice[Byte], Segment]] {
-    override def read(reader: Reader[Core.Error.Private]): IO[Core.Error.Private, Option[MapEntry[Slice[Byte], Segment]]] =
+    override def read(reader: Reader[Core.Error.Map]): IO[Core.Error.Map, Option[MapEntry[Slice[Byte], Segment]]] =
       reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
         case (previousEntry, reader) =>
           reader.readIntUnsigned() flatMap {

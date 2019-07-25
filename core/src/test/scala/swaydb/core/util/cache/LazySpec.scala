@@ -23,7 +23,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.IO
 import swaydb.core.RunThis._
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Segment.ErrorHandler
 
 import scala.concurrent.duration._
 import scala.util.Random

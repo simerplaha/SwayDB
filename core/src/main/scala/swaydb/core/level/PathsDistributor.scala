@@ -27,7 +27,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.segment.Segment
 import swaydb.data.config.Dir
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Segment.ErrorHandler
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._

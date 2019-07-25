@@ -44,8 +44,8 @@ object Set extends LazyLogging {
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
   /**
-    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
-    */
+   * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
+   */
   def apply[T](dir: Path,
                maxOpenSegments: Int = 1000,
                mapSize: Int = 4.mb,
@@ -67,7 +67,7 @@ object Set extends LazyLogging {
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                      fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                     cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Core.Error.Private, swaydb.Set[T, Tag.CoreIO]] =
+                                                                                     cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Core.Error.BootUp, swaydb.Set[T, Tag.CoreIO]] =
     BlockingCore(
       config =
         DefaultEventuallyPersistentConfig(

@@ -35,7 +35,7 @@ class IODeferSpec extends WordSpec with Matchers {
       val io =
         IO.Defer(1, Core.Error.DecompressingValues(Reserve())) flatMap {
           int =>
-            IO.Success[Core.Error.Private, Int](int + 1)
+            IO.Success[Core.Error.Segment, Int](int + 1)
         }
 
       io.get shouldBe 2

@@ -31,7 +31,6 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.{TestBase, TestLimitQueues}
-import swaydb.data.io.Core.Error.Private.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -55,6 +54,7 @@ class AppendixMapEntrySpec extends TestBase {
 
     "write Add segment" in {
       import AppendixMapEntryWriter.AppendixPutWriter
+      import swaydb.data.io.Core.Error.Map.ErrorHandler
       val entry = MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
 
       val slice = Slice.create[Byte](entry.entryBytesSize)
@@ -80,6 +80,7 @@ class AppendixMapEntrySpec extends TestBase {
 
     "write Remove Segment" in {
       import AppendixMapEntryWriter.AppendixRemoveWriter
+      import swaydb.data.io.Core.Error.Map.ErrorHandler
       val entry = MapEntry.Remove[Slice[Byte]](1)
 
       val slice = Slice.create[Byte](entry.entryBytesSize)
@@ -100,6 +101,7 @@ class AppendixMapEntrySpec extends TestBase {
 
     "write and remove key-value" in {
       import AppendixMapEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
+      import swaydb.data.io.Core.Error.Map.ErrorHandler
 
       val segment1 = TestSegment().runIO
       val segment2 = TestSegment().runIO

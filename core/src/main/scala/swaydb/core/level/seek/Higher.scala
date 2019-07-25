@@ -25,7 +25,7 @@ import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge._
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Level.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -62,7 +62,7 @@ private[core] object Higher {
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
-           functionStore: FunctionStore): IO.Defer[Core.Error.Private, Option[KeyValue.ReadOnly.Put]] =
+           functionStore: FunctionStore): IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Higher(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   /**
@@ -74,7 +74,7 @@ private[core] object Higher {
                                           timeOrder: TimeOrder[Slice[Byte]],
                                           currentWalker: CurrentWalker,
                                           nextWalker: NextWalker,
-                                          functionStore: FunctionStore): IO.Defer[Core.Error.Private, Option[KeyValue.ReadOnly.Put]] =
+                                          functionStore: FunctionStore): IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Higher(key, currentSeek, nextSeek)
 
   /**
@@ -91,7 +91,7 @@ private[core] object Higher {
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  currentWalker: CurrentWalker,
                                  nextWalker: NextWalker,
-                                 functionStore: FunctionStore): IO.Defer[Core.Error.Private, Option[KeyValue.ReadOnly.Put]] = {
+                                 functionStore: FunctionStore): IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
     //    println(s"Current walker: ${currentWalker.levelNumber} - ${key.readInt()}")

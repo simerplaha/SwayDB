@@ -26,7 +26,7 @@ import swaydb.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.MapEntryWriter
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Map.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -60,10 +60,10 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
       _writeCountStateId
     }
 
-  def delete: IO[Core.Error.Private, Unit] =
+  def delete: IO[Core.Error.Map, Unit] =
     IO(skipList.clear())
 
-  override def write(entry: MapEntry[K, V]): IO[Core.Error.Private, Boolean] =
+  override def write(entry: MapEntry[K, V]): IO[Core.Error.Map, Boolean] =
     stateIDLock.synchronized {
       if (flushOnOverflow || currentBytesWritten == 0 || ((currentBytesWritten + entry.totalByteSize) <= fileSize)) {
         if (entry.hasRange) {
@@ -82,6 +82,6 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
       }
     }
 
-  override def close(): IO[Core.Error.Private, Unit] =
+  override def close(): IO[Core.Error.Map, Unit] =
     IO.unit
 }

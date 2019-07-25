@@ -24,7 +24,7 @@ import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Segment.ErrorHandler
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
@@ -89,7 +89,7 @@ private[core] object UpdateMerger {
 
   def apply(newKeyValue: ReadOnly.Update,
             oldKeyValue: ReadOnly.Function)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore): IO[Core.Error.Private, ReadOnly.Fixed] =
+                                            functionStore: FunctionStore): IO[Core.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       for {
         oldValue <- oldKeyValue.toFromValue()
@@ -102,7 +102,7 @@ private[core] object UpdateMerger {
 
   def apply(newKeyValue: ReadOnly.Update,
             oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): IO[Core.Error.Private, ReadOnly.Fixed] =
+                                      functionStore: FunctionStore): IO[Core.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue match {
         case oldKeyValue: Value.Remove =>
@@ -119,7 +119,7 @@ private[core] object UpdateMerger {
 
   def apply(newKeyValue: ReadOnly.Update,
             oldKeyValue: ReadOnly.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): IO[Core.Error.Private, ReadOnly.Fixed] =
+                                                functionStore: FunctionStore): IO[Core.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue.getOrFetchApplies flatMap {
         olderApplies =>
@@ -133,7 +133,7 @@ private[core] object UpdateMerger {
 
   def apply(newKeyValue: ReadOnly.Update,
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): IO[Core.Error.Private, ReadOnly.Fixed] =
+                                         functionStore: FunctionStore): IO[Core.Error.Segment, ReadOnly.Fixed] =
   //@formatter:off
     oldKeyValue match {
       case oldKeyValue: ReadOnly.Put =>             IO(UpdateMerger(newKeyValue, oldKeyValue))

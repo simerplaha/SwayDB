@@ -38,7 +38,7 @@ import swaydb.core.util.{Extension, IDGenerator}
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.config.Dir
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage

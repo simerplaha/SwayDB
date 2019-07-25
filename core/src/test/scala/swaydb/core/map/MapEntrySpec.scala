@@ -33,12 +33,13 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.data.io.Core.Error.Map.ErrorHandler
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
@@ -350,6 +351,7 @@ class MapEntrySpec extends TestBase {
     "be written and read for Level0" in {
       import LevelZeroMapEntryReader._
       import LevelZeroMapEntryWriter._
+      import swaydb.data.io.Core.Error.Map.ErrorHandler
 
       val initialEntry: MapEntry[Slice[Byte], Memory.SegmentResponse] = MapEntry.Put(0, Memory.put(0, Some(0)))
       var entry =
@@ -383,6 +385,8 @@ class MapEntrySpec extends TestBase {
     "be written and read for Appendix" in {
       import AppendixMapEntryWriter._
       import appendixReader._
+      import swaydb.data.io.Core.Error.Map.ErrorHandler
+
       val segment = TestSegment(keyValues).runIO
 
       val initialEntry: MapEntry[Slice[Byte], Segment] = MapEntry.Put[Slice[Byte], Segment](0, segment)

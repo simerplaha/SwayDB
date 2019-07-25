@@ -26,7 +26,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.Memory
-import swaydb.data.io.Core.Error.Private.ErrorHandler
+import swaydb.data.io.Core.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
