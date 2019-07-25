@@ -28,7 +28,7 @@ import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, Groupi
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -99,7 +99,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
     */
   private def keyValuesToGroup(segmentKeyValues: Iterable[Transient],
                                groupingStrategy: KeyValueGroupingStrategyInternal,
-                               force: Boolean): IO[Core.Error.Segment, Option[(Slice[Transient], Option[Transient.Group])]] =
+                               force: Boolean): IO[swaydb.Error.Segment, Option[(Slice[Transient], Option[Transient.Group])]] =
     if (shouldGroupKeyValues(segmentKeyValues = segmentKeyValues, groupingStrategy = groupingStrategy, force = force)) {
       //create a new list of key-values with stats updated.
       val expectedGroupsKeyValueCount = segmentKeyValues.last.stats.chainPosition - segmentKeyValues.last.stats.groupsCount
@@ -158,7 +158,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                           sortedIndexConfig: SortedIndexBlock.Config,
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                           hashIndexConfig: HashIndexBlock.Config,
-                          bloomFilterConfig: BloomFilterBlock.Config): IO[Core.Error.Segment, Group] =
+                          bloomFilterConfig: BloomFilterBlock.Config): IO[swaydb.Error.Segment, Group] =
     Transient.Group(
       keyValues = keyValuesToGroup,
       previous = lastGroup,
@@ -190,7 +190,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                                       binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                       hashIndexConfig: HashIndexBlock.Config,
                                       bloomFilterConfig: BloomFilterBlock.Config,
-                                      force: Boolean): IO[Core.Error.Segment, Option[Group]] =
+                                      force: Boolean): IO[swaydb.Error.Segment, Option[Group]] =
     keyValuesToGroup(
       segmentKeyValues = segmentKeyValues,
       groupingStrategy = groupingStrategy,
@@ -222,7 +222,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                    hashIndexConfig: HashIndexBlock.Config,
                                    bloomFilterConfig: BloomFilterBlock.Config,
-                                   force: Boolean): IO[Core.Error.Segment, Option[Group]] =
+                                   force: Boolean): IO[swaydb.Error.Segment, Option[Group]] =
     groupsToGroup(
       keyValues = groupKeyValues,
       groupingStrategy = groupingStrategy,
@@ -256,7 +256,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                              hashIndexConfig: HashIndexBlock.Config,
                              bloomFilterConfig: BloomFilterBlock.Config,
-                             force: Boolean): IO[Core.Error.Segment, Option[Group]] =
+                             force: Boolean): IO[swaydb.Error.Segment, Option[Group]] =
     for {
       keyValuesGroup <- {
         groupKeyValues(
@@ -307,7 +307,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                    hashIndexConfig: HashIndexBlock.Config,
                    bloomFilterConfig: BloomFilterBlock.Config,
                    segmentIO: SegmentIO)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                         keyOrder: KeyOrder[Slice[Byte]]): IO[Core.Error.Segment, Unit] =
+                                         keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Unit] =
     keyValues.headOption match {
       case Some(keyValue) =>
         keyValue match {
@@ -383,9 +383,9 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   hashIndexConfig: HashIndexBlock.Config,
                   bloomFilterConfig: BloomFilterBlock.Config,
                   segmentIO: SegmentIO)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                        keyOrder: KeyOrder[Slice[Byte]]): IO[Core.Error.Segment, Unit] = {
+                                        keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Unit] = {
 
-    def doAdd(keyValueToAdd: Option[Transient] => Transient): IO[Core.Error.Segment, Unit] = {
+    def doAdd(keyValueToAdd: Option[Transient] => Transient): IO[swaydb.Error.Segment, Unit] = {
 
       /**
         * Tries adding key-value to the current split/Segment. If force is true then the key-value will value added to
@@ -419,7 +419,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
         }
       }
 
-      def tryGrouping(force: Boolean): IO[Core.Error.Segment, Unit] =
+      def tryGrouping(force: Boolean): IO[swaydb.Error.Segment, Unit] =
         groupingStrategy flatMap {
           groupingStrategy =>
             splits.lastOption map {

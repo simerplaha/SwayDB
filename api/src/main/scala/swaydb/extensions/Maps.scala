@@ -75,7 +75,7 @@
 //  def remove(key: K): IO[IO.OK] =
 //    Map.removeMap(map, mapKey :+ key) flatMap map.commit
 //
-//  def get(key: K): IO[Core.Error.Segment, Option[Map[K, V]]] = {
+//  def get(key: K): IO[swaydb.Error.Segment, Option[Map[K, V]]] = {
 //    contains(key) map {
 //      exists =>
 //        if (exists)
@@ -110,7 +110,7 @@
 //  /**
 //    * Returns None if this map does not exist or returns the value.
 //    */
-//  def getValue(key: K): IO[Core.Error.Segment, Option[V]] =
+//  def getValue(key: K): IO[swaydb.Error.Segment, Option[V]] =
 //    map.get(Key.MapStart(mapKey :+ key)).map(_.flatten)
 //
 //  def keys: MapKeysStream[K] =

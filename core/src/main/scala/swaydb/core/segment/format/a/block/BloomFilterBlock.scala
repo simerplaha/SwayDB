@@ -28,7 +28,7 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, FunctionUtil, MurmurHash3Generic, Options}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -166,7 +166,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
     else
       math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
 
-  def closeForMemory(state: BloomFilterBlock.State): IO[Core.Error.Segment, Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]] =
+  def closeForMemory(state: BloomFilterBlock.State): IO[swaydb.Error.Segment, Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]] =
     BloomFilterBlock.close(state) flatMap {
       closedBloomFilter =>
         closedBloomFilter map {
@@ -177,7 +177,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
         } getOrElse IO.none
     }
 
-  def close(state: State): IO[Core.Error.Segment, Option[BloomFilterBlock.State]] =
+  def close(state: State): IO[swaydb.Error.Segment, Option[BloomFilterBlock.State]] =
     if (state.bytes.isEmpty)
       IO.none
     else
@@ -201,7 +201,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
           }
       }
 
-  def read(header: Block.Header[BloomFilterBlock.Offset]): IO[Core.Error.Segment, BloomFilterBlock] =
+  def read(header: Block.Header[BloomFilterBlock.Offset]): IO[swaydb.Error.Segment, BloomFilterBlock] =
     for {
       numberOfBits <- header.headerReader.readIntUnsigned()
       maxProbe <- header.headerReader.readIntUnsigned()
@@ -271,7 +271,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
   }
 
   def mightContain(key: Slice[Byte],
-                   reader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]): IO[Core.Error.Segment, Boolean] = {
+                   reader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]): IO[swaydb.Error.Segment, Boolean] = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
@@ -308,7 +308,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
     override def createOffset(start: Int, size: Int): Offset =
       BloomFilterBlock.Offset(start = start, size = size)
 
-    override def readBlock(header: Block.Header[Offset]): IO[Core.Error.Segment, BloomFilterBlock] =
+    override def readBlock(header: Block.Header[Offset]): IO[swaydb.Error.Segment, BloomFilterBlock] =
       BloomFilterBlock.read(header)
   }
 }

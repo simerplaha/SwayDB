@@ -27,7 +27,7 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.Throttle
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 

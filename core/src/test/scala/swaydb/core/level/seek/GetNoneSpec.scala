@@ -30,7 +30,7 @@ import swaydb.core.data.{SwayFunctionOutput, Value}
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.Reserve
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -260,7 +260,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         implicit val getFromCurrentLevel = mock[CurrentGetter]
         implicit val getFromNextLevel = mock[NextGetter]
 
-        val busy = Core.Error.DecompressingIndex(Reserve(()))
+        val busy = swaydb.Error.DecompressingIndex(Reserve(()))
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPendingApplyKeyValue(1)))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.Defer(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))), busy)

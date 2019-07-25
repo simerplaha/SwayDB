@@ -26,11 +26,11 @@ import java.nio.file.{Path, StandardOpenOption}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.IO.ErrorHandler
+import swaydb.Error.IO.ErrorHandler
 import swaydb.data.slice.Slice
 
 private[file] object ChannelFile {
-  def write(path: Path): IO[Core.Error.IO, ChannelFile] =
+  def write(path: Path): IO[swaydb.Error.IO, ChannelFile] =
     IO {
       val channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
       new ChannelFile(
@@ -39,7 +39,7 @@ private[file] object ChannelFile {
       )
     }
 
-  def read(path: Path): IO[Core.Error.IO, ChannelFile] =
+  def read(path: Path): IO[swaydb.Error.IO, ChannelFile] =
     if (IOEffect.exists(path))
       IO {
         val channel = FileChannel.open(path, StandardOpenOption.READ)
@@ -49,42 +49,42 @@ private[file] object ChannelFile {
         )
       }
     else
-      IO.Failure(Core.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path))
 }
 
 private[file] class ChannelFile(val path: Path,
                                 channel: FileChannel) extends LazyLogging with DBFileType {
 
-  def close: IO[Core.Error.IO, Unit] =
+  def close: IO[swaydb.Error.IO, Unit] =
     IO {
       //      logger.info(s"$path: Closing channel")
       channel.close()
     }
 
-  def append(slice: Slice[Byte]): IO[Core.Error.IO, Unit] =
+  def append(slice: Slice[Byte]): IO[swaydb.Error.IO, Unit] =
     IOEffect.writeUnclosed(channel, slice)
 
-  def append(slice: Iterable[Slice[Byte]]): IO[Core.Error.IO, Unit] =
+  def append(slice: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Unit] =
     IOEffect.writeUnclosed(channel, slice)
 
-  def read(position: Int, size: Int): IO[Core.Error.IO, Slice[Byte]] =
+  def read(position: Int, size: Int): IO[swaydb.Error.IO, Slice[Byte]] =
     IO {
       val buffer = ByteBuffer.allocate(size)
       channel.read(buffer, position)
       Slice(buffer.array())
     }
 
-  def get(position: Int): IO[Core.Error.IO, Byte] =
+  def get(position: Int): IO[swaydb.Error.IO, Byte] =
     read(position, 1).map(_.head)
 
-  def readAll: IO[Core.Error.IO, Slice[Byte]] =
+  def readAll: IO[swaydb.Error.IO, Slice[Byte]] =
     IO {
       val bytes = new Array[Byte](channel.size().toInt)
       channel.read(ByteBuffer.wrap(bytes))
       Slice(bytes)
     }
 
-  def fileSize: IO[Core.Error.IO, Long] =
+  def fileSize: IO[swaydb.Error.IO, Long] =
     IO(channel.size())
 
   override def isOpen =
@@ -102,12 +102,12 @@ private[file] class ChannelFile(val path: Path,
   override def memory: Boolean =
     false
 
-  override def delete(): IO[Core.Error.IO, Unit] =
+  override def delete(): IO[swaydb.Error.IO, Unit] =
     close flatMap {
       _ =>
         IOEffect.delete(path)
     }
 
-  override def forceSave(): IO[Core.Error.IO, Unit] =
+  override def forceSave(): IO[swaydb.Error.IO, Unit] =
     IO.unit
 }

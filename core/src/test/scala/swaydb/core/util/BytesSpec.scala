@@ -22,7 +22,7 @@ package swaydb.core.util
 import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.IOValues._
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteUtil
 import swaydb.data.util.StorageUnits._

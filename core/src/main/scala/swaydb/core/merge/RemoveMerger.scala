@@ -24,7 +24,7 @@ import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
@@ -73,7 +73,7 @@ private[core] object RemoveMerger {
       oldKeyValue
 
   def apply(newKeyValue: ReadOnly.Remove,
-            oldKeyValue: ReadOnly.Function)(implicit timeOrder: TimeOrder[Slice[Byte]]): IO[Core.Error.Segment, ReadOnly.Fixed] =
+            oldKeyValue: ReadOnly.Function)(implicit timeOrder: TimeOrder[Slice[Byte]]): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue.deadline match {
         case None =>
@@ -89,7 +89,7 @@ private[core] object RemoveMerger {
       IO.Success(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.Remove,
-            oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]]): IO[Core.Error.Segment, ReadOnly.Fixed] =
+            oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]]): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue match {
         case oldKeyValue: Value.Remove =>
@@ -106,7 +106,7 @@ private[core] object RemoveMerger {
 
   def apply(newer: ReadOnly.Remove,
             older: ReadOnly.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): IO[Core.Error.Segment, ReadOnly.Fixed] =
+                                          functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     if (newer.time > older.time)
       newer.deadline match {
         case Some(_) =>
@@ -126,7 +126,7 @@ private[core] object RemoveMerger {
 
   def apply(newKeyValue: ReadOnly.Remove,
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): IO[Core.Error.Segment, ReadOnly.Fixed] =
+                                         functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
   //@formatter:off
     oldKeyValue match {
       case oldKeyValue: ReadOnly.Put =>             IO(RemoveMerger(newKeyValue, oldKeyValue))

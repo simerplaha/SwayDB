@@ -26,7 +26,7 @@ import swaydb.ErrorHandler.Throwable
 import swaydb.IO
 import swaydb.data.Base._
 import swaydb.data.io.Core
-import Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
@@ -35,7 +35,7 @@ class IOFailureSpec extends WordSpec with Matchers {
 
   "IO.Failure" should {
     "set boolean" in {
-      val io = IO.Failure(Core.Error.OpeningFile(Paths.get(""), Reserve()))
+      val io = IO.Failure(swaydb.Error.OpeningFile(Paths.get(""), Reserve()))
       io.isFailure shouldBe true
       io.isDeferred shouldBe false
       io.isSuccess shouldBe false
@@ -70,19 +70,19 @@ class IOFailureSpec extends WordSpec with Matchers {
     }
 
     "flatMap on failure" in {
-      val failure = IO.Failure(Core.Error.NoSuchFile(new NoSuchFileException("")))
+      val failure = IO.Failure(swaydb.Error.NoSuchFile(new NoSuchFileException("")))
 
       failure.asDeferred flatMap {
         _ =>
-          IO.failed[Core.Error.Segment, Unit](new IllegalThreadStateException)
+          IO.failed[swaydb.Error.Segment, Unit](new IllegalThreadStateException)
       } shouldBe failure
     }
 
     "flatten on failure with success" in {
       val io =
-        IO.Failure[Core.Error.Segment, Int](Core.Error.Fatal(new Exception("Kaboom!"))).asIO map {
+        IO.Failure[swaydb.Error.Segment, Int](swaydb.Error.Fatal(new Exception("Kaboom!"))).asIO map {
           _ =>
-            IO.Success[Core.Error.Segment, Unit](11)
+            IO.Success[swaydb.Error.Segment, Unit](11)
         }
 
       io.flatten.asInstanceOf[IO.Failure[Throwable, Int]].exception.getMessage shouldBe "Kaboom!"
@@ -90,20 +90,20 @@ class IOFailureSpec extends WordSpec with Matchers {
 
     "recover" in {
       val failure =
-        IO.Failure(Core.Error.NoSuchFile(new NoSuchFileException(""))) recover {
-          case _: Core.Error =>
+        IO.Failure(swaydb.Error.NoSuchFile(new NoSuchFileException(""))) recover {
+          case _: swaydb.Error =>
             1
         }
 
-      failure shouldBe IO.Success[Core.Error.Segment, Int](1)
+      failure shouldBe IO.Success[swaydb.Error.Segment, Int](1)
     }
 
     "recoverWith" in {
       val failure =
-        IO.Failure(Core.Error.NoSuchFile(new NoSuchFileException("")))
-          .recoverWith[Core.Error.Segment, Unit] {
-            case error: Core.Error.Segment =>
-              IO.Failure(Core.Error.Fatal(new Exception("recovery exception")))
+        IO.Failure(swaydb.Error.NoSuchFile(new NoSuchFileException("")))
+          .recoverWith[swaydb.Error.Segment, Unit] {
+            case error: swaydb.Error.Segment =>
+              IO.Failure(swaydb.Error.Fatal(new Exception("recovery exception")))
           }
 
       failure.failed.get.exception.getMessage shouldBe "recovery exception"
@@ -119,14 +119,14 @@ class IOFailureSpec extends WordSpec with Matchers {
                   IO.Failure(busy) recoverToDeferred {
                     IO.Failure(busy) recoverToDeferred {
                       IO.Failure(busy) recoverToDeferred {
-                        IO.Success[Core.Error.Segment, Int](100)
+                        IO.Success[swaydb.Error.Segment, Int](100)
                       }
                     }
                   }
                 }
               }
             }
-          failure.runBlocking shouldBe IO.Success[Core.Error.Segment, Int](100)
+          failure.runBlocking shouldBe IO.Success[swaydb.Error.Segment, Int](100)
       }
     }
 

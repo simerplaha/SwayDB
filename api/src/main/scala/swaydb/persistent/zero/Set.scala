@@ -27,7 +27,7 @@ import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{Dir, RecoveryMode}
-import swaydb.data.io.Core.Error
+import swaydb.Error
 import swaydb.data.io.Tag.CoreIO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice

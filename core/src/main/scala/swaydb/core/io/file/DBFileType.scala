@@ -29,34 +29,34 @@ private[file] trait DBFileType {
 
   def path: Path
 
-  def delete(): IO[Core.Error.IO, Unit]
+  def delete(): IO[swaydb.Error.IO, Unit]
 
-  def close(): IO[Core.Error.IO, Unit]
+  def close(): IO[swaydb.Error.IO, Unit]
 
-  def append(slice: Slice[Byte]): IO[Core.Error.IO, Unit]
+  def append(slice: Slice[Byte]): IO[swaydb.Error.IO, Unit]
 
-  def append(slice: Iterable[Slice[Byte]]): IO[Core.Error.IO, Unit]
+  def append(slice: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Unit]
 
-  def read(position: Int, size: Int): IO[Core.Error.IO, Slice[Byte]]
+  def read(position: Int, size: Int): IO[swaydb.Error.IO, Slice[Byte]]
 
-  def get(position: Int): IO[Core.Error.IO, Byte]
+  def get(position: Int): IO[swaydb.Error.IO, Byte]
 
-  def readAll: IO[Core.Error.IO, Slice[Byte]]
+  def readAll: IO[swaydb.Error.IO, Slice[Byte]]
 
-  def fileSize: IO[Core.Error.IO, Long]
+  def fileSize: IO[swaydb.Error.IO, Long]
 
-  def isMemoryMapped: IO[Core.Error.IO, Boolean]
+  def isMemoryMapped: IO[swaydb.Error.IO, Boolean]
 
-  def isLoaded: IO[Core.Error.IO, Boolean]
+  def isLoaded: IO[swaydb.Error.IO, Boolean]
 
   def isOpen: Boolean
 
-  def isFull: IO[Core.Error.IO, Boolean]
+  def isFull: IO[swaydb.Error.IO, Boolean]
 
   def memory: Boolean
 
   def persistent: Boolean =
     !memory
 
-  def forceSave(): IO[Core.Error.IO, Unit]
+  def forceSave(): IO[swaydb.Error.IO, Unit]
 }

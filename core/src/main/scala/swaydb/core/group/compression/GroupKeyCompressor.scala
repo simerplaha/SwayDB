@@ -24,7 +24,7 @@ import swaydb.core.data.Transient
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 
 private[core] object GroupKeyCompressor {
@@ -67,7 +67,7 @@ private[core] object GroupKeyCompressor {
         (group.minKey, group.maxKey, group.mergedKey)
     }
 
-  def decompress(key: Slice[Byte]): IO[Core.Error.Segment, (Slice[Byte], MaxKey[Slice[Byte]])] =
+  def decompress(key: Slice[Byte]): IO[swaydb.Error.Segment, (Slice[Byte], MaxKey[Slice[Byte]])] =
     key.lastOption map {
       case 0 =>
         Bytes.decompressJoin(key.dropRight(1)) map {

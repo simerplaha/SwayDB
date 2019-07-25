@@ -24,7 +24,7 @@ import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.Paths
 
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Exception.NullMappedByteBuffer
+import swaydb.Exception.NullMappedByteBuffer
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -37,20 +37,20 @@ object Base {
       Await.result(f, 10.seconds)
   }
 
-  def busyErrors(busyBoolean: Reserve[Unit] = Reserve()): List[Core.Error.ReservedIO] =
+  def busyErrors(busyBoolean: Reserve[Unit] = Reserve()): List[swaydb.Error.ReservedIO] =
     List(
-      Core.Error.OpeningFile(Paths.get("/some/path"), busyBoolean),
-      Core.Error.NoSuchFile(Some(Paths.get("/some/path")), None),
-      Core.Error.FileNotFound(new FileNotFoundException("")),
-      Core.Error.AsynchronousClose(new AsynchronousCloseException()),
-      Core.Error.ClosedChannel(new ClosedChannelException),
-      Core.Error.NullMappedByteBuffer(NullMappedByteBuffer(new NullPointerException, busyBoolean)),
-      Core.Error.DecompressingIndex(busyBoolean),
-      Core.Error.DecompressingValues(busyBoolean),
-      Core.Error.ReadingHeader(busyBoolean),
-      Core.Error.ReservedValue(busyBoolean)
+      swaydb.Error.OpeningFile(Paths.get("/some/path"), busyBoolean),
+      swaydb.Error.NoSuchFile(Some(Paths.get("/some/path")), None),
+      swaydb.Error.FileNotFound(new FileNotFoundException("")),
+      swaydb.Error.AsynchronousClose(new AsynchronousCloseException()),
+      swaydb.Error.ClosedChannel(new ClosedChannelException),
+      swaydb.Error.NullMappedByteBuffer(NullMappedByteBuffer(new NullPointerException, busyBoolean)),
+      swaydb.Error.DecompressingIndex(busyBoolean),
+      swaydb.Error.DecompressingValues(busyBoolean),
+      swaydb.Error.ReadingHeader(busyBoolean),
+      swaydb.Error.ReservedValue(busyBoolean)
     )
 
-  def randomBusyException(busyBoolean: Reserve[Unit] = Reserve()): Core.Error.ReservedIO =
+  def randomBusyException(busyBoolean: Reserve[Unit] = Reserve()): swaydb.Error.ReservedIO =
     Random.shuffle(busyErrors(busyBoolean)).head
 }

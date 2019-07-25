@@ -24,7 +24,7 @@ import swaydb.core.data.{KeyValue, Time}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Reader
 
 import scala.annotation.implicitNotFound
@@ -33,8 +33,8 @@ import scala.annotation.implicitNotFound
 sealed trait TimeReader[-T] {
   def isPrefixCompressed: Boolean
 
-  def read(indexReader: Reader[Core.Error.Segment],
-           previous: Option[KeyValue.ReadOnly]): IO[Core.Error.Segment, Time]
+  def read(indexReader: Reader[swaydb.Error.Segment],
+           previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Time]
 }
 
 /**
@@ -46,16 +46,16 @@ object TimeReader {
   implicit object NoTimeReader extends TimeReader[BaseEntryId.Time.NoTime] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: Reader[Core.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[Core.Error.Segment, Time] =
+    override def read(indexReader: Reader[swaydb.Error.Segment],
+                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Time] =
       Time.successEmpty
   }
 
   implicit object UnCompressedTimeReader extends TimeReader[BaseEntryId.Time.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: Reader[Core.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[Core.Error.Segment, Time] =
+    override def read(indexReader: Reader[swaydb.Error.Segment],
+                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Time] =
       indexReader.readIntUnsigned() flatMap {
         timeSize =>
           indexReader.read(timeSize) map {
@@ -69,8 +69,8 @@ object TimeReader {
 
     override def isPrefixCompressed: Boolean = true
 
-    def readTime(indexReader: Reader[Core.Error.Segment],
-                 previousTime: Time): IO[Core.Error.Segment, Time] =
+    def readTime(indexReader: Reader[swaydb.Error.Segment],
+                 previousTime: Time): IO[swaydb.Error.Segment, Time] =
       indexReader.readIntUnsigned() flatMap {
         commonBytes =>
           indexReader.readIntUnsigned() flatMap {
@@ -83,8 +83,8 @@ object TimeReader {
           }
       }
 
-    override def read(indexReader: Reader[Core.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[Core.Error.Segment, Time] =
+    override def read(indexReader: Reader[swaydb.Error.Segment],
+                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Time] =
       previous map {
         case previous: KeyValue.ReadOnly.Put =>
           readTime(indexReader, previous.time)

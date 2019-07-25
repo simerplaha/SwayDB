@@ -25,7 +25,7 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.IO
 import swaydb.data.Base._
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -57,7 +57,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
     }
 
     "getOrElse return second io first is failure" in {
-      val io = IO.Failure(Core.Error.NoSuchFile(new NoSuchFileException("")))
+      val io = IO.Failure(swaydb.Error.NoSuchFile(new NoSuchFileException("")))
 
       io getOrElse 2 shouldBe 2
 
@@ -72,7 +72,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
     }
 
     "flatMap on failure" in {
-      val failure = IO.Failure(Core.Error.NoSuchFile(new NoSuchFileException("")))
+      val failure = IO.Failure(swaydb.Error.NoSuchFile(new NoSuchFileException("")))
 
       IO.Success(1).asIO flatMap {
         _ =>
@@ -84,7 +84,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
       val async =
         IO.Success(1).asDeferred flatMap {
           int =>
-            IO.Defer(int + 1, Core.Error.OpeningFile(Paths.get(""), Reserve()))
+            IO.Defer(int + 1, swaydb.Error.OpeningFile(Paths.get(""), Reserve()))
         }
 
       async.get shouldBe 2
@@ -96,7 +96,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
     }
 
     "flatten on successes with failure" in {
-      val nested = IO.Success(IO.Success(IO.Success(IO.Failure(Core.Error.Fatal(new Exception("Kaboom!"))))))
+      val nested = IO.Success(IO.Success(IO.Success(IO.Failure(swaydb.Error.Fatal(new Exception("Kaboom!"))))))
 
       nested.flatten.flatten.flatten.failed.get.exception.getMessage shouldBe "Kaboom!"
     }

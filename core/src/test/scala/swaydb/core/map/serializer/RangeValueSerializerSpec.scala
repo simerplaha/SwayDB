@@ -26,7 +26,7 @@ import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.Value
 import swaydb.core.data.Value.{FromValue, RangeValue}
-import swaydb.data.io.Core.Error.Map.ErrorHandler
+import swaydb.Error.Map.ErrorHandler
 import swaydb.data.slice.Slice
 
 class RangeValueSerializerSpec extends WordSpec with Matchers {

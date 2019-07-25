@@ -35,6 +35,6 @@ private[core] class MemoryTimer(time: AtomicLong) extends Timer {
   def next: Time =
     Time(time.incrementAndGet())
 
-  override def close: IO[Core.Error.Map, Unit] =
+  override def close: IO[swaydb.Error.Map, Unit] =
     IO.unit
 }

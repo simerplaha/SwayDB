@@ -26,91 +26,91 @@ import java.nio.file.{NoSuchFileException, Paths}
 
 import org.scalatest.{FlatSpec, Matchers}
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Exception.NullMappedByteBuffer
+import swaydb.Exception.NullMappedByteBuffer
 
 class IOErrorSpec extends FlatSpec with Matchers {
 
   it should "convert known Exception to known Error types and vice versa" in {
 
-    var error: Core.Error = Core.Error.OpeningFile(Paths.get("/some/path"), Reserve())
-    var exception: Throwable = Core.Exception.OpeningFile(Paths.get("/some/path"), Reserve())
+    var error: swaydb.Error = swaydb.Error.OpeningFile(Paths.get("/some/path"), Reserve())
+    var exception: Throwable = swaydb.Exception.OpeningFile(Paths.get("/some/path"), Reserve())
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe a[Core.Error.OpeningFile]
+    swaydb.Error(exception) shouldBe a[swaydb.Error.OpeningFile]
 
     //BUSY Errors
-    error = Core.Error.NoSuchFile(Some(Paths.get("/some/path")), None)
+    error = swaydb.Error.NoSuchFile(Some(Paths.get("/some/path")), None)
     exception = new NoSuchFileException("/some/path")
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe a[Core.Error.NoSuchFile]
+    swaydb.Error(exception) shouldBe a[swaydb.Error.NoSuchFile]
 
-    error = Core.Error.FileNotFound(new FileNotFoundException("some_file.sh"))
+    error = swaydb.Error.FileNotFound(new FileNotFoundException("some_file.sh"))
     exception = new FileNotFoundException("some_file.sh")
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe a[Core.Error.FileNotFound]
+    swaydb.Error(exception) shouldBe a[swaydb.Error.FileNotFound]
 
-    error = Core.Error.AsynchronousClose(new AsynchronousCloseException())
+    error = swaydb.Error.AsynchronousClose(new AsynchronousCloseException())
     exception = new AsynchronousCloseException()
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe a[Core.Error.AsynchronousClose]
+    swaydb.Error(exception) shouldBe a[swaydb.Error.AsynchronousClose]
 
-    error = Core.Error.ClosedChannel(new ClosedChannelException())
+    error = swaydb.Error.ClosedChannel(new ClosedChannelException())
     exception = new ClosedChannelException()
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe a[Core.Error.ClosedChannel]
+    swaydb.Error(exception) shouldBe a[swaydb.Error.ClosedChannel]
 
-    error = Core.Error.NullMappedByteBuffer(NullMappedByteBuffer(new NullPointerException(), Reserve()))
-    exception = Core.Exception.NullMappedByteBuffer(new NullPointerException(), Reserve())
-    Core.Error(exception) shouldBe a[Core.Error.NullMappedByteBuffer]
+    error = swaydb.Error.NullMappedByteBuffer(NullMappedByteBuffer(new NullPointerException(), Reserve()))
+    exception = swaydb.Exception.NullMappedByteBuffer(new NullPointerException(), Reserve())
+    swaydb.Error(exception) shouldBe a[swaydb.Error.NullMappedByteBuffer]
 
-    error = Core.Error.DecompressingIndex(Reserve())
+    error = swaydb.Error.DecompressingIndex(Reserve())
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe a[Core.Error.DecompressingIndex]
+    swaydb.Error(exception) shouldBe a[swaydb.Error.DecompressingIndex]
 
-    error = Core.Error.DecompressingValues(Reserve())
+    error = swaydb.Error.DecompressingValues(Reserve())
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe a[Core.Error.DecompressingValues]
+    swaydb.Error(exception) shouldBe a[swaydb.Error.DecompressingValues]
 
-    error = Core.Error.ReadingHeader(Reserve())
+    error = swaydb.Error.ReadingHeader(Reserve())
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe a[Core.Error.ReadingHeader]
+    swaydb.Error(exception) shouldBe a[swaydb.Error.ReadingHeader]
 
-    error = Core.Error.ReservedValue(Reserve())
+    error = swaydb.Error.ReservedValue(Reserve())
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe a[Core.Error.ReservedValue]
+    swaydb.Error(exception) shouldBe a[swaydb.Error.ReservedValue]
 
     //OTHER Errors
-    error = Core.Error.OverlappingPushSegment
+    error = swaydb.Error.OverlappingPushSegment
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe Core.Error.OverlappingPushSegment
+    swaydb.Error(exception) shouldBe swaydb.Error.OverlappingPushSegment
 
-    error = Core.Error.NoSegmentsRemoved
+    error = swaydb.Error.NoSegmentsRemoved
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe Core.Error.NoSegmentsRemoved
+    swaydb.Error(exception) shouldBe swaydb.Error.NoSegmentsRemoved
 
-    error = Core.Error.NotSentToNextLevel
+    error = swaydb.Error.NotSentToNextLevel
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe Core.Error.NotSentToNextLevel
+    swaydb.Error(exception) shouldBe swaydb.Error.NotSentToNextLevel
 
-    error = Core.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(1)
+    error = swaydb.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(1)
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe Core.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(1)
+    swaydb.Error(exception) shouldBe swaydb.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(1)
 
-    error = Core.Error.ReadOnlyBuffer(new ReadOnlyBufferException)
+    error = swaydb.Error.ReadOnlyBuffer(new ReadOnlyBufferException)
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe a[Core.Error.ReadOnlyBuffer]
+    swaydb.Error(exception) shouldBe a[swaydb.Error.ReadOnlyBuffer]
 
-    error = Core.Error.Fatal(new Exception("Something bad happened"))
+    error = swaydb.Error.Fatal(new Exception("Something bad happened"))
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    Core.Error(exception) shouldBe a[Core.Error.Fatal]
+    swaydb.Error(exception) shouldBe a[swaydb.Error.Fatal]
   }
 }

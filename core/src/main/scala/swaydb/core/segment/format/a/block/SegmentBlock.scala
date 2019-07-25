@@ -31,7 +31,7 @@ import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.api.grouping.Compression
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -200,7 +200,7 @@ private[core] object SegmentBlock {
                                          minMaxFunction: Option[MinMax[Slice[Byte]]],
                                          nearestDeadline: Option[Deadline])
 
-  def read(header: Block.Header[Offset]): IO[Core.Error.Segment, SegmentBlock] =
+  def read(header: Block.Header[Offset]): IO[swaydb.Error.Segment, SegmentBlock] =
     IO {
       SegmentBlock(
         offset = header.offset,
@@ -231,10 +231,10 @@ private[core] object SegmentBlock {
                        binarySearchIndex: Option[BinarySearchIndexBlock.State],
                        bloomFilter: Option[BloomFilterBlock.State],
                        currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
-                       currentNearestDeadline: Option[Deadline]): IO[Core.Error.Segment, DeadlineAndFunctionId] = {
+                       currentNearestDeadline: Option[Deadline]): IO[swaydb.Error.Segment, DeadlineAndFunctionId] = {
 
     def writeOne(rootGroup: Option[Transient.Group],
-                 keyValue: Transient): IO[Core.Error.Segment, Unit] =
+                 keyValue: Transient): IO[swaydb.Error.Segment, Unit] =
       keyValue match {
         case childGroup: Transient.Group =>
           writeMany(
@@ -278,7 +278,7 @@ private[core] object SegmentBlock {
 
     @tailrec
     def writeMany(rootGroup: Option[Transient.Group],
-                  keyValues: Slice[Transient]): IO[Core.Error.Segment, Unit] =
+                  keyValues: Slice[Transient]): IO[swaydb.Error.Segment, Unit] =
       keyValues.headOption match {
         case Some(keyValue) =>
           writeOne(rootGroup, keyValue)
@@ -477,7 +477,7 @@ private[core] object SegmentBlock {
                           binarySearchIndex: Option[BinarySearchIndexBlock.State],
                           bloomFilter: Option[BloomFilterBlock.State],
                           currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
-                          currentNearestDeadline: Option[Deadline]): IO[Core.Error.Segment, DeadlineAndFunctionId] =
+                          currentNearestDeadline: Option[Deadline]): IO[swaydb.Error.Segment, DeadlineAndFunctionId] =
     SortedIndexBlock
       .write(keyValue = keyValue, state = sortedIndex)
       .flatMap(_ => values.map(ValuesBlock.write(keyValue, _)) getOrElse IO.unit)
@@ -500,7 +500,7 @@ private[core] object SegmentBlock {
                           binarySearchIndex: Option[BinarySearchIndexBlock.State],
                           bloomFilter: Option[BloomFilterBlock.State],
                           minMaxFunction: Option[MinMax[Slice[Byte]]],
-                          nearestDeadline: Option[Deadline]): IO[Core.Error.Segment, ClosedBlocks] =
+                          nearestDeadline: Option[Deadline]): IO[swaydb.Error.Segment, ClosedBlocks] =
     for {
       sortedIndexClosed <- SortedIndexBlock.close(sortedIndex)
       valuesClosed <- values.map(values => ValuesBlock.close(values).map(Some(_))) getOrElse IO.none
@@ -523,7 +523,7 @@ private[core] object SegmentBlock {
                     valuesBlock: Option[ValuesBlock.State],
                     hashIndexBlock: Option[HashIndexBlock.State],
                     binarySearchIndexBlock: Option[BinarySearchIndexBlock.State],
-                    bloomFilterBlock: Option[BloomFilterBlock.State]): IO[Core.Error.Segment, ClosedBlocks] =
+                    bloomFilterBlock: Option[BloomFilterBlock.State]): IO[swaydb.Error.Segment, ClosedBlocks] =
     keyValues.foldLeftIO(DeadlineAndFunctionId(None, None)) {
       case (nearestDeadlineMinMaxFunctionId, keyValue) =>
         writeBlocks(
@@ -560,7 +560,7 @@ private[core] object SegmentBlock {
 
   def writeClosed(keyValues: Iterable[Transient],
                   createdInLevel: Int,
-                  segmentConfig: SegmentBlock.Config): IO[Core.Error.Segment, SegmentBlock.Closed] =
+                  segmentConfig: SegmentBlock.Config): IO[swaydb.Error.Segment, SegmentBlock.Closed] =
     if (keyValues.isEmpty)
       SegmentBlock.Closed.emptyIO
     else
@@ -579,7 +579,7 @@ private[core] object SegmentBlock {
 
   def writeOpen(keyValues: Iterable[Transient],
                 createdInLevel: Int,
-                segmentConfig: SegmentBlock.Config): IO[Core.Error.Segment, SegmentBlock.Open] =
+                segmentConfig: SegmentBlock.Config): IO[swaydb.Error.Segment, SegmentBlock.Open] =
     if (keyValues.isEmpty)
       Open.emptyIO
     else {
@@ -616,7 +616,7 @@ private[core] object SegmentBlock {
     }
 
   private def close(footerBlock: SegmentFooterBlock.State,
-                    closedBlocks: ClosedBlocks): IO[Core.Error.Segment, SegmentBlock.Open] =
+                    closedBlocks: ClosedBlocks): IO[swaydb.Error.Segment, SegmentBlock.Open] =
     IO {
       val headerSize = SegmentBlock.headerSize(true)
       val headerBytes = Slice.create[Byte](headerSize)
@@ -653,7 +653,7 @@ private[core] object SegmentBlock {
     override def createOffset(start: Int, size: Int): Offset =
       SegmentBlock.Offset(start, size)
 
-    override def readBlock(header: Block.Header[SegmentBlock.Offset]): IO[Core.Error.Segment, SegmentBlock] =
+    override def readBlock(header: Block.Header[SegmentBlock.Offset]): IO[swaydb.Error.Segment, SegmentBlock] =
       SegmentBlock.read(header)
   }
 

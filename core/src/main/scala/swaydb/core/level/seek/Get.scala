@@ -25,7 +25,7 @@ import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Level.ErrorHandler
+import swaydb.Error.Level.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -37,7 +37,7 @@ private[core] object Get {
            currentGetter: CurrentGetter,
            nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
-                                   functionStore: FunctionStore): IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                                   functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Get(key = key)(
       keyOrder = keyOrder,
       timeOrder = timeOrder,
@@ -50,12 +50,12 @@ private[core] object Get {
                               timeOrder: TimeOrder[Slice[Byte]],
                               currentGetter: CurrentGetter,
                               nextGetter: NextGetter,
-                              functionStore: FunctionStore): IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
+                              functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
 
     import keyOrder._
 
     @tailrec
-    def returnSegmentResponse(current: KeyValue.ReadOnly.SegmentResponse): IO.Defer[Core.Error.Level, Option[ReadOnly.Put]] =
+    def returnSegmentResponse(current: KeyValue.ReadOnly.SegmentResponse): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
       current match {
         case current: KeyValue.ReadOnly.Remove =>
           if (current.hasTimeLeft())
@@ -114,7 +114,7 @@ private[core] object Get {
                 IO.none
 
             case failure @ IO.Failure(_) =>
-              failure.recoverToDeferred[Core.Error.Level, Option[KeyValue.ReadOnly.Put]](Get(key))
+              failure.recoverToDeferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]](Get(key))
           }
 
         case current: KeyValue.ReadOnly.Function =>
@@ -131,7 +131,7 @@ private[core] object Get {
                         IO.none
 
                       case failure @ IO.Failure(_) =>
-                        failure.recoverToDeferred[Core.Error.Level, Option[KeyValue.ReadOnly.Put]](Get(key))
+                        failure.recoverToDeferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]](Get(key))
                     }
                   else
                     IO.none
@@ -154,7 +154,7 @@ private[core] object Get {
                         IO.none
 
                       case failure @ IO.Failure(_) =>
-                        failure.recoverToDeferred[Core.Error.Level, Option[KeyValue.ReadOnly.Put]](Get(key))
+                        failure.recoverToDeferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]](Get(key))
                     }
                   else
                     IO.none
@@ -172,7 +172,7 @@ private[core] object Get {
         nextGetter.get(key)
 
       case failure @ IO.Failure(_) =>
-        failure.recoverToDeferred[Core.Error.Level, Option[KeyValue.ReadOnly.Put]](Get(key))
+        failure.recoverToDeferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]](Get(key))
     }
   }
 }

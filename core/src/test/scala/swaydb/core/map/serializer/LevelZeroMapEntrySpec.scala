@@ -36,7 +36,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.data.io.Core.Error.Map.ErrorHandler
+import swaydb.Error.Map.ErrorHandler
 
 import scala.collection.JavaConverters._
 

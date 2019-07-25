@@ -24,17 +24,17 @@ import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.{Reader, Slice}
 
 object KeyReader {
 
-  private def uncompressed(indexReader: Reader[Core.Error.Segment],
-                           previous: Option[KeyValue.ReadOnly]): IO[Core.Error.Segment, Slice[Byte]] =
+  private def uncompressed(indexReader: Reader[swaydb.Error.Segment],
+                           previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Slice[Byte]] =
     indexReader.readRemaining()
 
-  private def compressed(indexReader: Reader[Core.Error.Segment],
-                         previous: Option[KeyValue.ReadOnly]): IO[Core.Error.Segment, Slice[Byte]] =
+  private def compressed(indexReader: Reader[swaydb.Error.Segment],
+                         previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Slice[Byte]] =
     previous map {
       previous =>
         indexReader.readIntUnsigned() flatMap {
@@ -49,13 +49,13 @@ object KeyReader {
     }
 
   def read(keyValueIdInt: Int,
-           indexReader: Reader[Core.Error.Segment],
+           indexReader: Reader[swaydb.Error.Segment],
            previous: Option[KeyValue.ReadOnly],
-           keyValueId: KeyValueId): IO[Core.Error.Segment, (Slice[Byte], Boolean)] =
+           keyValueId: KeyValueId): IO[swaydb.Error.Segment, (Slice[Byte], Boolean)] =
     if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt))
       KeyReader.compressed(indexReader, previous) map (key => (key, true))
     else if (keyValueId.isKeyValueId_UncompressedKey(keyValueIdInt))
       KeyReader.uncompressed(indexReader, previous) map (key => (key, false))
     else
-      IO.Failure(Core.Error.Fatal(new Exception(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")))
+      IO.Failure(swaydb.Error.Fatal(new Exception(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")))
 }

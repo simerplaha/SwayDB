@@ -29,7 +29,7 @@ import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
 import swaydb.data.Reserve
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -206,7 +206,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         //create IO.Later that is busy
         val reserve = Reserve[Unit](())
         reserve.isBusy shouldBe true
-        val busy = Core.Error.DecompressingIndex(reserve)
+        val busy = swaydb.Error.DecompressingIndex(reserve)
         val later = IO.Deferred((), busy)
         later.isBusy shouldBe true
 
@@ -260,7 +260,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         //create IO.Later that is busy
         val reserve = Reserve[Unit](())
         reserve.isBusy shouldBe true
-        val busy = Core.Error.DecompressingIndex(reserve)
+        val busy = swaydb.Error.DecompressingIndex(reserve)
         val later = IO.Deferred((), busy)
         later.isBusy shouldBe true
 

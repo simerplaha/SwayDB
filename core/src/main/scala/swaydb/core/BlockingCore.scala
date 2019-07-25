@@ -29,7 +29,7 @@ import swaydb.core.map.timer.Timer
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}
-import swaydb.data.io.Core.Error.Level.ErrorHandler
+import swaydb.Error.Level.ErrorHandler
 import swaydb.data.io.{Core, Tag}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -48,7 +48,7 @@ private[swaydb] object BlockingCore {
             fileOpenLimiterEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[Core.Error.BootUp, BlockingCore[Tag.CoreIO]] =
+                                              functionStore: FunctionStore): IO[swaydb.Error.BootUp, BlockingCore[Tag.CoreIO]] =
     CoreInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
@@ -62,7 +62,7 @@ private[swaydb] object BlockingCore {
   def apply(config: LevelZeroConfig)(implicit mmapCleanerEC: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[Core.Error.BootUp, BlockingCore[Tag.CoreIO]] =
+                                     functionStore: FunctionStore): IO[swaydb.Error.BootUp, BlockingCore[Tag.CoreIO]] =
     CoreInitializer(
       config = config,
       bufferCleanerEC = mmapCleanerEC
@@ -110,7 +110,7 @@ private[swaydb] object BlockingCore {
     }
 }
 
-private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO[Core.Error.Close, Unit])(implicit tag: Tag[T]) extends Core[T] {
+private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO[swaydb.Error.Close, Unit])(implicit tag: Tag[T]) extends Core[T] {
 
   def put(key: Slice[Byte]): T[IO.Done] =
     tag.fromIO(zero.put(key))
@@ -175,7 +175,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
     zero.registerFunction(functionID, function)
 
-  private def headIO: IO[Core.Error.Level, Option[KeyValueTuple]] =
+  private def headIO: IO[swaydb.Error.Level, Option[KeyValueTuple]] =
     zero.head.runBlocking flatMap {
       result =>
         result map {
@@ -186,7 +186,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             } recoverWith {
               case error =>
                 error match {
-                  case _: Core.Error.ReservedIO =>
+                  case _: swaydb.Error.ReservedIO =>
                     headIO
 
                   case failure =>
@@ -202,7 +202,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def headKey: T[Option[Slice[Byte]]] =
     tag.fromIO(zero.headKey.runBlocking)
 
-  private def lastIO: IO[Core.Error.Level, Option[KeyValueTuple]] =
+  private def lastIO: IO[swaydb.Error.Level, Option[KeyValueTuple]] =
     zero.last.runBlocking flatMap {
       result =>
         result map {
@@ -213,7 +213,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             } recoverWith {
               case error =>
                 error match {
-                  case _: Core.Error.ReservedIO =>
+                  case _: swaydb.Error.ReservedIO =>
                     lastIO
 
                   case failure =>
@@ -247,7 +247,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
     tag.fromIO(IO.Defer.recover(zero.mightContainFunction(functionId).get).runBlocking)
 
-  private def getIO(key: Slice[Byte]): IO[Core.Error.Level, Option[Option[Slice[Byte]]]] =
+  private def getIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[Option[Slice[Byte]]]] =
     zero.get(key).runBlocking flatMap {
       result =>
         result map {
@@ -255,10 +255,10 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(result)
-            } recoverWith[Core.Error.Level, Option[Option[Slice[Byte]]]] {
+            } recoverWith[swaydb.Error.Level, Option[Option[Slice[Byte]]]] {
               case error =>
                 error match {
-                  case _: Core.Error.ReservedIO =>
+                  case _: swaydb.Error.ReservedIO =>
                     getIO(key)
 
                   case failure =>
@@ -274,7 +274,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
     tag.fromIO(zero.getKey(key).runBlocking)
 
-  private def getKeyValueIO(key: Slice[Byte]): IO[Core.Error.Level, Option[KeyValueTuple]] =
+  private def getKeyValueIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValueTuple]] =
     zero.get(key).runBlocking flatMap {
       result =>
         result map {
@@ -282,10 +282,10 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
-            } recoverWith[Core.Error.Level, Option[KeyValueTuple]] {
+            } recoverWith[swaydb.Error.Level, Option[KeyValueTuple]] {
               case error =>
                 error match {
-                  case _: Core.Error.ReservedIO =>
+                  case _: swaydb.Error.ReservedIO =>
                     getKeyValueIO(key)
 
                   case failure =>
@@ -298,7 +298,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def getKeyValue(key: Slice[Byte]): T[Option[KeyValueTuple]] =
     tag.fromIO(getKeyValueIO(key))
 
-  private def beforeIO(key: Slice[Byte]): IO[Core.Error.Level, Option[KeyValueTuple]] =
+  private def beforeIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValueTuple]] =
     zero.lower(key).runBlocking flatMap {
       result =>
         result map {
@@ -306,10 +306,10 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
-            } recoverWith[Core.Error.Level, Option[KeyValueTuple]] {
+            } recoverWith[swaydb.Error.Level, Option[KeyValueTuple]] {
               case error =>
                 error match {
-                  case _: Core.Error.ReservedIO =>
+                  case _: swaydb.Error.ReservedIO =>
                     beforeIO(key)
 
                   case failure =>
@@ -325,7 +325,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def beforeKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
     tag.fromIO(zero.lower(key).runBlocking.map(_.map(_.key)))
 
-  private def afterIO(key: Slice[Byte]): IO[Core.Error.Level, Option[KeyValueTuple]] =
+  private def afterIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValueTuple]] =
     zero.higher(key).runBlocking flatMap {
       result =>
         result map {
@@ -336,7 +336,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
             } recoverWith {
               case error =>
                 error match {
-                  case _: Core.Error.ReservedIO =>
+                  case _: swaydb.Error.ReservedIO =>
                     afterIO(key)
 
                   case failure =>

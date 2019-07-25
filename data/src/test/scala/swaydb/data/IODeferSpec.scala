@@ -33,9 +33,9 @@ class IODeferSpec extends WordSpec with Matchers {
   "IO.Async" should {
     "flatMap on IO" in {
       val io =
-        IO.Defer(1, Core.Error.DecompressingValues(Reserve())) flatMap {
+        IO.Defer(1, swaydb.Error.DecompressingValues(Reserve())) flatMap {
           int =>
-            IO.Success[Core.Error.Segment, Int](int + 1)
+            IO.Success[swaydb.Error.Segment, Int](int + 1)
         }
 
       io.get shouldBe 2
@@ -48,25 +48,25 @@ class IODeferSpec extends WordSpec with Matchers {
       val boolean = Reserve(())
 
       val io =
-        IO.Defer(1, Core.Error.DecompressingValues(Reserve())) flatMap {
+        IO.Defer(1, swaydb.Error.DecompressingValues(Reserve())) flatMap {
           _ =>
-            IO.Failure(Core.Error.OpeningFile(Paths.get(""), boolean))
+            IO.Failure(swaydb.Error.OpeningFile(Paths.get(""), boolean))
         }
 
-      assertThrows[Core.Exception.OpeningFile] {
+      assertThrows[swaydb.Exception.OpeningFile] {
         io.get
       }
 
-      io.run.asInstanceOf[IO.Deferred[_, _]].error shouldBe Core.Error.OpeningFile(Paths.get(""), boolean)
+      io.run.asInstanceOf[IO.Deferred[_, _]].error shouldBe swaydb.Error.OpeningFile(Paths.get(""), boolean)
     }
     //
     //    "safeGet on multiple when last is a failure should return failure" in {
-    //      val failure = IO.Failure(Core.Error.NoSuchFile(new NoSuchFileException("Not such file")))
+    //      val failure = IO.Failure(swaydb.Error.NoSuchFile(new NoSuchFileException("Not such file")))
     //
     //      val io: IO.Defer[Int] =
-    //        IO.Defer(1, Core.Error.DecompressingIndex(Reserve())) flatMap {
+    //        IO.Defer(1, swaydb.Error.DecompressingIndex(Reserve())) flatMap {
     //          i =>
-    //            IO.Defer(i + 1, Core.Error.ReadingHeader(Reserve())) flatMap {
+    //            IO.Defer(i + 1, swaydb.Error.ReadingHeader(Reserve())) flatMap {
     //              _ =>
     //                failure
     //            }
@@ -81,11 +81,11 @@ class IODeferSpec extends WordSpec with Matchers {
     //      val busy3 = Reserve(())
     //
     //      val io: IO.Defer[Int] =
-    //        IO.Defer(1, Core.Error.DecompressingIndex(busy1)) flatMap {
+    //        IO.Defer(1, swaydb.Error.DecompressingIndex(busy1)) flatMap {
     //          i =>
-    //            IO.Defer(i + 1, Core.Error.DecompressingValues(busy2)) flatMap {
+    //            IO.Defer(i + 1, swaydb.Error.DecompressingValues(busy2)) flatMap {
     //              i =>
-    //                IO.Defer(i + 1, Core.Error.ReadingHeader(busy3))
+    //                IO.Defer(i + 1, swaydb.Error.ReadingHeader(busy3))
     //            }
     //        }
     //
@@ -131,7 +131,7 @@ class IODeferSpec extends WordSpec with Matchers {
     //      (1 to 2) foreach {
     //        i =>
     //          val io: IO.Defer[Int] =
-    //            (0 to 100).foldLeft(IO.Defer(1, Core.Error.DecompressingIndex(Reserve()))) {
+    //            (0 to 100).foldLeft(IO.Defer(1, swaydb.Error.DecompressingIndex(Reserve()))) {
     //              case (previous, i) =>
     //                previous flatMap {
     //                  output =>
@@ -180,7 +180,7 @@ class IODeferSpec extends WordSpec with Matchers {
     //          //final error should always result is fatal because the above
     //          //future function will result failed message and will always
     //          //recover from busy errors.
-    //          error shouldBe a[Core.Error.Fatal]
+    //          error shouldBe a[swaydb.Error.Fatal]
     //          error.exception.getMessage shouldBe failedMessage
     //      }
     //    }

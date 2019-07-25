@@ -38,7 +38,7 @@ import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -97,9 +97,9 @@ private[segment] case class MemorySegment(path: Path,
                    bloomFilterConfig: BloomFilterBlock.Config,
                    segmentConfig: SegmentBlock.Config,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
-                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error.Segment, Slice[Segment]] =
+                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[swaydb.Error.Segment, Slice[Segment]] =
     if (deleted)
-      IO.Failure(Core.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path))
     else
       getAll() flatMap {
         currentKeyValues =>
@@ -128,7 +128,7 @@ private[segment] case class MemorySegment(path: Path,
                     ),
 
                 recover =
-                  (segments: Slice[Segment], _: IO.Failure[Core.Error.Segment, Iterable[Segment]]) =>
+                  (segments: Slice[Segment], _: IO.Failure[swaydb.Error.Segment, Iterable[Segment]]) =>
                     segments foreach {
                       segmentToDelete =>
                         segmentToDelete.delete onFailureSideEffect {
@@ -150,9 +150,9 @@ private[segment] case class MemorySegment(path: Path,
                        bloomFilterConfig: BloomFilterBlock.Config,
                        segmentConfig: SegmentBlock.Config,
                        targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
-                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Core.Error.Segment, Slice[Segment]] =
+                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[swaydb.Error.Segment, Slice[Segment]] =
     if (deleted)
-      IO.Failure(Core.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path))
     else
       getAll() flatMap {
         currentKeyValues =>
@@ -180,7 +180,7 @@ private[segment] case class MemorySegment(path: Path,
                     ),
 
                 recover =
-                  (segments: Slice[Segment], _: IO.Failure[Core.Error.Segment, Iterable[Segment]]) =>
+                  (segments: Slice[Segment], _: IO.Failure[swaydb.Error.Segment, Iterable[Segment]]) =>
                     segments foreach {
                       segmentToDelete =>
                         segmentToDelete.delete onFailureSideEffect {
@@ -199,7 +199,7 @@ private[segment] case class MemorySegment(path: Path,
     * Basic value does not perform floor checks on the cache which are only required if the Segment contains
     * range or groups.
     */
-  private def doBasicGet(key: Slice[Byte]): IO[Core.Error.Segment, Option[Memory.SegmentResponse]] =
+  private def doBasicGet(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     Option(cache.get(key)) map {
       case response: Memory.SegmentResponse =>
         IO.Success(Some(response))
@@ -210,9 +210,9 @@ private[segment] case class MemorySegment(path: Path,
       IO.none
     }
 
-  override def get(key: Slice[Byte]): IO[Core.Error.Segment, Option[Memory.SegmentResponse]] =
+  override def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     if (deleted)
-      IO.Failure(Core.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path))
     else
       mightContainKey(key) flatMap {
         mightContain =>
@@ -250,7 +250,7 @@ private[segment] case class MemorySegment(path: Path,
             IO.none
       }
 
-  def mightContainKey(key: Slice[Byte]): IO[Core.Error.Segment, Boolean] =
+  def mightContainKey(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
     bloomFilterReader map {
       reader =>
         BloomFilterBlock.mightContain(
@@ -259,7 +259,7 @@ private[segment] case class MemorySegment(path: Path,
         )
     } getOrElse IO.`true`
 
-  override def mightContainFunction(key: Slice[Byte]): IO[Core.Error.Segment, Boolean] =
+  override def mightContainFunction(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
     IO {
       minMaxFunctionId.exists {
         minMaxFunctionId =>
@@ -270,9 +270,9 @@ private[segment] case class MemorySegment(path: Path,
       }
     }
 
-  override def lower(key: Slice[Byte]): IO[Core.Error.Segment, Option[Memory.SegmentResponse]] =
+  override def lower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     if (deleted)
-      IO.Failure(Core.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path))
     else
       Option(cache.lowerEntry(key)) map {
         entry =>
@@ -296,7 +296,7 @@ private[segment] case class MemorySegment(path: Path,
     * Basic value does not perform floor checks on the cache which are only required if the Segment contains
     * range or groups.
     */
-  private def doBasicHigher(key: Slice[Byte]): IO[Core.Error.Segment, Option[Memory.SegmentResponse]] =
+  private def doBasicHigher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     Option(cache.higherEntry(key)).map(_.getValue) map {
       case response: Memory.SegmentResponse =>
         IO.Success(Some(response))
@@ -311,9 +311,9 @@ private[segment] case class MemorySegment(path: Path,
       IO.none
     }
 
-  def floorHigherHint(key: Slice[Byte]): IO[Core.Error.Segment, Option[Slice[Byte]]] =
+  def floorHigherHint(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
     if (deleted)
-      IO.Failure(Core.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path))
     else
       hasPut map {
         hasPut =>
@@ -328,9 +328,9 @@ private[segment] case class MemorySegment(path: Path,
             None
       }
 
-  override def higher(key: Slice[Byte]): IO[Core.Error.Segment, Option[Memory.SegmentResponse]] =
+  override def higher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     if (deleted)
-      IO.Failure(Core.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path))
     else if (_hasRange || _hasGroup)
       Option(cache.floorEntry(key)).map(_.getValue) map {
         case floorRange: Memory.Range if floorRange contains key =>
@@ -360,9 +360,9 @@ private[segment] case class MemorySegment(path: Path,
     else
       doBasicHigher(key)
 
-  override def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Core.Error.Segment, Slice[KeyValue.ReadOnly]] =
+  override def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
     if (deleted)
-      IO.Failure(Core.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path))
     else
       IO {
         val slice = addTo getOrElse Slice.create[KeyValue.ReadOnly](cache.size())
@@ -375,23 +375,23 @@ private[segment] case class MemorySegment(path: Path,
         slice
       }
 
-  override def delete: IO[Core.Error.Segment, Unit] = {
+  override def delete: IO[swaydb.Error.Segment, Unit] = {
     //cache should not be cleared.
     logger.trace(s"{}: DELETING FILE", path)
     if (deleted)
-      IO.Failure(Core.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path))
     else
       IO.Success {
         deleted = true
       }
   }
 
-  override val close: IO[Core.Error.Segment, Unit] =
+  override val close: IO[swaydb.Error.Segment, Unit] =
     IO.unit
 
-  override def getBloomFilterKeyValueCount(): IO[Core.Error.Segment, Int] =
+  override def getBloomFilterKeyValueCount(): IO[swaydb.Error.Segment, Int] =
     if (deleted)
-      IO.Failure(Core.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path))
     else
       cache.values().asScala.foldLeftIO(0) {
         case (count, keyValue) =>
@@ -404,9 +404,9 @@ private[segment] case class MemorySegment(path: Path,
           }
       }
 
-  override def getHeadKeyValueCount(): IO[Core.Error.Segment, Int] =
+  override def getHeadKeyValueCount(): IO[swaydb.Error.Segment, Int] =
     if (deleted)
-      IO.Failure(Core.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path))
     else
       IO.Success(cache.size())
 
@@ -425,10 +425,10 @@ private[segment] case class MemorySegment(path: Path,
   override def existsOnDisk: Boolean =
     false
 
-  override def hasRange: IO[Core.Error.Segment, Boolean] =
+  override def hasRange: IO[swaydb.Error.Segment, Boolean] =
     IO(_hasRange)
 
-  override def hasPut: IO[Core.Error.Segment, Boolean] =
+  override def hasPut: IO[swaydb.Error.Segment, Boolean] =
     IO(_hasPut)
 
   override def isFooterDefined: Boolean =
@@ -437,13 +437,13 @@ private[segment] case class MemorySegment(path: Path,
   override def deleteSegmentsEventually: Unit =
     fileLimiter.delete(this)
 
-  override def createdInLevel: IO[Core.Error.Segment, Int] =
+  override def createdInLevel: IO[swaydb.Error.Segment, Int] =
     IO(_createdInLevel)
 
-  override def isGrouped: IO[Core.Error.Segment, Boolean] =
+  override def isGrouped: IO[swaydb.Error.Segment, Boolean] =
     IO(_isGrouped)
 
-  override def hasBloomFilter: IO[Core.Error.Segment, Boolean] =
+  override def hasBloomFilter: IO[swaydb.Error.Segment, Boolean] =
     IO(bloomFilterReader.isDefined)
 
   override def clearCachedKeyValues(): Unit =

@@ -23,7 +23,7 @@ import swaydb.IO
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.util.Benchmark
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 

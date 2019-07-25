@@ -42,7 +42,7 @@ import swaydb.core.util._
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.MaxKey
 import swaydb.data.config.Dir
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf

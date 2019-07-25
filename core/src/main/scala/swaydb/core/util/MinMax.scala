@@ -143,7 +143,7 @@ private[core] object MinMax {
     )(FunctionStore.order)
 
   def minMaxFunction(function: ReadOnly.Function,
-                     current: Option[MinMax[Slice[Byte]]]): IO[Core.Error.Segment, MinMax[Slice[Byte]]] =
+                     current: Option[MinMax[Slice[Byte]]]): IO[swaydb.Error.Segment, MinMax[Slice[Byte]]] =
     function.getOrFetchFunction map {
       function =>
         minMax(
@@ -173,7 +173,7 @@ private[core] object MinMax {
     )
 
   def minMaxFunction(range: KeyValue.ReadOnly.Range,
-                     current: Option[MinMax[Slice[Byte]]]): IO[Core.Error.Segment, Option[MinMax[Slice[Byte]]]] =
+                     current: Option[MinMax[Slice[Byte]]]): IO[swaydb.Error.Segment, Option[MinMax[Slice[Byte]]]] =
     range.fetchFromAndRangeValue map {
       case (fromValue, rangeValue) =>
         minMaxFunction(

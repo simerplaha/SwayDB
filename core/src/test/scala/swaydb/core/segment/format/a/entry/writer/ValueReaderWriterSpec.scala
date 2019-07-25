@@ -26,7 +26,7 @@ import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, BaseEntryIdFormatA, TransientToKeyValueIdBinder}
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

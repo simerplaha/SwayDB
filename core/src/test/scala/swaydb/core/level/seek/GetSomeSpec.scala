@@ -29,7 +29,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.{SwayFunctionOutput, Value}
 import swaydb.core.merge.{FixedMerger, FunctionMerger, PendingApplyMerger}
 import swaydb.core.{TestData, TestTimer}
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

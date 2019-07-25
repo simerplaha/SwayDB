@@ -33,7 +33,7 @@ import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Map.ErrorHandler
+import swaydb.Error.Map.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 
@@ -64,7 +64,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                                                            compression: Option[KeyValueGroupingStrategyInternal]) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
-    override def read(reader: Reader[Core.Error.Map]): IO[Core.Error.Map, Option[MapEntry.Put[Slice[Byte], Segment]]] =
+    override def read(reader: Reader[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Segment]]] =
     //      for {
     //        segmentPathLength <- reader.readIntUnsigned()
     //        segmentPathBytes <- reader.read(segmentPathLength).map(_.unslice())
@@ -132,7 +132,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
   }
 
   implicit object AppendixRemoveReader extends MapEntryReader[MapEntry.Remove[Slice[Byte]]] {
-    override def read(reader: Reader[Core.Error.Map]): IO[Core.Error.Map, Option[MapEntry.Remove[Slice[Byte]]]] =
+    override def read(reader: Reader[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Remove[Slice[Byte]]]] =
       for {
         minKeyLength <- reader.readIntUnsigned()
         minKey <- reader.read(minKeyLength).map(_.unslice())
@@ -142,7 +142,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
   }
 
   implicit object AppendixReader extends MapEntryReader[MapEntry[Slice[Byte], Segment]] {
-    override def read(reader: Reader[Core.Error.Map]): IO[Core.Error.Map, Option[MapEntry[Slice[Byte], Segment]]] =
+    override def read(reader: Reader[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry[Slice[Byte], Segment]]] =
       reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
         case (previousEntry, reader) =>
           reader.readIntUnsigned() flatMap {

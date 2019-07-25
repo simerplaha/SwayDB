@@ -33,7 +33,7 @@ import swaydb.data.slice.Slice
 private[core] trait Timer {
   def next: Time
 
-  def close: IO[Core.Error.Map, Unit]
+  def close: IO[swaydb.Error.Map, Unit]
 }
 
 private[core] object Timer {
@@ -49,7 +49,7 @@ private[core] object Timer {
                                             timeOrder: TimeOrder[Slice[Byte]],
                                             functionStore: FunctionStore,
                                             writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[Core.Error.Map, PersistentTimer] =
+                                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentTimer] =
     PersistentTimer(
       path = path,
       mmap = mmap,

@@ -142,7 +142,7 @@ private[core] trait LevelRef {
 
   def inMemory: Boolean
 
-  def releaseLocks: IO[Core.Error.Close, Unit]
+  def releaseLocks: IO[swaydb.Error.Close, Unit]
 
   def nextLevel: Option[NextLevel]
 
@@ -152,27 +152,27 @@ private[core] trait LevelRef {
 
   def rootPath: Path
 
-  def head: IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def head: IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def last: IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def last: IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def get(key: Slice[Byte]): IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def ceiling(key: Slice[Byte]): IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def ceiling(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def floor(key: Slice[Byte]): IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def floor(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def mightContainKey(key: Slice[Byte]): IO[Core.Error.Level, Boolean]
+  def mightContainKey(key: Slice[Byte]): IO[swaydb.Error.Level, Boolean]
 
-  def lower(key: Slice[Byte]): IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def lower(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def higher(key: Slice[Byte]): IO.Defer[Core.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def higher(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def headKey: IO.Defer[Core.Error.Level, Option[Slice[Byte]]]
+  def headKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]]
 
-  def lastKey: IO.Defer[Core.Error.Level, Option[Slice[Byte]]]
+  def lastKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]]
 
-  def bloomFilterKeyValueCount: IO[Core.Error.Level, Int]
+  def bloomFilterKeyValueCount: IO[swaydb.Error.Level, Int]
 
   def isEmpty: Boolean
 
@@ -218,9 +218,9 @@ private[core] trait LevelRef {
 
   def sizeOfSegments: Long
 
-  def close: IO[Core.Error.Close, Unit]
+  def close: IO[swaydb.Error.Close, Unit]
 
-  def closeSegments(): IO[Core.Error.Level, Unit]
+  def closeSegments(): IO[swaydb.Error.Level, Unit]
 
   def meterFor(levelNumber: Int): Option[LevelMeter]
 
@@ -234,5 +234,5 @@ private[core] trait LevelRef {
 
   def nextCompactionDelay: FiniteDuration
 
-  def delete: IO[Core.Error.Delete, Unit]
+  def delete: IO[swaydb.Error.Delete, Unit]
 }

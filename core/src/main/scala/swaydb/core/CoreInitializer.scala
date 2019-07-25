@@ -35,7 +35,7 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
-import swaydb.data.io.Core.Error.Level.ErrorHandler
+import swaydb.Error.Level.ErrorHandler
 import swaydb.data.io.{Core, Tag}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -74,7 +74,7 @@ private[core] object CoreInitializer extends LazyLogging {
   def apply(config: LevelZeroConfig,
             bufferCleanerEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore): IO[Core.Error.BootUp, BlockingCore[Tag.CoreIO]] = {
+                                               functionStore: FunctionStore): IO[swaydb.Error.BootUp, BlockingCore[Tag.CoreIO]] = {
     implicit val fileLimiter = FileLimiter.empty
     implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
     if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(bufferCleanerEC)
@@ -115,7 +115,7 @@ private[core] object CoreInitializer extends LazyLogging {
   def startCompaction(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext],
                       copyForwardAllOnStart: Boolean)(implicit compactionStrategy: CompactionStrategy[CompactorState],
-                                                      compactionOrdering: CompactionOrdering): IO[Core.Error.Level, Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]]] =
+                                                      compactionOrdering: CompactionOrdering): IO[swaydb.Error.Level, Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]]] =
     compactionStrategy.createAndListen(
       zero = zero,
       executionContexts = executionContexts,
@@ -140,7 +140,7 @@ private[core] object CoreInitializer extends LazyLogging {
             fileOpenLimiterEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[Core.Error.BootUp, BlockingCore[Tag.CoreIO]] = {
+                                              functionStore: FunctionStore): IO[swaydb.Error.BootUp, BlockingCore[Tag.CoreIO]] = {
     implicit val fileOpenLimiter: FileLimiter =
       FileLimiter(maxSegmentsOpen, segmentCloserDelay)(fileOpenLimiterEC)
 
@@ -157,7 +157,7 @@ private[core] object CoreInitializer extends LazyLogging {
 
     def createLevel(id: Long,
                     nextLevel: Option[NextLevel],
-                    config: LevelConfig): IO[Core.Error.Level, NextLevel] =
+                    config: LevelConfig): IO[swaydb.Error.Level, NextLevel] =
       config match {
         case config: MemoryLevelConfig =>
           implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
@@ -206,7 +206,7 @@ private[core] object CoreInitializer extends LazyLogging {
       }
 
     def createLevels(levelConfigs: List[LevelConfig],
-                     previousLowerLevel: Option[NextLevel]): IO[Core.Error.Level, BlockingCore[Tag.CoreIO]] =
+                     previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, BlockingCore[Tag.CoreIO]] =
       levelConfigs match {
         case Nil =>
           createLevel(
@@ -261,7 +261,7 @@ private[core] object CoreInitializer extends LazyLogging {
     logger.info(s"Starting ${config.otherLevels.size} configured Levels.")
 
     /**
-      * Convert [[swaydb.data.io.Core.Error.Level]] to [[swaydb.data.io.Core.Error.Public]]
+      * Convert [[swaydb.Error.Level]] to [[swaydb.Error.Public]]
       */
     createLevels(config.otherLevels.reverse, None) match {
       case IO.Success(core) =>

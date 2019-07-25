@@ -31,7 +31,7 @@ import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
 import swaydb.core.queue.FileLimiter
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Map.ErrorHandler
+import swaydb.Error.Map.ErrorHandler
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -59,7 +59,7 @@ private[core] object PersistentTimer extends LazyLogging {
                                        timeOrder: TimeOrder[Slice[Byte]],
                                        functionStore: FunctionStore,
                                        writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                       reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[Core.Error.Map, PersistentTimer] = {
+                                       reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentTimer] = {
     implicit val limiter = FileLimiter.empty
 
     Map.persistent[Slice[Byte], Slice[Byte]](
@@ -85,7 +85,7 @@ private[core] object PersistentTimer extends LazyLogging {
                     )
                   }
                 else
-                  IO.Failure(Core.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
+                  IO.Failure(swaydb.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
             }
 
           case None =>
@@ -100,7 +100,7 @@ private[core] object PersistentTimer extends LazyLogging {
                     )
                   }
                 else
-                  IO.Failure(Core.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
+                  IO.Failure(swaydb.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
             }
         }
     }
@@ -151,6 +151,6 @@ private[core] class PersistentTimer(mod: Long,
       Time(nextTime)
     }
 
-  override def close: IO[Core.Error.Map, Unit] =
+  override def close: IO[swaydb.Error.Map, Unit] =
     map.close()
 }

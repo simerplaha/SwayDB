@@ -27,8 +27,8 @@ import swaydb.core.TestData._
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error
+import swaydb.Error.Segment.ErrorHandler
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -72,21 +72,21 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
                    isConcurrent: Boolean,
                    isSynchronised: Boolean,
                    isReserved: Boolean,
-                   stored: Boolean): (Unit => IO[Core.Error.Segment, Int]) => Cache[Core.Error.Segment, Unit, Int] =
+                   stored: Boolean): (Unit => IO[swaydb.Error.Segment, Int]) => Cache[swaydb.Error.Segment, Unit, Int] =
     if (isBlockIO)
-      Cache.blockIO[Core.Error.Segment, Core.Error.ReservedFuture, Unit, Int](getBlockIO(isConcurrent, isSynchronised, isReserved, stored), Core.Error.ReservedFuture(Reserve()))
+      Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedFuture, Unit, Int](getBlockIO(isConcurrent, isSynchronised, isReserved, stored), swaydb.Error.ReservedFuture(Reserve()))
     else if (isConcurrent)
-      Cache.concurrentIO[Core.Error.Segment, Unit, Int](synchronised = false, stored = stored)
+      Cache.concurrentIO[swaydb.Error.Segment, Unit, Int](synchronised = false, stored = stored)
     else if (isSynchronised)
-      Cache.concurrentIO[Core.Error.Segment, Unit, Int](synchronised = true, stored = stored)
+      Cache.concurrentIO[swaydb.Error.Segment, Unit, Int](synchronised = true, stored = stored)
     else if (isReserved)
-      Cache.reservedIO[Core.Error.Segment, Core.Error.ReservedFuture, Unit, Int](stored = stored, Core.Error.ReservedFuture(Reserve()))
+      Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedFuture, Unit, Int](stored = stored, swaydb.Error.ReservedFuture(Reserve()))
     else
-      Cache.concurrentIO[Core.Error.Segment, Unit, Int](synchronised = false, stored = stored) //then it's concurrent
+      Cache.concurrentIO[swaydb.Error.Segment, Unit, Int](synchronised = false, stored = stored) //then it's concurrent
 
   "valueIO" should {
     "always return initial value" in {
-      val cache: Cache[Core.Error.Segment, Unit, Int] = Cache.valueIO(10)
+      val cache: Cache[swaydb.Error.Segment, Unit, Int] = Cache.valueIO(10)
       cache.get should contain(IO.Success(10))
       cache.value(()).get shouldBe 10
     }
@@ -95,7 +95,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
   "it" should {
     "fetch data only once on success" in {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
-        val mock = mockFunction[IO[Core.Error.Segment, Int]]
+        val mock = mockFunction[IO[swaydb.Error.Segment, Int]]
         val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true)(_ => mock.apply())
 
         cache.isCached shouldBe false
@@ -137,7 +137,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
     "not cache on failure" in {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
-        val mock = mockFunction[IO[Core.Error.Segment, Int]]
+        val mock = mockFunction[IO[swaydb.Error.Segment, Int]]
 
         val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true)(_ => mock.apply())
 
@@ -176,7 +176,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
     "cache on successful map and flatMap" in {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
-        val mock = mockFunction[IO[Core.Error.Segment, Int]]
+        val mock = mockFunction[IO[swaydb.Error.Segment, Int]]
 
         val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true)(_ => mock.apply())
 
@@ -200,7 +200,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
     "not cache on unsuccessful map and flatMap" in {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
-        val mock = mockFunction[IO[Core.Error.Segment, Int]]
+        val mock = mockFunction[IO[swaydb.Error.Segment, Int]]
 
         val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true)(_ => mock.apply())
 
@@ -210,7 +210,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.map(IO(_)).value().failed.get.exception.getMessage shouldBe "Kaboom!"
         cache.isCached shouldBe false
         cache.flatMap(
-          Cache.reservedIO[Core.Error.Segment, Core.Error.ReservedFuture, Int, Int](true, Core.Error.ReservedFuture(Reserve()))(int => IO.Success(int + 1))
+          Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedFuture, Int, Int](true, swaydb.Error.ReservedFuture(Reserve()))(int => IO.Success(int + 1))
         ).value().failed.get.exception.getMessage shouldBe "Kaboom!"
         cache.isCached shouldBe false
 
@@ -223,11 +223,11 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     }
 
     "clear all flatMapped caches" in {
-      val cache = Cache.concurrentIO[Core.Error.Segment, Unit, Int](randomBoolean(), true)(_ => IO(1))
+      val cache = Cache.concurrentIO[swaydb.Error.Segment, Unit, Int](randomBoolean(), true)(_ => IO(1))
       cache.value() shouldBe IO.Success(1)
       cache.isCached shouldBe true
 
-      val nestedCache = Cache.concurrentIO[Core.Error.Segment, Int, Int](randomBoolean(), true)(int => IO(int + 1))
+      val nestedCache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](randomBoolean(), true)(int => IO(int + 1))
 
       val flatMapCache = cache.flatMap(nestedCache)
       flatMapCache.value() shouldBe IO.Success(2)
@@ -248,7 +248,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
     "store cache value on mapStored" in {
       def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
-        val mock = mockFunction[IO[Core.Error.Segment, Int]]
+        val mock = mockFunction[IO[swaydb.Error.Segment, Int]]
         val rootCache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = false)(_ => mock.apply())
         //ensure rootCache is not stored
         mock.expects() returning IO(1)
@@ -309,14 +309,14 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
           val simpleCache =
             if (blockIO)
-              Cache.blockIO[Core.Error.Segment, Core.Error.ReservedValue, Unit, Int](blockIO = _ => IOStrategy.ReservedIO(true), Core.Error.ReservedValue(Reserve())) {
+              Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedValue, Unit, Int](blockIO = _ => IOStrategy.ReservedIO(true), swaydb.Error.ReservedValue(Reserve())) {
                 _ =>
                   invokeCount += 1
                   sleep(5.millisecond) //delay access
                   IO.Success(10)
               }
             else
-              Cache.reservedIO[Core.Error.Segment, Core.Error.ReservedValue, Unit, Int](stored = true, Core.Error.ReservedValue(Reserve())) {
+              Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedValue, Unit, Int](stored = true, swaydb.Error.ReservedValue(Reserve())) {
                 _ =>
                   invokeCount += 1
                   sleep(5.millisecond) //delay access
@@ -347,11 +347,11 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
           //results in failure since some thread has reserved.
           val failure = futures.failed.await
-          failure shouldBe a[Core.Exception.ReservedValue]
+          failure shouldBe a[swaydb.Exception.ReservedValue]
 
           //eventually it's freed
           eventual {
-            failure.asInstanceOf[Core.Exception.ReservedValue].busy.isBusy shouldBe false
+            failure.asInstanceOf[swaydb.Exception.ReservedValue].busy.isBusy shouldBe false
           }
 
           if (blockIO)

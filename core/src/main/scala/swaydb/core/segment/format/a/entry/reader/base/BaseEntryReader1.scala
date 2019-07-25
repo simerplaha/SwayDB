@@ -33,14 +33,14 @@ private[core] object BaseEntryReader1 extends BaseEntryReader {
 
   def read[T](baseId: Int,
               keyValueId: Int,
-              indexReader: Reader[Core.Error.Segment],
-              valueCache: Option[Cache[Core.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
+              indexReader: Reader[swaydb.Error.Segment],
+              valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
               accessPosition: Int,
               previous: Option[Persistent],
-              reader: EntryReader[T]): Option[IO[Core.Error.Segment, T]] =
+              reader: EntryReader[T]): Option[IO[swaydb.Error.Segment, T]] =
   //GENERATED CONDITIONS
     if (baseId == 172)
       Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimePartiallyCompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthThreeCompressed.DeadlineTwoCompressed, keyValueId, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, accessPosition, previous))

@@ -23,12 +23,12 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.slice.{Reader, Slice}
 
-protected trait BlockReader extends Reader[Core.Error.Segment] with LazyLogging {
+protected trait BlockReader extends Reader[swaydb.Error.Segment] with LazyLogging {
 
-  private[reader] def reader: Reader[Core.Error.Segment]
+  private[reader] def reader: Reader[swaydb.Error.Segment]
 
   def offset: BlockOffset
 
@@ -40,7 +40,7 @@ protected trait BlockReader extends Reader[Core.Error.Segment] with LazyLogging 
 
   override val isFile: Boolean = reader.isFile
 
-  override val size: IO[Core.Error.Segment, Long] =
+  override val size: IO[swaydb.Error.Segment, Long] =
     IO(offset.size)
 
   override def moveTo(position: Long): BlockReader = {
@@ -48,13 +48,13 @@ protected trait BlockReader extends Reader[Core.Error.Segment] with LazyLogging 
     this
   }
 
-  def hasMore: IO[Core.Error.Segment, Boolean] =
+  def hasMore: IO[swaydb.Error.Segment, Boolean] =
     hasAtLeast(1)
 
-  def hasAtLeast(atLeastSize: Long): IO[Core.Error.Segment, Boolean] =
+  def hasAtLeast(atLeastSize: Long): IO[swaydb.Error.Segment, Boolean] =
     hasAtLeast(position, atLeastSize)
 
-  def hasAtLeast(fromPosition: Long, atLeastSize: Long): IO[Core.Error.Segment, Boolean] =
+  def hasAtLeast(fromPosition: Long, atLeastSize: Long): IO[swaydb.Error.Segment, Boolean] =
     size map {
       size =>
         (size - fromPosition) >= atLeastSize
@@ -67,7 +67,7 @@ protected trait BlockReader extends Reader[Core.Error.Segment] with LazyLogging 
 
   def cachedBytes = cache.bytes
 
-  override def get(): IO[Core.Error.Segment, Int] =
+  override def get(): IO[swaydb.Error.Segment, Int] =
     if (isFile)
       read(1).map(_.head)
     else
@@ -83,7 +83,7 @@ protected trait BlockReader extends Reader[Core.Error.Segment] with LazyLogging 
                   got
               }
           else
-            IO.Failure(Core.Error.Fatal(s"Has no more bytes. Position: $getPosition"))
+            IO.Failure(swaydb.Error.Fatal(s"Has no more bytes. Position: $getPosition"))
       }
 
   def readFromCache(position: Int, size: Int): Slice[Byte] =
@@ -92,7 +92,7 @@ protected trait BlockReader extends Reader[Core.Error.Segment] with LazyLogging 
     else
       Slice.emptyBytes
 
-  override def read(size: Int): IO[Core.Error.Segment, Slice[Byte]] = {
+  override def read(size: Int): IO[swaydb.Error.Segment, Slice[Byte]] = {
     val fromCache =
       if (blockSize <= 0)
         Slice.emptyBytes
@@ -153,17 +153,17 @@ protected trait BlockReader extends Reader[Core.Error.Segment] with LazyLogging 
       }
   }
 
-  def readAll(): IO[Core.Error.Segment, Slice[Byte]] =
+  def readAll(): IO[swaydb.Error.Segment, Slice[Byte]] =
     reader
       .moveTo(offset.start)
       .read(offset.size)
 
-  def readAllOrNone(): IO[Core.Error.Segment, Option[Slice[Byte]]] =
+  def readAllOrNone(): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
     if (offset.size == 0)
       IO.none
     else
       readAll().map(Some(_))
 
-  override def readRemaining(): IO[Core.Error.Segment, Slice[Byte]] =
+  override def readRemaining(): IO[swaydb.Error.Segment, Slice[Byte]] =
     remaining flatMap read
 }

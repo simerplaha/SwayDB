@@ -68,7 +68,7 @@ object Delay {
   def future[T](delayFor: FiniteDuration)(block: => T)(implicit ctx: ExecutionContext): Future[T] =
     apply(delayFor)(Future(block))
 
-  def futureFromIO[T](delayFor: FiniteDuration)(block: => IO[Core.Error.Segment, T])(implicit ctx: ExecutionContext): Future[T] =
+  def futureFromIO[T](delayFor: FiniteDuration)(block: => IO[swaydb.Error.Segment, T])(implicit ctx: ExecutionContext): Future[T] =
     apply(delayFor)(Future(block).flatMap(_.toFuture))
 
   def task(delayFor: FiniteDuration)(block: => Unit): TimerTask =

@@ -24,7 +24,7 @@ import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{Memory, SwayFunction, SwayFunctionOutput, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
@@ -32,7 +32,7 @@ private[core] object FunctionMerger {
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: ReadOnly.Put)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                       functionStore: FunctionStore): IO[Core.Error.Segment, ReadOnly.Fixed] = {
+                                       functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] = {
 
     def applyOutput(output: SwayFunctionOutput) =
       output match {
@@ -90,7 +90,7 @@ private[core] object FunctionMerger {
               }
 
             case None =>
-              IO.Failure(Core.Error.FunctionNotFound(function))
+              IO.Failure(swaydb.Error.FunctionNotFound(function))
           }
       }
 
@@ -100,7 +100,7 @@ private[core] object FunctionMerger {
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: ReadOnly.Update)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): IO[Core.Error.Segment, ReadOnly.Fixed] = {
+                                          functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] = {
 
     def applyOutput(output: SwayFunctionOutput) =
       output match {
@@ -117,7 +117,7 @@ private[core] object FunctionMerger {
           Memory.Update(oldKeyValue.key, value, deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
       }
 
-    def toPendingApply(): IO[Core.Error.Segment, Memory.PendingApply] =
+    def toPendingApply(): IO[swaydb.Error.Segment, Memory.PendingApply] =
       for {
         oldValue <- oldKeyValue.toFromValue()
         newValue <- newKeyValue.toFromValue()
@@ -180,7 +180,7 @@ private[core] object FunctionMerger {
               }
 
             case None =>
-              IO.Failure(Core.Error.FunctionNotFound(function))
+              IO.Failure(swaydb.Error.FunctionNotFound(function))
           }
       }
     else
@@ -189,7 +189,7 @@ private[core] object FunctionMerger {
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: ReadOnly.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): IO[Core.Error.Segment, ReadOnly.Fixed] = {
+                                          functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] = {
 
     def applyOutput(output: SwayFunctionOutput) =
       output match {
@@ -239,7 +239,7 @@ private[core] object FunctionMerger {
                   }
 
                 case None =>
-                  IO.Failure(Core.Error.FunctionNotFound(function))
+                  IO.Failure(swaydb.Error.FunctionNotFound(function))
               }
           }
       }
@@ -250,7 +250,7 @@ private[core] object FunctionMerger {
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: ReadOnly.Function)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore): IO[Core.Error.Segment, ReadOnly.Fixed] =
+                                            functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       for {
         oldValue <- oldKeyValue.toFromValue()
@@ -263,7 +263,7 @@ private[core] object FunctionMerger {
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): IO[Core.Error.Segment, ReadOnly.Fixed] =
+                                         functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     oldKeyValue match {
       case oldKeyValue: ReadOnly.Put =>
         FunctionMerger(newKeyValue, oldKeyValue)
@@ -283,7 +283,7 @@ private[core] object FunctionMerger {
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): IO[Core.Error.Segment, ReadOnly.Fixed] =
+                                      functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     oldKeyValue match {
       case oldKeyValue: Value.Remove =>
         FunctionMerger(newKeyValue, oldKeyValue.toMemory(newKeyValue.key): ReadOnly.Fixed)
@@ -297,7 +297,7 @@ private[core] object FunctionMerger {
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: ReadOnly.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): IO[Core.Error.Segment, ReadOnly.Fixed] =
+                                                functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue.getOrFetchApplies flatMap {
         oldApplies =>

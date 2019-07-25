@@ -33,4 +33,4 @@ import swaydb.data.io.Core
   * This instance will only contain failure if the file was partially recovered. If there was a full failure then
   * a [[IO]] outside this instance should return the failure.
   */
-sealed case class RecoveryResult[T](item: T, result: IO[Core.Error.Map, Unit])
+sealed case class RecoveryResult[T](item: T, result: IO[swaydb.Error.Map, Unit])

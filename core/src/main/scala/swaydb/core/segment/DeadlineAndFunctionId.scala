@@ -27,7 +27,7 @@ import swaydb.core.segment.Segment.getNearestDeadline
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{FiniteDurationUtil, MinMax}
 import swaydb.data.io.Core
-import swaydb.data.io.Core.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -46,7 +46,7 @@ private[core] object DeadlineAndFunctionId {
 
   def apply(keyValues: Iterable[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                     keyValueLimiter: KeyValueLimiter,
-                                                    segmentIO: SegmentIO): IO[Core.Error.Segment, DeadlineAndFunctionId] =
+                                                    segmentIO: SegmentIO): IO[swaydb.Error.Segment, DeadlineAndFunctionId] =
     keyValues.foldLeftIO(DeadlineAndFunctionId.empty) {
       case (minMax, keyValue) =>
         apply(
@@ -60,7 +60,7 @@ private[core] object DeadlineAndFunctionId {
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             next: KeyValue.ReadOnly)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                      keyValueLimiter: KeyValueLimiter,
-                                     segmentIO: SegmentIO): IO[Core.Error.Segment, DeadlineAndFunctionId] =
+                                     segmentIO: SegmentIO): IO[swaydb.Error.Segment, DeadlineAndFunctionId] =
     next match {
       case readOnly: KeyValue.ReadOnly.Put =>
         IO {
