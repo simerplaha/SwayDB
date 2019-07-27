@@ -25,7 +25,7 @@ import org.scalatest.OptionValues._
 import swaydb.Error.Map.ErrorHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory

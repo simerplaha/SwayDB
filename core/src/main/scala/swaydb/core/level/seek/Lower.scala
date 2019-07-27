@@ -107,7 +107,7 @@ private[core] object Lower {
 
           case failure @ IO.Failure(_) =>
             failure
-              .recoverToDeferred(
+              .toDeferred(
                 Lower.seeker(key, currentSeek, nextSeek)
               )
         }
@@ -180,14 +180,14 @@ private[core] object Lower {
 
                     case failure @ IO.Failure(_) =>
                       failure
-                        .recoverToDeferred(
+                        .toDeferred(
                           Lower.seeker(key, currentSeek, nextSeek)
                         )
                   }
 
               case failure @ IO.Failure(_) =>
                 failure
-                  .recoverToDeferred(
+                  .toDeferred(
                     Lower.seeker(key, currentSeek, nextSeek)
                   )
             }
@@ -313,7 +313,7 @@ private[core] object Lower {
 
             case failure @ IO.Failure(_) =>
               failure
-                .recoverToDeferred(
+                .toDeferred(
                   Lower.seeker(key, currentSeek, nextSeek)
                 )
           }
@@ -346,7 +346,7 @@ private[core] object Lower {
                     }
                   case failure @ IO.Failure(_) =>
                     failure
-                      .recoverToDeferred(
+                      .toDeferred(
                         Lower.seeker(key, currentSeek, nextSeek)
                       )
                 }
@@ -400,14 +400,14 @@ private[core] object Lower {
 
                       case failure @ IO.Failure(_) =>
                         failure
-                          .recoverToDeferred(
+                          .toDeferred(
                             Lower.seeker(key, currentSeek, nextSeek)
                           )
                     }
 
                   case failure @ IO.Failure(_) =>
                     failure
-                      .recoverToDeferred(
+                      .toDeferred(
                         Lower.seeker(key, currentSeek, nextSeek)
                       )
                 }
@@ -437,7 +437,7 @@ private[core] object Lower {
 
                           case failure @ IO.Failure(_) =>
                             failure
-                              .recoverToDeferred(
+                              .toDeferred(
                                 Lower.seeker(key, currentSeek, nextSeek)
                               )
                         }
@@ -445,7 +445,7 @@ private[core] object Lower {
 
                   case failure @ IO.Failure(_) =>
                     failure
-                      .recoverToDeferred(
+                      .toDeferred(
                         Lower.seeker(key, currentSeek, nextSeek)
                       )
                 }
@@ -467,7 +467,7 @@ private[core] object Lower {
 
                   case failure @ IO.Failure(_) =>
                     failure
-                      .recoverToDeferred(
+                      .toDeferred(
                         Lower.seeker(key, currentSeek, nextSeek)
                       )
                 }
@@ -492,7 +492,7 @@ private[core] object Lower {
 
             case failure @ IO.Failure(_) =>
               failure
-                .recoverToDeferred(
+                .toDeferred(
                   Lower.seeker(key, currentSeek, nextSeek)
                 )
           }
@@ -533,7 +533,7 @@ private[core] object Lower {
 
                 case failure @ IO.Failure(_) =>
                   failure
-                    .recoverToDeferred(
+                    .toDeferred(
                       Lower.seeker(key, currentSeek, nextSeek)
                     )
               }

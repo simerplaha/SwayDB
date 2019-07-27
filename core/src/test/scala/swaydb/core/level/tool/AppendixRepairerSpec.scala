@@ -23,7 +23,7 @@ import java.nio.file.NoSuchFileException
 
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.core.CommonAssertions._
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.io.file.IOEffect

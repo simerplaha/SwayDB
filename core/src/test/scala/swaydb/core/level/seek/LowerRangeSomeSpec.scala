@@ -25,7 +25,7 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Time, Value}
@@ -68,7 +68,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               //@formatter:off
               current.lower         _ expects (key: Slice[Byte])  returning IO(Some(upperLevel))
               next.stateID          _ expects ()                  returning 1
-              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).asDeferred
+              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).asDefer
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
@@ -102,7 +102,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
           //@formatter:off
           current.lower         _ expects (1: Slice[Byte])    returning IO(Some(upperLevel))
           next.stateID          _ expects ()                  returning 1
-          next.lower            _ expects (1: Slice[Byte])    returning IO(Some(lowerLevel)).asDeferred
+          next.lower            _ expects (1: Slice[Byte])    returning IO(Some(lowerLevel)).asDefer
           next.hasStateChanged  _ expects 1                   returning false
           //@formatter:on
         }
@@ -129,7 +129,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               //@formatter:off
               current.lower         _ expects (key: Slice[Byte])  returning IO(Some(randomRangeKeyValue(0, 10)))
               next.stateID          _ expects ()                  returning 1
-              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).asDeferred
+              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).asDefer
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
@@ -160,7 +160,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               //@formatter:off
               current.lower         _ expects (key: Slice[Byte])  returning IO(Some(randomRangeKeyValue(0, 10, rangeValue = currentRangeValue)))
               next.stateID          _ expects ()                  returning 1
-              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).asDeferred
+              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).asDefer
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
@@ -191,7 +191,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               //@formatter:off
               current.lower         _ expects (key: Slice[Byte])  returning IO(Some(randomRangeKeyValue(1, 10, fromValue = None, rangeValue)))
               next.stateID          _ expects ()                  returning 1
-              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).asDeferred
+              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).asDefer
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
@@ -219,7 +219,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
               //@formatter:off
               current.lower         _ expects (key: Slice[Byte])  returning IO(Some(randomRangeKeyValue(1, 10, fromValue = Some(put))))
               next.stateID          _ expects ()                  returning 1
-              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(randomPutKeyValue(eitherOne[Int](0, 1), deadline = None))).asDeferred
+              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(randomPutKeyValue(eitherOne[Int](0, 1), deadline = None))).asDefer
               next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }

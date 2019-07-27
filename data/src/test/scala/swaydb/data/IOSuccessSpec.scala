@@ -98,7 +98,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
 
     "flatMap on Async should return Async" in {
       val async =
-        IO.Success(1).asDeferred flatMap {
+        IO.Success(1).asDefer flatMap {
           int =>
             IO.Defer(int + 1, swaydb.Error.OpeningFile(Paths.get(""), Reserve()))
         }

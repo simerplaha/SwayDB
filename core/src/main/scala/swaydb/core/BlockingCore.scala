@@ -124,14 +124,14 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(zero.put(key, value, removeAt))
 
   /**
-   * Each [[Prepare]] requires a new next [[Time]] for cases where a batch contains overriding keys.
-   *
-   * Same time indicates that the later Prepare in this batch with the same time as newer Prepare has already applied
-   * to the newer prepare therefore ignoring the newer prepare.
-   *
-   * NOTE: If the default time order [[TimeOrder.long]] is used
-   * Times should always be unique and in incremental order for *ALL* key values.
-   */
+    * Each [[Prepare]] requires a new next [[Time]] for cases where a batch contains overriding keys.
+    *
+    * Same time indicates that the later Prepare in this batch with the same time as newer Prepare has already applied
+    * to the newer prepare therefore ignoring the newer prepare.
+    *
+    * NOTE: If the default time order [[TimeOrder.long]] is used
+    * Times should always be unique and in incremental order for *ALL* key values.
+    */
   def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.Done] =
     if (entries.isEmpty)
       tag.fromIO(IO.failed("Cannot write empty batch"))
@@ -179,7 +179,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
       result =>
         result map {
           response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -206,7 +206,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
       result =>
         result map {
           response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -251,7 +251,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
       result =>
         result map {
           response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
               result =>
                 Some(result)
             } recoverWith[swaydb.Error.Level, Option[Option[Slice[Byte]]]] {
@@ -278,7 +278,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
       result =>
         result map {
           response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
               result =>
                 Some(response.key, result)
             } recoverWith[swaydb.Error.Level, Option[KeyValueTuple]] {
@@ -302,7 +302,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
       result =>
         result map {
           response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
               result =>
                 Some(response.key, result)
             } recoverWith[swaydb.Error.Level, Option[KeyValueTuple]] {
@@ -329,7 +329,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
       result =>
         result map {
           response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runBlockingIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
               result =>
                 Some(response.key, result)
             } recoverWith {

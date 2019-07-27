@@ -22,7 +22,7 @@ package swaydb.core.io.file
 import java.nio.file.Paths
 
 import swaydb.Error.Segment.ErrorHandler
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.util.{Benchmark, Extension}

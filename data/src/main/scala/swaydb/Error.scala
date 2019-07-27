@@ -192,6 +192,10 @@ object Error {
     override def exception: Exception.ReservedResource = Exception.ReservedResource(reserve)
   }
 
+  case class GetOnIncompleteDeferredFutureIO(exception: Exception.GetOnIncompleteDeferredFutureIO) extends ReservedIO with Error.IO {
+    def reserve = exception.reserve
+  }
+
   case class NotAnIntFile(exception: Exception.NotAnIntFile) extends Error.IO {
     def path = exception.path
   }
@@ -250,8 +254,6 @@ object Error {
   case class InvalidKeyValueId(exception: Exception.InvalidKeyValueId) extends Error.Segment {
     def id = exception.id
   }
-
-  case class GetOnIncompleteDeferredFutureIO(exception: Exception.GetOnIncompleteDeferredFutureIO) extends Error.IO
 
   /**
    * Error that are not known and indicate something unexpected went wrong like a file corruption.

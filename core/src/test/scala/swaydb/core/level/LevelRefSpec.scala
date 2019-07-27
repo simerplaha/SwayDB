@@ -22,7 +22,7 @@ package swaydb.core.level
 import java.nio.file.Path
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.TestBase
 
 import scala.collection.mutable.ListBuffer

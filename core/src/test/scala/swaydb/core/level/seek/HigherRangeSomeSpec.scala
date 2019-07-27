@@ -25,7 +25,7 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
@@ -61,17 +61,17 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
           current.higher _ expects (0: Slice[Byte]) returning IO(Some(upperRange))
           if (upperRange.rangeValue.isInstanceOf[Value.Function]) {
             next.stateID _ expects() returning 1
-            next.higher _ expects (0: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = randomDeadlineOption(false)))).asDeferred
+            next.higher _ expects (0: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = randomDeadlineOption(false)))).asDefer
             next.hasStateChanged _ expects 1 returning false
             next.stateID _ expects() returning 1
-            next.higher _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(2, deadline = randomDeadlineOption(false)))).asDeferred
+            next.higher _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(2, deadline = randomDeadlineOption(false)))).asDefer
             next.hasStateChanged _ expects 1 returning false
             next.stateID _ expects() returning 1
-            next.higher _ expects (2: Slice[Byte]) returning IO(Some(randomPutKeyValue(3, deadline = randomDeadlineOption(false)))).asDeferred
+            next.higher _ expects (2: Slice[Byte]) returning IO(Some(randomPutKeyValue(3, deadline = randomDeadlineOption(false)))).asDefer
             next.hasStateChanged _ expects 1 returning false
-            current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asDeferred
+            current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asDefer
           } else {
-            current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asDeferred
+            current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asDefer
           }
         }
         Higher(0: Slice[Byte]).runIO.value shouldBe toKeyGet
@@ -95,14 +95,14 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
           current.higher _ expects (1: Slice[Byte]) returning IO(Some(upperRange))
           if (upperRange.rangeValue.isInstanceOf[Value.Function]) {
             next.stateID _ expects() returning 1
-            next.higher _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(2, deadline = randomDeadlineOption(false)))).asDeferred
+            next.higher _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(2, deadline = randomDeadlineOption(false)))).asDefer
             next.hasStateChanged _ expects 1 returning false
             next.stateID _ expects() returning 1
-            next.higher _ expects (2: Slice[Byte]) returning IO(Some(randomPutKeyValue(3, deadline = randomDeadlineOption(false)))).asDeferred
+            next.higher _ expects (2: Slice[Byte]) returning IO(Some(randomPutKeyValue(3, deadline = randomDeadlineOption(false)))).asDefer
             next.hasStateChanged _ expects 1 returning false
-            current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asDeferred
+            current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asDefer
           } else {
-            current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asDeferred
+            current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asDefer
           }
         }
         Higher(1: Slice[Byte]).runIO.value shouldBe toKeyGet
@@ -126,11 +126,11 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
           current.higher _ expects (2: Slice[Byte]) returning IO(Some(upperRange))
           if (upperRange.rangeValue.isInstanceOf[Value.Function]) {
             next.stateID _ expects() returning 1
-            next.higher _ expects (2: Slice[Byte]) returning IO(Some(randomPutKeyValue(3, deadline = randomDeadlineOption(false)))).asDeferred
+            next.higher _ expects (2: Slice[Byte]) returning IO(Some(randomPutKeyValue(3, deadline = randomDeadlineOption(false)))).asDefer
             next.hasStateChanged _ expects 1 returning false
-            current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asDeferred
+            current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asDefer
           } else {
-            current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asDeferred
+            current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).asDefer
           }
         }
         Higher(2: Slice[Byte]).runIO.value shouldBe toKeyGet
@@ -152,7 +152,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
         inSequence {
           current.higher _ expects (3: Slice[Byte]) returning IO.none
           next.stateID _ expects() returning 1
-          next.higher _ expects (3: Slice[Byte]) returning IO(Some(result)).asDeferred
+          next.higher _ expects (3: Slice[Byte]) returning IO(Some(result)).asDefer
           next.hasStateChanged _ expects 1 returning false
         }
         Higher(3: Slice[Byte]).runIO.value shouldBe result

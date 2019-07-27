@@ -20,7 +20,7 @@
 package swaydb
 
 
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.serializers.Default._

@@ -37,7 +37,7 @@ object Exception {
   case class Busy(error: Error.ReservedIO) extends Exception("Is busy")
   case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Exception(s"Failed to open file $file")
 
-  case class ReservedResource(reserve: Reserve[Unit]) extends Exception("Failed to fetch value")
+  case class ReservedResource(reserve: Reserve[Unit]) extends Exception("ReserveResource is busy.")
   case class NullMappedByteBuffer(exception: Exception, reserve: Reserve[Unit]) extends Exception(exception)
 
   case object OverlappingPushSegment extends Exception("Contains overlapping busy Segments")
@@ -63,5 +63,5 @@ object Exception {
   case class NotAnIntFile(path: Path) extends Exception
   case class UnknownExtension(path: Path) extends Exception
 
-  case class GetOnIncompleteDeferredFutureIO(cause: Exception) extends Exception("Get invoked on in-complete Future within Deferred IO.", cause)
+  case class GetOnIncompleteDeferredFutureIO(reserve: Reserve[Unit]) extends Exception("Get invoked on in-complete Future within Deferred IO.")
 }

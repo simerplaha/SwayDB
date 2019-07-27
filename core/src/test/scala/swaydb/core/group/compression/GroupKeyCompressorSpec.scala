@@ -20,7 +20,7 @@
 package swaydb.core.group.compression
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Transient

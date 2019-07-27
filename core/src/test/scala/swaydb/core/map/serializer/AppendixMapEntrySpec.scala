@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry

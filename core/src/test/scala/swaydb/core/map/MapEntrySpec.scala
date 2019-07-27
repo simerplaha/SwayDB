@@ -25,7 +25,7 @@ import org.scalatest.OptionValues._
 import swaydb.Error.Map.ErrorHandler
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.core.CommonAssertions._
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal

@@ -50,6 +50,12 @@ object ErrorHandler extends LazyLogging {
     override def reserve(e: Nothing): Option[Reserve[Unit]] = None
   }
 
+  object Unit extends ErrorHandler[Unit] {
+    override def toException(e: Unit): Throwable = new scala.Exception("Unit value.")
+    override def fromException[F <: Unit](e: Throwable): F = ().asInstanceOf[F]
+    override def reserve(e: Unit): Option[Reserve[Unit]] = None
+  }
+
   implicit object Throwable extends ErrorHandler[Throwable] {
     override def toException(e: Throwable): Throwable = e
     override def fromException[F <: Throwable](e: Throwable): F = e.asInstanceOf[F]

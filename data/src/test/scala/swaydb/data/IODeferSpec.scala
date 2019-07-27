@@ -22,13 +22,13 @@ package swaydb.data
 import java.nio.file.{NoSuchFileException, Paths}
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.IO
+import swaydb.{Error, IO}
 import swaydb.data.Base._
+import swaydb.IOValues._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.Random
-import IOValues._
+import scala.util.{Random, Try}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 
@@ -175,7 +175,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually {
           if (!failFuture)
             failFuture = true
 
-          Thread.sleep(1.second.toMillis)
+          Thread.sleep(3.second.toMillis)
           throw new Exception(failedMessage)
         }
 
@@ -187,12 +187,21 @@ class IODeferSpec extends WordSpec with Matchers with Eventually {
       future.isCompleted shouldBe false
       val defer = IO.fromFuture[swaydb.Error.Segment, Int](future)
       future.isCompleted shouldBe false
+      defer.isCompleted shouldBe false
 
-      defer.failed.get shouldBe a[swaydb.Error.GetOnIncompleteDeferredFutureIO]
+      IO[swaydb.Error.Segment, Int](defer.get).failed.get shouldBe a[swaydb.Error.ReservedResource]
+      defer.isCompleted shouldBe false
 
-      Thread.sleep(2.seconds.toMillis)
+      val ioError = swaydb.Error.FailedToWriteAllBytes(swaydb.Exception.FailedToWriteAllBytes(0, 0, 0))
 
-      defer.failed.get.exception.getMessage shouldBe failedMessage
+      val failureRecovery: IO.Defer[Error.Segment, Int] =
+        defer recoverWithDeferred {
+          case error =>
+            IO.Success[Error.IO, Int](1)
+        }
+
+      defer.runBlocking.failed.get.exception.getMessage shouldBe failedMessage
+      failureRecovery.runBlocking.failed.get shouldBe ioError
     }
   }
 }

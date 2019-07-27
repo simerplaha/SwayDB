@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 import org.scalatest.OptionValues._
 import swaydb.Error.Map.ErrorHandler
 import swaydb.core.CommonAssertions._
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}

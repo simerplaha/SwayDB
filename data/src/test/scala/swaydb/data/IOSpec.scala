@@ -26,6 +26,7 @@ import swaydb.IO._
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Future
 
 class IOSpec extends WordSpec with Matchers {
 
@@ -36,15 +37,14 @@ class IOSpec extends WordSpec with Matchers {
       def io: IO.Success[swaydb.Error.Segment, Unit] = throw exception
 
       IO.CatchLeak(io.asIO).failed.get shouldBe swaydb.Error.Unknown(exception)
-      IO.CatchLeak(io.asDeferred).failed.get shouldBe swaydb.Error.Unknown(exception)
     }
 
     "no exception" in {
       IO.CatchLeak(IO.none.asIO).get shouldBe empty
-      IO.CatchLeak(IO.none.asDeferred).get shouldBe empty
+      IO.CatchLeak(IO.none.asDefer).get shouldBe empty
 
       IO.CatchLeak(IO.unit.asIO).get shouldBe()
-      IO.CatchLeak(IO.unit.asDeferred).get shouldBe()
+      IO.CatchLeak(IO.unit.asDefer).get shouldBe()
     }
   }
 

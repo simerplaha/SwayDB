@@ -290,7 +290,7 @@ private[level] object Compaction extends LazyLogging {
         checkExpired = true,
         remainingCompactions = segmentsToPush,
         segmentsCompacted = 0
-      ).asDeferred
+      ).asDefer
     }
 
   @tailrec
@@ -418,7 +418,7 @@ private[level] object Compaction extends LazyLogging {
           thisLevel.removeSegments(segments) recoverWith[swaydb.Error.Level, Int] {
             case _ =>
               IO.Success(segments.size)
-          } asDeferred
+          } asDefer
 
         case async @ IO.Deferred(_, _) =>
           async mapDeferred (_ => 0)

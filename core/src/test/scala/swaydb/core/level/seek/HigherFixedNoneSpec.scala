@@ -23,7 +23,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.{TestData, TestTimer}
@@ -96,7 +96,7 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
           //@formatter:off
           current.higher        _ expects (0: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
           next.stateID          _ expects ()                returning 1
-          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(randomPutKeyValue(1))).asDeferred
+          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(randomPutKeyValue(1))).asDefer
           next.hasStateChanged  _ expects 1                 returning false
           current.higher        _ expects (1: Slice[Byte])  returning IO.none
           next.stateID          _ expects ()                returning 2
@@ -124,7 +124,7 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
           //@formatter:off
           current.higher        _ expects (0: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
           next.stateID          _ expects ()                returning 1
-          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(randomPutKeyValue(2))).asDeferred
+          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(randomPutKeyValue(2))).asDefer
           next.hasStateChanged  _ expects 1                 returning false repeat 2.times
           current.higher        _ expects (1: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(2)))
           next.hasStateChanged  _ expects 1                 returning false

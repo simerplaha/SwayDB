@@ -559,7 +559,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit] = {
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
-    reserve(segments).asDeferred flatMap {
+    reserve(segments).asDefer flatMap {
       case Left(future) =>
         IO.fromFuture(future)
 
@@ -571,7 +571,7 @@ private[core] case class Level(dirs: Seq[Dir],
             segmentsToMerge = segmentToMerge,
             segmentsToCopy = segmentToCopy,
             targetSegments = appendixSegments
-          ).asDeferred
+          ).asDefer
         }
     }
   }
@@ -633,7 +633,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
-    reserve(map).asDeferred flatMap {
+    reserve(map).asDefer flatMap {
       case Left(future) =>
         IO.fromFuture(future)
 
@@ -665,7 +665,7 @@ private[core] case class Level(dirs: Seq[Dir],
                   }
               }
 
-          result map (_ => ()) asDeferred
+          result map (_ => ()) asDefer
         }
     }
   }
@@ -847,7 +847,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit] = {
     logger.debug("{}: Running refresh.", paths.head)
-    reserve(Seq(segment)).asDeferred flatMap {
+    reserve(Seq(segment)).asDefer flatMap {
       case Left(future) =>
         IO.fromFuture(future)
 
@@ -889,7 +889,7 @@ private[core] case class Level(dirs: Seq[Dir],
                       }
                   }
               }
-          } asDeferred
+          } asDefer
         }
     }
   }
@@ -952,7 +952,7 @@ private[core] case class Level(dirs: Seq[Dir],
         }
 
       //reserve the Level. It's unknown here what segments will value collapsed into what other Segments.
-      reserve(levelSegments).asDeferred flatMap {
+      reserve(levelSegments).asDefer flatMap {
         case Left(future) =>
           IO.fromFuture(future.map(_ => 0))
 
@@ -986,7 +986,7 @@ private[core] case class Level(dirs: Seq[Dir],
                   }
                 segmentsToMerge.size
             }
-          } asDeferred
+          } asDefer
       }
     }
   }

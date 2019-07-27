@@ -107,7 +107,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
       result =>
         result map {
           response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runInFutureIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -134,7 +134,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
       result =>
         result map {
           response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runInFutureIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -176,7 +176,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
       result =>
         result map {
           response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runInFutureIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
               result =>
                 Some(result)
             } recoverWith {
@@ -203,7 +203,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
       result =>
         result map {
           response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runInFutureIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -227,7 +227,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
       result =>
         result map {
           response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runInFutureIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
               result =>
                 Some(response.key, result)
             } recoverWith {
@@ -254,7 +254,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
       result =>
         result map {
           response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runInFutureIfFileExists map {
+            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
               result =>
                 Some(response.key, result)
             } recoverWith {

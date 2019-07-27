@@ -24,7 +24,7 @@ import org.scalatest.{Matchers, OptionValues, WordSpec}
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{SwayFunctionOutput, Value}
@@ -68,7 +68,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val expect = put.copy(deadline = remove.deadline.orElse(put.deadline), time = remove.time)
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(remove))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).asDeferred
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).asDefer
 
         Get(1).runIO.value shouldBe expect
       }
@@ -86,7 +86,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val expect = put.copy(deadline = update.deadline.orElse(put.deadline), value = update.value, time = update.time)
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(update))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).asDeferred
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).asDefer
 
         Get(1).runIO.value shouldBe expect
       }
@@ -113,7 +113,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val expect = FunctionMerger(function, put).runIO
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(function))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).asDeferred
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).asDefer
 
         Get(1).runIO.value shouldBe expect
       }
@@ -143,7 +143,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val expected = PendingApplyMerger(pendingApply, put).runIO
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(pendingApply))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).asDeferred
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).asDefer
 
         Get(1).runIO.value shouldBe expected
       }
@@ -190,7 +190,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(range))
         //next level can return anything it will be removed.
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).asDeferred
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).asDefer
 
         Get(1).runIO.value shouldBe expected
       }

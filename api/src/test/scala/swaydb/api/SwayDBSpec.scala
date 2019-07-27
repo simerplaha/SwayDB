@@ -21,7 +21,7 @@ package swaydb.api
 
 import org.scalatest.OptionValues._
 import swaydb.{Tag, _}
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.serializers.Default._
 

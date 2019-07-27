@@ -27,7 +27,7 @@ import swaydb.ErrorHandler.Nothing
 import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.TestLimitQueues.fileOpenLimiter
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.Transient.Range

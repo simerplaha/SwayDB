@@ -23,7 +23,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
-import swaydb.data.IOValues._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
@@ -82,7 +82,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
           //@formatter:off
           current.higher        _ expects (0: Slice[Byte])  returning IO.none
           next.stateID          _ expects ()                returning 1
-          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(put)).asDeferred
+          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(put)).asDefer
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
@@ -108,7 +108,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
           //@formatter:off
           current.higher        _ expects (0: Slice[Byte])  returning IO(Some(upperKeyValue))
           next.stateID          _ expects ()                returning 1
-          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(lowerKeyValue)).asDeferred
+          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(lowerKeyValue)).asDefer
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
@@ -145,7 +145,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
           //@formatter:off
           current.higher        _ expects (0: Slice[Byte])  returning IO(Some(upperKeyValue))
           next.stateID          _ expects ()                returning 1
-          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(lowerKeyValue)).asDeferred
+          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(lowerKeyValue)).asDefer
           next.hasStateChanged  _ expects 1                 returning false
           if(!isUpperExpected) {
             next.hasStateChanged  _ expects 1                 returning false
@@ -174,7 +174,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
           //@formatter:off
           current.higher        _ expects (0: Slice[Byte])  returning IO(Some(upperKeyValue))
           next.stateID          _ expects ()                returning 1
-          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(lowerKeyValue)).asDeferred
+          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(lowerKeyValue)).asDefer
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }

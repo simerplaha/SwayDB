@@ -21,7 +21,7 @@
 //
 //import org.scalatest.OptionValues._
 //import swaydb.api.TestBaseEmbedded
-//import swaydb.data.IOValues._
+//import swaydb.IOValues._
 //import swaydb.core.RunThis._
 //import swaydb.data.util.StorageUnits._
 //import swaydb.serializers.Default._
