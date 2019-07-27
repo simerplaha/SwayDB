@@ -1017,7 +1017,7 @@ private[core] case class Level(dirs: Seq[Dir],
         logger.trace(s"{}: Assigned segments {} for {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
         if (assignments.isEmpty) {
           logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", paths.head, keyValues.size)
-          IO.Failure(swaydb.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size))
+          IO.Failure(swaydb.Error.MergeKeyValuesWithoutTargetSegment(keyValues.size))
         } else {
           logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
           putAssignedKeyValues(assignments) flatMap {

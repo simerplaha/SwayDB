@@ -44,10 +44,7 @@ object Base {
       swaydb.Error.AsynchronousClose(new AsynchronousCloseException()),
       swaydb.Error.ClosedChannel(new ClosedChannelException),
       swaydb.Error.NullMappedByteBuffer(NullMappedByteBuffer(new NullPointerException, busyBoolean)),
-      swaydb.Error.DecompressingIndex(busyBoolean),
-      swaydb.Error.DecompressingValues(busyBoolean),
-      swaydb.Error.ReadingHeader(busyBoolean),
-      swaydb.Error.ReservedValue(busyBoolean)
+      swaydb.Error.ReservedResource(busyBoolean)
     )
 
   def randomBusyException(busyBoolean: Reserve[Unit] = Reserve()): swaydb.Error.ReservedIO =

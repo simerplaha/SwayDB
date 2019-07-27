@@ -72,13 +72,13 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
                    isReserved: Boolean,
                    stored: Boolean): (Unit => IO[swaydb.Error.Segment, Int]) => Cache[swaydb.Error.Segment, Unit, Int] =
     if (isBlockIO)
-      Cache.blockIO(getBlockIO(isConcurrent, isSynchronised, isReserved, stored), swaydb.Error.ReservedValue(Reserve()))
+      Cache.blockIO(getBlockIO(isConcurrent, isSynchronised, isReserved, stored), swaydb.Error.ReservedResource(Reserve()))
     else if (isConcurrent)
       Cache.concurrentIO(synchronised = false, stored = stored)
     else if (isSynchronised)
       Cache.concurrentIO(synchronised = true, stored = stored)
     else if (isReserved)
-      Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedValue, Unit, Int](stored = stored, swaydb.Error.ReservedValue(Reserve()))
+      Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](stored = stored, swaydb.Error.ReservedResource(Reserve()))
     else
       Cache.concurrentIO(synchronised = false, stored = stored) //then it's concurrent
 
@@ -211,7 +211,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.map(IO(_)).value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
         cache.isCached shouldBe false
         cache.flatMap(
-          Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedValue, Int, Int](true, swaydb.Error.ReservedValue(Reserve()))(int => IO.Success(int + 1))
+          Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](true, swaydb.Error.ReservedResource(Reserve()))(int => IO.Success(int + 1))
         ).value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
         cache.isCached shouldBe false
 
@@ -310,14 +310,14 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
           val simpleCache =
             if (blockIO)
-              Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedValue, Unit, Int](blockIO = _ => IOStrategy.ReservedIO(true), swaydb.Error.ReservedValue(Reserve())) {
+              Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](blockIO = _ => IOStrategy.ReservedIO(true), swaydb.Error.ReservedResource(Reserve())) {
                 _ =>
                   invokeCount += 1
                   sleep(5.millisecond) //delay access
                   IO.Success(10)
               }
             else
-              Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedValue, Unit, Int](stored = true, swaydb.Error.ReservedValue(Reserve())) {
+              Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](stored = true, swaydb.Error.ReservedResource(Reserve())) {
                 _ =>
                   invokeCount += 1
                   sleep(5.millisecond) //delay access
@@ -348,11 +348,11 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
           //results in failure since some thread has reserved.
           val failure = futures.failed.await
-          failure shouldBe a[swaydb.Exception.ReservedValue]
+          failure shouldBe a[swaydb.Exception.ReservedResource]
 
           //eventually it's freed
           eventual {
-            failure.asInstanceOf[swaydb.Exception.ReservedValue].reserve.isBusy shouldBe false
+            failure.asInstanceOf[swaydb.Exception.ReservedResource].reserve.isBusy shouldBe false
           }
 
           if (blockIO)

@@ -103,12 +103,12 @@ private[core] object IOEffect extends LazyLogging {
 
   def writeUnclosed(channel: WritableByteChannel,
                     bytes: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Unit] =
-    try {
+    try
       bytes foreachIO {
         bytes =>
           writeUnclosed(channel, bytes)
       } getOrElse IO.unit
-    } catch {
+    catch {
       case exception: Exception =>
         IO.failed(exception)
     }

@@ -205,7 +205,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         //create IO.Later that is busy
         val reserve = Reserve[Unit](())
         reserve.isBusy shouldBe true
-        val busy = swaydb.Error.DecompressingIndex(reserve)
+        val busy = swaydb.Error.ReservedResource(reserve)
         val later = IO.Deferred((), busy)
         later.isBusy shouldBe true
 
@@ -259,7 +259,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         //create IO.Later that is busy
         val reserve = Reserve[Unit](())
         reserve.isBusy shouldBe true
-        val busy = swaydb.Error.DecompressingIndex(reserve)
+        val busy = swaydb.Error.ReservedResource(reserve)
         val later = IO.Deferred((), busy)
         later.isBusy shouldBe true
 

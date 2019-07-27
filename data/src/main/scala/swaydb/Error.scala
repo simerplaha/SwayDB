@@ -30,15 +30,6 @@ import swaydb.data.slice.Slice
 
 protected sealed trait Error {
   def exception: Throwable
-
-  override def equals(that: Any): Boolean =
-    that match {
-      case other: Error =>
-        exception.getMessage == other.exception.getMessage
-
-      case _ =>
-        false
-    }
 }
 
 object Error {
@@ -112,11 +103,8 @@ object Error {
       //known Exception that can occur which can return their typed Error version.
       case exception: Exception.Busy => exception.error
       case exception: Exception.OpeningFile => Error.OpeningFile(exception.file, exception.reserve)
-      case exception: Exception.DecompressingIndex => Error.DecompressingIndex(exception.reserve)
-      case exception: Exception.DecompressionValues => Error.DecompressingValues(exception.reserve)
-      case exception: Exception.ReservedValue => Error.ReservedValue(exception.reserve)
-      case exception: Exception.ReadingHeader => Error.ReadingHeader(exception.reserve)
-      case exception: Exception.MergeKeyValuesWithoutTargetSegment => Error.ReceivedKeyValuesToMergeWithoutTargetSegment(exception.keyValueCount)
+      case exception: Exception.ReservedResource => Error.ReservedResource(exception.reserve)
+      case exception: Exception.MergeKeyValuesWithoutTargetSegment => Error.MergeKeyValuesWithoutTargetSegment(exception.keyValueCount)
       case exception: Exception.NullMappedByteBuffer => Error.NullMappedByteBuffer(exception)
 
       //the following Exceptions will occur when a file was being read but
@@ -134,16 +122,18 @@ object Error {
 
       case exception: ReadOnlyBufferException => Error.ReadOnlyBuffer(exception)
 
-      case exception: Exception.FailedToWriteAllBytes => Error.FailedToWriteAllBytes(exception.written, exception.expected, exception.bytesSize, exception)
-      case exception: Exception.CannotCopyInMemoryFiles => Error.CannotCopyInMemoryFiles(exception.file, exception)
-      case exception: Exception.SegmentFileMissing => Error.SegmentFileMissing(exception.path, exception)
-      case exception: Exception.InvalidKeyValueId => Error.InvalidKeyValueId(exception.id, exception)
+      case exception: Exception.FailedToWriteAllBytes => Error.FailedToWriteAllBytes(exception)
+      case exception: Exception.CannotCopyInMemoryFiles => Error.CannotCopyInMemoryFiles(exception)
+      case exception: Exception.SegmentFileMissing => Error.SegmentFileMissing(exception)
+      case exception: Exception.InvalidKeyValueId => Error.InvalidKeyValueId(exception)
+
+      case exception: Exception.FunctionNotFound => Error.FunctionNotFound(exception.functionID)
 
       case exception: Exception.NotAnIntFile => Error.NotAnIntFile(exception)
       case exception: Exception.UnknownExtension => Error.UnknownExtension(exception)
 
       case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
-        Error.DataAccess("Either the input or the accessed data was in incorrect format/order. Please see the exception to find out the cause.", exception)
+        Error.DataAccess(DataAccess.message, exception)
 
       //Unknown error.
       case exception: Throwable => Error.Unknown(exception)
@@ -196,20 +186,8 @@ object Error {
     override def reserve: Reserve[Unit] = Reserve()
   }
 
-  case class DecompressingIndex(reserve: Reserve[Unit]) extends ReservedIO {
-    override def exception: Exception.DecompressingIndex = Exception.DecompressingIndex(reserve)
-  }
-
-  case class DecompressingValues(reserve: Reserve[Unit]) extends ReservedIO {
-    override def exception: Exception.DecompressionValues = Exception.DecompressionValues(reserve)
-  }
-
-  case class ReadingHeader(reserve: Reserve[Unit]) extends ReservedIO {
-    override def exception: Exception.ReadingHeader = Exception.ReadingHeader(reserve)
-  }
-
-  case class ReservedValue(reserve: Reserve[Unit]) extends ReservedIO {
-    override def exception: Exception.ReservedValue = Exception.ReservedValue(reserve)
+  case class ReservedResource(reserve: Reserve[Unit]) extends ReservedIO {
+    override def exception: Exception.ReservedResource = Exception.ReservedResource(reserve)
   }
 
   case class NotAnIntFile(exception: Exception.NotAnIntFile) extends Error.IO {
@@ -235,7 +213,7 @@ object Error {
     override def exception: Throwable = Exception.NotSentToNextLevel
   }
 
-  case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Error.Level {
+  case class MergeKeyValuesWithoutTargetSegment(keyValueCount: Int) extends Error.Level {
     override def exception: Exception.MergeKeyValuesWithoutTargetSegment =
       Exception.MergeKeyValuesWithoutTargetSegment(keyValueCount)
   }
@@ -247,12 +225,29 @@ object Error {
   }
 
   case class UnableToLockDirectory(exception: swaydb.Exception.OverlappingFileLock) extends Error.BootUp
-  case class DataAccess(message: String, exception: Throwable) extends Error.API with Error.BootUp with Error.Segment
-  case class SegmentFileMissing(path: Path, exception: Throwable) extends Error.BootUp
 
-  case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int, exception: Throwable) extends Error.IO
-  case class CannotCopyInMemoryFiles(file: Path, exception: Throwable) extends Error.Level
-  case class InvalidKeyValueId(id: Int, exception: Throwable) extends Error.Segment
+  object DataAccess {
+    def message =
+      "Either the input or the accessed data was in incorrect format/order. Please see the exception to find out the cause."
+  }
+  case class DataAccess(message: String, exception: Throwable) extends Error.API with Error.BootUp with Error.Segment
+  case class SegmentFileMissing(exception: Exception.SegmentFileMissing) extends Error.BootUp {
+    def path = exception.path
+  }
+
+  case class FailedToWriteAllBytes(exception: Exception.FailedToWriteAllBytes) extends Error.IO {
+    def written: Int = exception.written
+    def expected: Int = exception.expected
+    def bytesSize: Int = exception.bytesSize
+  }
+
+  case class CannotCopyInMemoryFiles(exception: Exception.CannotCopyInMemoryFiles) extends Error.Level {
+    def file = exception.file
+  }
+
+  case class InvalidKeyValueId(exception: Exception.InvalidKeyValueId) extends Error.Segment {
+    def id = exception.id
+  }
 
   /**
    * Error that are not known and indicate something unexpected went wrong like a file corruption.
@@ -262,7 +257,7 @@ object Error {
    */
   object Unknown {
     def apply(message: String): Unknown =
-      new Unknown(new Exception(message))
+      new Unknown(new scala.Exception(message))
 
     implicit object ErrorHandler extends BaseErrorHandler[Error.Unknown]
   }
@@ -276,4 +271,5 @@ object Error {
       with Error.Map
       with Error.Close
       with Error.Delete
+
 }

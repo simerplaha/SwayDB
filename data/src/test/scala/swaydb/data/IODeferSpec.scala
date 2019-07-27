@@ -32,7 +32,7 @@ class IODeferSpec extends WordSpec with Matchers {
   "IO.Async" should {
     "flatMap on IO" in {
       val io =
-        IO.Defer(1, swaydb.Error.DecompressingValues(Reserve())) flatMap {
+        IO.Defer(1, swaydb.Error.ReservedResource(Reserve())) flatMap {
           int =>
             IO.Success[swaydb.Error.Segment, Int](int + 1)
         }
@@ -47,7 +47,7 @@ class IODeferSpec extends WordSpec with Matchers {
       val boolean = Reserve(())
 
       val io =
-        IO.Defer(1, swaydb.Error.DecompressingValues(Reserve())) flatMap {
+        IO.Defer(1, swaydb.Error.ReservedResource(Reserve())) flatMap {
           _ =>
             IO.Failure(swaydb.Error.OpeningFile(Paths.get(""), boolean))
         }
