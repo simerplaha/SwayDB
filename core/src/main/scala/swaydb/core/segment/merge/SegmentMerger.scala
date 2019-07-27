@@ -904,6 +904,6 @@ private[core] object SegmentMerger extends LazyLogging {
           IO.Success(splits)
       }
 
-    IO.CatchLeak(doMerge(newKeyValues, oldKeyValues))
+    IO.Catch(doMerge(newKeyValues, oldKeyValues))
   }
 }

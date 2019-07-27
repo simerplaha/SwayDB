@@ -183,7 +183,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])(_: ExecutionContext)) expects(*, *) onCall {
           (putMap: Map[Slice[Byte], Memory.SegmentResponse], _) =>
             putMap.pathOption shouldBe map.pathOption
-            IO.unit
+            IO.Deferred.unit
         }
 
         val level = TestLevel(nextLevel = Some(nextLevel))
@@ -208,7 +208,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])(_: ExecutionContext)) expects(*, *) onCall {
           (putMap: Map[Slice[Byte], Memory.SegmentResponse], _) =>
             putMap.pathOption shouldBe map.pathOption
-            IO.unit
+            IO.Deferred.unit
         }
 
         val level = TestLevel(nextLevel = Some(nextLevel))

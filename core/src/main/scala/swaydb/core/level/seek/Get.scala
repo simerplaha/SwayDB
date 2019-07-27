@@ -36,7 +36,7 @@ private[core] object Get {
            currentGetter: CurrentGetter,
            nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
-                                   functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                                   functionStore: FunctionStore): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Get(key = key)(
       keyOrder = keyOrder,
       timeOrder = timeOrder,
@@ -49,16 +49,16 @@ private[core] object Get {
                               timeOrder: TimeOrder[Slice[Byte]],
                               currentGetter: CurrentGetter,
                               nextGetter: NextGetter,
-                              functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
+                              functionStore: FunctionStore): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
 
     import keyOrder._
 
     @tailrec
-    def returnSegmentResponse(current: KeyValue.ReadOnly.SegmentResponse): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+    def returnSegmentResponse(current: KeyValue.ReadOnly.SegmentResponse): IO.Deferred[swaydb.Error.Level, Option[ReadOnly.Put]] =
       current match {
         case current: KeyValue.ReadOnly.Remove =>
           if (current.hasTimeLeft())
-            nextGetter.get(key) mapDeferred {
+            nextGetter.get(key) map {
               nextOption =>
                 nextOption flatMap {
                   next =>
@@ -75,17 +75,17 @@ private[core] object Get {
                 }
             }
           else
-            IO.none
+            IO.Deferred.none
 
         case current: KeyValue.ReadOnly.Put =>
           if (current.hasTimeLeft())
-            IO.Success(Some(current))
+            IO.Deferred(Some(current))
           else
-            IO.none
+            IO.Deferred.none
 
         case current: KeyValue.ReadOnly.Update =>
           if (current.hasTimeLeft())
-            nextGetter.get(key) mapDeferred {
+            nextGetter.get(key) map {
               nextOption =>
                 nextOption flatMap {
                   next =>
@@ -102,7 +102,7 @@ private[core] object Get {
                 }
             }
           else
-            IO.none
+            IO.Deferred.none
 
         case current: KeyValue.ReadOnly.Range =>
           (if (current.key equiv key) current.fetchFromOrElseRangeValue else current.fetchRangeValue) match {
@@ -110,10 +110,10 @@ private[core] object Get {
               if (Value.hasTimeLeft(currentValue))
                 returnSegmentResponse(currentValue.toMemory(key))
               else
-                IO.none
+                IO.Deferred.none
 
-            case failure @ IO.Failure(_) =>
-              failure.toDeferred(Get(key))
+            case IO.Failure(_) =>
+              IO.Deferred(Get(key).get)
           }
 
         case current: KeyValue.ReadOnly.Function =>
@@ -124,18 +124,18 @@ private[core] object Get {
                   if (next.hasTimeLeft())
                     FunctionMerger(current, next) match {
                       case IO.Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
-                        IO.Success(Some(put))
+                        IO.Deferred(Some(put))
 
                       case IO.Success(_: ReadOnly.Fixed) =>
-                        IO.none
+                        IO.Deferred.none
 
-                      case failure @ IO.Failure(_) =>
-                        failure.toDeferred(Get(key))
+                      case IO.Failure(_) =>
+                        IO.Deferred(Get(key).get)
                     }
                   else
-                    IO.none
+                    IO.Deferred.none
               } getOrElse {
-                IO.none
+                IO.Deferred.none
               }
           }
 
@@ -147,18 +147,18 @@ private[core] object Get {
                   if (next.hasTimeLeft())
                     PendingApplyMerger(current, next) match {
                       case IO.Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
-                        IO.Success(Some(put))
+                        IO.Deferred(Some(put))
 
                       case IO.Success(_: ReadOnly.Fixed) =>
-                        IO.none
+                        IO.Deferred.none
 
-                      case failure @ IO.Failure(_) =>
-                        failure.toDeferred(Get(key))
+                      case IO.Failure(_) =>
+                        IO.Deferred(Get(key).get)
                     }
                   else
-                    IO.none
+                    IO.Deferred.none
               } getOrElse {
-                IO.none
+                IO.Deferred.none
               }
           }
       }
@@ -170,8 +170,8 @@ private[core] object Get {
       case IO.Success(None) =>
         nextGetter.get(key)
 
-      case failure @ IO.Failure(_) =>
-        failure.toDeferred(Get(key))
+      case IO.Failure(_) =>
+        IO.Deferred(Get(key).get)
     }
   }
 }

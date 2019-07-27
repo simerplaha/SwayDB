@@ -45,13 +45,13 @@ object ErrorHandler extends LazyLogging {
     }
 
   object Nothing extends ErrorHandler[Nothing] {
-    override def toException(e: Nothing): Throwable = new scala.Exception("Nothing value.")
+    override def toException(e: Nothing): Throwable = new Exception("Nothing value.")
     override def fromException[F <: Nothing](e: Throwable): F = throw new scala.Exception("Exception cannot be created from Nothing.")
     override def reserve(e: Nothing): Option[Reserve[Unit]] = None
   }
 
-  object Unit extends ErrorHandler[Unit] {
-    override def toException(e: Unit): Throwable = new scala.Exception("Unit value.")
+  implicit object Unit extends ErrorHandler[Unit] {
+    override def toException(e: Unit): Throwable = new Exception("Unit value.")
     override def fromException[F <: Unit](e: Throwable): F = ().asInstanceOf[F]
     override def reserve(e: Unit): Option[Reserve[Unit]] = None
   }

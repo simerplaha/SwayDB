@@ -108,9 +108,9 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
             (level0KeyValues, level1KeyValues, level2KeyValues, level) =>
               level0KeyValues foreach {
                 update =>
-                  val (gotValue, gotDeadline) = level.get(update.key) mapDeferred {
+                  val (gotValue, gotDeadline) = level.get(update.key) map {
                     case Some(put) =>
-                      val value = IO.Defer.recover(put.getOrFetchValue.get).runBlocking.runIO
+                      val value = IO.Deferred(put.getOrFetchValue.get).runBlocking.runIO
                       (value, put.deadline)
 
                     case None =>

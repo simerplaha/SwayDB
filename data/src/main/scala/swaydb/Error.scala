@@ -141,7 +141,7 @@ object Error {
       case exception: Throwable => Error.Unknown(exception)
     }
 
-  sealed trait ReservedIO extends Error.Segment {
+  trait ReservedIO extends Error.Segment {
     def reserve: Reserve[Unit]
     def isFree: Boolean =
       !reserve.isBusy
@@ -204,9 +204,9 @@ object Error {
   }
 
   /**
-   * This error can also be turned into Busy and LevelActor can use it to listen to when
-   * there are no more overlapping Segments.
-   */
+    * This error can also be turned into Busy and LevelActor can use it to listen to when
+    * there are no more overlapping Segments.
+    */
   case object OverlappingPushSegment extends Error.Level {
     override def exception: Throwable = Exception.OverlappingPushSegment
   }
@@ -256,11 +256,11 @@ object Error {
   }
 
   /**
-   * Error that are not known and indicate something unexpected went wrong like a file corruption.
-   *
-   * Pre-cautions are implemented in place to even recover from these failures using tools like AppendixRepairer.
-   * This Error is not expected to occur on healthy databases.
-   */
+    * Error that are not known and indicate something unexpected went wrong like a file corruption.
+    *
+    * Pre-cautions are implemented in place to even recover from these failures using tools like AppendixRepairer.
+    * This Error is not expected to occur on healthy databases.
+    */
   object Unknown {
     def apply(message: String): Unknown =
       new Unknown(new scala.Exception(message))

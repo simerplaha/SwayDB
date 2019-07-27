@@ -175,25 +175,26 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     zero.registerFunction(functionID, function)
 
   private def headIO: IO[swaydb.Error.Level, Option[KeyValueTuple]] =
-    zero.head.runBlocking flatMap {
-      result =>
-        result map {
-          response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
-              result =>
-                Some(response.key, result)
-            } recoverWith {
-              case error =>
-                error match {
-                  case _: swaydb.Error.ReservedIO =>
-                    headIO
-
-                  case failure =>
-                    IO.Failure(error = failure)
-                }
-            }
-        } getOrElse IO.none
-    }
+    ???
+  //    zero.head.runBlocking flatMap {
+  //      result =>
+  //        result map {
+  //          response =>
+  //            IO.Deferred.recover(response.getOrFetchValue.get).runBlocking map {
+  //              result =>
+  //                Some(response.key, result)
+  //            } recoverWith {
+  //              case error =>
+  //                error match {
+  //                  case _: swaydb.Error.ReservedIO =>
+  //                    headIO
+  //
+  //                  case failure =>
+  //                    IO.Failure(error = failure)
+  //                }
+  //            }
+  //        } getOrElse IO.none
+  //    }
 
   def head: T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     tag.fromIO(headIO)
@@ -202,25 +203,26 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(zero.headKey.runBlocking)
 
   private def lastIO: IO[swaydb.Error.Level, Option[KeyValueTuple]] =
-    zero.last.runBlocking flatMap {
-      result =>
-        result map {
-          response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
-              result =>
-                Some(response.key, result)
-            } recoverWith {
-              case error =>
-                error match {
-                  case _: swaydb.Error.ReservedIO =>
-                    lastIO
-
-                  case failure =>
-                    IO.Failure(error = failure)
-                }
-            }
-        } getOrElse IO.none
-    }
+    ???
+  //    zero.last.runBlocking flatMap {
+  //      result =>
+  //        result map {
+  //          response =>
+  //            IO.Deferred.recover(response.getOrFetchValue.get).runBlocking map {
+  //              result =>
+  //                Some(response.key, result)
+  //            } recoverWith {
+  //              case error =>
+  //                error match {
+  //                  case _: swaydb.Error.ReservedIO =>
+  //                    lastIO
+  //
+  //                  case failure =>
+  //                    IO.Failure(error = failure)
+  //                }
+  //            }
+  //        } getOrElse IO.none
+  //    }
 
   def last: T[Option[KeyValueTuple]] =
     tag.fromIO(lastIO)
@@ -229,7 +231,8 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(zero.lastKey.runBlocking)
 
   def bloomFilterKeyValueCount: T[Int] =
-    tag.fromIO(IO.Defer.recover(zero.bloomFilterKeyValueCount.get).runBlocking)
+  //    tag.fromIO(IO.Deferred.recover(zero.bloomFilterKeyValueCount.get).runBlocking)
+    ???
 
   def deadline(key: Slice[Byte]): T[Option[Deadline]] =
     tag.fromIO(zero.deadline(key).runBlocking)
@@ -241,31 +244,34 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(zero.contains(key).runBlocking)
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
-    tag.fromIO(IO.Defer.recover(zero.mightContainKey(key).get).runBlocking)
+  //    tag.fromIO(IO.Deferred.recover(zero.mightContainKey(key).get).runBlocking)
+    ???
 
   def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
-    tag.fromIO(IO.Defer.recover(zero.mightContainFunction(functionId).get).runBlocking)
+  //    tag.fromIO(IO.Deferred.recover(zero.mightContainFunction(functionId).get).runBlocking)
+    ???
 
   private def getIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[Option[Slice[Byte]]]] =
-    zero.get(key).runBlocking flatMap {
-      result =>
-        result map {
-          response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
-              result =>
-                Some(result)
-            } recoverWith[swaydb.Error.Level, Option[Option[Slice[Byte]]]] {
-              case error =>
-                error match {
-                  case _: swaydb.Error.ReservedIO =>
-                    getIO(key)
-
-                  case failure =>
-                    IO.Failure(error = failure)
-                }
-            }
-        } getOrElse IO.none
-    }
+    ???
+  //    zero.get(key).runBlocking flatMap {
+  //      result =>
+  //        result map {
+  //          response =>
+  //            IO.Deferred.recover(response.getOrFetchValue.get).runBlocking map {
+  //              result =>
+  //                Some(result)
+  //            } recoverWith[swaydb.Error.Level, Option[Option[Slice[Byte]]]] {
+  //              case error =>
+  //                error match {
+  //                  case _: swaydb.Error.ReservedIO =>
+  //                    getIO(key)
+  //
+  //                  case failure =>
+  //                    IO.Failure(error = failure)
+  //                }
+  //            }
+  //        } getOrElse IO.none
+  //    }
 
   def get(key: Slice[Byte]): T[Option[Option[Slice[Byte]]]] =
     tag.fromIO(getIO(key))
@@ -274,49 +280,51 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(zero.getKey(key).runBlocking)
 
   private def getKeyValueIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValueTuple]] =
-    zero.get(key).runBlocking flatMap {
-      result =>
-        result map {
-          response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
-              result =>
-                Some(response.key, result)
-            } recoverWith[swaydb.Error.Level, Option[KeyValueTuple]] {
-              case error =>
-                error match {
-                  case _: swaydb.Error.ReservedIO =>
-                    getKeyValueIO(key)
-
-                  case failure =>
-                    IO.Failure(error = failure)
-                }
-            }
-        } getOrElse IO.none
-    }
+    ???
+  //    zero.get(key).runBlocking flatMap {
+  //      result =>
+  //        result map {
+  //          response =>
+  //            IO.Deferred.recover(response.getOrFetchValue.get).runBlocking map {
+  //              result =>
+  //                Some(response.key, result)
+  //            } recoverWith[swaydb.Error.Level, Option[KeyValueTuple]] {
+  //              case error =>
+  //                error match {
+  //                  case _: swaydb.Error.ReservedIO =>
+  //                    getKeyValueIO(key)
+  //
+  //                  case failure =>
+  //                    IO.Failure(error = failure)
+  //                }
+  //            }
+  //        } getOrElse IO.none
+  //    }
 
   def getKeyValue(key: Slice[Byte]): T[Option[KeyValueTuple]] =
     tag.fromIO(getKeyValueIO(key))
 
   private def beforeIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValueTuple]] =
-    zero.lower(key).runBlocking flatMap {
-      result =>
-        result map {
-          response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
-              result =>
-                Some(response.key, result)
-            } recoverWith[swaydb.Error.Level, Option[KeyValueTuple]] {
-              case error =>
-                error match {
-                  case _: swaydb.Error.ReservedIO =>
-                    beforeIO(key)
-
-                  case failure =>
-                    IO.Failure(error = failure)
-                }
-            }
-        } getOrElse IO.none
-    }
+    ???
+  //    zero.lower(key).runBlocking flatMap {
+  //      result =>
+  //        result map {
+  //          response =>
+  //            IO.Deferred.recover(response.getOrFetchValue.get).runBlocking map {
+  //              result =>
+  //                Some(response.key, result)
+  //            } recoverWith[swaydb.Error.Level, Option[KeyValueTuple]] {
+  //              case error =>
+  //                error match {
+  //                  case _: swaydb.Error.ReservedIO =>
+  //                    beforeIO(key)
+  //
+  //                  case failure =>
+  //                    IO.Failure(error = failure)
+  //                }
+  //            }
+  //        } getOrElse IO.none
+  //    }
 
   def before(key: Slice[Byte]): T[Option[KeyValueTuple]] =
     tag.fromIO(beforeIO(key))
@@ -325,25 +333,26 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(zero.lower(key).runBlocking.map(_.map(_.key)))
 
   private def afterIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValueTuple]] =
-    zero.higher(key).runBlocking flatMap {
-      result =>
-        result map {
-          response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
-              result =>
-                Some(response.key, result)
-            } recoverWith {
-              case error =>
-                error match {
-                  case _: swaydb.Error.ReservedIO =>
-                    afterIO(key)
-
-                  case failure =>
-                    IO.Failure(error = failure)
-                }
-            }
-        } getOrElse IO.none
-    }
+    ???
+  //    zero.higher(key).runBlocking flatMap {
+  //      result =>
+  //        result map {
+  //          response =>
+  //            IO.Deferred.recover(response.getOrFetchValue.get).runBlocking map {
+  //              result =>
+  //                Some(response.key, result)
+  //            } recoverWith {
+  //              case error =>
+  //                error match {
+  //                  case _: swaydb.Error.ReservedIO =>
+  //                    afterIO(key)
+  //
+  //                  case failure =>
+  //                    IO.Failure(error = failure)
+  //                }
+  //            }
+  //        } getOrElse IO.none
+  //    }
 
   def after(key: Slice[Byte]): T[Option[KeyValueTuple]] =
     tag.fromIO(afterIO(key))

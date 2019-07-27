@@ -461,7 +461,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
         }
     }
 
-    IO.CatchLeak {
+    IO.Catch {
       keyValueToAdd match {
         case fixed: KeyValue.ReadOnly.Fixed =>
           fixed match {

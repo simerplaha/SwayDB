@@ -72,7 +72,7 @@ object CommonAssertions {
           Some(keyValue.toMemory.asInstanceOf[Memory.Put])
 
         case range: KeyValue.ReadOnly.Range =>
-          range.fetchFromValue.runIO flatMap {
+          range.fetchFromValue.value flatMap {
             case put: Value.Put =>
               Some(put.toMemory(range.fromKey))
             case _ =>
@@ -111,7 +111,7 @@ object CommonAssertions {
 
       (actualMemory, expectedMemory) match {
         case (actual: Memory.Group, expected: Memory.Group) =>
-          actual.segment.getAll().runIO shouldBe expected.segment.getAll().runIO
+          actual.segment.getAll().value shouldBe expected.segment.getAll().value
         case _ =>
           actualMemory should be(expectedMemory)
       }
@@ -126,7 +126,7 @@ object CommonAssertions {
             case keyValue: Memory.Update =>
               keyValue.value
             case keyValue: Memory.Function =>
-              Some(keyValue.getOrFetchFunction.runIO)
+              Some(keyValue.getOrFetchFunction.value)
             case keyValue: Memory.PendingApply =>
               val bytes = Slice.create[Byte](ValueSerializer.bytesRequired(keyValue.getOrFetchApplies.runIO))
               ValueSerializer.write(keyValue.getOrFetchApplies.runIO)(bytes)

@@ -103,25 +103,26 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     tag.fromIO(block.delete())
 
   private def headFuture: Future[Option[KeyValueTuple]] =
-    zero.head.runInFuture flatMap {
-      result =>
-        result map {
-          response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
-              result =>
-                Some(response.key, result)
-            } recoverWith {
-              case error =>
-                error match {
-                  case _: swaydb.Error.ReservedIO =>
-                    headFuture
-
-                  case failure =>
-                    Future.failed(failure)
-                }
-            }
-        } getOrElse Delay.futureNone
-    }
+  //    zero.head.runInFuture flatMap {
+  //      result =>
+  //        result map {
+  //          response =>
+  //            IO.Deferred.recover(response.getOrFetchValue.get).runInFuture map {
+  //              result =>
+  //                Some(response.key, result)
+  //            } recoverWith {
+  //              case error =>
+  //                error match {
+  //                  case _: swaydb.Error.ReservedIO =>
+  //                    headFuture
+  //
+  //                  case failure =>
+  //                    Future.failed(failure)
+  //                }
+  //            }
+  //        } getOrElse Delay.futureNone
+  //    }
+    ???
 
   def head: T[Option[KeyValueTuple]] =
     tag.fromFuture(headFuture)
@@ -130,25 +131,26 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     tag.fromFuture(zero.headKey.runInFuture)
 
   private def lastFuture: Future[Option[KeyValueTuple]] =
-    zero.last.runInFuture flatMap {
-      result =>
-        result map {
-          response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
-              result =>
-                Some(response.key, result)
-            } recoverWith {
-              case error =>
-                error match {
-                  case _: swaydb.Error.ReservedIO =>
-                    lastFuture
-
-                  case failure =>
-                    Future.failed(failure)
-                }
-            }
-        } getOrElse Delay.futureNone
-    }
+  //    zero.last.runInFuture flatMap {
+  //      result =>
+  //        result map {
+  //          response =>
+  //            IO.Deferred.recover(response.getOrFetchValue.get).runInFuture map {
+  //              result =>
+  //                Some(response.key, result)
+  //            } recoverWith {
+  //              case error =>
+  //                error match {
+  //                  case _: swaydb.Error.ReservedIO =>
+  //                    lastFuture
+  //
+  //                  case failure =>
+  //                    Future.failed(failure)
+  //                }
+  //            }
+  //        } getOrElse Delay.futureNone
+  //    }
+    ???
 
   def last: T[Option[KeyValueTuple]] =
     tag.fromFuture(lastFuture)
@@ -157,7 +159,8 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     tag.fromFuture(zero.lastKey.runInFuture)
 
   def bloomFilterKeyValueCount: T[Int] =
-    tag.fromFuture(IO.Defer.recover(zero.bloomFilterKeyValueCount.get).runInFuture)
+  //    tag.fromFuture(IO.Deferred.recover(zero.bloomFilterKeyValueCount.get).runInFuture)
+    ???
 
   def deadline(key: Slice[Byte]): T[Option[Deadline]] =
     tag.fromFuture(zero.deadline(key).runInFuture)
@@ -166,31 +169,34 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     tag.fromFuture(zero.contains(key).runInFuture)
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
-    tag.fromFuture(IO.Defer.recover(zero.mightContainKey(key).get).runInFuture)
+  //    tag.fromFuture(IO.Deferred.recover(zero.mightContainKey(key).get).runInFuture)
+    ???
 
   def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
-    tag.fromFuture(IO.Defer.recover(zero.mightContainFunction(functionId).get).runInFuture)
+  //    tag.fromFuture(IO.Deferred.recover(zero.mightContainFunction(functionId).get).runInFuture)
+    ???
 
   def getFuture(key: Slice[Byte]): Future[Option[Option[Slice[Byte]]]] =
-    zero.get(key).runInFuture flatMap {
-      result =>
-        result map {
-          response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
-              result =>
-                Some(result)
-            } recoverWith {
-              case error =>
-                error match {
-                  case _: swaydb.Error.ReservedIO =>
-                    getFuture(key)
-
-                  case failure =>
-                    Future.failed(failure)
-                }
-            }
-        } getOrElse Delay.futureNone
-    }
+  //    zero.get(key).runInFuture flatMap {
+  //      result =>
+  //        result map {
+  //          response =>
+  //            IO.Deferred.recover(response.getOrFetchValue.get).runInFuture map {
+  //              result =>
+  //                Some(result)
+  //            } recoverWith {
+  //              case error =>
+  //                error match {
+  //                  case _: swaydb.Error.ReservedIO =>
+  //                    getFuture(key)
+  //
+  //                  case failure =>
+  //                    Future.failed(failure)
+  //                }
+  //            }
+  //        } getOrElse Delay.futureNone
+  //    }
+    ???
 
   def get(key: Slice[Byte]): T[Option[Option[Slice[Byte]]]] =
     tag.fromFuture(getFuture(key))
@@ -199,49 +205,51 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     tag.fromFuture(zero.getKey(key).runInFuture)
 
   def getKeyValueFuture(key: Slice[Byte]): Future[Option[KeyValueTuple]] =
-    zero.get(key).runInFuture flatMap {
-      result =>
-        result map {
-          response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
-              result =>
-                Some(response.key, result)
-            } recoverWith {
-              case error =>
-                error match {
-                  case _: swaydb.Error.ReservedIO =>
-                    getKeyValueFuture(key)
-
-                  case failure =>
-                    Future.failed(failure)
-                }
-            }
-        } getOrElse Delay.futureNone
-    }
+  //    zero.get(key).runInFuture flatMap {
+  //      result =>
+  //        result map {
+  //          response =>
+  //            IO.Deferred.recover(response.getOrFetchValue.get).runInFuture map {
+  //              result =>
+  //                Some(response.key, result)
+  //            } recoverWith {
+  //              case error =>
+  //                error match {
+  //                  case _: swaydb.Error.ReservedIO =>
+  //                    getKeyValueFuture(key)
+  //
+  //                  case failure =>
+  //                    Future.failed(failure)
+  //                }
+  //            }
+  //        } getOrElse Delay.futureNone
+  //    }
+    ???
 
   def getKeyValue(key: Slice[Byte]): T[Option[KeyValueTuple]] =
     tag.fromFuture(getKeyValueFuture(key))
 
   def beforeFuture(key: Slice[Byte]): Future[Option[KeyValueTuple]] =
-    zero.lower(key).runInFuture flatMap {
-      result =>
-        result map {
-          response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
-              result =>
-                Some(response.key, result)
-            } recoverWith {
-              case error =>
-                error match {
-                  case _: swaydb.Error.ReservedIO =>
-                    beforeFuture(key)
-
-                  case failure =>
-                    Future.failed(failure)
-                }
-            }
-        } getOrElse Delay.futureNone
-    }
+  //    zero.lower(key).runInFuture flatMap {
+  //      result =>
+  //        result map {
+  //          response =>
+  //            IO.Deferred.recover(response.getOrFetchValue.get).runInFuture map {
+  //              result =>
+  //                Some(response.key, result)
+  //            } recoverWith {
+  //              case error =>
+  //                error match {
+  //                  case _: swaydb.Error.ReservedIO =>
+  //                    beforeFuture(key)
+  //
+  //                  case failure =>
+  //                    Future.failed(failure)
+  //                }
+  //            }
+  //        } getOrElse Delay.futureNone
+  //    }
+    ???
 
   def before(key: Slice[Byte]): T[Option[KeyValueTuple]] =
     tag.fromFuture(beforeFuture(key))
@@ -250,25 +258,26 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     tag.fromFuture(zero.lower(key).runInFuture.map(_.map(_.key)))
 
   private def afterFuture(key: Slice[Byte]): Future[Option[KeyValueTuple]] =
-    zero.higher(key).runInFuture flatMap {
-      result =>
-        result map {
-          response =>
-            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
-              result =>
-                Some(response.key, result)
-            } recoverWith {
-              case error =>
-                error match {
-                  case _: swaydb.Error.ReservedIO =>
-                    afterFuture(key)
-
-                  case failure =>
-                    Future.failed(failure)
-                }
-            }
-        } getOrElse Delay.futureNone
-    }
+  //    zero.higher(key).runInFuture flatMap {
+  //      result =>
+  //        result map {
+  //          response =>
+  //            IO.Deferred.recover(response.getOrFetchValue.get).runInFuture map {
+  //              result =>
+  //                Some(response.key, result)
+  //            } recoverWith {
+  //              case error =>
+  //                error match {
+  //                  case _: swaydb.Error.ReservedIO =>
+  //                    afterFuture(key)
+  //
+  //                  case failure =>
+  //                    Future.failed(failure)
+  //                }
+  //            }
+  //        } getOrElse Delay.futureNone
+  //    }
+    ???
 
   def after(key: Slice[Byte]): T[Option[KeyValueTuple]] =
     tag.fromFuture(afterFuture(key))

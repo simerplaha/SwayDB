@@ -28,7 +28,7 @@ class ErrorHandlerSpec extends FlatSpec with Matchers {
   it should "Exceptions to Throwable" in {
     val exception = Exception.FailedToWriteAllBytes(0, 10, 10)
 
-    val got: Throwable = IO.failed(exception = exception).asIO.failed.get
+    val got: Throwable = IO.failed(exception = exception).failed.get
     got shouldBe exception
   }
 
