@@ -506,7 +506,7 @@ object IO {
       doGet(this)
     }
 
-    @throws[Exception]
+    @throws[scala.Exception]
     def get: A =
       if (_value.isDefined || !isBusy)
         forceGet
@@ -546,7 +546,7 @@ object IO {
     new IO.Failure[E, A](ErrorHandler.fromException[E](exception))
 
   @inline final def failed[E: ErrorHandler, A](message: String): IO.Failure[E, A] =
-    new IO.Failure[E, A](ErrorHandler.fromException[E](new Exception(message)))
+    new IO.Failure[E, A](ErrorHandler.fromException[E](new scala.Exception(message)))
 
   final case class Failure[+E: ErrorHandler, +A](error: E) extends IO.Defer[E, A] with IO[E, A] {
     override def isFailure: Boolean = true
