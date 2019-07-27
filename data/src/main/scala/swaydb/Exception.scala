@@ -33,18 +33,17 @@ import swaydb.data.slice.Slice
  * SwayDB's code itself does not use these exception it uses [[Error]] type. These types are handy when
  * converting an [[IO]] type to [[scala.util.Try]] by the client using [[toTry]].
  */
-sealed trait Exception
 object Exception {
-  case class Busy(error: Error.ReservedIO) extends Throwable("Is busy") with Exception
-  case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Throwable(s"Failed to open file $file") with Exception
+  case class Busy(error: Error.ReservedIO) extends Exception("Is busy")
+  case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Exception(s"Failed to open file $file")
 
-  case class ReservedResource(reserve: Reserve[Unit]) extends Throwable("Failed to fetch value")  with Exception
-  case class NullMappedByteBuffer(exception: scala.Exception, reserve: Reserve[Unit]) extends Throwable(exception)  with Exception
+  case class ReservedResource(reserve: Reserve[Unit]) extends Exception("Failed to fetch value")
+  case class NullMappedByteBuffer(exception: Exception, reserve: Reserve[Unit]) extends Exception(exception)
 
-  case object OverlappingPushSegment extends Throwable("Contains overlapping busy Segments")  with Exception
-  case object NoSegmentsRemoved extends Throwable("No Segments Removed")  with Exception
-  case object NotSentToNextLevel extends Throwable("Not sent to next Level")  with Exception
-  case class MergeKeyValuesWithoutTargetSegment(keyValueCount: Int) extends Throwable(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")  with Exception
+  case object OverlappingPushSegment extends Exception("Contains overlapping busy Segments")
+  case object NoSegmentsRemoved extends Exception("No Segments Removed")
+  case object NotSentToNextLevel extends Exception("Not sent to next Level")
+  case class MergeKeyValuesWithoutTargetSegment(keyValueCount: Int) extends Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
 
   /**
    * [[functionID]] itself is not logged or printed to console since it may contain sensitive data but instead this Exception
@@ -52,16 +51,17 @@ object Exception {
    *
    * @param functionID the id of the missing function.
    */
-  case class FunctionNotFound(functionID: Slice[Byte]) extends Throwable("Function not found for ID.")  with Exception
-  case class OverlappingFileLock(exception: OverlappingFileLockException) extends Throwable("Failed to get directory lock.")  with Exception
-  case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int) extends Throwable(s"Failed to write all bytes written: $written, expected : $expected, bytesSize: $bytesSize")  with Exception
-  case class CannotCopyInMemoryFiles(file: Path) extends Throwable(s"Cannot copy in-memory files $file")  with Exception
-  case class SegmentFileMissing(path: Path) extends Throwable(s"$path: Segment file missing.")  with Exception
-  case class InvalidKeyValueId(id: Int) extends Throwable(s"Invalid keyValueId: $id.")  with Exception
+  case class FunctionNotFound(functionID: Slice[Byte]) extends Exception("Function not found for ID.")
+  case class OverlappingFileLock(exception: OverlappingFileLockException) extends Exception("Failed to get directory lock.")
+  case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int) extends Exception(s"Failed to write all bytes written: $written, expected : $expected, bytesSize: $bytesSize")
+  case class CannotCopyInMemoryFiles(file: Path) extends Exception(s"Cannot copy in-memory files $file")
+  case class SegmentFileMissing(path: Path) extends Exception(s"$path: Segment file missing.")
+  case class InvalidKeyValueId(id: Int) extends Exception(s"Invalid keyValueId: $id.")
 
-  case class InvalidDecompressorId(id: Int) extends Throwable(s"Invalid decompressor id: $id")  with Exception
+  case class InvalidDecompressorId(id: Int) extends Exception(s"Invalid decompressor id: $id")
 
-  case class NotAnIntFile(path: Path) extends Throwable  with Exception
-  case class UnknownExtension(path: Path) extends Throwable  with Exception
+  case class NotAnIntFile(path: Path) extends Exception
+  case class UnknownExtension(path: Path) extends Exception
 
+  case class GetOnIncompleteDeferredFutureIO(cause: Exception) extends Exception("Get invoked on in-complete Future within Deferred IO.", cause)
 }

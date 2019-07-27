@@ -19,7 +19,7 @@
 
 package swaydb.core.io.file
 
-import swaydb.core.IOValues._
+import swaydb.data.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.queue.FileLimiter
 import swaydb.core.util.Benchmark

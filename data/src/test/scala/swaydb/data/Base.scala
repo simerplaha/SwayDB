@@ -47,6 +47,6 @@ object Base {
       swaydb.Error.ReservedResource(busyBoolean)
     )
 
-  def randomBusyException(busyBoolean: Reserve[Unit] = Reserve()): swaydb.Error.ReservedIO =
+  def randomBusyError(busyBoolean: Reserve[Unit] = Reserve()): swaydb.Error.ReservedIO =
     Random.shuffle(busyErrors(busyBoolean)).head
 }

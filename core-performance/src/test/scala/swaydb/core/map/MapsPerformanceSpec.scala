@@ -20,7 +20,7 @@
 package swaydb.core.map
 
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOValues._
+import swaydb.data.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.io.file.IOEffect

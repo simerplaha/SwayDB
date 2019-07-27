@@ -34,20 +34,20 @@ protected sealed trait Error {
 
 object Error {
 
-  private[Error] trait BaseErrorHandler[T <: swaydb.Error] extends ErrorHandler[T] {
-    override def toException(e: T): Throwable =
+  private[Error] trait BaseErrorHandler[E <: swaydb.Error] extends ErrorHandler[E] {
+    override def toException(e: E): Throwable =
       e.exception
 
-    override def fromException[F <: T](e: Throwable): F =
+    override def fromException[F <: E](e: Throwable): F =
       Error(e) match {
-        case error: T =>
+        case error: E =>
           error.asInstanceOf[F]
 
         case otherError: Error =>
           Error.Unknown(otherError.exception).asInstanceOf[F]
       }
 
-    override def reserve(e: T): Option[Reserve[Unit]] =
+    override def reserve(e: E): Option[Reserve[Unit]] =
       e match {
         case busy: Error.ReservedIO =>
           Some(busy.reserve)
@@ -131,6 +131,8 @@ object Error {
 
       case exception: Exception.NotAnIntFile => Error.NotAnIntFile(exception)
       case exception: Exception.UnknownExtension => Error.UnknownExtension(exception)
+
+      case exception: Exception.GetOnIncompleteDeferredFutureIO => Error.GetOnIncompleteDeferredFutureIO(exception)
 
       case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
         Error.DataAccess(DataAccess.message, exception)
@@ -248,6 +250,8 @@ object Error {
   case class InvalidKeyValueId(exception: Exception.InvalidKeyValueId) extends Error.Segment {
     def id = exception.id
   }
+
+  case class GetOnIncompleteDeferredFutureIO(exception: Exception.GetOnIncompleteDeferredFutureIO) extends Error.IO
 
   /**
    * Error that are not known and indicate something unexpected went wrong like a file corruption.

@@ -17,21 +17,23 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core
+package swaydb.data
 
-import swaydb.core.RunThis._
-import swaydb.core.TestData.randomBoolean
 import swaydb.{ErrorHandler, IO}
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.util.Random
+import scala.concurrent.ExecutionContext.Implicits.global
 
 sealed trait IOValues {
+
   implicit class RunIOImplicits[E: ErrorHandler, T](input: => IO[E, T]) {
-    private[core] def runIO: T =
-      if (randomBoolean())
+    private[swaydb] def runIO: T =
+      if (Random.nextBoolean())
         IO.Defer.recover[E, T](input.get).runBlocking.get
       else
-        IO.Defer.recover[E, T](input.get).runInFuture.await(1.minute)
+        Await.result(IO.Defer.recover[E, T](input.get).runInFuture, 1.minute)
   }
 
   implicit class RunValueIOImplicits[E: ErrorHandler, T](input: IO[E, T]) {
@@ -39,12 +41,12 @@ sealed trait IOValues {
       input.get
   }
 
-  implicit class RunAsyncIOImplicits[E: ErrorHandler, T](input: => IO.Defer[E, T]) {
+  implicit class RunDeferredIOImplicits[E: ErrorHandler, T](input: => IO.Defer[E, T]) {
     def runIO: T =
-      if (randomBoolean())
+      if (Random.nextBoolean())
         input.runBlocking.get
       else
-        input.runInFuture.await(1.minute)
+        Await.result(input.runInFuture, 1.minute)
   }
 }
 

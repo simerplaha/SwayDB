@@ -19,7 +19,7 @@
 
 package swaydb.core
 
-import swaydb.core.IOValues._
+import swaydb.data.IOValues._
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}

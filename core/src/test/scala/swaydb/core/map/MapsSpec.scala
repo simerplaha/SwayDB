@@ -24,7 +24,7 @@ import java.nio.file.{Files, NoSuchFileException}
 import org.scalatest.OptionValues._
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOValues._
+import swaydb.data.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.io.file.IOEffect._

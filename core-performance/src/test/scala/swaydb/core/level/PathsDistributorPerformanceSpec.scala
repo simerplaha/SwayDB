@@ -19,7 +19,7 @@
 
 package swaydb.core.level
 
-import swaydb.core.IOValues._
+import swaydb.data.IOValues._
 import swaydb.core.TestBase
 import swaydb.core.io.file.IOEffect
 import swaydb.core.segment.Segment

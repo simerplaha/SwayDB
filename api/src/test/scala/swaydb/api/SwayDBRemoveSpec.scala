@@ -22,7 +22,7 @@ package swaydb
 
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOValues._
+import swaydb.data.IOValues._
 import swaydb.core.RunThis._
 import swaydb.serializers.Default._
 

@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 import org.scalatest.OptionValues._
 import swaydb.IO
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOValues._
+import swaydb.data.IOValues._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Transient}

@@ -28,7 +28,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import swaydb.IO
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOValues._
+import swaydb.data.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
 import swaydb.core.actor.WiredActor

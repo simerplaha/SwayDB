@@ -31,4 +31,30 @@ class ErrorHandlerSpec extends FlatSpec with Matchers {
     val got: Throwable = IO.failed(exception = exception).asIO.failed.get
     got shouldBe exception
   }
+
+  it should "convert exception to typed Segment Errors" in {
+
+    def assert(exception: Throwable) = {
+      val io =
+        IO[swaydb.Error.Segment, Unit] {
+          throw exception
+        }
+
+      io.failed.get shouldBe Error.DataAccess(Error.DataAccess.message, exception)
+    }
+
+    assert(new ArrayIndexOutOfBoundsException)
+    assert(new IndexOutOfBoundsException)
+    assert(new IllegalArgumentException)
+    assert(new NegativeArraySizeException)
+
+    val failedToWriteAllBytes = Exception.FailedToWriteAllBytes(10, 10, 10)
+
+    val failure: IO[Nothing, swaydb.Error.Segment] =
+      IO[swaydb.Error.IO, Unit] {
+        throw failedToWriteAllBytes
+      } failed
+
+    failure.get shouldBe Error.FailedToWriteAllBytes(failedToWriteAllBytes)
+  }
 }

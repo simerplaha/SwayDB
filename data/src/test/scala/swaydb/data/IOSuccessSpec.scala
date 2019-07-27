@@ -70,12 +70,29 @@ class IOSuccessSpec extends WordSpec with Matchers {
       } shouldBe IO.Success(2)
     }
 
-    "flatMap on failure" in {
-      val failure = IO.Failure(swaydb.Error.NoSuchFile(new NoSuchFileException("")))
+    "flatMap & map on failure" in {
+      val exception = new NoSuchFileException("")
+      val error = swaydb.Error.NoSuchFile(exception)
+      val failure = IO.Failure(error)
 
-      IO.Success(1).asIO flatMap {
+      IO(1).asIO flatMap {
         _ =>
           failure
+      } shouldBe failure
+
+      IO(1).asIO.map {
+        _: Int =>
+          failure
+      }.get shouldBe failure
+
+      IO(1).asIO flatMap {
+        _ =>
+          throw exception
+      } shouldBe failure
+
+      IO(1).asIO map {
+        _ =>
+          throw exception
       } shouldBe failure
     }
 

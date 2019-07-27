@@ -25,7 +25,7 @@ import swaydb.data.slice.Slice
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future, TimeoutException}
 import scala.reflect.ClassTag
 import scala.util.Try
 
@@ -277,7 +277,7 @@ object IO {
         IO.Failure[E, A](error = ErrorHandler.fromException[E](exception))
     }
 
-  def fromFuture[E: ErrorHandler, A](future: Future[A])(implicit ec: ExecutionContext): IO.Defer[E, A] =
+  def fromFuture[E >: swaydb.Error.ReservedIO : ErrorHandler, A](future: Future[A])(implicit ec: ExecutionContext): IO.Defer[E, A] =
     IO.Defer[E, A](future)
 
   def successful[E: ErrorHandler, A](value: A): IO.Success[E, A] =
@@ -351,26 +351,30 @@ object IO {
     @inline final def apply[E: ErrorHandler, A](value: => A, error: E): IO.Defer[E, A] =
       new Deferred(_ => value, error)
 
-    final def apply[E: ErrorHandler, A](future: Future[A])(implicit ec: ExecutionContext): IO.Defer[E, A] = {
-      val error =
-        new ErrorHandler[E] {
-          val reserve = Reserve(())
-          override def reserve(e: E): Option[Reserve[Unit]] = Some(reserve)
-          override def toException(e: E): Throwable = ErrorHandler.toException[E](e)
-          override def fromException[F <: E](e: Throwable): F = ErrorHandler.fromException[F](e)
-        }
-
+    final def apply[E >: swaydb.Error.ReservedIO : ErrorHandler, A](future: Future[A])(implicit ec: ExecutionContext): IO.Defer[E, A] = {
+      val reserve = Reserve[Unit](())
       future onComplete {
         _ =>
-          Reserve.setFree(error.reserve)
+          Reserve.setFree(reserve)
       }
 
-      //here value will only be access when the above busy boolean is true
-      //so the value should always exists at the time of Await.result
-      //therefore the cost of blocking should be negligible.
+      /**
+       * This value will only be accessed by [[IO.Deferred]] only when the Future completes. But functions like
+       * [[IO.Defer.failed]] will try to access this before the Future is complete will result in a TimeoutOut exception.
+       *
+       * This is necessary to avoid blocking Futures.
+       */
+      def valueNow =
+        try
+          Await.result(future, Duration.Zero) //no blocking the result should be instant.
+        catch {
+          case exception: TimeoutException =>
+            throw swaydb.Exception.GetOnIncompleteDeferredFutureIO(exception)
+        }
+
       IO.Defer(
-        value = Await.result(future, Duration.Zero),
-        error = error.asInstanceOf[E]
+        value = valueNow, //this will never get invoked before the Future completes so awaiting here does not block but just gets the value.
+        error = swaydb.Error.ReservedResource(reserve)
       )
     }
   }

@@ -23,7 +23,7 @@ import java.nio.file.{Path, Paths}
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.Error.Segment.ErrorHandler
-import swaydb.core.IOValues._
+import swaydb.data.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.io.file.IOEffect
