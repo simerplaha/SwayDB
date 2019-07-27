@@ -30,6 +30,15 @@ import swaydb.data.slice.Slice
 
 protected sealed trait Error {
   def exception: Throwable
+
+  override def equals(that: Any): Boolean =
+    that match {
+      case other: Error =>
+        exception.getMessage == other.exception.getMessage
+
+      case _ =>
+        false
+    }
 }
 
 object Error {
@@ -44,7 +53,7 @@ object Error {
           error.asInstanceOf[F]
 
         case otherError: Error =>
-          Error.Fatal(otherError.exception).asInstanceOf[F]
+          Error.Unknown(otherError.exception).asInstanceOf[F]
       }
 
     override def reserve(e: T): Option[Reserve[Unit]] =
@@ -134,14 +143,10 @@ object Error {
       case exception: Exception.UnknownExtension => Error.UnknownExtension(exception)
 
       case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
-        Error.Corruption("Please see the exception to find out the cause", exception)
+        Error.DataAccess("Either the input or the accessed data was in incorrect format/order. Please see the exception to find out the cause.", exception)
 
-      case exception: Exception.SegmentCorruptionException =>
-        Error.Corruption(exception.message, exception)
-
-      //Fatal error. This error is not expected to occur on a healthy database. This error would indicate corruption.
-      //AppendixRepairer can be used to repair map files.
-      case exception: Throwable => Error.Fatal(exception)
+      //Unknown error.
+      case exception: Throwable => Error.Unknown(exception)
     }
 
   sealed trait ReservedIO extends Error.Segment {
@@ -242,7 +247,7 @@ object Error {
   }
 
   case class UnableToLockDirectory(exception: swaydb.Exception.OverlappingFileLock) extends Error.BootUp
-  case class Corruption(message: String, exception: Throwable) extends Error.API with Error.BootUp with Error.Segment
+  case class DataAccess(message: String, exception: Throwable) extends Error.API with Error.BootUp with Error.Segment
   case class SegmentFileMissing(path: Path, exception: Throwable) extends Error.BootUp
 
   case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int, exception: Throwable) extends Error.IO
@@ -255,14 +260,14 @@ object Error {
    * Pre-cautions are implemented in place to even recover from these failures using tools like AppendixRepairer.
    * This Error is not expected to occur on healthy databases.
    */
-  object Fatal {
-    def apply(message: String): Fatal =
-      new Fatal(new Exception(message))
+  object Unknown {
+    def apply(message: String): Unknown =
+      new Unknown(new Exception(message))
 
-    implicit object ErrorHandler extends BaseErrorHandler[Error.Fatal]
+    implicit object ErrorHandler extends BaseErrorHandler[Error.Unknown]
   }
 
-  case class Fatal(exception: Throwable)
+  case class Unknown(exception: Throwable)
     extends Error.API
       with Error.BootUp
       with Error.IO

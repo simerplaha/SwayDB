@@ -56,5 +56,5 @@ object KeyReader {
     else if (keyValueId.isKeyValueId_UncompressedKey(keyValueIdInt))
       KeyReader.uncompressed(indexReader, previous) map (key => (key, false))
     else
-      IO.Failure(swaydb.Error.Fatal(new Exception(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")))
+      IO.Failure(swaydb.Error.Unknown(new Exception(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")))
 }

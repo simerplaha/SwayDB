@@ -32,11 +32,19 @@ class IOSpec extends WordSpec with Matchers {
   "CatchLeak" when {
     "exception" in {
       val exception = new Exception("Failed")
-      IO.CatchLeak[swaydb.Error.Segment, Unit](throw exception).failed.get shouldBe swaydb.Error.Fatal(exception)
+
+      def io: IO.Success[swaydb.Error.Segment, Unit] = throw exception
+
+      IO.CatchLeak(io.asIO).failed.get shouldBe swaydb.Error.Unknown(exception)
+      IO.CatchLeak(io.asDeferred).failed.get shouldBe swaydb.Error.Unknown(exception)
     }
 
     "no exception" in {
-      IO.CatchLeak(IO.none).get shouldBe empty
+      IO.CatchLeak(IO.none.asIO).get shouldBe empty
+      IO.CatchLeak(IO.none.asDeferred).get shouldBe empty
+
+      IO.CatchLeak(IO.unit.asIO).get shouldBe()
+      IO.CatchLeak(IO.unit.asDeferred).get shouldBe()
     }
   }
 
@@ -46,14 +54,13 @@ class IOSpec extends WordSpec with Matchers {
       var iterations = 0
 
       val result: Option[IO.Failure[Throwable, Int]] =
-        slice.foreachIO {
-          item => {
+        slice foreachIO {
+          item =>
             iterations += 1
             if (item == 3)
-              IO.failed(new Exception(s"result at item $item"))
+              IO.failed(s"result at item $item")
             else
               IO.Success(item)
-          }
         }
 
       result.isDefined shouldBe true
@@ -70,7 +77,7 @@ class IOSpec extends WordSpec with Matchers {
           item => {
             iterations += 1
             if (item == 3)
-              IO.failed(new Exception(s"result at item $item"))
+              IO.failed(s"result at item $item")
             else {
               IO.Success(item)
             }
@@ -117,7 +124,7 @@ class IOSpec extends WordSpec with Matchers {
 
       val result: IO[Throwable, Slice[Int]] =
         slice.mapIO(
-          block = item => if (item == 3) IO.failed(new Exception(s"Failed at $item")) else IO.Success(item),
+          block = item => if (item == 3) IO.failed(s"Failed at $item") else IO.Success(item),
           recover = (ints: Slice[Int], _: IO.Failure[Throwable, Slice[Int]]) => ints.foreach(intsCleanedUp += _)
         )
 
@@ -152,7 +159,7 @@ class IOSpec extends WordSpec with Matchers {
               IO(List(item.toString))
             }
             else {
-              IO.failed(new Exception("Kaboom!"))
+              IO.failed("Kaboom!")
             }
         }
       result.failed.get.getMessage shouldBe "Kaboom!"
@@ -167,7 +174,7 @@ class IOSpec extends WordSpec with Matchers {
         slice.foldLeftIO(0) {
           case (count, item) =>
             if (item == "two")
-              IO.failed(new Exception(s"Failed at $item"))
+              IO.failed(s"Failed at $item")
             else
               IO.Success(count + 1)
         }
@@ -269,7 +276,7 @@ class IOSpec extends WordSpec with Matchers {
         slice untilSome {
           item => {
             iterations += 1
-            IO.failed(new Exception(s"Failed at $item"))
+            IO.failed(s"Failed at $item")
           }
         }
 

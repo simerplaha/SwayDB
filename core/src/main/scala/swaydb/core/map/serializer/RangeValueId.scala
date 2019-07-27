@@ -139,8 +139,8 @@ object RangeValueId {
       rangeId.id -> rangeId
   } toMap
 
-  def apply(id: Int): IO[swaydb.Error.Fatal, RangeValueId] =
+  def apply(id: Int): IO[swaydb.Error.Unknown, RangeValueId] =
     ids.get(id)
       .map(IO.Success(_))
-      .getOrElse(IO.failed(new Exception(s"Invalid ${this.getClass.getSimpleName}: $id")))
+      .getOrElse(IO.failed(s"Invalid ${this.getClass.getSimpleName}: $id"))
 }

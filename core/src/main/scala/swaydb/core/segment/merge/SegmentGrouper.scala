@@ -139,7 +139,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
         } flatMap {
           case (_, lastGroup) =>
             if (!keyValuesToGroup.isFull)
-              IO.failed(new Exception(s"keyValuesToGroup is not full! actual: ${keyValuesToGroup.size} - expected: ${keyValuesToGroup.size}"))
+              IO.failed(s"keyValuesToGroup is not full! actual: ${keyValuesToGroup.size} - expected: ${keyValuesToGroup.size}")
             else
               IO.Success(Some(keyValuesToGroup, lastGroup))
         }
@@ -456,7 +456,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
               if (addToCurrentSplit(force = true))
                 IO.unit
               else
-                IO.failed(new Exception(s"Failed to add key-value to new Segment split. minSegmentSize: $minSegmentSize, splits: ${splits.size}, lastSplit: ${splits.lastOption.map(_.size)}"))
+                IO.failed(s"Failed to add key-value to new Segment split. minSegmentSize: $minSegmentSize, splits: ${splits.size}, lastSplit: ${splits.lastOption.map(_.size)}")
             }
         }
     }

@@ -79,7 +79,7 @@ class IOFailureSpec extends WordSpec with Matchers {
 
     "flatten on failure with success" in {
       val io =
-        IO.Failure[swaydb.Error.Segment, Int](swaydb.Error.Fatal(new Exception("Kaboom!"))).asIO map {
+        IO.Failure[swaydb.Error.Segment, Int](swaydb.Error.Unknown(new Exception("Kaboom!"))).asIO map {
           _ =>
             IO.Success[swaydb.Error.Segment, Unit](11)
         }
@@ -102,7 +102,7 @@ class IOFailureSpec extends WordSpec with Matchers {
         IO.Failure(swaydb.Error.NoSuchFile(new NoSuchFileException("")))
           .recoverWith[swaydb.Error.Segment, Unit] {
             case error: swaydb.Error.Segment =>
-              IO.Failure(swaydb.Error.Fatal(new Exception("recovery exception")))
+              IO.Failure(swaydb.Error.Unknown(new Exception("recovery exception")))
           }
 
       failure.failed.get.exception.getMessage shouldBe "recovery exception"

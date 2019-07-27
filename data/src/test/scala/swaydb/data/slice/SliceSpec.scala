@@ -761,13 +761,24 @@ class SliceSpec extends WordSpec with Matchers {
     Slice.empty == Slice.empty shouldBe true
   }
 
-  "unsliceNonEmpty" in {
-    Slice.empty.unsliceNonEmpty() shouldBe None
-    Slice.emptyEmptyBytes.unsliceNonEmpty() shouldBe None
-    Slice(1, 2, 3).take(0).unsliceNonEmpty() shouldBe None
-    Slice(1, 2, 3).drop(3).unsliceNonEmpty() shouldBe None
-    Slice(1, 2, 3).drop(1).unsliceNonEmpty() shouldBe defined
-    Slice(1, 2, 3).drop(1).drop(1).unsliceNonEmpty() shouldBe defined
-    Slice(1, 2, 3).drop(1).drop(1).drop(1).unsliceNonEmpty() shouldBe None
+  "toOptionUnsliced" in {
+    Slice.empty.toOptionUnsliced() shouldBe None
+    Slice.emptyEmptyBytes.toOptionUnsliced() shouldBe None
+    Slice(1, 2, 3).take(0).toOptionUnsliced() shouldBe None
+    Slice(1, 2, 3).drop(3).toOptionUnsliced() shouldBe None
+    Slice(1, 2, 3).drop(1).toOptionUnsliced() shouldBe defined
+    Slice(1, 2, 3).drop(1).drop(1).toOptionUnsliced() shouldBe defined
+    Slice(1, 2, 3).drop(1).drop(1).drop(1).toOptionUnsliced() shouldBe None
+  }
+
+  "toOption" in {
+    Slice.emptyBytes.toOption shouldBe empty
+    Slice(1, 2, 3).toOption shouldBe Some(Slice(1, 2, 3))
+
+    val slice = Slice(1, 2, 3)
+    val slice1 = slice.take(1).toOption.get
+    slice1 should have size 1
+    slice1 shouldBe Slice(1)
+    slice1.underlyingArraySize shouldBe 3
   }
 }

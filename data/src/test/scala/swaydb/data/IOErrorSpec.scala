@@ -107,9 +107,9 @@ class IOErrorSpec extends FlatSpec with Matchers {
     error.exception.getMessage shouldBe exception.getMessage
     swaydb.Error(exception) shouldBe a[swaydb.Error.ReadOnlyBuffer]
 
-    error = swaydb.Error.Fatal(new Exception("Something bad happened"))
+    error = swaydb.Error.Unknown(new Exception("Something bad happened"))
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
-    swaydb.Error(exception) shouldBe a[swaydb.Error.Fatal]
+    swaydb.Error(exception) shouldBe a[swaydb.Error.Unknown]
   }
 }

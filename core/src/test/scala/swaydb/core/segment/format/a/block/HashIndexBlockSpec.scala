@@ -253,7 +253,7 @@ class HashIndexBlockSpec extends TestBase {
               IO(keyValues.find(_.key equiv key))
 
             case None =>
-              IO.Failure(swaydb.Error.Fatal(s"Got index that does not exist: $indexOffset"))
+              IO.Failure(swaydb.Error.Unknown(s"Got index that does not exist: $indexOffset"))
           }
 
         val hashIndexReader = Block.unblock(BlockRefReader(state.bytes)).get

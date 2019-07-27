@@ -187,7 +187,7 @@ private[core] object Block extends LazyLogging {
     else
       IO.Failure {
         val message = s"Invalid formatID: $formatID. Expected: ${Block.uncompressedBlockId} or ${Block.compressedBlockID}"
-        swaydb.Error.Corruption(message, new Exception(message))
+        swaydb.Error.DataAccess(message, new Exception(message))
       }
 
   def readHeader[O <: BlockOffset](reader: BlockRefReader[O])(implicit blockOps: BlockOps[O, _]): IO[swaydb.Error.Segment, Block.Header[O]] = {
@@ -254,7 +254,7 @@ private[core] object Block extends LazyLogging {
               else
                 IO.Failure {
                   val message = s"Decompressed bytes size (${decompressedBytes.size}) != decompressedLength (${compressionInfo.decompressedLength})."
-                  swaydb.Error.Corruption(message, new Exception(message))
+                  swaydb.Error.DataAccess(message, new Exception(message))
                 }
           }
 

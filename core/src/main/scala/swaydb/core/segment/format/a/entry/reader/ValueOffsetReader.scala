@@ -92,7 +92,7 @@ object ValueOffsetReader {
       previous map {
         previous =>
           IO.Success(previous.valueOffset)
-      } getOrElse IO.Failure(swaydb.Error.Fatal(EntryReaderFailure.NoPreviousKeyValue))
+      } getOrElse IO.Failure(swaydb.Error.Unknown(EntryReaderFailure.NoPreviousKeyValue))
   }
 
   implicit object ValueOffsetReaderNoValue extends ValueOffsetReader[BaseEntryId.Value.NoValue] {

@@ -44,7 +44,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
   getDeadlineIds should not be empty
 
-  def runTestForEachDeadlineAndBinder(testFunction: PartialFunction[(BaseEntryId.DeadlineId, TransientToKeyValueIdBinder[_]), Unit]) =
+  def runTestForEachDeadlineAndBinder(testFunction: PartialFunction[(BaseEntryId.DeadlineId, TransientToKeyValueIdBinder[_]), Unit]): Unit =
     getDeadlineIds.filter(_.isInstanceOf[BaseEntryId.DeadlineId]) foreach { //for all deadline ids
       deadlineID: BaseEntryId.DeadlineId =>
         TransientToKeyValueIdBinder.allBinders foreach { //for all key-values

@@ -103,7 +103,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
             overlappingSegment.getBloomFilterKeyValueCount() flatMap {
               overlappingSegmentKeyValueCount =>
                 IO.Failure(
-                  swaydb.Error.Fatal(
+                  swaydb.Error.Unknown(
                     OverlappingSegmentsException(
                       segmentInfo =
                         SegmentInfoUnTyped(

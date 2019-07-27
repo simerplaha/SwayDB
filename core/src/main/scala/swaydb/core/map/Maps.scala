@@ -438,7 +438,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
           case IO.Failure(error) =>
             //failed to delete file. Add it back to the queue.
             val mapPath: String = removedMap.pathOption.map(_.toString).getOrElse("No path")
-            logger.error(s"Failed to delete map '$mapPath;. Adding it back to the queue.")
+            logger.error(s"Failed to delete map '$mapPath;. Adding it back to the queue.", error.exception)
             maps.addLast(removedMap)
             IO.Failure(error)
 

@@ -76,7 +76,7 @@ private[core] object ValuesBlock {
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   def valuesBlockNotInitialised: IO.Failure[swaydb.Error.Segment, Nothing] =
-    IO.Failure(swaydb.Error.Fatal("Value block not initialised."))
+    IO.Failure(swaydb.Error.Unknown("Value block not initialised."))
 
   case class State(var _bytes: Slice[Byte],
                    headerSize: Int,
@@ -168,34 +168,32 @@ private[core] object ValuesBlock {
     )
 
   def read(fromOffset: Int, length: Int, reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
+  //    reader
+  //      .moveTo(fromOffset)
+  //      .read(length)
+  //      .map(_.getOrNone())
+  //TODO - replace this with above. This code does error check which is used for testing only and not required when deployed.
     if (length == 0)
       IO.none
+    else if (fromOffset < 0)
+      IO.failed(s"Cannot read from negative offset '$fromOffset'.")
     else
       reader
         .moveTo(fromOffset)
         .read(length)
-        .map(Some(_))
-        .recoverWith[swaydb.Error.Segment, Option[Slice[Byte]]] {
-          case error =>
-            error.exception match {
-              case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
-                IO.Failure(
-                  swaydb.Error.Corruption(
-                    message = s"Corrupted Segment: Failed to value bytes of length $length from offset $fromOffset",
-                    exception = exception
-                  )
-                )
-
-              case ex: Exception =>
-                IO.failed(ex)
-            }
+        .flatMap {
+          slice =>
+            if (slice.size != length)
+              IO.failed(s"Read value bytes != expected. ${slice.size} != $length.")
+            else
+              IO.Success(Some(slice))
         }
 
   implicit object ValuesBlockOps extends BlockOps[ValuesBlock.Offset, ValuesBlock] {
     override def updateBlockOffset(block: ValuesBlock, start: Int, size: Int): ValuesBlock =
-      try {
+      try
         block.copy(offset = createOffset(start = start, size = size))
-      } catch {
+      catch {
         case exception: Exception =>
           throw exception
       }

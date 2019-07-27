@@ -82,7 +82,7 @@ protected trait BlockReader extends Reader[swaydb.Error.Segment] with LazyLoggin
                   got
               }
           else
-            IO.Failure(swaydb.Error.Fatal(s"Has no more bytes. Position: $getPosition"))
+            IO.Failure(swaydb.Error.Unknown(s"Has no more bytes. Position: $getPosition"))
       }
 
   def readFromCache(position: Int, size: Int): Slice[Byte] =

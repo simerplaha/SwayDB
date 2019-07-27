@@ -85,8 +85,11 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
   "valueIO" should {
     "always return initial value" in {
       val cache: Cache[swaydb.Error.Segment, Unit, Int] = Cache.valueIO(10)
+      cache.isCached shouldBe true
       cache.get should contain(IO.Success(10))
-      cache.value(()).get shouldBe 10
+      runThisParallel(100.times) {
+        cache.value(()).get shouldBe 10
+      }
     }
   }
 
@@ -145,16 +148,16 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.isCached shouldBe false
 
         //failure
-        cache.value().failed.get.exception.getMessage shouldBe "Kaboom!"
+        cache.value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
         cache.isCached shouldBe false
 
         val mapCache = cache.map(int => IO(int))
-        mapCache.value().failed.get.exception.getMessage shouldBe "Kaboom!"
-        mapCache.value().failed.get.exception.getMessage shouldBe "Kaboom!"
+        mapCache.value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
+        mapCache.value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
 
         val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean())(int => IO(int + 1)))
-        flatMapCache.value().failed.get.exception.getMessage shouldBe "Kaboom!"
-        flatMapCache.value().failed.get.exception.getMessage shouldBe "Kaboom!"
+        flatMapCache.value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
+        flatMapCache.value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
 
         //success
         mock.expects() returning IO(123)
@@ -205,11 +208,11 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.isCached shouldBe false
 
         mock.expects() returning IO.failed("Kaboom!") repeat 2.times
-        cache.map(IO(_)).value().failed.get.exception.getMessage shouldBe "Kaboom!"
+        cache.map(IO(_)).value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
         cache.isCached shouldBe false
         cache.flatMap(
           Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedValue, Int, Int](true, swaydb.Error.ReservedValue(Reserve()))(int => IO.Success(int + 1))
-        ).value().failed.get.exception.getMessage shouldBe "Kaboom!"
+        ).value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
         cache.isCached shouldBe false
 
         mock.expects() returning IO(222)

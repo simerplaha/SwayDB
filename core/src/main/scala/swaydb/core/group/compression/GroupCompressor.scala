@@ -31,7 +31,7 @@ import swaydb.data.slice.Slice
 private[core] object GroupCompressor extends LazyLogging {
 
   def cannotGroupEmptyValues =
-    IO.failed(new Exception("Cannot compress empty key-values"))
+    IO.failed("Cannot compress empty key-values")
 
   /**
    * Returns (fromKey, toKey, fullKey) where fullKey is compressed fromKey and toKey.

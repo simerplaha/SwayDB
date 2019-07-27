@@ -454,7 +454,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment.path
-            IO.failed(new Exception("Kaboom!!")) //fail to copy, upper level will continue copying in it's Level.
+            IO.failed("Kaboom!!") //fail to copy, upper level will continue copying in it's Level.
         }
 
         level.put(segment).runIO

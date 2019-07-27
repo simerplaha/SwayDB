@@ -152,7 +152,7 @@ private[core] object Level extends LazyLogging {
                   case io: Error.IO =>
                     IO.Failure(io)
 
-                  case Error.Fatal(exception) =>
+                  case Error.Unknown(exception) =>
 
                     /**
                      * Segment specific errors get converts to Fatal by [[AppendixMapEntryReader]] which here gets convert back
@@ -1048,7 +1048,7 @@ private[core] case class Level(dirs: Seq[Dir],
                   }
 
                 case None =>
-                  IO.failed(new Exception(s"${paths.head}: Failed to create map entry"))
+                  IO.failed(s"${paths.head}: Failed to create map entry")
               } onFailureSideEffect {
                 failure =>
                   logFailure(s"${paths.head}: Failed to write key-values. Reverting", failure)
@@ -1132,7 +1132,7 @@ private[core] case class Level(dirs: Seq[Dir],
         IO.Success(value)
 
       case None =>
-        IO.failed(new Exception("Failed to build map entry"))
+        IO.failed("Failed to build map entry")
     }
   }
 

@@ -258,6 +258,14 @@ object IO {
         case ex: Throwable =>
           IO.Failure(error = ErrorHandler.fromException[E](ex))
       }
+
+    @inline final def apply[E: ErrorHandler, A](f: => IO.Defer[E, A]): IO.Defer[E, A] =
+      try
+        f
+      catch {
+        case ex: Throwable =>
+          IO.Failure(error = ErrorHandler.fromException[E](ex))
+      }
   }
 
   def fromTry[E: ErrorHandler, A](tryBlock: Try[A]): IO[E, A] =
@@ -289,8 +297,8 @@ object IO {
     override def runInFuture(implicit ec: ExecutionContext): Future[A] = Future.successful(value)
     override def getOrElse[B >: A](default: => B): B = get
     override def orElse[F >: E : ErrorHandler, B >: A](default: => IO[F, B]): IO.Success[F, B] = this
-    override def flatMap[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO[F, B] = f(get)
-    override def flatMap[F >: E : ErrorHandler, B](f: A => IO.Defer[F, B]): IO.Defer[F, B] = f(get)
+    override def flatMap[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO[F, B] = IO.CatchLeak(f(get))
+    override def flatMap[F >: E : ErrorHandler, B](f: A => IO.Defer[F, B]): IO.Defer[F, B] = IO.CatchLeak(f(get))
     override def flatten[F, B](implicit ev: A <:< IO[F, B]): IO[F, B] = get
     override def flattenDeferred[F, B](implicit ev: A <:< IO.Defer[F, B]): IO.Defer[F, B] = get
     override def foreach[B](f: A => B): Unit = f(get)

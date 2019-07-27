@@ -121,7 +121,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
            * Not a very nice way of converting [[Segment]] initialisation errors into [[swaydb.Error.Segment]]
            * as Map readers only know about [[swaydb.Error.Map]].
            *
-           * If an error is Segment specific it gets wrapped as [[swaydb.Error.Fatal]] which get reopened
+           * If an error is Segment specific it gets wrapped as [[swaydb.Error.Unknown]] which get reopened
            * and converted back to [[swaydb.Error.Level]] when the Level initialises.
            *
            * A needs to be a design update on how MapReader read data. MapReader should simply read the data
@@ -147,12 +147,12 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                 case io: Error.IO =>
                   IO.Failure(io)
 
-                case Error.Fatal(exception) =>
-                  IO.Failure(Error.Fatal(exception))
+                case Error.Unknown(exception) =>
+                  IO.Failure(Error.Unknown(exception))
 
                 case other: swaydb.Error.Segment =>
                   //convert Segment error to fatal.
-                  IO.Failure(Error.Fatal(other.exception))
+                  IO.Failure(Error.Unknown(other.exception))
               }
           }
       } yield {

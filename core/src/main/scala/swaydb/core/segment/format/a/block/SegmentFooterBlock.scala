@@ -175,7 +175,7 @@ object SegmentFooterBlock {
       val formatId = footerReader.readIntUnsigned().get
       if (formatId != SegmentBlock.formatId) {
         val message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}"
-        return IO.Failure(swaydb.Error.Corruption(message = message, new Exception(message)))
+        return IO.Failure(swaydb.Error.DataAccess(message = message, new Exception(message)))
       }
       assert(formatId == SegmentBlock.formatId, s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}")
       val createdInLevel = footerReader.readIntUnsigned().get
@@ -188,7 +188,7 @@ object SegmentFooterBlock {
       val crcBytes = footerBytes.take(SegmentBlock.crcBytes)
       val crc = CRC32.forBytes(crcBytes)
       if (expectedCRC != crc) {
-        IO.Failure(swaydb.Error.Corruption(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
+        IO.Failure(swaydb.Error.DataAccess(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
       } else {
         val sortedIndexOffset =
           SortedIndexBlock.Offset(
@@ -259,18 +259,7 @@ object SegmentFooterBlock {
       }
     } catch {
       case exception: Exception =>
-        exception match {
-          case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
-            IO.Failure(
-              swaydb.Error.Corruption(
-                message = "Corrupted Segment: Failed to read footer bytes",
-                exception = exception
-              )
-            )
-
-          case ex: Exception =>
-            IO.failed(ex)
-        }
+        IO.failed(exception)
     }
 
   implicit object SegmentFooterBlockUpdated extends BlockOps[SegmentFooterBlock.Offset, SegmentFooterBlock] {
@@ -281,7 +270,7 @@ object SegmentFooterBlock {
       SegmentFooterBlock.Offset(start, size)
 
     override def readBlock(header: Block.Header[Offset]): IO[swaydb.Error.Segment, SegmentFooterBlock] =
-      IO.Failure(swaydb.Error.Fatal("Footers do not have block header readers."))
+      IO.Failure(swaydb.Error.Unknown("Footers do not have block header readers."))
   }
 }
 

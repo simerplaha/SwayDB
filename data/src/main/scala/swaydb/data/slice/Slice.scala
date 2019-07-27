@@ -641,13 +641,19 @@ class Slice[+T: ClassTag] private(array: Array[T],
   def unslice(): Slice[T] =
     Slice(toArray)
 
-  def unsliceNonEmpty(): Option[Slice[T]] = {
+  def toOptionUnsliced(): Option[Slice[T]] = {
     val slice = unslice()
     if (slice.isEmpty)
       None
     else
       Some(slice)
   }
+
+  def toOption: Option[Slice[T]] =
+    if (this.isEmpty)
+      None
+    else
+      Some(this)
 
   override def iterator = new Iterator[T] {
     private val writtenPosition = fromOffset + self.size - 1

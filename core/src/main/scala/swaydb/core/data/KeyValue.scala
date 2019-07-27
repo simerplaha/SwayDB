@@ -240,7 +240,7 @@ private[swaydb] object Memory {
 
     //ahh not very type-safe.
     override def toRangeValue(): IO[swaydb.Error.Segment, Value.RangeValue] =
-      IO.failed(new Exception("Put cannot be converted to RangeValue"))
+      IO.failed("Put cannot be converted to RangeValue")
   }
 
   case class Update(key: Slice[Byte],
@@ -1390,7 +1390,7 @@ private[core] object Persistent {
       }
 
     override def toRangeValue(): IO[swaydb.Error.Segment, Value.RangeValue] =
-      IO.failed(new Exception("Put cannot be converted to RangeValue"))
+      IO.failed("Put cannot be converted to RangeValue")
 
     override def toMemory(): IO[swaydb.Error.Segment, Memory.Put] =
       getOrFetchValue map {

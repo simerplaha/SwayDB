@@ -95,7 +95,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
     }
 
     "flatten on successes with failure" in {
-      val nested = IO.Success(IO.Success(IO.Success(IO.Failure(swaydb.Error.Fatal(new Exception("Kaboom!"))))))
+      val nested = IO.Success(IO.Success(IO.Success(IO.Failure(swaydb.Error.Unknown(new Exception("Kaboom!"))))))
 
       nested.flatten.flatten.flatten.failed.get.exception.getMessage shouldBe "Kaboom!"
     }

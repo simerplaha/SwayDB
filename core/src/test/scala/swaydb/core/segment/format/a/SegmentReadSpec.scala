@@ -856,13 +856,13 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runIO.exception shouldBe a[ArrayIndexOutOfBoundsException]
 
           Files.write(segment2.path, bytes.dropRight(1))
-          Segment.getAllKeyValues(Seq(segment2)).failed.runIO shouldBe a[swaydb.Error.Corruption]
+          Segment.getAllKeyValues(Seq(segment2)).failed.runIO shouldBe a[swaydb.Error.DataAccess]
 
           Files.write(segment2.path, bytes.drop(10))
           Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runIO.exception shouldBe a[Exception]
 
           Files.write(segment2.path, bytes.dropRight(1))
-          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runIO shouldBe a[swaydb.Error.Corruption]
+          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runIO shouldBe a[swaydb.Error.DataAccess]
         }
       } else {
         //memory files do not require this test

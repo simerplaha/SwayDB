@@ -395,7 +395,7 @@ private[core] object SegmentBlock {
               memoryMap foreach {
                 skipList =>
                   val keyUnsliced = put.key.unslice()
-                  val unslicedValue = put.value flatMap (_.unsliceNonEmpty())
+                  val unslicedValue = put.value flatMap (_.toOptionUnsliced())
 
                   skipList.put(
                     keyUnsliced,
@@ -440,7 +440,7 @@ private[core] object SegmentBlock {
               memoryMap foreach {
                 skipList =>
                   val keyUnsliced = update.key.unslice()
-                  val unslicedValue = update.value flatMap (_.unsliceNonEmpty())
+                  val unslicedValue = update.value flatMap (_.toOptionUnsliced())
 
                   skipList.put(
                     keyUnsliced,
@@ -550,9 +550,9 @@ private[core] object SegmentBlock {
       result =>
         //ensure that all the slices are full.
         if (!sortedIndexBlock.bytes.isFull)
-          IO.failed(new Exception(s"indexSlice is not full actual: ${sortedIndexBlock.bytes.size} - expected: ${sortedIndexBlock.bytes.allocatedSize}"))
+          IO.failed(s"indexSlice is not full actual: ${sortedIndexBlock.bytes.size} - expected: ${sortedIndexBlock.bytes.allocatedSize}")
         else if (valuesBlock.exists(!_.bytes.isFull))
-          IO.failed(new Exception(s"valuesSlice is not full actual: ${valuesBlock.get.bytes.size} - expected: ${valuesBlock.get.bytes.allocatedSize}"))
+          IO.failed(s"valuesSlice is not full actual: ${valuesBlock.get.bytes.size} - expected: ${valuesBlock.get.bytes.allocatedSize}")
         else
           IO.Success(result)
     }
