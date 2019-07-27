@@ -26,7 +26,7 @@ import swaydb.core.RunThis._
 import swaydb.serializers.Default._
 
 class SwayDBSpec0 extends SwayDBSpec {
-  override def newDB(): Map[Int, String, Tag.API] =
+  override def newDB(): Map[Int, String, IO.AIO] =
     swaydb.persistent.Map[Int, String](randomDir).value
 
   override val keyValueCount: Int = 100
@@ -36,12 +36,12 @@ class SwayDBSpec1 extends SwayDBSpec {
 
   override val keyValueCount: Int = 100
 
-  override def newDB(): Map[Int, String, Tag.API] =
+  override def newDB(): Map[Int, String, IO.AIO] =
     swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).value
 }
 
 class SwayDB_Zero_Spec0 extends SwayDBSpec {
-  override def newDB(): Map[Int, String, Tag.API] =
+  override def newDB(): Map[Int, String, IO.AIO] =
     swaydb.persistent.zero.Map[Int, String](randomDir).value
 
   override val keyValueCount: Int = 100
@@ -51,7 +51,7 @@ class SwayDB_Zero_Spec1 extends SwayDBSpec {
 
   override val keyValueCount: Int = 100
 
-  override def newDB(): Map[Int, String, Tag.API] =
+  override def newDB(): Map[Int, String, IO.AIO] =
     swaydb.persistent.zero.Map[Int, String](randomDir, mapSize = 1.byte).value
 }
 
@@ -59,7 +59,7 @@ class SwayDBSpec2 extends SwayDBSpec {
 
   override val keyValueCount: Int = 100
 
-  override def newDB(): Map[Int, String, Tag.API] =
+  override def newDB(): Map[Int, String, IO.AIO] =
     swaydb.memory.Map[Int, String](mapSize = 1.byte).value
 }
 
@@ -67,7 +67,7 @@ class SwayDBSpec3 extends SwayDBSpec {
 
   override val keyValueCount: Int = 100
 
-  override def newDB(): Map[Int, String, Tag.API] =
+  override def newDB(): Map[Int, String, IO.AIO] =
     swaydb.memory.Map[Int, String]().value
 }
 
@@ -89,7 +89,7 @@ class SwayDBSpec3 extends SwayDBSpec {
 
 sealed trait SwayDBSpec extends TestBaseEmbedded {
 
-  def newDB(): Map[Int, String, Tag.API]
+  def newDB(): Map[Int, String, IO.AIO]
 
   "SwayDB" should {
     "remove all but first and last" in {

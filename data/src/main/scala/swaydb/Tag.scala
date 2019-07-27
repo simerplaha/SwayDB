@@ -25,9 +25,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 /**
- * [[Tag]]s are used to tag databases operations (side-effects) into types that can be
- * used to build custom wrappers.
- */
+  * [[Tag]]s are used to tag databases operations (side-effects) into types that can be
+  * used to build custom wrappers.
+  */
 trait Tag[T[_]] {
   def apply[A](a: => A): T[A]
   def foreach[A, B](a: A)(f: A => B): Unit
@@ -78,25 +78,23 @@ object Tag {
         }
     }
 
-  type API[T] = swaydb.IO[swaydb.Error.API, T]
-
-  implicit val sio: Tag[API] =
-    new Tag[API] {
+  implicit val sio: Tag[IO.AIO] =
+    new Tag[IO.AIO] {
 
       import swaydb.Error.API.ErrorHandler
 
-      override def apply[A](a: => A): API[A] = IO(a)
-      override def map[A, B](a: A)(f: A => B): API[B] = IO(f(a))
+      override def apply[A](a: => A): IO.AIO[A] = IO(a)
+      override def map[A, B](a: A)(f: A => B): IO.AIO[B] = IO(f(a))
       override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
-      override def flatMap[A, B](fa: API[A])(f: A => API[B]): API[B] = fa.flatMap(f)
-      override def success[A](value: A): API[A] = IO.successful(value)
-      override def failure[A](exception: Throwable): API[A] = IO.failed(exception)
-      override def none[A]: API[Option[A]] = IO.none
-      override def toFuture[A](a: API[A]): Future[A] = a.toFuture
+      override def flatMap[A, B](fa: IO.AIO[A])(f: A => IO.AIO[B]): IO.AIO[B] = fa.flatMap(f)
+      override def success[A](value: A): IO.AIO[A] = IO.successful(value)
+      override def failure[A](exception: Throwable): IO.AIO[A] = IO.failed(exception)
+      override def none[A]: IO.AIO[Option[A]] = IO.none
+      override def toFuture[A](a: IO.AIO[A]): Future[A] = a.toFuture
 
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, API], drop: Int, take: Option[Int])(operation: (U, A) => U): API[U] = {
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, IO.AIO], drop: Int, take: Option[Int])(operation: (U, A) => U): IO.AIO[U] = {
         @tailrec
-        def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): API[U] =
+        def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): IO.AIO[U] =
           if (take.contains(currentSize))
             IO.Success(previousResult)
           else
@@ -149,7 +147,7 @@ object Tag {
       }
 
       @tailrec
-      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, API])(condition: A => Boolean): API[Option[A]] =
+      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, IO.AIO])(condition: A => Boolean): IO.AIO[Option[A]] =
         stream.next(previous) match {
           case success @ IO.Success(Some(nextA)) =>
             if (condition(nextA))
@@ -163,8 +161,8 @@ object Tag {
           case failure @ IO.Failure(_) =>
             failure
         }
-      override def toIO[E: ErrorHandler, A](a: API[A], timeout: FiniteDuration): IO[E, A] = ???
-      override def fromIO[E: ErrorHandler, A](a: IO[E, A]): API[A] = ???
+      override def toIO[E: ErrorHandler, A](a: IO.AIO[A], timeout: FiniteDuration): IO[E, A] = ???
+      override def fromIO[E: ErrorHandler, A](a: IO[E, A]): IO.AIO[A] = ???
     }
 
   trait Async[T[_]] extends Tag[T] {

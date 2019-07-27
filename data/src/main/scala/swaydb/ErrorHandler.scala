@@ -50,7 +50,7 @@ object ErrorHandler extends LazyLogging {
     override def reserve(e: Nothing): Option[Reserve[Unit]] = None
   }
 
-  implicit object Unit extends ErrorHandler[Unit] {
+  object Unit extends ErrorHandler[Unit] {
     override def toException(e: Unit): Throwable = new Exception("Unit value.")
     override def fromException[F <: Unit](e: Throwable): F = ().asInstanceOf[F]
     override def reserve(e: Unit): Option[Reserve[Unit]] = None

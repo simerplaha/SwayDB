@@ -60,7 +60,7 @@ object Error {
   sealed trait Level extends Error
   sealed trait Map extends Level
   sealed trait Segment extends Level
-  sealed trait BootUp extends Error
+  sealed trait Boot extends Error
   sealed trait Delete extends Level
   sealed trait Close extends Delete
   sealed trait IO extends Segment with Map with Close
@@ -78,8 +78,8 @@ object Error {
     implicit object ErrorHandler extends BaseErrorHandler[Error.Map]
   }
 
-  object BootUp {
-    implicit object ErrorHandler extends BaseErrorHandler[Error.BootUp]
+  object Boot {
+    implicit object ErrorHandler extends BaseErrorHandler[Error.Boot]
   }
 
   object Close {
@@ -230,14 +230,14 @@ object Error {
     override def exception: Throwable = swaydb.Exception.FunctionNotFound(functionID)
   }
 
-  case class UnableToLockDirectory(exception: swaydb.Exception.OverlappingFileLock) extends Error.BootUp
+  case class UnableToLockDirectory(exception: swaydb.Exception.OverlappingFileLock) extends Error.Boot
 
   object DataAccess {
     def message =
       "Either the input or the accessed data was in incorrect format/order. Please see the exception to find out the cause."
   }
-  case class DataAccess(message: String, exception: Throwable) extends Error.API with Error.BootUp with Error.Segment
-  case class SegmentFileMissing(exception: Exception.SegmentFileMissing) extends Error.BootUp {
+  case class DataAccess(message: String, exception: Throwable) extends Error.API with Error.Boot with Error.Segment
+  case class SegmentFileMissing(exception: Exception.SegmentFileMissing) extends Error.Boot {
     def path = exception.path
   }
 
@@ -270,7 +270,7 @@ object Error {
 
   case class Unknown(exception: Throwable)
     extends Error.API
-      with Error.BootUp
+      with Error.Boot
       with Error.IO
       with Error.Segment
       with Error.Level

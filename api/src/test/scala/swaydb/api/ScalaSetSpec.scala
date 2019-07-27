@@ -28,7 +28,7 @@ import swaydb.serializers.Default._
 class ScalaSetSpec0 extends ScalaSetSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): Set[Int, Tag.API] =
+  override def newDB(): Set[Int, IO.AIO] =
     swaydb.persistent.Set[Int](dir = randomDir).value
 }
 
@@ -36,7 +36,7 @@ class ScalaSetSpec1 extends ScalaSetSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(): Set[Int, Tag.API] =
+  override def newDB(): Set[Int, IO.AIO] =
     swaydb.persistent.Set[Int](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).value
 }
 
@@ -44,14 +44,14 @@ class ScalaSetSpec2 extends ScalaSetSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Set[Int, Tag.API] =
+  override def newDB(): Set[Int, IO.AIO] =
     swaydb.memory.Set[Int](mapSize = 1.byte).value
 }
 
 class ScalaSetSpec3 extends ScalaSetSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Set[Int, Tag.API] =
+  override def newDB(): Set[Int, IO.AIO] =
     swaydb.memory.Set[Int]().value
 }
 
@@ -59,14 +59,14 @@ class ScalaSetSpec4 extends ScalaSetSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Set[Int, Tag.API] =
+  override def newDB(): Set[Int, IO.AIO] =
     swaydb.memory.zero.Set[Int](mapSize = 1.byte).value
 }
 
 class ScalaSetSpec5 extends ScalaSetSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Set[Int, Tag.API] =
+  override def newDB(): Set[Int, IO.AIO] =
     swaydb.memory.zero.Set[Int]().value
 }
 
@@ -74,7 +74,7 @@ sealed trait ScalaSetSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Set[Int, Tag.API]
+  def newDB(): Set[Int, IO.AIO]
 
   "Expire" when {
     "put" in {

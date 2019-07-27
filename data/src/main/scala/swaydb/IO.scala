@@ -70,6 +70,9 @@ object IO {
 
   type TIO[T] = IO[Throwable, T]
   type NIO[T] = IO[Nothing, T]
+  type UIO[T] = IO[Unit, T]
+  type AIO[T] = IO[Error.API, T]
+  type BIO[T] = IO[Error.Boot, T]
 
   sealed trait Done
   final case object Done extends Done

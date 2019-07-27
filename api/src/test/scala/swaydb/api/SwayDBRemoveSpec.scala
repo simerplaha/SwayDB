@@ -31,7 +31,7 @@ import scala.concurrent.duration._
 class SwayDBRemoveSpec0 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, Tag.API] =
+  override def newDB(): Map[Int, String, IO.AIO] =
     swaydb.persistent.Map[Int, String](dir = randomDir).value
 }
 
@@ -39,7 +39,7 @@ class SwayDBRemoveSpec1 extends SwayDBRemoveSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, Tag.API] =
+  override def newDB(): Map[Int, String, IO.AIO] =
     swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).value
 }
 
@@ -47,14 +47,14 @@ class SwayDBRemoveSpec2 extends SwayDBRemoveSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Tag.API] =
+  override def newDB(): Map[Int, String, IO.AIO] =
     swaydb.memory.Map[Int, String](mapSize = 1.byte, segmentSize = 10.bytes).value
 }
 
 class SwayDBRemoveSpec3 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Tag.API] =
+  override def newDB(): Map[Int, String, IO.AIO] =
     swaydb.memory.Map[Int, String]().value
 }
 
@@ -62,14 +62,14 @@ class SwayDBRemoveSpec4 extends SwayDBRemoveSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Tag.API] =
+  override def newDB(): Map[Int, String, IO.AIO] =
     swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).value
 }
 
 class SwayDBRemoveSpec5 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Tag.API] =
+  override def newDB(): Map[Int, String, IO.AIO] =
     swaydb.memory.zero.Map[Int, String]().value
 }
 
@@ -77,7 +77,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Map[Int, String, Tag.API]
+  def newDB(): Map[Int, String, IO.AIO]
 
   "Remove" when {
     "Put" in {
@@ -172,7 +172,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
   "Remove" when {
     "Update" in {
-      val db: Map[Int, String, Tag.API] = newDB()
+      val db: Map[Int, String, IO.AIO] = newDB()
 
       eitherOne(
         left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),

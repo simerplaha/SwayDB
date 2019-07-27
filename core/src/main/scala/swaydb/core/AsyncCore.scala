@@ -34,7 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[swaydb.Error.Close, Unit])(implicit ec: ExecutionContext,
                                                                                                          tag: Tag.Async[T]) extends Core[T] {
-  private val block = BlockingCore[Tag.API](zero, onClose)(Tag.sio)
+  private val block = BlockingCore[IO.AIO](zero, onClose)(Tag.sio)
 
   override def put(key: Slice[Byte]): T[IO.Done] =
     tag.fromIO(block.put(key))

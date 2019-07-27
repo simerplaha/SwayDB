@@ -20,10 +20,10 @@
 package swaydb
 
 import swaydb.PrepareImplicits._
+import swaydb.Tag._
 import swaydb.core.Core
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.Tag._
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
@@ -378,7 +378,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     copy(core = core.tagBlocking[T2])
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V](tagBlocking[Tag.API](Tag.sio))
+    ScalaMap[K, V](tagBlocking[IO.AIO](Tag.sio))
 
   def close(): T[Unit] =
     wrapCall(core.close())
