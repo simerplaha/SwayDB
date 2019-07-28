@@ -55,7 +55,7 @@ class UpdateMerger_Function_Spec extends WordSpec with Matchers {
         //          println(s"oldKeyValue: $oldKeyValue")
         //          println(s"newKeyValue: $newKeyValue")
 
-        val expected = Memory.PendingApply(key = key, Slice(oldKeyValue.toFromValue().runIO, newKeyValue.toFromValue().runIO))
+        val expected = Memory.PendingApply(key = key, Slice(oldKeyValue.toFromValue().runRandomIO, newKeyValue.toFromValue().runRandomIO))
 
         assertMerge(
           newKeyValue = newKeyValue,

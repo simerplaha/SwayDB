@@ -80,7 +80,7 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
       //disable throttling so that it does not automatically collapse small Segments
       val level = TestLevel(segmentSize = 1.kb)
       val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)(TestTimer.Empty)
-      level.putKeyValuesTest(keyValues).runIO
+      level.putKeyValuesTest(keyValues).runRandomIO
 
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
@@ -99,13 +99,13 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
             }
         }
       //delete half of the key values which will create small Segments
-      level.putKeyValuesTest(Slice(deleteEverySecond.toArray)).runIO
-      level.collapse(level.segmentsInLevel()).runIO
+      level.putKeyValuesTest(Slice(deleteEverySecond.toArray)).runRandomIO
+      level.collapse(level.segmentsInLevel()).runRandomIO
       //since every second key-value was delete, the number of Segments is reduced to half
       level.segmentFilesInAppendix shouldBe <=((segmentCountBeforeDelete / 2) + 1) //+1 for odd number of key-values
       assertReads(Slice(keyValuesNoDeleted.toArray), level)
 
-      level.delete.runIO
+      level.delete.runRandomIO
     }
 
     "collapse all small Segments into one of the existing small Segments, if the Segment was reopened with a larger segment size" in {
@@ -120,16 +120,16 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
           assertAllSegmentsCreatedInLevel(level)
 
           val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)(TestTimer.Empty)
-          level.putKeyValuesTest(keyValues).runIO
+          level.putKeyValuesTest(keyValues).runRandomIO
           //dispatch another push to trigger split
-          level.putKeyValuesTest(Slice(keyValues.head)).runIO
+          level.putKeyValuesTest(Slice(keyValues.head)).runRandomIO
 
           level.segmentsCount() > 1 shouldBe true
-          level.close.runIO
+          level.close.runRandomIO
 
           //reopen the Level with larger min segment size
           val reopenLevel = level.reopen(segmentSize = 20.mb)
-          reopenLevel.collapse(level.segmentsInLevel()).runIO
+          reopenLevel.collapse(level.segmentsInLevel()).runRandomIO
 
           //resulting segments is 1
           eventually {
@@ -140,7 +140,7 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
           val reopen2 = reopenLevel.reopen
           eventual(assertReads(keyValues, reopen2))
 
-          level.delete.runIO
+          level.delete.runRandomIO
         }
       }
     }
@@ -151,7 +151,7 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
       val level = TestLevel(segmentSize = 1.kb)
       val expiryAt = 5.seconds.fromNow
       val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addPutDeadlines = false)(TestTimer.Empty)
-      level.putKeyValuesTest(keyValues).runIO
+      level.putKeyValuesTest(keyValues).runRandomIO
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
 
@@ -168,20 +168,20 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
         }
 
       //delete half of the key values which will create small Segments
-      level.putKeyValuesTest(Slice(expireEverySecond.toArray)).runIO
+      level.putKeyValuesTest(Slice(expireEverySecond.toArray)).runRandomIO
       keyValues.zipWithIndex foreach {
         case (keyValue, index) =>
           if (index % 2 == 0)
-            level.get(keyValue.key).runIO.value.deadline should contain(expiryAt + index.millisecond)
+            level.get(keyValue.key).runRandomIO.value.deadline should contain(expiryAt + index.millisecond)
       }
 
       sleep(20.seconds)
-      level.collapse(level.segmentsInLevel()).runIO
+      level.collapse(level.segmentsInLevel()).runRandomIO
       level.segmentFilesInAppendix should be <= (segmentCountBeforeDelete / 2)
 
       assertReads(Slice(keyValuesNotExpired.toArray), level)
 
-      level.delete.runIO
+      level.delete.runRandomIO
     }
   }
 
@@ -190,13 +190,13 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
 
     val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
     val maps = TestMap(keyValues.toTransient.toMemoryResponse)
-    level.put(maps).runIO
+    level.put(maps).runRandomIO
 
     val nextLevel = TestLevel()
-    nextLevel.put(level.segmentsInLevel()).runIO
+    nextLevel.put(level.segmentsInLevel()).runRandomIO
 
-    if (persistent) nextLevel.segmentsInLevel() foreach (_.createdInLevel.runIO shouldBe level.levelNumber)
-    nextLevel.collapse(nextLevel.segmentsInLevel()).runIO
-    nextLevel.segmentsInLevel() foreach (_.createdInLevel.runIO shouldBe nextLevel.levelNumber)
+    if (persistent) nextLevel.segmentsInLevel() foreach (_.createdInLevel.runRandomIO shouldBe level.levelNumber)
+    nextLevel.collapse(nextLevel.segmentsInLevel()).runRandomIO
+    nextLevel.segmentsInLevel() foreach (_.createdInLevel.runRandomIO shouldBe nextLevel.levelNumber)
   }
 }

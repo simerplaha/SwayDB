@@ -34,7 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[swaydb.Error.Close, Unit])(implicit ec: ExecutionContext,
                                                                                                          tag: Tag.Async[T]) extends Core[T] {
-  private val block = BlockingCore[IO.AIO](zero, onClose)(Tag.sio)
+  private val block = BlockingCore[IO.ApiIO](zero, onClose)(Tag.sio)
 
   override def put(key: Slice[Byte]): T[IO.Done] =
     tag.fromIO(block.put(key))
@@ -76,7 +76,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     tag.fromIO(block.update(fromKey, to, value))
 
   override def clear(): T[IO.Done] =
-    tag.fromFuture(zero.clear().runInFuture)
+    tag.fromFuture(zero.clear().runFuture)
 
   override def function(key: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
     tag.fromIO(block.function(key, function))
@@ -128,7 +128,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     tag.fromFuture(headFuture)
 
   def headKey: T[Option[Slice[Byte]]] =
-    tag.fromFuture(zero.headKey.runInFuture)
+    tag.fromFuture(zero.headKey.runFuture)
 
   private def lastFuture: Future[Option[KeyValueTuple]] =
   //    zero.last.runInFuture flatMap {
@@ -156,17 +156,17 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     tag.fromFuture(lastFuture)
 
   def lastKey: T[Option[Slice[Byte]]] =
-    tag.fromFuture(zero.lastKey.runInFuture)
+    tag.fromFuture(zero.lastKey.runFuture)
 
   def bloomFilterKeyValueCount: T[Int] =
   //    tag.fromFuture(IO.Deferred.recover(zero.bloomFilterKeyValueCount.get).runInFuture)
     ???
 
   def deadline(key: Slice[Byte]): T[Option[Deadline]] =
-    tag.fromFuture(zero.deadline(key).runInFuture)
+    tag.fromFuture(zero.deadline(key).runFuture)
 
   def contains(key: Slice[Byte]): T[Boolean] =
-    tag.fromFuture(zero.contains(key).runInFuture)
+    tag.fromFuture(zero.contains(key).runFuture)
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
   //    tag.fromFuture(IO.Deferred.recover(zero.mightContainKey(key).get).runInFuture)
@@ -202,7 +202,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     tag.fromFuture(getFuture(key))
 
   def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromFuture(zero.getKey(key).runInFuture)
+    tag.fromFuture(zero.getKey(key).runFuture)
 
   def getKeyValueFuture(key: Slice[Byte]): Future[Option[KeyValueTuple]] =
   //    zero.get(key).runInFuture flatMap {
@@ -255,7 +255,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     tag.fromFuture(beforeFuture(key))
 
   def beforeKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromFuture(zero.lower(key).runInFuture.map(_.map(_.key)))
+    tag.fromFuture(zero.lower(key).runFuture.map(_.map(_.key)))
 
   private def afterFuture(key: Slice[Byte]): Future[Option[KeyValueTuple]] =
   //    zero.higher(key).runInFuture flatMap {
@@ -283,10 +283,10 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     tag.fromFuture(afterFuture(key))
 
   def afterKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromFuture(zero.higher(key).runInFuture.map(_.map(_.key)))
+    tag.fromFuture(zero.higher(key).runFuture.map(_.map(_.key)))
 
   def valueSize(key: Slice[Byte]): T[Option[Int]] =
-    tag.fromFuture(zero.valueSize(key).runInFuture)
+    tag.fromFuture(zero.valueSize(key).runFuture)
 
   override def tagAsync[T[_]](implicit ec: ExecutionContext, tag: Tag.Async[T]): Core[T] =
     copy(zero)

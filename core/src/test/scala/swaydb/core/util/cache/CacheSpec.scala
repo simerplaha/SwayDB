@@ -64,8 +64,8 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
       IOStrategy.ConcurrentIO(cacheOnAccess = stored) //then it's concurrent
 
   /**
-   * Return a partial cache with applied configuration which requires the cache body.
-   */
+    * Return a partial cache with applied configuration which requires the cache body.
+    */
   def getTestCache(isBlockIO: Boolean,
                    isConcurrent: Boolean,
                    isSynchronised: Boolean,
@@ -121,7 +121,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         mapCache.value(???) shouldBe IO.Success(123)
         mapCache.isCached shouldBe cache.isCached
 
-        val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean())(int => IO(int + 1)))
+        val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean())((int: Int) => IO(int + 1)))
         flatMapCache.value() shouldBe IO.Success(124)
         flatMapCache.value(???) shouldBe IO.Success(124)
 
@@ -142,22 +142,24 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
         val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true)(_ => mock.apply())
 
+        val kaboom = IO.failed("Kaboom!").exception
+
         cache.isCached shouldBe false
-        mock.expects() returning IO.failed("Kaboom!") repeat 5.times
+        mock.expects() returning IO.failed(kaboom) repeat 5.times
         cache.getOrElse(IO(233)) shouldBe IO(233)
         cache.isCached shouldBe false
 
         //failure
-        cache.value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
+        cache.value().failed.get shouldBe swaydb.Error.Unknown(kaboom)
         cache.isCached shouldBe false
 
         val mapCache = cache.map(int => IO(int))
-        mapCache.value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
-        mapCache.value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
+        mapCache.value().failed.get shouldBe swaydb.Error.Unknown(kaboom)
+        mapCache.value().failed.get shouldBe swaydb.Error.Unknown(kaboom)
 
-        val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean())(int => IO(int + 1)))
-        flatMapCache.value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
-        flatMapCache.value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
+        val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean())((int: Int) => IO(int + 1)))
+        flatMapCache.value().failed.get shouldBe swaydb.Error.Unknown(kaboom)
+        flatMapCache.value().failed.get shouldBe swaydb.Error.Unknown(kaboom)
 
         //success
         mock.expects() returning IO(123)
@@ -185,12 +187,12 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
         mock.expects() returning IO(111)
         cache.map(int => IO(int)).value(12332) shouldBe IO(111)
-        cache.flatMap(Cache.concurrentIO(randomBoolean(), true)(int => IO(int + 1))).value(23434) shouldBe IO(112)
+        cache.flatMap(Cache.concurrentIO(randomBoolean(), true)((int: Int) => IO(int + 1))).value(23434) shouldBe IO(112)
 
         cache.clear()
         cache.isCached shouldBe false
         mock.expects() returning IO(222)
-        cache.flatMap(Cache.concurrentIO(randomBoolean(), true)(int => IO(int + 2))).value(43433434) shouldBe IO(224)
+        cache.flatMap(Cache.concurrentIO(randomBoolean(), true)((int: Int) => IO(int + 2))).value(43433434) shouldBe IO(224)
 
         //on cached value ??? is not invoked.
         cache.getOrElse(???) shouldBe IO(222)
@@ -207,16 +209,21 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
         cache.isCached shouldBe false
 
-        mock.expects() returning IO.failed("Kaboom!") repeat 2.times
-        cache.map(IO(_)).value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
+        val exception = IO.failed("Kaboom!").exception
+
+        mock.expects() returning IO.failed(exception) repeat 2.times
+        cache.map(IO(_)).value().failed.get shouldBe swaydb.Error.Unknown(exception)
         cache.isCached shouldBe false
-        cache.flatMap(
-          Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](true, swaydb.Error.ReservedResource(Reserve()))(int => IO.Success(int + 1))
-        ).value().failed.get shouldBe swaydb.Error.Unknown("Kaboom!")
+        cache.flatMap {
+          Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](true, swaydb.Error.ReservedResource(Reserve())) {
+            int =>
+              IO.Success(int + 1)
+          }
+        }.value().failed.get shouldBe swaydb.Error.Unknown(exception)
         cache.isCached shouldBe false
 
         mock.expects() returning IO(222)
-        cache.flatMap(Cache.concurrentIO(randomBoolean(), true)(int => IO.Success(int + 1))).value() shouldBe IO.Success(223)
+        cache.flatMap(Cache.concurrentIO(randomBoolean(), true)((int: Int) => IO.Success(int + 1))).value() shouldBe IO.Success(223)
         cache.isCached shouldBe true
       }
 
@@ -328,7 +335,9 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
             if (randomBoolean())
               simpleCache.map(IO(_))
             else if (randomBoolean())
-              simpleCache.flatMap(Cache.concurrentIO(synchronised = false, stored = false)(IO(_)))
+              simpleCache.flatMap {
+                Cache.concurrentIO(synchronised = false, stored = false)((int: Int) => IO(int))
+              }
             else
               simpleCache
 

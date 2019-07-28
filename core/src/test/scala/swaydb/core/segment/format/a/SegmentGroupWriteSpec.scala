@@ -84,7 +84,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
             hashIndexConfig = keyValues.last.hashIndexConfig,
             bloomFilterConfig = keyValues.last.bloomFilterConfig,
             segmentConfig = SegmentBlock.Config.random
-          ).runIO
+          ).runRandomIO
         //        printGroupHierarchy(newSegments)
         groupedSegments should have size 1
         val newGroupedSegment = groupedSegments.head
@@ -120,16 +120,16 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
             hashIndexConfig = keyValues.last.hashIndexConfig,
             bloomFilterConfig = keyValues.last.bloomFilterConfig,
             segmentConfig = SegmentBlock.Config.random
-          ).runIO
+          ).runRandomIO
 
         newSegmentsWithRemovedKeyValues should have size 1
         val lastSegment = newSegmentsWithRemovedKeyValues.head
         keyValues foreach {
           keyValue =>
-            lastSegment.get(keyValue.key).runIO.get match {
+            lastSegment.get(keyValue.key).runRandomIO.get match {
               case _: KeyValue.ReadOnly.Remove =>
               case remove: KeyValue.ReadOnly.Range =>
-                remove.fetchFromOrElseRangeValue.runIO shouldBe Value.remove(None)
+                remove.fetchFromOrElseRangeValue.runRandomIO shouldBe Value.remove(None)
               case actual =>
                 fail(s"Expected Remove found ${actual.getClass.getName}")
             }

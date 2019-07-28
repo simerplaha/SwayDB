@@ -55,7 +55,7 @@ class MapCodecSpec extends TestBase {
       bytes.isFull shouldBe true
 
       import LevelZeroMapEntryReader.Level0Reader
-      MapCodec.read[Slice[Byte], Memory.SegmentResponse](bytes, dropCorruptedTailEntries = false).runIO.item shouldBe empty
+      MapCodec.read[Slice[Byte], Memory.SegmentResponse](bytes, dropCorruptedTailEntries = false).runRandomIO.item shouldBe empty
     }
 
     "write and read key values" in {
@@ -73,7 +73,7 @@ class MapCodecSpec extends TestBase {
       //re-read the bytes written to map and it should contain all the original entries
       import LevelZeroMapEntryReader.Level0Reader
       val readMap = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
-      MapCodec.read[Slice[Byte], Memory.SegmentResponse](bytes, dropCorruptedTailEntries = false).runIO.item.value applyTo readMap
+      MapCodec.read[Slice[Byte], Memory.SegmentResponse](bytes, dropCorruptedTailEntries = false).runRandomIO.item.value applyTo readMap
       keyValues foreach {
         keyValue =>
           val value = readMap.get(keyValue.key)
@@ -93,7 +93,7 @@ class MapCodecSpec extends TestBase {
         //re-read the bytes written to map and it should contain all the original entries
         import LevelZeroMapEntryReader.Level0Reader
         val readMap = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
-        MapCodec.read(bytesWithEmpty, dropCorruptedTailEntries = false).runIO.item.value applyTo readMap
+        MapCodec.read(bytesWithEmpty, dropCorruptedTailEntries = false).runRandomIO.item.value applyTo readMap
         keyValues foreach {
           keyValue =>
             val value = readMap.get(keyValue.key)
@@ -146,7 +146,7 @@ class MapCodecSpec extends TestBase {
 
       //re-read allBytes and write it to skipList and it should contain all the original entries
       import LevelZeroMapEntryReader.Level0Reader
-      val mapEntry = MapCodec.read(allBytes, dropCorruptedTailEntries = false).runIO.item.value
+      val mapEntry = MapCodec.read(allBytes, dropCorruptedTailEntries = false).runRandomIO.item.value
       mapEntry applyTo map
       map should have size allKeyValues.size
       allKeyValues foreach {
@@ -157,9 +157,9 @@ class MapCodecSpec extends TestBase {
 
       //corrupt bytes in bytes2 and read the bytes again. keyValues2 should not exist as it's key-values are corrupted.
       val corruptedBytes2: Slice[Byte] = allBytes.dropRight(1)
-      MapCodec.read(corruptedBytes2, dropCorruptedTailEntries = false).failed.runIO.exception shouldBe a[IllegalStateException]
+      MapCodec.read(corruptedBytes2, dropCorruptedTailEntries = false).failed.runRandomIO.exception shouldBe a[IllegalStateException]
       //enable skip corrupt entries.
-      val mapEntryWithTailCorruptionSkipOnCorruption = MapCodec.read(corruptedBytes2, dropCorruptedTailEntries = true).runIO.item.value
+      val mapEntryWithTailCorruptionSkipOnCorruption = MapCodec.read(corruptedBytes2, dropCorruptedTailEntries = true).runRandomIO.item.value
       map.clear()
       mapEntryWithTailCorruptionSkipOnCorruption applyTo map
       map should have size 5 //only one entry is corrupted
@@ -172,8 +172,8 @@ class MapCodecSpec extends TestBase {
       //corrupt bytes of bytes1
       val corruptedBytes1: Slice[Byte] = allBytes.drop(1)
       //all bytes are corrupted, failure occurs.
-      MapCodec.read(corruptedBytes1, dropCorruptedTailEntries = false).failed.runIO.exception shouldBe a[IllegalStateException]
-      MapCodec.read(corruptedBytes1, dropCorruptedTailEntries = true).runIO.item shouldBe empty
+      MapCodec.read(corruptedBytes1, dropCorruptedTailEntries = false).failed.runRandomIO.exception shouldBe a[IllegalStateException]
+      MapCodec.read(corruptedBytes1, dropCorruptedTailEntries = true).runRandomIO.item shouldBe empty
     }
   }
 }

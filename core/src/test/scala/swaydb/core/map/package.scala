@@ -43,7 +43,7 @@ package object map {
                writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]],
                reader: MapEntryReader[MapEntry[Slice[Byte], Memory.SegmentResponse]],
                skipListMerge: SkipListMerger[Slice[Byte], Memory.SegmentResponse]) = {
-      map.close().runIO
+      map.close().runRandomIO
       Map.persistent[Slice[Byte], Memory.SegmentResponse](
         folder = map.path,
         mmap = Random.nextBoolean(),
@@ -51,7 +51,7 @@ package object map {
         fileSize = 10.mb,
         initialWriteCount = 0,
         dropCorruptedTailEntries = false
-      ).runIO.item
+      ).runRandomIO.item
     }
   }
 }

@@ -75,9 +75,9 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
           keyValues = Slice(randomFixedKeyValue(1)).toTransient,
           assert =
             (keyValue, segment) => {
-              segment.higher(0).runIO.value shouldBe keyValue.head
-              segment.higher(1).runIO shouldBe empty
-              segment.higher(2).runIO shouldBe empty
+              segment.higher(0).runRandomIO.value shouldBe keyValue.head
+              segment.higher(1).runRandomIO shouldBe empty
+              segment.higher(2).runRandomIO shouldBe empty
             }
         )
       }
@@ -91,12 +91,12 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
             (keyValue, segment) => {
               (0 to 9) foreach {
                 i =>
-                  segment.higher(i).runIO.value shouldBe keyValue.head
+                  segment.higher(i).runRandomIO.value shouldBe keyValue.head
               }
 
               (10 to 15) foreach {
                 i =>
-                  segment.higher(i).runIO shouldBe empty
+                  segment.higher(i).runRandomIO shouldBe empty
               }
             }
         )
@@ -109,12 +109,12 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
         keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient,
         assert =
           (keyValues, segment) => {
-            segment.higher(0).runIO.value shouldBe keyValues(0)
-            segment.higher(1).runIO.value shouldBe keyValues(1)
-            segment.higher(2).runIO.value shouldBe keyValues(2)
+            segment.higher(0).runRandomIO.value shouldBe keyValues(0)
+            segment.higher(1).runRandomIO.value shouldBe keyValues(1)
+            segment.higher(2).runRandomIO.value shouldBe keyValues(2)
             (3 to 10) foreach {
               i =>
-                segment.higher(i).runIO shouldBe empty
+                segment.higher(i).runRandomIO shouldBe empty
             }
           }
       )
@@ -136,64 +136,64 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
             (keyValues, segment) => {
               //0
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(0).runIO.value shouldBe keyValues(0)
+              segment.higher(0).runRandomIO.value shouldBe keyValues(0)
               //1
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(1).runIO.value shouldBe keyValues(1)
+              segment.higher(1).runRandomIO.value shouldBe keyValues(1)
               //    2
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(2).runIO.value shouldBe keyValues(1)
+              segment.higher(2).runRandomIO.value shouldBe keyValues(1)
               //     3
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(3).runIO.value shouldBe keyValues(1)
+              segment.higher(3).runRandomIO.value shouldBe keyValues(1)
               //       4
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(4).runIO.value shouldBe keyValues(1)
+              segment.higher(4).runRandomIO.value shouldBe keyValues(1)
               //        5
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(5).runIO.value shouldBe keyValues(2)
+              segment.higher(5).runRandomIO.value shouldBe keyValues(2)
               //          6
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(6).runIO.value shouldBe keyValues(2)
+              segment.higher(6).runRandomIO.value shouldBe keyValues(2)
               //            10
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(10).runIO.value shouldBe keyValues(3)
+              segment.higher(10).runRandomIO.value shouldBe keyValues(3)
               //                 11
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(11).runIO.value shouldBe keyValues(3)
+              segment.higher(11).runRandomIO.value shouldBe keyValues(3)
               //                   12
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(12).runIO.value shouldBe keyValues(3)
+              segment.higher(12).runRandomIO.value shouldBe keyValues(3)
               //                    19
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(19).runIO.value shouldBe keyValues(3)
+              segment.higher(19).runRandomIO.value shouldBe keyValues(3)
               //                      20
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(20).runIO.value shouldBe keyValues(4)
+              segment.higher(20).runRandomIO.value shouldBe keyValues(4)
               //                              21
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(21).runIO.value shouldBe keyValues(4)
+              segment.higher(21).runRandomIO.value shouldBe keyValues(4)
               //                                29
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(29).runIO.value shouldBe keyValues(4)
+              segment.higher(29).runRandomIO.value shouldBe keyValues(4)
               //                                 30
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(30).runIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              segment.higher(30).runRandomIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
               //                                          31
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(31).runIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              segment.higher(31).runRandomIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
               //                                            40
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(40).runIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              segment.higher(40).runRandomIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
               //                                              45
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(45).runIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              segment.higher(45).runRandomIO.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
               //                                                 50
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(50).runIO shouldBe empty
+              segment.higher(50).runRandomIO shouldBe empty
               //                                                     51
               //1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.higher(51).runIO shouldBe empty
+              segment.higher(51).runRandomIO shouldBe empty
             }
         )
       }

@@ -96,14 +96,14 @@ sealed trait LevelPerformanceSpec extends TestBase with Benchmark {
     }
 
   var level = TestLevel()
-  level.putKeyValuesTest(keyValues).runIO
+  level.putKeyValuesTest(keyValues).runRandomIO
 
   def reopenLevel() = {
     println("Re-opening Level")
     level.segmentsInLevel().foreach {
       segment =>
         segment.clearCachedKeyValues()
-        segment.close.runIO
+        segment.close.runRandomIO
     }
     level = level.reopen
   }

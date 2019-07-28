@@ -6,7 +6,7 @@
  * SwayDB is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * License, or (at your option) any toIO version.
  *
  * SwayDB is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,6 +19,7 @@
 
 package swaydb
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
 
@@ -58,21 +59,36 @@ sealed trait IO[+E, +A] {
   def recover[B >: A](f: PartialFunction[E, B]): IO[E, B]
   def toOption: Option[A]
   def flatten[F, B](implicit ev: A <:< IO[F, B]): IO[F, B]
-  def failed: IO[Nothing, E]
+  def failed: IO[Throwable, E]
   def toEither: Either[E, A]
   def toFuture: Future[A]
   def toTry: scala.util.Try[A]
-  def toDeferred(implicit errorHandler: ErrorHandler[E]): IO.Deferred[E, A] =
-    IO.Deferred[E, A](io = this)
+  def toDeferred[F >: E : ErrorHandler]: IO.Deferred[F, A] =
+    IO.Deferred.io[F, A](io = this)
 }
 
 object IO {
 
-  type TIO[T] = IO[Throwable, T]
-  type NIO[T] = IO[Nothing, T]
-  type UIO[T] = IO[Unit, T]
-  type AIO[T] = IO[Error.API, T]
-  type BIO[T] = IO[Error.Boot, T]
+  /**
+    * [[IO]] type with Throwable error type. Here all errors are returned as exception.
+    */
+  type ThrowableIO[T] = IO[Throwable, T]
+  /**
+    * [[IO]] type with Nothing error type. Nothing indicates this IO type can never result in an error.
+    */
+  type NothingIO[T] = IO[Nothing, T]
+  /**
+    * [[IO]] type with Unit error type. Unit indicates this IO type can never result in an error.
+    */
+  type UnitIO[T] = IO[Unit, T]
+  /**
+    * [[IO]] type used to access database APIs.
+    */
+  type ApiIO[T] = IO[Error.API, T]
+  /**
+    * [[IO]] type for database boot up.
+    */
+  type BootIO[T] = IO[Error.Boot, T]
 
   sealed trait Done
   final case object Done extends Done
@@ -260,13 +276,13 @@ object IO {
     override def exists(f: A => Boolean): Boolean = f(value)
     override def getOrElse[B >: A](default: => B): B = get
     override def orElse[F >: E : ErrorHandler, B >: A](default: => IO[F, B]): IO.Success[F, B] = this
-    override def flatMap[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO[F, B] = IO.Catch(f(get))
-    override def flatten[F, B](implicit ev: A <:< IO[F, B]): IO[F, B] = get
     override def foreach[B](f: A => B): Unit = f(get)
     override def map[B](f: A => B): IO[E, B] = IO[E, B](f(get))
+    override def flatMap[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO[F, B] = IO.Catch(f(get))
+    override def flatten[F, B](implicit ev: A <:< IO[F, B]): IO[F, B] = get
     override def recover[B >: A](f: PartialFunction[E, B]): IO[E, B] = this
     override def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO[F, B]]): IO[F, B] = this
-    override def failed: IO[Nothing, E] = IO.failed[Nothing, E](new UnsupportedOperationException("IO.Success.failed"))(ErrorHandler.Nothing)
+    override def failed: IO[Throwable, E] = IO.failed[Throwable, E](new UnsupportedOperationException("IO.Success.failed"))(ErrorHandler.Throwable)
     override def toOption: Option[A] = Some(get)
     override def toEither: Either[E, A] = Right(get)
     override def filter(p: A => Boolean): IO[E, A] =
@@ -291,23 +307,23 @@ object IO {
     new IO.Failure[E, A](ErrorHandler.fromException[E](new scala.Exception(message)))
 
   final case class Failure[+E: ErrorHandler, +A](error: E) extends IO[E, A] {
-    def isCompleted: Boolean = true
     override def isFailure: Boolean = true
     override def isSuccess: Boolean = false
     override def get: A = throw exception
+    override def exists(f: A => Boolean): Boolean = false
     override def getOrElse[B >: A](default: => B): B = default
     override def orElse[F >: E : ErrorHandler, B >: A](default: => IO[F, B]): IO[F, B] = IO.Catch(default)
-    override def flatMap[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO.Failure[F, B] = this.asInstanceOf[IO.Failure[F, B]]
-    override def flatten[F, B](implicit ev: A <:< IO[F, B]): IO.Failure[F, B] = this.asInstanceOf[IO.Failure[F, B]]
     override def foreach[B](f: A => B): Unit = ()
     override def map[B](f: A => B): IO.Failure[E, B] = this.asInstanceOf[IO.Failure[E, B]]
+    override def flatMap[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO.Failure[F, B] = this.asInstanceOf[IO.Failure[F, B]]
+    override def flatten[F, B](implicit ev: A <:< IO[F, B]): IO.Failure[F, B] = this.asInstanceOf[IO.Failure[F, B]]
     override def recover[B >: A](f: PartialFunction[E, B]): IO[E, B] =
       IO.Catch(if (f isDefinedAt error) IO.Success[E, B](f(error)) else this)
 
     override def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO[F, B]]): IO[F, B] =
       IO.Catch(if (f isDefinedAt error) f(error) else this)
 
-    override def failed: IO.Success[Nothing, E] = IO.Success[Nothing, E](error)(ErrorHandler.Nothing)
+    override def failed: IO.Success[Throwable, E] = IO.Success[Throwable, E](error)(ErrorHandler.Throwable)
     override def toOption: Option[A] = None
     override def toEither: Either[E, A] = Left(error)
     override def filter(p: A => Boolean): IO.Failure[E, A] = this
@@ -320,7 +336,6 @@ object IO {
     override def onCompleteSideEffect(f: IO[E, A] => Unit): IO[E, A] = onFailureSideEffect(f)
     override def onSuccessSideEffect(f: A => Unit): IO.Failure[E, A] = this
     def exception: Throwable = ErrorHandler.toException(error)
-    override def exists(f: A => Boolean): Boolean = false
   }
 
   /** **********************************
@@ -331,29 +346,23 @@ object IO {
     * **********************************
     * **********************************/
 
-  object Deferred {
+  object Deferred extends LazyLogging {
 
     val none = IO.Deferred(None, swaydb.Error.ReservedResource(Reserve()))
     val done = IO.Deferred(IO.Done, swaydb.Error.ReservedResource(Reserve()))
     val unit = IO.Deferred((), swaydb.Error.ReservedResource(Reserve()))
     val zero = IO.Deferred(0, swaydb.Error.ReservedResource(Reserve()))
 
-    @inline final def apply[E: ErrorHandler, A](io: IO[E, A]): IO.Deferred[E, A] =
-      new IO.Deferred(() => io.get, None)
-
     @inline final def apply[E: ErrorHandler, A](value: => A): IO.Deferred[E, A] =
       new Deferred(() => value, None)
 
-    @inline private final def apply[E: ErrorHandler, A](value: => A, error: E): IO.Deferred[E, A] =
+    @inline final def apply[E: ErrorHandler, A](value: => A, error: E): IO.Deferred[E, A] =
       new Deferred(() => value, Some(error))
 
-    @inline private final def apply[E: ErrorHandler, A](value: => A, error: Option[E]): IO.Deferred[E, A] =
-      new Deferred(() => value, error)
+    @inline final def io[E: ErrorHandler, A](io: => IO[E, A]): IO.Deferred[E, A] =
+      new IO.Deferred(() => io.get, None)
 
-    def fromFuture[E >: swaydb.Error.ReservedIO : ErrorHandler, A](future: Future[A])(implicit ec: ExecutionContext): IO.Deferred[E, A] =
-      IO.Deferred[E, A](future)
-
-    final def apply[E >: swaydb.Error.ReservedIO : ErrorHandler, A](future: Future[A])(implicit ec: ExecutionContext): IO.Deferred[E, A] = {
+    def future[E >: swaydb.Error.ReservedIO : ErrorHandler, A](future: Future[A])(implicit ec: ExecutionContext): IO.Deferred[E, A] = {
       val reserve = Reserve[Unit](())
       future onComplete {
         _ =>
@@ -384,30 +393,27 @@ object IO {
       )
     }
 
-    @inline private final def recover[E: ErrorHandler, A](f: => A): Either[IO[E, A], IO.Deferred[E, A]] =
-      try Left(IO.Success[E, A](f)) catch {
+    @inline private final def recover[E: ErrorHandler, A](f: IO.Deferred[E, A]): Either[IO[E, A], IO.Deferred[E, A]] =
+      try
+        Left(IO.Success[E, A](f.get))
+      catch {
         case ex: Throwable =>
-          recover[E, A](ex, f)
+          val error = ErrorHandler.fromException[E](ex)
+          ErrorHandler.reserve(error) map {
+            _ =>
+              Right(IO.Deferred(f.get, error))
+          } getOrElse Left(IO.Failure(error))
       }
-
-    private def recover[E: ErrorHandler, A](exception: Throwable, f: => A): Either[Failure[E, A], Deferred[E, A]] = {
-      val error = ErrorHandler.fromException[E](exception)
-      ErrorHandler.reserve(error) map {
-        _ =>
-          Right(IO.Deferred(f, error))
-      } getOrElse Left(IO.Failure(error))
-    }
   }
 
-  final case class Deferred[+E: ErrorHandler, +A](private val value: () => A,
-                                                  error: Option[E]) {
+  final case class Deferred[+E: ErrorHandler, +A] private(value: () => A,
+                                                          error: Option[E]) extends LazyLogging {
 
     @volatile private var _value: Option[Any] = None
-
     private def getValue = _value.map(_.asInstanceOf[A])
 
     //a deferred IO is completed if it's not reserved.
-    def isCompleted: Boolean =
+    def isReady: Boolean =
       error.flatMap(ErrorHandler.reserve[E]) forall (_.isFree)
 
     def isValueDefined: Boolean =
@@ -416,14 +422,12 @@ object IO {
     def isValueEmpty: Boolean =
       !isValueDefined
 
-    def isFailure: Boolean = false
-    def isSuccess: Boolean = false
-    def isDeferred: Boolean = true
     def isBusy =
       error.flatMap(ErrorHandler.reserve[E]) exists (_.isBusy)
 
     @throws[scala.Exception]
-    def get: A = {
+    private def get: A = {
+
       //Runs composed functions does not perform any recovery.
       def forceGet: A =
         getValue getOrElse {
@@ -441,98 +445,127 @@ object IO {
         } getOrElse forceGet
     }
 
+    private def runAndRecover(): Either[IO[E, A], IO.Deferred[E, A]] =
+      if (getValue.isDefined || !isBusy)
+        IO.Deferred.recover[E, A](this)
+      else
+        Right(this)
+
     /**
       * Opens all [[IO.Deferred]] types to read the final value in a blocking manner.
       */
-    def runBlocking: IO[E, A] = {
+    def runIO: IO[E, A] = {
+
+      def blockIfNeeded(): Unit =
+        if (isValueEmpty)
+          error foreach {
+            error =>
+              ErrorHandler.reserve[E](error) foreach {
+                reserve =>
+                  Reserve.blockUntilFree(reserve)
+              }
+          }
 
       @tailrec
-      def doRun(later: IO.Deferred[E, A]): IO[E, A] = {
-        error.flatMap(ErrorHandler.reserve[E]) match {
-          case Some(reserve) =>
-            Reserve.blockUntilFree(reserve)
-            later.run match {
-              case Left(io) =>
-                io
+      def doRun(deferred: IO.Deferred[E, A], tried: Int): IO[E, A] = {
+        blockIfNeeded()
+        deferred.runAndRecover() match {
+          case Left(io) =>
+            io
 
-              case Right(deferred) =>
-                doRun(deferred)
-            }
+          case Right(deferred) =>
+            if (tried > 0 && tried % 10 == 0)
+              logger.warn(s"Competing reserved resource. Times accessed: $tried")
 
-          case None =>
-            IO(get)
+            doRun(deferred, tried + 1)
         }
       }
 
-      doRun(this)
+      doRun(this, 0)
     }
 
     /**
       * Opens all [[IO.Deferred]] types to read the final value in a non-blocking manner.
       */
-    def runInFuture(implicit ec: ExecutionContext): Future[A] = {
+    def runFuture(implicit ec: ExecutionContext): Future[A] = {
 
-      def doRun(deferred: IO.Deferred[E, A]): Future[A] =
+      def doRun(deferred: IO.Deferred[E, A], tried: Int): Future[A] =
         error.flatMap(ErrorHandler.reserve[E]) map {
           reserve =>
-            Reserve.future(reserve).map(_ => deferred.run) flatMap {
+            Reserve.future(reserve).map(_ => deferred.runAndRecover()) flatMap {
               case Left(io) =>
                 io.toFuture
 
-              case Right(later: IO.Deferred[E, A]) =>
-                doRun(later)
+              case Right(deferred: IO.Deferred[E, A]) =>
+                if (tried > 0 && tried % 10 == 0)
+                  logger.warn(s"Competing reserved resource. Times accessed: $tried")
+                doRun(deferred, tried + 1)
             }
         } getOrElse {
           getValue.map(Future.successful) getOrElse Future(get)
         }
 
-      doRun(this)
+      doRun(this, 0)
     }
-
-    def run: Either[IO[E, A], IO.Deferred[E, A]] =
-      if (getValue.isDefined || !isBusy)
-        IO.Deferred.recover[E, A](get)
-      else
-        Right(this)
 
     def getOrElse[B >: A](default: => B): B =
       getValue getOrElse default
 
     def map[B](f: A => B): IO.Deferred[E, B] =
       IO.Deferred[E, B](
-        value = f(get),
+        value = () => f(get),
         error = error
       )
 
     def flatMap[F >: E : ErrorHandler, B](f: A => IO.Deferred[F, B]): IO.Deferred[F, B] =
       IO.Deferred[F, B](
-        value = f(get).get,
+        value = () => f(get).get,
         error = error
       )
 
     def flatMapIO[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO.Deferred[F, B] =
       IO.Deferred[F, B](
-        value = f(get).get,
+        value = () => f(get).get,
         error = error
       )
+
+    def recover[B >: A](f: PartialFunction[E, B]): IO.Deferred[E, B] =
+      IO.Deferred(()) flatMap {
+        _ =>
+          runAndRecover() match {
+            case Left(io) =>
+              io match {
+                case IO.Success(value) =>
+                  IO.Deferred(value)
+
+                case IO.Failure(error) =>
+                  IO.Deferred(f(error))
+              }
+
+            case Right(deferred) =>
+              deferred
+          }
+      }
+
+    def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO.Deferred[F, B]]): IO.Deferred[F, B] =
+      IO.Deferred(()) flatMap {
+        _ =>
+          runAndRecover() match {
+            case Left(io) =>
+              io match {
+                case IO.Success(value) =>
+                  IO.Deferred(value)
+
+                case IO.Failure(error) =>
+                  f(error)
+              }
+
+            case Right(deferred) =>
+              deferred
+          }
+      }
 
     def flatten[F, B](implicit ev: A <:< IO.Deferred[F, B]): IO.Deferred[F, B] =
       get
-
-    def recover[B >: A](f: PartialFunction[E, B]): IO.Deferred[E, B] =
-      IO.Deferred[E, B](
-        value = IO[E, B](get).recover(f).get,
-        error = error
-      )
-
-    def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO.Deferred[F, B]]): IO.Deferred[F, B] =
-      IO.Deferred[E, B](
-        value =
-          IO(get) recover {
-            case error =>
-              f(error).get
-          } get,
-        error = error
-      )
   }
 }

@@ -113,7 +113,7 @@ private[core] object Get {
                 IO.Deferred.none
 
             case IO.Failure(_) =>
-              IO.Deferred(Get(key).get)
+              IO.Deferred.io(Get(key).runIO)
           }
 
         case current: KeyValue.ReadOnly.Function =>
@@ -130,7 +130,7 @@ private[core] object Get {
                         IO.Deferred.none
 
                       case IO.Failure(_) =>
-                        IO.Deferred(Get(key).get)
+                        IO.Deferred.io(Get(key).runIO)
                     }
                   else
                     IO.Deferred.none
@@ -153,7 +153,7 @@ private[core] object Get {
                         IO.Deferred.none
 
                       case IO.Failure(_) =>
-                        IO.Deferred(Get(key).get)
+                        IO.Deferred.io(Get(key).runIO)
                     }
                   else
                     IO.Deferred.none
@@ -171,7 +171,7 @@ private[core] object Get {
         nextGetter.get(key)
 
       case IO.Failure(_) =>
-        IO.Deferred(Get(key).get)
+        IO.Deferred.io(Get(key).runIO)
     }
   }
 }

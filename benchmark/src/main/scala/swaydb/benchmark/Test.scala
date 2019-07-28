@@ -27,7 +27,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default.{SliceOptionSerializer, SliceSerializer}
 
 sealed trait Test {
-  val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], IO.AIO]
+  val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], IO.ApiIO]
 
   def randomWrite: Boolean
 

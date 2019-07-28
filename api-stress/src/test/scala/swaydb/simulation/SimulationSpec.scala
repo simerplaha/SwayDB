@@ -86,7 +86,7 @@ class Memory_Persistent_SimulationSpec extends SimulationSpec {
 
 sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
-  def db: swaydb.Map[Long, Domain, IO.AIO]
+  def db: swaydb.Map[Long, Domain, IO.ApiIO]
 
   val ids = new AtomicInteger(0)
   val functionIDs = new AtomicInteger(0)

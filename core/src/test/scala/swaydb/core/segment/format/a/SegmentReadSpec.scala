@@ -84,7 +84,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
   "belongsTo" should {
     "return true if the input key-value belong to the Segment else false when the Segment contains no Range key-value" in {
-      val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)).toTransient).runIO
+      val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)).toTransient).runRandomIO
 
       runThis(10.times) {
         Segment.belongsTo(randomFixedKeyValue(0), segment) shouldBe false
@@ -108,11 +108,11 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
             }
         }
       }
-      segment.close.runIO
+      segment.close.runRandomIO
     }
 
     "return true if the input key-value belong to the Segment else false when the Segment's max key is a Range key-value" in {
-      val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)).toTransient).runIO
+      val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)).toTransient).runRandomIO
 
       runThis(10.times) {
         Segment.belongsTo(randomFixedKeyValue(0), segment) shouldBe false
@@ -136,11 +136,11 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
             }
         }
       }
-      segment.close.runIO
+      segment.close.runRandomIO
     }
 
     "return true if the input key-value belong to the Segment else false when the Segment's min key is a Range key-value" in {
-      val segment = TestSegment(Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)).toTransient).runIO
+      val segment = TestSegment(Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)).toTransient).runRandomIO
 
       runThis(10.times) {
         Segment.belongsTo(randomFixedKeyValue(0), segment) shouldBe false
@@ -165,12 +165,12 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         }
       }
 
-      segment.close.runIO
+      segment.close.runRandomIO
     }
 
     "for randomizedKeyValues" in {
       val keyValues = randomizedKeyValues(keyValuesCount, addPut = true)
-      val segment = TestSegment(keyValues).runIO
+      val segment = TestSegment(keyValues).runRandomIO
 
       val minKeyInt = keyValues.head.key.readInt()
       val maxKey = getMaxKey(keyValues.last)
@@ -207,13 +207,13 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
             }
         }
       }
-      segment.close.runIO
+      segment.close.runRandomIO
     }
   }
 
   "rangeBelongsTo" should {
     "return true for overlapping KeyValues else false for Segments if the Segment's last key-value is not a Range" in {
-      val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)).toTransient).runIO
+      val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)).toTransient).runRandomIO
 
       //0 - 0
       //      1 - 5
@@ -282,11 +282,11 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
       Segment.overlaps(0, 6, true, segment) shouldBe true
       Segment.overlaps(0, 6, false, segment) shouldBe true
 
-      segment.close.runIO
+      segment.close.runRandomIO
     }
 
     "return true for overlapping KeyValues else false for Segments if the Segment's last key-value is a Range" in {
-      val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)).toTransient).runIO
+      val segment = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(5, 10)).toTransient).runRandomIO
 
 
       //0 - 0
@@ -404,7 +404,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
       //      1 - (5 - 10(EX))
       Segment.overlaps(0, 6, true, segment) shouldBe true
 
-      segment.close.runIO
+      segment.close.runRandomIO
     }
   }
 
@@ -412,45 +412,45 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
     "partition overlapping and non-overlapping Segments" in {
       //0-1, 2-3
       //         4-5, 6-7
-      var segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runIO, TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runIO)
-      var segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runIO, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).runIO)
+      var segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runRandomIO, TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runRandomIO)
+      var segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runRandomIO, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).runRandomIO)
       Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
 
       //0-1,   3-4
       //         4-5, 6-7
-      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runIO, TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)).toTransient).runIO)
-      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runIO, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).runIO)
+      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runRandomIO, TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)).toTransient).runRandomIO)
+      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runRandomIO, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).runRandomIO)
       Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
 
       //0-1,   3 - 5
       //         4-5, 6-7
-      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runIO, TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(5)).toTransient).runIO)
-      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runIO, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).runIO)
+      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runRandomIO, TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(5)).toTransient).runRandomIO)
+      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runRandomIO, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).runRandomIO)
       Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
 
 
       //0-1,      6-8
       //      4-5,    10-20
-      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runIO, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(8)).toTransient).runIO)
-      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runIO, TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20)).toTransient).runIO)
+      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runRandomIO, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(8)).toTransient).runRandomIO)
+      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runRandomIO, TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20)).toTransient).runRandomIO)
       Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
 
       //0-1,             20 - 21
       //      4-5,    10-20
-      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runIO, TestSegment(Slice(randomFixedKeyValue(20), randomFixedKeyValue(21)).toTransient).runIO)
-      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runIO, TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20)).toTransient).runIO)
+      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runRandomIO, TestSegment(Slice(randomFixedKeyValue(20), randomFixedKeyValue(21)).toTransient).runRandomIO)
+      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runRandomIO, TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20)).toTransient).runRandomIO)
       Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
 
       //0-1,               21 - 22
       //      4-5,    10-20
-      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runIO, TestSegment(Slice(randomFixedKeyValue(21), randomFixedKeyValue(22)).toTransient).runIO)
-      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runIO, TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20)).toTransient).runIO)
+      segments1 = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runRandomIO, TestSegment(Slice(randomFixedKeyValue(21), randomFixedKeyValue(22)).toTransient).runRandomIO)
+      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runRandomIO, TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20)).toTransient).runRandomIO)
       Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
 
       //0          -          22
       //      4-5,    10-20
-      segments1 = Seq(TestSegment(Slice(randomRangeKeyValue(0, 22)).toTransient).runIO)
-      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runIO, TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20)).toTransient).runIO)
+      segments1 = Seq(TestSegment(Slice(randomRangeKeyValue(0, 22)).toTransient).runRandomIO)
+      segments2 = Seq(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runRandomIO, TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(20)).toTransient).runRandomIO)
       Segment.partitionOverlapping(segments1, segments2) shouldBe(segments1, Seq.empty)
     }
   }
@@ -459,141 +459,141 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
     "return true for overlapping Segments else false for Segments without Ranges" in {
       //0 1
       //    2 3
-      var segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runIO
-      var segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runIO
+      var segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runRandomIO
+      var segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe false
       Segment.overlaps(segment2, segment1) shouldBe false
 
       //1 2
       //  2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient).runIO
-      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient).runRandomIO
+      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
 
       //2 3
       //2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runIO
-      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runRandomIO
+      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
 
       //  3 4
       //2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)).toTransient).runIO
-      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)).toTransient).runRandomIO
+      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
 
       //    4 5
       //2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runIO
-      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runRandomIO
+      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe false
       Segment.overlaps(segment2, segment1) shouldBe false
 
       //0       10
       //   2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)).toTransient).runIO
-      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)).toTransient).runRandomIO
+      segment2 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
 
       //   2 3
       //0       10
-      segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runIO
-      segment2 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runRandomIO
+      segment2 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
 
-      segment1.close.runIO
-      segment2.close.runIO
+      segment1.close.runRandomIO
+      segment2.close.runRandomIO
     }
 
     "return true for overlapping Segments if the target Segment's maxKey is a Range key" in {
       //0 1
       //    2 3
-      var segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runIO
-      var segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runIO
+      var segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).runRandomIO
+      var segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe false
       Segment.overlaps(segment2, segment1) shouldBe false
       //range over range
-      segment1 = TestSegment(Slice(randomRangeKeyValue(0, 1)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomRangeKeyValue(0, 1)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe false
       Segment.overlaps(segment2, segment1) shouldBe false
 
       //1 2
       //  2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient).runIO
-      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient).runRandomIO
+      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
-      segment1 = TestSegment(Slice(randomRangeKeyValue(1, 2)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomRangeKeyValue(1, 2)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe false
       Segment.overlaps(segment2, segment1) shouldBe false
 
       //1   3
       //  2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(3)).toTransient).runIO
-      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(3)).toTransient).runRandomIO
+      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
-      segment1 = TestSegment(Slice(randomRangeKeyValue(1, 3)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomRangeKeyValue(1, 3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
 
       //2 3
       //2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runIO
-      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runRandomIO
+      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
-      segment1 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
 
       //  3 4
       //2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)).toTransient).runIO
-      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)).toTransient).runRandomIO
+      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe false
       Segment.overlaps(segment2, segment1) shouldBe false
-      segment1 = TestSegment(Slice(randomRangeKeyValue(3, 4)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomRangeKeyValue(3, 4)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe false
       Segment.overlaps(segment2, segment1) shouldBe false
 
       //    4 5
       //2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runIO
-      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).runRandomIO
+      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe false
       Segment.overlaps(segment2, segment1) shouldBe false
-      segment1 = TestSegment(Slice(randomRangeKeyValue(4, 5)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomRangeKeyValue(4, 5)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe false
       Segment.overlaps(segment2, segment1) shouldBe false
 
       //0       10
       //   2 3
-      segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)).toTransient).runIO
-      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)).toTransient).runRandomIO
+      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
-      segment1 = TestSegment(Slice(randomRangeKeyValue(0, 10)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomRangeKeyValue(0, 10)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
 
       //   2 3
       //0       10
-      segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runIO
-      segment2 = TestSegment(Slice(randomRangeKeyValue(0, 10)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).runRandomIO
+      segment2 = TestSegment(Slice(randomRangeKeyValue(0, 10)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
-      segment1 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runIO
+      segment1 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).runRandomIO
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
 
-      segment1.close.runIO
-      segment2.close.runIO
+      segment1.close.runRandomIO
+      segment2.close.runRandomIO
     }
   }
 
@@ -660,10 +660,10 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
     "return key-values with Segments min and max keys only" in {
       implicit def testTimer: TestTimer = TestTimer.Empty
 
-      val segment1 = TestSegment(randomizedKeyValues(keyValuesCount)).runIO
-      val segment2 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment1.maxKey.maxKey.read[Int] + 1))).runIO
-      val segment3 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment2.maxKey.maxKey.read[Int] + 1))).runIO
-      val segment4 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment3.maxKey.maxKey.read[Int] + 1))).runIO
+      val segment1 = TestSegment(randomizedKeyValues(keyValuesCount)).runRandomIO
+      val segment2 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment1.maxKey.maxKey.read[Int] + 1))).runRandomIO
+      val segment3 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment2.maxKey.maxKey.read[Int] + 1))).runRandomIO
+      val segment4 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment3.maxKey.maxKey.read[Int] + 1))).runRandomIO
 
       val segments = Seq(segment1, segment2, segment3, segment4)
 
@@ -691,55 +691,55 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8)).toTransient) ::
           TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)).toTransient) ::
           Nil
-        }.map(_.runIO)
+        }.map(_.runRandomIO)
 
       //0-1
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
-      var inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient)).map(_.runIO)
-      var busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)).toTransient), TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8)).toTransient)).map(_.runIO)
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runIO shouldBe false
+      var inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient)).map(_.runRandomIO)
+      var busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)).toTransient), TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8)).toTransient)).map(_.runRandomIO)
+      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runRandomIO shouldBe false
 
       //     1-2
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient)).map(_.runIO)
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runIO shouldBe false
+      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient)).map(_.runRandomIO)
+      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runRandomIO shouldBe false
 
       //          3-4
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(2)).toTransient)).map(_.runIO)
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runIO shouldBe true
+      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(2)).toTransient)).map(_.runRandomIO)
+      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runRandomIO shouldBe true
 
       //               5-6
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6)).toTransient)).map(_.runIO)
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runIO shouldBe true
+      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6)).toTransient)).map(_.runRandomIO)
+      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runRandomIO shouldBe true
 
       //                         9-10
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)).toTransient)).map(_.runIO)
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runIO shouldBe false
+      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)).toTransient)).map(_.runRandomIO)
+      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runRandomIO shouldBe false
 
       //               5-6
       //     1-2            7-8
       //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6)).toTransient)).map(_.runIO)
+      inputSegments = Seq(TestSegment(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6)).toTransient)).map(_.runRandomIO)
       busySegments = {
         TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient) ::
           TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8)).toTransient) ::
           Nil
-        }.map(_.runIO)
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runIO shouldBe true
+        }.map(_.runRandomIO)
+      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runRandomIO shouldBe true
 
       //               5-6
       //     1-2                 9-10
       //     1-2, 3-4, ---, 7-8, 9-10
-      busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient), TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)).toTransient)).map(_.runIO)
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runIO shouldBe false
+      busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient), TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)).toTransient)).map(_.runRandomIO)
+      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).runRandomIO shouldBe false
     }
 
     "return true or false if input map overlap or do not overlap with busy Segments respectively" in {
@@ -750,38 +750,38 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8)).toTransient) ::
           TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)).toTransient) ::
           Nil
-        }.map(_.runIO)
+        }.map(_.runRandomIO)
 
       //0-1
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
       var inputMap = TestMap(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)))
-      var busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)).toTransient), TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8)).toTransient)).map(_.runIO)
-      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runIO shouldBe false
+      var busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)).toTransient), TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8)).toTransient)).map(_.runRandomIO)
+      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runRandomIO shouldBe false
 
       //     1-2
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
       inputMap = TestMap(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
-      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runIO shouldBe false
+      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runRandomIO shouldBe false
 
       //          3-4
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
       inputMap = TestMap(Slice(randomFixedKeyValue(3), randomFixedKeyValue(2)))
-      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runIO shouldBe true
+      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runRandomIO shouldBe true
 
       //               5-6
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
       inputMap = TestMap(Slice(randomFixedKeyValue(5), randomFixedKeyValue(6)))
-      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runIO shouldBe true
+      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runRandomIO shouldBe true
 
       //                         9-10
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
       inputMap = TestMap(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)))
-      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runIO shouldBe false
+      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runRandomIO shouldBe false
 
       //               5-6
       //     1-2            7-8
@@ -791,14 +791,14 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient) ::
           TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8)).toTransient) ::
           Nil
-        }.map(_.runIO)
-      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runIO shouldBe true
+        }.map(_.runRandomIO)
+      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runRandomIO shouldBe true
 
       //               5-6
       //     1-2                 9-10
       //     1-2, 3-4, ---, 7-8, 9-10
-      busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient), TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)).toTransient)).map(_.runIO)
-      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runIO shouldBe false
+      busySegments = Seq(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient), TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10)).toTransient)).map(_.runRandomIO)
+      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).runRandomIO shouldBe false
     }
   }
 
@@ -809,16 +809,16 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         val keyValues2 = randomizedKeyValues(keyValuesCount, addPut = true)
         val keyValues3 = randomizedKeyValues(keyValuesCount, addPut = true)
 
-        val segment1 = TestSegment(keyValues1).runIO
-        val segment2 = TestSegment(keyValues2).runIO
-        val segment3 = TestSegment(keyValues3).runIO
+        val segment1 = TestSegment(keyValues1).runRandomIO
+        val segment2 = TestSegment(keyValues2).runRandomIO
+        val segment3 = TestSegment(keyValues3).runRandomIO
 
         val all = Slice((keyValues1 ++ keyValues2 ++ keyValues3).toArray).updateStats
 
         val mergedSegment = TestSegment(all).value
         mergedSegment.nearestExpiryDeadline shouldBe nearestDeadline(all)
 
-        val readKeyValues = Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).runIO
+        val readKeyValues = Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).runRandomIO
 
         readKeyValues shouldBe all
       }
@@ -829,13 +829,13 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
       val keyValues2 = randomizedKeyValues(keyValuesCount)
       val keyValues3 = randomizedKeyValues(keyValuesCount)
 
-      val segment1 = TestSegment(keyValues1).runIO
-      val segment2 = TestSegment(keyValues2).runIO
-      val segment3 = TestSegment(keyValues3).runIO
+      val segment1 = TestSegment(keyValues1).runRandomIO
+      val segment2 = TestSegment(keyValues2).runRandomIO
+      val segment3 = TestSegment(keyValues3).runRandomIO
 
-      segment3.delete.runIO //delete a segment so that there is a failure.
+      segment3.delete.runRandomIO //delete a segment so that there is a failure.
 
-      Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runIO.exception shouldBe a[NoSuchFileException]
+      Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runRandomIO.exception shouldBe a[NoSuchFileException]
     }
 
     "fail read if reading any one Segment file is corrupted" in {
@@ -845,24 +845,24 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           val keyValues2 = randomizedKeyValues(keyValuesCount, addPut = true)
           val keyValues3 = randomizedKeyValues(keyValuesCount, addPut = true)
 
-          val segment1 = TestSegment(keyValues1).runIO
-          val segment2 = TestSegment(keyValues2).runIO
-          val segment3 = TestSegment(keyValues3).runIO
+          val segment1 = TestSegment(keyValues1).runRandomIO
+          val segment2 = TestSegment(keyValues2).runRandomIO
+          val segment3 = TestSegment(keyValues3).runRandomIO
 
           val bytes = Files.readAllBytes(segment2.path)
 
           Files.write(segment2.path, bytes.drop(1))
           //FIXME this should result in SegmentCorruptionException
-          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runIO.exception shouldBe a[ArrayIndexOutOfBoundsException]
+          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runRandomIO.exception shouldBe a[ArrayIndexOutOfBoundsException]
 
           Files.write(segment2.path, bytes.dropRight(1))
-          Segment.getAllKeyValues(Seq(segment2)).failed.runIO shouldBe a[swaydb.Error.DataAccess]
+          Segment.getAllKeyValues(Seq(segment2)).failed.runRandomIO shouldBe a[swaydb.Error.DataAccess]
 
           Files.write(segment2.path, bytes.drop(10))
-          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runIO.exception shouldBe a[Exception]
+          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runRandomIO.exception shouldBe a[Exception]
 
           Files.write(segment2.path, bytes.dropRight(1))
-          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runIO shouldBe a[swaydb.Error.DataAccess]
+          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runRandomIO shouldBe a[swaydb.Error.DataAccess]
         }
       } else {
         //memory files do not require this test
@@ -875,11 +875,11 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
       runThis(10.times) {
         //ensure groups are not added because ones read their values are populated in memory
         val keyValues = randomizedKeyValues(keyValuesCount, addPut = true, addGroups = false)
-        val segment = TestSegment(keyValues).runIO
+        val segment = TestSegment(keyValues).runRandomIO
 
         if (persistent) segment.isKeyValueCacheEmpty shouldBe true
 
-        val segmentKeyValues = segment.getAll().runIO.toSlice
+        val segmentKeyValues = segment.getAll().runRandomIO.toSlice
 
         (0 until keyValues.size).foreach {
           index =>
@@ -934,7 +934,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
             Memory.Range(6, 10, Value.put(10, shuffledDeadlines(6)), Value.update(None, Some(shuffledDeadlines(7))))
           )
 
-        Segment.getNearestDeadline(keyValues).runIO.value shouldBe deadlines.head
+        Segment.getNearestDeadline(keyValues).runRandomIO.value shouldBe deadlines.head
       }
     }
   }
@@ -943,13 +943,13 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
     "return None deadline if non of the key-values in the Segments contains deadline" in {
 
       runThis(100.times) {
-        val segment1 = TestSegment(randomizedKeyValues(keyValuesCount, addPut = true, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)).runIO
-        val segment2 = TestSegment(randomizedKeyValues(keyValuesCount, addPut = true, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)).runIO
+        val segment1 = TestSegment(randomizedKeyValues(keyValuesCount, addPut = true, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)).runRandomIO
+        val segment2 = TestSegment(randomizedKeyValues(keyValuesCount, addPut = true, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)).runRandomIO
 
         Segment.getNearestDeadlineSegment(segment1, segment2) shouldBe empty
 
-        segment1.close.runIO
-        segment2.close.runIO
+        segment1.close.runRandomIO
+        segment2.close.runRandomIO
       }
     }
 
@@ -977,8 +977,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         val keyValuesWithDeadline = (keyValues ++ Seq(keyValueWithDeadline)).toTransient
         val keyValuesNoDeadline = randomizedKeyValues(keyValuesCount, addPut = true, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
 
-        val segment1 = TestSegment(keyValuesWithDeadline).runIO
-        val segment2 = TestSegment(keyValuesNoDeadline).runIO
+        val segment1 = TestSegment(keyValuesWithDeadline).runRandomIO
+        val segment2 = TestSegment(keyValuesNoDeadline).runRandomIO
 
         Segment.getNearestDeadlineSegment(segment1, segment2).flatMap(_.nearestExpiryDeadline) should contain(deadline)
         Segment.getNearestDeadlineSegment(segment2, segment1).flatMap(_.nearestExpiryDeadline) should contain(deadline)
@@ -992,8 +992,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         val keyValues1 = randomizedKeyValues(1000)
         val keyValues2 = randomizedKeyValues(1000)
 
-        val segment1 = TestSegment(keyValues1).runIO
-        val segment2 = TestSegment(keyValues2).runIO
+        val segment1 = TestSegment(keyValues1).runRandomIO
+        val segment2 = TestSegment(keyValues2).runRandomIO
 
         val deadline = nearestDeadline(keyValues1 ++ keyValues2)
 

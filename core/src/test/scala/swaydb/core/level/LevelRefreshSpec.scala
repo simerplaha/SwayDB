@@ -80,19 +80,19 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
     "remove expired key-values" in {
       val level = TestLevel(segmentSize = 1.kb)
       val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0))(TestTimer.Empty)
-      level.putKeyValuesTest(keyValues).runIO
+      level.putKeyValuesTest(keyValues).runRandomIO
       //dispatch another put request so that existing Segment gets split
-      level.putKeyValuesTest(Slice(keyValues.head)).runIO
+      level.putKeyValuesTest(Slice(keyValues.head)).runRandomIO
       level.segmentsCount() should be > 1
 
       //expire all key-values
-      level.putKeyValuesTest(Slice(Memory.Range(0, Int.MaxValue, None, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).runIO
+      level.putKeyValuesTest(Slice(Memory.Range(0, Int.MaxValue, None, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).runRandomIO
       level.segmentFilesInAppendix should be > 1
 
       sleep(3.seconds)
       level.segmentsInLevel() foreach {
         segment =>
-          level.refresh(segment).runIO
+          level.refresh(segment).runRandomIO
       }
 
       level.segmentFilesInAppendix shouldBe 0
@@ -103,14 +103,14 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
 
       val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
       val maps = TestMap(keyValues.toTransient.toMemoryResponse)
-      level.put(maps).runIO
+      level.put(maps).runRandomIO
 
       val nextLevel = TestLevel()
-      nextLevel.put(level.segmentsInLevel()).runIO
+      nextLevel.put(level.segmentsInLevel()).runRandomIO
 
-      nextLevel.segmentsInLevel() foreach (_.createdInLevel.runIO shouldBe level.levelNumber)
-      nextLevel.segmentsInLevel() foreach (segment => nextLevel.refresh(segment).runIO)
-      nextLevel.segmentsInLevel() foreach (_.createdInLevel.runIO shouldBe nextLevel.levelNumber)
+      nextLevel.segmentsInLevel() foreach (_.createdInLevel.runRandomIO shouldBe level.levelNumber)
+      nextLevel.segmentsInLevel() foreach (segment => nextLevel.refresh(segment).runRandomIO)
+      nextLevel.segmentsInLevel() foreach (_.createdInLevel.runRandomIO shouldBe nextLevel.levelNumber)
     }
   }
 }

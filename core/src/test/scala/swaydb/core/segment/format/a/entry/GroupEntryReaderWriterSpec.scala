@@ -50,7 +50,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = entry.stats.thisKeyValueAccessIndexPosition,
           previous = None
-        ).runIO
+        ).runRandomIO
 
       //      println("read:  " + read)
       read shouldBe entry
@@ -81,7 +81,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = previous.stats.thisKeyValueAccessIndexPosition,
           previous = None
-        ).runIO
+        ).runRandomIO
 
       //      val previousRead = EntryReader.read(Reader(previous.indexEntryBytes), Reader(valueBytes), 0, 0, 0, None).runIO
       previousRead shouldBe previous
@@ -97,7 +97,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = next.stats.thisKeyValueAccessIndexPosition,
           previous = Some(previousRead)
-        ).runIO
+        ).runRandomIO
       //      println("read:  " + read)
       //      println
       nextRead shouldBe next

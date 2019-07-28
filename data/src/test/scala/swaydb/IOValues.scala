@@ -30,19 +30,19 @@ sealed trait IOValues {
     def value =
       input.get
 
-    private[swaydb] def runIO: T =
+    private[swaydb] def runRandomIO: T =
       if (Random.nextBoolean())
-        IO.Deferred[E, T](input.get).runBlocking.get
+        IO.Deferred[E, T](input.get).runIO.get
       else
-        Await.result(IO.Deferred[E, T](input.get).runInFuture, 1.minute)
+        Await.result(IO.Deferred[E, T](input.get).runFuture, 1.minute)
   }
 
   implicit class RunDeferredIOImplicits[E: ErrorHandler, T](input: => IO.Deferred[E, T]) {
-    def runIO: T =
+    def runRandomIO: T =
       if (Random.nextBoolean())
-        input.runBlocking.get
+        input.runIO.get
       else
-        Await.result(input.runInFuture, 1.minute)
+        Await.result(input.runFuture, 1.minute)
   }
 }
 

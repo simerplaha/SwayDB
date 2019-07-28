@@ -56,7 +56,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = entry.stats.thisKeyValueAccessIndexPosition,
           previous = None
-        ).runIO
+        ).runRandomIO
 
       //      println("read:  " + read)
       read shouldBe entry
@@ -99,7 +99,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = previous.stats.thisKeyValueAccessIndexPosition,
           previous = None
-        ).runIO
+        ).runRandomIO
 
       previousRead shouldBe previous
 
@@ -113,7 +113,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = next.stats.thisKeyValueAccessIndexPosition,
           previous = Some(previousRead)
-        ).runIO
+        ).runRandomIO
 
       nextRead shouldBe next
     }

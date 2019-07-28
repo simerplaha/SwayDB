@@ -47,7 +47,7 @@ private[swaydb] object BlockingCore {
             fileOpenLimiterEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.AIO]] =
+                                              functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
     CoreInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
@@ -61,7 +61,7 @@ private[swaydb] object BlockingCore {
   def apply(config: LevelZeroConfig)(implicit mmapCleanerEC: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.AIO]] =
+                                     functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
     CoreInitializer(
       config = config,
       bufferCleanerEC = mmapCleanerEC
@@ -163,7 +163,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(zero.update(fromKey, to, value))
 
   override def clear(): T[IO.Done] =
-    tag.fromIO(zero.clear().runBlocking)
+    tag.fromIO(zero.clear().runIO)
 
   def function(key: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
     tag.fromIO(zero.applyFunction(key, function))
@@ -200,7 +200,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(headIO)
 
   def headKey: T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.headKey.runBlocking)
+    tag.fromIO(zero.headKey.runIO)
 
   private def lastIO: IO[swaydb.Error.Level, Option[KeyValueTuple]] =
     ???
@@ -228,20 +228,20 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(lastIO)
 
   def lastKey: T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.lastKey.runBlocking)
+    tag.fromIO(zero.lastKey.runIO)
 
   def bloomFilterKeyValueCount: T[Int] =
   //    tag.fromIO(IO.Deferred.recover(zero.bloomFilterKeyValueCount.get).runBlocking)
     ???
 
   def deadline(key: Slice[Byte]): T[Option[Deadline]] =
-    tag.fromIO(zero.deadline(key).runBlocking)
+    tag.fromIO(zero.deadline(key).runIO)
 
   def sizeOfSegments: Long =
     zero.sizeOfSegments
 
   def contains(key: Slice[Byte]): T[Boolean] =
-    tag.fromIO(zero.contains(key).runBlocking)
+    tag.fromIO(zero.contains(key).runIO)
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
   //    tag.fromIO(IO.Deferred.recover(zero.mightContainKey(key).get).runBlocking)
@@ -277,7 +277,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(getIO(key))
 
   def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.getKey(key).runBlocking)
+    tag.fromIO(zero.getKey(key).runIO)
 
   private def getKeyValueIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValueTuple]] =
     ???
@@ -330,7 +330,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(beforeIO(key))
 
   def beforeKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.lower(key).runBlocking.map(_.map(_.key)))
+    tag.fromIO(zero.lower(key).runIO.map(_.map(_.key)))
 
   private def afterIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValueTuple]] =
     ???
@@ -358,10 +358,10 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(afterIO(key))
 
   def afterKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.higher(key).runBlocking.map(_.map(_.key)))
+    tag.fromIO(zero.higher(key).runIO.map(_.map(_.key)))
 
   def valueSize(key: Slice[Byte]): T[Option[Int]] =
-    tag.fromIO(zero.valueSize(key).runBlocking)
+    tag.fromIO(zero.valueSize(key).runIO)
 
   def level0Meter: LevelZeroMeter =
     zero.levelZeroMeter

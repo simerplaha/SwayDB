@@ -52,7 +52,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
           FixedMerger(
             newKeyValue = newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(oldKeyValue.key),
             oldKeyValue = oldKeyValue
-          ).runIO
+          ).runRandomIO
 
         val expectedKeyValue =
           (newKeyValue.fromValue, newKeyValue.rangeValue) match {
@@ -63,7 +63,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
             case (Some(Value.Remove(None, _)), Value.Remove(None, _)) =>
               newKeyValue
             case _ =>
-              Memory.Range(1, 10, expectedFromValue.toFromValue().runIO, newKeyValue.rangeValue)
+              Memory.Range(1, 10, expectedFromValue.toFromValue().runRandomIO, newKeyValue.rangeValue)
           }
 
         //        println
@@ -85,7 +85,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
         val midKey = Random.shuffle((2 to 9).toList).head
         val newKeyValue = Memory.Range(1, 10, randomFromValue(), randomRangeValue())
         val oldKeyValue = randomRemoveKeyValue(midKey)
-        val merged = FixedMerger(newKeyValue.rangeValue.toMemory(midKey), oldKeyValue).runIO
+        val merged = FixedMerger(newKeyValue.rangeValue.toMemory(midKey), oldKeyValue).runRandomIO
 
         val expectedKeyValue =
           newKeyValue.rangeValue match {
@@ -94,7 +94,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
             case _ =>
               Slice(
                 newKeyValue.copy(fromKey = 1, toKey = midKey),
-                Memory.Range(midKey, 10, merged.toFromValue().runIO, newKeyValue.rangeValue)
+                Memory.Range(midKey, 10, merged.toFromValue().runRandomIO, newKeyValue.rangeValue)
               )
           }
 

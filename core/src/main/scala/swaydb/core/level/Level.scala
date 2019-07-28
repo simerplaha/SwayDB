@@ -553,7 +553,7 @@ private[core] case class Level(dirs: Seq[Dir],
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
     reserve(segments).toDeferred flatMap {
       case Left(future) =>
-        IO.Deferred.fromFuture(future)
+        IO.Deferred.future(future)
 
       case Right(minKey) =>
         ensureRelease(minKey) {
@@ -627,7 +627,7 @@ private[core] case class Level(dirs: Seq[Dir],
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
     reserve(map).toDeferred flatMap {
       case Left(future) =>
-        IO.Deferred.fromFuture(future)
+        IO.Deferred.future(future)
 
       case Right(minKey) =>
         ensureRelease(minKey) {
@@ -683,7 +683,7 @@ private[core] case class Level(dirs: Seq[Dir],
       nextLevel =>
         if (!nextLevel.isCopyable(map))
           IO.`false`
-        else if (nextLevel.put(map).isCompleted)
+        else if (nextLevel.put(map).isReady)
           IO.`true`
         else
           IO.`false`
@@ -762,7 +762,7 @@ private[core] case class Level(dirs: Seq[Dir],
         val (copyable, nonCopyable) = nextLevel partitionUnreservedCopyable segments
         if (copyable.isEmpty)
           IO.Success(segments)
-        else if (nextLevel.put(copyable).isCompleted)
+        else if (nextLevel.put(copyable).isReady)
           IO.Success(nonCopyable)
         else
           IO.Success(segments)
@@ -833,7 +833,7 @@ private[core] case class Level(dirs: Seq[Dir],
     logger.debug("{}: Running refresh.", paths.head)
     reserve(Seq(segment)).toDeferred flatMap {
       case Left(future) =>
-        IO.Deferred.fromFuture(future)
+        IO.Deferred.future(future)
 
       case Right(minKey) =>
         ensureRelease(minKey) {
@@ -938,7 +938,7 @@ private[core] case class Level(dirs: Seq[Dir],
       //reserve the Level. It's unknown here what segments will value collapsed into what other Segments.
       reserve(levelSegments).toDeferred flatMap {
         case Left(future) =>
-          IO.Deferred.fromFuture(future.map(_ => 0))
+          IO.Deferred.future(future.map(_ => 0))
 
         case Right(minKey) =>
           ensureRelease(minKey) {

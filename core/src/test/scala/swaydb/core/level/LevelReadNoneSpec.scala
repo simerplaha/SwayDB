@@ -75,11 +75,11 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
         assertAllLevels =
           (_, _, _, level) =>
             Seq(
-              () => level.get(randomStringOption).runIO shouldBe empty,
-              () => level.higher(randomStringOption).runIO shouldBe empty,
-              () => level.lower(randomStringOption).runIO shouldBe empty,
-              () => level.head.runIO shouldBe empty,
-              () => level.last.runIO shouldBe empty
+              () => level.get(randomStringOption).runRandomIO shouldBe empty,
+              () => level.higher(randomStringOption).runRandomIO shouldBe empty,
+              () => level.lower(randomStringOption).runRandomIO shouldBe empty,
+              () => level.head.runRandomIO shouldBe empty,
+              () => level.last.runRandomIO shouldBe empty
             ).runThisRandomly
       )
     }
@@ -141,13 +141,13 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
                   nonExistingKeys foreach {
                     nonExistentKey =>
                       val expectedHigher = existing.find(put => put.hasTimeLeft() && put.key.readInt() > nonExistentKey).map(_.key.readInt())
-                      level.higher(nonExistentKey).runIO.map(_.key.readInt()) shouldBe expectedHigher
+                      level.higher(nonExistentKey).runRandomIO.map(_.key.readInt()) shouldBe expectedHigher
                   },
                 () =>
                   nonExistingKeys foreach {
                     nonExistentKey =>
                       val expectedLower = existing.reverse.find(put => put.hasTimeLeft() && put.key.readInt() < nonExistentKey).map(_.key.readInt())
-                      level.lower(nonExistentKey).runIO.map(_.key.readInt()) shouldBe expectedLower
+                      level.lower(nonExistentKey).runRandomIO.map(_.key.readInt()) shouldBe expectedLower
                   }
               ).runThisRandomlyInParallel
             }

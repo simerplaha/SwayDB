@@ -31,7 +31,7 @@ import scala.concurrent.duration._
 class SwayDBExpireSpec0 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, IO.AIO] =
+  override def newDB(): Map[Int, String, IO.ApiIO] =
     swaydb.persistent.Map[Int, String](dir = randomDir).value
 }
 
@@ -39,7 +39,7 @@ class SwayDBExpireSpec1 extends SwayDBExpireSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, IO.AIO] =
+  override def newDB(): Map[Int, String, IO.ApiIO] =
     swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).value
 }
 
@@ -47,14 +47,14 @@ class SwayDBExpireSpec2 extends SwayDBExpireSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.AIO] =
+  override def newDB(): Map[Int, String, IO.ApiIO] =
     swaydb.memory.Map[Int, String](mapSize = 1.byte).value
 }
 
 class SwayDBExpireSpec3 extends SwayDBExpireSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.AIO] =
+  override def newDB(): Map[Int, String, IO.ApiIO] =
     swaydb.memory.Map[Int, String]().value
 }
 
@@ -62,14 +62,14 @@ class SwayDBExpireSpec4 extends SwayDBExpireSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.AIO] =
+  override def newDB(): Map[Int, String, IO.ApiIO] =
     swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).value
 }
 
 class SwayDBExpireSpec5 extends SwayDBExpireSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.AIO] =
+  override def newDB(): Map[Int, String, IO.ApiIO] =
     swaydb.memory.zero.Map[Int, String]().value
 }
 
@@ -77,7 +77,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Map[Int, String, IO.AIO]
+  def newDB(): Map[Int, String, IO.ApiIO]
 
   "Expire" when {
     "Put" in {
@@ -209,7 +209,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
 
   "Expire" when {
     "Update" in {
-      val db: Map[Int, String, IO.AIO] = newDB()
+      val db: Map[Int, String, IO.ApiIO] = newDB()
 
       val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 

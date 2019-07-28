@@ -53,10 +53,10 @@ class Level0MapEntrySpec extends TestBase {
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
-        reader.read(Reader(slice.drop(ByteSizeOf.int))).runIO.value shouldBe addEntry
+        reader.read(Reader(slice.drop(ByteSizeOf.int))).runRandomIO.value shouldBe addEntry
 
         import LevelZeroMapEntryReader.Level0Reader
-        val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader[swaydb.Error.Map](slice)).runIO.value
+        val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader[swaydb.Error.Map](slice)).runRandomIO.value
         readEntry shouldBe addEntry
 
         val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
@@ -165,7 +165,7 @@ class Level0MapEntrySpec extends TestBase {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import LevelZeroMapEntryReader.Level0Reader
-      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader[swaydb.Error.Map](slice)).runIO.value
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader[swaydb.Error.Map](slice)).runRandomIO.value
       readEntry shouldBe entry
 
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
@@ -190,7 +190,7 @@ class Level0MapEntrySpec extends TestBase {
       //write skip list to bytes should result in the same skip list as before
       import LevelZeroMapEntryWriter.Level0MapEntryPutWriter
       val bytes = MapCodec.write[Slice[Byte], Memory.SegmentResponse](skipList)
-      val recoveryResult = MapCodec.read[Slice[Byte], Memory.SegmentResponse](bytes, false).runIO
+      val recoveryResult = MapCodec.read[Slice[Byte], Memory.SegmentResponse](bytes, false).runRandomIO
       recoveryResult.result shouldBe IO.unit
 
       val readEntries = recoveryResult.item.value

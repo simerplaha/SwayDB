@@ -125,7 +125,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
                   oldKeyValue.copy(value = value, deadline = deadline.orElse(oldKeyValue.deadline), time = newKeyValue.time)
               }
             else
-              Memory.PendingApply(key = key, applies = Slice(oldKeyValue.toFromValue().runIO, newKeyValue.toFromValue().runIO))
+              Memory.PendingApply(key = key, applies = Slice(oldKeyValue.toFromValue().runRandomIO, newKeyValue.toFromValue().runRandomIO))
 
           assertMerge(
             newKeyValue = newKeyValue,
@@ -157,7 +157,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
               assertMerge(
                 newKeyValue = newKeyValue,
                 oldKeyValue = oldKeyValue,
-                expected = Memory.PendingApply(Slice.emptyBytes, Slice(oldKeyValue.toFromValue().runIO, newKeyValue.toFromValue().runIO)),
+                expected = Memory.PendingApply(Slice.emptyBytes, Slice(oldKeyValue.toFromValue().runRandomIO, newKeyValue.toFromValue().runRandomIO)),
                 lastLevel = None
               )
           }
@@ -180,7 +180,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
               assertMerge(
                 newKeyValue = newKeyValue,
                 oldKeyValue = oldKeyValue,
-                expected = Memory.PendingApply(1, Slice(oldKeyValue.toFromValue().runIO, newKeyValue.toFromValue().runIO)),
+                expected = Memory.PendingApply(1, Slice(oldKeyValue.toFromValue().runRandomIO, newKeyValue.toFromValue().runRandomIO)),
                 lastLevel = None
               )
           }

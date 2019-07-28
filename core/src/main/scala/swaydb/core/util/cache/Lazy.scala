@@ -22,14 +22,14 @@ package swaydb.core.util.cache
 import swaydb.{ErrorHandler, IO}
 
 object Lazy {
-  def value[T](synchronised: Boolean, stored: Boolean): LazyValue[T] =
-    new LazyValue[T](
+  def value[B](synchronised: Boolean, stored: Boolean): LazyValue[B] =
+    new LazyValue[B](
       synchronised = synchronised,
       stored = stored
     )
 
-  def io[E: ErrorHandler, T](synchronised: Boolean, stored: Boolean): LazyIO[E, T] =
-    new LazyIO[E, T](
+  def io[E: ErrorHandler, B](synchronised: Boolean, stored: Boolean): LazyIO[E, B] =
+    new LazyIO[E, B](
       lazyValue =
         Lazy.value(
           synchronised = synchronised,
@@ -38,23 +38,23 @@ object Lazy {
     )
 }
 
-protected sealed trait Lazy[V] {
-  def get(): Option[V]
-  def set(value: => V): V
-  def getOrSet(value: => V): V
-  def getOrElse[T >: V](f: => T): T
+protected sealed trait Lazy[A] {
+  def get(): Option[A]
+  def set(value: => A): A
+  def getOrSet(value: => A): A
+  def getOrElse[B >: A](f: => B): B
   def isDefined: Boolean
   def clear(): Unit
 }
 
-class LazyValue[V](synchronised: Boolean, stored: Boolean) extends Lazy[V] {
+class LazyValue[A](synchronised: Boolean, stored: Boolean) extends Lazy[A] {
 
-  @volatile private var cache: Option[V] = None
+  @volatile private var cache: Option[A] = None
 
-  override def get(): Option[V] =
+  override def get(): Option[A] =
     cache
 
-  def set(value: => V): V =
+  def set(value: => A): A =
     if (stored)
       if (synchronised) {
         this.synchronized {
@@ -70,7 +70,7 @@ class LazyValue[V](synchronised: Boolean, stored: Boolean) extends Lazy[V] {
     else
       value
 
-  def getOrSet(value: => V): V =
+  def getOrSet(value: => A): A =
     cache getOrElse {
       if (synchronised)
         this.synchronized {
@@ -87,13 +87,13 @@ class LazyValue[V](synchronised: Boolean, stored: Boolean) extends Lazy[V] {
       }
     }
 
-  def getOrElse[T >: V](f: => T): T =
+  def getOrElse[B >: A](f: => B): B =
     get() getOrElse f
 
-  def map[T](f: V => T): Option[T] =
+  def map[B](f: A => B): Option[B] =
     get() map f
 
-  def flatMap[T >: V](f: V => Option[T]): Option[T] =
+  def flatMap[B >: A](f: A => Option[B]): Option[B] =
     get() flatMap f
 
   def isDefined: Boolean =
@@ -103,9 +103,9 @@ class LazyValue[V](synchronised: Boolean, stored: Boolean) extends Lazy[V] {
     this.cache = None
 }
 
-class LazyIO[E: ErrorHandler, V](lazyValue: LazyValue[IO.Success[E, V]]) extends Lazy[IO[E, V]] {
+class LazyIO[E: ErrorHandler, A](lazyValue: LazyValue[IO.Success[E, A]]) extends Lazy[IO[E, A]] {
 
-  def set(value: => IO[E, V]): IO[E, V] =
+  def set(value: => IO[E, A]): IO[E, A] =
     try
       lazyValue set IO.Success(value.get)
     catch {
@@ -113,10 +113,10 @@ class LazyIO[E: ErrorHandler, V](lazyValue: LazyValue[IO.Success[E, V]]) extends
         IO.failed(exception)
     }
 
-  override def get(): Option[IO.Success[E, V]] =
+  override def get(): Option[IO.Success[E, A]] =
     lazyValue.get()
 
-  override def getOrSet(value: => IO[E, V]): IO[E, V] =
+  override def getOrSet(value: => IO[E, A]): IO[E, A] =
     try
       lazyValue getOrSet IO.Success(value.get)
     catch {
@@ -124,16 +124,16 @@ class LazyIO[E: ErrorHandler, V](lazyValue: LazyValue[IO.Success[E, V]]) extends
         IO.failed(exception)
     }
 
-  override def getOrElse[T >: IO[E, V]](f: => T): T =
+  override def getOrElse[B >: IO[E, A]](f: => B): B =
     lazyValue getOrElse f
 
-  def map[T](f: V => T): IO[E, Option[T]] =
+  def map[B](f: A => B): IO[E, Option[B]] =
     lazyValue
       .get()
       .map(_.map(f).map(Some(_)))
       .getOrElse(IO.none)
 
-  def flatMap[T](f: V => IO[E, T]): IO[E, Option[T]] =
+  def flatMap[B](f: A => IO[E, B]): IO[E, Option[B]] =
     lazyValue
       .get()
       .map(_.flatMap(f).map(Some(_)))

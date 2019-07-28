@@ -309,10 +309,10 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamed[A, T] { se
    *
    * @param timeout If the current stream is async/future based then the timeout is used else it's ignored.
    */
-  def toIO[E: ErrorHandler](timeout: FiniteDuration): Stream[A, IO.AIO] =
-    new Stream[A, IO.AIO] {
-      override def headOption: IO.AIO[Option[A]] = self.tag.toIO(self.headOption, timeout)
-      override private[swaydb] def next(previous: A): IO.AIO[Option[A]] = self.tag.toIO(self.next(previous), timeout)
+  def toIO[E: ErrorHandler](timeout: FiniteDuration): Stream[A, IO.ApiIO] =
+    new Stream[A, IO.ApiIO] {
+      override def headOption: IO.ApiIO[Option[A]] = self.tag.toIO(self.headOption, timeout)
+      override private[swaydb] def next(previous: A): IO.ApiIO[Option[A]] = self.tag.toIO(self.next(previous), timeout)
     }
 
   /**
