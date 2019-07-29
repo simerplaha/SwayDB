@@ -75,7 +75,7 @@ class SegmentMergeSpec extends TestBase {
             bloomFilterConfig = BloomFilterBlock.Config.random,
             groupLastSegment = true,
             createdInLevel = randomIntMax()
-          ).valueIOGet
+          ).valueIO.value
 
         newSegments.size shouldBe 1
 
@@ -110,7 +110,7 @@ class SegmentMergeSpec extends TestBase {
             bloomFilterConfig = BloomFilterBlock.Config.random,
             groupLastSegment = true,
             createdInLevel = randomIntMax()
-          ).valueIOGet
+          ).valueIO.value
 
         newSegments.size shouldBe 1
 
@@ -136,7 +136,7 @@ class SegmentMergeSpec extends TestBase {
           bloomFilterConfig = BloomFilterBlock.Config.random,
           groupLastSegment = true,
           createdInLevel = randomIntMax()
-        ).valueIOGet.size shouldBe 1
+        ).valueIO.value.size shouldBe 1
 
         SegmentMerger.completeMerge(
           segments = ListBuffer(segment),
@@ -149,7 +149,7 @@ class SegmentMergeSpec extends TestBase {
           bloomFilterConfig = BloomFilterBlock.Config.random,
           groupLastSegment = true,
           createdInLevel = randomIntMax()
-        ).valueIOGet.size shouldBe 1
+        ).valueIO.value.size shouldBe 1
       }
     }
 
@@ -190,7 +190,7 @@ class SegmentMergeSpec extends TestBase {
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentIO = SegmentIO.random,
           createdInLevel = randomIntMax()
-        ).valueIOGet.toArray
+        ).valueIO.value.toArray
       )
 
       assert(
@@ -207,7 +207,7 @@ class SegmentMergeSpec extends TestBase {
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentIO = SegmentIO.random,
           createdInLevel = randomIntMax()
-        ).valueIOGet.toArray
+        ).valueIO.value.toArray
       )
     }
   }
@@ -232,7 +232,7 @@ class SegmentMergeSpec extends TestBase {
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentIO = SegmentIO.random,
           createdInLevel = randomIntMax()
-        ).valueIOGet
+        ).valueIO.value
 
       splits should have size 5
       splits.map(_.toMemory) should contain only
@@ -256,7 +256,7 @@ class SegmentMergeSpec extends TestBase {
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentIO = SegmentIO.random,
           createdInLevel = randomIntMax()
-        ).valueIOGet
+        ).valueIO.value
 
       persistentSplit should have size 1
 
@@ -284,7 +284,7 @@ class SegmentMergeSpec extends TestBase {
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentIO = SegmentIO.random,
           createdInLevel = randomIntMax()
-        ).valueIOGet
+        ).valueIO.value
 
       memorySplit should have size 1
 
@@ -312,7 +312,7 @@ class SegmentMergeSpec extends TestBase {
             bloomFilterConfig = BloomFilterBlock.Config.random,
             segmentIO = SegmentIO.random,
             createdInLevel = randomIntMax()
-          ).valueIOGet
+          ).valueIO.value
 
         mergeResultWithoutGroup should have size 1
 
@@ -327,7 +327,7 @@ class SegmentMergeSpec extends TestBase {
             bloomFilterConfig = BloomFilterBlock.Config.random,
             groupConfig = SegmentBlock.Config.random,
             createdInLevel = randomIntMax()
-          ).valueIOGet.toMemory
+          ).valueIO.value.toMemory
 
         val mergeResultWithGroup =
           SegmentMerger.merge(
@@ -343,7 +343,7 @@ class SegmentMergeSpec extends TestBase {
             bloomFilterConfig = BloomFilterBlock.Config.random,
             segmentIO = SegmentIO.random,
             createdInLevel = randomIntMax()
-          ).valueIOGet
+          ).valueIO.value
 
         mergeResultWithGroup should have size 1
 

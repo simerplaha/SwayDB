@@ -144,10 +144,10 @@ object TestData {
       }
 
     def reopen: Segment =
-      tryReopen.valueIOGet
+      tryReopen.valueIO.value
 
     def reopen(path: Path): Segment =
-      tryReopen(path).valueIOGet
+      tryReopen(path).valueIO.value
   }
 
   implicit class ReopenLevel(level: Level)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -229,7 +229,7 @@ object TestData {
         segmentSize = segmentSize,
         throttle = throttle,
         nextLevel = nextLevel
-      ).valueIOGet
+      ).valueIO.value
 
     def tryReopen(segmentSize: Long = level.segmentSize,
                   throttle: LevelMeter => Throttle = level.throttle,
@@ -293,7 +293,7 @@ object TestData {
                 )
             }
         }
-      reopened.valueIOGet
+      reopened.valueIO.value
     }
 
     def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly]): IO[swaydb.Error.Level, Unit] =
@@ -645,7 +645,7 @@ object TestData {
               implicit val segmentIO = SegmentIO.random
               Transient.Group(
                 keyValues =
-                  group.segment.getAll().valueIOGet
+                  group.segment.getAll().valueIO.value
                     .toTransient(
                       valuesConfig = valuesConfig,
                       sortedIndexConfig = sortedIndexConfig,
@@ -661,7 +661,7 @@ object TestData {
                 bloomFilterConfig = bloomFilterConfig,
                 previous = previous,
                 groupConfig = SegmentBlock.Config.random
-              ).valueIOGet
+              ).valueIO.value
           }
 
         case persistent: Persistent =>
@@ -671,7 +671,7 @@ object TestData {
                 case put @ Persistent.Put(key, deadline, valueReader, time, _, _, _, _, _, _, _) =>
                   Transient.Put(
                     key = key,
-                    value = put.getOrFetchValue.valueIOGet,
+                    value = put.getOrFetchValue.valueIO.value,
                     deadline = deadline,
                     time = time,
                     previous = previous,
@@ -685,7 +685,7 @@ object TestData {
                 case put @ Persistent.Update(key, deadline, valueReader, time, _, _, _, _, _, _, _) =>
                   Transient.Update(
                     key = key,
-                    value = put.getOrFetchValue.valueIOGet,
+                    value = put.getOrFetchValue.valueIO.value,
                     deadline = deadline,
                     time = time,
                     previous = previous,
@@ -699,7 +699,7 @@ object TestData {
                 case function @ Persistent.Function(key, lazyFunctionReader, time, _, _, _, _, _, _, _) =>
                   Transient.Function(
                     key = key,
-                    function = lazyFunctionReader.value(ValuesBlock.Offset(function.valueOffset, function.valueLength)).valueIOGet,
+                    function = lazyFunctionReader.value(ValuesBlock.Offset(function.valueOffset, function.valueLength)).valueIO.value,
                     time = time,
                     previous = previous,
                     valuesConfig = valuesConfig,
@@ -712,7 +712,7 @@ object TestData {
                 case pendingApply: Persistent.PendingApply =>
                   Transient.PendingApply(
                     key = pendingApply.key,
-                    applies = pendingApply.getOrFetchApplies.valueIOGet,
+                    applies = pendingApply.getOrFetchApplies.valueIO.value,
                     previous = previous,
                     valuesConfig = valuesConfig,
                     sortedIndexConfig = sortedIndexConfig,
@@ -736,7 +736,7 @@ object TestData {
               }
 
             case range @ Persistent.Range(_fromKey, _toKey, _, _, _, _, _, _, _, _) =>
-              val (fromValue, rangeValue) = range.fetchFromAndRangeValue.valueIOGet
+              val (fromValue, rangeValue) = range.fetchFromAndRangeValue.valueIO.value
               Transient.Range(
                 fromKey = _fromKey,
                 toKey = _toKey,
@@ -754,7 +754,7 @@ object TestData {
               implicit val segmentIO = SegmentIO.random
 
               Transient.Group(
-                keyValues = group.segment.getAll().valueIOGet.toTransient,
+                keyValues = group.segment.getAll().valueIO.value.toTransient,
                 createdInLevel = group.segment.getFooter().get.createdInLevel,
                 valuesConfig = valuesConfig,
                 sortedIndexConfig = sortedIndexConfig,
@@ -763,7 +763,7 @@ object TestData {
                 bloomFilterConfig = bloomFilterConfig,
                 previous = previous,
                 groupConfig = SegmentBlock.Config.random
-              ).valueIOGet
+              ).valueIO.value
           }
       }
     }
@@ -808,23 +808,23 @@ object TestData {
             case persistent: Persistent.Fixed =>
               persistent match {
                 case put @ Persistent.Put(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-                  Memory.Put(key, put.getOrFetchValue.valueIOGet, deadline, time)
+                  Memory.Put(key, put.getOrFetchValue.valueIO.value, deadline, time)
 
                 case update @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-                  Memory.Update(key, update.getOrFetchValue.valueIOGet, deadline, time)
+                  Memory.Update(key, update.getOrFetchValue.valueIO.value, deadline, time)
 
                 case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-                  Memory.Function(key, function.getOrFetchFunction.valueIOGet, time)
+                  Memory.Function(key, function.getOrFetchFunction.valueIO.value, time)
 
                 case pendingApply @ Persistent.PendingApply(key, time, deadline, lazyPendingApplyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-                  Memory.PendingApply(key, pendingApply.getOrFetchApplies.valueIOGet)
+                  Memory.PendingApply(key, pendingApply.getOrFetchApplies.valueIO.value)
 
                 case Persistent.Remove(_key, deadline, time, indexOffset, nextIndexOffset, nextIndexSize, _, _) =>
                   Memory.Remove(_key, deadline, time)
               }
 
             case range @ Persistent.Range(_fromKey, _toKey, _, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
-              val (fromValue, rangeValue) = range.fetchFromAndRangeValue.valueIOGet
+              val (fromValue, rangeValue) = range.fetchFromAndRangeValue.valueIO.value
               Memory.Range(_fromKey, _toKey, fromValue, rangeValue)
           }
       }
@@ -891,16 +891,16 @@ object TestData {
     )
 
   def randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): RangeValue = {
-    val value = randomRemoveOrUpdateOrFunctionRemove(Slice.emptyBytes, addFunctions).toRangeValue().valueIOGet
+    val value = randomRemoveOrUpdateOrFunctionRemove(Slice.emptyBytes, addFunctions).toRangeValue().valueIO.value
     //println(value)
     value
   }
 
   def randomRemoveFunctionValue()(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.Function =
-    randomFunctionKeyValue(Slice.emptyBytes, SwayFunctionOutput.Remove).toRangeValue().valueIOGet
+    randomFunctionKeyValue(Slice.emptyBytes, SwayFunctionOutput.Remove).toRangeValue().valueIO.value
 
   def randomFunctionValue(output: SwayFunctionOutput = randomFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.Function =
-    randomFunctionKeyValue(Slice.emptyBytes, SwayFunctionOutput.Remove).toRangeValue().valueIOGet
+    randomFunctionKeyValue(Slice.emptyBytes, SwayFunctionOutput.Remove).toRangeValue().valueIO.value
 
   def randomRemoveOrUpdateOrFunctionRemoveValueOption(addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Option[RangeValue] =
     eitherOne(
@@ -1757,7 +1757,7 @@ object TestData {
               hashIndexConfig = hashIndexConfig,
               bloomFilterConfig = bloomFilterConfig,
               createdInLevel = createdInLevel
-            ).valueIOGet
+            ).valueIO.value
 
           slice add group
           //randomly skip the Group's toKey for the next key. Next key should not be the same as toKey so add a minimum of 1 to next key.
@@ -1916,7 +1916,7 @@ object TestData {
       hashIndexConfig = hashIndexConfig,
       bloomFilterConfig = bloomFilterConfig,
       createdInLevel = createdInLevel
-    ).valueIOGet
+    ).valueIO.value
 
   implicit class MemoryTypeImplicits(memory: Memory.type) {
 

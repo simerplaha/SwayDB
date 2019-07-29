@@ -49,7 +49,7 @@ object Error {
 
     override def reserve(e: E): Option[Reserve[Unit]] =
       e match {
-        case busy: Error.ReservedIO =>
+        case busy: Error.Recoverable =>
           Some(busy.reserve)
 
         case _: Error =>
@@ -141,13 +141,13 @@ object Error {
       case exception: Throwable => Error.Unknown(exception)
     }
 
-  trait ReservedIO extends Error.Segment {
+  trait Recoverable extends Error.Segment {
     def reserve: Reserve[Unit]
     def isFree: Boolean =
       !reserve.isBusy
   }
 
-  case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends ReservedIO with Error.IO {
+  case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Recoverable with Error.IO {
     override def exception: Exception.OpeningFile = Exception.OpeningFile(file, reserve)
   }
 
@@ -159,7 +159,7 @@ object Error {
       new NoSuchFile(Some(path), None)
   }
 
-  case class NoSuchFile(path: Option[Path], exp: Option[NoSuchFileException]) extends ReservedIO with Error.IO {
+  case class NoSuchFile(path: Option[Path], exp: Option[NoSuchFileException]) extends Recoverable with Error.IO {
     override def reserve: Reserve[Unit] = Reserve()
     override def exception: Throwable = exp getOrElse {
       path match {
@@ -172,27 +172,27 @@ object Error {
     }
   }
 
-  case class FileNotFound(exception: FileNotFoundException) extends ReservedIO with Error.IO {
+  case class FileNotFound(exception: FileNotFoundException) extends Recoverable with Error.IO {
     override def reserve: Reserve[Unit] = Reserve()
   }
 
-  case class AsynchronousClose(exception: AsynchronousCloseException) extends ReservedIO with Error.IO {
+  case class AsynchronousClose(exception: AsynchronousCloseException) extends Recoverable with Error.IO {
     override def reserve: Reserve[Unit] = Reserve()
   }
 
-  case class ClosedChannel(exception: ClosedChannelException) extends ReservedIO with Error.IO {
+  case class ClosedChannel(exception: ClosedChannelException) extends Recoverable with Error.IO {
     override def reserve: Reserve[Unit] = Reserve()
   }
 
-  case class NullMappedByteBuffer(exception: Exception.NullMappedByteBuffer) extends ReservedIO with Error.IO {
+  case class NullMappedByteBuffer(exception: Exception.NullMappedByteBuffer) extends Recoverable with Error.IO {
     override def reserve: Reserve[Unit] = Reserve()
   }
 
-  case class ReservedResource(reserve: Reserve[Unit]) extends ReservedIO {
+  case class ReservedResource(reserve: Reserve[Unit]) extends Recoverable {
     override def exception: Exception.ReservedResource = Exception.ReservedResource(reserve)
   }
 
-  case class GetOnIncompleteDeferredFutureIO(exception: Exception.GetOnIncompleteDeferredFutureIO) extends ReservedIO with Error.IO {
+  case class GetOnIncompleteDeferredFutureIO(exception: Exception.GetOnIncompleteDeferredFutureIO) extends Recoverable with Error.IO {
     def reserve = exception.reserve
   }
 

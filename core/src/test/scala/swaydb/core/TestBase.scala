@@ -234,7 +234,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
             flushOnOverflow = flushOnOverflow,
             initialWriteCount = 0,
             fileSize = fileSize
-          ).valueIOGet
+          ).valueIO.value
 
       keyValues foreach {
         keyValue =>
@@ -335,7 +335,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
             _ =>
               level
           }
-      } valueIOGet
+      } value
   }
 
   object TestLevelZero {
@@ -353,11 +353,11 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         nextLevel = nextLevel,
         throttle = throttle,
         acceleration = brake,
-      ).valueIOGet
+      ).valueIO.value
   }
 
   def createFile(bytes: Slice[Byte]): Path =
-    IOEffect.write(testDir.resolve(nextSegmentId), bytes).valueIOGet
+    IOEffect.write(testDir.resolve(nextSegmentId), bytes).valueIO.value
 
   def createRandomFileReader(path: Path): FileReader = {
     implicit val limiter = fileOpenLimiter
@@ -373,7 +373,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   def createMMAPFileReader(path: Path): FileReader = {
     implicit val limiter = fileOpenLimiter
     new FileReader(
-      DBFile.mmapRead(path, autoClose = true).valueIOGet
+      DBFile.mmapRead(path, autoClose = true).valueIO.value
     )
   }
 
@@ -383,7 +383,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   def createFileChannelFileReader(path: Path): FileReader = {
     implicit val limiter = fileOpenLimiter
     new FileReader(
-      DBFile.channelRead(path, autoClose = true).valueIOGet
+      DBFile.channelRead(path, autoClose = true).valueIO.value
     )
   }
 
@@ -562,7 +562,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
     runAsserts(asserts)
 
-    level0.delete.valueIOGet
+    level0.delete.valueIO.value
     compaction foreach Compactor.terminate
 
     if (!throttleOn)
@@ -594,13 +594,13 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                               assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
     println("level3.putKeyValues")
-    if (level3KeyValues.nonEmpty) level3.putKeyValuesTest(level3KeyValues).valueIOGet
+    if (level3KeyValues.nonEmpty) level3.putKeyValuesTest(level3KeyValues).valueIO.value
     println("level2.putKeyValues")
-    if (level2KeyValues.nonEmpty) level2.putKeyValuesTest(level2KeyValues).valueIOGet
+    if (level2KeyValues.nonEmpty) level2.putKeyValuesTest(level2KeyValues).valueIO.value
     println("level1.putKeyValues")
-    if (level1KeyValues.nonEmpty) level1.putKeyValuesTest(level1KeyValues).valueIOGet
+    if (level1KeyValues.nonEmpty) level1.putKeyValuesTest(level1KeyValues).valueIO.value
     println("level0.putKeyValues")
-    if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).valueIOGet
+    if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).valueIO.value
     import RunThis._
 
     Seq(

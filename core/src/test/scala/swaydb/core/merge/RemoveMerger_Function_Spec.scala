@@ -55,7 +55,7 @@ class RemoveMerger_Function_Spec extends WordSpec with Matchers {
             if (newKeyValue.deadline.isEmpty)
               newKeyValue
             else
-              Memory.PendingApply(key = key, Slice(oldKeyValue.toFromValue().valueIOGet, newKeyValue.toFromValue().valueIOGet))
+              Memory.PendingApply(key = key, Slice(oldKeyValue.toFromValue().valueIO.value, newKeyValue.toFromValue().valueIO.value))
 
           assertMerge(
             newKeyValue = newKeyValue,

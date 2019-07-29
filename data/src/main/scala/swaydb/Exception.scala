@@ -34,7 +34,7 @@ import swaydb.data.slice.Slice
  * converting an [[IO]] type to [[scala.util.Try]] by the client using [[toTry]].
  */
 object Exception {
-  case class Busy(error: Error.ReservedIO) extends Exception("Is busy")
+  case class Busy(error: Error.Recoverable) extends Exception("Is busy")
   case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Exception(s"Failed to open file $file")
 
   case class ReservedResource(reserve: Reserve[Unit]) extends Exception("ReserveResource is busy.")

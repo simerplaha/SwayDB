@@ -26,26 +26,27 @@ import scala.util.Random
 
 sealed trait IOValues {
 
-  implicit class RunValueIOImplicits[E: ErrorHandler, T](io: IO[E, T]) {
+  implicit class IOImplicits[E: ErrorHandler, T](io: IO[E, T]) {
     def value: T =
       io.get
 
-    private[swaydb] def valueIOGet: T =
+    def valueIO: IO[E, T] =
       if (Random.nextBoolean())
-        IO.Deferred[E, T](io.get).runIO.get
+        IO.Deferred[E, T](io.get).runIO
       else
-        Await.result(IO.Deferred[E, T](io.get).runFuture, 1.minute)
+        IO(Await.result(IO.Deferred[E, T](io.get).runFuture, 1.minute))
   }
 
-  implicit class RunDeferredIOImplicits[E: ErrorHandler, T](io: => IO.Deferred[E, T]) {
-    def value: T =
-      io.value()
+  implicit class DeferredIOImplicits[E: ErrorHandler, T](io: => IO.Deferred[E, T]) {
 
     def valueIO: IO[E, T] =
       if (Random.nextBoolean())
         io.runIO
       else
-        IO(Await.result(io.runFuture, 1.minute))
+        valueFutureIO
+
+    def valueFutureIO: IO[E, T] =
+      IO(Await.result(io.runFuture, 1.minute))
   }
 }
 

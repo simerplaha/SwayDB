@@ -82,9 +82,9 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
 
         assert =
           (keyValues, segment) => {
-            segment.lower(0).valueIOGet shouldBe empty
-            segment.lower(1).valueIOGet shouldBe empty
-            segment.lower(2).valueIOGet.value shouldBe keyValues.head
+            segment.lower(0).valueIO.value shouldBe empty
+            segment.lower(1).valueIO.value shouldBe empty
+            segment.lower(2).valueIO.value.value shouldBe keyValues.head
           }
       )
     }
@@ -97,14 +97,14 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
 
         assert =
           (keyValues, segment) => {
-            segment.lower(0).valueIOGet shouldBe empty //smallest key in this segment is 1
-            segment.lower(1).valueIOGet shouldBe empty
+            segment.lower(0).valueIO.value shouldBe empty //smallest key in this segment is 1
+            segment.lower(1).valueIO.value shouldBe empty
 
-            segment.lower(2).valueIOGet.value shouldBe keyValues.head
-            segment.lower(3).valueIOGet.value shouldBe keyValues(1)
+            segment.lower(2).valueIO.value.value shouldBe keyValues.head
+            segment.lower(3).valueIO.value.value shouldBe keyValues(1)
             (4 to 10) foreach {
               i =>
-                segment.lower(i).valueIOGet.value shouldBe keyValues(2)
+                segment.lower(i).valueIO.value.value shouldBe keyValues(2)
             }
           }
       )
@@ -129,64 +129,64 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
             (keyValues, segment) => {
               //0
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(0).valueIOGet shouldBe empty
+              segment.lower(0).valueIO.value shouldBe empty
               //1
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(1).valueIOGet shouldBe empty
+              segment.lower(1).valueIO.value shouldBe empty
               //    2
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(2).valueIOGet.value shouldBe keyValues(0)
+              segment.lower(2).valueIO.value.value shouldBe keyValues(0)
               //     3
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(3).valueIOGet.value shouldBe keyValues(1)
+              segment.lower(3).valueIO.value.value shouldBe keyValues(1)
               //       4
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(4).valueIOGet.value shouldBe keyValues(1)
+              segment.lower(4).valueIO.value.value shouldBe keyValues(1)
               //        5
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(5).valueIOGet.value shouldBe keyValues(1)
+              segment.lower(5).valueIO.value.value shouldBe keyValues(1)
               //          6
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(6).valueIOGet.value shouldBe keyValues(1)
+              segment.lower(6).valueIO.value.value shouldBe keyValues(1)
               //            10
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(10).valueIOGet.value shouldBe keyValues(1)
+              segment.lower(10).valueIO.value.value shouldBe keyValues(1)
               //                 11
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(11).valueIOGet.value shouldBe keyValues(2)
+              segment.lower(11).valueIO.value.value shouldBe keyValues(2)
               //                   12
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(12).valueIOGet.value shouldBe keyValues(3)
+              segment.lower(12).valueIO.value.value shouldBe keyValues(3)
               //                    19
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(19).valueIOGet.value shouldBe keyValues(3)
+              segment.lower(19).valueIO.value.value shouldBe keyValues(3)
               //                      20
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(20).valueIOGet.value shouldBe keyValues(3)
+              segment.lower(20).valueIO.value.value shouldBe keyValues(3)
               //                              21
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(21).valueIOGet.value shouldBe keyValues(4)
+              segment.lower(21).valueIO.value.value shouldBe keyValues(4)
               //                                29
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(29).valueIOGet.value shouldBe keyValues(4)
+              segment.lower(29).valueIO.value.value shouldBe keyValues(4)
               //                                 30
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(30).valueIOGet.value shouldBe keyValues(4)
+              segment.lower(30).valueIO.value.value shouldBe keyValues(4)
               //                                           31
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(31).valueIOGet.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.head
+              segment.lower(31).valueIO.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.head
               //                                              40
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(40).valueIOGet.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.head
+              segment.lower(40).valueIO.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.head
               //                                                41
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(41).valueIOGet.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              segment.lower(41).valueIO.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
               //                                                   50
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(50).valueIOGet.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              segment.lower(50).valueIO.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
               //                                                      51
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(51).valueIOGet.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              segment.lower(51).valueIO.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
             }
         )
       }

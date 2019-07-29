@@ -22,17 +22,20 @@ package swaydb.data
 import java.io.FileNotFoundException
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.concurrent.Eventually
+import org.scalatest.concurrent.{Eventually, Futures}
+import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO.Deferred
-import swaydb.{Error, IO}
 import swaydb.IOValues._
-import org.scalatest.OptionValues._
+import swaydb.{Error, ErrorHandler, IO}
 
+import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.util.Random
+import scala.concurrent.ExecutionContext.Implicits.global
 
-class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactory {
+class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFactory with Futures {
 
   val unknownError = swaydb.Error.Unknown(this.getClass.getSimpleName + " test exception.")
   val recoverableError = swaydb.Error.FileNotFound(new FileNotFoundException())
@@ -46,22 +49,122 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
   "io" in {
     val deferred = IO.Deferred.io(IO(fail()))
     deferred.isReady shouldBe true
-    deferred.isBusy shouldBe false
-    deferred.isValueDefined shouldBe false
+    deferred.isComplete shouldBe false
   }
 
-  "future" in {
-    fail()
+  "future" when {
+    def testFuture[E: ErrorHandler, A](future: Future[A], expectedOutcome: IO[E, A]) = {
+      val timeBeforeDeferred = System.currentTimeMillis()
+
+      future.isCompleted shouldBe false
+      val defer = IO.fromFuture[swaydb.Error.Segment, A](future)
+      future.isCompleted shouldBe false
+      defer.isPending shouldBe true
+      defer.isReady shouldBe true
+
+      val timeAfterDeferred = System.currentTimeMillis()
+
+      //creating a future should not block on executing thread.
+      (timeAfterDeferred - timeBeforeDeferred) should be <= 200.millisecond.toMillis
+
+      defer.valueIO match {
+        case IO.Success(value) =>
+          value shouldBe expectedOutcome.value
+
+        case IO.Failure(error) =>
+          //on future failure the result Exception is wrapped within another Exception to stop recovery.
+          error.exception.getCause shouldBe expectedOutcome.asInstanceOf[IO.Failure[E, A]].exception
+      }
+    }
+
+    "failure" in {
+      (1 to 5) foreach {
+        _ =>
+          //if the future returns a recoverable error it should still not perform recovery.
+          //since the future is complete with failure and is not recoverable.
+          val error = if (Random.nextBoolean()) recoverableError else unknownError
+
+          def future: Future[Int] =
+            Future {
+              Thread.sleep(2.seconds.toMillis)
+              throw error.exception
+            }
+
+          testFuture(future, IO.Failure(error))
+      }
+    }
+
+    "success" in {
+      (1 to 5) foreach {
+        _ =>
+          def future: Future[Int] =
+            Future {
+              Thread.sleep(2.seconds.toMillis)
+              Int.MaxValue
+            }
+
+          testFuture(future, IO.Success(Int.MaxValue))
+      }
+    }
+
+    "concurrent success" in {
+      (1 to 5) foreach {
+        _ =>
+          val futures: Seq[Future[Int]] =
+            (1 to 5) map {
+              _ =>
+                Future {
+                  val sleeping = Random.nextInt(10)
+                  println(s"Sleep for $sleeping.seconds")
+                  Thread.sleep(sleeping.seconds.toMillis)
+                  println(s"Completed sleep $sleeping")
+                  1
+                }
+            }
+
+          val defer1 = IO.fromFuture[Error.Segment, Int](futures(0))
+          val defer2 = IO.fromFuture[Error.Segment, Int](futures(1))
+          val defer3 = IO.fromFuture[Error.Segment, Int](futures(2))
+          val defer4 = IO.fromFuture[Error.Segment, Int](futures(3))
+          val defer5 = IO.fromFuture[Error.Segment, Int](futures(4))
+
+          val createDefers = {
+            defer1 flatMap {
+              int1 =>
+                defer2 flatMap {
+                  int2 =>
+                    defer3 flatMap {
+                      int3 =>
+                        defer4 flatMap {
+                          int4 =>
+                            defer5 map {
+                              int5 =>
+                                int1 + int2 + int3 + int4 + int5
+                            }
+                        }
+                    }
+                }
+            }
+          }
+          if (Random.nextBoolean()) {
+            createDefers.runIO shouldBe IO.Success(5)
+            createDefers.valueFutureIO shouldBe IO.Success(5)
+          } else {
+            createDefers.valueFutureIO shouldBe IO.Success(5)
+            createDefers.runIO shouldBe IO.Success(5)
+          }
+      }
+    }
   }
 
   "runIO" when {
     "successes" in {
       def doAssert[E](deferred: Deferred[E, Int]) = {
-        deferred.isValueDefined shouldBe false
+        deferred.isComplete shouldBe false
         deferred.isReady shouldBe true
 
         deferred.runIO.get shouldBe 1
-        deferred.isValueDefined shouldBe true
+        deferred.isComplete shouldBe true
         deferred.isReady shouldBe true
       }
 
@@ -73,11 +176,11 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
     "failures" in {
       def doAssert[E](deferred: Deferred[E, Int]) = {
-        deferred.isValueDefined shouldBe false
+        deferred.isComplete shouldBe false
         deferred.isReady shouldBe true
 
         deferred.runIO shouldBe IO.Failure(unknownError)
-        deferred.isValueDefined shouldBe false
+        deferred.isComplete shouldBe false
         deferred.isReady shouldBe true
       }
 
@@ -101,18 +204,17 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
             mock(int)
         }
       deferred.isReady shouldBe true
-      deferred.isValueDefined shouldBe false
-      deferred.isBusy shouldBe false
+      deferred.isComplete shouldBe false
 
       deferred.runIO shouldBe IO.Success(2)
 
       deferred.isReady shouldBe true
-      deferred.isValueDefined shouldBe true
-      deferred.isBusy shouldBe false
+      deferred.isComplete shouldBe true
 
       //deferred's value is initialised initialised so the mock function is not invoked again.
       deferred.runIO shouldBe IO.Success(2)
     }
+
     "non-recoverable failure" in {
       var timesRun = 0
 
@@ -125,8 +227,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
         }
 
       deferred.isReady shouldBe true
-      deferred.isValueDefined shouldBe false
-      deferred.isBusy shouldBe false
+      deferred.isComplete shouldBe false
 
       deferred.runIO shouldBe IO.Failure(unknownError)
       timesRun shouldBe 1
@@ -149,8 +250,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
         }
 
       deferred.isReady shouldBe true
-      deferred.isValueDefined shouldBe false
-      deferred.isBusy shouldBe false
+      deferred.isComplete shouldBe false
 
       deferred.runIO shouldBe IO.Failure(unknownError)
       timesRecovered shouldBe 10
@@ -184,7 +284,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
         }
 
       deferred.isReady shouldBe true
-      deferred.isBusy shouldBe false
+
       deferred.runIO shouldBe IO.Success(4)
       deferred.runIO shouldBe IO.Success(4)
     }
@@ -215,7 +315,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
             int shouldBe 1
             secondDeferredCache flatMap {
               int =>
-                secondDeferredCache.isValueDefined shouldBe true
+                secondDeferredCache.isComplete shouldBe true
                 int shouldBe 2
                 IO.Deferred[swaydb.Error.Segment, Int](value3(int)) flatMap {
                   int =>
@@ -223,7 +323,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
                     fourthDeferredCache flatMap {
                       int =>
                         int shouldBe 4
-                        fourthDeferredCache.isValueDefined shouldBe true
+                        fourthDeferredCache.isComplete shouldBe true
                         throwError map {
                           error =>
                             //if it's recoverable reset the error to be unknown so that call successfully succeeds.
@@ -241,7 +341,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
         }
 
       deferred.isReady shouldBe true
-      deferred.isBusy shouldBe false
+
       throwError = Some(unknownError)
       deferred.valueIO shouldBe IO.Failure(unknownError)
       throwError = Some(recoverableError)
@@ -252,172 +352,98 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
     }
   }
 
-  //  "it" should {
-  //    "flatMap on IO" in {
-  //      val io =
-  //        IO.Deferred(1, swaydb.Error.ReservedResource(Reserve())) flatMap {
-  //          int =>
-  //            IO.Success[swaydb.Error.Segment, Int](int + 1)
-  //        }
-  //
-  //      io.get shouldBe 2
-  //      io.run shouldBe IO.Success(2)
-  //      io.runBlocking shouldBe IO.Success(2)
-  //      io.runInFuture.await shouldBe 2
-  //    }
-  //
-  //    "flatMap on IO.Failure" in {
-  //      val boolean = Reserve(())
-  //
-  //      val io =
-  //        IO.Deferred(1, swaydb.Error.ReservedResource(Reserve())) flatMap {
-  //          _ =>
-  //            IO.Failure(swaydb.Error.OpeningFile(Paths.get(""), boolean))
-  //        }
-  //
-  //      assertThrows[swaydb.Exception.OpeningFile] {
-  //        io.get
-  //      }
-  //
-  //      io.run.asInstanceOf[IO.Deferred[_, _]].error shouldBe swaydb.Error.OpeningFile(Paths.get(""), boolean)
-  //    }
-  //
-  //    "safeGet on multiple when last is a failure should return failure" in {
-  //      val failure = IO.Failure(swaydb.Error.NoSuchFile(new NoSuchFileException("Not such file")))
-  //
-  //      val io: IO.Deferred[swaydb.Error.Segment, Int] =
-  //        IO.Deferred(1, swaydb.Error.ReservedResource(Reserve())) flatMap  {
-  //          i =>
-  //            IO.Deferred(i + 1, swaydb.Error.ReservedResource(Reserve())) flatMap {
-  //              _ =>
-  //                failure
-  //            }
-  //        }
-  //
-  //      io.run.asInstanceOf[IO.Deferred[_, _]].error shouldBe failure.error
-  //    }
-  //
-  //    "safeGet on multiple when last is Async should return last Async" in {
-  //      val busy1 = Reserve(())
-  //      val busy2 = Reserve(())
-  //      val busy3 = Reserve(())
-  //
-  //      val io: IO.Deferred[swaydb.Error.Segment, Int] =
-  //        IO.Deferred(1, swaydb.Error.ReservedResource(busy1)) flatMap {
-  //          i =>
-  //            IO.Deferred(i + 1, swaydb.Error.ReservedResource(busy2)) flatMap {
-  //              i =>
-  //                IO.Deferred(i + 1, swaydb.Error.ReservedResource(busy3))
-  //            }
-  //        }
-  //
-  //      (1 to 100).par foreach {
-  //        _ =>
-  //          io.run.asInstanceOf[IO.Deferred[_, _]].isValueDefined shouldBe false
-  //          io.asInstanceOf[IO.Deferred[_, _]].isValueDefined shouldBe false
-  //      }
-  //
-  //      val io0 = io.run
-  //      io0 shouldBe io
-  //
-  //      //make first IO available
-  //      Reserve.setFree(busy1)
-  //      val io1 = io.run
-  //      io1 shouldBe a[IO.Deferred[_, _]]
-  //      io0.run shouldBe a[IO.Deferred[_, _]]
-  //
-  //      //make second IO available
-  //      Reserve.setFree(busy2)
-  //      val io2 = io.run
-  //      io2 shouldBe a[IO.Deferred[_, _]]
-  //      io0.run shouldBe a[IO.Deferred[_, _]]
-  //      io1.run shouldBe a[IO.Deferred[_, _]]
-  //
-  //      //make third IO available. Now all IOs are ready, safeGet will result in Success.
-  //      Reserve.setFree(busy3)
-  //      val io3 = io.run
-  //      io3 shouldBe IO.Success(3)
-  //      io0.run shouldBe IO.Success(3)
-  //      io1.run shouldBe IO.Success(3)
-  //      io2.run shouldBe IO.Success(3)
-  //
-  //      //value should be defined on all instances.
-  //      io0.asInstanceOf[IO.Deferred[_, _]].isValueDefined shouldBe true
-  //      io1.asInstanceOf[IO.Deferred[_, _]].isValueDefined shouldBe true
-  //      io2.asInstanceOf[IO.Deferred[_, _]].isValueDefined shouldBe true
-  //    }
-  //
-  //    "safeGetBlocking & safeGetFuture" in {
-  //      import scala.concurrent.ExecutionContext.Implicits.global
-  //
-  //      (1 to 10) foreach {
-  //        i =>
-  //          val io: IO.Deferred[swaydb.Error.Segment, Int] =
-  //            (0 to 100).foldLeft(IO.Deferred[swaydb.Error.Segment, Int](1, swaydb.Error.ReservedResource(Reserve()))) {
-  //              case (previous, _) =>
-  //                previous flatMap {
-  //                  output =>
-  //                    val reserve = Reserve[Unit]()
-  //                    Future {
-  //                      if (Random.nextBoolean()) Thread.sleep(Random.nextInt(100))
-  //                      Reserve.setFree(reserve)
-  //                    }
-  //                    IO.Deferred(
-  //                      value = output + 1,
-  //                      error = Base.randomBusyError(reserve)
-  //                    )
-  //                }
-  //            }
-  //
-  //          if (i == 1)
-  //            io.runBlocking shouldBe IO.Success(102)
-  //          else
-  //            io.runInFuture.await shouldBe 102
-  //      }
-  //    }
-  //
-  //    "be initialised from Future" in {
-  //      val result = IO.fromFuture(Future(1))
-  //      result.runBlocking.get shouldBe 1
-  //    }
-  //
-  //    "recover from Future failures" in {
-  //      val failedMessage = "Something went wrong!"
-  //
-  //      @volatile var failFuture = Random.nextBoolean()
-  //
-  //      def future: Future[Int] =
-  //        Future {
-  //          if (!failFuture)
-  //            failFuture = true
-  //
-  //          Thread.sleep(3.second.toMillis)
-  //          throw new Exception(failedMessage)
-  //        }
-  //
-  //      //test that create a future does not block on the execution thread.
-  //      eventually(Timeout(0.millisecond)) {
-  //        IO.fromFuture[swaydb.Error.Segment, Int](future) shouldBe a[IO.Deferred[_, _]]
-  //      }
-  //
-  //      future.isCompleted shouldBe false
-  //      val defer = IO.fromFuture[swaydb.Error.Segment, Int](future)
-  //      future.isCompleted shouldBe false
-  //      defer.isCompleted shouldBe false
-  //
-  //      IO[swaydb.Error.Segment, Int](defer.get).failed.get shouldBe a[swaydb.Error.ReservedResource]
-  //      defer.isCompleted shouldBe false
-  //
-  //      val ioError = swaydb.Error.FailedToWriteAllBytes(swaydb.Exception.FailedToWriteAllBytes(0, 0, 0))
-  //
-  //      val failureRecovery: IO.Deferred[Error.Segment, Int] =
-  //        defer recoverWithDeferred {
-  //          case error =>
-  //            IO.Success[Error.IO, Int](1)
-  //        }
-  //
-  //      defer.runBlocking.failed.get.exception.getMessage shouldBe failedMessage
-  //      failureRecovery.runBlocking.failed.get shouldBe ioError
-  //    }
-  //  }
+  "flatMapIO" when {
+    "successful deferred and IO" in {
+      val deferred = IO.Deferred(10)
+
+      deferred.isComplete shouldBe false
+      deferred.isReady shouldBe true
+
+      val ioDeferred: Deferred[Error.Segment, Int] =
+        deferred flatMapIO {
+          result =>
+            result shouldBe 10
+            IO.Success(result + 1)
+        }
+
+      ioDeferred.isComplete shouldBe false
+      ioDeferred.isReady shouldBe true
+
+      ioDeferred.valueIO shouldBe IO.Success(11)
+    }
+
+    "successful deferred and failed IO" in {
+      val deferred = IO.Deferred(10)
+
+      deferred.isComplete shouldBe false
+      deferred.isReady shouldBe true
+
+      val failure = IO.failed("Kaboom!")
+
+      val ioDeferred: Deferred[Error.Segment, Int] =
+        deferred flatMapIO {
+          result =>
+            result shouldBe 10
+            failure
+        }
+
+      ioDeferred.isComplete shouldBe false
+      ioDeferred.isReady shouldBe true
+
+      ioDeferred.valueIO shouldBe IO.Failure(swaydb.Error.Unknown(failure.exception))
+    }
+
+    "failed non-recoverable deferred and successful IO" in {
+      val failure = IO.failed("Kaboom!")
+      val deferred: Deferred[Error.Segment, Int] = IO.Deferred(throw failure.exception)
+
+      deferred.isComplete shouldBe false
+      deferred.isReady shouldBe true
+
+      val ioDeferred: Deferred[Error.Segment, Int] =
+        deferred flatMapIO {
+          _ =>
+            fail("should not have run")
+        }
+
+      ioDeferred.isComplete shouldBe false
+      ioDeferred.isReady shouldBe true
+
+      ioDeferred.valueIO shouldBe IO.Failure(swaydb.Error.Unknown(failure.exception))
+    }
+
+    "failed recoverable deferred and successful IO" in {
+      (1 to 100) foreach {
+        _ =>
+          var errorToUse = Option(recoverableError)
+
+          val deferred: Deferred[Error.Segment, Int] =
+            IO.Deferred {
+              errorToUse map {
+                error =>
+                  //first time around throw the recoverable error and then no error.
+                  errorToUse = None
+                  throw error.exception
+              } getOrElse {
+                10
+              }
+            }
+
+          deferred.isComplete shouldBe false
+          deferred.isReady shouldBe true
+
+          val ioDeferred: Deferred[Error.Segment, Int] =
+            deferred flatMapIO {
+              int =>
+                int shouldBe 10
+                IO.Success(int + 1)
+            }
+
+          ioDeferred.isComplete shouldBe false
+          ioDeferred.isReady shouldBe true
+
+          ioDeferred.valueIO shouldBe IO.Success(11)
+      }
+    }
+  }
 }

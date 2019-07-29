@@ -22,10 +22,12 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
+import swaydb.{Error, IO}
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.level.zero.LevelZeroSkipListMerger
@@ -60,7 +62,7 @@ class LevelCollapseSpec3 extends LevelCollapseSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelCollapseSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
@@ -80,7 +82,7 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
       //disable throttling so that it does not automatically collapse small Segments
       val level = TestLevel(segmentSize = 1.kb)
       val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)(TestTimer.Empty)
-      level.putKeyValuesTest(keyValues).valueIOGet
+      level.putKeyValuesTest(keyValues).valueIO.value
 
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
@@ -99,13 +101,13 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
             }
         }
       //delete half of the key values which will create small Segments
-      level.putKeyValuesTest(Slice(deleteEverySecond.toArray)).valueIOGet
-      level.collapse(level.segmentsInLevel()).value
+      level.putKeyValuesTest(Slice(deleteEverySecond.toArray)).valueIO.value
+      level.collapse(level.segmentsInLevel()).getUnsafe
       //since every second key-value was delete, the number of Segments is reduced to half
       level.segmentFilesInAppendix shouldBe <=((segmentCountBeforeDelete / 2) + 1) //+1 for odd number of key-values
       assertReads(Slice(keyValuesNoDeleted.toArray), level)
 
-      level.delete.valueIOGet
+      level.delete.valueIO.value
     }
 
     "collapse all small Segments into one of the existing small Segments, if the Segment was reopened with a larger segment size" in {
@@ -120,16 +122,16 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
           assertAllSegmentsCreatedInLevel(level)
 
           val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)(TestTimer.Empty)
-          level.putKeyValuesTest(keyValues).valueIOGet
+          level.putKeyValuesTest(keyValues).valueIO.value
           //dispatch another push to trigger split
-          level.putKeyValuesTest(Slice(keyValues.head)).valueIOGet
+          level.putKeyValuesTest(Slice(keyValues.head)).valueIO.value
 
           level.segmentsCount() > 1 shouldBe true
-          level.close.valueIOGet
+          level.close.valueIO.value
 
           //reopen the Level with larger min segment size
           val reopenLevel = level.reopen(segmentSize = 20.mb)
-          reopenLevel.collapse(level.segmentsInLevel()).value
+          reopenLevel.collapse(level.segmentsInLevel()).getUnsafe
 
           //resulting segments is 1
           eventually {
@@ -140,7 +142,7 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
           val reopen2 = reopenLevel.reopen
           eventual(assertReads(keyValues, reopen2))
 
-          level.delete.valueIOGet
+          level.delete.valueIO.value
         }
       }
     }
@@ -151,7 +153,7 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
       val level = TestLevel(segmentSize = 1.kb)
       val expiryAt = 5.seconds.fromNow
       val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addPutDeadlines = false)(TestTimer.Empty)
-      level.putKeyValuesTest(keyValues).valueIOGet
+      level.putKeyValuesTest(keyValues).valueIO.value
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
 
@@ -167,21 +169,27 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
             }
         }
 
+      val sss: IO.Deferred[Error.Level, Option[ReadOnly.Put]] = ???
+
+      sss.getUnsafe
+
+
       //delete half of the key values which will create small Segments
-      level.putKeyValuesTest(Slice(expireEverySecond.toArray)).valueIOGet
+      level.putKeyValuesTest(Slice(expireEverySecond.toArray)).valueIO.value
       keyValues.zipWithIndex foreach {
         case (keyValue, index) =>
+
           if (index % 2 == 0)
-            level.get(keyValue.key).value.value.deadline should contain(expiryAt + index.millisecond)
+            level.get(keyValue.key).getUnsafe.value.deadline should contain(expiryAt + index.millisecond)
       }
 
       sleep(20.seconds)
-      level.collapse(level.segmentsInLevel()).value
+      level.collapse(level.segmentsInLevel()).getUnsafe
       level.segmentFilesInAppendix should be <= (segmentCountBeforeDelete / 2)
 
       assertReads(Slice(keyValuesNotExpired.toArray), level)
 
-      level.delete.valueIOGet
+      level.delete.valueIO.value
     }
   }
 
@@ -190,13 +198,13 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
 
     val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
     val maps = TestMap(keyValues.toTransient.toMemoryResponse)
-    level.put(maps).value
+    level.put(maps).getUnsafe
 
     val nextLevel = TestLevel()
-    nextLevel.put(level.segmentsInLevel()).value
+    nextLevel.put(level.segmentsInLevel()).getUnsafe
 
-    if (persistent) nextLevel.segmentsInLevel() foreach (_.createdInLevel.valueIOGet shouldBe level.levelNumber)
-    nextLevel.collapse(nextLevel.segmentsInLevel()).value
-    nextLevel.segmentsInLevel() foreach (_.createdInLevel.valueIOGet shouldBe nextLevel.levelNumber)
+    if (persistent) nextLevel.segmentsInLevel() foreach (_.createdInLevel.valueIO.value shouldBe level.levelNumber)
+    nextLevel.collapse(nextLevel.segmentsInLevel()).getUnsafe
+    nextLevel.segmentsInLevel() foreach (_.createdInLevel.valueIO.value shouldBe nextLevel.levelNumber)
   }
 }

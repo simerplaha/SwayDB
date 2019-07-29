@@ -19,8 +19,9 @@
 
 package swaydb.data
 
+import swaydb.data.util.Futures
+
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
 
 class Reserve[T](@volatile var info: Option[T],
@@ -36,8 +37,6 @@ class Reserve[T](@volatile var info: Option[T],
 }
 
 object Reserve {
-  private val blockingTimeout = 5.seconds.toMillis
-  private val futureUnit = Future.successful(())
 
   def apply[T](): Reserve[T] =
     new Reserve(None, ListBuffer.empty)
@@ -47,7 +46,7 @@ object Reserve {
 
   def blockUntilFree[T](reserve: Reserve[T]): Unit =
     reserve.synchronized {
-      while (reserve.isBusy) reserve.wait(blockingTimeout)
+      while (reserve.isBusy) reserve.wait()
     }
 
   private def notifyBlocking[T](reserve: Reserve[T]): Unit = {
@@ -62,9 +61,20 @@ object Reserve {
         reserve.savePromise(promise)
         promise.future
       } else {
-        futureUnit
+        Futures.unit
       }
     }
+
+  /**
+    * Return future only if required. If not then return None.
+    */
+  def futureOption[T](reserve: Reserve[T]): Option[Future[Unit]] = {
+    val futureMayBe = future(reserve)
+    if (futureMayBe.isCompleted)
+      None
+    else
+      Some(futureMayBe)
+  }
 
   def setBusyOrGet[T](info: T, reserve: Reserve[T]): Option[T] =
     reserve.synchronized {

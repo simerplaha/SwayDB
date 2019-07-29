@@ -62,7 +62,7 @@ class MapsStressSpec extends TestBase {
       def testWrite(maps: Maps[Slice[Byte], Memory.SegmentResponse]) = {
         keyValues foreach {
           keyValue =>
-            maps.write(time => MapEntry.Put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))).valueIOGet
+            maps.write(time => MapEntry.Put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))).valueIO.value
         }
       }
 
@@ -79,11 +79,11 @@ class MapsStressSpec extends TestBase {
       val dir1 = IOEffect.createDirectoryIfAbsent(testDir.resolve(1.toString))
       val dir2 = IOEffect.createDirectoryIfAbsent(testDir.resolve(2.toString))
 
-      val map1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).valueIOGet
+      val map1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).valueIO.value
       testWrite(map1)
       testRead(map1)
 
-      val map2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).valueIOGet
+      val map2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).valueIO.value
       testWrite(map2)
       testRead(map2)
 
@@ -92,21 +92,21 @@ class MapsStressSpec extends TestBase {
       testRead(map3)
 
       def reopen = {
-        val open1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = false, 1.byte, acceleration, RecoveryMode.ReportFailure).valueIOGet
+        val open1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = false, 1.byte, acceleration, RecoveryMode.ReportFailure).valueIO.value
         testRead(open1)
-        val open2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).valueIOGet
+        val open2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).valueIO.value
         testRead(open2)
 
-        open1.close.valueIOGet
-        open2.close.valueIOGet
+        open1.close.valueIO.value
+        open2.close.valueIO.value
       }
 
       reopen
       reopen //reopen again
 
-      map1.close.valueIOGet
-      map2.close.valueIOGet
-      map2.close.valueIOGet
+      map1.close.valueIO.value
+      map2.close.valueIO.value
+      map2.close.valueIO.value
 
       println("total number of maps recovered: " + dir1.folders.size)
     }

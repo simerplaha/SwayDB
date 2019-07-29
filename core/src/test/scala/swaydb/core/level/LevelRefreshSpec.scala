@@ -80,19 +80,19 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
     "remove expired key-values" in {
       val level = TestLevel(segmentSize = 1.kb)
       val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0))(TestTimer.Empty)
-      level.putKeyValuesTest(keyValues).valueIOGet
+      level.putKeyValuesTest(keyValues).valueIO.value
       //dispatch another put request so that existing Segment gets split
-      level.putKeyValuesTest(Slice(keyValues.head)).valueIOGet
+      level.putKeyValuesTest(Slice(keyValues.head)).valueIO.value
       level.segmentsCount() should be > 1
 
       //expire all key-values
-      level.putKeyValuesTest(Slice(Memory.Range(0, Int.MaxValue, None, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).valueIOGet
+      level.putKeyValuesTest(Slice(Memory.Range(0, Int.MaxValue, None, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).valueIO.value
       level.segmentFilesInAppendix should be > 1
 
       sleep(3.seconds)
       level.segmentsInLevel() foreach {
         segment =>
-          level.refresh(segment).value
+          level.refresh(segment).getUnsafe
       }
 
       level.segmentFilesInAppendix shouldBe 0
@@ -103,14 +103,14 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
 
       val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
       val maps = TestMap(keyValues.toTransient.toMemoryResponse)
-      level.put(maps).value
+      level.put(maps).getUnsafe
 
       val nextLevel = TestLevel()
-      nextLevel.put(level.segmentsInLevel()).value
+      nextLevel.put(level.segmentsInLevel()).getUnsafe
 
-      nextLevel.segmentsInLevel() foreach (_.createdInLevel.valueIOGet shouldBe level.levelNumber)
-      nextLevel.segmentsInLevel() foreach (segment => nextLevel.refresh(segment).value)
-      nextLevel.segmentsInLevel() foreach (_.createdInLevel.valueIOGet shouldBe nextLevel.levelNumber)
+      nextLevel.segmentsInLevel() foreach (_.createdInLevel.valueIO.value shouldBe level.levelNumber)
+      nextLevel.segmentsInLevel() foreach (segment => nextLevel.refresh(segment).getUnsafe)
+      nextLevel.segmentsInLevel() foreach (_.createdInLevel.valueIO.value shouldBe nextLevel.levelNumber)
     }
   }
 }

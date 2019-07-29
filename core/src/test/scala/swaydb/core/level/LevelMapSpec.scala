@@ -92,7 +92,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
           fileSize = 1.mb,
           initialWriteCount = 0,
           dropCorruptedTailEntries = false
-        ).valueIOGet.item
+        ).valueIO.value.item
       else
         Map.memory[Slice[Byte], Memory.SegmentResponse]()
 
@@ -105,7 +105,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
     "succeed" when {
       "writing to an empty Level" in {
         val level = TestLevel()
-        level.put(map).value
+        level.put(map).getUnsafe
         //since this is a new Segment and Level has no sub-level, all the deleted key-values will value removed.
         val (deletedKeyValues, otherKeyValues) = keyValues.partition(_.isInstanceOf[Memory.Remove])
 
@@ -114,7 +114,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         //deleted key-values do not exist.
         deletedKeyValues foreach {
           deleted =>
-            level.get(deleted.key).value shouldBe empty
+            level.get(deleted.key).getUnsafe shouldBe empty
         }
       }
 
@@ -131,16 +131,16 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
               Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"), Memory.remove("four", randomly(expiredDeadline()))
             ).sorted(keyOrder.on[KeyValue](_.key)))
 
-        level.putKeyValuesTest(sortedExistingKeyValues).valueIOGet
+        level.putKeyValuesTest(sortedExistingKeyValues).valueIO.value
 
         //put a new map
-        level.put(map).value
+        level.put(map).getUnsafe
         assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
 
-        level.get("one").value.value shouldBe existingKeyValues(0)
-        level.get("two").value.value shouldBe existingKeyValues(1)
-        level.get("three").value.value shouldBe existingKeyValues(2)
-        level.get("four").value shouldBe empty
+        level.get("one").getUnsafe.value shouldBe existingKeyValues(0)
+        level.get("two").getUnsafe.value shouldBe existingKeyValues(1)
+        level.get("three").getUnsafe.value shouldBe existingKeyValues(2)
+        level.get("four").getUnsafe shouldBe empty
       }
     }
   }
@@ -158,7 +158,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
           flushOnOverflow = true,
           fileSize = 1.mb,
           initialWriteCount = 0,
-          dropCorruptedTailEntries = false).valueIOGet.item
+          dropCorruptedTailEntries = false).valueIO.value.item
       else
         Map.memory[Slice[Byte], Memory.SegmentResponse]()
 
@@ -187,7 +187,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         }
 
         val level = TestLevel(nextLevel = Some(nextLevel))
-        level.put(map).value
+        level.put(map).getUnsafe
         assertGetNoneFromThisLevelOnly(keyValues, level) //because nextLevel is a mock.
       }
 
@@ -213,9 +213,9 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
 
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000)).toTransient
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).valueIOGet), None).valueIOGet
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).valueIO.value), None).valueIO.value
 
-        level.put(map).value
+        level.put(map).getUnsafe
         assertGetNoneFromThisLevelOnly(lastLevelKeyValues, level) //because nextLevel is a mock.
         assertGetFromThisLevelOnly(keyValues, level)
       }

@@ -48,7 +48,7 @@ class AppendixMapEntrySpec extends TestBase {
   implicit def segmentIO: SegmentIO = SegmentIO.random
 
   val appendixReader = AppendixMapEntryReader(true, true)
-  val segment = TestSegment().valueIOGet
+  val segment = TestSegment().valueIO.value
 
   "MapEntryWriterAppendix & MapEntryReaderAppendix" should {
 
@@ -62,10 +62,10 @@ class AppendixMapEntrySpec extends TestBase {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import appendixReader.AppendixPutReader
-      MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice.drop(1))).valueIOGet.value shouldBe entry
+      MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice.drop(1))).valueIO.value.value shouldBe entry
 
       import appendixReader.AppendixReader
-      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).valueIOGet.value
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).valueIO.value.value
       readEntry shouldBe entry
 
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Segment](keyOrder)
@@ -88,10 +88,10 @@ class AppendixMapEntrySpec extends TestBase {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import appendixReader.AppendixRemoveReader
-      MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](Reader[swaydb.Error.Map](slice.drop(1))).valueIOGet.value.key shouldBe entry.key
+      MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](Reader[swaydb.Error.Map](slice.drop(1))).valueIO.value.value.key shouldBe entry.key
 
       import appendixReader.AppendixReader
-      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).valueIOGet.value
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).valueIO.value.value
       readEntry shouldBe entry
 
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Segment](keyOrder)
@@ -103,11 +103,11 @@ class AppendixMapEntrySpec extends TestBase {
       import AppendixMapEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
       import swaydb.Error.Map.ErrorHandler
 
-      val segment1 = TestSegment().valueIOGet
-      val segment2 = TestSegment().valueIOGet
-      val segment3 = TestSegment().valueIOGet
-      val segment4 = TestSegment().valueIOGet
-      val segment5 = TestSegment().valueIOGet
+      val segment1 = TestSegment().valueIO.value
+      val segment2 = TestSegment().valueIO.value
+      val segment3 = TestSegment().valueIO.value
+      val segment4 = TestSegment().valueIO.value
+      val segment5 = TestSegment().valueIO.value
 
       val entry: MapEntry[Slice[Byte], Segment] =
         (MapEntry.Put[Slice[Byte], Segment](segment1.minKey, segment1): MapEntry[Slice[Byte], Segment]) ++
@@ -123,7 +123,7 @@ class AppendixMapEntrySpec extends TestBase {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import appendixReader.AppendixReader
-      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).valueIOGet.value
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).valueIO.value.value
       readEntry shouldBe entry
 
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Segment](keyOrder)
@@ -142,7 +142,7 @@ class AppendixMapEntrySpec extends TestBase {
       //write skip list to bytes should result in the same skip list as before
       import appendixReader.AppendixReader
       val bytes = MapCodec.write[Slice[Byte], Segment](skipList)
-      val crcEntries = MapCodec.read[Slice[Byte], Segment](bytes, false).valueIOGet.item.value
+      val crcEntries = MapCodec.read[Slice[Byte], Segment](bytes, false).valueIO.value.item.value
       skipList.clear()
       crcEntries applyTo skipList
       assertSkipList()

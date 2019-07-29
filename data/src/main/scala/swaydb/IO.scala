@@ -30,10 +30,10 @@ import scala.reflect.ClassTag
 import scala.util.Try
 
 /**
- * [[IO.Success]] and [[IO.Failure]] are similar to types in [[scala.util.Try]].
- *
- * [[IO.Deferred]] is for performing synchronous and asynchronous IO.
- */
+  * [[IO.Success]] and [[IO.Failure]] are similar to types in [[scala.util.Try]].
+  *
+  * [[IO.Deferred]] is for performing synchronous and asynchronous IO.
+  */
 sealed trait IO[+E, +A] {
   def isFailure: Boolean
   def isSuccess: Boolean
@@ -70,24 +70,24 @@ sealed trait IO[+E, +A] {
 object IO {
 
   /**
-   * [[IO]] type with Throwable error type. Here all errors are returned as exception.
-   */
+    * [[IO]] type with Throwable error type. Here all errors are returned as exception.
+    */
   type ThrowableIO[T] = IO[Throwable, T]
   /**
-   * [[IO]] type with Nothing error type. Nothing indicates this IO type can never result in an error.
-   */
+    * [[IO]] type with Nothing error type. Nothing indicates this IO type can never result in an error.
+    */
   type NothingIO[T] = IO[Nothing, T]
   /**
-   * [[IO]] type with Unit error type. Unit indicates this IO type can never result in an error.
-   */
+    * [[IO]] type with Unit error type. Unit indicates this IO type can never result in an error.
+    */
   type UnitIO[T] = IO[Unit, T]
   /**
-   * [[IO]] type used to access database APIs.
-   */
+    * [[IO]] type used to access database APIs.
+    */
   type ApiIO[T] = IO[Error.API, T]
   /**
-   * [[IO]] type for database boot up.
-   */
+    * [[IO]] type for database boot up.
+    */
   type BootIO[T] = IO[Error.Boot, T]
 
   sealed trait Done
@@ -338,15 +338,59 @@ object IO {
     def exception: Throwable = ErrorHandler.toException(error)
   }
 
+  def fromFuture[E: ErrorHandler, A](future: Future[A])(implicit ec: ExecutionContext): IO.Deferred[E, A] = {
+    val reserve = Reserve[Unit](())
+    future onComplete {
+      _ =>
+        Reserve.setFree(reserve)
+    }
+
+    /**
+      * [[deferredValue]] will only be invoked the reserve is set free which occurs only when the future is complete.
+      * But functions like [[IO.Deferred.getUnsafe]] will try to access this before the Future is complete will result in failure.
+      *
+      * This is necessary to avoid blocking Futures.
+      */
+    def deferredValue =
+      future.value map {
+        case scala.util.Success(value) =>
+          //success
+          value
+
+        case scala.util.Failure(exception) =>
+          //throw Future's failure so deferred can react to this.
+          //wrap it in another Exception incase the inner exception is recoverable because the future is complete
+          //and cannot be recovered.
+          throw new Exception(exception)
+      } getOrElse {
+        //Accessing Future when its incomplete.
+        throw swaydb.Exception.GetOnIncompleteDeferredFutureIO(reserve)
+      }
+
+    val error = swaydb.Error.ReservedResource(reserve)
+
+    //Deferred instance that will handle the outcome of the Future
+    val recoverableDeferred =
+      IO.Deferred[swaydb.Error.Recoverable, A](
+        value = deferredValue,
+        error = error
+      )
+
+    //Deferred that returns the result of the above deferred when completed.
+    IO.Deferred[E, A](recoverableDeferred.getUnsafe)
+  }
+
   /** **********************************
-   * **********************************
-   * **********************************
-   * ************ DEFERRED ************
-   * **********************************
-   * **********************************
-   * **********************************/
+    * **********************************
+    * **********************************
+    * ************ DEFERRED ************
+    * **********************************
+    * **********************************
+    * **********************************/
 
   object Deferred extends LazyLogging {
+
+    val maxRecoveriesBeforeWarn = 10
 
     val none = IO.Deferred(None, swaydb.Error.ReservedResource(Reserve()))
     val done = IO.Deferred(IO.Done, swaydb.Error.ReservedResource(Reserve()))
@@ -362,51 +406,20 @@ object IO {
     @inline final def io[E: ErrorHandler, A](io: => IO[E, A]): IO.Deferred[E, A] =
       new IO.Deferred(() => io.get, None)
 
-    def future[E >: swaydb.Error.ReservedIO : ErrorHandler, A](future: Future[A])(implicit ec: ExecutionContext): IO.Deferred[E, A] = {
-      val reserve = Reserve[Unit](())
-      future onComplete {
-        _ =>
-          Reserve.setFree(reserve)
-      }
-
-      /**
-       * This value will only be accessed by [[IO.Deferred]] only when the Future completes. But functions like
-       * [[IO.Deferred.get]] will try to access this before the Future is complete will result in failure.
-       *
-       * This is necessary to avoid blocking Futures.
-       */
-      def deferredValue =
-        future.value map {
-          case scala.util.Success(value) =>
-            value
-
-          case scala.util.Failure(exception) =>
-            throw exception
-        } getOrElse {
-          //Accessing Future when its incomplete.
-          throw swaydb.Exception.GetOnIncompleteDeferredFutureIO(reserve)
-        }
-
-      IO.Deferred(
-        value = deferredValue,
-        error = swaydb.Error.ReservedResource(reserve)
-      )
-    }
-
-    @inline private final def recover[E: ErrorHandler, A](f: IO.Deferred[E, A]): Either[IO[E, A], IO.Deferred[E, A]] =
+    @inline private final def runAndRecover[E: ErrorHandler, A](f: IO.Deferred[E, A]): Either[IO[E, A], IO.Deferred[E, A]] =
       try
-        Left(IO.Success[E, A](f.get))
+        Left(IO.Success[E, A](f.getUnsafe))
       catch {
         case ex: Throwable =>
           val error = ErrorHandler.fromException[E](ex)
-          ErrorHandler.reserve(error) map {
-            _ =>
-              Right(IO.Deferred(value = f.value, error = Some(error)))
-          } getOrElse Left(IO.Failure(error))
+          if (ErrorHandler.reserve(error).isDefined)
+            Right(IO.Deferred(f.getUnsafe, error))
+          else
+            Left(IO.Failure(error))
       }
   }
 
-  final case class Deferred[+E: ErrorHandler, +A] private(value: () => A,
+  final case class Deferred[+E: ErrorHandler, +A] private(operation: () => A,
                                                           error: Option[E]) extends LazyLogging {
 
     @volatile private var _value: Option[Any] = None
@@ -416,22 +429,22 @@ object IO {
     def isReady: Boolean =
       error.flatMap(ErrorHandler.reserve[E]) forall (_.isFree)
 
-    def isValueDefined: Boolean =
+    def isComplete: Boolean =
       getValue.isDefined
 
-    def isValueEmpty: Boolean =
-      !isValueDefined
+    def isPending: Boolean =
+      !isComplete
 
     def isBusy =
       error.flatMap(ErrorHandler.reserve[E]) exists (_.isBusy)
 
     @throws[scala.Exception]
-    private def get: A = {
+    def getUnsafe: A = {
 
       //Runs composed functions does not perform any recovery.
       def forceGet: A =
         getValue getOrElse {
-          val got = value()
+          val got = operation()
           _value = Some(got)
           got
         }
@@ -445,41 +458,34 @@ object IO {
         } getOrElse forceGet
     }
 
-    private def runAndRecover(): Either[IO[E, A], IO.Deferred[E, A]] =
-      if (getValue.isDefined || !isBusy)
-        IO.Deferred.recover[E, A](this)
-      else
-        Right(this)
-
-    def warnTooManyTimes(tried: Int) =
-      if (tried > 0 && tried % 10 == 0) {
-        logger.warn(s"Competing reserved resource. Times accessed: $tried")
-      }
-
     /**
-     * Opens all [[IO.Deferred]] types to read the final value in a blocking manner.
-     */
+      * Opens all [[IO.Deferred]] types to read the final value in a blocking manner.
+      */
     def runIO: IO[E, A] = {
 
-      def blockIfNeeded(): Unit =
-        if (isValueEmpty)
-          error foreach {
-            error =>
-              ErrorHandler.reserve[E](error) foreach {
-                reserve =>
-                  Reserve.blockUntilFree(reserve)
-              }
-          }
+      def blockIfNeeded(deferred: IO.Deferred[E, A]): Unit =
+        deferred.error foreach {
+          error =>
+            ErrorHandler.reserve(error) foreach {
+              reserve =>
+                logger.debug("Blocking")
+                Reserve.blockUntilFree(reserve)
+                logger.debug("Freed")
+            }
+        }
 
       @tailrec
       def doRun(deferred: IO.Deferred[E, A], tried: Int): IO[E, A] = {
-        blockIfNeeded()
-        deferred.runAndRecover() match {
+        blockIfNeeded(deferred)
+        IO.Deferred.runAndRecover(deferred) match {
           case Left(io) =>
+            logger.debug(s"Run! isCached: ${getValue.isDefined}. $io")
             io
 
           case Right(deferred) =>
-            warnTooManyTimes(tried)
+            logger.debug(s"Retry! isCached: ${getValue.isDefined}. ${deferred.error}")
+            if (tried > 0 && tried % IO.Deferred.maxRecoveriesBeforeWarn == 0)
+              logger.warn(s"Competing reserved resource accessed via IO. Times accessed: $tried")
             doRun(deferred, tried + 1)
         }
       }
@@ -488,26 +494,53 @@ object IO {
     }
 
     /**
-     * Opens all [[IO.Deferred]] types to read the final value in a non-blocking manner.
-     */
+      * Run the deferred IO without blocking.
+      */
     def runFuture(implicit ec: ExecutionContext): Future[A] = {
 
-      def doRun(deferred: IO.Deferred[E, A], tried: Int): Future[A] =
-        error.flatMap(ErrorHandler.reserve[E]) map {
-          reserve =>
-            Reserve.future(reserve).map(_ => deferred.runAndRecover()) flatMap {
+      /**
+        * If the value is already fetched [[isPending]] run in current thread
+        * else return a Future that listens for the value to be complete.
+        */
+      def delayedRun(deferred: IO.Deferred[E, A]): Option[Future[Unit]] =
+        deferred.error flatMap {
+          error =>
+            ErrorHandler.reserve(error) flatMap {
+              reserve =>
+                Reserve.futureOption(reserve)
+            }
+        }
+
+      def runDelayed(deferred: IO.Deferred[E, A],
+                     tried: Int,
+                     future: Future[Unit]): Future[A] =
+        future flatMap {
+          _ =>
+            runNow(deferred, tried)
+        }
+
+      @tailrec
+      def runNow(deferred: IO.Deferred[E, A], tried: Int): Future[A] =
+        delayedRun(deferred) match {
+          case Some(delayedFuture) if !delayedFuture.isCompleted =>
+            logger.debug(s"Run delayed! isCached: ${getValue.isDefined}.")
+            runDelayed(deferred, tried, delayedFuture)
+
+          case Some(_) | None =>
+            logger.debug(s"Run no delay! isCached: ${getValue.isDefined}")
+            //no delay required run in stack safe manner.
+            IO.Deferred.runAndRecover(deferred) match {
               case Left(io) =>
                 io.toFuture
 
-              case Right(deferred: IO.Deferred[E, A]) =>
-                warnTooManyTimes(tried)
-                doRun(deferred, tried + 1)
+              case Right(deferred) =>
+                if (tried > 0 && tried % IO.Deferred.maxRecoveriesBeforeWarn == 0)
+                  logger.warn(s"Competing reserved resource accessed via Future. Times accessed: $tried")
+                runNow(deferred, tried + 1)
             }
-        } getOrElse {
-          getValue.map(Future.successful) getOrElse Future(get)
         }
 
-      doRun(this, 0)
+      runNow(this, 0)
     }
 
     def getOrElse[B >: A](default: => B): B =
@@ -515,59 +548,49 @@ object IO {
 
     def map[B](f: A => B): IO.Deferred[E, B] =
       IO.Deferred[E, B](
-        value = () => f(get),
+        operation = () => f(getUnsafe),
         error = error
       )
 
     def flatMap[F >: E : ErrorHandler, B](f: A => IO.Deferred[F, B]): IO.Deferred[F, B] =
       IO.Deferred[F, B](
-        value = () => f(get).get,
+        operation = () => f(getUnsafe).getUnsafe,
         error = error
       )
 
     def flatMapIO[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO.Deferred[F, B] =
       IO.Deferred[F, B](
-        value = () => f(get).get,
+        operation = () => f(getUnsafe).get,
         error = error
       )
 
     def recover[B >: A](f: PartialFunction[E, B]): IO.Deferred[E, B] =
-      IO.Deferred(()) flatMap {
-        _ =>
-          runAndRecover() match {
-            case Left(io) =>
-              io match {
-                case IO.Success(value) =>
-                  IO.Deferred(value)
-
-                case IO.Failure(error) =>
-                  IO.Deferred(f(error))
-              }
-
-            case Right(deferred) =>
-              deferred
-          }
-      }
+      IO.Deferred[E, B](
+        operation =
+          () =>
+            try
+              operation()
+            catch {
+              case exception: Exception =>
+                f(ErrorHandler.fromException(exception))
+            },
+        error = error
+      )
 
     def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO.Deferred[F, B]]): IO.Deferred[F, B] =
-      IO.Deferred(()) flatMap {
-        _ =>
-          runAndRecover() match {
-            case Left(io) =>
-              io match {
-                case IO.Success(value) =>
-                  IO.Deferred(value)
-
-                case IO.Failure(error) =>
-                  f(error)
-              }
-
-            case Right(deferred) =>
-              deferred
-          }
-      }
+      IO.Deferred[E, B](
+        operation =
+          () =>
+            try
+              operation()
+            catch {
+              case exception: Exception =>
+                f(ErrorHandler.fromException(exception)).getUnsafe
+            },
+        error = error
+      )
 
     def flatten[F, B](implicit ev: A <:< IO.Deferred[F, B]): IO.Deferred[F, B] =
-      get
+      getUnsafe
   }
 }
