@@ -41,10 +41,10 @@ private[file] class MemoryFile(val path: Path,
     IO.unit
 
   override def append(slice: Slice[Byte]): IO[swaydb.Error.IO, Unit] =
-    IO.failed(new UnsupportedOperationException("Memory files are immutable. Cannot append."))
+    IO.failed[swaydb.Error.IO, Unit](new UnsupportedOperationException("Memory files are immutable. Cannot append."))
 
   override def append(slice: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Unit] =
-    IO.failed(new UnsupportedOperationException("Memory files are immutable. Cannot append."))
+    IO.failed[swaydb.Error.IO, Unit](new UnsupportedOperationException("Memory files are immutable. Cannot append."))
 
   override def read(position: Int, size: Int): IO[swaydb.Error.IO, Slice[Byte]] =
     IO(bytes.slice(position, position + size - 1))

@@ -69,7 +69,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       IOEffect.exists(testFile) shouldBe true
     }
 
-    "fail to write bytes if the Slice contains empty bytes" in {
+    "write only the bytes written" in {
       val testFile = randomFilePath
       val bytes = Slice.create[Byte](10)
       bytes.addIntUnsigned(1)
@@ -77,7 +77,8 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       bytes.size shouldBe 2
 
-      DBFile.write(testFile, bytes).failed.runRandomIO.value.exception shouldBe swaydb.Exception.FailedToWriteAllBytes(10, 2, bytes.size)
+      DBFile.write(testFile, bytes).runRandomIO.get shouldBe testFile
+      IOEffect.readAll(testFile).get shouldBe bytes
     }
 
     "fail to write if the file already exists" in {
@@ -141,7 +142,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       //above onOpen is also invoked
     }
 
-    "fail write if the slice is partially written" in {
+    "append if the slice is partially written" in {
       val testFile = randomFilePath
       val bytes = Slice.create[Byte](10)
       bytes.addIntUnsigned(1)
@@ -150,7 +151,8 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       bytes.size shouldBe 2
 
       val channelFile = DBFile.channelWrite(testFile, autoClose = true).runRandomIO.value
-      channelFile.append(bytes).failed.runRandomIO.value.exception shouldBe swaydb.Exception.FailedToWriteAllBytes(10, 2, bytes.size)
+      channelFile.append(bytes).runRandomIO.get
+      IOEffect.readAll(testFile).value shouldBe bytes
       channelFile.close.runRandomIO.value
     }
 

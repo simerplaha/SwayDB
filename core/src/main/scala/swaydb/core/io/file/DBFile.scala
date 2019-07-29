@@ -143,7 +143,7 @@ object DBFile {
   def memory(path: Path,
              bytes: Slice[Byte],
              autoClose: Boolean)(implicit limiter: FileLimiter): IO[swaydb.Error.IO, DBFile] =
-    IO {
+    IO[swaydb.Error.IO, DBFile] {
       new DBFile(
         path = path,
         memoryMapped = false,

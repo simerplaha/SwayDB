@@ -45,10 +45,17 @@ class BufferCleanerSpec extends TestBase {
     val file: DBFile = DBFile.mmapWriteAndRead(randomDir, autoClose = true, Slice(randomBytesSlice())).get
 
     eventual(10.seconds) {
-      file.file.get.asInstanceOf[MMAPFile].isBufferEmpty shouldBe true
-    }
+      file.file match {
+        case Some(file: MMAPFile) =>
+          file.isBufferEmpty shouldBe true
 
-    sleep(2.second)
+        case Some(file) =>
+          fail(s"Didn't expect file type: ${file.getClass.getSimpleName}")
+
+        case None =>
+        //success it was null and removed.
+      }
+    }
 
     limiter.terminate()
   }
