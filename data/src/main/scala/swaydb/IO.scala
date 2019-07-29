@@ -309,6 +309,7 @@ object IO {
   final case class Failure[+E: ErrorHandler, +A](error: E) extends IO[E, A] {
     override def isFailure: Boolean = true
     override def isSuccess: Boolean = false
+    def isRecoverable = ErrorHandler.reserve(error).isDefined
     override def get: A = throw exception
     override def exists(f: A => Boolean): Boolean = false
     override def getOrElse[B >: A](default: => B): B = default
@@ -322,6 +323,12 @@ object IO {
 
     override def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO[F, B]]): IO[F, B] =
       IO.Catch(if (f isDefinedAt error) f(error) else this)
+
+    def recoverTo[F: ErrorHandler, B](onRecover: => IO.Deferred[F, B]): IO.Deferred[F, B] =
+      if (this.isRecoverable)
+        onRecover
+      else
+        IO.Deferred[F, B](throw ErrorHandler.toException(this.error))
 
     override def failed: IO.Success[Throwable, E] = IO.Success[Throwable, E](error)(ErrorHandler.Throwable)
     override def toOption: Option[A] = None

@@ -22,11 +22,9 @@ package swaydb.data
 import java.io.FileNotFoundException
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.data.Base._
-import swaydb.Error.Segment.ErrorHandler
-
-import scala.util.Try
 
 class IOFailureSpec extends WordSpec with Matchers {
 
