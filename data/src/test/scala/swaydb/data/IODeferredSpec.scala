@@ -23,17 +23,16 @@ import java.io.FileNotFoundException
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.{Eventually, Futures}
-import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO.Deferred
 import swaydb.IOValues._
 import swaydb.{Error, ErrorHandler, IO}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFactory with Futures {
 
@@ -67,7 +66,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
       //creating a future should not block on executing thread.
       (timeAfterDeferred - timeBeforeDeferred) should be <= 200.millisecond.toMillis
 
-      defer.valueIO match {
+      defer.runBlockingIO match {
         case IO.Success(value) =>
           value shouldBe expectedOutcome.value
 
@@ -148,9 +147,9 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
           }
           if (Random.nextBoolean()) {
             createDefers.runIO shouldBe IO.Success(5)
-            createDefers.valueFutureIO shouldBe IO.Success(5)
+            createDefers.runFutureIO shouldBe IO.Success(5)
           } else {
-            createDefers.valueFutureIO shouldBe IO.Success(5)
+            createDefers.runFutureIO shouldBe IO.Success(5)
             createDefers.runIO shouldBe IO.Success(5)
           }
       }
@@ -343,12 +342,12 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
       deferred.isReady shouldBe true
 
       throwError = Some(unknownError)
-      deferred.valueIO shouldBe IO.Failure(unknownError)
+      deferred.runBlockingIO shouldBe IO.Failure(unknownError)
       throwError = Some(recoverableError)
       //recoverableErrors are never returned
-      deferred.valueIO shouldBe IO.Failure(unknownError)
+      deferred.runBlockingIO shouldBe IO.Failure(unknownError)
       throwError = None
-      deferred.valueIO shouldBe IO.Success(5)
+      deferred.runBlockingIO shouldBe IO.Success(5)
     }
   }
 
@@ -369,7 +368,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
       ioDeferred.isComplete shouldBe false
       ioDeferred.isReady shouldBe true
 
-      ioDeferred.valueIO shouldBe IO.Success(11)
+      ioDeferred.runBlockingIO shouldBe IO.Success(11)
     }
 
     "successful deferred and failed IO" in {
@@ -378,7 +377,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
       deferred.isComplete shouldBe false
       deferred.isReady shouldBe true
 
-      val failure = IO.failed("Kaboom!")
+      val failure = IO.failed[Error.Segment, Int]("Kaboom!")
 
       val ioDeferred: Deferred[Error.Segment, Int] =
         deferred flatMapIO {
@@ -390,7 +389,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
       ioDeferred.isComplete shouldBe false
       ioDeferred.isReady shouldBe true
 
-      ioDeferred.valueIO shouldBe IO.Failure(swaydb.Error.Unknown(failure.exception))
+      ioDeferred.runBlockingIO shouldBe IO.Failure(swaydb.Error.Unknown(failure.exception))
     }
 
     "failed non-recoverable deferred and successful IO" in {
@@ -409,7 +408,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
       ioDeferred.isComplete shouldBe false
       ioDeferred.isReady shouldBe true
 
-      ioDeferred.valueIO shouldBe IO.Failure(swaydb.Error.Unknown(failure.exception))
+      ioDeferred.runBlockingIO shouldBe IO.Failure(swaydb.Error.Unknown(failure.exception))
     }
 
     "failed recoverable deferred and successful IO" in {
@@ -442,8 +441,219 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
           ioDeferred.isComplete shouldBe false
           ioDeferred.isReady shouldBe true
 
-          ioDeferred.valueIO shouldBe IO.Success(11)
+          ioDeferred.runBlockingIO shouldBe IO.Success(11)
       }
+    }
+  }
+
+  "recover" when {
+    "non-recoverable failure" in {
+      val deferred =
+        IO.Deferred[Error.Segment, Int](1) flatMap {
+          i =>
+            IO.Deferred(i + 1) flatMap {
+              i =>
+                IO.Deferred(i + 1) flatMap {
+                  i =>
+                    throw unknownError.exception
+                }
+            }
+        } recover {
+          case error: Error.Segment =>
+            error shouldBe unknownError
+            1
+        }
+
+      deferred.runIO shouldBe IO.Success(1)
+    }
+
+    "recoverable failure" in {
+      @volatile var failureCount = 0
+
+      def deferred =
+        IO.Deferred[Error.Segment, Int](1) flatMap {
+          i =>
+            IO.Deferred(i + 1) flatMap {
+              i =>
+                IO.Deferred(i + 1) flatMap {
+                  i =>
+                    if (failureCount >= 6) {
+                      IO.Deferred(i + 1)
+                    } else {
+                      failureCount += 1
+                      throw recoverableError.exception
+                    }
+                }
+            }
+        } recover {
+          case _: Error.Segment =>
+            fail("Didn't not expect recovery")
+        }
+
+      deferred.runBlockingIO shouldBe IO.Success(4)
+      failureCount shouldBe 6
+      failureCount = 0
+      deferred.runFutureIO shouldBe IO.Success(4)
+      failureCount shouldBe 6
+    }
+
+    "recoverable failure with non-recoverable failure result" in {
+      @volatile var failureCount = 0
+
+      def deferred =
+        IO.Deferred[Error.Segment, Int](1) flatMap {
+          i =>
+            IO.Deferred(i + 1) flatMap {
+              i =>
+                IO.Deferred(i + 1) flatMap {
+                  i =>
+                    if (failureCount >= 6) {
+                      throw unknownError.exception
+                    } else {
+                      failureCount += 1
+                      throw recoverableError.exception
+                    }
+                }
+            }
+        } recover {
+          case error: Error.Segment =>
+            error shouldBe unknownError
+            Int.MaxValue
+        }
+
+      deferred.runBlockingIO shouldBe IO.Success(Int.MaxValue)
+      failureCount shouldBe 6
+      failureCount = 0
+      deferred.runFutureIO shouldBe IO.Success(Int.MaxValue)
+      failureCount shouldBe 6
+    }
+  }
+
+  "recoverWith" when {
+    "non-recoverable failure" in {
+      def deferred =
+        IO.Deferred[Error.Segment, Int](1) flatMap {
+          i =>
+            IO.Deferred(i + 1) flatMap {
+              i =>
+                IO.Deferred(i + 1) flatMap {
+                  i =>
+                    throw unknownError.exception
+                }
+            }
+        } recoverWith[Error.Segment, Int] {
+          case error: Error.Segment =>
+            error shouldBe unknownError
+            IO.Deferred(1)
+        }
+
+      deferred.runBlockingIO shouldBe IO.Success(1)
+      deferred.runFutureIO shouldBe IO.Success(1)
+    }
+
+    "non-recoverable failure when recoverWith result in recoverable Failure" in {
+
+      @volatile var failureCount = 0
+
+      def recoveredDeferred =
+        IO.Deferred[Error.Segment, Int](1) flatMap {
+          i =>
+            IO.Deferred(i + 1) flatMap {
+              i =>
+                IO.Deferred(i + 1) flatMap {
+                  i =>
+                    if (failureCount >= 6) {
+                      IO.Deferred(i + 1)
+                    } else {
+                      failureCount += 1
+                      throw recoverableError.exception
+                    }
+                }
+            }
+        } recover {
+          case _: Error.Segment =>
+            fail("Didn't not expect recovery")
+        }
+
+      val deferred =
+        IO.Deferred[Error.Segment, Int](1) flatMap {
+          i =>
+            IO.Deferred(i + 1) flatMap {
+              i =>
+                IO.Deferred(i + 1) flatMap {
+                  i =>
+                    throw unknownError.exception
+                }
+            }
+        } recoverWith[Error.Segment, Int] {
+          case error: Error.Segment =>
+            error shouldBe unknownError
+            recoveredDeferred
+        }
+
+      deferred.runBlockingIO shouldBe IO.Success(4)
+      deferred.runFutureIO shouldBe IO.Success(4)
+    }
+
+    "recoverable failure" in {
+      @volatile var failureCount = 0
+
+      def deferred =
+        IO.Deferred[Error.Segment, Int](1) flatMap {
+          i =>
+            IO.Deferred(i + 1) flatMap {
+              i =>
+                IO.Deferred(i + 1) flatMap {
+                  i =>
+                    if (failureCount >= 6) {
+                      IO.Deferred(i + 1)
+                    } else {
+                      failureCount += 1
+                      throw recoverableError.exception
+                    }
+                }
+            }
+        } recoverWith {
+          case _: Error.Segment =>
+            fail("Didn't not expect recovery")
+        }
+
+      deferred.runBlockingIO shouldBe IO.Success(4)
+      failureCount shouldBe 6
+      failureCount = 0
+      deferred.runFutureIO shouldBe IO.Success(4)
+      failureCount shouldBe 6
+    }
+
+    "recoverable failure with non-recoverable failure result" in {
+      @volatile var failureCount = 0
+
+      def deferred =
+        IO.Deferred[Error.Segment, Int](1) flatMap {
+          i =>
+            IO.Deferred(i + 1) flatMap {
+              i =>
+                IO.Deferred(i + 1) flatMap {
+                  i =>
+                    if (failureCount >= 6) {
+                      throw unknownError.exception
+                    } else {
+                      failureCount += 1
+                      throw recoverableError.exception
+                    }
+                }
+            }
+        } recoverWith {
+          case error: Error.Segment =>
+            error shouldBe unknownError
+            IO.Deferred(Int.MaxValue)
+        }
+
+      deferred.runBlockingIO shouldBe IO.Success(Int.MaxValue)
+      failureCount shouldBe 6
+      failureCount = 0
+      deferred.runFutureIO shouldBe IO.Success(Int.MaxValue)
+      failureCount shouldBe 6
     }
   }
 }

@@ -39,14 +39,17 @@ sealed trait IOValues {
 
   implicit class DeferredIOImplicits[E: ErrorHandler, T](io: => IO.Deferred[E, T]) {
 
-    def valueIO: IO[E, T] =
-      if (Random.nextBoolean())
-        io.runIO
-      else
-        valueFutureIO
+    def runBlockingIO: IO[E, T] =
+      io.runIO
 
-    def valueFutureIO: IO[E, T] =
+    def runFutureIO: IO[E, T] =
       IO(Await.result(io.runFuture, 1.minute))
+
+    def runRandomIO =
+      if (Random.nextBoolean())
+        runBlockingIO
+      else
+        runFutureIO
   }
 }
 

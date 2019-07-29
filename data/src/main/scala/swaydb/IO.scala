@@ -420,7 +420,8 @@ object IO {
   }
 
   final case class Deferred[+E: ErrorHandler, +A] private(operation: () => A,
-                                                          error: Option[E]) extends LazyLogging {
+                                                          error: Option[E],
+                                                          private val recovery: Option[_ => IO.Deferred[E, A]] = None) extends LazyLogging {
 
     @volatile private var _value: Option[Any] = None
     private def getValue = _value.map(_.asInstanceOf[A])
@@ -439,8 +440,7 @@ object IO {
       error.flatMap(ErrorHandler.reserve[E]) exists (_.isBusy)
 
     @throws[scala.Exception]
-    def getUnsafe: A = {
-
+    private[IO] def getUnsafe: A = {
       //Runs composed functions does not perform any recovery.
       def forceGet: A =
         getValue getOrElse {
@@ -480,7 +480,20 @@ object IO {
         IO.Deferred.runAndRecover(deferred) match {
           case Left(io) =>
             logger.debug(s"Run! isCached: ${getValue.isDefined}. $io")
-            io
+            (recovery: @unchecked) match {
+              case Some(recovery: ((E) => IO.Deferred[E, A])) =>
+                io match {
+                  case success @ IO.Success(_) =>
+                    success
+
+                  case IO.Failure(error) =>
+                    logger.debug(s"Run! isCached: ${getValue.isDefined}. $io")
+                    doRun(recovery(error), 0)
+                }
+
+              case None =>
+                io
+            }
 
           case Right(deferred) =>
             logger.debug(s"Retry! isCached: ${getValue.isDefined}. ${deferred.error}")
@@ -531,7 +544,19 @@ object IO {
             //no delay required run in stack safe manner.
             IO.Deferred.runAndRecover(deferred) match {
               case Left(io) =>
-                io.toFuture
+                (recovery: @unchecked) match {
+                  case Some(recovery: ((E) => IO.Deferred[E, A])) =>
+                    io match {
+                      case success @ IO.Success(_) =>
+                        success.toFuture
+
+                      case IO.Failure(error) =>
+                        runNow(recovery(error), 0)
+                    }
+
+                  case None =>
+                    io.toFuture
+                }
 
               case Right(deferred) =>
                 if (tried > 0 && tried % IO.Deferred.maxRecoveriesBeforeWarn == 0)
@@ -565,32 +590,25 @@ object IO {
       )
 
     def recover[B >: A](f: PartialFunction[E, B]): IO.Deferred[E, B] =
-      IO.Deferred[E, B](
-        operation =
-          () =>
-            try
-              operation()
-            catch {
-              case exception: Exception =>
-                f(ErrorHandler.fromException(exception))
-            },
-        error = error
+      copy(
+        recovery =
+          Some(
+            (error: E) =>
+              IO.Deferred(f(error))
+          )
       )
 
     def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO.Deferred[F, B]]): IO.Deferred[F, B] =
-      IO.Deferred[E, B](
-        operation =
-          () =>
-            try
-              operation()
-            catch {
-              case exception: Exception =>
-                f(ErrorHandler.fromException(exception)).getUnsafe
-            },
-        error = error
+      copy(
+        recovery =
+          Some(
+            (error: E) =>
+              f(error)
+          )
       )
 
+    //flattens using blocking IO.
     def flatten[F, B](implicit ev: A <:< IO.Deferred[F, B]): IO.Deferred[F, B] =
-      getUnsafe
+      runIO.get
   }
 }
