@@ -57,7 +57,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
           Config(
             falsePositiveRate = enable.falsePositiveRate,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
-            blockIO = FunctionUtil.safe(IOStrategy.defaultSynchronisedStoredIfCompressed, enable.ioStrategy),
+            blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
               FunctionUtil.safe(
                 default = _ => Seq.empty[CompressionInternal],

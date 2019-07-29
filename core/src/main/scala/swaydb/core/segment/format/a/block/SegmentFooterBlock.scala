@@ -38,7 +38,7 @@ object SegmentFooterBlock {
   object Config {
     def default =
       Config(
-        blockIO = IOStrategy.defaultSynchronisedStoredIfCompressed
+        blockIO = IOStrategy.synchronisedStoredIfCompressed
       )
   }
 

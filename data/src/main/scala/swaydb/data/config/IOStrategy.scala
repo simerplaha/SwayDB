@@ -24,21 +24,41 @@ sealed trait IOStrategy {
 object IOStrategy {
 
   /**
-   * The default [[IOStrategy]] strategy used for all [[IOAction.ReadCompressedData]]
-   * or [[IOAction.ReadUncompressedData]] blocks.
-   */
-  val defaultSynchronisedStoredIfCompressed: IOAction => IOStrategy.SynchronisedIO =
+    * The default [[IOStrategy]] strategy used for all [[IOAction.ReadCompressedData]]
+    * or [[IOAction.ReadUncompressedData]] blocks.
+    */
+  val synchronisedStoredIfCompressed: IOAction => IOStrategy.SynchronisedIO =
     (dataType: IOAction) =>
       IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed)
 
-  val defaultSynchronisedStored: IOAction => IOStrategy.SynchronisedIO =
+  val synchronisedStored: IOAction => IOStrategy.SynchronisedIO =
     (_: IOAction) =>
       IOStrategy.SynchronisedIO(cacheOnAccess = true)
 
+  val concurrentStoredIfCompressed: IOAction => IOStrategy.SynchronisedIO =
+    (dataType: IOAction) =>
+      IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed)
+
+  val concurrentStored: IOAction => IOStrategy.SynchronisedIO =
+    (_: IOAction) =>
+      IOStrategy.SynchronisedIO(cacheOnAccess = true)
+
+  val reservedStoredIfCompressed: IOAction => IOStrategy.ReservedIO =
+    (dataType: IOAction) =>
+      IOStrategy.ReservedIO(cacheOnAccess = dataType.isCompressed)
+
+  val reservedStored: IOAction => IOStrategy.ReservedIO =
+    (_: IOAction) =>
+      IOStrategy.ReservedIO(cacheOnAccess = true)
+
+  val reservedNotStored: IOAction => IOStrategy.ReservedIO =
+    (_: IOAction) =>
+      IOStrategy.ReservedIO(cacheOnAccess = false)
+
   /**
-   * The default [[IOStrategy]] strategy used for all [[IOAction.ReadDataOverview]].
-   * BlockInfos are never individually unless the entire Segment is compressed.
-   */
+    * The default [[IOStrategy]] strategy used for all [[IOAction.ReadDataOverview]].
+    * BlockInfos are never individually unless the entire Segment is compressed.
+    */
   val defaultBlockInfoStored =
     IOStrategy.ConcurrentIO(true)
 

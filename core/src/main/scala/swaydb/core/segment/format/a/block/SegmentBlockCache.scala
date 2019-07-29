@@ -41,8 +41,8 @@ object SegmentBlockCache {
 }
 
 /**
- * Implements configured caching & IO strategies for all blocks within a Segment.
- */
+  * Implements configured caching & IO strategies for all blocks within a Segment.
+  */
 class SegmentBlockCache(id: String,
                         val segmentIO: SegmentIO,
                         segmentBlockRef: BlockRefReader[SegmentBlock.Offset]) {
@@ -56,12 +56,12 @@ class SegmentBlockCache(id: String,
   def segmentFooterBlockIO = segmentIO.segmentFooterBlockIO
 
   /**
-   * Builds a required cache for [[SortedIndexBlock]].
-   */
-  def buildBlockInfoCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]): Cache[swaydb.Error.Segment, BlockRefReader[O], B] =
+    * Builds a required cache for [[SortedIndexBlock]].
+    */
+  def buildBlockInfoCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy, resourceName: String)(implicit blockOps: BlockOps[O, B]): Cache[swaydb.Error.Segment, BlockRefReader[O], B] =
     Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockRefReader[O], B](
       blockIO = ref => blockIO(IOAction.ReadDataOverview(ref.offset.size)),
-      reserveError = swaydb.Error.ReservedResource(Reserve())
+      reserveError = swaydb.Error.ReservedResource(Reserve(name = s"$id: $resourceName"))
     ) {
       ref =>
         Block
@@ -69,10 +69,10 @@ class SegmentBlockCache(id: String,
           .flatMap(blockOps.readBlock)
     }
 
-  def buildBlockInfoCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]): Cache[swaydb.Error.Segment, Option[BlockRefReader[O]], Option[B]] =
+  def buildBlockInfoCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy, resourceName: String)(implicit blockOps: BlockOps[O, B]): Cache[swaydb.Error.Segment, Option[BlockRefReader[O]], Option[B]] =
     Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockRefReader[O]], Option[B]](
       blockIO = ref => ref.map(ref => blockIO(IOAction.ReadDataOverview(ref.offset.size))) getOrElse IOStrategy.defaultBlockInfoStored,
-      reserveError = swaydb.Error.ReservedResource(Reserve())
+      reserveError = swaydb.Error.ReservedResource(Reserve(name = s"$id: $resourceName"))
     ) {
       ref =>
         ref map {
@@ -84,10 +84,10 @@ class SegmentBlockCache(id: String,
         } getOrElse IO.none
     }
 
-  def buildBlockReaderCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]) =
+  def buildBlockReaderCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy, resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockedReader[O, B], UnblockedReader[O, B]](
       blockIO = reader => blockIO(reader.block.dataType),
-      reserveError = swaydb.Error.ReservedResource(Reserve())
+      reserveError = swaydb.Error.ReservedResource(Reserve(name = s"$id: $resourceName"))
     ) {
       blockedReader =>
         UnblockedReader(
@@ -96,10 +96,10 @@ class SegmentBlockCache(id: String,
         )
     }
 
-  def buildBlockReaderCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy)(implicit blockOps: BlockOps[O, B]) =
+  def buildBlockReaderCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy, resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]](
       blockIO = _.map(reader => blockIO(reader.block.dataType)) getOrElse IOStrategy.defaultBlockReadersStored,
-      reserveError = swaydb.Error.ReservedResource(Reserve())
+      reserveError = swaydb.Error.ReservedResource(Reserve(name = s"$id: $resourceName"))
     ) {
       blockedReader =>
         blockedReader map {
@@ -114,7 +114,7 @@ class SegmentBlockCache(id: String,
   private[block] val segmentBlockReaderCache =
     Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockRefReader[SegmentBlock.Offset], UnblockedReader[SegmentBlock.Offset, SegmentBlock]](
       blockIO = ref => segmentBlockIO(IOAction.ReadDataOverview(ref.offset.size)),
-      reserveError = swaydb.Error.ReservedResource(Reserve())
+      reserveError = swaydb.Error.ReservedResource(Reserve(name = s"$id: segmentBlockReaderCache"))
     ) {
       ref =>
         BlockedReader(ref) flatMap {
@@ -132,7 +132,7 @@ class SegmentBlockCache(id: String,
         _ =>
           //reader does not contain any footer related info. Use the default known info about footer.
           segmentFooterBlockIO(IOAction.ReadDataOverview(SegmentFooterBlock.optimalBytesRequired)),
-      reserveError = swaydb.Error.ReservedResource(Reserve())
+      reserveError = swaydb.Error.ReservedResource(Reserve(name = s"$id: footerBlockCache"))
     ) {
       reader =>
         SegmentFooterBlock.read(reader)
@@ -140,35 +140,35 @@ class SegmentBlockCache(id: String,
 
   //info caches
   private[block] val sortedIndexBlockCache =
-    buildBlockInfoCache[SortedIndexBlock.Offset, SortedIndexBlock](sortedIndexBlockIO)
+    buildBlockInfoCache[SortedIndexBlock.Offset, SortedIndexBlock](sortedIndexBlockIO, "sortedIndexBlockCache")
 
   private[block] val hashIndexBlockCache =
-    buildBlockInfoCacheOptional[HashIndexBlock.Offset, HashIndexBlock](hashIndexBlockIO)
+    buildBlockInfoCacheOptional[HashIndexBlock.Offset, HashIndexBlock](hashIndexBlockIO, "hashIndexBlockCache")
 
   private[block] val bloomFilterBlockCache =
-    buildBlockInfoCacheOptional[BloomFilterBlock.Offset, BloomFilterBlock](bloomFilterBlockIO)
+    buildBlockInfoCacheOptional[BloomFilterBlock.Offset, BloomFilterBlock](bloomFilterBlockIO, "bloomFilterBlockCache")
 
   private[block] val binarySearchIndexBlockCache =
-    buildBlockInfoCacheOptional[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](binarySearchIndexBlockIO)
+    buildBlockInfoCacheOptional[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](binarySearchIndexBlockIO, "binarySearchIndexBlockCache")
 
   private[block] val valuesBlockCache =
-    buildBlockInfoCacheOptional[ValuesBlock.Offset, ValuesBlock](valuesBlockIO)
+    buildBlockInfoCacheOptional[ValuesBlock.Offset, ValuesBlock](valuesBlockIO, "valuesBlockCache")
 
   //reader caches
   private[block] val sortedIndexReaderCache =
-    buildBlockReaderCache[SortedIndexBlock.Offset, SortedIndexBlock](sortedIndexBlockIO)
+    buildBlockReaderCache[SortedIndexBlock.Offset, SortedIndexBlock](sortedIndexBlockIO, "sortedIndexReaderCache")
 
   private[block] val hashIndexReaderCache =
-    buildBlockReaderCacheOptional[HashIndexBlock.Offset, HashIndexBlock](hashIndexBlockIO)
+    buildBlockReaderCacheOptional[HashIndexBlock.Offset, HashIndexBlock](hashIndexBlockIO, "hashIndexReaderCache")
 
   private[block] val bloomFilterReaderCache =
-    buildBlockReaderCacheOptional[BloomFilterBlock.Offset, BloomFilterBlock](bloomFilterBlockIO)
+    buildBlockReaderCacheOptional[BloomFilterBlock.Offset, BloomFilterBlock](bloomFilterBlockIO, "bloomFilterReaderCache")
 
   private[block] val binarySearchIndexReaderCache =
-    buildBlockReaderCacheOptional[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](binarySearchIndexBlockIO)
+    buildBlockReaderCacheOptional[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](binarySearchIndexBlockIO, "binarySearchIndexReaderCache")
 
   private[block] val valuesReaderCache: Cache[swaydb.Error.Segment, Option[BlockedReader[ValuesBlock.Offset, ValuesBlock]], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
-    buildBlockReaderCacheOptional[ValuesBlock.Offset, ValuesBlock](valuesBlockIO)
+    buildBlockReaderCacheOptional[ValuesBlock.Offset, ValuesBlock](valuesBlockIO, "valuesReaderCache")
 
   private[block] val allCaches =
     Seq(
@@ -241,7 +241,7 @@ class SegmentBlockCache(id: String,
           } getOrElse cache.value(None)
       }
     }
-    }.map(_.map(_.copy()))
+  }.map(_.map(_.copy()))
 
   def createReader[O <: BlockOffset, B <: Block[O]](cache: Cache[swaydb.Error.Segment, BlockedReader[O, B], UnblockedReader[O, B]], getBlock: => IO[swaydb.Error.Segment, B]): IO[swaydb.Error.Segment, UnblockedReader[O, B]] = {
     cache getOrElse {
@@ -254,7 +254,7 @@ class SegmentBlockCache(id: String,
           }
       }
     }
-    }.map(_.copy())
+  }.map(_.copy())
 
   def createHashIndexReader(): IO[swaydb.Error.Segment, Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]]] =
     createReaderOptional(hashIndexReaderCache, getHashIndex())

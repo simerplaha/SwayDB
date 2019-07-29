@@ -36,7 +36,7 @@ object Base {
       Await.result(f, 10.seconds)
   }
 
-  def busyErrors(busyBoolean: Reserve[Unit] = Reserve()): List[swaydb.Error.Recoverable] =
+  def busyErrors(busyBoolean: Reserve[Unit] = Reserve(name = "busyError")): List[swaydb.Error.Recoverable] =
     List(
       swaydb.Error.OpeningFile(Paths.get("/some/path"), busyBoolean),
       swaydb.Error.NoSuchFile(Some(Paths.get("/some/path")), None),
@@ -47,6 +47,6 @@ object Base {
       swaydb.Error.ReservedResource(busyBoolean)
     )
 
-  def randomBusyError(busyBoolean: Reserve[Unit] = Reserve()): swaydb.Error.Recoverable =
+  def randomBusyError(busyBoolean: Reserve[Unit] = Reserve(name = "randomBusyError")): swaydb.Error.Recoverable =
     Random.shuffle(busyErrors(busyBoolean)).head
 }

@@ -51,7 +51,7 @@ class SegmentBlockSpec extends TestBase {
           keyValues = Seq.empty,
           segmentConfig = SegmentBlock.Config.random,
           createdInLevel = randomIntMax()
-        ).valueIO.value
+        ).runRandomIO.value
 
       closedSegment.segmentBytes.isEmpty shouldBe true
       closedSegment.nearestDeadline shouldBe empty
@@ -68,7 +68,7 @@ class SegmentBlockSpec extends TestBase {
                 compressions = _ => Seq.empty
               ),
             createdInLevel = randomNextInt(10)
-          ).valueIO.value
+          ).runRandomIO.value
 
         val reader = Reader[swaydb.Error.Segment](closedSegment.flattenSegmentBytes)
         assertReads(keyValues, reader)
@@ -98,7 +98,7 @@ class SegmentBlockSpec extends TestBase {
             bloomFilterConfig = BloomFilterBlock.Config.random,
             previous = None,
             createdInLevel = randomIntMax()
-          ).valueIO.value
+          ).runRandomIO.value
 
         val bytes =
           SegmentBlock.writeClosed(
@@ -109,14 +109,14 @@ class SegmentBlockSpec extends TestBase {
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
-          ).valueIO.value.flattenSegmentBytes
+          ).runRandomIO.value.flattenSegmentBytes
 
         bytes.isFull shouldBe true
 
         Seq(Reader[swaydb.Error.Segment](bytes), createRandomFileReader(bytes)) foreach {
           reader =>
-            val readGroup = readAll(reader).valueIO.value.asInstanceOf[Slice[KeyValue.ReadOnly.Group]]
-            val allKeyValuesForGroups = readGroup.flatMap(_.segment.getAll().valueIO.value)
+            val readGroup = readAll(reader).runRandomIO.value.asInstanceOf[Slice[KeyValue.ReadOnly.Group]]
+            val allKeyValuesForGroups = readGroup.flatMap(_.segment.getAll().runRandomIO.value)
             allKeyValuesForGroups shouldBe keyValues.toMemory
         }
       }
@@ -140,12 +140,12 @@ class SegmentBlockSpec extends TestBase {
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
-          ).valueIO.value.flattenSegmentBytes
+          ).runRandomIO.value.flattenSegmentBytes
 
-        val allBytes = readAll(segmentBytes).valueIO.value
+        val allBytes = readAll(segmentBytes).runRandomIO.value
         allBytes.isInstanceOf[Slice[KeyValue.ReadOnly.Group]] shouldBe true
 
-        val allKeyValuesForGroups = allBytes.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segment.getAll().valueIO.value)
+        val allKeyValuesForGroups = allBytes.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segment.getAll().runRandomIO.value)
         allKeyValuesForGroups shouldBe (group1KeyValues ++ group2KeyValues).toMemory
       }
     }
@@ -174,18 +174,18 @@ class SegmentBlockSpec extends TestBase {
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
-          ).valueIO.value.flattenSegmentBytes
+          ).runRandomIO.value.flattenSegmentBytes
 
         bytes.isFull shouldBe true
 
-        val rootGroup = readAll(bytes).valueIO.value
+        val rootGroup = readAll(bytes).runRandomIO.value
         rootGroup should have size 1
         rootGroup.isInstanceOf[Slice[KeyValue.ReadOnly.Group]] shouldBe true
 
-        val childGroups = rootGroup.head.asInstanceOf[KeyValue.ReadOnly.Group].segment.getAll().valueIO.value
+        val childGroups = rootGroup.head.asInstanceOf[KeyValue.ReadOnly.Group].segment.getAll().runRandomIO.value
         childGroups.isInstanceOf[Slice[KeyValue.ReadOnly.Group]] shouldBe true
 
-        val allKeyValuesForGroups = childGroups.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segment.getAll().valueIO.value)
+        val allKeyValuesForGroups = childGroups.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segment.getAll().runRandomIO.value)
         allKeyValuesForGroups shouldBe (group1KeyValues ++ group2KeyValues ++ group3KeyValues).toMemory
       }
     }
@@ -204,7 +204,7 @@ class SegmentBlockSpec extends TestBase {
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
-          ).valueIO.value.flattenSegmentBytes
+          ).runRandomIO.value.flattenSegmentBytes
 
         //in memory
         assertReads(keyValues, Reader[swaydb.Error.Segment](bytes.unslice()))
@@ -225,7 +225,7 @@ class SegmentBlockSpec extends TestBase {
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0
-        ).valueIO.value.flattenSegment
+        ).runRandomIO.value.flattenSegment
 
       deadline shouldBe empty
 
@@ -253,7 +253,7 @@ class SegmentBlockSpec extends TestBase {
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0
-        ).valueIO.value.flattenSegment
+        ).runRandomIO.value.flattenSegment
 
       if (!setDeadlines) deadline shouldBe empty
 

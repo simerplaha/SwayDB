@@ -33,7 +33,7 @@ import swaydb.data.slice.Slice
 class ErrorSpec extends FlatSpec with Matchers {
 
   it should "convert known Exception to typed Errors and vice versa" in {
-    val reserve = Reserve[Unit]()
+    val reserve = Reserve[Unit](name = "ErrorSpec")
 
     Error(Exception.OpeningFile(Paths.get("/some/path"), reserve)) shouldBe
       Error.OpeningFile(Paths.get("/some/path"), reserve)

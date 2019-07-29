@@ -339,7 +339,7 @@ object IO {
   }
 
   def fromFuture[E: ErrorHandler, A](future: Future[A])(implicit ec: ExecutionContext): IO.Deferred[E, A] = {
-    val reserve = Reserve[Unit](())
+    val reserve = Reserve[Unit]((), "fromFuture")
     future onComplete {
       _ =>
         Reserve.setFree(reserve)
@@ -390,12 +390,12 @@ object IO {
 
   object Deferred extends LazyLogging {
 
-    val maxRecoveriesBeforeWarn = 10
+    val maxRecoveriesBeforeWarn = 1000
 
-    val none = IO.Deferred(None, swaydb.Error.ReservedResource(Reserve()))
-    val done = IO.Deferred(IO.Done, swaydb.Error.ReservedResource(Reserve()))
-    val unit = IO.Deferred((), swaydb.Error.ReservedResource(Reserve()))
-    val zero = IO.Deferred(0, swaydb.Error.ReservedResource(Reserve()))
+    val none = IO.Deferred(None, swaydb.Error.ReservedResource(Reserve(name = "Deferred.none")))
+    val done = IO.Deferred(IO.Done, swaydb.Error.ReservedResource(Reserve(name = "Deferred.done")))
+    val unit = IO.Deferred((), swaydb.Error.ReservedResource(Reserve(name = "Deferred.unit")))
+    val zero = IO.Deferred(0, swaydb.Error.ReservedResource(Reserve(name = "Deferred.zero")))
 
     @inline final def apply[E: ErrorHandler, A](value: => A): IO.Deferred[E, A] =
       new Deferred(() => value, None)
@@ -468,9 +468,9 @@ object IO {
           error =>
             ErrorHandler.reserve(error) foreach {
               reserve =>
-                logger.debug("Blocking")
+                logger.debug(s"Blocking. ${reserve.name}")
                 Reserve.blockUntilFree(reserve)
-                logger.debug("Freed")
+                logger.debug(s"Freed. ${reserve.name}")
             }
         }
 
@@ -479,7 +479,7 @@ object IO {
         blockIfNeeded(deferred)
         IO.Deferred.runAndRecover(deferred) match {
           case Left(io) =>
-            logger.debug(s"Run! isCached: ${getValue.isDefined}. $io")
+            logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
             (recovery: @unchecked) match {
               case Some(recovery: ((E) => IO.Deferred[E, A])) =>
                 io match {
@@ -487,7 +487,7 @@ object IO {
                     success
 
                   case IO.Failure(error) =>
-                    logger.debug(s"Run! isCached: ${getValue.isDefined}. $io")
+                    logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
                     doRun(recovery(error), 0)
                 }
 
@@ -498,7 +498,7 @@ object IO {
           case Right(deferred) =>
             logger.debug(s"Retry! isCached: ${getValue.isDefined}. ${deferred.error}")
             if (tried > 0 && tried % IO.Deferred.maxRecoveriesBeforeWarn == 0)
-              logger.warn(s"Competing reserved resource accessed via IO. Times accessed: $tried")
+              logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via IO. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => ErrorHandler.reserve(error).map(_.name))}")
             doRun(deferred, tried + 1)
         }
       }
@@ -560,7 +560,7 @@ object IO {
 
               case Right(deferred) =>
                 if (tried > 0 && tried % IO.Deferred.maxRecoveriesBeforeWarn == 0)
-                  logger.warn(s"Competing reserved resource accessed via Future. Times accessed: $tried")
+                  logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via IO. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => ErrorHandler.reserve(error).map(_.name))}")
                 runNow(deferred, tried + 1)
             }
         }

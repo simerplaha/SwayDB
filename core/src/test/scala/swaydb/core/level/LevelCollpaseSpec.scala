@@ -82,7 +82,7 @@ sealed trait LevelCollapseSpec extends TestBase {
       //disable throttling so that it does not automatically collapse small Segments
       val level = TestLevel(segmentSize = 1.kb)
       val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)(TestTimer.Empty)
-      level.putKeyValuesTest(keyValues).valueIO.value
+      level.putKeyValuesTest(keyValues).runRandomIO.value
 
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
@@ -101,13 +101,13 @@ sealed trait LevelCollapseSpec extends TestBase {
             }
         }
       //delete half of the key values which will create small Segments
-      level.putKeyValuesTest(Slice(deleteEverySecond.toArray)).valueIO.value
-      level.collapse(level.segmentsInLevel()).getUnsafe
+      level.putKeyValuesTest(Slice(deleteEverySecond.toArray)).runRandomIO.value
+      level.collapse(level.segmentsInLevel()).runRandomIO
       //since every second key-value was delete, the number of Segments is reduced to half
       level.segmentFilesInAppendix shouldBe <=((segmentCountBeforeDelete / 2) + 1) //+1 for odd number of key-values
       assertReads(Slice(keyValuesNoDeleted.toArray), level)
 
-      level.delete.valueIO.value
+      level.delete.runRandomIO.value
     }
 
     "collapse all small Segments into one of the existing small Segments, if the Segment was reopened with a larger segment size" in {
@@ -122,16 +122,16 @@ sealed trait LevelCollapseSpec extends TestBase {
           assertAllSegmentsCreatedInLevel(level)
 
           val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)(TestTimer.Empty)
-          level.putKeyValuesTest(keyValues).valueIO.value
+          level.putKeyValuesTest(keyValues).runRandomIO.value
           //dispatch another push to trigger split
-          level.putKeyValuesTest(Slice(keyValues.head)).valueIO.value
+          level.putKeyValuesTest(Slice(keyValues.head)).runRandomIO.value
 
           level.segmentsCount() > 1 shouldBe true
-          level.close.valueIO.value
+          level.close.runRandomIO.value
 
           //reopen the Level with larger min segment size
           val reopenLevel = level.reopen(segmentSize = 20.mb)
-          reopenLevel.collapse(level.segmentsInLevel()).getUnsafe
+          reopenLevel.collapse(level.segmentsInLevel()).runRandomIO
 
           //resulting segments is 1
           eventually {
@@ -142,7 +142,7 @@ sealed trait LevelCollapseSpec extends TestBase {
           val reopen2 = reopenLevel.reopen
           eventual(assertReads(keyValues, reopen2))
 
-          level.delete.valueIO.value
+          level.delete.runRandomIO.value
         }
       }
     }
@@ -153,7 +153,7 @@ sealed trait LevelCollapseSpec extends TestBase {
       val level = TestLevel(segmentSize = 1.kb)
       val expiryAt = 5.seconds.fromNow
       val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addPutDeadlines = false)(TestTimer.Empty)
-      level.putKeyValuesTest(keyValues).valueIO.value
+      level.putKeyValuesTest(keyValues).runRandomIO.value
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
 
@@ -171,25 +171,25 @@ sealed trait LevelCollapseSpec extends TestBase {
 
       val sss: IO.Deferred[Error.Level, Option[ReadOnly.Put]] = ???
 
-      sss.getUnsafe
+      sss.runRandomIO
 
 
       //delete half of the key values which will create small Segments
-      level.putKeyValuesTest(Slice(expireEverySecond.toArray)).valueIO.value
+      level.putKeyValuesTest(Slice(expireEverySecond.toArray)).runRandomIO.value
       keyValues.zipWithIndex foreach {
         case (keyValue, index) =>
 
           if (index % 2 == 0)
-            level.get(keyValue.key).getUnsafe.value.deadline should contain(expiryAt + index.millisecond)
+            level.get(keyValue.key).runRandomIO.value.value.deadline should contain(expiryAt + index.millisecond)
       }
 
       sleep(20.seconds)
-      level.collapse(level.segmentsInLevel()).getUnsafe
+      level.collapse(level.segmentsInLevel()).runRandomIO
       level.segmentFilesInAppendix should be <= (segmentCountBeforeDelete / 2)
 
       assertReads(Slice(keyValuesNotExpired.toArray), level)
 
-      level.delete.valueIO.value
+      level.delete.runRandomIO.value
     }
   }
 
@@ -198,13 +198,13 @@ sealed trait LevelCollapseSpec extends TestBase {
 
     val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
     val maps = TestMap(keyValues.toTransient.toMemoryResponse)
-    level.put(maps).getUnsafe
+    level.put(maps).runRandomIO
 
     val nextLevel = TestLevel()
-    nextLevel.put(level.segmentsInLevel()).getUnsafe
+    nextLevel.put(level.segmentsInLevel()).runRandomIO
 
-    if (persistent) nextLevel.segmentsInLevel() foreach (_.createdInLevel.valueIO.value shouldBe level.levelNumber)
-    nextLevel.collapse(nextLevel.segmentsInLevel()).getUnsafe
-    nextLevel.segmentsInLevel() foreach (_.createdInLevel.valueIO.value shouldBe nextLevel.levelNumber)
+    if (persistent) nextLevel.segmentsInLevel() foreach (_.createdInLevel.runRandomIO.value shouldBe level.levelNumber)
+    nextLevel.collapse(nextLevel.segmentsInLevel()).runRandomIO
+    nextLevel.segmentsInLevel() foreach (_.createdInLevel.runRandomIO.value shouldBe nextLevel.levelNumber)
   }
 }

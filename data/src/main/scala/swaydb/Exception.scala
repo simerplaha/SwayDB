@@ -37,7 +37,7 @@ object Exception {
   case class Busy(error: Error.Recoverable) extends Exception("Is busy")
   case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Exception(s"Failed to open file $file")
 
-  case class ReservedResource(reserve: Reserve[Unit]) extends Exception("ReserveResource is busy.")
+  case class ReservedResource(reserve: Reserve[Unit]) extends Exception("ReservedResource is busy.")
   case class NullMappedByteBuffer(exception: Exception, reserve: Reserve[Unit]) extends Exception(exception)
 
   case object OverlappingPushSegment extends Exception("Contains overlapping busy Segments")

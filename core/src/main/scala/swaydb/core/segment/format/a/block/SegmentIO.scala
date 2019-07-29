@@ -25,24 +25,24 @@ object SegmentIO {
 
   def defaultSynchronisedStoredIfCompressed =
     new SegmentIO(
-      segmentBlockIO = IOStrategy.defaultSynchronisedStoredIfCompressed,
-      hashIndexBlockIO = IOStrategy.defaultSynchronisedStoredIfCompressed,
-      bloomFilterBlockIO = IOStrategy.defaultSynchronisedStoredIfCompressed,
-      binarySearchIndexBlockIO = IOStrategy.defaultSynchronisedStoredIfCompressed,
-      sortedIndexBlockIO = IOStrategy.defaultSynchronisedStoredIfCompressed,
-      valuesBlockIO = IOStrategy.defaultSynchronisedStoredIfCompressed,
-      segmentFooterBlockIO = IOStrategy.defaultSynchronisedStoredIfCompressed
+      segmentBlockIO = IOStrategy.synchronisedStoredIfCompressed,
+      hashIndexBlockIO = IOStrategy.synchronisedStoredIfCompressed,
+      bloomFilterBlockIO = IOStrategy.synchronisedStoredIfCompressed,
+      binarySearchIndexBlockIO = IOStrategy.synchronisedStoredIfCompressed,
+      sortedIndexBlockIO = IOStrategy.synchronisedStoredIfCompressed,
+      valuesBlockIO = IOStrategy.synchronisedStoredIfCompressed,
+      segmentFooterBlockIO = IOStrategy.synchronisedStoredIfCompressed
     )
 
   def defaultSynchronisedStored =
     new SegmentIO(
-      segmentBlockIO = IOStrategy.defaultSynchronisedStored,
-      hashIndexBlockIO = IOStrategy.defaultSynchronisedStored,
-      bloomFilterBlockIO = IOStrategy.defaultSynchronisedStored,
-      binarySearchIndexBlockIO = IOStrategy.defaultSynchronisedStored,
-      sortedIndexBlockIO = IOStrategy.defaultSynchronisedStored,
-      valuesBlockIO = IOStrategy.defaultSynchronisedStored,
-      segmentFooterBlockIO = IOStrategy.defaultSynchronisedStored
+      segmentBlockIO = IOStrategy.synchronisedStored,
+      hashIndexBlockIO = IOStrategy.synchronisedStored,
+      bloomFilterBlockIO = IOStrategy.synchronisedStored,
+      binarySearchIndexBlockIO = IOStrategy.synchronisedStored,
+      sortedIndexBlockIO = IOStrategy.synchronisedStored,
+      valuesBlockIO = IOStrategy.synchronisedStored,
+      segmentFooterBlockIO = IOStrategy.synchronisedStored
     )
 
   def apply(bloomFilterConfig: BloomFilterBlock.Config,

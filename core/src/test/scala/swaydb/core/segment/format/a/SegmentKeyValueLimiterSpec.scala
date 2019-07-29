@@ -66,7 +66,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           createdInLevel = randomIntMax()
-        ).valueIO.value
+        ).runRandomIO.value
 
       //add more key-values to the right of the Group
       val nonGroupKeyValues = randomKeyValues(count = 1000, addUpdates = true, startId = Some(groupKeyValues.last.key.readInt() + 1))
@@ -82,7 +82,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
             path = Paths.get("/test"),
             createdInLevel = 0,
             keyValues = mergedKeyValues
-          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileOpenLimiter, None, keyValueLimiter, SegmentIO.random).valueIO.value
+          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileOpenLimiter, None, keyValueLimiter, SegmentIO.random).runRandomIO.value
 
         //perform reads multiple times and assert that while the key-values are getting drop, the group key-value does
         //not value dropped
@@ -136,7 +136,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           createdInLevel = randomIntMax()
-        ).valueIO.value
+        ).runRandomIO.value
 
       //add key-values to the right of the group
       val nonGroupKeyValues = randomKeyValues(count = 1000, addUpdates = true, startId = Some(groupKeyValues.last.key.readInt() + 1))
@@ -149,7 +149,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
       try {
 
         //create persistent Segment
-        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, keyValueLimiter, FileLimiter.empty, timeOrder, SegmentIO.random, None).valueIO.value
+        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, keyValueLimiter, FileLimiter.empty, timeOrder, SegmentIO.random, None).runRandomIO.value
 
         //initially Segment's cache is empty
         segment.areAllCachesEmpty shouldBe true

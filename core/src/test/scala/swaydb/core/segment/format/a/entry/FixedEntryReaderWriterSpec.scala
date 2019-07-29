@@ -57,7 +57,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = entry.stats.thisKeyValueAccessIndexPosition,
           previous = None
-        ).valueIO.value
+        ).runRandomIO.value
       //      println("read:  " + read)
       read shouldBe entry
     }
@@ -91,7 +91,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = previous.stats.thisKeyValueAccessIndexPosition,
           previous = None
-        ).valueIO.value
+        ).runRandomIO.value
 
       previousRead shouldBe previous
 
@@ -105,7 +105,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           accessPosition = next.stats.thisKeyValueAccessIndexPosition,
           previous = Some(previousRead)
-        ).valueIO.value
+        ).runRandomIO.value
 
       //      val nextRead = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).runIO
       nextRead shouldBe next

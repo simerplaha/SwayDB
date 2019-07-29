@@ -68,7 +68,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
 
       defer.runBlockingIO match {
         case IO.Success(value) =>
-          value shouldBe expectedOutcome.value
+          value shouldBe expectedOutcome.get
 
         case IO.Failure(error) =>
           //on future failure the result Exception is wrapped within another Exception to stop recovery.
@@ -655,5 +655,50 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
       deferred.runFutureIO shouldBe IO.Success(Int.MaxValue)
       failureCount shouldBe 6
     }
+  }
+
+  "concurrent randomly releases" in {
+    val defers: Seq[IO.Deferred[Error.Segment, Int]] =
+      (1 to 100) map {
+        i =>
+          if (Random.nextBoolean()) {
+            var i = 0
+            IO.Deferred[Error.Segment, Int] {
+              if (i == 10) {
+                1
+              } else {
+                i += 1
+                throw recoverableError.exception
+              }
+            }
+          } else if (Random.nextBoolean())
+            IO.Deferred[Error.Segment, Int] {
+              val sleeping = Random.nextInt(3)
+              println(s"Sleep for $sleeping.seconds")
+              Thread.sleep(sleeping.seconds.toMillis)
+              1
+            }
+          else if(Random.nextBoolean())
+            IO.Deferred[Error.Segment, Int] {
+              if (Random.nextBoolean()) {
+                1
+              } else {
+                throw recoverableError.exception
+              }
+            }
+          else
+            IO.Deferred(1)
+      }
+
+    val flattenedDefers =
+      defers.foldLeft(IO.Deferred[Error.Segment, Int](1)) {
+        case (previousDefer, nextDefer) =>
+          previousDefer flatMap {
+            _ =>
+              nextDefer
+          }
+      }
+
+    flattenedDefers.runIO.get shouldBe 1
   }
 }

@@ -60,7 +60,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
 
   "Deleting all Grouped key-values" should {
     "return empty Segments" in {
-      runThis(5.times) {
+      runThis(1.times) {
         val rightKeyValues = randomizedKeyValues(keyValuesCount)
         //add another head key-value that is used to a merge split to occur.
         val mergePut = randomPutKeyValue(rightKeyValues.head.key.readInt() - 1).toTransient
@@ -84,13 +84,14 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
             hashIndexConfig = keyValues.last.hashIndexConfig,
             bloomFilterConfig = keyValues.last.bloomFilterConfig,
             segmentConfig = SegmentBlock.Config.random
-          ).valueIO.value
+          ).runRandomIO.value
         //        printGroupHierarchy(newSegments)
         groupedSegments should have size 1
         val newGroupedSegment = groupedSegments.head
         //perform reads, grouping should result in accurate read results.
-        assertReads(keyValues, newGroupedSegment)
+//        assertReads(keyValues, newGroupedSegment)
 
+        assertGet(keyValues, newGroupedSegment)
         //submit remove key-values either single removes or range removed.
         val removeKeyValues: Slice[Transient] =
           eitherOne(
@@ -120,16 +121,16 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
             hashIndexConfig = keyValues.last.hashIndexConfig,
             bloomFilterConfig = keyValues.last.bloomFilterConfig,
             segmentConfig = SegmentBlock.Config.random
-          ).valueIO.value
+          ).runRandomIO.value
 
         newSegmentsWithRemovedKeyValues should have size 1
         val lastSegment = newSegmentsWithRemovedKeyValues.head
         keyValues foreach {
           keyValue =>
-            lastSegment.get(keyValue.key).valueIO.value.get match {
+            lastSegment.get(keyValue.key).runRandomIO.value.get match {
               case _: KeyValue.ReadOnly.Remove =>
               case remove: KeyValue.ReadOnly.Range =>
-                remove.fetchFromOrElseRangeValue.valueIO.value shouldBe Value.remove(None)
+                remove.fetchFromOrElseRangeValue.runRandomIO.value shouldBe Value.remove(None)
               case actual =>
                 fail(s"Expected Remove found ${actual.getClass.getName}")
             }

@@ -25,7 +25,8 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Future, Promise}
 
 class Reserve[T](@volatile var info: Option[T],
-                 private[data] val promises: ListBuffer[Promise[Unit]]) {
+                 private[data] val promises: ListBuffer[Promise[Unit]],
+                 val name: String) {
   def savePromise(promise: Promise[Unit]): Unit =
     promises += promise
 
@@ -38,11 +39,11 @@ class Reserve[T](@volatile var info: Option[T],
 
 object Reserve {
 
-  def apply[T](): Reserve[T] =
-    new Reserve(None, ListBuffer.empty)
+  def apply[T](name: String): Reserve[T] =
+    new Reserve(None, ListBuffer.empty, name)
 
-  def apply[T](info: T): Reserve[T] =
-    new Reserve(Some(info), ListBuffer.empty)
+  def apply[T](info: T, name: String): Reserve[T] =
+    new Reserve(Some(info), ListBuffer.empty, name)
 
   def blockUntilFree[T](reserve: Reserve[T]): Unit =
     reserve.synchronized {

@@ -32,19 +32,19 @@ class IOEffectSpec extends TestBase {
 
   "fileId" should {
     "value the file id" in {
-      IOEffect.fileId(Paths.get("/one/1.log")).valueIO.value shouldBe(1, Extension.Log)
-      IOEffect.fileId(Paths.get("/one/two/10.log")).valueIO.value shouldBe(10, Extension.Log)
-      IOEffect.fileId(Paths.get("/one/two/three/1000.seg")).valueIO.value shouldBe(1000, Extension.Seg)
+      IOEffect.fileId(Paths.get("/one/1.log")).runRandomIO.value shouldBe(1, Extension.Log)
+      IOEffect.fileId(Paths.get("/one/two/10.log")).runRandomIO.value shouldBe(10, Extension.Log)
+      IOEffect.fileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.value shouldBe(1000, Extension.Seg)
     }
 
     "fail if the file's name is not an integer" in {
       val path = Paths.get("/one/notInt.log")
-      IOEffect.fileId(path).failed.valueIO.value.exception shouldBe swaydb.Exception.NotAnIntFile(path)
+      IOEffect.fileId(path).failed.runRandomIO.value.exception shouldBe swaydb.Exception.NotAnIntFile(path)
     }
 
     "fail if the file has invalid extension" in {
       val path = Paths.get("/one/1.txt")
-      IOEffect.fileId(path).failed.valueIO.value.exception shouldBe swaydb.Exception.UnknownExtension(path)
+      IOEffect.fileId(path).failed.runRandomIO.value.exception shouldBe swaydb.Exception.UnknownExtension(path)
     }
   }
 
@@ -58,9 +58,9 @@ class IOEffectSpec extends TestBase {
 
   "incrementFileId" should {
     "return a new file path with incremented file id" in {
-      IOEffect.incrementFileId(Paths.get("/one/1.log")).valueIO.value shouldBe Paths.get("/one/2.log")
-      IOEffect.incrementFileId(Paths.get("/one/two/10.log")).valueIO.value shouldBe Paths.get("/one/two/11.log")
-      IOEffect.incrementFileId(Paths.get("/one/two/three/1000.seg")).valueIO.value shouldBe Paths.get("/one/two/three/1001.seg")
+      IOEffect.incrementFileId(Paths.get("/one/1.log")).runRandomIO.value shouldBe Paths.get("/one/2.log")
+      IOEffect.incrementFileId(Paths.get("/one/two/10.log")).runRandomIO.value shouldBe Paths.get("/one/two/11.log")
+      IOEffect.incrementFileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.value shouldBe Paths.get("/one/two/three/1001.seg")
     }
   }
 
@@ -88,7 +88,7 @@ class IOEffectSpec extends TestBase {
         )
       actual.foreach {
         path =>
-          IOEffect.createFile(path).valueIO.value
+          IOEffect.createFile(path).runRandomIO.value
       }
 
       val expect =

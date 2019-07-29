@@ -49,8 +49,8 @@ object Error {
 
     override def reserve(e: E): Option[Reserve[Unit]] =
       e match {
-        case busy: Error.Recoverable =>
-          Some(busy.reserve)
+        case recoverable: Error.Recoverable =>
+          Some(recoverable.reserve)
 
         case _: Error =>
           None
@@ -160,7 +160,7 @@ object Error {
   }
 
   case class NoSuchFile(path: Option[Path], exp: Option[NoSuchFileException]) extends Recoverable with Error.IO {
-    override def reserve: Reserve[Unit] = Reserve()
+    override def reserve: Reserve[Unit] = Reserve(name = s"${this.getClass.getSimpleName}. Path: $path")
     override def exception: Throwable = exp getOrElse {
       path match {
         case Some(path) =>
@@ -173,19 +173,19 @@ object Error {
   }
 
   case class FileNotFound(exception: FileNotFoundException) extends Recoverable with Error.IO {
-    override def reserve: Reserve[Unit] = Reserve()
+    override def reserve: Reserve[Unit] = Reserve(name = s"${this.getClass.getSimpleName}")
   }
 
   case class AsynchronousClose(exception: AsynchronousCloseException) extends Recoverable with Error.IO {
-    override def reserve: Reserve[Unit] = Reserve()
+    override def reserve: Reserve[Unit] = Reserve(name = s"${this.getClass.getSimpleName}")
   }
 
   case class ClosedChannel(exception: ClosedChannelException) extends Recoverable with Error.IO {
-    override def reserve: Reserve[Unit] = Reserve()
+    override def reserve: Reserve[Unit] = Reserve(name = s"${this.getClass.getSimpleName}")
   }
 
   case class NullMappedByteBuffer(exception: Exception.NullMappedByteBuffer) extends Recoverable with Error.IO {
-    override def reserve: Reserve[Unit] = Reserve()
+    override def reserve: Reserve[Unit] = Reserve(name = s"${this.getClass.getSimpleName}")
   }
 
   case class ReservedResource(reserve: Reserve[Unit]) extends Recoverable {

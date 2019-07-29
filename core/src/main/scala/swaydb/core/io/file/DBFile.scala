@@ -164,7 +164,7 @@ class DBFile(val path: Path,
              autoClose: Boolean,
              @volatile var file: Option[DBFileType])(implicit limiter: FileLimiter) extends FileLimiterItem with LazyLogging {
 
-  private val busy = Reserve[Unit]()
+  private val busy = Reserve[Unit](name = s"${this.getClass.getSimpleName}: $path")
   require(busy.isFree)
 
   if (autoClose && isOpen) limiter.close(this)

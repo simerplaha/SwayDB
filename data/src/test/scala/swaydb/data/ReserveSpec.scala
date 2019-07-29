@@ -29,7 +29,8 @@ import scala.util.Random
 class ReserveSpec extends FlatSpec with Matchers {
 
   it should "complete futures if not already busy" in {
-    val busy = Reserve()
+    val busy = Reserve[Unit](name = "test")
+    busy.isBusy shouldBe false
     val futures =
       (1 to 100) map {
         i =>
@@ -40,7 +41,7 @@ class ReserveSpec extends FlatSpec with Matchers {
   }
 
   it should "complete futures when freed" in {
-    val busy = Reserve(info = ())
+    val busy = Reserve(info = (), name = "test")
     val futures =
       (1 to 10000) map {
         i =>

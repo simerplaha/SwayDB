@@ -34,7 +34,7 @@ class CachePerformanceSpec extends WordSpec with Matchers {
   "initialising caches" in {
     Benchmark("initialising 1 million concurrent caches") {
       runThis(range.size.times) {
-        Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](_ => randomIOStrategy(), swaydb.Error.ReservedResource(Reserve())) {
+        Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](_ => randomIOStrategy(), swaydb.Error.ReservedResource(Reserve(name = "test"))) {
           int =>
             IO.Success(int)
         }
