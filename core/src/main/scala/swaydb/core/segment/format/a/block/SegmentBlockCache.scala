@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
-import swaydb.IO
+import swaydb.{Error, IO}
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.block.ValuesBlock.ValuesBlockOps
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
@@ -58,7 +58,8 @@ class SegmentBlockCache(id: String,
   /**
     * Builds a required cache for [[SortedIndexBlock]].
     */
-  def buildBlockInfoCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy, resourceName: String)(implicit blockOps: BlockOps[O, B]): Cache[swaydb.Error.Segment, BlockRefReader[O], B] =
+  def buildBlockInfoCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
+                                                           resourceName: String)(implicit blockOps: BlockOps[O, B]): Cache[swaydb.Error.Segment, BlockRefReader[O], B] =
     Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockRefReader[O], B](
       blockIO = ref => blockIO(IOAction.ReadDataOverview(ref.offset.size)),
       reserveError = swaydb.Error.ReservedResource(Reserve(name = s"$id: $resourceName"))
@@ -69,7 +70,8 @@ class SegmentBlockCache(id: String,
           .flatMap(blockOps.readBlock)
     }
 
-  def buildBlockInfoCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy, resourceName: String)(implicit blockOps: BlockOps[O, B]): Cache[swaydb.Error.Segment, Option[BlockRefReader[O]], Option[B]] =
+  def buildBlockInfoCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
+                                                                   resourceName: String)(implicit blockOps: BlockOps[O, B]): Cache[swaydb.Error.Segment, Option[BlockRefReader[O]], Option[B]] =
     Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockRefReader[O]], Option[B]](
       blockIO = ref => ref.map(ref => blockIO(IOAction.ReadDataOverview(ref.offset.size))) getOrElse IOStrategy.defaultBlockInfoStored,
       reserveError = swaydb.Error.ReservedResource(Reserve(name = s"$id: $resourceName"))
@@ -84,7 +86,8 @@ class SegmentBlockCache(id: String,
         } getOrElse IO.none
     }
 
-  def buildBlockReaderCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy, resourceName: String)(implicit blockOps: BlockOps[O, B]) =
+  def buildBlockReaderCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
+                                                             resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockedReader[O, B], UnblockedReader[O, B]](
       blockIO = reader => blockIO(reader.block.dataType),
       reserveError = swaydb.Error.ReservedResource(Reserve(name = s"$id: $resourceName"))
@@ -96,7 +99,8 @@ class SegmentBlockCache(id: String,
         )
     }
 
-  def buildBlockReaderCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy, resourceName: String)(implicit blockOps: BlockOps[O, B]) =
+  def buildBlockReaderCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
+                                                                     resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.blockIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]](
       blockIO = _.map(reader => blockIO(reader.block.dataType)) getOrElse IOStrategy.defaultBlockReadersStored,
       reserveError = swaydb.Error.ReservedResource(Reserve(name = s"$id: $resourceName"))
@@ -187,7 +191,8 @@ class SegmentBlockCache(id: String,
       createSegmentBlockReader().flatMap(footerBlockCache.value(_))
     }
 
-  def getBlockOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[swaydb.Error.Segment, Option[BlockRefReader[O]], Option[B]], offset: SegmentFooterBlock => Option[O]) =
+  def getBlockOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[swaydb.Error.Segment, Option[BlockRefReader[O]], Option[B]],
+                                                        offset: SegmentFooterBlock => Option[O]): IO[Error.Segment, Option[B]] =
     cache getOrElse {
       getFooter() flatMap {
         footer =>
@@ -227,7 +232,8 @@ class SegmentBlockCache(id: String,
   def getValues(): IO[swaydb.Error.Segment, Option[ValuesBlock]] =
     getBlockOptional(valuesBlockCache, _.valuesOffset)
 
-  def createReaderOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[swaydb.Error.Segment, Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]], getBlock: => IO[swaydb.Error.Segment, Option[B]]): IO[swaydb.Error.Segment, Option[UnblockedReader[O, B]]] = {
+  def createReaderOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[swaydb.Error.Segment, Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]],
+                                                            getBlock: => IO[swaydb.Error.Segment, Option[B]]): IO[swaydb.Error.Segment, Option[UnblockedReader[O, B]]] = {
     cache getOrElse {
       getBlock flatMap {
         block =>
@@ -243,7 +249,8 @@ class SegmentBlockCache(id: String,
     }
   }.map(_.map(_.copy()))
 
-  def createReader[O <: BlockOffset, B <: Block[O]](cache: Cache[swaydb.Error.Segment, BlockedReader[O, B], UnblockedReader[O, B]], getBlock: => IO[swaydb.Error.Segment, B]): IO[swaydb.Error.Segment, UnblockedReader[O, B]] = {
+  def createReader[O <: BlockOffset, B <: Block[O]](cache: Cache[swaydb.Error.Segment, BlockedReader[O, B], UnblockedReader[O, B]],
+                                                    getBlock: => IO[swaydb.Error.Segment, B]): IO[swaydb.Error.Segment, UnblockedReader[O, B]] = {
     cache getOrElse {
       getBlock flatMap {
         block =>
@@ -271,7 +278,7 @@ class SegmentBlockCache(id: String,
   def createSortedIndexReader(): IO[swaydb.Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] =
     createReader(sortedIndexReaderCache, getSortedIndex())
 
-  def readAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None) =
+  def readAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Error.Segment, Slice[KeyValue.ReadOnly]] =
     getFooter() flatMap {
       footer =>
         createSortedIndexReader() flatMap {

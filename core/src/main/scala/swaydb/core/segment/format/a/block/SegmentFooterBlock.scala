@@ -258,11 +258,11 @@ object SegmentFooterBlock {
         )
       }
     } catch {
-      case exception: Exception =>
+      case exception: Throwable =>
         IO.failed(exception)
     }
 
-  implicit object SegmentFooterBlockUpdated extends BlockOps[SegmentFooterBlock.Offset, SegmentFooterBlock] {
+  implicit object SegmentFooterBlockOps extends BlockOps[SegmentFooterBlock.Offset, SegmentFooterBlock] {
     override def updateBlockOffset(block: SegmentFooterBlock, start: Int, size: Int): SegmentFooterBlock =
       block.copy(offset = createOffset(start, size))
 

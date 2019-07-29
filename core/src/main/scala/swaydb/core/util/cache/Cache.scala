@@ -119,9 +119,15 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
     */
   def map[F >: E : ErrorHandler, B](f: O => IO[F, B]): Cache[F, I, B] =
     new Cache[F, I, B] {
-      override def value(i: => I): IO[F, B] = self.value(i).flatMap(f)
-      override def isCached: Boolean = self.isCached
-      override def getOrElse[FF >: F : ErrorHandler, BB >: B](f: => IO[FF, BB]): IO[FF, BB] = get() getOrElse f
+      override def value(i: => I): IO[F, B] =
+        self.value(i).flatMap(f)
+
+      override def isCached: Boolean =
+        self.isCached
+
+      override def getOrElse[FF >: F : ErrorHandler, BB >: B](f: => IO[FF, BB]): IO[FF, BB] =
+        get() getOrElse f
+
       override def get(): Option[IO.Success[F, B]] =
         self.get() flatMap {
           success =>
@@ -134,7 +140,8 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
                 None
             }
         }
-      override def clear(): Unit = self.clear()
+      override def clear(): Unit =
+        self.clear()
     }
 
   def mapStored[F >: E : ErrorHandler, O2](f: O => IO[F, O2]): Cache[F, I, O2] =
