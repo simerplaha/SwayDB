@@ -43,16 +43,16 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val testFile = randomFilePath
       val bytes = Slice(randomBytes())
 
-      DBFile.write(testFile, bytes).runRandomIO
-      DBFile.mmapRead(testFile, autoClose = false).runRandomIO ==> {
+      DBFile.write(testFile, bytes).valueIOGet
+      DBFile.mmapRead(testFile, autoClose = false).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe bytes
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe bytes
+          file.close.valueIOGet
       }
-      DBFile.channelRead(testFile, autoClose = false).runRandomIO ==> {
+      DBFile.channelRead(testFile, autoClose = false).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe bytes
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe bytes
+          file.close.valueIOGet
       }
     }
 
@@ -60,11 +60,11 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val testFile = randomFilePath
       val bytes = Slice.emptyBytes
 
-      DBFile.write(testFile, bytes).runRandomIO
-      DBFile.mmapRead(testFile, autoClose = false).runRandomIO ==> {
+      DBFile.write(testFile, bytes).valueIOGet
+      DBFile.mmapRead(testFile, autoClose = false).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe empty
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe empty
+          file.close.valueIOGet
       }
       IOEffect.exists(testFile) shouldBe true
     }
@@ -77,20 +77,20 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       bytes.size shouldBe 2
 
-      DBFile.write(testFile, bytes).failed.runRandomIO.exception shouldBe swaydb.Exception.FailedToWriteAllBytes(10, 2, bytes.size)
+      DBFile.write(testFile, bytes).failed.valueIOGet.exception shouldBe swaydb.Exception.FailedToWriteAllBytes(10, 2, bytes.size)
     }
 
     "fail to write if the file already exists" in {
       val testFile = randomFilePath
       val bytes = randomBytesSlice()
 
-      DBFile.write(testFile, bytes).runRandomIO
-      DBFile.write(testFile, bytes).failed.runRandomIO.exception shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
+      DBFile.write(testFile, bytes).valueIOGet
+      DBFile.write(testFile, bytes).failed.valueIOGet.exception shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
       //file remains unchanged
-      DBFile.channelRead(testFile, autoClose = false).runRandomIO ==> {
+      DBFile.channelRead(testFile, autoClose = false).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe bytes
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe bytes
+          file.close.valueIOGet
       }
     }
   }
@@ -110,33 +110,33 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
           ()
       } repeat 3.times
 
-      val file = DBFile.channelWrite(testFile, autoClose = true).runRandomIO
+      val file = DBFile.channelWrite(testFile, autoClose = true).valueIOGet
       //above onOpen is also invoked
       file.isFileDefined shouldBe true //file is set
       file.isOpen shouldBe true
-      file.append(bytes).runRandomIO
+      file.append(bytes).valueIOGet
 
-      file.readAll.failed.runRandomIO.exception shouldBe a[NonReadableChannelException]
-      file.read(0, 1).failed.runRandomIO.exception shouldBe a[NonReadableChannelException]
-      file.get(0).failed.runRandomIO.exception shouldBe a[NonReadableChannelException]
+      file.readAll.failed.valueIOGet.exception shouldBe a[NonReadableChannelException]
+      file.read(0, 1).failed.valueIOGet.exception shouldBe a[NonReadableChannelException]
+      file.get(0).failed.valueIOGet.exception shouldBe a[NonReadableChannelException]
 
       //closing the channel and reopening it will open it in read only mode
-      file.close.runRandomIO
+      file.close.valueIOGet
       file.isFileDefined shouldBe false
       file.isOpen shouldBe false
-      file.readAll.runRandomIO shouldBe bytes //read
+      file.readAll.valueIOGet shouldBe bytes //read
       //above onOpen is also invoked
       file.isFileDefined shouldBe true
       file.isOpen shouldBe true
       //cannot write to a reopened file channel. Ones closed! It cannot be reopened for writing.
-      file.append(bytes).failed.runRandomIO.exception shouldBe a[NonWritableChannelException]
+      file.append(bytes).failed.valueIOGet.exception shouldBe a[NonWritableChannelException]
 
-      file.close.runRandomIO
+      file.close.valueIOGet
 
-      DBFile.channelRead(testFile, autoClose = true).runRandomIO ==> {
+      DBFile.channelRead(testFile, autoClose = true).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe bytes
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe bytes
+          file.close.valueIOGet
       }
       //above onOpen is also invoked
     }
@@ -149,26 +149,26 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       bytes.size shouldBe 2
 
-      val channelFile = DBFile.channelWrite(testFile, autoClose = true).runRandomIO
-      channelFile.append(bytes).failed.runRandomIO.exception shouldBe swaydb.Exception.FailedToWriteAllBytes(10, 2, bytes.size)
-      channelFile.close.runRandomIO
+      val channelFile = DBFile.channelWrite(testFile, autoClose = true).valueIOGet
+      channelFile.append(bytes).failed.valueIOGet.exception shouldBe swaydb.Exception.FailedToWriteAllBytes(10, 2, bytes.size)
+      channelFile.close.valueIOGet
     }
 
     "fail initialisation if the file already exists" in {
       val testFile = randomFilePath
 
-      DBFile.channelWrite(testFile, autoClose = true).runRandomIO ==> {
+      DBFile.channelWrite(testFile, autoClose = true).valueIOGet ==> {
         file =>
           file.existsOnDisk shouldBe true
-          file.close.runRandomIO
+          file.close.valueIOGet
       }
       //creating the same file again should fail
-      DBFile.channelWrite(testFile, autoClose = true).failed.runRandomIO.exception.toString shouldBe new FileAlreadyExistsException(testFile.toString).toString
+      DBFile.channelWrite(testFile, autoClose = true).failed.valueIOGet.exception.toString shouldBe new FileAlreadyExistsException(testFile.toString).toString
       //file remains unchanged
-      DBFile.channelRead(testFile, autoClose = true).runRandomIO ==> {
+      DBFile.channelRead(testFile, autoClose = true).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe empty
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe empty
+          file.close.valueIOGet
       }
     }
   }
@@ -187,38 +187,38 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
           ()
       } repeat 3.times
 
-      IOEffect.write(testFile, bytes).runRandomIO
+      IOEffect.write(testFile, bytes).valueIOGet
 
-      val readFile = DBFile.channelRead(testFile, autoClose = true).runRandomIO
+      val readFile = DBFile.channelRead(testFile, autoClose = true).valueIOGet
       //reading a file should load the file lazily
       readFile.isFileDefined shouldBe false
       readFile.isOpen shouldBe false
       //reading the opens the file
-      readFile.readAll.runRandomIO shouldBe bytes
+      readFile.readAll.valueIOGet shouldBe bytes
       //file is now opened
       readFile.isFileDefined shouldBe true
       readFile.isOpen shouldBe true
 
       //writing fails since the file is readonly
-      readFile.append(bytes).failed.runRandomIO.exception shouldBe a[NonWritableChannelException]
+      readFile.append(bytes).failed.valueIOGet.exception shouldBe a[NonWritableChannelException]
       //data remain unchanged
-      DBFile.channelRead(testFile, autoClose = true).runRandomIO.readAll.runRandomIO shouldBe bytes
+      DBFile.channelRead(testFile, autoClose = true).valueIOGet.readAll.valueIOGet shouldBe bytes
 
-      readFile.close.runRandomIO
+      readFile.close.valueIOGet
       readFile.isOpen shouldBe false
       readFile.isFileDefined shouldBe false
       //read bytes one by one
       (0 until bytes.size) foreach {
         index =>
-          readFile.get(index).runRandomIO shouldBe bytes(index)
+          readFile.get(index).valueIOGet shouldBe bytes(index)
       }
       readFile.isOpen shouldBe true
 
-      readFile.close.runRandomIO
+      readFile.close.valueIOGet
     }
 
     "fail initialisation if the file does not exists" in {
-      DBFile.channelRead(randomFilePath, autoClose = true).failed.runRandomIO.exception shouldBe a[NoSuchFileException]
+      DBFile.channelRead(randomFilePath, autoClose = true).failed.valueIOGet.exception shouldBe a[NoSuchFileException]
     }
   }
 
@@ -236,41 +236,41 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
           ()
       } repeat 3.times
 
-      val file = DBFile.mmapWriteAndRead(testFile, autoClose = true, bytes).runRandomIO
-      file.readAll.runRandomIO shouldBe bytes
-      file.isFull.runRandomIO shouldBe true
+      val file = DBFile.mmapWriteAndRead(testFile, autoClose = true, bytes).valueIOGet
+      file.readAll.valueIOGet shouldBe bytes
+      file.isFull.valueIOGet shouldBe true
 
       //overflow bytes
       val bytes2 = Slice("bytes two".getBytes())
-      file.append(bytes2).runRandomIO
-      file.isFull.runRandomIO shouldBe true //complete fit - no extra bytes
+      file.append(bytes2).valueIOGet
+      file.isFull.valueIOGet shouldBe true //complete fit - no extra bytes
 
       //overflow bytes
       val bytes3 = Slice("bytes three".getBytes())
-      file.append(bytes3).runRandomIO
-      file.isFull.runRandomIO shouldBe true //complete fit - no extra bytes
+      file.append(bytes3).valueIOGet
+      file.isFull.valueIOGet shouldBe true //complete fit - no extra bytes
 
       val expectedBytes = bytes ++ bytes2 ++ bytes3
 
-      file.readAll.runRandomIO shouldBe expectedBytes
+      file.readAll.valueIOGet shouldBe expectedBytes
 
       //close buffer
-      file.close.runRandomIO
+      file.close.valueIOGet
       file.isFileDefined shouldBe false
       file.isOpen shouldBe false
-      file.readAll.runRandomIO shouldBe expectedBytes
+      file.readAll.valueIOGet shouldBe expectedBytes
       file.isFileDefined shouldBe true
       file.isOpen shouldBe true
 
       //writing fails since the file is now readonly
-      file.append(bytes).failed.runRandomIO.exception shouldBe a[ReadOnlyBufferException]
-      file.close.runRandomIO
+      file.append(bytes).failed.valueIOGet.exception shouldBe a[ReadOnlyBufferException]
+      file.close.valueIOGet
 
       //open read only buffer
-      DBFile.mmapRead(testFile, autoClose = true).runRandomIO ==> {
+      DBFile.mmapRead(testFile, autoClose = true).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe expectedBytes
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe expectedBytes
+          file.close.valueIOGet
       }
     }
 
@@ -282,20 +282,20 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       bytes.size shouldBe 2
 
-      DBFile.mmapWriteAndRead(testFile, autoClose = true, bytes).failed.runRandomIO.exception shouldBe swaydb.Exception.FailedToWriteAllBytes(0, 2, bytes.size)
+      DBFile.mmapWriteAndRead(testFile, autoClose = true, bytes).failed.valueIOGet.exception shouldBe swaydb.Exception.FailedToWriteAllBytes(0, 2, bytes.size)
     }
 
     "fail to write if the file already exists" in {
       val testFile = randomFilePath
       val bytes = randomBytesSlice()
 
-      DBFile.mmapWriteAndRead(testFile, autoClose = true, bytes).runRandomIO.close.runRandomIO
-      DBFile.mmapWriteAndRead(testFile, autoClose = true, bytes).failed.runRandomIO.exception shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
+      DBFile.mmapWriteAndRead(testFile, autoClose = true, bytes).valueIOGet.close.valueIOGet
+      DBFile.mmapWriteAndRead(testFile, autoClose = true, bytes).failed.valueIOGet.exception shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
       //file remains unchanged
-      DBFile.mmapRead(testFile, autoClose = true).runRandomIO ==> {
+      DBFile.mmapRead(testFile, autoClose = true).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe bytes
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe bytes
+          file.close.valueIOGet
       }
     }
   }
@@ -305,14 +305,14 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val testFile = randomFilePath
       val bytes = Slice("bytes one".getBytes())
 
-      DBFile.write(testFile, bytes).runRandomIO
+      DBFile.write(testFile, bytes).valueIOGet
 
-      val readFile = DBFile.mmapRead(testFile, autoClose = true).runRandomIO
+      val readFile = DBFile.mmapRead(testFile, autoClose = true).valueIOGet
 
       def doRead = {
         readFile.isFileDefined shouldBe false //reading a file should load the file lazily
         readFile.isOpen shouldBe false
-        readFile.readAll.runRandomIO shouldBe bytes
+        readFile.readAll.valueIOGet shouldBe bytes
         readFile.isFileDefined shouldBe true
         readFile.isOpen shouldBe true
       }
@@ -320,16 +320,16 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       doRead
 
       //close and read again
-      readFile.close.runRandomIO
+      readFile.close.valueIOGet
       doRead
 
-      DBFile.write(testFile, bytes).failed.runRandomIO.exception shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
+      DBFile.write(testFile, bytes).failed.valueIOGet.exception shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
 
-      readFile.close.runRandomIO
+      readFile.close.valueIOGet
     }
 
     "fail to read if the file does not exists" in {
-      DBFile.mmapRead(randomFilePath, autoClose = true).failed.runRandomIO.exception shouldBe a[NoSuchFileException]
+      DBFile.mmapRead(randomFilePath, autoClose = true).failed.valueIOGet.exception shouldBe a[NoSuchFileException]
     }
   }
 
@@ -341,26 +341,26 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val bytes3 = Slice("bytes three".getBytes())
       val bytes4 = Slice("bytes four".getBytes())
 
-      val file = DBFile.mmapInit(testFile, bytes1.size + bytes2.size + bytes3.size, autoClose = true).runRandomIO
-      file.append(bytes1).runRandomIO
-      file.isFull.runRandomIO shouldBe false
-      file.append(bytes2).runRandomIO
-      file.isFull.runRandomIO shouldBe false
-      file.append(bytes3).runRandomIO
-      file.isFull.runRandomIO shouldBe true
-      file.append(bytes4).runRandomIO //overflow write, buffer gets extended
-      file.isFull.runRandomIO shouldBe true
+      val file = DBFile.mmapInit(testFile, bytes1.size + bytes2.size + bytes3.size, autoClose = true).valueIOGet
+      file.append(bytes1).valueIOGet
+      file.isFull.valueIOGet shouldBe false
+      file.append(bytes2).valueIOGet
+      file.isFull.valueIOGet shouldBe false
+      file.append(bytes3).valueIOGet
+      file.isFull.valueIOGet shouldBe true
+      file.append(bytes4).valueIOGet //overflow write, buffer gets extended
+      file.isFull.valueIOGet shouldBe true
 
-      file.readAll.runRandomIO shouldBe (bytes1 ++ bytes2 ++ bytes3 ++ bytes4)
+      file.readAll.valueIOGet shouldBe (bytes1 ++ bytes2 ++ bytes3 ++ bytes4)
 
-      file.close.runRandomIO
+      file.close.valueIOGet
     }
 
     "fail to initialise if it already exists" in {
       val testFile = randomFilePath
-      DBFile.write(testFile, Slice(randomBytes())).runRandomIO
+      DBFile.write(testFile, Slice(randomBytes())).valueIOGet
 
-      DBFile.mmapInit(testFile, 10, autoClose = true).failed.runRandomIO.exception shouldBe a[FileAlreadyExistsException]
+      DBFile.mmapInit(testFile, 10, autoClose = true).failed.valueIOGet.exception shouldBe a[FileAlreadyExistsException]
     }
   }
 
@@ -378,18 +378,18 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
           ()
       } repeat 4.times
 
-      val file = DBFile.channelWrite(testFile, autoClose = true).runRandomIO
-      file.append(bytes).runRandomIO
+      val file = DBFile.channelWrite(testFile, autoClose = true).valueIOGet
+      file.append(bytes).valueIOGet
 
       def close = {
-        file.close.runRandomIO
+        file.close.valueIOGet
         file.isOpen shouldBe false
         file.isFileDefined shouldBe false
         file.existsOnDisk shouldBe true
       }
 
       def open = {
-        file.read(0, bytes.size).runRandomIO shouldBe bytes
+        file.read(0, bytes.size).valueIOGet shouldBe bytes
         file.isOpen shouldBe true
         file.isFileDefined shouldBe true
       }
@@ -412,18 +412,18 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val testFile = randomFilePath
       val bytes = randomBytesSlice()
 
-      val file = DBFile.mmapInit(testFile, bytes.size, autoClose = true).runRandomIO
-      file.append(bytes).runRandomIO
+      val file = DBFile.mmapInit(testFile, bytes.size, autoClose = true).valueIOGet
+      file.append(bytes).valueIOGet
 
       def close = {
-        file.close.runRandomIO
+        file.close.valueIOGet
         file.isOpen shouldBe false
         file.isFileDefined shouldBe false
         file.existsOnDisk shouldBe true
       }
 
       def open = {
-        file.read(0, bytes.size).runRandomIO shouldBe bytes
+        file.read(0, bytes.size).valueIOGet shouldBe bytes
         file.isOpen shouldBe true
         file.isFileDefined shouldBe true
       }
@@ -448,28 +448,28 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val testFile = randomFilePath
       val bytes = randomBytesSlice()
 
-      val file = DBFile.channelWrite(testFile, autoClose = true).runRandomIO
-      file.append(bytes).runRandomIO
-      file.close.runRandomIO
+      val file = DBFile.channelWrite(testFile, autoClose = true).valueIOGet
+      file.append(bytes).valueIOGet
+      file.close.valueIOGet
 
-      file.append(bytes).failed.runRandomIO.exception shouldBe a[NonWritableChannelException]
-      file.readAll.runRandomIO shouldBe bytes
+      file.append(bytes).failed.valueIOGet.exception shouldBe a[NonWritableChannelException]
+      file.readAll.valueIOGet shouldBe bytes
 
-      file.close.runRandomIO
+      file.close.valueIOGet
     }
 
     "close that MMAPFile and reopening the file should open it in read only mode" in {
       val testFile = randomFilePath
       val bytes = randomBytesSlice()
 
-      val file = DBFile.mmapInit(testFile, bytes.size, autoClose = true).runRandomIO
-      file.append(bytes).runRandomIO
-      file.close.runRandomIO
+      val file = DBFile.mmapInit(testFile, bytes.size, autoClose = true).valueIOGet
+      file.append(bytes).valueIOGet
+      file.close.valueIOGet
 
-      file.append(bytes).failed.runRandomIO.exception shouldBe a[ReadOnlyBufferException]
-      file.readAll.runRandomIO shouldBe bytes
+      file.append(bytes).failed.valueIOGet.exception shouldBe a[ReadOnlyBufferException]
+      file.readAll.valueIOGet shouldBe bytes
 
-      file.close.runRandomIO
+      file.close.valueIOGet
     }
   }
 
@@ -478,28 +478,28 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val testFile = randomFilePath
       val bytes = List(randomBytesSlice(), randomBytesSlice(), randomBytesSlice())
 
-      val file = DBFile.channelWrite(testFile, autoClose = true).runRandomIO
-      file.append(bytes(0)).runRandomIO
-      file.append(bytes(1)).runRandomIO
-      file.append(bytes(2)).runRandomIO
+      val file = DBFile.channelWrite(testFile, autoClose = true).valueIOGet
+      file.append(bytes(0)).valueIOGet
+      file.append(bytes(1)).valueIOGet
+      file.append(bytes(2)).valueIOGet
       file.read(0, 1).isFailure shouldBe true //not open for read
 
-      file.close.runRandomIO
+      file.close.valueIOGet
 
       val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
-      DBFile.channelRead(testFile, autoClose = true).runRandomIO ==> {
+      DBFile.channelRead(testFile, autoClose = true).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe expectedAllBytes
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe expectedAllBytes
+          file.close.valueIOGet
       }
-      DBFile.mmapRead(testFile, autoClose = true).runRandomIO ==> {
+      DBFile.mmapRead(testFile, autoClose = true).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe expectedAllBytes
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe expectedAllBytes
+          file.close.valueIOGet
       }
 
-      file.close.runRandomIO
+      file.close.valueIOGet
     }
 
     "append bytes to the end of the MMAP file" in {
@@ -507,28 +507,28 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val bytes = List(randomBytesSlice(), randomBytesSlice(), randomBytesSlice())
 
       val allBytesSize = bytes.foldLeft(0)(_ + _.size)
-      val file = DBFile.mmapInit(testFile, allBytesSize, autoClose = true).runRandomIO
-      file.append(bytes(0)).runRandomIO
-      file.append(bytes(1)).runRandomIO
-      file.append(bytes(2)).runRandomIO
-      file.get(0).runRandomIO shouldBe bytes.head.head
-      file.get(allBytesSize - 1).runRandomIO shouldBe bytes.last.last
+      val file = DBFile.mmapInit(testFile, allBytesSize, autoClose = true).valueIOGet
+      file.append(bytes(0)).valueIOGet
+      file.append(bytes(1)).valueIOGet
+      file.append(bytes(2)).valueIOGet
+      file.get(0).valueIOGet shouldBe bytes.head.head
+      file.get(allBytesSize - 1).valueIOGet shouldBe bytes.last.last
 
       val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
-      file.readAll.runRandomIO shouldBe expectedAllBytes
-      file.close.runRandomIO //close
+      file.readAll.valueIOGet shouldBe expectedAllBytes
+      file.close.valueIOGet //close
 
       //reopen
-      DBFile.mmapRead(testFile, autoClose = true).runRandomIO ==> {
+      DBFile.mmapRead(testFile, autoClose = true).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe expectedAllBytes
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe expectedAllBytes
+          file.close.valueIOGet
       }
-      DBFile.channelRead(testFile, autoClose = true).runRandomIO ==> {
+      DBFile.channelRead(testFile, autoClose = true).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe expectedAllBytes
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe expectedAllBytes
+          file.close.valueIOGet
       }
     }
 
@@ -537,54 +537,54 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val bytes = List(randomBytesSlice(), randomBytesSlice(), randomBytesSlice(), randomBytesSlice(), randomBytesSlice())
       val allBytesSize = bytes.foldLeft(0)(_ + _.size)
 
-      val file = DBFile.mmapInit(testFile, bytes.head.size, autoClose = true).runRandomIO
-      file.append(bytes(0)).runRandomIO
-      file.append(bytes(1)).runRandomIO
-      file.append(bytes(2)).runRandomIO
-      file.append(bytes(3)).runRandomIO
-      file.append(bytes(4)).runRandomIO
-      file.get(0).runRandomIO shouldBe bytes.head.head
-      file.get(allBytesSize - 1).runRandomIO shouldBe bytes.last.last
+      val file = DBFile.mmapInit(testFile, bytes.head.size, autoClose = true).valueIOGet
+      file.append(bytes(0)).valueIOGet
+      file.append(bytes(1)).valueIOGet
+      file.append(bytes(2)).valueIOGet
+      file.append(bytes(3)).valueIOGet
+      file.append(bytes(4)).valueIOGet
+      file.get(0).valueIOGet shouldBe bytes.head.head
+      file.get(allBytesSize - 1).valueIOGet shouldBe bytes.last.last
 
       val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
-      file.readAll.runRandomIO shouldBe expectedAllBytes
-      file.close.runRandomIO //close
+      file.readAll.valueIOGet shouldBe expectedAllBytes
+      file.close.valueIOGet //close
 
       //reopen
-      DBFile.mmapRead(testFile, autoClose = true).runRandomIO ==> {
+      DBFile.mmapRead(testFile, autoClose = true).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe expectedAllBytes
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe expectedAllBytes
+          file.close.valueIOGet
       }
-      DBFile.channelRead(testFile, autoClose = true).runRandomIO ==> {
+      DBFile.channelRead(testFile, autoClose = true).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe expectedAllBytes
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe expectedAllBytes
+          file.close.valueIOGet
       }
     }
 
     "not fail when appending empty bytes to ChannelFile" in {
-      val file = DBFile.channelWrite(randomFilePath, autoClose = true).runRandomIO
-      file.append(Slice.emptyBytes).runRandomIO
-      DBFile.channelRead(file.path, autoClose = true).runRandomIO ==> {
+      val file = DBFile.channelWrite(randomFilePath, autoClose = true).valueIOGet
+      file.append(Slice.emptyBytes).valueIOGet
+      DBFile.channelRead(file.path, autoClose = true).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe empty
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe empty
+          file.close.valueIOGet
       }
-      file.close.runRandomIO
+      file.close.valueIOGet
     }
 
     "not fail when appending empty bytes to MMAPFile" in {
-      val file = DBFile.mmapInit(randomFilePath, 100, autoClose = true).runRandomIO
-      file.append(Slice.emptyBytes).runRandomIO
-      file.readAll.runRandomIO shouldBe Slice.fill(file.fileSize.get.toInt)(0)
-      file.close.runRandomIO
+      val file = DBFile.mmapInit(randomFilePath, 100, autoClose = true).valueIOGet
+      file.append(Slice.emptyBytes).valueIOGet
+      file.readAll.valueIOGet shouldBe Slice.fill(file.fileSize.get.toInt)(0)
+      file.close.valueIOGet
 
-      DBFile.mmapRead(file.path, autoClose = true).runRandomIO ==> {
+      DBFile.mmapRead(file.path, autoClose = true).valueIOGet ==> {
         file2 =>
-          file2.readAll.runRandomIO shouldBe Slice.fill(file.fileSize.get.toInt)(0)
-          file2.close.runRandomIO
+          file2.readAll.valueIOGet shouldBe Slice.fill(file.fileSize.get.toInt)(0)
+          file2.close.valueIOGet
       }
     }
   }
@@ -594,24 +594,24 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val testFile = randomFilePath
       val bytes = randomBytesSlice(100)
 
-      val file = DBFile.channelWrite(testFile, autoClose = true).runRandomIO
-      file.append(bytes).runRandomIO
+      val file = DBFile.channelWrite(testFile, autoClose = true).valueIOGet
+      file.append(bytes).valueIOGet
       file.read(0, 1).isFailure shouldBe true //not open for read
 
-      file.close.runRandomIO
+      file.close.valueIOGet
 
-      val readFile = DBFile.channelRead(testFile, autoClose = true).runRandomIO
+      val readFile = DBFile.channelRead(testFile, autoClose = true).valueIOGet
 
       (0 until bytes.size) foreach {
         index =>
-          readFile.read(index, 1).runRandomIO should contain only bytes(index)
+          readFile.read(index, 1).valueIOGet should contain only bytes(index)
       }
 
-      readFile.read(0, bytes.size / 2).runRandomIO.toList should contain theSameElementsInOrderAs bytes.dropRight(bytes.size / 2).toList
-      readFile.read(bytes.size / 2, bytes.size / 2).runRandomIO.toList should contain theSameElementsInOrderAs bytes.drop(bytes.size / 2).toList
-      readFile.get(1000).runRandomIO shouldBe 0
+      readFile.read(0, bytes.size / 2).valueIOGet.toList should contain theSameElementsInOrderAs bytes.dropRight(bytes.size / 2).toList
+      readFile.read(bytes.size / 2, bytes.size / 2).valueIOGet.toList should contain theSameElementsInOrderAs bytes.drop(bytes.size / 2).toList
+      readFile.get(1000).valueIOGet shouldBe 0
 
-      readFile.close.runRandomIO
+      readFile.close.valueIOGet
     }
   }
 
@@ -620,52 +620,52 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val path = randomFilePath
       val bytes = randomBytesSlice(100)
 
-      val file = DBFile.memory(path, bytes, autoClose = true).runRandomIO
+      val file = DBFile.memory(path, bytes, autoClose = true).valueIOGet
       //cannot write to a memory file as it's immutable
-      file.append(bytes).failed.runRandomIO.exception shouldBe a[UnsupportedOperationException]
-      file.isFull.runRandomIO shouldBe true
+      file.append(bytes).failed.valueIOGet.exception shouldBe a[UnsupportedOperationException]
+      file.isFull.valueIOGet shouldBe true
       file.isOpen shouldBe true
       file.existsOnDisk shouldBe false
 
-      file.readAll.runRandomIO shouldBe bytes
+      file.readAll.valueIOGet shouldBe bytes
 
       (0 until bytes.size) foreach {
         index =>
-          val readBytes = file.read(index, 1).runRandomIO
+          val readBytes = file.read(index, 1).valueIOGet
           readBytes.underlyingArraySize shouldBe bytes.size
           readBytes.head shouldBe bytes(index)
-          file.get(index).runRandomIO shouldBe bytes(index)
+          file.get(index).valueIOGet shouldBe bytes(index)
       }
 
-      file.close.runRandomIO
+      file.close.valueIOGet
     }
 
     "exist in memory after being closed" in {
       val path = randomFilePath
       val bytes = randomBytesSlice(100)
 
-      val file = DBFile.memory(path, bytes, autoClose = true).runRandomIO
-      file.isFull.runRandomIO shouldBe true
+      val file = DBFile.memory(path, bytes, autoClose = true).valueIOGet
+      file.isFull.valueIOGet shouldBe true
       file.isOpen shouldBe true
       file.existsOnDisk shouldBe false
       file.isFileDefined shouldBe true
-      file.fileSize.runRandomIO shouldBe bytes.size
+      file.fileSize.valueIOGet shouldBe bytes.size
 
-      file.close.runRandomIO
+      file.close.valueIOGet
 
-      file.isFull.runRandomIO shouldBe true
+      file.isFull.valueIOGet shouldBe true
       //in memory files are never closed
       file.isOpen shouldBe true
       file.existsOnDisk shouldBe false
       //memory files are not remove from DBFile's reference when they closed.
       file.isFileDefined shouldBe true
-      file.fileSize.runRandomIO shouldBe bytes.size
+      file.fileSize.valueIOGet shouldBe bytes.size
 
       //reading an in-memory file
-      file.readAll.runRandomIO shouldBe bytes
+      file.readAll.valueIOGet shouldBe bytes
       //      file.isInitialised shouldBe true
 
-      file.close.runRandomIO
+      file.close.valueIOGet
     }
   }
 
@@ -673,35 +673,35 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     "delete a ChannelFile" in {
       val bytes = randomBytesSlice(100)
 
-      val file = DBFile.channelWrite(randomFilePath, autoClose = true).runRandomIO
-      file.append(bytes).runRandomIO
+      val file = DBFile.channelWrite(randomFilePath, autoClose = true).valueIOGet
+      file.append(bytes).valueIOGet
 
-      file.delete().runRandomIO
+      file.delete().valueIOGet
       file.existsOnDisk shouldBe false
       file.isOpen shouldBe false
       file.isFileDefined shouldBe false
     }
 
     "delete a MMAPFile" in {
-      val file = DBFile.mmapWriteAndRead(randomFilePath, autoClose = true, randomBytesSlice()).runRandomIO
-      file.close.runRandomIO
+      val file = DBFile.mmapWriteAndRead(randomFilePath, autoClose = true, randomBytesSlice()).valueIOGet
+      file.close.valueIOGet
 
-      file.delete().runRandomIO
+      file.delete().valueIOGet
       file.existsOnDisk shouldBe false
       file.isOpen shouldBe false
       file.isFileDefined shouldBe false
     }
 
     "delete a MemoryFile" in {
-      val file = DBFile.memory(randomFilePath, randomBytesSlice(), autoClose = true).runRandomIO
-      file.close.runRandomIO
+      val file = DBFile.memory(randomFilePath, randomBytesSlice(), autoClose = true).valueIOGet
+      file.close.valueIOGet
 
-      file.delete().runRandomIO
+      file.delete().valueIOGet
       file.existsOnDisk shouldBe false
       file.isOpen shouldBe false
       file.isFileDefined shouldBe false
       //bytes are nulled to be garbage collected
-      file.get(0).failed.runRandomIO.exception shouldBe a[NoSuchFileException]
+      file.get(0).failed.valueIOGet.exception shouldBe a[NoSuchFileException]
       file.isOpen shouldBe false
     }
   }
@@ -710,44 +710,44 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     "copy a ChannelFile" in {
       val bytes = randomBytesSlice(100)
 
-      val file = DBFile.channelWrite(randomFilePath, autoClose = true).runRandomIO
-      file.append(bytes).runRandomIO
+      val file = DBFile.channelWrite(randomFilePath, autoClose = true).valueIOGet
+      file.append(bytes).valueIOGet
 
       val targetFile = randomFilePath
-      file.copyTo(targetFile).runRandomIO shouldBe targetFile
+      file.copyTo(targetFile).valueIOGet shouldBe targetFile
 
-      DBFile.channelRead(targetFile, autoClose = true).runRandomIO ==> {
+      DBFile.channelRead(targetFile, autoClose = true).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe bytes
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe bytes
+          file.close.valueIOGet
       }
 
-      file.close.runRandomIO
+      file.close.valueIOGet
     }
 
     "copy a MMAPFile" in {
       val bytes = randomBytesSlice(100)
 
-      val file = DBFile.mmapInit(randomFilePath, bytes.size, autoClose = true).runRandomIO
-      file.append(bytes).runRandomIO
-      file.isFull.runRandomIO shouldBe true
-      file.close.runRandomIO
+      val file = DBFile.mmapInit(randomFilePath, bytes.size, autoClose = true).valueIOGet
+      file.append(bytes).valueIOGet
+      file.isFull.valueIOGet shouldBe true
+      file.close.valueIOGet
 
       val targetFile = randomFilePath
-      file.copyTo(targetFile).runRandomIO shouldBe targetFile
+      file.copyTo(targetFile).valueIOGet shouldBe targetFile
 
-      DBFile.channelRead(targetFile, autoClose = true).runRandomIO ==> {
+      DBFile.channelRead(targetFile, autoClose = true).valueIOGet ==> {
         file =>
-          file.readAll.runRandomIO shouldBe bytes
-          file.close.runRandomIO
+          file.readAll.valueIOGet shouldBe bytes
+          file.close.valueIOGet
       }
     }
 
     "fail when copying a MemoryFile" in {
       val bytes = randomBytesSlice(100)
-      val file = DBFile.memory(randomFilePath, bytes, autoClose = true).runRandomIO
+      val file = DBFile.memory(randomFilePath, bytes, autoClose = true).valueIOGet
 
-      file.copyTo(randomFilePath).failed.runRandomIO.exception shouldBe swaydb.Exception.CannotCopyInMemoryFiles(file.path)
+      file.copyTo(randomFilePath).failed.valueIOGet.exception shouldBe swaydb.Exception.CannotCopyInMemoryFiles(file.path)
     }
   }
 

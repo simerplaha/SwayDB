@@ -39,7 +39,7 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
     RangeValueSerializer.write((), rangeValue)(bytes)
     bytes.isFull shouldBe true
 
-    RangeValueSerializer.read(bytes).runRandomIO shouldBe ((Option.empty[FromValue], rangeValue))
+    RangeValueSerializer.read(bytes).valueIOGet shouldBe ((Option.empty[FromValue], rangeValue))
 
     //also assert option Serializer
     def doAssertOption(rangeValue: RangeValue) = {
@@ -50,7 +50,7 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
       RangeValueSerializer.write(Option.empty[FromValue], rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
       bytes.isFull shouldBe true
 
-      RangeValueSerializer.read(bytes).runRandomIO shouldBe ((None, rangeValue))
+      RangeValueSerializer.read(bytes).valueIOGet shouldBe ((None, rangeValue))
     }
 
     doAssertOption(rangeValue)
@@ -84,7 +84,7 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
     RangeValueSerializer.write(fromValue, rangeValue)(bytes)
     bytes.isFull shouldBe true
 
-    RangeValueSerializer.read(bytes).runRandomIO shouldBe ((Some(fromValue), rangeValue))
+    RangeValueSerializer.read(bytes).valueIOGet shouldBe ((Some(fromValue), rangeValue))
 
     //also assert option Serializer
     def doAssertOption(fromValue: FromValue, rangeValue: RangeValue) = {
@@ -94,7 +94,7 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
       RangeValueSerializer.write(Option(fromValue), rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
       bytes.isFull shouldBe true
 
-      RangeValueSerializer.read(bytes).runRandomIO shouldBe ((Some(fromValue), rangeValue))
+      RangeValueSerializer.read(bytes).valueIOGet shouldBe ((Some(fromValue), rangeValue))
     }
 
     doAssertOption(fromValue, rangeValue)

@@ -30,10 +30,10 @@ import scala.reflect.ClassTag
 import scala.util.Try
 
 /**
-  * [[IO.Success]] and [[IO.Failure]] are similar to types in [[scala.util.Try]].
-  *
-  * [[IO.Deferred]] is for performing synchronous and asynchronous IO.
-  */
+ * [[IO.Success]] and [[IO.Failure]] are similar to types in [[scala.util.Try]].
+ *
+ * [[IO.Deferred]] is for performing synchronous and asynchronous IO.
+ */
 sealed trait IO[+E, +A] {
   def isFailure: Boolean
   def isSuccess: Boolean
@@ -70,24 +70,24 @@ sealed trait IO[+E, +A] {
 object IO {
 
   /**
-    * [[IO]] type with Throwable error type. Here all errors are returned as exception.
-    */
+   * [[IO]] type with Throwable error type. Here all errors are returned as exception.
+   */
   type ThrowableIO[T] = IO[Throwable, T]
   /**
-    * [[IO]] type with Nothing error type. Nothing indicates this IO type can never result in an error.
-    */
+   * [[IO]] type with Nothing error type. Nothing indicates this IO type can never result in an error.
+   */
   type NothingIO[T] = IO[Nothing, T]
   /**
-    * [[IO]] type with Unit error type. Unit indicates this IO type can never result in an error.
-    */
+   * [[IO]] type with Unit error type. Unit indicates this IO type can never result in an error.
+   */
   type UnitIO[T] = IO[Unit, T]
   /**
-    * [[IO]] type used to access database APIs.
-    */
+   * [[IO]] type used to access database APIs.
+   */
   type ApiIO[T] = IO[Error.API, T]
   /**
-    * [[IO]] type for database boot up.
-    */
+   * [[IO]] type for database boot up.
+   */
   type BootIO[T] = IO[Error.Boot, T]
 
   sealed trait Done
@@ -339,12 +339,12 @@ object IO {
   }
 
   /** **********************************
-    * **********************************
-    * **********************************
-    * ************ DEFERRED ************
-    * **********************************
-    * **********************************
-    * **********************************/
+   * **********************************
+   * **********************************
+   * ************ DEFERRED ************
+   * **********************************
+   * **********************************
+   * **********************************/
 
   object Deferred extends LazyLogging {
 
@@ -370,11 +370,11 @@ object IO {
       }
 
       /**
-        * This value will only be accessed by [[IO.Deferred]] only when the Future completes. But functions like
-        * [[IO.Deferred.get]] will try to access this before the Future is complete will result in failure.
-        *
-        * This is necessary to avoid blocking Futures.
-        */
+       * This value will only be accessed by [[IO.Deferred]] only when the Future completes. But functions like
+       * [[IO.Deferred.get]] will try to access this before the Future is complete will result in failure.
+       *
+       * This is necessary to avoid blocking Futures.
+       */
       def deferredValue =
         future.value map {
           case scala.util.Success(value) =>
@@ -401,7 +401,7 @@ object IO {
           val error = ErrorHandler.fromException[E](ex)
           ErrorHandler.reserve(error) map {
             _ =>
-              Right(IO.Deferred(f.get, error))
+              Right(IO.Deferred(value = f.value, error = Some(error)))
           } getOrElse Left(IO.Failure(error))
       }
   }
@@ -451,9 +451,14 @@ object IO {
       else
         Right(this)
 
+    def warnTooManyTimes(tried: Int) =
+      if (tried > 0 && tried % 10 == 0) {
+        logger.warn(s"Competing reserved resource. Times accessed: $tried")
+      }
+
     /**
-      * Opens all [[IO.Deferred]] types to read the final value in a blocking manner.
-      */
+     * Opens all [[IO.Deferred]] types to read the final value in a blocking manner.
+     */
     def runIO: IO[E, A] = {
 
       def blockIfNeeded(): Unit =
@@ -474,9 +479,7 @@ object IO {
             io
 
           case Right(deferred) =>
-            if (tried > 0 && tried % 10 == 0)
-              logger.warn(s"Competing reserved resource. Times accessed: $tried")
-
+            warnTooManyTimes(tried)
             doRun(deferred, tried + 1)
         }
       }
@@ -485,8 +488,8 @@ object IO {
     }
 
     /**
-      * Opens all [[IO.Deferred]] types to read the final value in a non-blocking manner.
-      */
+     * Opens all [[IO.Deferred]] types to read the final value in a non-blocking manner.
+     */
     def runFuture(implicit ec: ExecutionContext): Future[A] = {
 
       def doRun(deferred: IO.Deferred[E, A], tried: Int): Future[A] =
@@ -497,8 +500,7 @@ object IO {
                 io.toFuture
 
               case Right(deferred: IO.Deferred[E, A]) =>
-                if (tried > 0 && tried % 10 == 0)
-                  logger.warn(s"Competing reserved resource. Times accessed: $tried")
+                warnTooManyTimes(tried)
                 doRun(deferred, tried + 1)
             }
         } getOrElse {

@@ -49,8 +49,8 @@ class PathsDistributorPerformanceSpec extends TestBase with Benchmark {
 
     //randomly create Segments in different paths to have an un-even distribution in each folder
     def randomlyDistributeSegments(): Iterable[Segment] = {
-      val segment = TestSegment(path = randomPath).runRandomIO
-      segment.close.runRandomIO
+      val segment = TestSegment(path = randomPath).valueIOGet
+      segment.close.valueIOGet
       Array.fill(10)(segment)
     }
 

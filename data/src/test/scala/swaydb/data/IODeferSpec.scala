@@ -27,18 +27,20 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO.Deferred
 import swaydb.{Error, IO}
+import swaydb.IOValues._
+import org.scalatest.OptionValues._
 
 import scala.util.Random
 
 class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactory {
 
-  val error = swaydb.Error.Unknown(this.getClass.getSimpleName + " test exception.")
+  val unknownError = swaydb.Error.Unknown(this.getClass.getSimpleName + " test exception.")
   val recoverableError = swaydb.Error.FileNotFound(new FileNotFoundException())
 
   "apply" in {
     //asserts that deferred operation does not get invoke on creating.
     IO.Deferred(fail())
-    IO.Deferred(fail(), error)
+    IO.Deferred(fail(), unknownError)
   }
 
   "io" in {
@@ -64,8 +66,8 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
       }
 
       doAssert(IO.Deferred(1))
-      doAssert(IO.Deferred(1, error))
-      doAssert(IO.Deferred(() => 1, Some(error)))
+      doAssert(IO.Deferred(1, unknownError))
+      doAssert(IO.Deferred(() => 1, Some(unknownError)))
       doAssert(IO.Deferred(() => 1, None))
     }
 
@@ -74,16 +76,16 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
         deferred.isValueDefined shouldBe false
         deferred.isReady shouldBe true
 
-        deferred.runIO shouldBe IO.Failure(error)
+        deferred.runIO shouldBe IO.Failure(unknownError)
         deferred.isValueDefined shouldBe false
         deferred.isReady shouldBe true
       }
 
-      doAssert(IO.Deferred[swaydb.Error.Segment, Int](throw error.exception))
-      doAssert(IO.Deferred(throw error.exception, error)) //is not reserved Error
-      doAssert(IO.Deferred(throw error.exception, recoverableError))
-      doAssert(IO.Deferred(if (Random.nextBoolean()) throw recoverableError.exception else throw error.exception, recoverableError))
-      doAssert(IO.Deferred(() => throw error.exception, Some(error)))
+      doAssert(IO.Deferred[swaydb.Error.Segment, Int](throw unknownError.exception))
+      doAssert(IO.Deferred(throw unknownError.exception, unknownError)) //is not reserved Error
+      doAssert(IO.Deferred(throw unknownError.exception, recoverableError))
+      doAssert(IO.Deferred(if (Random.nextBoolean()) throw recoverableError.exception else throw unknownError.exception, recoverableError))
+      doAssert(IO.Deferred(() => throw unknownError.exception, Some(unknownError)))
     }
   }
 
@@ -119,14 +121,14 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
           int =>
             int shouldBe 1
             timesRun += 1
-            throw error.exception
+            throw unknownError.exception
         }
 
       deferred.isReady shouldBe true
       deferred.isValueDefined shouldBe false
       deferred.isBusy shouldBe false
 
-      deferred.runIO shouldBe IO.Failure(error)
+      deferred.runIO shouldBe IO.Failure(unknownError)
       timesRun shouldBe 1
     }
 
@@ -143,14 +145,14 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
               throw recoverableError.exception
             }
             else
-              throw error.exception
+              throw unknownError.exception
         }
 
       deferred.isReady shouldBe true
       deferred.isValueDefined shouldBe false
       deferred.isBusy shouldBe false
 
-      deferred.runIO shouldBe IO.Failure(error)
+      deferred.runIO shouldBe IO.Failure(unknownError)
       timesRecovered shouldBe 10
     }
   }
@@ -187,41 +189,52 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
       deferred.runIO shouldBe IO.Success(4)
     }
 
-    "non-recoverable failure" in {
-      val mock1 = mockFunction[Int]
-      mock1 expects() returning 1
+    "recoverable & non-recoverable failure" in {
+      val value1 = mockFunction[Int]("value1")
+      value1 expects() returning 1
 
-      val mock2 = mockFunction[Int, Int]
-      mock2 expects 1 returning 2 repeat 1
+      val value2 = mockFunction[Int, Int]("value2")
+      value2 expects 1 returning 2
 
-      val mock3 = mockFunction[Int, Int]
-      mock3 expects 2 returning 3 repeat 2
+      val value3 = mockFunction[Int, Int]("value3")
+      value3 expects 2 returning 3 repeat 4 //only expected this to be invoked multiple times since it's not cached.
 
-      val mock4 = mockFunction[Int, Int]
-      mock4 expects 3 returning 4 repeat 2
+      val value4 = mockFunction[Int, Int]("value4")
+      value4 expects 3 returning 4
 
-      var secondCall = false
-
-      val secondDeferredCached = IO.Deferred[swaydb.Error.Segment, Int](mock2(1))
+      //have 2 deferred as val so that their values get cached within.
+      val secondDeferredCache = IO.Deferred[swaydb.Error.Segment, Int](value2(1))
+      val fourthDeferredCache = IO.Deferred[swaydb.Error.Segment, Int](value4(3))
+      //set the current error to throw.
+      //the deferred tree below will set to be unknownError if a recoverable error is provided.
+      var throwError: Option[Error] = Option(unknownError)
 
       val deferred: Deferred[Error.Segment, Int] =
-        IO.Deferred(mock1()) flatMap {
+        IO.Deferred(value1()) flatMap {
           int =>
             int shouldBe 1
-            secondDeferredCached flatMap {
+            secondDeferredCache flatMap {
               int =>
+                secondDeferredCache.isValueDefined shouldBe true
                 int shouldBe 2
-                IO.Deferred[swaydb.Error.Segment, Int](mock3(int)) flatMap {
+                IO.Deferred[swaydb.Error.Segment, Int](value3(int)) flatMap {
                   int =>
                     int shouldBe 3
-                    IO.Deferred[swaydb.Error.Segment, Int](mock4(int)) flatMap {
+                    fourthDeferredCache flatMap {
                       int =>
                         int shouldBe 4
-                        secondDeferredCached.isValueDefined shouldBe true
-                        if (secondCall)
+                        fourthDeferredCache.isValueDefined shouldBe true
+                        throwError map {
+                          error =>
+                            //if it's recoverable reset the error to be unknown so that call successfully succeeds.
+                            //instead of running into an infinite loop.
+                            if (error == recoverableError)
+                              throwError = Some(unknownError)
+                            throw error.exception
+                        } getOrElse {
+                          //if there is not error succeed.
                           IO.Deferred(int + 1)
-                        else
-                          throw error.exception
+                        }
                     }
                 }
             }
@@ -229,9 +242,13 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
       deferred.isReady shouldBe true
       deferred.isBusy shouldBe false
-      deferred.runIO shouldBe IO.Failure(error)
-      secondCall = true
-      deferred.runIO shouldBe IO.Success(5)
+      throwError = Some(unknownError)
+      deferred.valueIO shouldBe IO.Failure(unknownError)
+      throwError = Some(recoverableError)
+      //recoverableErrors are never returned
+      deferred.valueIO shouldBe IO.Failure(unknownError)
+      throwError = None
+      deferred.valueIO shouldBe IO.Success(5)
     }
   }
 

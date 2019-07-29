@@ -73,7 +73,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
         val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val newKeyValue = randomFixedKeyValue(1)
         val expectedFromValue = FixedMerger(newKeyValue, oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(oldKeyValue.key)).get
-        val expectedKeyValue = Memory.Range(1, 10, expectedFromValue.toFromValue().runRandomIO, oldKeyValue.rangeValue)
+        val expectedKeyValue = Memory.Range(1, 10, expectedFromValue.toFromValue().valueIOGet, oldKeyValue.rangeValue)
         val expectedLastLevel = expectedFromValue.asInstanceOf[Memory.Fixed].toLastLevelExpected
 
         //println
@@ -101,7 +101,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
         val expectedKeyValue =
           Slice(
             oldKeyValue.copy(fromKey = 1, toKey = midKey),
-            Memory.Range(midKey, 10, expectedFromValue.toFromValue().runRandomIO, oldKeyValue.rangeValue)
+            Memory.Range(midKey, 10, expectedFromValue.toFromValue().valueIOGet, oldKeyValue.rangeValue)
           )
 
         val expectedLastLevelFromLowerSplit = oldKeyValue.fromValue.flatMap(_.toExpectedLastLevelKeyValue(oldKeyValue.key))

@@ -54,7 +54,7 @@ class FunctionMerger_PendingApply_Spec extends WordSpec with Matchers {
           //new but has older time than oldKeyValue
           val newKeyValue = randomFunctionKeyValue(key = key)
 
-          val expected = FixedMerger(newKeyValue, apply.toMemory(key)).runRandomIO
+          val expected = FixedMerger(newKeyValue, apply.toMemory(key)).valueIOGet
 
           //          println(s"newKeyValue: $newKeyValue")
           //          println(s"old apply: $apply")

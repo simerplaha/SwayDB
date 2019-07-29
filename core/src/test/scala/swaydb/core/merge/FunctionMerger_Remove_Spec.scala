@@ -111,7 +111,7 @@ class FunctionMerger_Remove_Spec extends WordSpec with Matchers {
             if (oldKeyValue.deadline.isEmpty)
               oldKeyValue.copy(time = newKeyValue.time)
             else //else the result should be merged because value is unknown from Remove key-value.
-              Memory.PendingApply(key, Slice(oldKeyValue.toFromValue().runRandomIO, newKeyValue.toFromValue().runRandomIO))
+              Memory.PendingApply(key, Slice(oldKeyValue.toFromValue().valueIOGet, newKeyValue.toFromValue().valueIOGet))
 
           assertMerge(
             newKeyValue = newKeyValue,

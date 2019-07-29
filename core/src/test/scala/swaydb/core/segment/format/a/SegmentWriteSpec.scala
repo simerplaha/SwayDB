@@ -147,7 +147,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
               segment.maxKey shouldBe MaxKey.Fixed[Slice[Byte]](11)
               segment.minKey.underlyingArraySize shouldBe ByteSizeOf.int
               segment.maxKey.maxKey.underlyingArraySize shouldBe ByteSizeOf.int
-              segment.close.runRandomIO
+              segment.close.valueIOGet
             }
         )
       }
@@ -161,7 +161,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
               segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](1, 10)
-              segment.close.runRandomIO
+              segment.close.valueIOGet
             }
         )
       }
@@ -181,7 +181,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
               rangeMaxKey.maxKey.underlyingArraySize shouldBe ByteSizeOf.int
               rangeMaxKey.fromKey.underlyingArraySize shouldBe ByteSizeOf.int
 
-              segment.close.runRandomIO
+              segment.close.valueIOGet
             }
         )
       }
@@ -200,7 +200,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
               segment.maxKey shouldBe MaxKey.Fixed[Slice[Byte]](20)
-              segment.close.runRandomIO
+              segment.close.valueIOGet
             }
         )
       }
@@ -224,7 +224,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
               segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](5, 10)
-              segment.close.runRandomIO
+              segment.close.valueIOGet
             }
         )
       }
@@ -304,8 +304,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       def doAssert(keyValues: Slice[KeyValue], segment: Segment) = {
         segment.hasBloomFilter.get shouldBe false
         assertBloom(keyValues.toMemory.toTransient, segment)
-        segment.hasRange.runRandomIO shouldBe true
-        segment.close.runRandomIO
+        segment.hasRange.valueIOGet shouldBe true
+        segment.close.valueIOGet
       }
 
       assertSegment(
@@ -383,9 +383,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
         assert =
           (keyValues, segment) => {
-            segment.hasBloomFilter.runRandomIO shouldBe true
-            segment.hasRange.runRandomIO shouldBe false
-            segment.close.runRandomIO
+            segment.hasBloomFilter.valueIOGet shouldBe true
+            segment.hasRange.valueIOGet shouldBe false
+            segment.close.valueIOGet
           }
       )
 
@@ -404,9 +404,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
         assert =
           (keyValues, segment) => {
-            segment.hasBloomFilter.runRandomIO shouldBe true
-            segment.hasRange.runRandomIO shouldBe true
-            segment.close.runRandomIO
+            segment.hasBloomFilter.valueIOGet shouldBe true
+            segment.hasRange.valueIOGet shouldBe true
+            segment.close.valueIOGet
           }
       )
 
@@ -428,9 +428,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           ),
         assert =
           (keyValues, segment) => {
-            segment.hasBloomFilter.runRandomIO shouldBe true
-            segment.hasRange.runRandomIO shouldBe true
-            segment.close.runRandomIO
+            segment.hasBloomFilter.valueIOGet shouldBe true
+            segment.hasRange.valueIOGet shouldBe true
+            segment.close.valueIOGet
           }
       )
     }
@@ -438,9 +438,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "set hasRange to true if the Segment contains Range key-values" in {
 
       def doAssert(keyValues: Slice[KeyValue], segment: Segment): Unit = {
-        segment.hasRange.runRandomIO shouldBe true
-        segment.hasPut.runRandomIO shouldBe true
-        segment.close.runRandomIO
+        segment.hasRange.valueIOGet shouldBe true
+        segment.hasPut.valueIOGet shouldBe true
+        segment.close.valueIOGet
       }
 
       assertSegment(
@@ -513,7 +513,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
               assertReads(keyValues, segment)
               failedKV foreach {
                 keyValue =>
-                  segment.get(keyValue.key).runRandomIO.isEmpty shouldBe true
+                  segment.get(keyValue.key).valueIOGet.isEmpty shouldBe true
               }
               assertBloom(keyValues, segment)
             }
@@ -549,7 +549,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                 segment.isKeyValueCacheEmpty shouldBe false
 
                 assertBloom(keyValues, segment)
-                segment.close.runRandomIO
+                segment.close.valueIOGet
                 segment.isOpen shouldBe false
                 segment.isFileDefined shouldBe false
                 segment.isKeyValueCacheEmpty shouldBe false
@@ -574,7 +574,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                     mmapReads = randomBoolean(),
                     mmapWrites = randomBoolean(),
                     checkExists = false
-                  ).runRandomIO
+                  ).valueIOGet
 
                 readSegment shouldBe segment
               }
@@ -1028,10 +1028,10 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
         segment.getAll().value foreach {
           case keyValue: KeyValue.ReadOnly.Put =>
-            keyValue.getOrFetchValue.runRandomIO shouldBe None
+            keyValue.getOrFetchValue.valueIOGet shouldBe None
 
           case keyValue: KeyValue.ReadOnly.Update =>
-            keyValue.getOrFetchValue.runRandomIO shouldBe None
+            keyValue.getOrFetchValue.valueIOGet shouldBe None
 
           case keyValue: KeyValue.ReadOnly.Range =>
             val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValue.value
@@ -1401,7 +1401,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       val newSegment = newSegments.head
       val keyValue = keyValues.head
 
-      newSegment.get(keyValue.key).runRandomIO.value shouldBe keyValue
+      newSegment.get(keyValue.key).valueIOGet.value shouldBe keyValue
 
       newSegment.lower(keyValue.key).value shouldBe empty
       newSegment.higher(keyValue.key).value shouldBe empty

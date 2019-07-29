@@ -45,7 +45,7 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       minKey shouldBe last.key
       maxKey shouldBe MaxKey.Fixed(last.key)
 
-      GroupKeyCompressor.decompress(compressedKey).runRandomIO shouldBe ((last.key, MaxKey.Fixed(last.key)))
+      GroupKeyCompressor.decompress(compressedKey).valueIOGet shouldBe ((last.key, MaxKey.Fixed(last.key)))
     }
   }
 
@@ -62,7 +62,7 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       minKey shouldBe head.key
       maxKey shouldBe MaxKey.Fixed(last.key)
 
-      GroupKeyCompressor.decompress(compressedKey).runRandomIO shouldBe ((head.key, MaxKey.Fixed(last.key)))
+      GroupKeyCompressor.decompress(compressedKey).valueIOGet shouldBe ((head.key, MaxKey.Fixed(last.key)))
     }
   }
 
@@ -78,7 +78,7 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       minKey shouldBe last.key
       maxKey shouldBe MaxKey.Range(last.fromKey, last.toKey)
 
-      GroupKeyCompressor.decompress(compressedKey).runRandomIO shouldBe ((last.key, MaxKey.Range(last.fromKey, last.toKey)))
+      GroupKeyCompressor.decompress(compressedKey).valueIOGet shouldBe ((last.key, MaxKey.Range(last.fromKey, last.toKey)))
     }
   }
 
@@ -95,7 +95,7 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       minKey shouldBe head.key
       maxKey shouldBe MaxKey.Range(last.fromKey, last.toKey)
 
-      GroupKeyCompressor.decompress(compressedKey).runRandomIO shouldBe ((head.key, MaxKey.Range(last.fromKey, last.toKey)))
+      GroupKeyCompressor.decompress(compressedKey).valueIOGet shouldBe ((head.key, MaxKey.Range(last.fromKey, last.toKey)))
     }
   }
 
@@ -111,7 +111,7 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       minKey shouldBe last.key
       maxKey shouldBe last.maxKey
 
-      GroupKeyCompressor.decompress(compressedKey).runRandomIO shouldBe ((last.key, last.maxKey))
+      GroupKeyCompressor.decompress(compressedKey).valueIOGet shouldBe ((last.key, last.maxKey))
     }
   }
 
@@ -128,7 +128,7 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       minKey shouldBe head.key
       maxKey shouldBe last.maxKey
 
-      GroupKeyCompressor.decompress(compressedKey).runRandomIO shouldBe ((head.key, last.maxKey))
+      GroupKeyCompressor.decompress(compressedKey).valueIOGet shouldBe ((head.key, last.maxKey))
     }
   }
 }
