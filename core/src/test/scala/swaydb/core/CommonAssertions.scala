@@ -218,14 +218,14 @@ object CommonAssertions {
     Random.shuffle(Seq(() => one, () => two, () => three, () => four, () => five, () => six)).head()
 
   def randomGroupByOption(keyValuesCount: Int = randomIntMax(50) max 1,
-                                   groupByGroups: Option[GroupByInternal.Groups] = randomGroupByGroupsOption()): Option[GroupByInternal.KeyValues] =
+                          groupByGroups: Option[GroupByInternal.Groups] = randomGroupByGroupsOption()): Option[GroupByInternal.KeyValues] =
     eitherOne(
       left = None,
       right = Some(randomGroupBy(keyValuesCount, groupByGroups))
     )
 
   def randomGroupBy(keyValuesCount: Int = randomIntMax(50) max 1,
-                             groupByGroups: Option[GroupByInternal.Groups] = randomGroupByGroupsOption()): GroupByInternal.KeyValues = {
+                    groupByGroups: Option[GroupByInternal.Groups] = randomGroupByGroupsOption()): GroupByInternal.KeyValues = {
 
     GroupByInternal.KeyValues(
       count = keyValuesCount,

@@ -151,24 +151,25 @@ object SegmentBuffer {
     }
 
     def shouldGroupKeyValues(force: Boolean): Boolean =
-      (force && _unGrouped.nonEmpty) ||
-        _unGrouped.isFull ||
-        _unGrouped.size >= groupBy.count || {
-        groupBy.size exists {
-          size =>
-            _unGrouped.lastOption exists {
-              last =>
-                last.stats.segmentSizeWithoutFooter >= size
-            }
+      _unGrouped.nonEmpty && {
+        force ||
+          _unGrouped.isFull ||
+          _unGrouped.size >= groupBy.count || {
+          groupBy.size exists {
+            size =>
+              _unGrouped.lastOption exists {
+                last =>
+                  last.stats.segmentSizeWithoutFooter >= size
+              }
+          }
         }
       }
 
-    def shouldGroupGroups(force: Boolean): Boolean =
+    def shouldGroupGroups(): Boolean =
       groupBy.groupByGroups exists {
         groupBy =>
           groups.nonEmpty && {
-            force ||
-              groups.size >= groupBy.count || {
+            groups.size >= groupBy.count || {
               groupBy.size exists {
                 size =>
                   groups.lastOption exists {

@@ -102,10 +102,10 @@ private[core] object SegmentMerger extends LazyLogging {
             IO.Failure(failure.error)
 
           case None =>
-            IO(newBuffers)
+            IO(newBuffers.filter(_.nonEmpty))
         }
       } else {
-        IO(buffers)
+        IO(buffers.filter(_.nonEmpty))
       }
 
     newBuffersIO match {
@@ -129,7 +129,7 @@ private[core] object SegmentMerger extends LazyLogging {
                   skipQuotaCheck = false
                 ) map {
                   _ =>
-                    newBuffers
+                    newBuffers.filter(_.nonEmpty)
                 }
             }
 

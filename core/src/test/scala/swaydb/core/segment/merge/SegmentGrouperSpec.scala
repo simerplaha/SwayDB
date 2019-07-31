@@ -102,7 +102,7 @@ class SegmentGrouperSpec extends TestBase {
       runThis(5.times) {
         val forInMemory = randomBoolean()
 
-        val keyValueCount = 1000000
+        val keyValueCount = 10000
 
         val groupBy =
           GroupByInternal.KeyValues(
@@ -115,7 +115,7 @@ class SegmentGrouperSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
             sortedIndexConfig = SortedIndexBlock.Config.random,
             valuesConfig = ValuesBlock.Config.random,
-            groupConfig = SegmentBlock.Config.default
+            groupConfig = SegmentBlock.Config.random
           )
 
         val segmentMergeConfigs =
@@ -167,7 +167,7 @@ class SegmentGrouperSpec extends TestBase {
 
         val groupBy =
           GroupByInternal.KeyValues(
-            count = keyValueCount / 10,
+            count = keyValueCount / 100,
             size = None,
             applyGroupingOnCopy = randomBoolean(),
             groupByGroups = None,

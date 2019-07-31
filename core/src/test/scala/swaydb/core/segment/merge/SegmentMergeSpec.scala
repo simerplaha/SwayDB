@@ -41,7 +41,7 @@ class SegmentMergeSpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val testTimer: TestTimer = TestTimer.Empty
-  implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(10)
+  implicit def groupBy = randomGroupByOption(randomNextInt(1000) max 1)
 
   val keyValueCount = 100
 
