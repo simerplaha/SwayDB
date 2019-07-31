@@ -155,6 +155,17 @@ private[core] object SegmentMerger extends LazyLogging {
             bloomFilterConfig: BloomFilterBlock.Config,
             segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Iterable[Iterable[Transient]]] = {
+
+    val segmentMergeConfigs =
+      SegmentMergeConfigs(
+        segmentValuesConfig = valuesConfig,
+        segmentSortedIndexConfig = sortedIndexConfig,
+        segmentBinarySearchIndexConfig = binarySearchIndexConfig,
+        segmentHashIndexConfig = hashIndexConfig,
+        segmentBloomFilterConfig = bloomFilterConfig,
+        groupBy = groupBy
+      )
+
     val splits = ListBuffer(SegmentBuffer(groupBy))
     keyValues foreachIO {
       keyValue =>
@@ -165,11 +176,7 @@ private[core] object SegmentMerger extends LazyLogging {
           forInMemory = forInMemory,
           isLastLevel = isLastLevel,
           createdInLevel = createdInLevel,
-          segmentValuesConfig = valuesConfig,
-          segmentSortedIndexConfig = sortedIndexConfig,
-          segmentBinarySearchIndexConfig = binarySearchIndexConfig,
-          segmentHashIndexConfig = hashIndexConfig,
-          segmentBloomFilterConfig = bloomFilterConfig,
+          segmentMergeConfigs = segmentMergeConfigs,
           segmentIO = segmentIO
         )
     } match {
@@ -305,6 +312,16 @@ private[core] object SegmentMerger extends LazyLogging {
 
     implicit val groupIO = groupBy.map(_.groupIO) getOrElse segmentIO
 
+    val segmentMergeConfigs =
+      SegmentMergeConfigs(
+        segmentValuesConfig = valuesConfig,
+        segmentSortedIndexConfig = sortedIndexConfig,
+        segmentBinarySearchIndexConfig = binarySearchIndexConfig,
+        segmentHashIndexConfig = hashIndexConfig,
+        segmentBloomFilterConfig = bloomFilterConfig,
+        groupBy = groupBy
+      )
+
     def add(nextKeyValue: KeyValue.ReadOnly): IO[swaydb.Error.Segment, Unit] =
       SegmentGrouper.addKeyValue(
         keyValueToAdd = nextKeyValue,
@@ -313,11 +330,7 @@ private[core] object SegmentMerger extends LazyLogging {
         forInMemory = forInMemory,
         isLastLevel = isLastLevel,
         createdInLevel = createdInLevel,
-        segmentValuesConfig = valuesConfig,
-        segmentSortedIndexConfig = sortedIndexConfig,
-        segmentBinarySearchIndexConfig = binarySearchIndexConfig,
-        segmentHashIndexConfig = hashIndexConfig,
-        segmentBloomFilterConfig = bloomFilterConfig,
+        segmentMergeConfigs = segmentMergeConfigs,
         segmentIO = segmentIO
       )
 

@@ -100,11 +100,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                    forInMemory: Boolean,
                    isLastLevel: Boolean,
                    createdInLevel: Int,
-                   valuesConfig: ValuesBlock.Config,
-                   sortedIndexConfig: SortedIndexBlock.Config,
-                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                   hashIndexConfig: HashIndexBlock.Config,
-                   bloomFilterConfig: BloomFilterBlock.Config,
+                   segmentMergeConfigs: SegmentMergeConfigs,
                    segmentIO: SegmentIO)(implicit groupBy: Option[GroupByInternal.KeyValues],
                                          keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Unit] =
     keyValues.headOption match {
@@ -121,11 +117,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   forInMemory = forInMemory,
                   isLastLevel = isLastLevel,
                   createdInLevel = createdInLevel,
-                  valuesConfig = valuesConfig,
-                  sortedIndexConfig = sortedIndexConfig,
-                  binarySearchIndexConfig = binarySearchIndexConfig,
-                  hashIndexConfig = hashIndexConfig,
-                  bloomFilterConfig = bloomFilterConfig,
+                  segmentMergeConfigs = segmentMergeConfigs,
                   segmentIO = segmentIO
                 )
               case IO.Failure(error) =>
@@ -140,11 +132,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
               forInMemory = forInMemory,
               isLastLevel = isLastLevel,
               createdInLevel = createdInLevel,
-              segmentValuesConfig = valuesConfig,
-              segmentSortedIndexConfig = sortedIndexConfig,
-              segmentBinarySearchIndexConfig = binarySearchIndexConfig,
-              segmentHashIndexConfig = hashIndexConfig,
-              segmentBloomFilterConfig = bloomFilterConfig,
+              segmentMergeConfigs = segmentMergeConfigs,
               segmentIO = segmentIO
             ) match {
               case IO.Success(_) =>
@@ -154,12 +142,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   minSegmentSize = minSegmentSize,
                   forInMemory = forInMemory,
                   isLastLevel = isLastLevel,
-                  valuesConfig = valuesConfig,
                   createdInLevel = createdInLevel,
-                  sortedIndexConfig = sortedIndexConfig,
-                  binarySearchIndexConfig = binarySearchIndexConfig,
-                  hashIndexConfig = hashIndexConfig,
-                  bloomFilterConfig = bloomFilterConfig,
+                  segmentMergeConfigs = segmentMergeConfigs,
                   segmentIO = segmentIO
                 )
               case IO.Failure(error) =>
@@ -176,11 +160,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   forInMemory: Boolean,
                   isLastLevel: Boolean,
                   createdInLevel: Int,
-                  segmentValuesConfig: ValuesBlock.Config,
-                  segmentSortedIndexConfig: SortedIndexBlock.Config,
-                  segmentBinarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                  segmentHashIndexConfig: HashIndexBlock.Config,
-                  segmentBloomFilterConfig: BloomFilterBlock.Config,
+                  segmentMergeConfigs: SegmentMergeConfigs,
                   segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Unit] = {
 
     implicit val groupBy: Option[GroupByInternal.KeyValues] =
@@ -191,16 +171,6 @@ private[merge] object SegmentGrouper extends LazyLogging {
         case grouped: SegmentBuffer.Grouped =>
           Some(grouped.groupBy)
       }
-
-    def groupValuesConfig = groupBy.map(_.valuesConfig) getOrElse segmentValuesConfig
-
-    def groupSortedIndexConfig = groupBy.map(_.sortedIndexConfig) getOrElse segmentSortedIndexConfig
-
-    def groupBinarySearchIndexConfig = groupBy.map(_.binarySearchIndexConfig) getOrElse segmentBinarySearchIndexConfig
-
-    def groupHashIndexConfig = groupBy.map(_.hashIndexConfig) getOrElse segmentHashIndexConfig
-
-    def groupBloomFilterConfig = groupBy.map(_.bloomFilterConfig) getOrElse segmentBloomFilterConfig
 
     def doAdd(keyValueToAdd: Option[Transient.SegmentResponse] => Transient.SegmentResponse): IO[swaydb.Error.Segment, Unit] = {
 
@@ -250,12 +220,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
             if (buffer shouldGroupKeyValues force) {
               group(
                 buffer = buffer,
-                segmentValuesConfig = segmentValuesConfig,
+                segmentValuesConfig = segmentMergeConfigs.segmentValuesConfig,
                 createdInLevel = createdInLevel,
-                segmentSortedIndexConfig = segmentSortedIndexConfig,
-                segmentBinarySearchIndexConfig = segmentBinarySearchIndexConfig,
-                segmentHashIndexConfig = segmentHashIndexConfig,
-                segmentBloomFilterConfig = segmentBloomFilterConfig,
+                segmentSortedIndexConfig = segmentMergeConfigs.segmentSortedIndexConfig,
+                segmentBinarySearchIndexConfig = segmentMergeConfigs.segmentBinarySearchIndexConfig,
+                segmentHashIndexConfig = segmentMergeConfigs.segmentHashIndexConfig,
+                segmentBloomFilterConfig = segmentMergeConfigs.segmentBloomFilterConfig,
                 force = force,
                 skipQuotaCheck = true
               ) map (_ => ())
@@ -302,11 +272,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     value = value,
                     deadline = deadline,
                     time = time,
-                    valuesConfig = groupValuesConfig,
-                    sortedIndexConfig = groupSortedIndexConfig,
-                    binarySearchIndexConfig = groupBinarySearchIndexConfig,
-                    hashIndexConfig = groupHashIndexConfig,
-                    bloomFilterConfig = groupBloomFilterConfig,
+                    valuesConfig = segmentMergeConfigs.groupValuesConfig,
+                    sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
+                    binarySearchIndexConfig = segmentMergeConfigs.groupBinarySearchIndexConfig,
+                    hashIndexConfig = segmentMergeConfigs.groupHashIndexConfig,
+                    bloomFilterConfig = segmentMergeConfigs.groupBloomFilterConfig,
                     _
                   )
                 )
@@ -323,11 +293,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         value = value,
                         deadline = put.deadline,
                         time = put.time,
-                        valuesConfig = groupValuesConfig,
-                        sortedIndexConfig = groupSortedIndexConfig,
-                        binarySearchIndexConfig = groupBinarySearchIndexConfig,
-                        hashIndexConfig = groupHashIndexConfig,
-                        bloomFilterConfig = groupBloomFilterConfig,
+                        valuesConfig = segmentMergeConfigs.groupValuesConfig,
+                        sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
+                        binarySearchIndexConfig = segmentMergeConfigs.groupBinarySearchIndexConfig,
+                        hashIndexConfig = segmentMergeConfigs.groupHashIndexConfig,
+                        bloomFilterConfig = segmentMergeConfigs.groupBloomFilterConfig,
                         _
                       )
                     )
@@ -342,11 +312,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     key = keyValueToAdd.key,
                     deadline = remove.deadline,
                     time = remove.time,
-                    valuesConfig = groupValuesConfig,
-                    sortedIndexConfig = groupSortedIndexConfig,
-                    binarySearchIndexConfig = groupBinarySearchIndexConfig,
-                    hashIndexConfig = groupHashIndexConfig,
-                    bloomFilterConfig = groupBloomFilterConfig,
+                    valuesConfig = segmentMergeConfigs.groupValuesConfig,
+                    sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
+                    binarySearchIndexConfig = segmentMergeConfigs.groupBinarySearchIndexConfig,
+                    hashIndexConfig = segmentMergeConfigs.groupHashIndexConfig,
+                    bloomFilterConfig = segmentMergeConfigs.groupBloomFilterConfig,
                     _
                   )
                 )
@@ -360,11 +330,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     key = keyValueToAdd.key,
                     deadline = remove.deadline,
                     time = remove.time,
-                    valuesConfig = groupValuesConfig,
-                    sortedIndexConfig = groupSortedIndexConfig,
-                    binarySearchIndexConfig = groupBinarySearchIndexConfig,
-                    hashIndexConfig = groupHashIndexConfig,
-                    bloomFilterConfig = groupBloomFilterConfig,
+                    valuesConfig = segmentMergeConfigs.groupValuesConfig,
+                    sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
+                    binarySearchIndexConfig = segmentMergeConfigs.groupBinarySearchIndexConfig,
+                    hashIndexConfig = segmentMergeConfigs.groupHashIndexConfig,
+                    bloomFilterConfig = segmentMergeConfigs.groupBloomFilterConfig,
                     _
                   )
                 )
@@ -379,11 +349,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     value = value,
                     deadline = deadline,
                     time = time,
-                    valuesConfig = groupValuesConfig,
-                    sortedIndexConfig = groupSortedIndexConfig,
-                    binarySearchIndexConfig = groupBinarySearchIndexConfig,
-                    hashIndexConfig = groupHashIndexConfig,
-                    bloomFilterConfig = groupBloomFilterConfig,
+                    valuesConfig = segmentMergeConfigs.groupValuesConfig,
+                    sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
+                    binarySearchIndexConfig = segmentMergeConfigs.groupBinarySearchIndexConfig,
+                    hashIndexConfig = segmentMergeConfigs.groupHashIndexConfig,
+                    bloomFilterConfig = segmentMergeConfigs.groupBloomFilterConfig,
                     _
                   )
                 )
@@ -400,11 +370,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         value = value,
                         deadline = update.deadline,
                         time = update.time,
-                        valuesConfig = groupValuesConfig,
-                        sortedIndexConfig = groupSortedIndexConfig,
-                        binarySearchIndexConfig = groupBinarySearchIndexConfig,
-                        hashIndexConfig = groupHashIndexConfig,
-                        bloomFilterConfig = groupBloomFilterConfig,
+                        valuesConfig = segmentMergeConfigs.groupValuesConfig,
+                        sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
+                        binarySearchIndexConfig = segmentMergeConfigs.groupBinarySearchIndexConfig,
+                        hashIndexConfig = segmentMergeConfigs.groupHashIndexConfig,
+                        bloomFilterConfig = segmentMergeConfigs.groupBloomFilterConfig,
                         _
                       )
                     )
@@ -419,11 +389,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     key = key,
                     function = function,
                     time = time,
-                    valuesConfig = groupValuesConfig,
-                    sortedIndexConfig = groupSortedIndexConfig,
-                    binarySearchIndexConfig = groupBinarySearchIndexConfig,
-                    hashIndexConfig = groupHashIndexConfig,
-                    bloomFilterConfig = groupBloomFilterConfig,
+                    valuesConfig = segmentMergeConfigs.groupValuesConfig,
+                    sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
+                    binarySearchIndexConfig = segmentMergeConfigs.groupBinarySearchIndexConfig,
+                    hashIndexConfig = segmentMergeConfigs.groupHashIndexConfig,
+                    bloomFilterConfig = segmentMergeConfigs.groupBloomFilterConfig,
                     _
                   )
                 )
@@ -439,11 +409,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         key = function.key,
                         function = functionId,
                         time = function.time,
-                        valuesConfig = groupValuesConfig,
-                        sortedIndexConfig = groupSortedIndexConfig,
-                        binarySearchIndexConfig = groupBinarySearchIndexConfig,
-                        hashIndexConfig = groupHashIndexConfig,
-                        bloomFilterConfig = groupBloomFilterConfig,
+                        valuesConfig = segmentMergeConfigs.groupValuesConfig,
+                        sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
+                        binarySearchIndexConfig = segmentMergeConfigs.groupBinarySearchIndexConfig,
+                        hashIndexConfig = segmentMergeConfigs.groupHashIndexConfig,
+                        bloomFilterConfig = segmentMergeConfigs.groupBloomFilterConfig,
                         _
                       )
                     )
@@ -457,11 +427,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   Transient.PendingApply(
                     key = key,
                     applies = applies,
-                    valuesConfig = groupValuesConfig,
-                    sortedIndexConfig = groupSortedIndexConfig,
-                    binarySearchIndexConfig = groupBinarySearchIndexConfig,
-                    hashIndexConfig = groupHashIndexConfig,
-                    bloomFilterConfig = groupBloomFilterConfig,
+                    valuesConfig = segmentMergeConfigs.groupValuesConfig,
+                    sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
+                    binarySearchIndexConfig = segmentMergeConfigs.groupBinarySearchIndexConfig,
+                    hashIndexConfig = segmentMergeConfigs.groupHashIndexConfig,
+                    bloomFilterConfig = segmentMergeConfigs.groupBloomFilterConfig,
                     _
                   )
                 )
@@ -476,11 +446,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                       Transient.PendingApply(
                         key = pendingApply.key,
                         applies = applies,
-                        valuesConfig = groupValuesConfig,
-                        sortedIndexConfig = groupSortedIndexConfig,
-                        binarySearchIndexConfig = groupBinarySearchIndexConfig,
-                        hashIndexConfig = groupHashIndexConfig,
-                        bloomFilterConfig = groupBloomFilterConfig,
+                        valuesConfig = segmentMergeConfigs.groupValuesConfig,
+                        sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
+                        binarySearchIndexConfig = segmentMergeConfigs.groupBinarySearchIndexConfig,
+                        hashIndexConfig = segmentMergeConfigs.groupHashIndexConfig,
+                        bloomFilterConfig = segmentMergeConfigs.groupBloomFilterConfig,
                         _
                       )
                     )
@@ -502,11 +472,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                               value = fromValue,
                               deadline = deadline,
                               time = time,
-                              valuesConfig = groupValuesConfig,
-                              sortedIndexConfig = groupSortedIndexConfig,
-                              binarySearchIndexConfig = groupBinarySearchIndexConfig,
-                              hashIndexConfig = groupHashIndexConfig,
-                              bloomFilterConfig = groupBloomFilterConfig,
+                              valuesConfig = segmentMergeConfigs.groupValuesConfig,
+                              sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
+                              binarySearchIndexConfig = segmentMergeConfigs.groupBinarySearchIndexConfig,
+                              hashIndexConfig = segmentMergeConfigs.groupHashIndexConfig,
+                              bloomFilterConfig = segmentMergeConfigs.groupBloomFilterConfig,
                               _
                             )
                           )
@@ -531,11 +501,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     toKey = range.toKey,
                     fromValue = fromValue,
                     rangeValue = rangeValue,
-                    valuesConfig = groupValuesConfig,
-                    sortedIndexConfig = groupSortedIndexConfig,
-                    binarySearchIndexConfig = groupBinarySearchIndexConfig,
-                    hashIndexConfig = groupHashIndexConfig,
-                    bloomFilterConfig = groupBloomFilterConfig,
+                    valuesConfig = segmentMergeConfigs.groupValuesConfig,
+                    sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
+                    binarySearchIndexConfig = segmentMergeConfigs.groupBinarySearchIndexConfig,
+                    hashIndexConfig = segmentMergeConfigs.groupHashIndexConfig,
+                    bloomFilterConfig = segmentMergeConfigs.groupBloomFilterConfig,
                     _
                   )
                 )
@@ -553,11 +523,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 isLastLevel = isLastLevel,
                 createdInLevel = createdInLevel,
                 //segment configs here because this a segment level adds.
-                valuesConfig = segmentValuesConfig,
-                sortedIndexConfig = segmentSortedIndexConfig,
-                binarySearchIndexConfig = segmentBinarySearchIndexConfig,
-                hashIndexConfig = segmentHashIndexConfig,
-                bloomFilterConfig = segmentBloomFilterConfig,
+                segmentMergeConfigs = segmentMergeConfigs,
                 segmentIO = segmentIO
               )
           }

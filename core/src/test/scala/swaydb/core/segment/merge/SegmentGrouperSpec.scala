@@ -63,6 +63,16 @@ class SegmentGrouperSpec extends TestBase {
             randomIntMax(initialSegment.last.stats.segmentSize.bytes)
           ) //<= segmentSize of the first 2 key-values which should always result in a new segment being created
 
+        val segmentMergeConfigs =
+          SegmentMergeConfigs(
+            segmentValuesConfig = ValuesBlock.Config.random,
+            segmentSortedIndexConfig = SortedIndexBlock.Config.random,
+            segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            segmentHashIndexConfig = HashIndexBlock.Config.random,
+            segmentBloomFilterConfig = BloomFilterBlock.Config.random,
+            groupBy = groupBy
+          )
+
         //total Segment bytes with the next key-value is 150.bytes which also the minimum SegmentSize which should start a new segment on add.
         SegmentGrouper.addKeyValue(
           keyValueToAdd = keyValue,
@@ -71,11 +81,7 @@ class SegmentGrouperSpec extends TestBase {
           forInMemory = false,
           isLastLevel = false,
           createdInLevel = 0,
-          segmentValuesConfig = ValuesBlock.Config.random,
-          segmentSortedIndexConfig = SortedIndexBlock.Config.random,
-          segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-          segmentHashIndexConfig = HashIndexBlock.Config.random,
-          segmentBloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentMergeConfigs = segmentMergeConfigs,
           segmentIO = SegmentIO.random
         )
 
@@ -96,7 +102,7 @@ class SegmentGrouperSpec extends TestBase {
       runThis(5.times) {
         val forInMemory = randomBoolean()
 
-        val keyValueCount = 10000
+        val keyValueCount = 1000000
 
         val groupBy =
           GroupByInternal.KeyValues(
@@ -109,7 +115,17 @@ class SegmentGrouperSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
             sortedIndexConfig = SortedIndexBlock.Config.random,
             valuesConfig = ValuesBlock.Config.random,
-            groupConfig = SegmentBlock.Config.random
+            groupConfig = SegmentBlock.Config.default
+          )
+
+        val segmentMergeConfigs =
+          SegmentMergeConfigs(
+            segmentValuesConfig = ValuesBlock.Config.random,
+            segmentSortedIndexConfig = SortedIndexBlock.Config.random,
+            segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            segmentHashIndexConfig = HashIndexBlock.Config.random,
+            segmentBloomFilterConfig = BloomFilterBlock.Config.random,
+            groupBy = Some(groupBy)
           )
 
         val buffer: SegmentBuffer.Grouped = SegmentBuffer(groupBy)
@@ -126,11 +142,7 @@ class SegmentGrouperSpec extends TestBase {
                 forInMemory = forInMemory,
                 createdInLevel = 0,
                 isLastLevel = false,
-                segmentValuesConfig = ValuesBlock.Config.random,
-                segmentSortedIndexConfig = SortedIndexBlock.Config.random,
-                segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-                segmentHashIndexConfig = HashIndexBlock.Config.random,
-                segmentBloomFilterConfig = BloomFilterBlock.Config.random,
+                segmentMergeConfigs = segmentMergeConfigs,
                 segmentIO = SegmentIO.random
               ).get
           }
@@ -155,7 +167,7 @@ class SegmentGrouperSpec extends TestBase {
 
         val groupBy =
           GroupByInternal.KeyValues(
-            count = keyValueCount / 100,
+            count = keyValueCount / 10,
             size = None,
             applyGroupingOnCopy = randomBoolean(),
             groupByGroups = None,
@@ -171,11 +183,15 @@ class SegmentGrouperSpec extends TestBase {
         val segments = ListBuffer[SegmentBuffer](buffer)
         val keyValues = randomizedKeyValues(keyValueCount, addGroups = false).toMemory
 
-        val segmentValuesConfig = ValuesBlock.Config.random
-        val segmentSortedIndexConfig = SortedIndexBlock.Config.random
-        val segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random
-        val segmentHashIndexConfig = HashIndexBlock.Config.random
-        val segmentBloomFilterConfig = BloomFilterBlock.Config.random
+        val segmentMergeConfigs =
+          SegmentMergeConfigs(
+            segmentValuesConfig = ValuesBlock.Config.random,
+            segmentSortedIndexConfig = SortedIndexBlock.Config.random,
+            segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            segmentHashIndexConfig = HashIndexBlock.Config.random,
+            segmentBloomFilterConfig = BloomFilterBlock.Config.random,
+            groupBy = Some(groupBy)
+          )
 
         Benchmark(s"Grouping ${keyValues.size} key-values.") {
           keyValues foreach {
@@ -187,11 +203,7 @@ class SegmentGrouperSpec extends TestBase {
                 forInMemory = forInMemory,
                 createdInLevel = 0,
                 isLastLevel = false,
-                segmentValuesConfig = segmentValuesConfig,
-                segmentSortedIndexConfig = segmentSortedIndexConfig,
-                segmentBinarySearchIndexConfig = segmentBinarySearchIndexConfig,
-                segmentHashIndexConfig = segmentHashIndexConfig,
-                segmentBloomFilterConfig = segmentBloomFilterConfig,
+                segmentMergeConfigs = segmentMergeConfigs,
                 segmentIO = SegmentIO.random
               ).get
           }
@@ -232,11 +244,15 @@ class SegmentGrouperSpec extends TestBase {
         val segments = ListBuffer[SegmentBuffer](buffer)
         val keyValues = randomizedKeyValues(keyValueCount, addGroups = false).toMemory
 
-        val segmentValuesConfig = ValuesBlock.Config.random
-        val segmentSortedIndexConfig = SortedIndexBlock.Config.random
-        val segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random
-        val segmentHashIndexConfig = HashIndexBlock.Config.random
-        val segmentBloomFilterConfig = BloomFilterBlock.Config.random
+        val segmentMergeConfigs =
+          SegmentMergeConfigs(
+            segmentValuesConfig = ValuesBlock.Config.random,
+            segmentSortedIndexConfig = SortedIndexBlock.Config.random,
+            segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            segmentHashIndexConfig = HashIndexBlock.Config.random,
+            segmentBloomFilterConfig = BloomFilterBlock.Config.random,
+            groupBy = Some(groupBy)
+          )
 
         Benchmark(s"Grouping ${keyValues.size} key-values.") {
           keyValues foreach {
@@ -248,11 +264,7 @@ class SegmentGrouperSpec extends TestBase {
                 forInMemory = forInMemory,
                 createdInLevel = 0,
                 isLastLevel = false,
-                segmentValuesConfig = segmentValuesConfig,
-                segmentSortedIndexConfig = segmentSortedIndexConfig,
-                segmentBinarySearchIndexConfig = segmentBinarySearchIndexConfig,
-                segmentHashIndexConfig = segmentHashIndexConfig,
-                segmentBloomFilterConfig = segmentBloomFilterConfig,
+                segmentMergeConfigs = segmentMergeConfigs,
                 segmentIO = SegmentIO.random
               ).get
           }
@@ -265,11 +277,11 @@ class SegmentGrouperSpec extends TestBase {
         SegmentGrouper.group(
           buffer = buffer,
           createdInLevel = 0,
-          segmentValuesConfig = segmentValuesConfig,
-          segmentSortedIndexConfig = segmentSortedIndexConfig,
-          segmentBinarySearchIndexConfig = segmentBinarySearchIndexConfig,
-          segmentHashIndexConfig = segmentHashIndexConfig,
-          segmentBloomFilterConfig = segmentBloomFilterConfig,
+          segmentValuesConfig = segmentMergeConfigs.segmentValuesConfig,
+          segmentSortedIndexConfig = segmentMergeConfigs.segmentSortedIndexConfig,
+          segmentBinarySearchIndexConfig = segmentMergeConfigs.segmentBinarySearchIndexConfig,
+          segmentHashIndexConfig = segmentMergeConfigs.segmentHashIndexConfig,
+          segmentBloomFilterConfig = segmentMergeConfigs.segmentBloomFilterConfig,
           force = true,
           skipQuotaCheck = false
         ).get
@@ -296,19 +308,19 @@ class SegmentGrouperSpec extends TestBase {
             size = None,
             applyGroupingOnCopy = randomBoolean(),
             groupByGroups =
-            Some(
-              GroupByInternal.Groups(
-                count = 2,
-                size = None,
-                valuesConfig = ValuesBlock.Config.random,
-                sortedIndexConfig = SortedIndexBlock.Config.random,
-                binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-                hashIndexConfig = HashIndexBlock.Config.random,
-                bloomFilterConfig = BloomFilterBlock.Config.random,
-                groupConfig = SegmentBlock.Config.random,
-                applyGroupingOnCopy = randomBoolean()
-              )
-            ),
+              Some(
+                GroupByInternal.Groups(
+                  count = 2,
+                  size = None,
+                  valuesConfig = ValuesBlock.Config.random,
+                  sortedIndexConfig = SortedIndexBlock.Config.random,
+                  binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+                  hashIndexConfig = HashIndexBlock.Config.random,
+                  bloomFilterConfig = BloomFilterBlock.Config.random,
+                  groupConfig = SegmentBlock.Config.random,
+                  applyGroupingOnCopy = randomBoolean()
+                )
+              ),
             bloomFilterConfig = BloomFilterBlock.Config.random,
             hashIndexConfig = HashIndexBlock.Config.random,
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
@@ -321,11 +333,15 @@ class SegmentGrouperSpec extends TestBase {
         val segments = ListBuffer[SegmentBuffer](buffer)
         val keyValues = randomizedKeyValues(keyValueCount, addGroups = false).toMemory
 
-        val segmentValuesConfig = ValuesBlock.Config.random
-        val segmentSortedIndexConfig = SortedIndexBlock.Config.random
-        val segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random
-        val segmentHashIndexConfig = HashIndexBlock.Config.random
-        val segmentBloomFilterConfig = BloomFilterBlock.Config.random
+        val segmentMergeConfigs =
+          SegmentMergeConfigs(
+            segmentValuesConfig = ValuesBlock.Config.random,
+            segmentSortedIndexConfig = SortedIndexBlock.Config.random,
+            segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            segmentHashIndexConfig = HashIndexBlock.Config.random,
+            segmentBloomFilterConfig = BloomFilterBlock.Config.random,
+            groupBy = Some(groupBy)
+          )
 
         Benchmark(s"Grouping ${keyValues.size} key-values.") {
           keyValues foreach {
@@ -337,11 +353,7 @@ class SegmentGrouperSpec extends TestBase {
                 forInMemory = forInMemory,
                 createdInLevel = 0,
                 isLastLevel = false,
-                segmentValuesConfig = segmentValuesConfig,
-                segmentSortedIndexConfig = segmentSortedIndexConfig,
-                segmentBinarySearchIndexConfig = segmentBinarySearchIndexConfig,
-                segmentHashIndexConfig = segmentHashIndexConfig,
-                segmentBloomFilterConfig = segmentBloomFilterConfig,
+                segmentMergeConfigs = segmentMergeConfigs,
                 segmentIO = SegmentIO.random
               ).get
           }
@@ -354,17 +366,16 @@ class SegmentGrouperSpec extends TestBase {
         SegmentGrouper.group(
           buffer = buffer,
           createdInLevel = 0,
-          segmentValuesConfig = segmentValuesConfig,
-          segmentSortedIndexConfig = segmentSortedIndexConfig,
-          segmentBinarySearchIndexConfig = segmentBinarySearchIndexConfig,
-          segmentHashIndexConfig = segmentHashIndexConfig,
-          segmentBloomFilterConfig = segmentBloomFilterConfig,
+          segmentValuesConfig = segmentMergeConfigs.segmentValuesConfig,
+          segmentSortedIndexConfig = segmentMergeConfigs.segmentSortedIndexConfig,
+          segmentBinarySearchIndexConfig = segmentMergeConfigs.segmentBinarySearchIndexConfig,
+          segmentHashIndexConfig = segmentMergeConfigs.segmentHashIndexConfig,
+          segmentBloomFilterConfig = segmentMergeConfigs.segmentBloomFilterConfig,
           force = true,
           skipQuotaCheck = false
         ).get
 
         buffer.unGrouped.size shouldBe 0
-
 
         Benchmark("write a read all") {
           val persistentGroupKeyValues = writeAndRead(buffer).value
