@@ -217,35 +217,37 @@ object CommonAssertions {
   def eitherOne[T](one: => T, two: => T, three: => T, four: => T, five: => T, six: => T): T =
     Random.shuffle(Seq(() => one, () => two, () => three, () => four, () => five, () => six)).head()
 
-  def randomGroupingStrategyOption(keyValuesCount: Int): Option[GroupByInternal.KeyValues] =
+  def randomGroupByOption(keyValuesCount: Int = randomIntMax(50) max 1,
+                                   groupByGroups: Option[GroupByInternal.Groups] = randomGroupByGroupsOption()): Option[GroupByInternal.KeyValues] =
     eitherOne(
       left = None,
-      right = Some(randomGroupingStrategy(keyValuesCount))
+      right = Some(randomGroupBy(keyValuesCount, groupByGroups))
     )
 
-  def randomGroupingStrategy(keyValuesCount: Int): GroupByInternal.KeyValues =
+  def randomGroupBy(keyValuesCount: Int = randomIntMax(50) max 1,
+                             groupByGroups: Option[GroupByInternal.Groups] = randomGroupByGroupsOption()): GroupByInternal.KeyValues = {
+
     GroupByInternal.KeyValues(
-      count = randomIntMax(50) max 1,
+      count = keyValuesCount,
       size = eitherOne(None, Some(randomIntMax(1.mb) max 1)),
-      groupByGroups =
-        eitherOne(
-          left =
-            Some(
-              GroupByInternal.Groups(
-                count = randomIntMax(50) max 1,
-                size = eitherOne(None, Some(randomIntMax(1.mb) max 1)),
-                valuesConfig = ValuesBlock.Config.random,
-                sortedIndexConfig = SortedIndexBlock.Config.random,
-                binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-                hashIndexConfig = HashIndexBlock.Config.random,
-                bloomFilterConfig = BloomFilterBlock.Config.random,
-                groupConfig = SegmentBlock.Config.random,
-                applyGroupingOnCopy = randomBoolean()
-              )
-            ),
-          right =
-            None
-        ),
+      groupByGroups = groupByGroups,
+      valuesConfig = ValuesBlock.Config.random,
+      sortedIndexConfig = SortedIndexBlock.Config.random,
+      binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+      hashIndexConfig = HashIndexBlock.Config.random,
+      bloomFilterConfig = BloomFilterBlock.Config.random,
+      groupConfig = SegmentBlock.Config.random,
+      applyGroupingOnCopy = randomBoolean()
+    )
+  }
+
+  def randomGroupByGroupsOption(keyValuesCount: Int = randomIntMax(50) max 1): Option[GroupByInternal.Groups] =
+    eitherOne(None, Some(randomGroupByGroups(keyValuesCount)))
+
+  def randomGroupByGroups(keyValuesCount: Int = randomIntMax(50) max 1): GroupByInternal.Groups =
+    GroupByInternal.Groups(
+      count = keyValuesCount,
+      size = eitherOne(None, Some(randomIntMax(1.mb) max 1)),
       valuesConfig = ValuesBlock.Config.random,
       sortedIndexConfig = SortedIndexBlock.Config.random,
       binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,

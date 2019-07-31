@@ -34,10 +34,10 @@ private[core] object GroupCompressor extends LazyLogging {
     IO.failed("Cannot compress empty key-values")
 
   /**
-   * Returns (fromKey, toKey, fullKey) where fullKey is compressed fromKey and toKey.
-   *
-   * Pre-requisite: keyValues should be non-empty.
-   */
+    * Returns (fromKey, toKey, fullKey) where fullKey is compressed fromKey and toKey.
+    *
+    * Pre-requisite: keyValues should be non-empty.
+    */
   def buildCompressedKey(keyValues: Iterable[Transient]): (Slice[Byte], MaxKey[Slice[Byte]], Slice[Byte]) =
     GroupKeyCompressor.compress(keyValues.headOption, keyValues.last)
 

@@ -56,7 +56,7 @@ class LevelReadNoneSpec3 extends LevelReadNoneSpec {
 
 sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark {
 
-  implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(keyValuesCount)
+  implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
 
   //  override def deleteFiles = false
 

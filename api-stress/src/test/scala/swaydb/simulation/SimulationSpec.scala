@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.WordSpec
-import swaydb.configs.level.DefaultGroupingStrategy
+import swaydb.configs.level.DefaultGroupBy
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.actor.{Actor, ActorRef}
@@ -69,9 +69,9 @@ class Memory_SimulationSpec extends SimulationSpec {
   override lazy val db = swaydb.memory.Map[Long, Domain]().get
 }
 
-class Memory_SimulationGroupingStrategySpec extends SimulationSpec {
+class Memory_SimulationGroupBySpec extends SimulationSpec {
 
-  override lazy val db = swaydb.memory.Map[Long, Domain](groupBy = Some(DefaultGroupingStrategy())).get
+  override lazy val db = swaydb.memory.Map[Long, Domain](groupBy = Some(DefaultGroupBy())).get
 }
 
 class Persistent_SimulationSpec extends SimulationSpec {

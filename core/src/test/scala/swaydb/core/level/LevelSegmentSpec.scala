@@ -80,7 +80,7 @@
 //
 //  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
 //  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
-//  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(keyValuesCount)
+//  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
 //  implicit val skipListMerger = LevelZeroSkipListMerger
 //
 //  "writing Segments to single level" should {

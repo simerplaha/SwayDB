@@ -53,7 +53,7 @@
 //
 //          val newKeyValues = randomizedKeyValues(count = keyValueCount, startId = Some(index * 200))
 //
-//          val groupGroupingStrategy =
+//          val groupGroupBy =
 //            if (Random.nextBoolean())
 //              Some(
 //                GroupByInternal.Groups.Count(
@@ -78,7 +78,7 @@
 //              Some(
 //                GroupByInternal.KeyValues.Count(
 //                  count = newKeyValues.size / randomInt(10) + 1,
-//                  groupCompression = groupGroupingStrategy,
+//                  groupCompression = groupGroupBy,
 //                  sortedIndexCompression = randomCompression(),
 //                  valuesCompression = randomCompression()
 //                )
@@ -87,7 +87,7 @@
 //              Some(
 //                GroupByInternal.KeyValues.Size(
 //                  size = newKeyValues.last.stats.segmentSizeWithoutFooter / randomInt(10) + 1,
-//                  groupCompression = groupGroupingStrategy,
+//                  groupCompression = groupGroupBy,
 //                  sortedIndexCompression = randomCompression(),
 //                  valuesCompression = randomCompression()
 //                )

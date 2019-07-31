@@ -74,7 +74,7 @@ sealed trait LevelCollapseSpec extends TestBase {
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
-  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(keyValuesCount)
+  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "collapse" should {

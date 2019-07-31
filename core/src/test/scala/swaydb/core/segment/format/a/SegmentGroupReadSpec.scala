@@ -69,7 +69,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
 
   "read" in {
     runThis(1.times) {
-      implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupingStrategy(keyValuesCount))
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupBy(keyValuesCount))
 
       val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(0), addPut = true, addGroups = false)
       val segment = TestSegment(keyValues).runRandomIO.value

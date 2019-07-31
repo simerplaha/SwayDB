@@ -34,7 +34,7 @@
 //  implicit val keyOrder = KeyOrder.default
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 //  implicit val testTimer: TestTimer = TestTimer.Empty
-//  implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(10)
+//  implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(10)
 //
 //  val keyValueCount = 100
 //

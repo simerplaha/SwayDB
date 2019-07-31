@@ -33,7 +33,7 @@ object GroupBy {
                        applyGroupingOnCopy: Boolean,
                        groupIO: IOAction => IOStrategy,
                        groupCompressions: UncompressedBlockInfo => Seq[Compression],
-                       groupGroupingStrategy: Option[Groups])
+                       groupGroupBy: Option[Groups])
 
   case class Groups(count: Int,
                     size: Option[Int],

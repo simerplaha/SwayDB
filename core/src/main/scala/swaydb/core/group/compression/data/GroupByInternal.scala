@@ -47,7 +47,7 @@ private[swaydb] object GroupByInternal {
   val none = Option.empty[GroupByInternal]
 
   /**
-    * Converts public type KeyValueGroupingStrategy to internal KeyValueGroupingStrategy which the core understands.
+    * Converts public type KeyValueGroupBy to internal KeyValueGroupBy which the core understands.
     */
   def apply(groupBy: swaydb.data.api.grouping.GroupBy.KeyValues): GroupByInternal.KeyValues =
     groupBy match {
@@ -56,7 +56,7 @@ private[swaydb] object GroupByInternal {
           count = grouping.count,
           size = grouping.size,
           applyGroupingOnCopy = grouping.applyGroupingOnCopy,
-          groupByGroups = grouping.groupGroupingStrategy map (GroupByInternal.apply(grouping.applyGroupingOnCopy, _)),
+          groupByGroups = grouping.groupGroupBy map (GroupByInternal.apply(grouping.applyGroupingOnCopy, _)),
           bloomFilterConfig = BloomFilterBlock.Config(grouping.bloomFilter),
           hashIndexConfig = HashIndexBlock.Config(grouping.hashIndex),
           binarySearchIndexConfig = BinarySearchIndexBlock.Config(grouping.binarySearchIndex),

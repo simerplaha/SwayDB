@@ -77,7 +77,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
   def keyValueCount: Int
 
   val groupBy: Option[GroupByInternal.KeyValues] =
-    randomGroupingStrategyOption(keyValueCount)
+    randomGroupByOption(keyValueCount)
 
   "SegmentAssign.assign" should {
 

@@ -70,7 +70,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
   def keyValuesCount: Int
 
   implicit val groupBy: Option[GroupByInternal.KeyValues] =
-    randomGroupingStrategyOption(keyValuesCount)
+    randomGroupByOption(keyValuesCount)
 
   "Segment.get" should {
 

@@ -24,7 +24,7 @@ import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import org.scalatest.OptionValues._
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
-import swaydb.configs.level.DefaultGroupingStrategy
+import swaydb.configs.level.DefaultGroupBy
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.RunThis._
@@ -84,7 +84,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
   implicit val testTimer: TestTimer = TestTimer.Incremental()
 
   implicit def groupBy: Option[GroupByInternal.KeyValues] =
-    randomGroupingStrategyOption(keyValuesCount)
+    randomGroupByOption(keyValuesCount)
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
@@ -1587,7 +1587,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         bloomFilterConfig = BloomFilterBlock.Config.random,
         segmentIO = SegmentIO.random,
         createdInLevel = randomIntMax()
-      )(keyOrder, Some(GroupByInternal(DefaultGroupingStrategy()))).value
+      )(keyOrder, Some(GroupByInternal(DefaultGroupBy()))).value
 
       result should have size 1
       result.head should have size 1

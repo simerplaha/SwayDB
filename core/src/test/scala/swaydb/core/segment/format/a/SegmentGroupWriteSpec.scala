@@ -68,7 +68,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
         //all key-values to remove and assert
         val keyValues = (Slice(mergePut) ++ rightKeyValues).updateStats
 
-        implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupingStrategy(keyValuesCount))
+        implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupBy(keyValuesCount))
         val segment = TestSegment(keyValues).value
 
         //write a head key-values so that it triggers merging and grouping

@@ -67,7 +67,7 @@
 //      val writeIterations = 100
 //      val readIterations = 200
 //
-//      implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupingStrategy(keyValueCount))
+//      implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupBy(keyValueCount))
 //
 //      val level = TestLevel(segmentSize = 500.kb)
 //

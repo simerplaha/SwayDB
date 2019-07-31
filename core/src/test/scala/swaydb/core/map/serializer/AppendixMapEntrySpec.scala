@@ -44,7 +44,7 @@ class AppendixMapEntrySpec extends TestBase {
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def compression = randomGroupingStrategyOption(randomNextInt(1000))
+  implicit def compression = randomGroupByOption(randomNextInt(1000))
   implicit def segmentIO: SegmentIO = SegmentIO.random
 
   val appendixReader = AppendixMapEntryReader(true, true)

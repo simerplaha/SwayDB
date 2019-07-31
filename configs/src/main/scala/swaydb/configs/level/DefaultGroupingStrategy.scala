@@ -23,7 +23,7 @@ import swaydb.data.api.grouping.GroupBy
 import swaydb.data.config._
 import swaydb.data.util.StorageUnits._
 
-object DefaultGroupingStrategy {
+object DefaultGroupBy {
 
   /**
     * Default grouping Strategy the last Level of the Persistent configuration. It uses 3 three compression types
@@ -88,6 +88,6 @@ object DefaultGroupingStrategy {
       applyGroupingOnCopy = false,
       groupIO = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
       groupCompressions = _ => Seq.empty,
-      groupGroupingStrategy = None
+      groupGroupBy = None
     )
 }

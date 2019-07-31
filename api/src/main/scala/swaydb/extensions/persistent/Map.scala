@@ -23,11 +23,11 @@
 //
 //import com.typesafe.scalalogging.LazyLogging
 //import swaydb.{IO, SwayDB}
-//import swaydb.configs.level.{DefaultGroupingStrategy, DefaultPersistentConfig}
+//import swaydb.configs.level.{DefaultGroupBy, DefaultPersistentConfig}
 //import swaydb.core.BlockingCore
 //import swaydb.core.function.FunctionStore
 //import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-//import swaydb.data.api.grouping.KeyValueGroupingStrategy
+//import swaydb.data.api.grouping.KeyValueGroupBy
 //import swaydb.data.config._
 //import swaydb.data.order.{KeyOrder, TimeOrder}
 //import swaydb.data.slice.Slice
@@ -92,7 +92,7 @@
 //                  mightContainFalsePositiveRate: Double = 0.01,
 //                  compressDuplicateValues: Boolean = true,
 //                  deleteSegmentsEventually: Boolean = false,
-//                  lastLevelGroupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
+//                  lastLevelGroupBy: Option[KeyValueGroupBy] = Some(DefaultGroupBy()),
 //                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
 //                                                                                        valueSerializer: Serializer[V],
 //                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -111,7 +111,7 @@
 //        mightContainFalsePositiveRate = mightContainFalsePositiveRate,
 //        compressDuplicateValues = compressDuplicateValues,
 //        deleteSegmentsEventually = deleteSegmentsEventually,
-//        keyValueGroupingStrategy = lastLevelGroupingStrategy,
+//        keyValueGroupBy = lastLevelGroupBy,
 //        acceleration = acceleration
 //      ),
 //      maxOpenSegments = maxOpenSegments,

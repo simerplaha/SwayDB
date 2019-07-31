@@ -66,7 +66,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
   def keyValuesCount: Int
 
   implicit def groupBy: Option[GroupByInternal.KeyValues] =
-    randomGroupingStrategyOption(keyValuesCount)
+    randomGroupByOption(keyValuesCount)
 
   "Segment.higher" should {
     "value the higher key from the segment that has only 1 Remove key" in {

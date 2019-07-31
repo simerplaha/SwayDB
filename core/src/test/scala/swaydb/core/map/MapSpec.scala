@@ -62,7 +62,7 @@ class MapSpec extends TestBase {
 
   implicit val merger = AppendixSkipListMerger
 
-  implicit def grouping = randomGroupingStrategyOption(randomNextInt(1000))
+  implicit def grouping = randomGroupByOption(randomNextInt(1000))
 
   implicit def segmentIO = SegmentIO.random
 

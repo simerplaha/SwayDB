@@ -41,39 +41,38 @@ class SegmentMergeSpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val testTimer: TestTimer = TestTimer.Empty
-  implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(10)
+  implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(10)
 
   val keyValueCount = 100
 
   import keyOrder._
 
-  "completeMerge" should {
+  "close" should {
 
     "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for persistent key-values" in {
-      runThisParallel(10.times) {
+      runThis(50.times) {
         implicit val testTimer: TestTimer = TestTimer.Empty
 
-        val segment1 = ListBuffer.empty[Transient]
-        segment1.+=(Transient.put(key = 1, value = Some(1), previous = segment1.lastOption))
-        segment1.+=(Transient.put(key = 2, value = Some(2), previous = segment1.lastOption)) //total segmentSize is 144.bytes
+        val segment1 = SegmentBuffer(None)
+        segment1 add Transient.put(key = 1, value = Some(1), previous = segment1.lastOption)
+        segment1 add Transient.put(key = 2, value = Some(2), previous = segment1.lastOption) //total segmentSize is 144.bytes
 
-        val smallerLastSegment = ListBuffer.empty[Transient]
-        smallerLastSegment.+=(Transient.put(key = 1, value = Some(1), previous = None)) //total segmentSize is 105.bytes
+        val smallerLastSegment = SegmentBuffer(None)
+        smallerLastSegment add Transient.put(key = 1, value = Some(1), previous = None) //total segmentSize is 105.bytes
 
-        val segments = ListBuffer[ListBuffer[Transient]](segment1, smallerLastSegment)
+        val segments = ListBuffer[SegmentBuffer](segment1, smallerLastSegment)
 
         //minSegmentSize is 144.bytes but lastSegment size is 105.bytes. Expected result should move lastSegment's KeyValues to previous segment
         val newSegments =
-          SegmentMerger.completeMerge(
-            segments = segments,
-            minSegmentSize = 144.bytes,
+          SegmentMerger.close(
+            buffers = segments,
+            minSegmentSize = smallerLastSegment.last.stats.segmentSize + 1,
             forMemory = false,
             valuesConfig = ValuesBlock.Config.random,
             sortedIndexConfig = SortedIndexBlock.Config.random,
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
-            groupLastSegment = true,
             createdInLevel = randomIntMax()
           ).runRandomIO.value
 
@@ -88,27 +87,26 @@ class SegmentMergeSpec extends TestBase {
 
     "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for memory key-values" in {
       runThisParallel(10.times) {
-        val segment1 = ListBuffer.empty[Transient]
-        segment1.+=(Transient.put(key = 1, value = Some(1), previous = segment1.lastOption))
-        segment1.+=(Transient.put(key = 2, value = Some(2), previous = segment1.lastOption)) //total segmentSize is 21.bytes
+        val segment1 = SegmentBuffer(None)
+        segment1 add Transient.put(key = 1, value = Some(1), previous = segment1.lastOption)
+        segment1 add Transient.put(key = 2, value = Some(2), previous = segment1.lastOption) //total segmentSize is 21.bytes
 
-        val smallerLastSegment = ListBuffer.empty[Transient]
-        smallerLastSegment.+=(Transient.put(key = 1, value = Some(1), previous = None)) //total segmentSize is 12.bytes
+        val smallerLastSegment = SegmentBuffer(None)
+        smallerLastSegment add Transient.put(key = 1, value = Some(1), previous = None) //total segmentSize is 12.bytes
 
-        val segments = ListBuffer[ListBuffer[Transient]](segment1, smallerLastSegment)
+        val segments = ListBuffer[SegmentBuffer](segment1, smallerLastSegment)
 
         //minSegmentSize is 21.bytes but lastSegment size is 12.bytes. Expected result should move lastSegment's KeyValues to previous segment
         val newSegments =
-          SegmentMerger.completeMerge(
-            segments = segments,
-            minSegmentSize = 21.bytes,
+          SegmentMerger.close(
+            buffers = segments,
+            minSegmentSize = smallerLastSegment.last.stats.memorySegmentSize + 1,
             forMemory = true,
             valuesConfig = ValuesBlock.Config.random,
             sortedIndexConfig = SortedIndexBlock.Config.random,
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
-            groupLastSegment = true,
             createdInLevel = randomIntMax()
           ).runRandomIO.value
 
@@ -123,31 +121,33 @@ class SegmentMergeSpec extends TestBase {
 
     "make no change if there is only one segment" in {
       runThisParallel(100.times) {
-        val segment: ListBuffer[Transient] = ListBuffer(randomizedKeyValues(randomIntMax(5) max 1, addPendingApply = true, addGroups = false).toList: _*)
+        val buffer = SegmentBuffer(None)
+        (1 to 100) foreach {
+          i =>
+            buffer add randomFixedTransientKeyValue(i)
+        }
 
-        SegmentMerger.completeMerge(
-          segments = ListBuffer(segment),
-          minSegmentSize = randomIntMax(segment.last.stats.segmentSize),
-          forMemory = false,
-          valuesConfig = ValuesBlock.Config.random,
-          sortedIndexConfig = SortedIndexBlock.Config.random,
-          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-          hashIndexConfig = HashIndexBlock.Config.random,
-          bloomFilterConfig = BloomFilterBlock.Config.random,
-          groupLastSegment = true,
-          createdInLevel = randomIntMax()
-        ).runRandomIO.value.size shouldBe 1
-
-        SegmentMerger.completeMerge(
-          segments = ListBuffer(segment),
-          minSegmentSize = randomIntMax(segment.last.stats.memorySegmentSize),
+        SegmentMerger.close(
+          buffers = ListBuffer(buffer),
+          minSegmentSize = buffer.last.stats.memorySegmentSize * 2,
           forMemory = true,
           valuesConfig = ValuesBlock.Config.random,
           sortedIndexConfig = SortedIndexBlock.Config.random,
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          groupLastSegment = true,
+          createdInLevel = randomIntMax()
+        ).runRandomIO.value.size shouldBe 1
+
+        SegmentMerger.close(
+          buffers = ListBuffer(buffer),
+          minSegmentSize = buffer.last.stats.segmentSize * 2,
+          forMemory = false,
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
           createdInLevel = randomIntMax()
         ).runRandomIO.value.size shouldBe 1
       }

@@ -72,7 +72,7 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
   def keyValuesCount: Int
 
   implicit val groupBy: Option[GroupByInternal.KeyValues] =
-    randomGroupingStrategyOption(keyValuesCount)
+    randomGroupByOption(keyValuesCount)
 
   "Segment.lower" should {
     "value the lower key from the segment that has only 1 fixed key-value" in {

@@ -78,7 +78,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
   def keyValuesCount: Int
 
   implicit val groupBy: Option[GroupByInternal.KeyValues] =
-    randomGroupingStrategyOption(keyValuesCount)
+    randomGroupByOption(keyValuesCount)
 
   implicit val segmentIO = SegmentIO.random
 

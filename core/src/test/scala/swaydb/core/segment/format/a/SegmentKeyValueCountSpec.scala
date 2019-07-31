@@ -64,7 +64,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
   def keyValuesCount: Int
 
   implicit def groupBy: Option[GroupByInternal.KeyValues] =
-    randomGroupingStrategyOption(keyValuesCount)
+    randomGroupByOption(keyValuesCount)
 
   "Segment.keyValueCount" should {
 

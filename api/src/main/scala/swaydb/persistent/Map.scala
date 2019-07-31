@@ -22,7 +22,7 @@ package swaydb.persistent
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.configs.level.{DefaultGroupingStrategy, DefaultPersistentConfig}
+import swaydb.configs.level.{DefaultGroupBy, DefaultPersistentConfig}
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -90,7 +90,7 @@ object Map extends LazyLogging {
                   mightContainFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = true,
                   deleteSegmentsEventually: Boolean = false,
-                  lastLevelGroupingStrategy: Option[GroupBy.KeyValues] = Some(DefaultGroupingStrategy()),
+                  lastLevelGroupBy: Option[GroupBy.KeyValues] = Some(DefaultGroupBy()),
                   acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -109,7 +109,7 @@ object Map extends LazyLogging {
         mightContainFalsePositiveRate = mightContainFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        keyValueGroupingStrategy = lastLevelGroupingStrategy,
+        groupBy = lastLevelGroupBy,
         acceleration = acceleration
       ),
       maxOpenSegments = maxOpenSegments,

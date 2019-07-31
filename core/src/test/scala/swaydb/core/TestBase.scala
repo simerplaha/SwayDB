@@ -252,7 +252,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                                                fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                segmentIO: SegmentIO = SegmentIO.random,
-                                                                               groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(randomIntMax(1000))): IO[swaydb.Error.Segment, Segment] =
+                                                                               groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(randomIntMax(1000))): IO[swaydb.Error.Segment, Segment] =
       if (levelStorage.memory)
         Segment.memory(
           path = path,
@@ -314,7 +314,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                      compression: Option[GroupByInternal.KeyValues] = randomGroupingStrategy(randomNextInt(1000))): Level =
+                                                      compression: Option[GroupByInternal.KeyValues] = randomGroupBy(randomNextInt(1000))): Level =
       Level(
         segmentSize = segmentSize,
         levelStorage = levelStorage,

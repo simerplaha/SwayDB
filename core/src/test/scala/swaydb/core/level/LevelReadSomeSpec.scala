@@ -59,7 +59,7 @@
 //
 //sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark {
 //
-//  implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(keyValuesCount)
+//  implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
 //
 //  //  override def deleteFiles = false
 //

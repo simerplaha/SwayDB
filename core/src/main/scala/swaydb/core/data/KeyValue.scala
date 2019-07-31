@@ -524,7 +524,7 @@ private[core] object Transient {
       keyValues.head.key
   }
 
-  sealed trait Fixed extends Transient {
+  sealed trait Fixed extends Transient.SegmentResponse {
 
     def hasTimeLeft(): Boolean
     def isOverdue(): Boolean = !hasTimeLeft()
@@ -621,6 +621,13 @@ private[core] object Transient {
 
   private[core] sealed trait SegmentResponse extends Transient {
     def value: Option[Slice[Byte]]
+
+    def updatePrevious(valuesConfig: ValuesBlock.Config,
+                       sortedIndexConfig: SortedIndexBlock.Config,
+                       binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                       hashIndexConfig: HashIndexBlock.Config,
+                       bloomFilterConfig: BloomFilterBlock.Config,
+                       previous: Option[Transient]): Transient.SegmentResponse
   }
 
   implicit class TransientImplicits(transient: Transient.SegmentResponse)(implicit keyOrder: KeyOrder[Slice[Byte]]) {
@@ -708,7 +715,7 @@ private[core] object Transient {
                                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                 hashIndexConfig: HashIndexBlock.Config,
                                 bloomFilterConfig: BloomFilterBlock.Config,
-                                previous: Option[Transient]): Transient =
+                                previous: Option[Transient]): Transient.SegmentResponse =
       this.copy(
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
@@ -776,7 +783,7 @@ private[core] object Transient {
                                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                 hashIndexConfig: HashIndexBlock.Config,
                                 bloomFilterConfig: BloomFilterBlock.Config,
-                                previous: Option[Transient]): Transient =
+                                previous: Option[Transient]): Transient.SegmentResponse =
       this.copy(
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,

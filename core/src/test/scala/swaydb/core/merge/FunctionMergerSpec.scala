@@ -33,7 +33,7 @@ class FunctionMergerSpec extends WordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def compression = randomGroupingStrategyOption(randomNextInt(1000))
+  implicit def compression = randomGroupByOption(randomNextInt(1000))
 
   "Merging Function into any key-value" when {
     "times are not in order" should {

@@ -58,7 +58,7 @@ object DefaultPersistentConfig {
             mightContainFalsePositiveRate: Double,
             compressDuplicateValues: Boolean,
             deleteSegmentsEventually: Boolean,
-            keyValueGroupingStrategy: Option[GroupBy.KeyValues],
+            groupBy: Option[GroupBy.KeyValues],
             acceleration: LevelZeroMeter => Accelerator): SwayDBPersistentConfig =
     ConfigWizard
       .addPersistentLevel0( //level0
@@ -190,7 +190,7 @@ object DefaultPersistentConfig {
           ioAction =>
             IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
         segmentCompressions = _ => Seq.empty,
-        groupBy = keyValueGroupingStrategy,
+        groupBy = groupBy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
           levelMeter => {
@@ -436,7 +436,7 @@ object DefaultPersistentConfig {
           ioAction =>
             IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
         segmentCompressions = _ => Seq.empty,
-        groupBy = keyValueGroupingStrategy,
+        groupBy = groupBy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
           levelMeter =>

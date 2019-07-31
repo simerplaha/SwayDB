@@ -63,7 +63,7 @@
 //
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //  implicit def testTimer: TestTimer = TestTimer.Empty
-//  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(keyValuesCount)
+//  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
 //  val keyValuesCount = 100
 //
 //  "Level.mightContain" should {

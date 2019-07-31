@@ -24,7 +24,7 @@
 //import swaydb.core.BlockingCore
 //import swaydb.core.function.FunctionStore
 //import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-//import swaydb.data.api.grouping.KeyValueGroupingStrategy
+//import swaydb.data.api.grouping.KeyValueGroupBy
 //import swaydb.data.order.{KeyOrder, TimeOrder}
 //import swaydb.data.slice.Slice
 //import swaydb.data.util.StorageUnits._
@@ -65,7 +65,7 @@
 //                  mightContainFalsePositiveRate: Double = 0.01,
 //                  compressDuplicateValues: Boolean = false,
 //                  deleteSegmentsEventually: Boolean = false,
-//                  groupBy: Option[KeyValueGroupingStrategy] = None,
+//                  groupBy: Option[KeyValueGroupBy] = None,
 //                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
 //                                                                                        valueSerializer: Serializer[V],
 //                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -78,7 +78,7 @@
 //        mightContainFalsePositiveRate = mightContainFalsePositiveRate,
 //        compressDuplicateValues = compressDuplicateValues,
 //        deleteSegmentsEventually = deleteSegmentsEventually,
-//        keyValueGroupingStrategy = groupBy,
+//        keyValueGroupBy = groupBy,
 //        acceleration = acceleration
 //      ),
 //      maxOpenSegments = 0,
