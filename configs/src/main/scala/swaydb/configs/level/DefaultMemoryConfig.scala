@@ -22,7 +22,7 @@ package swaydb.configs.level
 import java.util.concurrent.Executors
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.api.grouping.KeyValueGroupingStrategy
+import swaydb.data.api.grouping.GroupBy
 import swaydb.data.compaction.{CompactionExecutionContext, Throttle}
 import swaydb.data.config._
 
@@ -50,7 +50,7 @@ object DefaultMemoryConfig {
             mightContainFalsePositiveRate: Double,
             compressDuplicateValues: Boolean,
             deleteSegmentsEventually: Boolean,
-            keyValueGroupingStrategy: Option[KeyValueGroupingStrategy],
+            keyValueGroupingStrategy: Option[GroupBy.KeyValues],
             acceleration: LevelZeroMeter => Accelerator): SwayDBMemoryConfig =
     ConfigWizard
       .addMemoryLevel0(
@@ -70,7 +70,7 @@ object DefaultMemoryConfig {
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
           ),
-        keyValueGroupingStrategy = keyValueGroupingStrategy,
+        groupBy = keyValueGroupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           _ =>

@@ -28,7 +28,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -69,7 +69,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
   def keyValuesCount: Int
 
-  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
+  implicit val groupBy: Option[GroupByInternal.KeyValues] =
     randomGroupingStrategyOption(keyValuesCount)
 
   "Segment.get" should {

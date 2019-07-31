@@ -71,7 +71,7 @@ class Memory_SimulationSpec extends SimulationSpec {
 
 class Memory_SimulationGroupingStrategySpec extends SimulationSpec {
 
-  override lazy val db = swaydb.memory.Map[Long, Domain](groupingStrategy = Some(DefaultGroupingStrategy())).get
+  override lazy val db = swaydb.memory.Map[Long, Domain](groupBy = Some(DefaultGroupingStrategy())).get
 }
 
 class Persistent_SimulationSpec extends SimulationSpec {

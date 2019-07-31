@@ -26,7 +26,7 @@ import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.segment.format.a.block.SegmentBlock
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice
@@ -68,7 +68,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
         //all key-values to remove and assert
         val keyValues = (Slice(mergePut) ++ rightKeyValues).updateStats
 
-        implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = Some(randomGroupingStrategy(keyValuesCount))
+        implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupingStrategy(keyValuesCount))
         val segment = TestSegment(keyValues).value
 
         //write a head key-values so that it triggers merging and grouping

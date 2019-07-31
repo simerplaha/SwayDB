@@ -40,7 +40,7 @@ class Memory_WeatherDataSpec extends WeatherDataSpec {
 }
 
 class Memory_WeatherDataGroupingStrategySpec extends WeatherDataSpec {
-  override val db = swaydb.memory.Map[Int, WeatherData](groupingStrategy = Some(DefaultGroupingStrategy())).get
+  override val db = swaydb.memory.Map[Int, WeatherData](groupBy = Some(DefaultGroupingStrategy())).get
 }
 
 class Persistent_WeatherDataSpec extends WeatherDataSpec {

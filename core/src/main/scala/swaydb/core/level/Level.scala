@@ -30,7 +30,7 @@ import swaydb.IO._
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.io.file.IOEffect
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.seek._
@@ -99,7 +99,7 @@ private[core] object Level extends LazyLogging {
                                                functionStore: FunctionStore,
                                                keyValueLimiter: KeyValueLimiter,
                                                fileOpenLimiter: FileLimiter,
-                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[swaydb.Error.Level, Level] = {
+                                               groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Level, Level] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
       lock =>
@@ -283,7 +283,7 @@ private[core] object Level extends LazyLogging {
     ReserveRange.isUnreserved(segment) && {
       isSmallSegment(segment, level.segmentSize) ||
         //if group strategy in the level is defined and segment's grouping is undefined or vice-versa.
-        level.groupingStrategy.isDefined != segment.isGrouped.getOrElse(level.groupingStrategy.isDefined) ||
+        level.groupBy.isDefined != segment.isGrouped.getOrElse(level.groupBy.isDefined) ||
         //if grouping is as expected by the Segment was not created in this level.
         segment.createdInLevel.getOrElse(0) != level.levelNumber
     }
@@ -349,7 +349,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                                               addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                                               keyValueLimiter: KeyValueLimiter,
                                                                               fileOpenLimiter: FileLimiter,
-                                                                              val groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                                              val groupBy: Option[GroupByInternal.KeyValues],
                                                                               val segmentIDGenerator: IDGenerator,
                                                                               segmentIO: SegmentIO,
                                                                               reserve: ReserveRange.State[Unit]) extends NextLevel with LazyLogging { self =>
@@ -695,11 +695,11 @@ private[core] case class Level(dirs: Seq[Dir],
 
     def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
 
-    implicit val groupingStrategy =
-      self.groupingStrategy flatMap {
-        groupingStrategy =>
-          if (groupingStrategy.applyGroupingOnCopy)
-            self.groupingStrategy
+    implicit val groupBy =
+      self.groupBy flatMap {
+        groupBy =>
+          if (groupBy.applyGroupingOnCopy)
+            self.groupBy
           else
             None
       }
@@ -776,11 +776,11 @@ private[core] case class Level(dirs: Seq[Dir],
         segment => {
           def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
 
-          implicit val groupingStrategy =
-            self.groupingStrategy flatMap {
-              groupingStrategy =>
-                if (groupingStrategy.applyGroupingOnCopy)
-                  self.groupingStrategy
+          implicit val groupBy =
+            self.groupBy flatMap {
+              groupBy =>
+                if (groupBy.applyGroupingOnCopy)
+                  self.groupBy
                 else
                   None
             }

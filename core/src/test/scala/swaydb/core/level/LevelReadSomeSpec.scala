@@ -28,7 +28,7 @@
 //import swaydb.core.RunThis._
 //import swaydb.core.TestBase
 //import swaydb.core.TestData._
-//import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+//import swaydb.core.group.compression.data.GroupByInternal.KeyValues
 //import swaydb.core.util.Benchmark
 //import swaydb.data.order.{KeyOrder, TimeOrder}
 //import swaydb.data.slice.Slice
@@ -59,7 +59,7 @@
 //
 //sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark {
 //
-//  implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
+//  implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(keyValuesCount)
 //
 //  //  override def deleteFiles = false
 //

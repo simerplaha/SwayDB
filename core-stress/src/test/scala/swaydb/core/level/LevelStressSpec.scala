@@ -25,7 +25,7 @@
 //import swaydb.core.RunThis._
 //import swaydb.core.TestBase
 //import swaydb.core.TestData._
-//import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+//import swaydb.core.group.compression.data.GroupByInternal.KeyValues
 //import swaydb.core.util.Benchmark
 //import swaydb.data.order.KeyOrder
 //import swaydb.data.util.StorageUnits._
@@ -67,7 +67,7 @@
 //      val writeIterations = 100
 //      val readIterations = 200
 //
-//      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = Some(randomGroupingStrategy(keyValueCount))
+//      implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupingStrategy(keyValueCount))
 //
 //      val level = TestLevel(segmentSize = 500.kb)
 //

@@ -25,7 +25,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.segment.format.a.block._
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -41,7 +41,7 @@ class SegmentMergeSpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val testTimer: TestTimer = TestTimer.Empty
-  implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(10)
+  implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(10)
 
   val keyValueCount = 100
 
@@ -155,7 +155,7 @@ class SegmentMergeSpec extends TestBase {
 
     "split KeyValues into equal chunks" in {
 
-      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
       val oldKeyValues: Slice[Memory] = Slice(Memory.put(1, 1), Memory.put(2, 2), Memory.put(3, 3), Memory.put(4, 4))
       val newKeyValues: Slice[Memory] = Slice(Memory.put(1, 22), Memory.put(2, 22), Memory.put(3, 22), Memory.put(4, 22))
@@ -215,7 +215,7 @@ class SegmentMergeSpec extends TestBase {
   "split" should {
     "split key-values" in {
 
-      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
       val keyValues: Slice[Memory] = Slice(Memory.put(1, 1), Memory.remove(2), Memory.put(3, 3), Memory.put(4, 4), Memory.Range(5, 10, Some(Value.remove(None)), Value.update(5)))
 

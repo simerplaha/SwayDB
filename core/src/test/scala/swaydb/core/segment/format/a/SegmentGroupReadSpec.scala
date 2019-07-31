@@ -26,7 +26,7 @@ import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.segment.format.a.block.SegmentBlock
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -69,7 +69,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
 
   "read" in {
     runThis(1.times) {
-      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = Some(randomGroupingStrategy(keyValuesCount))
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupingStrategy(keyValuesCount))
 
       val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(0), addPut = true, addGroups = false)
       val segment = TestSegment(keyValues).runRandomIO.value

@@ -20,7 +20,7 @@
 //package swaydb.core.segment.merge
 //
 //import swaydb.core.{TestBase, TestData}
-//import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+//import swaydb.core.group.compression.data.GroupByInternal.KeyValues
 //import swaydb.core.util.Benchmark
 //import scala.collection.mutable.ListBuffer
 //import swaydb.core.data.KeyValue
@@ -72,18 +72,18 @@
 //            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
 //            maxProbe = TestData.maxProbe,
 //            force = force,
-//            groupingStrategy =
+//            groupBy =
 //              if (useCount)
-//                KeyValueGroupingStrategyInternal.Count(
+//                GroupByInternal.KeyValues.Count(
 //                  count = keyValues.size + 10,
-//                  groupCompression = None,
+//                  groupByGroups = None,
 //                  sortedIndexCompression = randomCompression(),
 //                  valuesCompression = randomCompression()
 //                )
 //              else
-//                KeyValueGroupingStrategyInternal.Size(
+//                GroupByInternal.KeyValues.Size(
 //                  size = keyValues.last.stats.segmentSizeWithoutFooter + 1,
-//                  groupCompression = None,
+//                  groupByGroups = None,
 //                  sortedIndexCompression = randomCompression(),
 //                  valuesCompression = randomCompression()
 //                )
@@ -109,18 +109,18 @@
 //            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
 //            maxProbe = TestData.maxProbe,
 //            force = force,
-//            groupingStrategy =
+//            groupBy =
 //              if (useCount)
-//                KeyValueGroupingStrategyInternal.Count(
+//                GroupByInternal.KeyValues.Count(
 //                  count = keyValues.size / 10,
-//                  groupCompression = None,
+//                  groupByGroups = None,
 //                  sortedIndexCompression = randomCompression(),
 //                  valuesCompression = randomCompression()
 //                )
 //              else
-//                KeyValueGroupingStrategyInternal.Size(
+//                GroupByInternal.KeyValues.Size(
 //                  size = keyValues.last.stats.segmentSizeWithoutFooter - 100,
-//                  groupCompression = None,
+//                  groupByGroups = None,
 //                  sortedIndexCompression = randomCompression(),
 //                  valuesCompression = randomCompression()
 //                )

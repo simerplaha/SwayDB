@@ -26,7 +26,7 @@ import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultGroupingS
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.api.grouping.KeyValueGroupingStrategy
+import swaydb.data.api.grouping.GroupBy
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -89,7 +89,7 @@ object Map extends LazyLogging {
                   mightContainFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = true,
                   deleteSegmentsEventually: Boolean = false,
-                  groupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
+                  groupBy: Option[GroupBy.KeyValues] = Some(DefaultGroupingStrategy()),
                   acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -111,7 +111,7 @@ object Map extends LazyLogging {
           mightContainFalsePositiveRate = mightContainFalsePositiveRate,
           compressDuplicateValues = compressDuplicateValues,
           deleteSegmentsEventually = deleteSegmentsEventually,
-          groupingStrategy = groupingStrategy,
+          groupBy = groupBy,
           acceleration = acceleration
         ),
       maxOpenSegments = maxOpenSegments,

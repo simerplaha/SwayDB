@@ -26,7 +26,7 @@ import swaydb.Error.Level.ErrorHandler
 import swaydb.{IO, Tag}
 import swaydb.core.actor.WiredActor
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.io.file.BufferCleaner
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.compaction._
@@ -159,7 +159,7 @@ private[core] object CoreInitializer extends LazyLogging {
                     config: LevelConfig): IO[swaydb.Error.Level, NextLevel] =
       config match {
         case config: MemoryLevelConfig =>
-          implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
+          implicit val compression: Option[GroupByInternal.KeyValues] = config.groupBy map GroupByInternal.apply
           Level(
             segmentSize = config.segmentSize,
             bloomFilterConfig = block.BloomFilterBlock.Config.disabled,
@@ -177,7 +177,7 @@ private[core] object CoreInitializer extends LazyLogging {
           )
 
         case config: PersistentLevelConfig =>
-          implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
+          implicit val compression: Option[GroupByInternal.KeyValues] = config.groupBy map GroupByInternal.apply
           Level(
             segmentSize = config.segmentSize,
             bloomFilterConfig = block.BloomFilterBlock.Config(config = config.mightContainKey),

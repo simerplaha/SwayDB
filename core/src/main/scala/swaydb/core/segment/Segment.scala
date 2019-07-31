@@ -28,7 +28,7 @@ import swaydb.IO
 import swaydb.IO._
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.io.file.{DBFile, IOEffect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
@@ -58,7 +58,7 @@ private[core] object Segment extends LazyLogging {
                                              timeOrder: TimeOrder[Slice[Byte]],
                                              functionStore: FunctionStore,
                                              fileLimiter: FileLimiter,
-                                             groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                             groupBy: Option[GroupByInternal.KeyValues],
                                              keyValueLimiter: KeyValueLimiter,
                                              segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] =
     if (keyValues.isEmpty) {
@@ -105,7 +105,7 @@ private[core] object Segment extends LazyLogging {
                   _hasRange = keyValues.last.stats.segmentHasRange,
                   _hasPut = keyValues.last.stats.segmentHasPut,
                   _hasGroup = keyValues.last.stats.segmentHasGroup,
-                  _isGrouped = groupingStrategy.isDefined,
+                  _isGrouped = groupBy.isDefined,
                   _createdInLevel = createdInLevel.toInt,
                   cache = skipList,
                   bloomFilterReader = bloomFilter,
@@ -206,7 +206,7 @@ private[core] object Segment extends LazyLogging {
                                                                 functionStore: FunctionStore,
                                                                 keyValueLimiter: KeyValueLimiter,
                                                                 fileOpenLimiter: FileLimiter,
-                                                                compression: Option[KeyValueGroupingStrategyInternal],
+                                                                compression: Option[GroupByInternal.KeyValues],
                                                                 segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     segment match {
       case segment: PersistentSegment =>
@@ -270,7 +270,7 @@ private[core] object Segment extends LazyLogging {
                                                                 functionStore: FunctionStore,
                                                                 keyValueLimiter: KeyValueLimiter,
                                                                 fileOpenLimiter: FileLimiter,
-                                                                compression: Option[KeyValueGroupingStrategyInternal],
+                                                                compression: Option[GroupByInternal.KeyValues],
                                                                 segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
@@ -323,7 +323,7 @@ private[core] object Segment extends LazyLogging {
                                                                timeOrder: TimeOrder[Slice[Byte]],
                                                                functionStore: FunctionStore,
                                                                fileLimiter: FileLimiter,
-                                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                               groupBy: Option[GroupByInternal.KeyValues],
                                                                keyValueLimiter: KeyValueLimiter,
                                                                segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     segment.getAll() flatMap {
@@ -355,7 +355,7 @@ private[core] object Segment extends LazyLogging {
                                                                timeOrder: TimeOrder[Slice[Byte]],
                                                                functionStore: FunctionStore,
                                                                fileLimiter: FileLimiter,
-                                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                               groupBy: Option[GroupByInternal.KeyValues],
                                                                keyValueLimiter: KeyValueLimiter,
                                                                segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     SegmentMerger.split(
@@ -867,7 +867,7 @@ private[core] trait Segment extends FileLimiterItem {
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[swaydb.Error.Segment, Slice[Segment]]
+                                                                                                      groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Slice[Segment]]
 
   def refresh(minSegmentSize: Long,
               removeDeletes: Boolean,
@@ -879,7 +879,7 @@ private[core] trait Segment extends FileLimiterItem {
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[swaydb.Error.Segment, Slice[Segment]]
+                                                                                                          groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Slice[Segment]]
 
   def getFromCache(key: Slice[Byte]): Option[KeyValue.ReadOnly]
 

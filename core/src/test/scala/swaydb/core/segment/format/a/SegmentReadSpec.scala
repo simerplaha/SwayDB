@@ -30,7 +30,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.{TestBase, TestTimer}
@@ -77,7 +77,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
   def keyValuesCount: Int
 
-  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
+  implicit val groupBy: Option[GroupByInternal.KeyValues] =
     randomGroupingStrategyOption(keyValuesCount)
 
   implicit val segmentIO = SegmentIO.random

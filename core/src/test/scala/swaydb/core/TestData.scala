@@ -34,7 +34,7 @@ import swaydb.core.data.Transient.Range
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
@@ -120,7 +120,7 @@ object TestData {
                                                  fileOpenLimiter: FileLimiter = fileOpenLimiter,
                                                  timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                  segmentIO: SegmentIO = SegmentIO.random,
-                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000))) {
+                                                 groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(randomNextInt(1000))) {
 
     def tryReopen: IO[swaydb.Error.Segment, Segment] =
       tryReopen(segment.path)
@@ -154,7 +154,7 @@ object TestData {
                                            ec: ExecutionContext,
                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                            keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                           compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000)),
+                                           compression: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(randomNextInt(1000)),
                                            segmentIO: SegmentIO = SegmentIO.random) {
 
     import swaydb.Error.Level.ErrorHandler

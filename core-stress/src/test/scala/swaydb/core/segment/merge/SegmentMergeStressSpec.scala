@@ -22,7 +22,7 @@
 //import scala.util.Random
 //import swaydb.core.{TestBase, TestData}
 //import swaydb.core.data._
-//import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
+//import swaydb.core.group.compression.data.{GroupByInternal.Groups, GroupByInternal.KeyValues}
 //import swaydb.core.util.Benchmark
 //import swaydb.data.order.{KeyOrder, TimeOrder}
 //import swaydb.data.slice.Slice
@@ -43,7 +43,7 @@
 //  /**
 //    * Result: Merging of grouped key-values is expensive and should be deferred to lower levels.
 //    *
-//    * Deeply nested groups should be avoided. So [[GroupGroupingStrategyInternal]] should be avoided.
+//    * Deeply nested groups should be avoided. So [[GroupByInternal.Groups]] should be avoided.
 //    */
 //  "Randomly merging overlapping key-values" should {
 //    "be performant" in {
@@ -56,7 +56,7 @@
 //          val groupGroupingStrategy =
 //            if (Random.nextBoolean())
 //              Some(
-//                GroupGroupingStrategyInternal.Count(
+//                GroupByInternal.Groups.Count(
 //                  count = randomInt(5) + 1,
 //                  sortedIndexCompression = randomCompression(),
 //                  valuesCompression = randomCompression()
@@ -64,7 +64,7 @@
 //              )
 //            else if (Random.nextBoolean())
 //              Some(
-//                GroupGroupingStrategyInternal.Size(
+//                GroupByInternal.Groups.Size(
 //                  size = randomInt(500) + 200,
 //                  sortedIndexCompression = randomCompression(),
 //                  valuesCompression = randomCompression()
@@ -76,7 +76,7 @@
 //          implicit val compression =
 //            if (Random.nextBoolean())
 //              Some(
-//                KeyValueGroupingStrategyInternal.Count(
+//                GroupByInternal.KeyValues.Count(
 //                  count = newKeyValues.size / randomInt(10) + 1,
 //                  groupCompression = groupGroupingStrategy,
 //                  sortedIndexCompression = randomCompression(),
@@ -85,7 +85,7 @@
 //              )
 //            else if (Random.nextBoolean())
 //              Some(
-//                KeyValueGroupingStrategyInternal.Size(
+//                GroupByInternal.KeyValues.Size(
 //                  size = newKeyValues.last.stats.segmentSizeWithoutFooter / randomInt(10) + 1,
 //                  groupCompression = groupGroupingStrategy,
 //                  sortedIndexCompression = randomCompression(),

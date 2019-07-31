@@ -22,7 +22,7 @@ package swaydb.configs.level
 import java.nio.file.Path
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.api.grouping.KeyValueGroupingStrategy
+import swaydb.data.api.grouping.GroupBy
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config._
 
@@ -44,8 +44,8 @@ object DefaultEventuallyPersistentConfig {
     }
 
   /**
-   * Default configuration for in-memory 3 leveled database that is persistent for the 3rd Level.
-   */
+    * Default configuration for in-memory 3 leveled database that is persistent for the 3rd Level.
+    */
   def apply(dir: Path,
             otherDirs: Seq[Dir],
             mapSize: Int,
@@ -59,7 +59,7 @@ object DefaultEventuallyPersistentConfig {
             mightContainFalsePositiveRate: Double,
             compressDuplicateValues: Boolean,
             deleteSegmentsEventually: Boolean,
-            groupingStrategy: Option[KeyValueGroupingStrategy],
+            groupBy: Option[GroupBy.KeyValues],
             acceleration: LevelZeroMeter => Accelerator): SwayDBPersistentConfig =
     ConfigWizard
       .addMemoryLevel0(
@@ -79,7 +79,7 @@ object DefaultEventuallyPersistentConfig {
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
           ),
-        keyValueGroupingStrategy = None,
+        groupBy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
@@ -141,7 +141,7 @@ object DefaultEventuallyPersistentConfig {
           ioAction =>
             IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
         segmentCompressions = _ => Seq.empty,
-        groupingStrategy = groupingStrategy,
+        groupBy = groupBy,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         throttle =
           (_: LevelMeter) =>

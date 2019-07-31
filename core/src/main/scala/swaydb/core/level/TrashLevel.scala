@@ -24,7 +24,7 @@ import java.nio.file.{Path, Paths}
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.{KeyValue, Memory}
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
@@ -197,7 +197,7 @@ private[core] object TrashLevel extends NextLevel {
   override def optimalSegmentsToCollapse(take: Int): Iterable[Segment] =
     Segment.emptyIterable
 
-  override def groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
+  override def groupBy: Option[GroupByInternal.KeyValues] =
     None
 
   override def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =

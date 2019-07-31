@@ -22,7 +22,7 @@
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.IOAssert._
 //import swaydb.core.TestData._
-//import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+//import swaydb.core.group.compression.data.GroupByInternal.KeyValues
 //import swaydb.core.util.Benchmark
 //import swaydb.core.{TestBase, TestData, TestTimer}
 //import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -34,7 +34,7 @@
 //  implicit val keyOrder = KeyOrder.default
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 //  implicit val testTimer: TestTimer = TestTimer.Empty
-//  implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(10)
+//  implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(10)
 //
 //  val keyValueCount = 100
 //

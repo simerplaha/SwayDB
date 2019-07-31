@@ -34,7 +34,7 @@ import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{Memory, Value, _}
-import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.io.file.IOEffect
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.zero.{LevelZero, LevelZeroSkipListMerger}
@@ -217,93 +217,42 @@ object CommonAssertions {
   def eitherOne[T](one: => T, two: => T, three: => T, four: => T, five: => T, six: => T): T =
     Random.shuffle(Seq(() => one, () => two, () => three, () => four, () => five, () => six)).head()
 
-  def randomGroupingStrategyOption(keyValuesCount: Int): Option[KeyValueGroupingStrategyInternal] =
+  def randomGroupingStrategyOption(keyValuesCount: Int): Option[GroupByInternal.KeyValues] =
     eitherOne(
       left = None,
       right = Some(randomGroupingStrategy(keyValuesCount))
     )
 
-  def randomGroupingStrategy(keyValuesCount: Int): KeyValueGroupingStrategyInternal =
-    eitherOne(
-      left =
-        KeyValueGroupingStrategyInternal.Count(
-          count = randomIntMax(50) max 1,
-          groupCompression =
-            eitherOne(
-              left =
-                Some(
-                  GroupGroupingStrategyInternal.Count(
-                    count = randomIntMax(50) max 1,
-                    valuesConfig = ValuesBlock.Config.random,
-                    sortedIndexConfig = SortedIndexBlock.Config.random,
-                    binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-                    hashIndexConfig = HashIndexBlock.Config.random,
-                    bloomFilterConfig = BloomFilterBlock.Config.random,
-                    groupConfig = SegmentBlock.Config.random
-                  )
-                ),
-              mid =
-                Some(
-                  GroupGroupingStrategyInternal.Size(
-                    size = randomIntMax(1.mb) max 1,
-                    valuesConfig = ValuesBlock.Config.random,
-                    sortedIndexConfig = SortedIndexBlock.Config.random,
-                    binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-                    hashIndexConfig = HashIndexBlock.Config.random,
-                    bloomFilterConfig = BloomFilterBlock.Config.random,
-                    groupConfig = SegmentBlock.Config.random
-                  )
-                ),
-              right =
-                None
+  def randomGroupingStrategy(keyValuesCount: Int): GroupByInternal.KeyValues =
+    GroupByInternal.KeyValues(
+      count = randomIntMax(50) max 1,
+      size = eitherOne(None, Some(randomIntMax(1.mb) max 1)),
+      groupByGroups =
+        eitherOne(
+          left =
+            Some(
+              GroupByInternal.Groups(
+                count = randomIntMax(50) max 1,
+                size = eitherOne(None, Some(randomIntMax(1.mb) max 1)),
+                valuesConfig = ValuesBlock.Config.random,
+                sortedIndexConfig = SortedIndexBlock.Config.random,
+                binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+                hashIndexConfig = HashIndexBlock.Config.random,
+                bloomFilterConfig = BloomFilterBlock.Config.random,
+                groupConfig = SegmentBlock.Config.random,
+                applyGroupingOnCopy = randomBoolean()
+              )
             ),
-          valuesConfig = ValuesBlock.Config.random,
-          sortedIndexConfig = SortedIndexBlock.Config.random,
-          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-          hashIndexConfig = HashIndexBlock.Config.random,
-          bloomFilterConfig = BloomFilterBlock.Config.random,
-          groupConfig = SegmentBlock.Config.random,
-          applyGroupingOnCopy = randomBoolean()
+          right =
+            None
         ),
-      right =
-        KeyValueGroupingStrategyInternal.Size(
-          size = randomIntMax(1.mb) max 1,
-          groupCompression =
-            eitherOne(
-              left =
-                Some(
-                  GroupGroupingStrategyInternal.Count(
-                    count = randomIntMax(50) max 1,
-                    valuesConfig = ValuesBlock.Config.random,
-                    sortedIndexConfig = SortedIndexBlock.Config.random,
-                    binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-                    hashIndexConfig = HashIndexBlock.Config.random,
-                    bloomFilterConfig = BloomFilterBlock.Config.random,
-                    groupConfig = SegmentBlock.Config.random
-                  )
-                ),
-              mid =
-                Some(
-                  GroupGroupingStrategyInternal.Size(
-                    size = randomIntMax(1.mb) max 1,
-                    valuesConfig = ValuesBlock.Config.random,
-                    sortedIndexConfig = SortedIndexBlock.Config.random,
-                    binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-                    hashIndexConfig = HashIndexBlock.Config.random,
-                    bloomFilterConfig = BloomFilterBlock.Config.random,
-                    groupConfig = SegmentBlock.Config.random
-                  )),
-              right =
-                None
-            ),
-          valuesConfig = ValuesBlock.Config.random,
-          sortedIndexConfig = SortedIndexBlock.Config.random,
-          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-          hashIndexConfig = HashIndexBlock.Config.random,
-          bloomFilterConfig = BloomFilterBlock.Config.random,
-          groupConfig = SegmentBlock.Config.random,
-          applyGroupingOnCopy = randomBoolean()
-        )
+      valuesConfig = ValuesBlock.Config.random,
+      sortedIndexConfig = SortedIndexBlock.Config.random,
+      binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+      hashIndexConfig = HashIndexBlock.Config.random,
+      bloomFilterConfig = BloomFilterBlock.Config.random,
+      groupConfig = SegmentBlock.Config.random,
+      applyGroupingOnCopy = randomBoolean()
     )
 
   implicit class ValueImplicits(value: Value) {
@@ -410,7 +359,7 @@ object CommonAssertions {
                   expected: Slice[Transient],
                   isLastLevel: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Iterable[Iterable[Transient]] =
+                                                groupBy: Option[GroupByInternal.KeyValues]): Iterable[Iterable[Transient]] =
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected, isLastLevel)
 
   def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
@@ -418,7 +367,7 @@ object CommonAssertions {
                   expected: Slice[Transient],
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]],
-                                        groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Iterable[Iterable[Transient]] = {
+                                        groupBy: Option[GroupByInternal.KeyValues]): Iterable[Iterable[Transient]] = {
     val result =
       SegmentMerger.merge(
         newKeyValues = newKeyValues,
@@ -451,7 +400,7 @@ object CommonAssertions {
                   expected: KeyValue.ReadOnly,
                   lastLevelExpect: KeyValue.ReadOnly)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Iterable[Iterable[Transient]] =
+                                                      groupBy: Option[GroupByInternal.KeyValues]): Iterable[Iterable[Transient]] =
     assertMerge(newKeyValue, oldKeyValue, Slice(expected), Slice(lastLevelExpect))
 
   def assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse,
@@ -459,7 +408,7 @@ object CommonAssertions {
                   expected: KeyValue.ReadOnly,
                   lastLevelExpect: Option[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                               timeOrder: TimeOrder[Slice[Byte]],
-                                                              groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                                                              groupBy: Option[GroupByInternal.KeyValues]): Unit = {
     //    println("*** Expected assert ***")
     assertMerge(newKeyValue, oldKeyValue, Slice(expected), lastLevelExpect.map(Slice(_)).getOrElse(Slice.empty))
     //println("*** Skip list assert ***")
@@ -471,7 +420,7 @@ object CommonAssertions {
                   expected: Slice[KeyValue.ReadOnly],
                   lastLevelExpect: Slice[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                             groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                                                             groupBy: Option[GroupByInternal.KeyValues]): Unit = {
     //    println("*** Expected assert ***")
     assertMerge(newKeyValues, oldKeyValues, expected.toTransient(), isLastLevel = false)
     //println("*** Expected last level ***")
@@ -485,7 +434,7 @@ object CommonAssertions {
                   expected: Slice[KeyValue.ReadOnly],
                   lastLevelExpect: Slice[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                             groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Iterable[Iterable[Transient]] = {
+                                                             groupBy: Option[GroupByInternal.KeyValues]): Iterable[Iterable[Transient]] = {
     //    println("*** Last level = false ***")
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected.toTransient(), isLastLevel = false)
     //println("*** Last level = true ***")
@@ -497,7 +446,7 @@ object CommonAssertions {
                   expected: Transient,
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]],
-                                        groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Iterable[Iterable[Transient]] =
+                                        groupBy: Option[GroupByInternal.KeyValues]): Iterable[Iterable[Transient]] =
     assertMerge(newKeyValues, oldKeyValues, Slice(expected), isLastLevel)
 
   def assertMerge(newKeyValue: Memory.Function,
@@ -505,7 +454,7 @@ object CommonAssertions {
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                                                   groupBy: Option[GroupByInternal.KeyValues]): Unit = {
     FunctionMerger(newKeyValue, oldKeyValue).runRandomIO.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
@@ -517,7 +466,7 @@ object CommonAssertions {
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                                                   groupBy: Option[GroupByInternal.KeyValues]): Unit = {
     FunctionMerger(newKeyValue, oldKeyValue).runRandomIO.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
@@ -529,7 +478,7 @@ object CommonAssertions {
                   expected: KeyValue.ReadOnly.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                                                   groupBy: Option[GroupByInternal.KeyValues]): Unit = {
     RemoveMerger(newKeyValue, oldKeyValue).runRandomIO.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
@@ -541,7 +490,7 @@ object CommonAssertions {
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                                                   groupBy: Option[GroupByInternal.KeyValues]): Unit = {
     PutMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
@@ -554,7 +503,7 @@ object CommonAssertions {
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                                                   groupBy: Option[GroupByInternal.KeyValues]): Unit = {
     UpdateMerger(newKeyValue, oldKeyValue).runRandomIO.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
@@ -566,7 +515,7 @@ object CommonAssertions {
                   expected: KeyValue.ReadOnly.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                                                   groupBy: Option[GroupByInternal.KeyValues]): Unit = {
     UpdateMerger(newKeyValue, oldKeyValue).runRandomIO.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
@@ -579,7 +528,7 @@ object CommonAssertions {
                   expected: Memory.PendingApply,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                                                   groupBy: Option[GroupByInternal.KeyValues]): Unit = {
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
     //todo merge with persistent

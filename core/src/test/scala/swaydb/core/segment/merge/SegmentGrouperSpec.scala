@@ -23,7 +23,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.IOValues._
 import swaydb.core.data._
-import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.segment.format.a.block._
 import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.data.order.KeyOrder
@@ -41,7 +41,7 @@ class SegmentGrouperSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
-  implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
+  implicit def groupBy: Option[GroupByInternal.KeyValues] = None
   val keyValueCount = 100
 
   import keyOrder._
@@ -99,12 +99,13 @@ class SegmentGrouperSpec extends TestBase {
       runThis(1.times) {
         val forInMemory = randomBoolean()
 
-        implicit val groupingStrategy =
+        implicit val groupBy =
           Some(
-            KeyValueGroupingStrategyInternal.Count(
+            GroupByInternal.KeyValues(
               count = 100000,
+              size = None,
               applyGroupingOnCopy = randomBoolean(),
-              groupCompression = None,
+              groupByGroups = None,
               bloomFilterConfig = BloomFilterBlock.Config.random,
               hashIndexConfig = HashIndexBlock.Config.random,
               binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
@@ -155,12 +156,13 @@ class SegmentGrouperSpec extends TestBase {
 
       val forInMemory = randomBoolean()
 
-      implicit val groupingStrategy =
+      implicit val groupBy =
         Some(
-          KeyValueGroupingStrategyInternal.Size(
-            size = keyValues.last.stats.segmentSizeWithoutFooter,
+          GroupByInternal.KeyValues(
+            count = keyValues.size,
+            size = Some(keyValues.last.stats.segmentSizeWithoutFooter),
             applyGroupingOnCopy = randomBoolean(),
-            groupCompression = None,
+            groupByGroups = None,
             bloomFilterConfig = BloomFilterBlock.Config.random,
             hashIndexConfig = HashIndexBlock.Config.random,
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
@@ -216,11 +218,11 @@ class SegmentGrouperSpec extends TestBase {
     //
     //      val groupSize = keyValues.last.stats.segmentSizeWithoutFooter / 100
     //
-    //      implicit val groupingStrategy =
+    //      implicit val groupBy =
     //        Some(
-    //          KeyValueGroupingStrategyInternal.Size(
+    //          GroupByInternal.KeyValues.Size(
     //            size = groupSize,
-    //            groupCompression = None,
+    //            groupByGroups = None,
     //            indexCompression = randomCompression(),
     //            valueCompression = randomCompression()
     //          )

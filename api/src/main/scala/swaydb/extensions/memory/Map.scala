@@ -65,7 +65,7 @@
 //                  mightContainFalsePositiveRate: Double = 0.01,
 //                  compressDuplicateValues: Boolean = false,
 //                  deleteSegmentsEventually: Boolean = false,
-//                  groupingStrategy: Option[KeyValueGroupingStrategy] = None,
+//                  groupBy: Option[KeyValueGroupingStrategy] = None,
 //                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
 //                                                                                        valueSerializer: Serializer[V],
 //                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -78,7 +78,7 @@
 //        mightContainFalsePositiveRate = mightContainFalsePositiveRate,
 //        compressDuplicateValues = compressDuplicateValues,
 //        deleteSegmentsEventually = deleteSegmentsEventually,
-//        keyValueGroupingStrategy = groupingStrategy,
+//        keyValueGroupingStrategy = groupBy,
 //        acceleration = acceleration
 //      ),
 //      maxOpenSegments = 0,

@@ -28,7 +28,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -65,7 +65,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
 
   def keyValuesCount: Int
 
-  implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
+  implicit def groupBy: Option[GroupByInternal.KeyValues] =
     randomGroupingStrategyOption(keyValuesCount)
 
   "Segment.higher" should {

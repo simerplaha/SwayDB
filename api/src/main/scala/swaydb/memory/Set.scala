@@ -24,7 +24,7 @@ import swaydb.configs.level.DefaultMemoryConfig
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.api.grouping.KeyValueGroupingStrategy
+import swaydb.data.api.grouping.GroupBy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -49,7 +49,7 @@ object Set extends LazyLogging {
                mightContainFalsePositiveRate: Double = 0.01,
                compressDuplicateValues: Boolean = false,
                deleteSegmentsEventually: Boolean = false,
-               groupingStrategy: Option[KeyValueGroupingStrategy] = None,
+               groupBy: Option[GroupBy.KeyValues] = None,
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                      fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
@@ -61,7 +61,7 @@ object Set extends LazyLogging {
         mightContainFalsePositiveRate = mightContainFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        keyValueGroupingStrategy = groupingStrategy,
+        keyValueGroupingStrategy = groupBy,
         acceleration = acceleration
       ),
       maxOpenSegments = 0,

@@ -21,7 +21,7 @@
 //
 //import swaydb.configs.level.DefaultGroupingStrategy
 //import swaydb.core.data.KeyValue
-//import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+//import swaydb.core.group.compression.data.GroupByInternal.KeyValues
 //import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 //import swaydb.core.segment.merge.SegmentMerger
 //import swaydb.core.util.Benchmark
@@ -99,7 +99,7 @@
 //sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
 //
 //  implicit val keyOrder = KeyOrder.default
-//  implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
+//  implicit def groupBy = randomGroupingStrategyOption(randomNextInt(1000))
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 //  def testGroupedKeyValues: Boolean
 //
@@ -129,7 +129,7 @@
 //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
 //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
 //        compressDuplicateValues = true
-//      )(keyOrder = keyOrder, groupingStrategy = Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).runIO
+//      )(keyOrder = keyOrder, groupBy = Some(GroupByInternal.KeyValues(DefaultGroupingStrategy()))).runIO
 //
 //    grouped should have size 1
 //    grouped.head.toSlice

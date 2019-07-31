@@ -29,7 +29,7 @@
 //import swaydb.core.RunThis._
 //import swaydb.core.TestData._
 //import swaydb.core.data._
-//import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+//import swaydb.core.group.compression.data.GroupByInternal.KeyValues
 //import swaydb.core.io.file.IOEffect._
 //import swaydb.core.level.zero.LevelZeroSkipListMerger
 //import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
@@ -80,7 +80,7 @@
 //
 //  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
 //  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
-//  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
+//  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(keyValuesCount)
 //  implicit val skipListMerger = LevelZeroSkipListMerger
 //
 //  "writing Segments to single level" should {

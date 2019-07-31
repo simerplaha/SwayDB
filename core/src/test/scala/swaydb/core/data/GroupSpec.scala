@@ -176,7 +176,7 @@
 //          maxProbe = TestData.maxProbe
 //        ).runIO
 //
-//      implicit val groupingStrategy = None
+//      implicit val groupBy = None
 //
 //      val segment =
 //        Segment.memory(

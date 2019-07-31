@@ -31,7 +31,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.io.file.IOEffect
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.PathsDistributor
@@ -83,7 +83,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
   implicit val testTimer: TestTimer = TestTimer.Incremental()
 
-  implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
+  implicit def groupBy: Option[GroupByInternal.KeyValues] =
     randomGroupingStrategyOption(keyValuesCount)
 
   implicit val keyOrder = KeyOrder.default
@@ -920,7 +920,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
   "copyToMemory" should {
     "copy persistent segment and store it in Memory" in {
       runThis(100.times) {
-        implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
+        implicit val groupBy: Option[GroupByInternal.KeyValues] = None
         val keyValues = randomizedKeyValues(keyValuesCount, addPut = true)
         val segment = TestSegment(keyValues).value
         val levelPath = createNextLevelPath
@@ -1415,7 +1415,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "distribute new Segments to multiple folders equally" in {
-      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
       val keyValues1 = Slice(Transient.put(1, 1), Transient.put(2, 2), Transient.put(3, 3), Transient.put(4, 4), Transient.put(5, 5), Transient.put(6, 6)).updateStats
       val segment = TestSegment(keyValues1).value
@@ -1549,7 +1549,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
   "split & then write" should {
     "succeed for non group key-values" in {
-      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
       val keyValues = randomizedKeyValues(keyValuesCount, addPut = true, addGroups = false)
       val result: Iterable[Iterable[Transient]] =
         SegmentMerger.split(
@@ -1587,7 +1587,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         bloomFilterConfig = BloomFilterBlock.Config.random,
         segmentIO = SegmentIO.random,
         createdInLevel = randomIntMax()
-      )(keyOrder, Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).value
+      )(keyOrder, Some(GroupByInternal(DefaultGroupingStrategy()))).value
 
       result should have size 1
       result.head should have size 1

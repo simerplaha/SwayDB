@@ -33,7 +33,7 @@ import swaydb.core.TestData._
 import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
 import swaydb.core.actor.WiredActor
 import swaydb.core.data.{Memory, Time, Transient}
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.io.file.{BufferCleaner, DBFile, IOEffect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
@@ -252,7 +252,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                                                fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                segmentIO: SegmentIO = SegmentIO.random,
-                                                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[swaydb.Error.Segment, Segment] =
+                                                                               groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(randomIntMax(1000))): IO[swaydb.Error.Segment, Segment] =
       if (levelStorage.memory)
         Segment.memory(
           path = path,
@@ -314,7 +314,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                      compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategy(randomNextInt(1000))): Level =
+                                                      compression: Option[GroupByInternal.KeyValues] = randomGroupingStrategy(randomNextInt(1000))): Level =
       Level(
         segmentSize = segmentSize,
         levelStorage = levelStorage,
@@ -411,7 +411,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                   assertLevel2: (Slice[Memory], LevelRef) => Unit = (_, _) => (),
                   assertAllLevels: (Slice[Memory], Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _, _) => (),
                   throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                                               groupBy: Option[GroupByInternal.KeyValues]): Unit = {
 
     def iterationMessage =
       s"Thread: ${Thread.currentThread().getId} - throttleOn: $throttleOn"
@@ -592,7 +592,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                               level3: Level,
                               assertAllLevels: LevelRef => Unit,
                               assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                                                                 groupBy: Option[GroupByInternal.KeyValues]): Unit = {
     println("level3.putKeyValues")
     if (level3KeyValues.nonEmpty) level3.putKeyValuesTest(level3KeyValues).runRandomIO.value
     println("level2.putKeyValues")
@@ -648,7 +648,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                        testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                           segmentIO: SegmentIO = SegmentIO.random,
-                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]) = {
+                                                          groupBy: Option[GroupByInternal.KeyValues]) = {
     val segment = TestSegment(keyValues).value
     if (closeAfterCreate) segment.close.value
 

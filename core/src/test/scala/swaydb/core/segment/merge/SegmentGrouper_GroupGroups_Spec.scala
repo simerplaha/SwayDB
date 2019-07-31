@@ -21,7 +21,7 @@
 //
 //import swaydb.core.{TestBase, TestData, TestLimitQueues}
 //import swaydb.core.data.{KeyValue, Persistent}
-//import swaydb.core.group.compression.data.GroupGroupingStrategyInternal
+//import swaydb.core.group.compression.data.GroupByInternal.Groups
 //import swaydb.core.segment.format.a.SegmentWriter
 //import swaydb.data.slice.Slice
 //import swaydb.data.util.StorageUnits._
@@ -76,15 +76,15 @@
 //          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
 //          force = force,
 //          maxProbe = TestData.maxProbe,
-//          groupingStrategy =
+//          groupBy =
 //            if (useCount)
-//              GroupGroupingStrategyInternal.Count(
+//              GroupByInternal.Groups.Count(
 //                count = 20,
 //                sortedIndexCompression = randomCompression(),
 //                valuesCompression = randomCompression()
 //              )
 //            else
-//              GroupGroupingStrategyInternal.Size(
+//              GroupByInternal.Groups.Size(
 //                size = 0.byte,
 //                sortedIndexCompression = randomCompression(),
 //                valuesCompression = randomCompression()
@@ -114,15 +114,15 @@
 //            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
 //            force = force,
 //            maxProbe = TestData.maxProbe,
-//            groupingStrategy =
+//            groupBy =
 //              if (useCount)
-//                GroupGroupingStrategyInternal.Count(
+//                GroupByInternal.Groups.Count(
 //                  count = 4,
 //                  sortedIndexCompression = randomCompression(),
 //                  valuesCompression = randomCompression()
 //                )
 //              else
-//                GroupGroupingStrategyInternal.Size(
+//                GroupByInternal.Groups.Size(
 //                  size = groups.last.stats.segmentSizeWithoutFooter + 10000,
 //                  sortedIndexCompression = randomCompression(),
 //                  valuesCompression = randomCompression()
@@ -165,15 +165,15 @@
 //          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
 //          force = force,
 //          maxProbe = TestData.maxProbe,
-//          groupingStrategy =
+//          groupBy =
 //            if (useCount)
-//              GroupGroupingStrategyInternal.Count(
+//              GroupByInternal.Groups.Count(
 //                count = 3,
 //                sortedIndexCompression = randomCompressionLZ4OrSnappy(100),
 //                valuesCompression = randomCompression()
 //              )
 //            else
-//              GroupGroupingStrategyInternal.Size(
+//              GroupByInternal.Groups.Size(
 //                size = groups.last.stats.segmentSizeWithoutFooter,
 //                sortedIndexCompression = randomCompressionLZ4OrSnappy(100),
 //                valuesCompression = randomCompression()
@@ -200,15 +200,15 @@
 //              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
 //              force = force,
 //              maxProbe = TestData.maxProbe,
-//              groupingStrategy =
+//              groupBy =
 //                if (useCount)
-//                  GroupGroupingStrategyInternal.Count(
+//                  GroupByInternal.Groups.Count(
 //                    count = minCount,
 //                    sortedIndexCompression = randomCompression(),
 //                    valuesCompression = randomCompression()
 //                  )
 //                else
-//                  GroupGroupingStrategyInternal.Size(
+//                  GroupByInternal.Groups.Size(
 //                    size = minCount,
 //                    sortedIndexCompression = randomCompression(),
 //                    valuesCompression = randomCompression()
@@ -243,15 +243,15 @@
 //                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
 //                force = force,
 //                maxProbe = TestData.maxProbe,
-//                groupingStrategy =
+//                groupBy =
 //                  if (useCount)
-//                    GroupGroupingStrategyInternal.Count(
+//                    GroupByInternal.Groups.Count(
 //                      count = minCount,
 //                      sortedIndexCompression = randomCompression(),
 //                      valuesCompression = randomCompression()
 //                    )
 //                  else
-//                    GroupGroupingStrategyInternal.Size(
+//                    GroupByInternal.Groups.Size(
 //                      size = mutableKeyValues.last.stats.segmentSizeWithoutFooter + 1,
 //                      sortedIndexCompression = randomCompression(),
 //                      valuesCompression = randomCompression()
@@ -297,15 +297,15 @@
 //            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
 //            force = force,
 //            maxProbe = TestData.maxProbe,
-//            groupingStrategy =
+//            groupBy =
 //              if (useCount)
-//                GroupGroupingStrategyInternal.Count(
+//                GroupByInternal.Groups.Count(
 //                  count = groups.size,
 //                  sortedIndexCompression = randomCompression(),
 //                  valuesCompression = randomCompression()
 //                )
 //              else
-//                GroupGroupingStrategyInternal.Size(
+//                GroupByInternal.Groups.Size(
 //                  size = groups.last.stats.segmentSizeWithoutFooter,
 //                  sortedIndexCompression = randomCompression(),
 //                  valuesCompression = randomCompression()

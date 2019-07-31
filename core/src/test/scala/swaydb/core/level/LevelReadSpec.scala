@@ -24,7 +24,7 @@
 //import swaydb.core.IOAssert._
 //import swaydb.core.RunThis._
 //import swaydb.core.TestData._
-//import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+//import swaydb.core.group.compression.data.GroupByInternal.KeyValues
 //import swaydb.core.io.file.IOEffect._
 //import swaydb.core.util.Benchmark
 //import swaydb.core.{TestBase, TestData, TestTimer}
@@ -63,7 +63,7 @@
 //
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //  implicit def testTimer: TestTimer = TestTimer.Empty
-//  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
+//  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupingStrategyOption(keyValuesCount)
 //  val keyValuesCount = 100
 //
 //  "Level.mightContain" should {

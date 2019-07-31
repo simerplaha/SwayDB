@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit
 import swaydb.Error.Map.ErrorHandler
 import swaydb.{Error, IO}
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
@@ -46,7 +46,7 @@ object AppendixMapEntryReader {
                                           keyValueLimiter: KeyValueLimiter,
                                           fileOpenLimiter: FileLimiter,
                                           segmentIO: SegmentIO,
-                                          compression: Option[KeyValueGroupingStrategyInternal]): AppendixMapEntryReader =
+                                          compression: Option[GroupByInternal.KeyValues]): AppendixMapEntryReader =
     new AppendixMapEntryReader(
       mmapSegmentsOnRead = mmapSegmentsOnRead,
       mmapSegmentsOnWrite = mmapSegmentsOnWrite
@@ -69,7 +69,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                                                            keyValueLimiter: KeyValueLimiter,
                                                            fileOpenLimiter: FileLimiter,
                                                            segmentIO: SegmentIO,
-                                                           compression: Option[KeyValueGroupingStrategyInternal]) {
+                                                           compression: Option[GroupByInternal.KeyValues]) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
     override def read(reader: Reader[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Segment]]] =

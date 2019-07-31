@@ -22,7 +22,7 @@ package swaydb.configs.level
 import java.nio.file.Path
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.api.grouping.KeyValueGroupingStrategy
+import swaydb.data.api.grouping.GroupBy
 import swaydb.data.compaction.{CompactionExecutionContext, Throttle}
 import swaydb.data.config._
 
@@ -58,7 +58,7 @@ object DefaultPersistentConfig {
             mightContainFalsePositiveRate: Double,
             compressDuplicateValues: Boolean,
             deleteSegmentsEventually: Boolean,
-            keyValueGroupingStrategy: Option[KeyValueGroupingStrategy],
+            keyValueGroupingStrategy: Option[GroupBy.KeyValues],
             acceleration: LevelZeroMeter => Accelerator): SwayDBPersistentConfig =
     ConfigWizard
       .addPersistentLevel0( //level0
@@ -129,7 +129,7 @@ object DefaultPersistentConfig {
           ioAction =>
             IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
         segmentCompressions = _ => Seq.empty,
-        keyValueGroupingStrategy = None,
+        groupBy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
@@ -190,7 +190,7 @@ object DefaultPersistentConfig {
           ioAction =>
             IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
         segmentCompressions = _ => Seq.empty,
-        groupingStrategy = keyValueGroupingStrategy,
+        groupBy = keyValueGroupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
           levelMeter => {
@@ -251,7 +251,7 @@ object DefaultPersistentConfig {
           ioAction =>
             IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
         segmentCompressions = _ => Seq.empty,
-        groupingStrategy = None,
+        groupBy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
@@ -312,7 +312,7 @@ object DefaultPersistentConfig {
           ioAction =>
             IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
         segmentCompressions = _ => Seq.empty,
-        groupingStrategy = None,
+        groupBy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
@@ -373,7 +373,7 @@ object DefaultPersistentConfig {
           ioAction =>
             IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
         segmentCompressions = _ => Seq.empty,
-        groupingStrategy = None,
+        groupBy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
@@ -436,7 +436,7 @@ object DefaultPersistentConfig {
           ioAction =>
             IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
         segmentCompressions = _ => Seq.empty,
-        groupingStrategy = keyValueGroupingStrategy,
+        groupBy = keyValueGroupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
           levelMeter =>

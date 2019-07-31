@@ -26,7 +26,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{KeyValue, Memory, Transient, Value}
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.segment.{Segment, SegmentAssigner}
@@ -76,7 +76,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
 
   def keyValueCount: Int
 
-  val groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
+  val groupBy: Option[GroupByInternal.KeyValues] =
     randomGroupingStrategyOption(keyValueCount)
 
   "SegmentAssign.assign" should {

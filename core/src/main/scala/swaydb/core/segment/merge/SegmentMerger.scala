@@ -26,7 +26,7 @@ import swaydb.IO._
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.data.GroupByInternal
 import swaydb.core.merge.{FixedMerger, ValueMerger}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
@@ -54,7 +54,7 @@ private[core] object SegmentMerger extends LazyLogging {
                     sortedIndexConfig: SortedIndexBlock.Config,
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                     hashIndexConfig: HashIndexBlock.Config,
-                    bloomFilterConfig: BloomFilterBlock.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[swaydb.Error.Segment, ListBuffer[ListBuffer[Transient]]] = {
+                    bloomFilterConfig: BloomFilterBlock.Config)(implicit groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, ListBuffer[ListBuffer[Transient]]] = {
     //if there are any small Segments, merge them into previous Segment.
     val noSmallSegments =
       if (segments.length >= 2 && ((forMemory && segments.last.lastOption.map(_.stats.memorySegmentSize).getOrElse(0) < minSegmentSize) || segments.last.lastOption.map(_.stats.segmentSize).getOrElse(0) < minSegmentSize)) {
@@ -80,13 +80,13 @@ private[core] object SegmentMerger extends LazyLogging {
 
     //if compression is specified, compress any last non grouped key-values and try completingMerge again
     //in-case compression of the last Segment's key-values resulted is a smaller Segment.
-    groupingStrategy match {
+    groupBy match {
       case Some(groupingS) if groupLastSegment =>
         noSmallSegments.filter(_.nonEmpty).lastOption match {
           case Some(lastSegmentsKeyValues) =>
             SegmentGrouper.group(
               segmentKeyValues = lastSegmentsKeyValues,
-              groupingStrategy = groupingS,
+              groupBy = groupingS,
               valuesConfig = valuesConfig,
               sortedIndexConfig = sortedIndexConfig,
               createdInLevel = createdInLevel,
@@ -135,7 +135,7 @@ private[core] object SegmentMerger extends LazyLogging {
             hashIndexConfig: HashIndexBlock.Config,
             bloomFilterConfig: BloomFilterBlock.Config,
             segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[swaydb.Error.Segment, Iterable[Iterable[Transient]]] = {
+                                  groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Iterable[Iterable[Transient]]] = {
     val splits = ListBuffer[ListBuffer[Transient]](ListBuffer())
     keyValues foreachIO {
       keyValue =>
@@ -236,7 +236,7 @@ private[core] object SegmentMerger extends LazyLogging {
             segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
-                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[swaydb.Error.Segment, Iterable[Iterable[Transient]]] =
+                                  groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Iterable[Iterable[Transient]]] =
     merge(
       newKeyValues = MergeList(newKeyValues),
       oldKeyValues = MergeList(oldKeyValues),
@@ -282,11 +282,11 @@ private[core] object SegmentMerger extends LazyLogging {
                     segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                           timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore,
-                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[swaydb.Error.Segment, ListBuffer[ListBuffer[Transient]]] = {
+                                          groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, ListBuffer[ListBuffer[Transient]]] = {
 
     import keyOrder._
 
-    implicit val groupIO = groupingStrategy.map(_.groupIO) getOrElse segmentIO
+    implicit val groupIO = groupBy.map(_.groupIO) getOrElse segmentIO
 
     def add(nextKeyValue: KeyValue.ReadOnly): IO[swaydb.Error.Segment, Unit] =
       SegmentGrouper.addKeyValue(
