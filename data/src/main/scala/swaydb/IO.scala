@@ -426,7 +426,7 @@ object IO {
       }
   }
 
-  final case class Deferred[+E: ErrorHandler, +A] private(operation: () => A,
+  final case class Deferred[+E: ErrorHandler, +A] private(private val operation: () => A,
                                                           error: Option[E],
                                                           private val recovery: Option[_ => IO.Deferred[E, A]] = None) extends LazyLogging {
 

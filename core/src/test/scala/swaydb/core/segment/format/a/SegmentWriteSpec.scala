@@ -919,7 +919,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
   "copyToMemory" should {
     "copy persistent segment and store it in Memory" in {
-      runThis(50.times) {
+      runThis(100.times) {
+        implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
         val keyValues = randomizedKeyValues(keyValuesCount, addPut = true)
         val segment = TestSegment(keyValues).value
         val levelPath = createNextLevelPath
@@ -943,7 +944,13 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                 keyValues.last.stats.memorySegmentSize / 10
           ).value
 
-        segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not value written to disk without splitting.
+        try
+          segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not value written to disk without splitting.
+        catch {
+          case exception: Exception =>
+            exception.printStackTrace()
+            throw exception
+        }
 
         segments.foreach(_.existsOnDisk shouldBe false)
         Segment.getAllKeyValues(segments).value shouldBe keyValues

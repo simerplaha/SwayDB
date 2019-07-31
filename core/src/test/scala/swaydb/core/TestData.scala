@@ -66,8 +66,8 @@ import scala.util.Random
 object TestData {
 
   /**
-   * Sequential time bytes generator.
-   */
+    * Sequential time bytes generator.
+    */
 
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
 
@@ -909,8 +909,8 @@ object TestData {
     )
 
   /**
-   * Removes can occur by [[Memory.Remove]], [[Memory.Update]] with expiry or [[Memory.Function]] with remove output.
-   */
+    * Removes can occur by [[Memory.Remove]], [[Memory.Update]] with expiry or [[Memory.Function]] with remove output.
+    */
   def randomRemoveOrUpdateOrFunctionRemove(key: Slice[Byte],
                                            addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Fixed =
     if (randomBoolean())
@@ -944,8 +944,8 @@ object TestData {
     )
 
   /**
-   * Creates remove ranges of random range slices slice for all input key-values.
-   */
+    * Creates remove ranges of random range slices slice for all input key-values.
+    */
   def randomRemoveRanges(keyValues: Iterable[Memory])(implicit testTimer: TestTimer = TestTimer.Incremental()): Iterator[Memory.Range] =
     keyValues
       .grouped(randomIntMax(100) max 1)
@@ -985,7 +985,8 @@ object TestData {
 
   def createFunction(key: Slice[Byte],
                      swayFunction: SwayFunction)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function = {
-    val functionId = UUIDUtil.randomIdNoHyphenBytes()
+    //    val functionId = UUIDUtil.randomIdNoHyphenBytes()
+    val functionId = Slice.writeInt(randomNextInt(Byte.MaxValue))
     functionStore.put(functionId, swayFunction)
     Memory.Function(key, functionId, testTimer.next)
   }
@@ -1140,7 +1141,8 @@ object TestData {
       randomValueOnlyFunction(functionOutput)
 
   def randomFunctionId(functionOutput: SwayFunctionOutput = randomFunctionOutput()): Slice[Byte] = {
-    val functionId: Slice[Byte] = UUIDUtil.randomIdNoHyphenBytes()
+    //    val functionId: Slice[Byte] = UUIDUtil.randomIdNoHyphenBytes()
+    val functionId = Slice.writeInt(randomNextInt(Byte.MaxValue))
     functionStore.put(functionId, randomSwayFunction(functionOutput))
     functionId
   }
@@ -1179,7 +1181,8 @@ object TestData {
             deadline = deadline,
             addRemoves = addRemoves,
             functionOutput = functionOutput,
-            includeFunctions = includeFunctions)
+            includeFunctions = includeFunctions
+          )
       } toArray
     }
 
@@ -1646,6 +1649,7 @@ object TestData {
       valuesConfig = valuesConfig,
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
+      nestedGroupsKeyValueCount = nestedGroupsKeyValueCount,
       hashIndexConfig = hashIndexConfig,
       bloomFilterConfig = bloomFilterConfig
     )
@@ -1920,9 +1924,6 @@ object TestData {
 
   implicit class MemoryTypeImplicits(memory: Memory.type) {
 
-    /**
-     * Memory.Put
-     */
     def put(key: Slice[Byte],
             value: Slice[Byte])(implicit testTimer: TestTimer): Memory.Put =
       Memory.Put(key, Some(value), None, testTimer.next)
@@ -1965,9 +1966,6 @@ object TestData {
             deadline: Option[Deadline])(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put =
       Memory.Put(key, value, deadline, testTimer.next)
 
-    /**
-     * Memory.Update
-     */
     def update(key: Slice[Byte],
                value: Slice[Byte])(implicit testTimer: TestTimer): Memory.Update =
       Memory.Update(key, Some(value), None, testTimer.next)
@@ -2004,9 +2002,6 @@ object TestData {
                deadline: Option[Deadline])(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Update =
       Memory.Update(key, value, deadline, testTimer.next)
 
-    /**
-     * Memory.Remove
-     */
 
     def remove(key: Slice[Byte]): Memory.Remove =
       Memory.Remove(key, None, Time.empty)
@@ -2024,12 +2019,6 @@ object TestData {
 
   implicit class TransientTypeImplicits(transient: Transient.type) {
 
-    /**
-     * Transient.Remove
-     *
-     * @param key
-     * @return
-     */
     def remove(key: Slice[Byte])(implicit testTimer: TestTimer): Transient.Remove =
       Transient.Remove(
         key = key,
@@ -2514,10 +2503,10 @@ object TestData {
     }(collection.breakOut)
 
   /**
-   * Randomly updates all key-values using one of the many update methods.
-   *
-   * Used for testing all updates work for all existing put key-values.
-   */
+    * Randomly updates all key-values using one of the many update methods.
+    *
+    * Used for testing all updates work for all existing put key-values.
+    */
   def randomUpdate(keyValues: Iterable[KeyValue.ReadOnly.Put],
                    updatedValue: Option[Slice[Byte]],
                    deadline: Option[Deadline],

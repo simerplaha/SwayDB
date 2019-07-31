@@ -61,15 +61,15 @@ private[core] object MinMax {
     }
 
   /**
-   * Picks the smallest of the two. Favours left if equal.
-   */
+    * Picks the smallest of the two. Favours left if equal.
+    */
   def min[T](left: Option[T],
              right: Option[T])(implicit ordering: Ordering[T]): Option[T] =
     pickOne[T](left, right, minimum)
 
   /**
-   * Picks the largest of the two. Favours left if equal.
-   */
+    * Picks the largest of the two. Favours left if equal.
+    */
   def max[T](left: Option[T],
              right: Option[T])(implicit ordering: Ordering[T]): Option[T] =
     pickOne[T](left, right, maximum)
@@ -204,12 +204,9 @@ private[core] object MinMax {
                 right: Option[MinMax[T]])(implicit order: Ordering[T]): Option[MinMax[T]] =
     (left, right) match {
       case (Some(left), Some(right)) =>
-        Some(
-          MinMax(
-            min = order.min(left.min, right.min),
-            max = MinMax.max(left.max, right.max)(order)
-          )
-        )
+        val minMaxLeft = MinMax.minMax(left, right.min)
+        val minMaxRight = right.max.map(MinMax.minMax(minMaxLeft, _))
+        minMaxRight orElse Some(minMaxLeft)
 
       case (None, right @ Some(_)) =>
         right

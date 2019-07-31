@@ -96,10 +96,10 @@ private[core] object DeadlineAndFunctionId {
 
       case readOnly: KeyValue.ReadOnly.Function =>
         MinMax.minMaxFunction(readOnly, minMaxFunctionId) map {
-          function =>
+          minMaxFunctionId =>
             DeadlineAndFunctionId(
               deadline = deadline,
-              minMaxFunctionId = Some(function)
+              minMaxFunctionId = Some(minMaxFunctionId)
             )
         }
 

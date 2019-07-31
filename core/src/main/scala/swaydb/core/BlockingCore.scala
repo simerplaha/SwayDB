@@ -129,8 +129,8 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     * Same time indicates that the later Prepare in this batch with the same time as newer Prepare has already applied
     * to the newer prepare therefore ignoring the newer prepare.
     *
-    * NOTE: If the default time order [[TimeOrder.long]] is used
-    * Times should always be unique and in incremental order for *ALL* key values.
+    * @note If the default time order [[TimeOrder.long]] is used
+    *       Times should always be unique and in incremental order for *ALL* key values.
     */
   def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.Done] =
     if (entries.isEmpty)

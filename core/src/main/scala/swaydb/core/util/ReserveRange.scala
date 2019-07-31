@@ -36,7 +36,11 @@ import scala.concurrent.{Future, Promise}
  */
 object ReserveRange extends LazyLogging {
 
-  case class Range[T](from: Slice[Byte], to: Slice[Byte], toInclusive: Boolean, reserve: Reserve[T])
+  case class Range[T](from: Slice[Byte],
+                      to: Slice[Byte],
+                      toInclusive: Boolean,
+                      reserve: Reserve[T])
+
   case class State[T](ranges: ListBuffer[Range[T]])
 
   def create[T](): State[T] =
