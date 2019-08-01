@@ -33,19 +33,19 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 /**
-  * SegmentGroups will always group key-values with Groups at the head of key-value List. Groups cannot be randomly
-  * added in the middle.
-  */
+ * SegmentGroups will always group key-values with Groups at the head of key-value List. Groups cannot be randomly
+ * added in the middle.
+ */
 private[merge] object SegmentGrouper extends LazyLogging {
   //Read key-values during merge are always cleared by GC after the merge therefore in-memory key-value
   //management of these key-values is not required.
   implicit val keyValueLimiter = KeyValueLimiter.none
 
   /**
-    * Mutates the input key-values by grouping them. Should not be accessed outside this class.
-    *
-    * @return returns the last group in the List if grouping was successful else None.
-    */
+   * Mutates the input key-values by grouping them. Should not be accessed outside this class.
+   *
+   * @return returns the last group in the List if grouping was successful else None.
+   */
   private[merge] def group(buffer: SegmentBuffer.Grouped,
                            createdInLevel: Int,
                            segmentValuesConfig: ValuesBlock.Config,
@@ -175,11 +175,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
     def doAdd(keyValueToAdd: Option[Transient.SegmentResponse] => Transient.SegmentResponse): IO[swaydb.Error.Segment, Unit] = {
 
       /**
-        * Tries adding key-value to the current split/Segment. If force is true then the key-value will value added to
-        * current split regardless of size limitation.
-        *
-        * @return Returns false if force is false and the key-value does not fit in the current Segment else true is returned on successful insert.
-        */
+       * Tries adding key-value to the current split/Segment. If force is true then the key-value will value added to
+       * current split regardless of size limitation.
+       *
+       * @return Returns false if force is false and the key-value does not fit in the current Segment else true is returned on successful insert.
+       */
       def addToCurrentSplit(force: Boolean): Boolean =
         splits.lastOption exists {
           lastBuffer =>
@@ -234,8 +234,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
               IO.unit
         } getOrElse IO.unit
 
-      def startNewSegment(): Unit =
-        splits += SegmentBuffer(groupBy)
+
 
       //try adding to current split
       if (addToCurrentSplit(force = false))
@@ -249,7 +248,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
               //if still unable to add to current split after force grouping, start a new Segment!
               //And then do force add just in-case the new key-value is larger than the minimum segmentSize
               //because a Segment should contain at least one key-value.
-              startNewSegment()
+              splits += SegmentBuffer(groupBy)
               if (addToCurrentSplit(force = true))
                 IO.unit
               else

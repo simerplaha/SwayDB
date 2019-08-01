@@ -57,8 +57,8 @@ class SegmentMergeSpec extends TestBase {
         segment1 add Transient.put(key = 1, value = Some(1), previous = segment1.lastOption)
         segment1 add Transient.put(key = 2, value = Some(2), previous = segment1.lastOption) //total segmentSize is 144.bytes
 
-        val smallerLastSegment = SegmentBuffer(None)
-        smallerLastSegment add Transient.put(key = 1, value = Some(1), previous = None) //total segmentSize is 105.bytes
+        val smallerLastSegment = SegmentBuffer(groupBy)
+        smallerLastSegment add Transient.put(key = 3, value = Some(3), previous = None) //total segmentSize is 105.bytes
 
         val segments = ListBuffer[SegmentBuffer](segment1, smallerLastSegment)
 
@@ -86,13 +86,13 @@ class SegmentMergeSpec extends TestBase {
     }
 
     "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for memory key-values" in {
-      runThisParallel(10.times) {
-        val segment1 = SegmentBuffer(None)
+      runThis(10.times) {
+        val segment1 = SegmentBuffer(groupBy)
         segment1 add Transient.put(key = 1, value = Some(1), previous = segment1.lastOption)
         segment1 add Transient.put(key = 2, value = Some(2), previous = segment1.lastOption) //total segmentSize is 21.bytes
 
-        val smallerLastSegment = SegmentBuffer(None)
-        smallerLastSegment add Transient.put(key = 1, value = Some(1), previous = None) //total segmentSize is 12.bytes
+        val smallerLastSegment = SegmentBuffer(groupBy)
+        smallerLastSegment add Transient.put(key = 3, value = Some(3), previous = None) //total segmentSize is 12.bytes
 
         val segments = ListBuffer[SegmentBuffer](segment1, smallerLastSegment)
 

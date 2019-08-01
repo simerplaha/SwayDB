@@ -228,7 +228,7 @@ object CommonAssertions {
                     groupByGroups: Option[GroupByInternal.Groups] = randomGroupByGroupsOption()): GroupByInternal.KeyValues = {
 
     GroupByInternal.KeyValues(
-      count = keyValuesCount,
+      count = keyValuesCount max 1,
       size = eitherOne(None, Some(randomIntMax(1.mb) max 1)),
       groupByGroups = groupByGroups,
       valuesConfig = ValuesBlock.Config.random,
@@ -246,7 +246,7 @@ object CommonAssertions {
 
   def randomGroupByGroups(keyValuesCount: Int = randomIntMax(50) max 1): GroupByInternal.Groups =
     GroupByInternal.Groups(
-      count = keyValuesCount,
+      count = keyValuesCount max 1,
       size = eitherOne(None, Some(randomIntMax(1.mb) max 1)),
       valuesConfig = ValuesBlock.Config.random,
       sortedIndexConfig = SortedIndexBlock.Config.random,

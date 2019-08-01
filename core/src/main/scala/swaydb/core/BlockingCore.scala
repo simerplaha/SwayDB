@@ -124,14 +124,14 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(zero.put(key, value, removeAt))
 
   /**
-    * Each [[Prepare]] requires a new next [[Time]] for cases where a batch contains overriding keys.
-    *
-    * Same time indicates that the later Prepare in this batch with the same time as newer Prepare has already applied
-    * to the newer prepare therefore ignoring the newer prepare.
-    *
-    * @note If the default time order [[TimeOrder.long]] is used
-    *       Times should always be unique and in incremental order for *ALL* key values.
-    */
+   * Each [[Prepare]] requires a new next [[Time]] for cases where a batch contains overriding keys.
+   *
+   * Same time indicates that the later Prepare in this batch with the same time as newer Prepare has already applied
+   * to the newer prepare therefore ignoring the newer prepare.
+   *
+   * @note If the default time order [[TimeOrder.long]] is used
+   *       Times should always be unique and in incremental order for *ALL* key values.
+   */
   def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.Done] =
     if (entries.isEmpty)
       tag.fromIO(IO.failed("Cannot write empty batch"))
@@ -175,26 +175,25 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     zero.registerFunction(functionID, function)
 
   private def headIO: IO[swaydb.Error.Level, Option[KeyValueTuple]] =
-    ???
-  //    zero.head.runBlocking flatMap {
-  //      result =>
-  //        result map {
-  //          response =>
-  //            IO.Deferred.recover(response.getOrFetchValue.get).runBlocking map {
-  //              result =>
-  //                Some(response.key, result)
-  //            } recoverWith {
-  //              case error =>
-  //                error match {
-  //                  case _: swaydb.Error.ReservedIO =>
-  //                    headIO
-  //
-  //                  case failure =>
-  //                    IO.Failure(error = failure)
-  //                }
-  //            }
-  //        } getOrElse IO.none
-  //    }
+    zero.head.runIO flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(response.key, result)
+            } recoverWith {
+              case error =>
+                error match {
+                  case _: swaydb.Error.ReservedResource =>
+                    headIO
+
+                  case failure =>
+                    IO.Failure(error = failure)
+                }
+            }
+        } getOrElse IO.none
+    }
 
   def head: T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     tag.fromIO(headIO)
@@ -252,26 +251,25 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     ???
 
   private def getIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[Option[Slice[Byte]]]] =
-    ???
-  //    zero.get(key).runBlocking flatMap {
-  //      result =>
-  //        result map {
-  //          response =>
-  //            IO.Deferred.recover(response.getOrFetchValue.get).runBlocking map {
-  //              result =>
-  //                Some(result)
-  //            } recoverWith[swaydb.Error.Level, Option[Option[Slice[Byte]]]] {
-  //              case error =>
-  //                error match {
-  //                  case _: swaydb.Error.ReservedIO =>
-  //                    getIO(key)
-  //
-  //                  case failure =>
-  //                    IO.Failure(error = failure)
-  //                }
-  //            }
-  //        } getOrElse IO.none
-  //    }
+    zero.get(key).runIO flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(result)
+            } recoverWith[swaydb.Error.Level, Option[Option[Slice[Byte]]]] {
+              case error =>
+                error match {
+                  case _: swaydb.Error.ReservedResource =>
+                    getIO(key)
+
+                  case failure =>
+                    IO.Failure(error = failure)
+                }
+            }
+        } getOrElse IO.none
+    }
 
   def get(key: Slice[Byte]): T[Option[Option[Slice[Byte]]]] =
     tag.fromIO(getIO(key))

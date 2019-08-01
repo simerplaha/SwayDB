@@ -27,8 +27,8 @@ import swaydb.data.slice.Slice
 import scala.collection.mutable.ListBuffer
 
 /**
-  * A mutable Buffer that maintains the current state of Grouped key-values for a Segment.
-  */
+ * A mutable Buffer that maintains the current state of Grouped key-values for a Segment.
+ */
 sealed trait SegmentBuffer extends Iterable[Transient] {
   def add(keyValue: Transient.SegmentResponse): Unit
   def lastOption: Option[Transient]
@@ -130,9 +130,9 @@ object SegmentBuffer {
       groups
 
     /**
-      * The cost of updatePrevious will be negligible since the number of grouping
-      * of groups is expected to be very low.
-      */
+     * The cost of updatePrevious will be negligible since the number of grouping
+     * of groups is expected to be very low.
+     */
     def getGroupsToGroup(groupBy: GroupByInternal.Groups): Slice[Transient.Group] = {
       val slicedGroups = Slice.create[Transient.Group](groups.size)
       groups foreach {
@@ -205,27 +205,33 @@ object SegmentBuffer {
     override def size: Int =
       groups.size + _unGrouped.size
 
+    override def head =
+      unGrouped.headOption getOrElse groups.head
+
+    override def headOption =
+      unGrouped.headOption orElse groups.headOption
+
     override def iterator: Iterator[Transient] =
       new Iterator[Transient] {
         val left = groups.iterator
         val right = _unGrouped.iterator
 
-        var nextKeyValue: Transient = _
+        var nextOne: Transient = _
 
         override def hasNext: Boolean =
           if (left.hasNext) {
-            nextKeyValue = left.next()
+            nextOne = left.next()
             true
           } else if (right.hasNext) {
-            nextKeyValue = right.next()
+            nextOne = right.next()
             true
           } else {
-            nextKeyValue = null
+            nextOne = null
             false
           }
 
         override def next(): Transient =
-          nextKeyValue
+          nextOne
       }
   }
 }
