@@ -62,7 +62,9 @@ object ValueReader {
   }
 
   implicit object ValueFullyCompressedReader extends ValueReader[BaseEntryId.Value.FullyCompressed] {
-    override def isPrefixCompressed: Boolean = true
+    //prefixCompression does not apply on the value itself since it can still hold reference to offset and length.
+    //A value is considered prefix compressed only if it's valueOffset and valueLength are prefix compressed.
+    override def isPrefixCompressed: Boolean = false
 
     override def read[V](indexReader: Reader[swaydb.Error.Segment],
                          previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],

@@ -1067,10 +1067,10 @@ object CommonAssertions {
     }
 
   /**
-    * If all key-values are non put key-values then searching higher for each key-value
-    * can result in a very long search time. Considering using shuffleTake which
-    * randomly selects a batch to assert for None higher.
-    */
+   * If all key-values are non put key-values then searching higher for each key-value
+   * can result in a very long search time. Considering using shuffleTake which
+   * randomly selects a batch to assert for None higher.
+   */
   def assertHigherNone(keyValues: Iterable[KeyValue],
                        level: LevelRef,
                        shuffleTake: Option[Int] = None) = {
@@ -1234,8 +1234,8 @@ object CommonAssertions {
     assertHigher(unzipGroups(keyValues), getHigher = key => IO(segment.higher(key).runRandomIO.value))
 
   /**
-    * Asserts that all key-values are returned in order when fetching higher in sequence.
-    */
+   * Asserts that all key-values are returned in order when fetching higher in sequence.
+   */
   def assertHigher(_keyValues: Iterable[KeyValue],
                    getHigher: Slice[Byte] => IO[swaydb.Error.Level, Option[KeyValue]]): Unit = {
     import KeyOrder.default._
@@ -1320,7 +1320,7 @@ object CommonAssertions {
           getHigher(group.maxKey.maxKey).runRandomIO.value.value shouldBe next
 
         case _ =>
-          IO(getHigher(keyValue.key).runRandomIO.value.value shouldBe next) recover {
+          Try(getHigher(keyValue.key).runRandomIO.value.value shouldBe next) recover {
             case _: TestFailedException =>
               unexpiredPuts(Slice(next)) should have size 0
           } get

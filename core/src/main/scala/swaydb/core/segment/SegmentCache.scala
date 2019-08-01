@@ -432,35 +432,11 @@ private[core] class SegmentCache(id: String,
             }
 
           case None =>
-            getFooter() flatMap {
-              footer =>
-                if (footer.hasGroup || footer.hasRange)
-                  Option(keyValueCache.ceilingEntry(key)).map(_.getValue) match {
-                    case Some(ceiling: Persistent.Range) if ceiling contains key =>
-                      IO.Success(Some(ceiling))
-
-                    case Some(ceiling: Persistent.Group) if ceiling containsHigher key =>
-                      ceiling.segment.higher(key)
-
-                    case ceiling =>
-                      Option(keyValueCache.higherEntry(key)).map(_.getValue) match {
-                        case someHigh @ Some(high) =>
-                          if (ceiling forall (!_.key.equiv(high.key)))
-                            higher(key, ceiling, someHigh)
-                          else
-                            higher(key, None, someHigh)
-
-                        case None =>
-                          higher(key, ceiling, None)
-                      }
-                  }
-                else
-                  higher(
-                    key = key,
-                    start = None,
-                    end = Option(keyValueCache.higherEntry(key)).map(_.getValue)
-                  )
-            }
+            higher(
+              key = key,
+              start = None,
+              end = Option(keyValueCache.higherEntry(key)).map(_.getValue)
+            )
         }
     }
 
