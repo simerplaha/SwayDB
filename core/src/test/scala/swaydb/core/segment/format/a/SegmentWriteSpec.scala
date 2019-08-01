@@ -772,6 +772,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
   "copyToPersist" should {
     "copy the segment and persist it to disk" in {
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
+
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).value
       val levelPath = createNextLevelPath
@@ -789,16 +791,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           bloomFilterConfig = keyValues.last.bloomFilterConfig,
           segmentConfig = SegmentBlock.Config.random,
           removeDeletes = false,
-          minSegmentSize =
-            if (persistent)
-              keyValues.last.stats.segmentSize / 10
-            else
-              keyValues.last.stats.memorySegmentSize / 10
+          minSegmentSize = keyValues.last.stats.segmentSize / 10
         ).value
 
-      if (persistent)
-        segments should have size 1
-      else
         segments.size should be > 2
 
       segments.foreach(_.existsOnDisk shouldBe true)
@@ -884,6 +879,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       val levelPath = createNextLevelPath
       val nextSegmentId = nextId
 
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
+
       def nextPath = levelPath.resolve(IDGenerator.segmentId(nextId))
 
       IOEffect.createFile(levelPath.resolve(IDGenerator.segmentId(nextSegmentId + 4))).value //path already taken.
@@ -951,6 +948,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "copy the segment and persist it to disk when removeDeletes is true" in {
       runThis(10.times) {
+        implicit val groupBy: Option[GroupByInternal.KeyValues] = None
+
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues).value
         val levelPath = createNextLevelPath
@@ -1117,6 +1116,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "return multiple new segments with merged key values" in {
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
+
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).get
 
@@ -1166,6 +1167,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       if (memory) {
         // not for in-memory Segments
       } else {
+
+        implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues).get
@@ -1543,6 +1546,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "succeed for non group key-values" in {
       implicit val groupBy: Option[GroupByInternal.KeyValues] = None
       val keyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
+
       val result: Iterable[Iterable[Transient]] =
         SegmentMerger.split(
           keyValues = keyValues,
@@ -1565,6 +1569,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "succeed for grouped key-values" in {
+
       val keyValues = randomizedKeyValues(keyValuesCount)
 
       val result = SegmentMerger.split(
@@ -1579,10 +1584,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         bloomFilterConfig = BloomFilterBlock.Config.random,
         segmentIO = SegmentIO.random,
         createdInLevel = randomIntMax()
-      )(keyOrder, Some(GroupByInternal(DefaultGroupBy()))).value
+      )(keyOrder, Some(randomGroupBy())).value
 
       result should have size 1
-      result.head should have size 1
 
       writeAndRead(result.head).value shouldBe keyValues
     }
