@@ -87,7 +87,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
         //perform reads multiple times and assert that while the key-values are getting drop, the group key-value does
         //not value dropped
         runThis(100.times, log = true) {
-          eventual(5.seconds) {
+          eventual(40.seconds) {
             //cache should only contain the uncompressed Group and other non group key-values
             segment.cache.size() shouldBe (nonGroupKeyValues.size + 1)
             segment.areAllCachesEmpty shouldBe false //group and other key-values exists
@@ -107,7 +107,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
             segment.isInKeyValueCache(headGroup.key) shouldBe true
             segment.areAllCachesEmpty shouldBe false
 
-            eventual(2.seconds)(
+            eventual(30.seconds)(
               headGroup.areAllCachesEmpty shouldBe true
             )
 

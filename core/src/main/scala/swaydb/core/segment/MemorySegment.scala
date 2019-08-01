@@ -213,7 +213,7 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted)
       IO.Failure(swaydb.Error.NoSuchFile(path))
     else
-      mightContainKey(key) flatMap {
+      mightContainKey(key, rangeCheck = true) flatMap {
         mightContain =>
           if (mightContain)
             maxKey match {
@@ -249,14 +249,20 @@ private[segment] case class MemorySegment(path: Path,
             IO.none
       }
 
+  def mightContainKey(key: Slice[Byte], rangeCheck: Boolean): IO[swaydb.Error.Segment, Boolean] =
+    if (rangeCheck && (_hasGroup || _hasRange))
+      IO.`true`
+    else
+      bloomFilterReader map {
+        reader =>
+          BloomFilterBlock.mightContain(
+            key = key,
+            reader = reader.copy()
+          )
+      } getOrElse IO.`true`
+
   def mightContainKey(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
-    bloomFilterReader map {
-      reader =>
-        BloomFilterBlock.mightContain(
-          key = key,
-          reader = reader.copy()
-        )
-    } getOrElse IO.`true`
+    mightContainKey(key = key, rangeCheck = false)
 
   override def mightContainFunction(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
     IO {

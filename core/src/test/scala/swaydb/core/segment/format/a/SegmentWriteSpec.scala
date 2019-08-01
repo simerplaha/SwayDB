@@ -794,7 +794,10 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           minSegmentSize = keyValues.last.stats.segmentSize / 10
         ).value
 
-        segments.size should be > 2
+      if(persistent)
+        segments.size shouldBe 1
+      else
+        segments.size should be > 1
 
       segments.foreach(_.existsOnDisk shouldBe true)
       Segment.getAllKeyValues(segments).value shouldBe keyValues
