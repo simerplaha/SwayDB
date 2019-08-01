@@ -47,10 +47,9 @@ class SegmentMergeSpec extends TestBase {
 
   import keyOrder._
 
-  "close" should {
-
+  "transfer - tested via close for coverage" should {
     "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for persistent key-values" in {
-      runThis(50.times) {
+      def doTest(inMemory: Boolean) = {
         implicit val testTimer: TestTimer = TestTimer.Empty
 
         val segment1 = SegmentBuffer(None)
@@ -66,8 +65,8 @@ class SegmentMergeSpec extends TestBase {
         val newSegments =
           SegmentMerger.close(
             buffers = segments,
-            minSegmentSize = smallerLastSegment.last.stats.segmentSize + 1,
-            forMemory = false,
+            minSegmentSize = if (inMemory) smallerLastSegment.last.stats.memorySegmentSize + 1 else smallerLastSegment.last.stats.segmentSize + 1,
+            forMemory = inMemory,
             valuesConfig = ValuesBlock.Config.random,
             sortedIndexConfig = SortedIndexBlock.Config.random,
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
@@ -83,39 +82,10 @@ class SegmentMergeSpec extends TestBase {
         newSegmentsUnzipped(1).key equiv segment1.last.key
         newSegmentsUnzipped(2).key equiv smallerLastSegment.head.key
       }
-    }
 
-    "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for memory key-values" in {
-      runThis(10.times) {
-        val segment1 = SegmentBuffer(groupBy)
-        segment1 add Transient.put(key = 1, value = Some(1), previous = segment1.lastOption)
-        segment1 add Transient.put(key = 2, value = Some(2), previous = segment1.lastOption) //total segmentSize is 21.bytes
-
-        val smallerLastSegment = SegmentBuffer(groupBy)
-        smallerLastSegment add Transient.put(key = 3, value = Some(3), previous = None) //total segmentSize is 12.bytes
-
-        val segments = ListBuffer[SegmentBuffer](segment1, smallerLastSegment)
-
-        //minSegmentSize is 21.bytes but lastSegment size is 12.bytes. Expected result should move lastSegment's KeyValues to previous segment
-        val newSegments =
-          SegmentMerger.close(
-            buffers = segments,
-            minSegmentSize = smallerLastSegment.last.stats.memorySegmentSize + 1,
-            forMemory = true,
-            valuesConfig = ValuesBlock.Config.random,
-            sortedIndexConfig = SortedIndexBlock.Config.random,
-            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-            hashIndexConfig = HashIndexBlock.Config.random,
-            bloomFilterConfig = BloomFilterBlock.Config.random,
-            createdInLevel = randomIntMax()
-          ).runRandomIO.value
-
-        newSegments.size shouldBe 1
-
-        val newSegmentsUnzipped = unzipGroups(newSegments.head)
-        newSegmentsUnzipped(0).key equiv segment1.head.key
-        newSegmentsUnzipped(1).key equiv segment1.last.key
-        newSegmentsUnzipped(2).key equiv smallerLastSegment.head.key
+      runThis(50.times) {
+        doTest(inMemory = false)
+        doTest(inMemory = true)
       }
     }
 
@@ -152,7 +122,9 @@ class SegmentMergeSpec extends TestBase {
         ).runRandomIO.value.size shouldBe 1
       }
     }
+  }
 
+  "close" should {
     "split KeyValues into equal chunks" in {
 
       implicit val groupBy: Option[GroupByInternal.KeyValues] = None

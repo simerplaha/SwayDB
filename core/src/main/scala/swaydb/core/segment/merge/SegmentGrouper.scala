@@ -71,7 +71,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           buffer replaceGroupedKeyValues newGroup
           buffer.groupBy.groupByGroups map {
             groupByGroups =>
-              if (buffer.shouldGroupGroups)
+              if (buffer shouldGroupGroups groupByGroups)
                 Transient.Group(
                   keyValues = buffer getGroupsToGroup groupByGroups,
                   previous = None,

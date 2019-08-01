@@ -165,20 +165,17 @@ object SegmentBuffer {
         }
       }
 
-    def shouldGroupGroups(): Boolean =
-      groupBy.groupByGroups exists {
-        groupBy =>
-          groups.nonEmpty && {
-            groups.size >= groupBy.count || {
-              groupBy.size exists {
-                size =>
-                  groups.lastOption exists {
-                    last =>
-                      last.stats.segmentSizeWithoutFooter >= size
-                  }
+    def shouldGroupGroups(groupBy: GroupByInternal.Groups): Boolean =
+      groups.nonEmpty && {
+        groups.size >= groupBy.count || {
+          groupBy.size exists {
+            size =>
+              groups.lastOption exists {
+                last =>
+                  last.stats.segmentSizeWithoutFooter >= size
               }
-            }
           }
+        }
       }
 
     override def isReadyForGrouping: Boolean =
