@@ -43,7 +43,7 @@ private[core] object SegmentBlock {
 
   val formatId: Byte = 1.toByte
 
-  val crcBytes: Int = 7
+  val crcBytes: Int = 13
 
   object Config {
 

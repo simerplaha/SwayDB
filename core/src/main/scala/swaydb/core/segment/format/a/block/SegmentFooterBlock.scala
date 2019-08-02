@@ -113,11 +113,6 @@ object SegmentFooterBlock {
       //total number of actual key-values grouped or un-grouped
       footerBytes addIntUnsigned state.uniqueKeyValuesCount
 
-      //do CRC
-      val indexBytesToCRC = footerBytes.take(SegmentBlock.crcBytes)
-      assert(indexBytesToCRC.size == SegmentBlock.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentBlock.crcBytes}")
-      footerBytes addLong CRC32.forBytes(indexBytesToCRC)
-
       var currentBlockOffset = values.map(_.bytes.size) getOrElse 0
 
       footerBytes addIntUnsigned sortedIndex.bytes.size
@@ -160,6 +155,11 @@ object SegmentFooterBlock {
 
       footerBytes addInt footerOffset
 
+      //do CRC
+      val indexBytesToCRC = footerBytes.take(SegmentBlock.crcBytes)
+      assert(indexBytesToCRC.size == SegmentBlock.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentBlock.crcBytes}")
+      footerBytes addLong CRC32.forBytes(indexBytesToCRC)
+
       state.bytes.close()
       state
     }
@@ -184,60 +184,60 @@ object SegmentFooterBlock {
       val hasPut = footerReader.readBoolean().get
       val keyValueCount = footerReader.readIntUnsigned().get
       val bloomFilterItemsCount = footerReader.readIntUnsigned().get
+      val sortedIndexOffset =
+        SortedIndexBlock.Offset(
+          size = footerReader.readIntUnsigned().get,
+          start = footerReader.readIntUnsigned().get
+        )
+
+      val hashIndexSize = footerReader.readIntUnsigned().get
+      val hashIndexOffset =
+        if (hashIndexSize == 0)
+          None
+        else
+          Some(
+            HashIndexBlock.Offset(
+              start = footerReader.readIntUnsigned().get,
+              size = hashIndexSize
+            )
+          )
+
+      val binarySearchIndexSize = footerReader.readIntUnsigned().get
+      val binarySearchIndexOffset =
+        if (binarySearchIndexSize == 0)
+          None
+        else
+          Some(
+            BinarySearchIndexBlock.Offset(
+              start = footerReader.readIntUnsigned().get,
+              size = binarySearchIndexSize
+            )
+          )
+
+      val bloomFilterSize = footerReader.readIntUnsigned().get
+      val bloomFilterOffset =
+        if (bloomFilterSize == 0)
+          None
+        else
+          Some(
+            BloomFilterBlock.Offset(
+              start = footerReader.readIntUnsigned().get,
+              size = bloomFilterSize
+            )
+          )
+
+      val valuesOffset =
+        if (sortedIndexOffset.start == 0)
+          None
+        else
+          Some(ValuesBlock.Offset(0, sortedIndexOffset.start))
+
       val expectedCRC = footerReader.readLong().get
       val crcBytes = footerBytes.take(SegmentBlock.crcBytes)
       val crc = CRC32.forBytes(crcBytes)
-      if (expectedCRC != crc) {
+      if (expectedCRC != crc)
         IO.Failure(swaydb.Error.DataAccess(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
-      } else {
-        val sortedIndexOffset =
-          SortedIndexBlock.Offset(
-            size = footerReader.readIntUnsigned().get,
-            start = footerReader.readIntUnsigned().get
-          )
-
-        val hashIndexSize = footerReader.readIntUnsigned().get
-        val hashIndexOffset =
-          if (hashIndexSize == 0)
-            None
-          else
-            Some(
-              HashIndexBlock.Offset(
-                start = footerReader.readIntUnsigned().get,
-                size = hashIndexSize
-              )
-            )
-
-        val binarySearchIndexSize = footerReader.readIntUnsigned().get
-        val binarySearchIndexOffset =
-          if (binarySearchIndexSize == 0)
-            None
-          else
-            Some(
-              BinarySearchIndexBlock.Offset(
-                start = footerReader.readIntUnsigned().get,
-                size = binarySearchIndexSize
-              )
-            )
-
-        val bloomFilterSize = footerReader.readIntUnsigned().get
-        val bloomFilterOffset =
-          if (bloomFilterSize == 0)
-            None
-          else
-            Some(
-              BloomFilterBlock.Offset(
-                start = footerReader.readIntUnsigned().get,
-                size = bloomFilterSize
-              )
-            )
-
-        val valuesOffset =
-          if (sortedIndexOffset.start == 0)
-            None
-          else
-            Some(ValuesBlock.Offset(0, sortedIndexOffset.start))
-
+      else
         IO.Success(
           SegmentFooterBlock(
             SegmentFooterBlock.Offset(footerStartOffset, footerSize),
@@ -256,7 +256,6 @@ object SegmentFooterBlock {
             hasPut = hasPut
           )
         )
-      }
     } catch {
       case exception: Throwable =>
         IO.failed(exception)

@@ -840,7 +840,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
     "fail read if reading any one Segment file is corrupted" in {
       if (persistent) {
-        runThis(10.times) {
+        runThis(100.times, log = true) {
           val keyValues1 = randomizedKeyValues(keyValuesCount, addPut = true)
           val keyValues2 = randomizedKeyValues(keyValuesCount, addPut = true)
           val keyValues3 = randomizedKeyValues(keyValuesCount, addPut = true)

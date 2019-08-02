@@ -200,7 +200,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
     }
 
     "add read key values to cache" in {
-      runThis(100.times) {
+      runThis(100.times, log = true) {
         assertSegment(
           keyValues =
             randomizedKeyValues(keyValuesCount, addGroups = false),
