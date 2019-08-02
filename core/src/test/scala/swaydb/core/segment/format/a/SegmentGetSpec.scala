@@ -29,6 +29,7 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.group.compression.GroupByInternal
+import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -152,7 +153,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
     "value Group key-values" in {
       //run this test randomly to possibly test all range key-value combinations
-      runThis(20.times) {
+      runThis(5.times, log = true) {
         val nestedGroupsKeyValueCount = 5
         val groupKeyValues = randomizedKeyValues(keyValuesCount, addPut = true, nestedGroupsKeyValueCount = nestedGroupsKeyValueCount)
         val group = randomGroup(groupKeyValues)
@@ -200,7 +201,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
     }
 
     "add read key values to cache" in {
-      runThis(100.times, log = true) {
+      runThis(20.times, log = true) {
         assertSegment(
           keyValues =
             randomizedKeyValues(keyValuesCount, addGroups = false),
@@ -214,7 +215,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
                 keyValue =>
                   if (persistent) segment isInKeyValueCache keyValue.key shouldBe false
                   (segment get keyValue.key).runRandomIO.value.value shouldBe keyValue
-                  eventually(segment isInKeyValueCache keyValue.key shouldBe true)
+                  segment isInKeyValueCache keyValue.key shouldBe true
               }
         )
       }

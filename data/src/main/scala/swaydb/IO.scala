@@ -30,10 +30,10 @@ import scala.reflect.ClassTag
 import scala.util.Try
 
 /**
-  * [[IO.Success]] and [[IO.Failure]] are similar to types in [[scala.util.Try]].
-  *
-  * [[IO.Deferred]] is for performing synchronous and asynchronous IO.
-  */
+ * [[IO.Success]] and [[IO.Failure]] are similar to types in [[scala.util.Try]].
+ *
+ * [[IO.Deferred]] is for performing synchronous and asynchronous IO.
+ */
 sealed trait IO[+E, +A] {
   def isFailure: Boolean
   def isSuccess: Boolean
@@ -70,24 +70,24 @@ sealed trait IO[+E, +A] {
 object IO {
 
   /**
-    * [[IO]] type with Throwable error type. Here all errors are returned as exception.
-    */
+   * [[IO]] type with Throwable error type. Here all errors are returned as exception.
+   */
   type ThrowableIO[T] = IO[Throwable, T]
   /**
-    * [[IO]] type with Nothing error type. Nothing indicates this IO type can never result in an error.
-    */
+   * [[IO]] type with Nothing error type. Nothing indicates this IO type can never result in an error.
+   */
   type NothingIO[T] = IO[Nothing, T]
   /**
-    * [[IO]] type with Unit error type. Unit indicates this IO type can never result in an error.
-    */
+   * [[IO]] type with Unit error type. Unit indicates this IO type can never result in an error.
+   */
   type UnitIO[T] = IO[Unit, T]
   /**
-    * [[IO]] type used to access database APIs.
-    */
+   * [[IO]] type used to access database APIs.
+   */
   type ApiIO[T] = IO[Error.API, T]
   /**
-    * [[IO]] type for database boot up.
-    */
+   * [[IO]] type for database boot up.
+   */
   type BootIO[T] = IO[Error.Boot, T]
 
   sealed trait Done
@@ -353,11 +353,11 @@ object IO {
     }
 
     /**
-      * [[deferredValue]] will only be invoked the reserve is set free which occurs only when the future is complete.
-      * But functions like [[IO.Deferred.getUnsafe]] will try to access this before the Future is complete will result in failure.
-      *
-      * This is necessary to avoid blocking Futures.
-      */
+     * [[deferredValue]] will only be invoked the reserve is set free which occurs only when the future is complete.
+     * But functions like [[IO.Deferred.getUnsafe]] will try to access this before the Future is complete will result in failure.
+     *
+     * This is necessary to avoid blocking Futures.
+     */
     def deferredValue =
       future.value map {
         case scala.util.Success(value) =>
@@ -388,12 +388,12 @@ object IO {
   }
 
   /** **********************************
-    * **********************************
-    * **********************************
-    * ************ DEFERRED ************
-    * **********************************
-    * **********************************
-    * **********************************/
+   * **********************************
+   * **********************************
+   * ************ DEFERRED ************
+   * **********************************
+   * **********************************
+   * **********************************/
 
   object Deferred extends LazyLogging {
 
@@ -420,7 +420,7 @@ object IO {
         case ex: Throwable =>
           val error = ErrorHandler.fromException[E](ex)
           if (ErrorHandler.reserve(error).isDefined)
-            Right(IO.Deferred(f.getUnsafe, error))
+            Right(f.copy(error = Some(error)))
           else
             Left(IO.Failure(error))
       }
@@ -466,8 +466,8 @@ object IO {
     }
 
     /**
-      * Opens all [[IO.Deferred]] types to read the final value in a blocking manner.
-      */
+     * Opens all [[IO.Deferred]] types to read the final value in a blocking manner.
+     */
     def runIO: IO[E, A] = {
 
       def blockIfNeeded(deferred: IO.Deferred[E, A]): Unit =
@@ -514,14 +514,14 @@ object IO {
     }
 
     /**
-      * Run the deferred IO without blocking.
-      */
+     * Run the deferred IO without blocking.
+     */
     def runFuture(implicit ec: ExecutionContext): Future[A] = {
 
       /**
-        * If the value is already fetched [[isPending]] run in current thread
-        * else return a Future that listens for the value to be complete.
-        */
+       * If the value is already fetched [[isPending]] run in current thread
+       * else return a Future that listens for the value to be complete.
+       */
       def delayedRun(deferred: IO.Deferred[E, A]): Option[Future[Unit]] =
         deferred.error flatMap {
           error =>
@@ -567,7 +567,7 @@ object IO {
 
               case Right(deferred) =>
                 if (tried > 0 && tried % IO.Deferred.maxRecoveriesBeforeWarn == 0)
-                  logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via IO. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => ErrorHandler.reserve(error).map(_.name))}")
+                  logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via Future. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => ErrorHandler.reserve(error).map(_.name))}")
                 runNow(deferred, tried + 1)
             }
         }

@@ -80,14 +80,14 @@ object RunThis extends Eventually {
   def runThis(times: Int, log: Boolean = false, otherInfo: String = "")(f: => Unit): Unit =
     (1 to times) foreach {
       i =>
-        if (log) println(s"Iteration number: $i${if (otherInfo.nonEmpty) s": $otherInfo" else ""}")
+        if (log) println(s"Iteration: $i${if (otherInfo.nonEmpty) s": $otherInfo" else ""}/$times")
         f
     }
 
-  def runThisParallel(times: Int, log: Boolean = false)(f: => Unit): Unit =
+  def runThisParallel(times: Int, log: Boolean = false, otherInfo: String = "")(f: => Unit): Unit =
     (1 to times).par foreach {
       i =>
-        if (log) println(s"Iteration number: $i")
+        if (log) println(s"Iteration: $i${if (otherInfo.nonEmpty) s": $otherInfo" else ""}/$times")
         f
     }
 

@@ -911,9 +911,9 @@ object CommonAssertions {
         //        val intKey = keyValue.key.readInt()
         //        if (intKey % 1000 == 0)
         //          println("Get: " + intKey)
-        try {
+        try
           segment.get(keyValue.key).runRandomIO.value.value shouldBe keyValue
-        } catch {
+        catch {
           case exception: Exception =>
             exception.printStackTrace()
             System.exit(1)
@@ -1394,13 +1394,14 @@ object CommonAssertions {
     getSegmentBlockCacheFromSegmentClosed(segment, segmentIO)
   }
 
-  def randomIOStrategy(cacheOnAccess: Boolean = randomBoolean()): IOStrategy =
+  def randomIOStrategy(cacheOnAccess: Boolean = randomBoolean(),
+                       includeReserved: Boolean = true): IOStrategy =
     if (randomBoolean())
       IOStrategy.SynchronisedIO(cacheOnAccess)
-    else if (randomBoolean())
-      IOStrategy.ConcurrentIO(cacheOnAccess)
+    else if (includeReserved && randomBoolean())
+      IOStrategy.ReservedIO(cacheOnAccess = true) //this not being stored will result in too many retries. =
     else
-      IOStrategy.ReservedIO(cacheOnAccess)
+      IOStrategy.ConcurrentIO(cacheOnAccess)
 
   def getSegmentBlockCacheFromSegmentClosed(segment: SegmentBlock.Closed, segmentIO: SegmentIO = SegmentIO.random): SegmentBlockCache =
     SegmentBlockCache(
@@ -1659,15 +1660,16 @@ object CommonAssertions {
     def random: SegmentIO =
       random(cacheOnAccess = randomBoolean())
 
-    def random(cacheOnAccess: Boolean = randomBoolean()): SegmentIO =
+    def random(cacheOnAccess: Boolean = randomBoolean(),
+               includeReserved: Boolean = true): SegmentIO =
       SegmentIO(
-        segmentBlockIO = _ => randomIOStrategy(cacheOnAccess),
-        hashIndexBlockIO = _ => randomIOStrategy(cacheOnAccess),
-        bloomFilterBlockIO = _ => randomIOStrategy(cacheOnAccess),
-        binarySearchIndexBlockIO = _ => randomIOStrategy(cacheOnAccess),
-        sortedIndexBlockIO = _ => randomIOStrategy(cacheOnAccess),
-        valuesBlockIO = _ => randomIOStrategy(cacheOnAccess),
-        segmentFooterBlockIO = _ => randomIOStrategy(cacheOnAccess)
+        segmentBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
+        hashIndexBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
+        bloomFilterBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
+        binarySearchIndexBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
+        sortedIndexBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
+        valuesBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved),
+        segmentFooterBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved)
       )
   }
 }

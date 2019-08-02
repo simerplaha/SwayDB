@@ -48,7 +48,7 @@ sealed trait IOValues {
       io.runIO
 
     def runFutureIO: IO[E, T] =
-      IO(Await.result(io.runFuture, 1.minute))
+      IO(Await.result(io.runFuture, 5.minutes))
 
     def runRandomIO: IO[E, T] =
       if (Random.nextBoolean())
