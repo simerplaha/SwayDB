@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.merge
 
-import swaydb.core.group.compression.data.GroupByInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.segment.format.a.block.{BinarySearchIndexBlock, BloomFilterBlock, HashIndexBlock, SortedIndexBlock, ValuesBlock}
 
 

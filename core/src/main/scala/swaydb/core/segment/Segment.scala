@@ -28,7 +28,7 @@ import swaydb.IO
 import swaydb.IO._
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.GroupByInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.{DBFile, IOEffect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
@@ -39,7 +39,7 @@ import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.{FiniteDurationUtil, IDGenerator, MinMax}
 import swaydb.data.MaxKey
-import swaydb.data.config.Dir
+import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -140,27 +140,49 @@ private[core] object Segment extends LazyLogging {
           val writeResult =
           //if both read and writes are mmaped. Keep the file open.
             if (mmapWrites && mmapReads)
-              DBFile.mmapWriteAndRead(path = path, autoClose = true, result.segmentBytes)
+              DBFile.mmapWriteAndRead(
+                path = path,
+                autoClose = true,
+                ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                bytes = result.segmentBytes
+              )
             //if mmapReads is false, write bytes in mmaped mode and then close and re-open for read.
             else if (mmapWrites && !mmapReads)
-              DBFile.mmapWriteAndRead(path = path, autoClose = true, result.segmentBytes) flatMap {
+              DBFile.mmapWriteAndRead(
+                path = path,
+                autoClose = true,
+                ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                bytes = result.segmentBytes
+              ) flatMap {
                 file =>
                   //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
                   //is probably not the most efficient and should be advised not to used.
                   file.close flatMap {
                     _ =>
-                      DBFile.channelRead(file.path, autoClose = true)
+                      DBFile.channelRead(
+                        path = file.path,
+                        ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                        autoClose = true
+                      )
                   }
               }
             else if (!mmapWrites && mmapReads)
               DBFile.write(path, result.segmentBytes) flatMap {
                 path =>
-                  DBFile.mmapRead(path, autoClose = true)
+                  DBFile.mmapRead(
+                    path = path,
+                    ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                    autoClose = true
+                  )
               }
             else
               DBFile.write(path, result.segmentBytes) flatMap {
                 path =>
-                  DBFile.channelRead(path, autoClose = true)
+                  DBFile.channelRead(
+                    path = path,
+                    ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                    autoClose = true
+                  )
               }
 
           writeResult flatMap {
@@ -399,9 +421,19 @@ private[core] object Segment extends LazyLogging {
 
     val fileIO =
       if (mmapReads)
-        DBFile.mmapRead(path = path, autoClose = true, checkExists = checkExists)
+        DBFile.mmapRead(
+          path = path,
+          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+          autoClose = true,
+          checkExists = checkExists
+        )
       else
-        DBFile.channelRead(path = path, autoClose = true, checkExists = checkExists)
+        DBFile.channelRead(
+          path = path,
+          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+          autoClose = true,
+          checkExists = checkExists
+        )
 
     fileIO flatMap {
       file =>
@@ -439,9 +471,19 @@ private[core] object Segment extends LazyLogging {
 
     val file =
       if (mmapReads)
-        DBFile.mmapRead(path = path, autoClose = false, checkExists = checkExists)
+        DBFile.mmapRead(
+          path = path,
+          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+          autoClose = false,
+          checkExists = checkExists
+        )
       else
-        DBFile.channelRead(path = path, autoClose = false, checkExists = checkExists)
+        DBFile.channelRead(
+          path = path,
+          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+          autoClose = false,
+          checkExists = checkExists
+        )
 
     file flatMap {
       file =>

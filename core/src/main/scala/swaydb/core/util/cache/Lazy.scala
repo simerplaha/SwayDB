@@ -28,14 +28,19 @@ object Lazy {
       stored = stored
     )
 
-  def io[E: ErrorHandler, B](synchronised: Boolean, stored: Boolean): LazyIO[E, B] =
-    new LazyIO[E, B](
-      lazyValue =
-        Lazy.value(
-          synchronised = synchronised,
-          stored = stored
-        )
-    )
+  def io[E: ErrorHandler, B](synchronised: Boolean,
+                             stored: Boolean,
+                             initial: Option[B]): LazyIO[E, B] = {
+
+    val lazyVal =
+      Lazy.value[IO.Success[E, B]](
+        synchronised = synchronised,
+        stored = stored
+      )
+
+    initial foreach (value => lazyVal.set(IO.Success(value)))
+    new LazyIO[E, B](lazyValue = lazyVal)
+  }
 }
 
 protected sealed trait Lazy[A] {

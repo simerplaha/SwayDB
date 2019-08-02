@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit
 import swaydb.Error.Map.ErrorHandler
 import swaydb.{Error, IO}
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.GroupByInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment

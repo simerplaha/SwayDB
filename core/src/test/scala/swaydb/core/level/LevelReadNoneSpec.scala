@@ -26,7 +26,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Value}
-import swaydb.core.group.compression.data.GroupByInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.util.Benchmark
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

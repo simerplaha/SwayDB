@@ -21,7 +21,7 @@ package swaydb.core.segment.merge
 
 import swaydb.{ErrorHandler, IO}
 import swaydb.core.data.Transient
-import swaydb.core.group.compression.data.GroupByInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer

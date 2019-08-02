@@ -33,7 +33,7 @@ import swaydb.core.TestData._
 import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
 import swaydb.core.actor.WiredActor
 import swaydb.core.data.{Memory, Time, Transient}
-import swaydb.core.group.compression.data.GroupByInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.{BufferCleaner, DBFile, IOEffect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
@@ -373,7 +373,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   def createMMAPFileReader(path: Path): FileReader = {
     implicit val limiter = fileOpenLimiter
     new FileReader(
-      DBFile.mmapRead(path, autoClose = true).runRandomIO.value
+      DBFile.mmapRead(path, randomIOStrategy(), autoClose = true).runRandomIO.value
     )
   }
 
@@ -383,7 +383,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   def createFileChannelFileReader(path: Path): FileReader = {
     implicit val limiter = fileOpenLimiter
     new FileReader(
-      DBFile.channelRead(path, autoClose = true).runRandomIO.value
+      DBFile.channelRead(path, randomIOStrategy(), autoClose = true).runRandomIO.value
     )
   }
 

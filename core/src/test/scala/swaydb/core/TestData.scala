@@ -34,7 +34,7 @@ import swaydb.core.data.Transient.Range
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.GroupByInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
@@ -66,8 +66,8 @@ import scala.util.Random
 object TestData {
 
   /**
-    * Sequential time bytes generator.
-    */
+   * Sequential time bytes generator.
+   */
 
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
 
@@ -909,8 +909,8 @@ object TestData {
     )
 
   /**
-    * Removes can occur by [[Memory.Remove]], [[Memory.Update]] with expiry or [[Memory.Function]] with remove output.
-    */
+   * Removes can occur by [[Memory.Remove]], [[Memory.Update]] with expiry or [[Memory.Function]] with remove output.
+   */
   def randomRemoveOrUpdateOrFunctionRemove(key: Slice[Byte],
                                            addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Fixed =
     if (randomBoolean())
@@ -944,8 +944,8 @@ object TestData {
     )
 
   /**
-    * Creates remove ranges of random range slices slice for all input key-values.
-    */
+   * Creates remove ranges of random range slices slice for all input key-values.
+   */
   def randomRemoveRanges(keyValues: Iterable[Memory])(implicit testTimer: TestTimer = TestTimer.Incremental()): Iterator[Memory.Range] =
     keyValues
       .grouped(randomIntMax(100) max 1)
@@ -2002,7 +2002,6 @@ object TestData {
                deadline: Option[Deadline])(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Update =
       Memory.Update(key, value, deadline, testTimer.next)
 
-
     def remove(key: Slice[Byte]): Memory.Remove =
       Memory.Remove(key, None, Time.empty)
 
@@ -2503,10 +2502,10 @@ object TestData {
     }(collection.breakOut)
 
   /**
-    * Randomly updates all key-values using one of the many update methods.
-    *
-    * Used for testing all updates work for all existing put key-values.
-    */
+   * Randomly updates all key-values using one of the many update methods.
+   *
+   * Used for testing all updates work for all existing put key-values.
+   */
   def randomUpdate(keyValues: Iterable[KeyValue.ReadOnly.Put],
                    updatedValue: Option[Slice[Byte]],
                    deadline: Option[Deadline],
@@ -2669,7 +2668,7 @@ object TestData {
   }
 
   def buildSingleValueCache(bytes: Slice[Byte]): Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
-    Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](randomBoolean(), randomBoolean()) {
+    Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](randomBoolean(), randomBoolean(), None) {
       offset =>
         IO[Nothing, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](
           UnblockedReader(

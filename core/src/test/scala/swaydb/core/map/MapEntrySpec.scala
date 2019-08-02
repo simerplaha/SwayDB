@@ -28,7 +28,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Value}
-import swaydb.core.group.compression.data.GroupByInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}

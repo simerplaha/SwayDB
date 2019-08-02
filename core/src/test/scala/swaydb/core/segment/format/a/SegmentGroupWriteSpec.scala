@@ -26,7 +26,7 @@ import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.group.compression.data.GroupByInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.segment.format.a.block.SegmentBlock
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice

@@ -48,36 +48,52 @@ private[core] object Cache {
     }
 
   def emptyValuesBlock[E: ErrorHandler]: Cache[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
-    Cache.concurrentIO(synchronised = false, stored = true) {
+    Cache.concurrentIO(synchronised = false, initial = None, stored = true) {
       _ =>
         IO(ValuesBlock.emptyUnblocked)
     }
 
-  def concurrentIO[E: ErrorHandler, I, O](synchronised: Boolean, stored: Boolean)(fetch: I => IO[E, O]): Cache[E, I, O] =
+  def concurrentIO[E: ErrorHandler, I, O](synchronised: Boolean,
+                                          stored: Boolean,
+                                          initial: Option[O])(fetch: I => IO[E, O]): Cache[E, I, O] =
     new SynchronisedIO[E, I, O](
       fetch = fetch,
-      lazyIO = Lazy.io(synchronised = synchronised, stored = stored)
+      lazyIO =
+        Lazy.io(
+          synchronised = synchronised,
+          initial = initial,
+          stored = stored
+        )
     )
 
   def reservedIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable, I, O](stored: Boolean,
-                                                                               reserveError: ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
+                                                                               reserveError: ER,
+                                                                               initial: Option[O])(fetch: I => IO[E, O]): Cache[E, I, O] =
     new ReservedIO[E, ER, I, O](
       fetch = fetch,
-      lazyIO = Lazy.io(synchronised = false, stored = stored),
-      error = reserveError
+      error = reserveError,
+      lazyIO =
+        Lazy.io(
+          synchronised = false,
+          initial = initial,
+          stored = stored
+        )
     )
 
-  def noIO[I, O](synchronised: Boolean, stored: Boolean)(fetch: I => O): NoIO[I, O] =
+  def noIO[I, O](synchronised: Boolean,
+                 stored: Boolean)(fetch: I => O): NoIO[I, O] =
     new NoIO[I, O](
       fetch = fetch,
-      lazyValue = Lazy.value(
-        synchronised = synchronised,
-        stored = stored
-      )
+      lazyValue =
+        Lazy.value(
+          synchronised = synchronised,
+          stored = stored
+        )
     )
 
   def blockIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable, I, O](blockIO: I => IOStrategy,
-                                                                            reserveError: => ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
+                                                                            reserveError: => ER,
+                                                                            initial: Option[O])(fetch: I => IO[E, O]): Cache[E, I, O] =
     new BlockIOCache[E, I, O](
       Cache.noIO[I, Cache[E, I, O]](synchronised = false, stored = true) {
         i =>
@@ -85,18 +101,21 @@ private[core] object Cache {
             case IOStrategy.ConcurrentIO(cacheOnAccess) =>
               Cache.concurrentIO[E, I, O](
                 synchronised = false,
+                initial = initial,
                 stored = cacheOnAccess
               )(fetch)
 
             case IOStrategy.SynchronisedIO(cacheOnAccess) =>
               Cache.concurrentIO[E, I, O](
                 synchronised = true,
+                initial = initial,
                 stored = cacheOnAccess
               )(fetch)
 
             case IOStrategy.ReservedIO(cacheOnAccess) =>
               Cache.reservedIO[E, ER, I, O](
                 stored = cacheOnAccess,
+                initial = initial,
                 reserveError = reserveError
               )(fetch)
           }
@@ -105,9 +124,9 @@ private[core] object Cache {
 }
 
 /**
-  * Caches a value on read. Used for IO operations where the output does not change.
-  * For example: A file's size.
-  */
+ * Caches a value on read. Used for IO operations where the output does not change.
+ * For example: A file's size.
+ */
 private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends LazyLogging { self =>
   def value(i: => I): IO[E, O]
   def isCached: Boolean
@@ -121,11 +140,11 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
     get().map(_.map(Some(_))) getOrElse f
 
   /**
-    * An adapter function that applies the map function to the input on each invocation.
-    * The result does not get stored in this cache.
-    *
-    * [[mapStored]] Or [[flatMap]] functions are used for where storage is required.
-    */
+   * An adapter function that applies the map function to the input on each invocation.
+   * The result does not get stored in this cache.
+   *
+   * [[mapStored]] Or [[flatMap]] functions are used for where storage is required.
+   */
   def map[F >: E : ErrorHandler, B](f: O => IO[F, B]): Cache[F, I, B] =
     new Cache[F, I, B] {
       override def value(i: => I): IO[F, B] =
@@ -154,7 +173,7 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
     }
 
   def mapStored[F >: E : ErrorHandler, O2](f: O => IO[F, O2]): Cache[F, I, O2] =
-    flatMap(Cache.concurrentIO(synchronised = false, stored = true)(f))
+    flatMap(Cache.concurrentIO(synchronised = false, stored = true, initial = None)(f))
 
   def flatMap[F >: E : ErrorHandler, B](next: Cache[F, O, B]): Cache[F, I, B] =
     new Cache[F, I, B] {
@@ -217,9 +236,9 @@ private class SynchronisedIO[E: ErrorHandler, -I, +B](fetch: I => IO[E, B],
 }
 
 /**
-  * Caches a value on read. Used for IO operations where the output does not change.
-  * For example: A file's size.
-  */
+ * Caches a value on read. Used for IO operations where the output does not change.
+ * For example: A file's size.
+ */
 private class ReservedIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable, -I, +B](fetch: I => IO[E, B],
                                                                                          lazyIO: LazyIO[E, B],
                                                                                          error: ER) extends Cache[E, I, B] {
@@ -249,9 +268,9 @@ private class ReservedIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable,
 }
 
 /**
-  * Caches a value on read. Used for IO operations where the output does not change.
-  * For example: A file's size.
-  */
+ * Caches a value on read. Used for IO operations where the output does not change.
+ * For example: A file's size.
+ */
 class NoIO[-I, +O](fetch: I => O, lazyValue: LazyValue[O]) {
 
   def value(input: => I): O =

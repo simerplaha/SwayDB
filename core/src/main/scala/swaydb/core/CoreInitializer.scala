@@ -26,7 +26,7 @@ import swaydb.Error.Level.ErrorHandler
 import swaydb.{IO, Tag}
 import swaydb.core.actor.WiredActor
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.GroupByInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.BufferCleaner
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.compaction._

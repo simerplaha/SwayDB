@@ -266,7 +266,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       def valueCache =
         valuesReader map {
           valuesReader =>
-            Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](synchronised = false, stored = false) {
+            Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](synchronised = false, stored = false, initial = None) {
               offset =>
                 if (offset.size == 0)
                   ValuesBlock.emptyUnblockedIO

@@ -26,9 +26,9 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
-import swaydb.core.data.{Persistent, _}
+import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.GroupByInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.DBFile
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
@@ -302,9 +302,6 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def persistent: Boolean =
     true
-
-  def existsInMemory: Boolean =
-    file.existsInMemory
 
   def notExistsOnDisk: Boolean =
     !file.existsOnDisk

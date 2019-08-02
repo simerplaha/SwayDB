@@ -22,9 +22,10 @@ package swaydb.core.io.file
 import java.nio.file.Path
 
 import swaydb.IO
+import swaydb.core.queue.FileLimiterItem
 import swaydb.data.slice.Slice
 
-private[file] trait DBFileType {
+private[file] trait DBFileType extends FileLimiterItem {
 
   def path: Path
 
@@ -51,11 +52,6 @@ private[file] trait DBFileType {
   def isOpen: Boolean
 
   def isFull: IO[swaydb.Error.IO, Boolean]
-
-  def memory: Boolean
-
-  def persistent: Boolean =
-    !memory
 
   def forceSave(): IO[swaydb.Error.IO, Unit]
 }

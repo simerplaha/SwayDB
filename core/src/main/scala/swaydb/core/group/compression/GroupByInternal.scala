@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.group.compression.data
+package swaydb.core.group.compression
 
 import swaydb.core.segment.format.a.block._
 

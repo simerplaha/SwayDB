@@ -98,9 +98,6 @@ private[file] class ChannelFile(val path: Path,
   override def isFull =
     IO.`false`
 
-  override def memory: Boolean =
-    false
-
   override def delete(): IO[swaydb.Error.IO, Unit] =
     close flatMap {
       _ =>

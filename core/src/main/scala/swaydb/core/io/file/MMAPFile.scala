@@ -206,8 +206,6 @@ private[file] class MMAPFile(val path: Path,
   override def isFull: IO[swaydb.Error.IO, Boolean] =
     recoverFromNullPointer(buffer.remaining() == 0)
 
-  override def memory: Boolean = false
-
   override def delete(): IO[swaydb.Error.IO, Unit] =
     close flatMap {
       _ =>

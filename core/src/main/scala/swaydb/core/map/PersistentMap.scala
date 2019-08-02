@@ -33,6 +33,7 @@ import swaydb.core.io.file.{DBFile, IOEffect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
 import swaydb.core.util.Extension
+import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -105,9 +106,9 @@ private[map] object PersistentMap extends LazyLogging {
 
   private[map] def firstFile(folder: Path, memoryMapped: Boolean, fileSize: Long)(implicit limiter: FileLimiter): IO[swaydb.Error.Map, DBFile] =
     if (memoryMapped)
-      DBFile.mmapInit(folder.resolve(0.toLogFileId), fileSize, autoClose = false)
+      DBFile.mmapInit(folder.resolve(0.toLogFileId), IOStrategy.SynchronisedIO(true), fileSize, autoClose = false)
     else
-      DBFile.channelWrite(folder.resolve(0.toLogFileId), autoClose = false)
+      DBFile.channelWrite(folder.resolve(0.toLogFileId), IOStrategy.SynchronisedIO(true), autoClose = false)
 
   private[map] def recover[K, V](folder: Path,
                                  mmap: Boolean,
@@ -125,7 +126,7 @@ private[map] object PersistentMap extends LazyLogging {
     folder.files(Extension.Log) mapIO {
       path =>
         logger.info("{}: Recovering with dropCorruptedTailEntries = {}.", path, dropCorruptedTailEntries)
-        DBFile.channelRead(path, autoClose = false) flatMap {
+        DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false) flatMap {
           file =>
             file.readAll flatMap {
               bytes =>
@@ -216,9 +217,9 @@ private[map] object PersistentMap extends LazyLogging {
         val bytes = MapCodec.write(skipList)
         val newFile =
           if (mmap)
-            DBFile.mmapInit(path = nextPath, bufferSize = bytes.size + size, autoClose = false)
+            DBFile.mmapInit(path = nextPath, IOStrategy.SynchronisedIO(true), bufferSize = bytes.size + size, autoClose = false)
           else
-            DBFile.channelWrite(nextPath, autoClose = false)
+            DBFile.channelWrite(nextPath, IOStrategy.SynchronisedIO(true), autoClose = false)
 
         newFile flatMap {
           newFile =>

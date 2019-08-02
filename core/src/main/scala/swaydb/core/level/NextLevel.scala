@@ -21,7 +21,7 @@ package swaydb.core.level
 
 import swaydb.IO
 import swaydb.core.data.Memory
-import swaydb.core.group.compression.data.GroupByInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
