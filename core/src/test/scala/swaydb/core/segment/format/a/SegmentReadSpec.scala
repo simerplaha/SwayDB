@@ -849,20 +849,31 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           val segment2 = TestSegment(keyValues2).runRandomIO.value
           val segment3 = TestSegment(keyValues3).runRandomIO.value
 
+          def clearAll() = {
+            segment1.clearAllCaches()
+            segment2.clearAllCaches()
+            segment3.clearAllCaches()
+          }
+
           val bytes = Files.readAllBytes(segment2.path)
 
+          //FIXME this should result in DataAccess
+
           Files.write(segment2.path, bytes.drop(1))
-          //FIXME this should result in SegmentCorruptionException
-          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runRandomIO.value.exception
+          clearAll()
+          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runRandomIO.get shouldBe a[swaydb.Error]
 
           Files.write(segment2.path, bytes.dropRight(1))
-          Segment.getAllKeyValues(Seq(segment2)).failed.runRandomIO.value.exception
+          clearAll()
+          Segment.getAllKeyValues(Seq(segment2)).failed.runRandomIO.get shouldBe a[swaydb.Error]
 
           Files.write(segment2.path, bytes.drop(10))
-          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runRandomIO.value.exception
+          clearAll()
+          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runRandomIO.get shouldBe a[swaydb.Error]
 
           Files.write(segment2.path, bytes.dropRight(1))
-          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runRandomIO.value.exception
+          clearAll()
+          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runRandomIO.get shouldBe a[swaydb.Error]
         }
       } else {
         //memory files do not require this test

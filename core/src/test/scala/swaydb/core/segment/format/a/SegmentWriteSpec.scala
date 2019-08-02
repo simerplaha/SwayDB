@@ -1187,7 +1187,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
         segment.put(
           newKeyValues = newKeyValues.toMemory,
-          minSegmentSize = 1.kb,
+          minSegmentSize = 500.bytes,
           removeDeletes = false,
           createdInLevel = 0,
           valuesConfig = newKeyValues.last.valuesConfig,

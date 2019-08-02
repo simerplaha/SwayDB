@@ -154,11 +154,7 @@ object SegmentFooterBlock {
           bloomFilter.map(_.bytes.size).getOrElse(0)
 
       footerBytes addInt footerOffset
-
-      //do CRC
-      val indexBytesToCRC = footerBytes.take(SegmentBlock.crcBytes)
-      assert(indexBytesToCRC.size == SegmentBlock.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentBlock.crcBytes}")
-      footerBytes addLong CRC32.forBytes(indexBytesToCRC)
+      footerBytes addLong CRC32.forBytes(footerBytes)
 
       state.bytes.close()
       state
@@ -168,97 +164,99 @@ object SegmentFooterBlock {
   def read(reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): IO[swaydb.Error.Segment, SegmentFooterBlock] =
     try {
       val segmentBlockSize = reader.size.get.toInt
-      val footerStartOffset = reader.moveTo(segmentBlockSize - ByteSizeOf.int).readInt().get
+      val fullFooterBytes = Reader(reader.moveTo(segmentBlockSize - SegmentFooterBlock.optimalBytesRequired).readAll().get)
+      val footerOffsetAndCrc = fullFooterBytes.moveTo(fullFooterBytes.size.get - (ByteSizeOf.int + ByteSizeOf.long))
+      val footerStartOffset = footerOffsetAndCrc.readInt().get
+      val expectedCRC = footerOffsetAndCrc.readLong().get
       val footerSize = segmentBlockSize - footerStartOffset
-      val footerBytes = reader.moveTo(footerStartOffset).read(footerSize - ByteSizeOf.int).get
-      val footerReader = Reader(footerBytes)
-      val formatId = footerReader.readIntUnsigned().get
-      if (formatId != SegmentBlock.formatId) {
-        val message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}"
-        return IO.Failure(swaydb.Error.DataAccess(message = message, new Exception(message)))
+      val footerBytes = fullFooterBytes.moveTo(footerStartOffset).read(footerSize).get
+      val actualCRC = CRC32.forBytes(footerBytes dropRight ByteSizeOf.long) //drop crc bytes.
+      if (expectedCRC != actualCRC) {
+        IO.Failure(swaydb.Error.DataAccess(s"Corrupted Segment: CRC Check failed. $expectedCRC != $actualCRC", new Exception("CRC check failed.")))
+      } else {
+        val footerReader = Reader(footerBytes)
+        val formatId = footerReader.readIntUnsigned().get
+        if (formatId != SegmentBlock.formatId) {
+          val message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}"
+          IO.Failure(swaydb.Error.DataAccess(message = message, new Exception(message)))
+        } else {
+          val createdInLevel = footerReader.readIntUnsigned().get
+          val numberOfGroups = footerReader.readIntUnsigned().get
+          val numberOfRanges = footerReader.readIntUnsigned().get
+          val hasPut = footerReader.readBoolean().get
+          val keyValueCount = footerReader.readIntUnsigned().get
+          val bloomFilterItemsCount = footerReader.readIntUnsigned().get
+          val sortedIndexOffset =
+            SortedIndexBlock.Offset(
+              size = footerReader.readIntUnsigned().get,
+              start = footerReader.readIntUnsigned().get
+            )
+
+          val hashIndexSize = footerReader.readIntUnsigned().get
+          val hashIndexOffset =
+            if (hashIndexSize == 0)
+              None
+            else
+              Some(
+                HashIndexBlock.Offset(
+                  start = footerReader.readIntUnsigned().get,
+                  size = hashIndexSize
+                )
+              )
+
+          val binarySearchIndexSize = footerReader.readIntUnsigned().get
+          val binarySearchIndexOffset =
+            if (binarySearchIndexSize == 0)
+              None
+            else
+              Some(
+                BinarySearchIndexBlock.Offset(
+                  start = footerReader.readIntUnsigned().get,
+                  size = binarySearchIndexSize
+                )
+              )
+
+          val bloomFilterSize = footerReader.readIntUnsigned().get
+          val bloomFilterOffset =
+            if (bloomFilterSize == 0)
+              None
+            else
+              Some(
+                BloomFilterBlock.Offset(
+                  start = footerReader.readIntUnsigned().get,
+                  size = bloomFilterSize
+                )
+              )
+
+          val valuesOffset =
+            if (sortedIndexOffset.start == 0)
+              None
+            else
+              Some(ValuesBlock.Offset(0, sortedIndexOffset.start))
+
+          IO.Success(
+            SegmentFooterBlock(
+              SegmentFooterBlock.Offset(footerStartOffset, footerSize),
+              headerSize = 0,
+              compressionInfo = None,
+              valuesOffset = valuesOffset,
+              sortedIndexOffset = sortedIndexOffset,
+              hashIndexOffset = hashIndexOffset,
+              binarySearchIndexOffset = binarySearchIndexOffset,
+              bloomFilterOffset = bloomFilterOffset,
+              keyValueCount = keyValueCount,
+              createdInLevel = createdInLevel,
+              bloomFilterItemsCount = bloomFilterItemsCount,
+              numberOfRanges = numberOfRanges,
+              numberOfGroups = numberOfGroups,
+              hasPut = hasPut
+            )
+          )
+        }
       }
-      assert(formatId == SegmentBlock.formatId, s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}")
-      val createdInLevel = footerReader.readIntUnsigned().get
-      val numberOfGroups = footerReader.readIntUnsigned().get
-      val numberOfRanges = footerReader.readIntUnsigned().get
-      val hasPut = footerReader.readBoolean().get
-      val keyValueCount = footerReader.readIntUnsigned().get
-      val bloomFilterItemsCount = footerReader.readIntUnsigned().get
-      val sortedIndexOffset =
-        SortedIndexBlock.Offset(
-          size = footerReader.readIntUnsigned().get,
-          start = footerReader.readIntUnsigned().get
-        )
-
-      val hashIndexSize = footerReader.readIntUnsigned().get
-      val hashIndexOffset =
-        if (hashIndexSize == 0)
-          None
-        else
-          Some(
-            HashIndexBlock.Offset(
-              start = footerReader.readIntUnsigned().get,
-              size = hashIndexSize
-            )
-          )
-
-      val binarySearchIndexSize = footerReader.readIntUnsigned().get
-      val binarySearchIndexOffset =
-        if (binarySearchIndexSize == 0)
-          None
-        else
-          Some(
-            BinarySearchIndexBlock.Offset(
-              start = footerReader.readIntUnsigned().get,
-              size = binarySearchIndexSize
-            )
-          )
-
-      val bloomFilterSize = footerReader.readIntUnsigned().get
-      val bloomFilterOffset =
-        if (bloomFilterSize == 0)
-          None
-        else
-          Some(
-            BloomFilterBlock.Offset(
-              start = footerReader.readIntUnsigned().get,
-              size = bloomFilterSize
-            )
-          )
-
-      val valuesOffset =
-        if (sortedIndexOffset.start == 0)
-          None
-        else
-          Some(ValuesBlock.Offset(0, sortedIndexOffset.start))
-
-      val expectedCRC = footerReader.readLong().get
-      val crcBytes = footerBytes.take(SegmentBlock.crcBytes)
-      val crc = CRC32.forBytes(crcBytes)
-      if (expectedCRC != crc)
-        IO.Failure(swaydb.Error.DataAccess(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
-      else
-        IO.Success(
-          SegmentFooterBlock(
-            SegmentFooterBlock.Offset(footerStartOffset, footerSize),
-            headerSize = 0,
-            compressionInfo = None,
-            valuesOffset = valuesOffset,
-            sortedIndexOffset = sortedIndexOffset,
-            hashIndexOffset = hashIndexOffset,
-            binarySearchIndexOffset = binarySearchIndexOffset,
-            bloomFilterOffset = bloomFilterOffset,
-            keyValueCount = keyValueCount,
-            createdInLevel = createdInLevel,
-            bloomFilterItemsCount = bloomFilterItemsCount,
-            numberOfRanges = numberOfRanges,
-            numberOfGroups = numberOfGroups,
-            hasPut = hasPut
-          )
-        )
     } catch {
       case exception: Throwable =>
-        IO.failed(exception)
+        IO.Failure(swaydb.Error.DataAccess(s"Corrupted Segment", exception))
     }
 
   implicit object SegmentFooterBlockOps extends BlockOps[SegmentFooterBlock.Offset, SegmentFooterBlock] {

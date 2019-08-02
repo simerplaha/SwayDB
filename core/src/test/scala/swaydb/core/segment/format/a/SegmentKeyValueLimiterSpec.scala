@@ -169,7 +169,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
 
         //fetch the head Group key-value from the Segment's cache and assert that it actually is decompressed and it's cache is empty.
         val headGroupAgain = segment.cache.firstEntry().getValue.asInstanceOf[Persistent.Group]
-        eventual(2.seconds)(headGroupAgain.isKeyValuesCacheEmpty shouldBe true)
+        eventual(2.seconds)(headGroupAgain.isBlockCacheEmpty shouldBe true)
 
         //remove more key-values so that Group gets pushed out.
         assertGet(nonGroupKeyValues.take(10), segment)
