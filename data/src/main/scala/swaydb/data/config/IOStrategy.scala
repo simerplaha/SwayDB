@@ -20,13 +20,14 @@ package swaydb.data.config
 
 sealed trait IOStrategy {
   def cacheOnAccess: Boolean
+  def withCacheOnAccess: IOStrategy
 }
 object IOStrategy {
 
   /**
-    * The default [[IOStrategy]] strategy used for all [[IOAction.ReadCompressedData]]
-    * or [[IOAction.ReadUncompressedData]] blocks.
-    */
+   * The default [[IOStrategy]] strategy used for all [[IOAction.ReadCompressedData]]
+   * or [[IOAction.ReadUncompressedData]] blocks.
+   */
   val synchronisedStoredIfCompressed: IOAction => IOStrategy.SynchronisedIO =
     (dataType: IOAction) =>
       IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed)
@@ -56,16 +57,25 @@ object IOStrategy {
       IOStrategy.ReservedIO(cacheOnAccess = false)
 
   /**
-    * The default [[IOStrategy]] strategy used for all [[IOAction.ReadDataOverview]].
-    * BlockInfos are never individually unless the entire Segment is compressed.
-    */
+   * The default [[IOStrategy]] strategy used for all [[IOAction.ReadDataOverview]].
+   * BlockInfos are never individually unless the entire Segment is compressed.
+   */
   val defaultBlockInfoStored =
     IOStrategy.ConcurrentIO(true)
 
   val defaultBlockReadersStored =
     IOStrategy.ConcurrentIO(true)
 
-  case class ConcurrentIO(cacheOnAccess: Boolean) extends IOStrategy
-  case class SynchronisedIO(cacheOnAccess: Boolean) extends IOStrategy
-  case class ReservedIO(cacheOnAccess: Boolean) extends IOStrategy
+  case class ConcurrentIO(cacheOnAccess: Boolean) extends IOStrategy {
+    def withCacheOnAccess: ConcurrentIO =
+      copy(cacheOnAccess = true)
+  }
+  case class SynchronisedIO(cacheOnAccess: Boolean) extends IOStrategy {
+    def withCacheOnAccess: SynchronisedIO =
+      copy(cacheOnAccess = true)
+  }
+  case class ReservedIO(cacheOnAccess: Boolean) extends IOStrategy {
+    def withCacheOnAccess: ReservedIO =
+      copy(cacheOnAccess = true)
+  }
 }

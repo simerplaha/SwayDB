@@ -38,7 +38,7 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 - Key only iterations (Lazily fetched values).
 - Supported data types - `Map[K, V]` & `Set[T]`.
 - [Configurable](http://www.swaydb.io/configuring-levels/) levels.
-- [Compression](http://www.swaydb.io/configuring-levels/groupBy/) for both Persistent & Memory databases with LZ4 & Snappy.
+- [Compression](http://www.swaydb.io/configuring-levels/groupingStrategy/) for both Persistent & Memory databases with LZ4 & Snappy.
 - Duplicate values can be eliminated with [compressDuplicateValues](http://www.swaydb.io/configuring-levels/compressDuplicateValues/).
 
 [Read more](http://swaydb.io/).

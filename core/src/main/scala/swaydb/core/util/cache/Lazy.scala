@@ -22,25 +22,29 @@ package swaydb.core.util.cache
 import swaydb.{ErrorHandler, IO}
 
 object Lazy {
-  def value[B](synchronised: Boolean, stored: Boolean): LazyValue[B] =
-    new LazyValue[B](
-      synchronised = synchronised,
-      stored = stored
-    )
-
-  def io[E: ErrorHandler, B](synchronised: Boolean,
-                             stored: Boolean,
-                             initial: Option[B]): LazyIO[E, B] = {
-
-    val lazyVal =
-      Lazy.value[IO.Success[E, B]](
+  def value[A](synchronised: Boolean,
+               stored: Boolean,
+               initial: Option[A]): LazyValue[A] = {
+    val cache =
+      new LazyValue[A](
         synchronised = synchronised,
         stored = stored
       )
-
-    initial foreach (value => lazyVal.set(IO.Success(value)))
-    new LazyIO[E, B](lazyValue = lazyVal)
+    initial.foreach(value => cache.set(value))
+    cache
   }
+
+  def io[E: ErrorHandler, A](synchronised: Boolean,
+                             stored: Boolean,
+                             initial: Option[A]): LazyIO[E, A] =
+    new LazyIO[E, A](
+      lazyValue =
+        Lazy.value[IO.Success[E, A]](
+          synchronised = synchronised,
+          stored = stored,
+          initial = initial.map(IO.Success(_))
+        )
+    )
 }
 
 protected sealed trait Lazy[A] {

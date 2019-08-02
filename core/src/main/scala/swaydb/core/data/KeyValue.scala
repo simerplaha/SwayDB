@@ -401,7 +401,7 @@ private[swaydb] object Memory {
                    deadline: Option[Deadline]) extends Memory with KeyValue.ReadOnly.Group {
 
     private val segmentCache: NoIO[(KeyOrder[Slice[Byte]], KeyValueLimiter, SegmentIO), SegmentCache] =
-      Cache.noIO(synchronised = true, stored = true) {
+      Cache.noIO(synchronised = true, stored = true, initial = None) {
         case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter, groupIO: SegmentIO) =>
           SegmentCache(
             id = "Memory.Group - BinarySegment",
@@ -1823,7 +1823,7 @@ private[core] object Persistent {
           valueCache.value(ValuesBlock.Offset(valueOffset, valueLength)) map {
             reader =>
               val segmentCache: NoIO[(KeyOrder[Slice[Byte]], KeyValueLimiter, SegmentIO), SegmentCache] =
-                Cache.noIO(synchronised = true, stored = true) {
+                Cache.noIO(synchronised = true, stored = true, initial = None) {
                   case (keyOrder: KeyOrder[Slice[Byte]], limiter: KeyValueLimiter, groupIO: SegmentIO) =>
                     val moved: BlockRefReader[SegmentBlock.Offset] =
                       BlockRefReader.moveTo(

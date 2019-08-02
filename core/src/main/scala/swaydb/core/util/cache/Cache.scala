@@ -81,44 +81,55 @@ private[core] object Cache {
     )
 
   def noIO[I, O](synchronised: Boolean,
-                 stored: Boolean)(fetch: I => O): NoIO[I, O] =
+                 stored: Boolean,
+                 initial: Option[O])(fetch: I => O): NoIO[I, O] =
     new NoIO[I, O](
       fetch = fetch,
       lazyValue =
         Lazy.value(
           synchronised = synchronised,
-          stored = stored
+          stored = stored,
+          initial = initial
         )
     )
 
-  def blockIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable, I, O](blockIO: I => IOStrategy,
-                                                                            reserveError: => ER,
-                                                                            initial: Option[O])(fetch: I => IO[E, O]): Cache[E, I, O] =
+  def io[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable, I, O](strategy: IOStrategy,
+                                                                       reserveError: => ER,
+                                                                       initial: Option[O])(fetch: I => IO[E, O]): Cache[E, I, O] =
+    strategy match {
+      case IOStrategy.ConcurrentIO(cacheOnAccess) =>
+        Cache.concurrentIO[E, I, O](
+          synchronised = false,
+          initial = initial,
+          stored = cacheOnAccess
+        )(fetch)
+
+      case IOStrategy.SynchronisedIO(cacheOnAccess) =>
+        Cache.concurrentIO[E, I, O](
+          synchronised = true,
+          initial = initial,
+          stored = cacheOnAccess
+        )(fetch)
+
+      case IOStrategy.ReservedIO(cacheOnAccess) =>
+        Cache.reservedIO[E, ER, I, O](
+          stored = cacheOnAccess,
+          initial = initial,
+          reserveError = reserveError
+        )(fetch)
+    }
+
+  def deferredIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable, I, O](strategy: I => IOStrategy,
+                                                                               reserveError: => ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
     new BlockIOCache[E, I, O](
-      Cache.noIO[I, Cache[E, I, O]](synchronised = false, stored = true) {
+      Cache.noIO[I, Cache[E, I, O]](synchronised = false, stored = true, initial = None) {
         i =>
-          FunctionUtil.safe((_: I) => IOStrategy.ConcurrentIO(false), blockIO)(i) match {
-            case IOStrategy.ConcurrentIO(cacheOnAccess) =>
-              Cache.concurrentIO[E, I, O](
-                synchronised = false,
-                initial = initial,
-                stored = cacheOnAccess
-              )(fetch)
-
-            case IOStrategy.SynchronisedIO(cacheOnAccess) =>
-              Cache.concurrentIO[E, I, O](
-                synchronised = true,
-                initial = initial,
-                stored = cacheOnAccess
-              )(fetch)
-
-            case IOStrategy.ReservedIO(cacheOnAccess) =>
-              Cache.reservedIO[E, ER, I, O](
-                stored = cacheOnAccess,
-                initial = initial,
-                reserveError = reserveError
-              )(fetch)
-          }
+          val ioStrategy = FunctionUtil.safe((_: I) => IOStrategy.ConcurrentIO(false), strategy)(i)
+          Cache.io[E, ER, I, O](
+            strategy = ioStrategy,
+            reserveError = reserveError,
+            initial = None
+          )(fetch)
       }
     )
 }

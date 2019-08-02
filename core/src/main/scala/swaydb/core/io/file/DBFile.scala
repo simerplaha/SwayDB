@@ -24,7 +24,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ErrorHandler
 import swaydb.IO._
-import swaydb.core.queue.{FileLimiter, FileLimiterItem}
+import swaydb.core.queue.FileLimiter
 import swaydb.core.util.cache.Cache
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
@@ -39,14 +39,17 @@ object DBFile extends LazyLogging {
                 memoryMapped: Boolean,
                 ioStrategy: IOStrategy,
                 file: Option[DBFileType],
-                autoClose: Boolean)(implicit limiter: FileLimiter) =
-    Cache.blockIO[swaydb.Error.IO, Error.OpeningFile, Unit, DBFileType](
-      blockIO = (_: Unit) => ioStrategy,
+                autoClose: Boolean)(implicit limiter: FileLimiter) = {
+    if (autoClose) file.foreach(limiter.close)
+
+    Cache.io[swaydb.Error.IO, Error.OpeningFile, Unit, DBFileType](
+      strategy = ioStrategy,
       reserveError = Error.OpeningFile(path, Reserve(name = s"DBFile: $path. MemoryMapped: $memoryMapped")),
       initial = file
     ) {
       _ =>
-        logger.trace(s"{}: Opening closed file.", path)
+        logger.debug(s"{}: Opening closed file.", path)
+
         val openResult =
           if (memoryMapped)
             MMAPFile.read(path)
@@ -56,6 +59,7 @@ object DBFile extends LazyLogging {
         if (autoClose) openResult.foreach(limiter.close)
         openResult
     }
+  }
 
   def write(path: Path,
             bytes: Slice[Byte]): IO[swaydb.Error.IO, Path] =
@@ -194,7 +198,11 @@ object DBFile extends LazyLogging {
               path = path,
               memoryMapped = true,
               file = Some(file),
-              ioStrategy = ioStrategy,
+              ioStrategy =
+                if (ioStrategy.cacheOnAccess)
+                  ioStrategy
+                else
+                  ioStrategy.withCacheOnAccess, //mmap files should not be not cached-on-access.
               autoClose = autoClose
             )
         )
@@ -208,12 +216,7 @@ object DBFile extends LazyLogging {
 class DBFile(val path: Path,
              memoryMapped: Boolean,
              autoClose: Boolean,
-             cache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit limiter: FileLimiter) extends FileLimiterItem with LazyLogging {
-
-  private val busy = Reserve[Unit](name = s"${this.getClass.getSimpleName}: $path")
-  require(busy.isFree)
-
-  if (autoClose && isOpen) limiter.close(this)
+             cache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit limiter: FileLimiter) extends LazyLogging {
 
   def existsOnDisk =
     IOEffect.exists(path)
@@ -277,10 +280,10 @@ class DBFile(val path: Path,
 
   //memory files are never closed, if it's memory file return true.
   def isOpen =
-    cache.value().exists(_.isOpen)
+    cache.get().exists(_.exists(_.isOpen))
 
   def isFileDefined =
-    cache.isCached
+    cache.get().isDefined
 
   def isMemoryMapped =
     cache.value() flatMap (_.isMemoryMapped)

@@ -1394,13 +1394,13 @@ object CommonAssertions {
     getSegmentBlockCacheFromSegmentClosed(segment, segmentIO)
   }
 
-  def randomIOStrategy(): IOStrategy =
+  def randomIOStrategy(cacheOnAccess: Boolean = randomBoolean()): IOStrategy =
     if (randomBoolean())
-      IOStrategy.SynchronisedIO(randomBoolean())
+      IOStrategy.SynchronisedIO(cacheOnAccess)
     else if (randomBoolean())
-      IOStrategy.ConcurrentIO(randomBoolean())
+      IOStrategy.ConcurrentIO(cacheOnAccess)
     else
-      IOStrategy.ReservedIO(randomBoolean())
+      IOStrategy.ReservedIO(cacheOnAccess)
 
   def getSegmentBlockCacheFromSegmentClosed(segment: SegmentBlock.Closed, segmentIO: SegmentIO = SegmentIO.random): SegmentBlockCache =
     SegmentBlockCache(
@@ -1656,15 +1656,18 @@ object CommonAssertions {
   }
 
   implicit class SegmentIOImplicits(io: SegmentIO.type) {
-    def random =
+    def random: SegmentIO =
+      random(cacheOnAccess = randomBoolean())
+
+    def random(cacheOnAccess: Boolean = randomBoolean()): SegmentIO =
       SegmentIO(
-        segmentBlockIO = _ => randomIOStrategy(),
-        hashIndexBlockIO = _ => randomIOStrategy(),
-        bloomFilterBlockIO = _ => randomIOStrategy(),
-        binarySearchIndexBlockIO = _ => randomIOStrategy(),
-        sortedIndexBlockIO = _ => randomIOStrategy(),
-        valuesBlockIO = _ => randomIOStrategy(),
-        segmentFooterBlockIO = _ => randomIOStrategy()
+        segmentBlockIO = _ => randomIOStrategy(cacheOnAccess),
+        hashIndexBlockIO = _ => randomIOStrategy(cacheOnAccess),
+        bloomFilterBlockIO = _ => randomIOStrategy(cacheOnAccess),
+        binarySearchIndexBlockIO = _ => randomIOStrategy(cacheOnAccess),
+        sortedIndexBlockIO = _ => randomIOStrategy(cacheOnAccess),
+        valuesBlockIO = _ => randomIOStrategy(cacheOnAccess),
+        segmentFooterBlockIO = _ => randomIOStrategy(cacheOnAccess)
       )
   }
 }
