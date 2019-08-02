@@ -298,10 +298,10 @@ private[segment] case class PersistentSegment(file: DBFile,
     file.existsOnDisk
 
   def memory: Boolean =
-    file.memory
+    false
 
   def persistent: Boolean =
-    file.persistent
+    true
 
   def existsInMemory: Boolean =
     file.existsInMemory

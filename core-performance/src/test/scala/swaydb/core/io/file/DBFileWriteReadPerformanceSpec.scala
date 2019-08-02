@@ -176,23 +176,6 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
         }
       }
       mmapFile.close.runRandomIO.value
-
-      /**
-       * Benchmark memory file read
-       *
-       * Round 1: 0.07953418 seconds
-       * Round 2: TestData.falsePositiveRate29407648 seconds
-       * Round 3: 0.090982974 seconds
-       */
-      val memoryFile = DBFile.memory(file.path, allBytes, autoClose = true).runRandomIO.value
-      benchmark("memory read benchmark") {
-        bytes.foldLeft(0) {
-          case (index, byteSlice) =>
-            //            memoryFile.read(index, chunkSize).runIO shouldBe byteSlice
-            memoryFile.read(index, chunkSize)
-            index + chunkSize
-        }
-      }
     }
   }
 }

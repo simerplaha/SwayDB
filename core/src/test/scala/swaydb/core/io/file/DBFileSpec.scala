@@ -617,59 +617,6 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     }
   }
 
-  "DBFile.memory" should {
-    "create an immutable DBFile" in {
-      val path = randomFilePath
-      val bytes = randomBytesSlice(100)
-
-      val file = DBFile.memory(path, bytes, autoClose = true).runRandomIO.value
-      //cannot write to a memory file as it's immutable
-      file.append(bytes).failed.runRandomIO.value.exception shouldBe a[UnsupportedOperationException]
-      file.isFull.runRandomIO.value shouldBe true
-      file.isOpen shouldBe true
-      file.existsOnDisk shouldBe false
-
-      file.readAll.runRandomIO.value shouldBe bytes
-
-      (0 until bytes.size) foreach {
-        index =>
-          val readBytes = file.read(index, 1).runRandomIO.value
-          readBytes.underlyingArraySize shouldBe bytes.size
-          readBytes.head shouldBe bytes(index)
-          file.get(index).runRandomIO.value shouldBe bytes(index)
-      }
-
-      file.close.runRandomIO.value
-    }
-
-    "exist in memory after being closed" in {
-      val path = randomFilePath
-      val bytes = randomBytesSlice(100)
-
-      val file = DBFile.memory(path, bytes, autoClose = true).runRandomIO.value
-      file.isFull.runRandomIO.value shouldBe true
-      file.isOpen shouldBe true
-      file.existsOnDisk shouldBe false
-      file.isFileDefined shouldBe true
-      file.fileSize.runRandomIO.value shouldBe bytes.size
-
-      file.close.runRandomIO.value
-
-      file.isFull.runRandomIO.value shouldBe true
-      //in memory files are never closed
-      file.isOpen shouldBe true
-      file.existsOnDisk shouldBe false
-      //memory files are not remove from DBFile's reference when they closed.
-      file.isFileDefined shouldBe true
-      file.fileSize.runRandomIO.value shouldBe bytes.size
-
-      //reading an in-memory file
-      file.readAll.runRandomIO.value shouldBe bytes
-      //      file.isInitialised shouldBe true
-
-      file.close.runRandomIO.value
-    }
-  }
 
   "DBFile.delete" should {
     "delete a ChannelFile" in {
@@ -692,19 +639,6 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       file.existsOnDisk shouldBe false
       file.isOpen shouldBe false
       file.isFileDefined shouldBe false
-    }
-
-    "delete a MemoryFile" in {
-      val file = DBFile.memory(randomFilePath, randomBytesSlice(), autoClose = true).runRandomIO.value
-      file.close.runRandomIO.value
-
-      file.delete().runRandomIO.value
-      file.existsOnDisk shouldBe false
-      file.isOpen shouldBe false
-      file.isFileDefined shouldBe false
-      //bytes are nulled to be garbage collected
-      file.get(0).failed.runRandomIO.value.exception shouldBe a[NoSuchFileException]
-      file.isOpen shouldBe false
     }
   }
 
@@ -743,13 +677,6 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
           file.readAll.runRandomIO.value shouldBe bytes
           file.close.runRandomIO.value
       }
-    }
-
-    "fail when copying a MemoryFile" in {
-      val bytes = randomBytesSlice(100)
-      val file = DBFile.memory(randomFilePath, bytes, autoClose = true).runRandomIO.value
-
-      file.copyTo(randomFilePath).failed.runRandomIO.value.exception shouldBe swaydb.Exception.CannotCopyInMemoryFiles(file.path)
     }
   }
 

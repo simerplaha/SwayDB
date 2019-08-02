@@ -48,7 +48,6 @@ object DBFile {
         new DBFile(
           path = path,
           memoryMapped = false,
-          memory = false,
           autoClose = autoClose,
           file = Some(file)
         )
@@ -62,7 +61,6 @@ object DBFile {
         new DBFile(
           path = path,
           memoryMapped = false,
-          memory = false,
           autoClose = autoClose,
           file = None
         )
@@ -120,7 +118,6 @@ object DBFile {
         new DBFile(
           path = path,
           memoryMapped = true,
-          memory = false,
           autoClose = autoClose,
           file = None
         )
@@ -134,23 +131,9 @@ object DBFile {
         new DBFile(
           path = path,
           memoryMapped = true,
-          memory = false,
           autoClose = autoClose,
           file = Some(file)
         )
-    }
-
-  def memory(path: Path,
-             bytes: Slice[Byte],
-             autoClose: Boolean)(implicit limiter: FileLimiter): IO[swaydb.Error.IO, DBFile] =
-    IO[swaydb.Error.IO, DBFile] {
-      new DBFile(
-        path = path,
-        memoryMapped = false,
-        memory = true,
-        autoClose = autoClose,
-        file = Some(MemoryFile(path, bytes))
-      )
     }
 }
 /**
@@ -160,7 +143,6 @@ object DBFile {
  */
 class DBFile(val path: Path,
              memoryMapped: Boolean,
-             val memory: Boolean,
              autoClose: Boolean,
              @volatile var file: Option[DBFileType])(implicit limiter: FileLimiter) extends FileLimiterItem with LazyLogging {
 
@@ -193,8 +175,7 @@ class DBFile(val path: Path,
       fileType =>
         fileType.close() map {
           _ =>
-            //cannot lose reference to in-memory file on close. Only on delete, this in-memory file reference can be discarded.
-            if (!memory) file = None
+            file = None
         }
     } getOrElse IO.unit
 
@@ -223,11 +204,7 @@ class DBFile(val path: Path,
       case None =>
         logger.trace(s"{}: Opening closed file.", path)
         val openResult =
-          if (memory)
-            file.map(IO.Success(_)) getOrElse {
-              IO.Failure(swaydb.Error.NoSuchFile(path))
-            }
-          else if (memoryMapped)
+          if (memoryMapped)
             MMAPFile.read(path)
           else
             ChannelFile.read(path)
@@ -307,9 +284,6 @@ class DBFile(val path: Path,
 
   def forceSave(): IO[swaydb.Error.IO, Unit] =
     file.map(_.forceSave()) getOrElse IO.unit
-
-  def persistent: Boolean =
-    !memory
 
   override def equals(that: Any): Boolean =
     that match {
