@@ -25,6 +25,7 @@ import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.core.util.Options._
 
 private[core] object SegmentSearcher extends LazyLogging {
 
@@ -37,7 +38,7 @@ private[core] object SegmentSearcher extends LazyLogging {
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
              hasRange: Boolean,
              hashIndexSearchOnly: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
-    start map {
+    when(!hashIndexSearchOnly)(start) map {
       startFrom =>
         SortedIndexBlock.searchSeekOne(
           key = key,

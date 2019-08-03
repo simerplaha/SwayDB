@@ -24,6 +24,7 @@ import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueId
 import swaydb.core.util.Bytes
 import swaydb.core.util.TimeUtil._
 import swaydb.data.slice.Slice
+import swaydb.core.util.Options._
 
 import scala.concurrent.duration.Deadline
 
@@ -39,7 +40,7 @@ private[writer] object DeadlineWriter {
     currentDeadline map {
       currentDeadline: Deadline =>
         //fetch the previous deadline bytes
-        (if (enablePrefixCompression) previousDeadline else None) flatMap {
+        when(enablePrefixCompression)(previousDeadline) flatMap {
           previousDeadline =>
             compress(
               currentDeadline = currentDeadline,

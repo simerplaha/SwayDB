@@ -76,7 +76,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
   "Segment.get" should {
 
     "fixed key-value" in {
-      runThis(100.times) {
+      runThis(100.times, log = true) {
         assertSegment(
           keyValues = Slice(randomFixedKeyValue(1).toTransient),
           assert =
@@ -85,7 +85,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
                 Seq(
                   () => segment.get(0).runRandomIO.value shouldBe empty,
                   () => segment.get(2).runRandomIO.value shouldBe empty,
-                  () => segment.get(keyValues.head.key).runRandomIO.value.value shouldBe keyValues.head,
+                  () => segment.get(keyValues.head.key).runRandomIO.value.value shouldBe keyValues.head
                 )
               ).foreach(_ ())
         )

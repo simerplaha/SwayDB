@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a.entry.writer
 import swaydb.core.data.{Time, Transient}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
 import swaydb.core.util.Bytes._
+import swaydb.core.util.Options._
 
 private[writer] object TimeWriter {
 
@@ -34,7 +35,7 @@ private[writer] object TimeWriter {
                                isKeyCompressed: Boolean,
                                hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
     if (currentTime.time.nonEmpty)
-      (if (enablePrefixCompression) current.previous.map(getTime) else None) flatMap {
+      when(enablePrefixCompression)(current.previous.map(getTime)) flatMap {
         previousTime =>
           //need to compress at least 4 bytes because the meta data required after compression is minimum 2 bytes.
           writePartiallyCompressed(
