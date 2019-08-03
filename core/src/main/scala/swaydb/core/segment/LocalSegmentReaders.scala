@@ -19,11 +19,23 @@
 
 package swaydb.core.segment
 
+import java.util.function.Supplier
+
 import swaydb.IO
 import swaydb.core.segment.format.a.block.{BinarySearchIndexBlock, BloomFilterBlock, HashIndexBlock, SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 
 import scala.beans.BeanProperty
+
+object LocalSegmentReaders {
+  def create(): ThreadLocal[LocalSegmentReaders] =
+    ThreadLocal.withInitial[LocalSegmentReaders] {
+      new Supplier[LocalSegmentReaders] {
+        override def get(): LocalSegmentReaders =
+          LocalSegmentReaders(None, None, None, None, None)
+      }
+    }
+}
 
 case class LocalSegmentReaders(@BeanProperty var hashIndexReader: Option[IO.Success[swaydb.Error.Segment, Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]]]],
                                @BeanProperty var bloomFilterReader: Option[IO.Success[swaydb.Error.Segment, Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]]],

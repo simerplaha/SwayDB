@@ -67,7 +67,7 @@ private[core] class SegmentCache(id: String,
 
   import keyOrder._
 
-  private val segmentReader = ThreadLocal.withInitial[LocalSegmentReaders](() => LocalSegmentReaders(None, None, None, None, None))
+  private val segmentReader = LocalSegmentReaders.create()
 
   /**
    * Notes for why use putIfAbsent before adding to cache:
