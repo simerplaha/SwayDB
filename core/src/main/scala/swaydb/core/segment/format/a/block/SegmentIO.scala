@@ -34,6 +34,28 @@ object SegmentIO {
       segmentFooterBlockIO = IOStrategy.synchronisedStoredIfCompressed
     )
 
+  def defaultConcurrentStoredIfCompressed =
+    new SegmentIO(
+      segmentBlockIO = IOStrategy.concurrentStoredIfCompressed,
+      hashIndexBlockIO = IOStrategy.concurrentStoredIfCompressed,
+      bloomFilterBlockIO = IOStrategy.concurrentStoredIfCompressed,
+      binarySearchIndexBlockIO = IOStrategy.concurrentStoredIfCompressed,
+      sortedIndexBlockIO = IOStrategy.concurrentStoredIfCompressed,
+      valuesBlockIO = IOStrategy.concurrentStoredIfCompressed,
+      segmentFooterBlockIO = IOStrategy.concurrentStoredIfCompressed
+    )
+
+  def defaultConcurrentStored =
+    new SegmentIO(
+      segmentBlockIO = IOStrategy.concurrentStored,
+      hashIndexBlockIO = IOStrategy.concurrentStored,
+      bloomFilterBlockIO = IOStrategy.concurrentStored,
+      binarySearchIndexBlockIO = IOStrategy.concurrentStored,
+      sortedIndexBlockIO = IOStrategy.concurrentStored,
+      valuesBlockIO = IOStrategy.concurrentStored,
+      segmentFooterBlockIO = IOStrategy.concurrentStored
+    )
+
   def defaultSynchronisedStored =
     new SegmentIO(
       segmentBlockIO = IOStrategy.synchronisedStored,

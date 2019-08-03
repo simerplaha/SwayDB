@@ -218,18 +218,20 @@ object CommonAssertions {
     Random.shuffle(Seq(() => one, () => two, () => three, () => four, () => five, () => six)).head()
 
   def randomGroupByOption(keyValuesCount: Int = randomIntMax(50) max 1,
+                          keyValueSize: Option[Int] = eitherOne(None, Some(randomIntMax(1.mb) max 1)),
                           groupByGroups: Option[GroupByInternal.Groups] = randomGroupByGroupsOption()): Option[GroupByInternal.KeyValues] =
     eitherOne(
       left = None,
-      right = Some(randomGroupBy(keyValuesCount, groupByGroups))
+      right = Some(randomGroupBy(keyValuesCount, keyValueSize, groupByGroups))
     )
 
   def randomGroupBy(keyValuesCount: Int = randomIntMax(50) max 1,
+                    keyValueSize: Option[Int] = eitherOne(None, Some(randomIntMax(1.mb) max 1)),
                     groupByGroups: Option[GroupByInternal.Groups] = randomGroupByGroupsOption()): GroupByInternal.KeyValues = {
 
     GroupByInternal.KeyValues(
       count = keyValuesCount max 1,
-      size = eitherOne(None, Some(randomIntMax(1.mb) max 1)),
+      size = keyValueSize,
       groupByGroups = groupByGroups,
       valuesConfig = ValuesBlock.Config.random,
       sortedIndexConfig = SortedIndexBlock.Config.random,
@@ -244,10 +246,11 @@ object CommonAssertions {
   def randomGroupByGroupsOption(keyValuesCount: Int = randomIntMax(50) max 1): Option[GroupByInternal.Groups] =
     eitherOne(None, Some(randomGroupByGroups(keyValuesCount)))
 
-  def randomGroupByGroups(keyValuesCount: Int = randomIntMax(50) max 1): GroupByInternal.Groups =
+  def randomGroupByGroups(keyValuesCount: Int = randomIntMax(50) max 1,
+                          size: Option[Int] = eitherOne(None, Some(randomIntMax(1.mb) max 1))): GroupByInternal.Groups =
     GroupByInternal.Groups(
       count = keyValuesCount max 1,
-      size = eitherOne(None, Some(randomIntMax(1.mb) max 1)),
+      size = size,
       valuesConfig = ValuesBlock.Config.random,
       sortedIndexConfig = SortedIndexBlock.Config.random,
       binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,

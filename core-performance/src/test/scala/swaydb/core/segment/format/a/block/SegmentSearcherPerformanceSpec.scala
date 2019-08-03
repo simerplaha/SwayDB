@@ -36,10 +36,12 @@ class SegmentSearcherPerformanceSpec extends TestBase with MockFactory {
 
   "search performance" in {
     val compressions = Slice.fill(5)(randomCompressionsOrEmpty())
+    
+    val access = IOStrategy.ConcurrentIO(true)
 
     val keyValues =
       randomizedKeyValues(
-        count = 10000,
+        count = 100000,
         startId = Some(1),
         addPut = true,
         addGroups = false
@@ -48,12 +50,12 @@ class SegmentSearcherPerformanceSpec extends TestBase with MockFactory {
           ValuesBlock.Config(
             compressDuplicateValues = randomBoolean(),
             compressDuplicateRangeValues = randomBoolean(),
-            blockIO = _ => randomIOAccess(),
+            blockIO = _ => access,
             compressions = _ => compressions.head
           ),
         sortedIndexConfig =
           SortedIndexBlock.Config(
-            blockIO = _ => randomIOAccess(),
+            blockIO = _ => access,
             prefixCompressionResetCount = 0,
             enableAccessPositionIndex = true,
             compressions = _ => compressions(1)
@@ -63,7 +65,7 @@ class SegmentSearcherPerformanceSpec extends TestBase with MockFactory {
             enabled = true,
             minimumNumberOfKeys = 1,
             fullIndex = true,
-            blockIO = _ => randomIOAccess(),
+            blockIO = _ => access,
             compressions = _ => compressions(2)
           ),
         hashIndexConfig =
@@ -72,14 +74,14 @@ class SegmentSearcherPerformanceSpec extends TestBase with MockFactory {
             minimumNumberOfKeys = 2,
             minimumNumberOfHits = 2,
             allocateSpace = _.requiredSpace * 10,
-            blockIO = _ => randomIOAccess(),
+            blockIO = _ => access,
             compressions = _ => compressions(3)
           ),
         bloomFilterConfig =
           BloomFilterBlock.Config(
             falsePositiveRate = 0.001,
             minimumNumberOfKeys = 2,
-            blockIO = _ => randomIOAccess(),
+            blockIO = _ => access,
             compressions = _ => compressions(4)
           )
       )

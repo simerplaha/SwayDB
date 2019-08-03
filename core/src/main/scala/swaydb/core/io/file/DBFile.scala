@@ -83,7 +83,7 @@ object DBFile extends LazyLogging {
 
     self = cache
 
-    if (autoClose) limiter.close(closer)
+    if (autoClose && file.isDefined) limiter.close(closer)
     cache
   }
 

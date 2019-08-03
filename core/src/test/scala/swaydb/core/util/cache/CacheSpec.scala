@@ -126,20 +126,20 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.isCached shouldBe true
         cache.get() shouldBe Some(IO.Success(123))
         cache.value() shouldBe IO.Success(123) //value again mock function is not invoked again
-        cache.getOrElse(???) shouldBe IO.Success(123)
+        cache.getOrElse(fail()) shouldBe IO.Success(123)
 
         val mapCache = cache.map(int => IO(int))
         mapCache.get() shouldBe Some(IO.Success(123))
-        mapCache.value(???) shouldBe IO.Success(123)
-        mapCache.value(???) shouldBe IO.Success(123)
+        mapCache.value(fail()) shouldBe IO.Success(123)
+        mapCache.value(fail()) shouldBe IO.Success(123)
         mapCache.isCached shouldBe cache.isCached
 
         val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean(), None)((int: Int) => IO(int + 1)))
         flatMapCache.value() shouldBe IO.Success(124)
-        flatMapCache.value(???) shouldBe IO.Success(124)
+        flatMapCache.value(fail()) shouldBe IO.Success(124)
 
         //getOrElse on cached is not invoked on new value
-        cache.getOrElse(???) shouldBe IO(123)
+        cache.getOrElse(fail()) shouldBe IO(123)
 
         cache.clear()
         cache.isCached shouldBe false
@@ -207,8 +207,8 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         mock.expects() returning IO(222)
         cache.flatMap(Cache.concurrentIO(randomBoolean(), true, None)((int: Int) => IO(int + 2))).value(43433434) shouldBe IO(224)
 
-        //on cached value ??? is not invoked.
-        cache.getOrElse(???) shouldBe IO(222)
+        //on cached value fail() is not invoked.
+        cache.getOrElse(fail()) shouldBe IO(222)
       }
 
       runTestForAllCombinations(doTest)
@@ -291,7 +291,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         storedCache.value() shouldBe IO(100)
         storedCache.isCached shouldBe true
         //rootCache not value is not read
-        storedCache.value(???) shouldBe IO(100)
+        storedCache.value(fail()) shouldBe IO(100)
         //original rootCache is still empty
         rootCache.isCached shouldBe false
 
@@ -305,8 +305,8 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         storedCache2.value() shouldBe IO(200)
         storedCache2.isCached shouldBe true
         //rootCache not value is not read
-        storedCache2.value(???) shouldBe IO(200)
-        storedCache.value(???) shouldBe IO(100)
+        storedCache2.value(fail()) shouldBe IO(200)
+        storedCache.value(fail()) shouldBe IO(100)
         //original rootCache is still empty
         rootCache.isCached shouldBe false
         storedCache2.isCached shouldBe true

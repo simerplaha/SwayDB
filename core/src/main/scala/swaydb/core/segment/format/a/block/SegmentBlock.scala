@@ -112,6 +112,9 @@ private[core] object SegmentBlock {
 
     def flattenSegment: (Slice[Byte], Option[Deadline]) =
       (flattenSegmentBytes, nearestDeadline)
+
+    override def toString: String =
+      s"Closed Segment. Size: ${segmentSize}"
   }
 
   object Open {

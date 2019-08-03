@@ -147,7 +147,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
               initialValue =>
                 lazyValue.isDefined shouldBe true
                 lazyValue.get().get.get shouldBe initialValue
-                lazyValue.getOrElse(???) shouldBe IO.Success(initialValue)
+                lazyValue.getOrElse(fail()) shouldBe IO.Success(initialValue)
                 lazyValue.clear()
             }
 
@@ -182,7 +182,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
             initialValue =>
               lazyValue.isDefined shouldBe true
               lazyValue.get().get.get shouldBe initialValue
-              lazyValue.getOrElse(???) shouldBe IO.Success(initialValue)
+              lazyValue.getOrElse(fail()) shouldBe IO.Success(initialValue)
               lazyValue.clear()
           }
 
@@ -219,7 +219,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
           initialValue =>
             lazyValue.isDefined shouldBe true
             lazyValue.get().get.get shouldBe initialValue
-            lazyValue.getOrElse(???) shouldBe IO.Success(initialValue)
+            lazyValue.getOrElse(fail()) shouldBe IO.Success(initialValue)
             lazyValue.clear()
         }
 
@@ -254,7 +254,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
           initialValue =>
             lazyValue.isDefined shouldBe true
             lazyValue.get().get.get shouldBe initialValue
-            lazyValue.getOrElse(???) shouldBe IO.Success(initialValue)
+            lazyValue.getOrElse(fail()) shouldBe IO.Success(initialValue)
             lazyValue.clear()
         }
 

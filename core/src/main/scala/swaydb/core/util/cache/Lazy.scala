@@ -119,7 +119,7 @@ class LazyIO[E: ErrorHandler, A](lazyValue: LazyValue[IO.Success[E, A]]) extends
       lazyValue set IO.Success(value.get)
     catch {
       case exception: Exception =>
-        IO.failed(exception)
+        IO.failed[E, A](exception)
     }
 
   override def get(): Option[IO.Success[E, A]] =
@@ -130,7 +130,7 @@ class LazyIO[E: ErrorHandler, A](lazyValue: LazyValue[IO.Success[E, A]]) extends
       lazyValue getOrSet IO.Success(value.get)
     catch {
       case exception: Exception =>
-        IO.failed(exception)
+        IO.failed[E, A](exception)
     }
 
   override def getOrElse[B >: IO[E, A]](f: => B): B =
