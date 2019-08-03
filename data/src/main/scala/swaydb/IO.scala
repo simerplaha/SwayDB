@@ -397,7 +397,7 @@ object IO {
 
   object Deferred extends LazyLogging {
 
-    val maxRecoveriesBeforeWarn = 10
+    val maxRecoveriesBeforeWarn = 5
 
     val none = IO.Deferred(None, swaydb.Error.ReservedResource(Reserve(name = "Deferred.none")))
     val done = IO.Deferred(IO.Done, swaydb.Error.ReservedResource(Reserve(name = "Deferred.done")))

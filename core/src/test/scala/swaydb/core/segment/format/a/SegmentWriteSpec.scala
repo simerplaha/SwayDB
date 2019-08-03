@@ -98,7 +98,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
   "Segment" should {
 
     "create a Segment" in {
-      runThis(100.times) {
+      runThis(100.times, log = true) {
         assertSegment(
           keyValues =
             randomizedKeyValues(eitherOne(randomIntMax(keyValuesCount) max 1, keyValuesCount)),

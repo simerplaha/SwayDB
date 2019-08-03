@@ -24,7 +24,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ErrorHandler
 import swaydb.IO._
-import swaydb.core.queue.FileLimiter
+import swaydb.core.queue.{FileLimiter, FileLimiterItem}
 import swaydb.core.util.cache.Cache
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
@@ -35,30 +35,56 @@ import scala.util.hashing.MurmurHash3
 
 object DBFile extends LazyLogging {
 
-  def fileCache(path: Path,
+  def fileCache(filePath: Path,
                 memoryMapped: Boolean,
                 ioStrategy: IOStrategy,
                 file: Option[DBFileType],
                 autoClose: Boolean)(implicit limiter: FileLimiter) = {
-    if (autoClose) file.foreach(limiter.close)
 
-    Cache.io[swaydb.Error.IO, Error.OpeningFile, Unit, DBFileType](
-      strategy = ioStrategy,
-      reserveError = Error.OpeningFile(path, Reserve(name = s"DBFile: $path. MemoryMapped: $memoryMapped")),
-      initial = file
-    ) {
-      _ =>
-        logger.debug(s"{}: Opening closed file.", path)
+    //FIX-ME: need a better solution.
+    var self: Cache[Error.IO, Unit, DBFileType] = null
 
-        val openResult =
-          if (memoryMapped)
-            MMAPFile.read(path)
-          else
-            ChannelFile.read(path)
+    val closer =
+      new FileLimiterItem {
+        override def path: Path = filePath
+        override def delete(): IO[Error.Segment, Unit] = IO.failed("only closable")
+        override def close(): IO[Error.Segment, Unit] = {
+          self.get() map {
+            fileType =>
+              fileType.flatMap(_.close()) map {
+                _ =>
+                  self.clear()
+              }
+          } getOrElse IO.unit
+        }
 
-        if (autoClose) openResult.foreach(limiter.close)
-        openResult
-    }
+        override def isOpen: Boolean =
+          self.get().exists(_.exists(_.isOpen))
+      }
+
+    val cache =
+      Cache.io[swaydb.Error.IO, Error.OpeningFile, Unit, DBFileType](
+        strategy = ioStrategy.withCacheOnAccess,
+        reserveError = Error.OpeningFile(filePath, Reserve(name = s"DBFile: $filePath. MemoryMapped: $memoryMapped")),
+        initial = file
+      ) {
+        _ =>
+          logger.debug(s"{}: Opening closed file.", filePath)
+
+          val openResult =
+            if (memoryMapped)
+              MMAPFile.read(filePath)
+            else
+              ChannelFile.read(filePath)
+
+          if (autoClose) limiter.close(closer)
+          openResult
+      }
+
+    self = cache
+
+    if (autoClose) limiter.close(closer)
+    cache
   }
 
   def write(path: Path,
@@ -80,7 +106,7 @@ object DBFile extends LazyLogging {
           autoClose = autoClose,
           cache =
             fileCache(
-              path = path,
+              filePath = path,
               memoryMapped = false,
               file = Some(file),
               ioStrategy = ioStrategy,
@@ -103,7 +129,7 @@ object DBFile extends LazyLogging {
           autoClose = autoClose,
           cache =
             fileCache(
-              path = path,
+              filePath = path,
               memoryMapped = false,
               file = None,
               ioStrategy = ioStrategy,
@@ -174,7 +200,7 @@ object DBFile extends LazyLogging {
           autoClose = autoClose,
           cache =
             fileCache(
-              path = path,
+              filePath = path,
               memoryMapped = true,
               ioStrategy = ioStrategy,
               file = None,
@@ -195,14 +221,10 @@ object DBFile extends LazyLogging {
           autoClose = autoClose,
           cache =
             fileCache(
-              path = path,
+              filePath = path,
               memoryMapped = true,
               file = Some(file),
-              ioStrategy =
-                if (ioStrategy.cacheOnAccess)
-                  ioStrategy
-                else
-                  ioStrategy.withCacheOnAccess, //mmap files should not be not cached-on-access.
+              ioStrategy = ioStrategy,
               autoClose = autoClose
             )
         )
@@ -231,16 +253,16 @@ class DBFile(val path: Path,
         //try delegating the delete to the file itself.
         //If the file is already closed, then delete it from disk.
         //memory files are never closed so the first statement will always be executed for memory files.
-        (cache.value().map(_.delete()) getOrElse IOEffect.deleteIfExists(path)) map {
+        (cache.get().map(_.flatMap(_.delete())) getOrElse IOEffect.deleteIfExists(path)) map {
           _ =>
             cache.clear()
         }
     }
 
   def close: IO[swaydb.Error.IO, Unit] =
-    cache.value() map {
+    cache.get() map {
       fileType =>
-        fileType.close() map {
+        fileType.flatMap(_.close()) map {
           _ =>
             cache.clear()
         }

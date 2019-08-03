@@ -43,16 +43,16 @@ object TestLimitQueues {
       override def close(file: FileLimiterItem): Unit = {
         closeQueue.add(file)
         closeQueueSize += 1
-        if (closeQueueSize > 1000) {
-          closeQueue.poll().close()
+        if (closeQueueSize > 100) {
+          closeQueue.poll().close().get
         }
       }
 
       override def delete(file: FileLimiterItem): Unit = {
         deleteQueue.add(file)
         deleteQueueSize += 1
-        if (deleteQueueSize > 1000) {
-          closeQueue.poll().delete()
+        if (deleteQueueSize > 100) {
+          closeQueue.poll().delete().get
         }
       }
 

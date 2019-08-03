@@ -44,17 +44,9 @@ object IOStrategy {
     (_: IOAction) =>
       IOStrategy.SynchronisedIO(cacheOnAccess = true)
 
-  val reservedStoredIfCompressed: IOAction => IOStrategy.ReservedIO =
-    (dataType: IOAction) =>
-      IOStrategy.ReservedIO(cacheOnAccess = dataType.isCompressed)
-
-  val reservedStored: IOAction => IOStrategy.ReservedIO =
+  val reserved: IOAction => IOStrategy.ReservedIO =
     (_: IOAction) =>
       IOStrategy.ReservedIO(cacheOnAccess = true)
-
-  val reservedNotStored: IOAction => IOStrategy.ReservedIO =
-    (_: IOAction) =>
-      IOStrategy.ReservedIO(cacheOnAccess = false)
 
   /**
    * The default [[IOStrategy]] strategy used for all [[IOAction.ReadDataOverview]].

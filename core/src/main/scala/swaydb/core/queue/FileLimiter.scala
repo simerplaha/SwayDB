@@ -28,21 +28,15 @@ import scala.concurrent.duration._
 import scala.ref.WeakReference
 
 private[swaydb] trait FileLimiter {
-
   def close(file: FileLimiterItem): Unit
-
   def delete(file: FileLimiterItem): Unit
-
   def terminate(): Unit
 }
 
 private[core] trait FileLimiterItem {
   def path: Path
-
   def delete(): IO[swaydb.Error.Segment, Unit]
-
   def close(): IO[swaydb.Error.Segment, Unit]
-
   def isOpen: Boolean
 }
 
