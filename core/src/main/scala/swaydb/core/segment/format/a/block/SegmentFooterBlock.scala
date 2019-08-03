@@ -164,7 +164,7 @@ object SegmentFooterBlock {
   def read(reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): IO[swaydb.Error.Segment, SegmentFooterBlock] =
     try {
       val segmentBlockSize = reader.size.get.toInt
-      val fullFooterBytes = Reader(reader.moveTo(segmentBlockSize - SegmentFooterBlock.optimalBytesRequired).readAll().get)
+      val fullFooterBytes = Reader(reader.moveTo(segmentBlockSize - SegmentFooterBlock.optimalBytesRequired).readRemaining().get)
       val footerOffsetAndCrc = fullFooterBytes.moveTo(fullFooterBytes.size.get - (ByteSizeOf.int + ByteSizeOf.long))
       val footerStartOffset = footerOffsetAndCrc.readInt().get
       val expectedCRC = footerOffsetAndCrc.readLong().get

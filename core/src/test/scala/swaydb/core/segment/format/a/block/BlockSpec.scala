@@ -56,7 +56,7 @@ class BlockSpec extends TestBase {
 
           blockReader.readRemaining().get shouldBe dataBytes
           blockReader.read(Int.MaxValue).get shouldBe dataBytes
-          blockReader.readAll().get shouldBe dataBytes
+          blockReader.readFullBlock().get shouldBe dataBytes
           blockReader.readAllAndGetReader().get.readRemaining().get shouldBe dataBytes
         }
       }
@@ -97,7 +97,7 @@ class BlockSpec extends TestBase {
 
           decompressedBlockReader.readRemaining().get shouldBe dataBytes
           decompressedBlockReader.read(Int.MaxValue).get shouldBe dataBytes
-          decompressedBlockReader.readAll().get shouldBe dataBytes
+          decompressedBlockReader.readFullBlock().get shouldBe dataBytes
           decompressedBlockReader.readAllAndGetReader().get.readRemaining().get shouldBe dataBytes
         }
       }
@@ -128,7 +128,7 @@ class BlockSpec extends TestBase {
 
           blockReader.readRemaining().get shouldBe dataBytes
           blockReader.read(Int.MaxValue).get shouldBe dataBytes
-          blockReader.readAll().get shouldBe dataBytes
+          blockReader.readFullBlock().get shouldBe dataBytes
           blockReader.readAllAndGetReader().get.readRemaining().get shouldBe dataBytes
         }
       }
@@ -172,7 +172,7 @@ class BlockSpec extends TestBase {
 
           decompressedBlockReader.readRemaining().get shouldBe uncompressedSegmentBytesWithoutHeader
           decompressedBlockReader.read(Int.MaxValue).get shouldBe uncompressedSegmentBytesWithoutHeader
-          decompressedBlockReader.readAll().get shouldBe uncompressedSegmentBytesWithoutHeader
+          decompressedBlockReader.readFullBlock().get shouldBe uncompressedSegmentBytesWithoutHeader
           decompressedBlockReader.readAllAndGetReader().get.readRemaining().get shouldBe uncompressedSegmentBytesWithoutHeader
         }
       }
@@ -188,7 +188,7 @@ class BlockSpec extends TestBase {
     val ref = BlockRefReader[SegmentBlock.Offset](compressedBytes)
 
     val decompressedBlock = Block.unblock(ref).get
-    decompressedBlock.readAll().get shouldBe bytes.drop(headerSize)
+    decompressedBlock.readFullBlock().get shouldBe bytes.drop(headerSize)
   }
 
   "unblocking nested compressed block" in {
@@ -218,11 +218,11 @@ class BlockSpec extends TestBase {
 
     //got the original rootBlock bytes without the header.
     val decompressedRoot = decompressedRootBlock.readAllAndGetReader().get
-    decompressedRoot.readAll().get shouldBe rootUncompressedBytes.drop(headerSize)
+    decompressedRoot.readFullBlock().get shouldBe rootUncompressedBytes.drop(headerSize)
 
     val child1Ref = BlockRefReader.moveTo[SegmentBlock.Offset, SegmentBlock](SegmentBlock.Offset(0, compressedChildBytes1.size), decompressedRoot.copy())
     val child1DecompressedBytes = Block.unblock(child1Ref).get
-    child1DecompressedBytes.readAll().get shouldBe child1Bytes.drop(headerSize)
+    child1DecompressedBytes.readFullBlock().get shouldBe child1Bytes.drop(headerSize)
 
     //read child block2 using the same decompressed reader from root block but set the offset start to be the end of child1's compressed bytes end.
     //    decompressedRootBytes.readAll().get.drop(compressedChildBytes1.size)

@@ -296,7 +296,7 @@ class SegmentBlockCache(id: String,
     }
 
   def readAllBytes(): IO[swaydb.Error.Segment, Slice[Byte]] =
-    segmentBlockRef.copy().readAll()
+    segmentBlockRef.copy().readFullBlock()
 
   def clear(): Unit =
     allCaches.foreach(_.clear())

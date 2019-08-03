@@ -1340,7 +1340,7 @@ private[core] object Persistent {
             reader =>
               reader
                 .copy()
-                .readAllOrNone()
+                .readFullBlockOrNone()
                 .map(_.unslice())
           },
         _time = time,
@@ -1438,7 +1438,7 @@ private[core] object Persistent {
             reader =>
               reader
                 .copy()
-                .readAllOrNone()
+                .readFullBlockOrNone()
                 .map(_.unslice())
           },
         _time = time,
@@ -1567,7 +1567,7 @@ private[core] object Persistent {
             reader =>
               reader
                 .copy()
-                .readAll()
+                .readFullBlock()
                 .map(_.unslice())
           },
         _time = time,
@@ -1654,7 +1654,7 @@ private[core] object Persistent {
             reader =>
               reader
                 .copy()
-                .readAll()
+                .readFullBlock()
                 .flatMap {
                   bytes =>
                     ValueSerializer
@@ -1740,7 +1740,7 @@ private[core] object Persistent {
                 rangeReader =>
                   rangeReader
                     .copy()
-                    .readAll()
+                    .readFullBlock()
                     .flatMap(RangeValueSerializer.read)
                     .map {
                       case (from, range) =>

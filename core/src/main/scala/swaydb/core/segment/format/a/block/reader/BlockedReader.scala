@@ -67,7 +67,7 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
   }
 
   def readAllAndGetReader()(implicit blockOps: BlockOps[O, B]): IO[swaydb.Error.Segment, BlockedReader[O, B]] =
-    readAll()
+    readFullBlock()
       .map {
         bytes =>
           BlockedReader[O, B](

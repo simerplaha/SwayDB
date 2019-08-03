@@ -229,7 +229,7 @@ private[core] object Block extends LazyLogging {
     reader.block.compressionInfo match {
       case Some(compressionInfo) =>
         reader
-          .readAll()
+          .readFullBlock()
           .flatMap {
             compressedBytes =>
               compressionInfo.decompressor.decompress(

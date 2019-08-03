@@ -152,16 +152,16 @@ protected trait BlockReader extends Reader[swaydb.Error.Segment] with LazyLoggin
       }
   }
 
-  def readAll(): IO[swaydb.Error.Segment, Slice[Byte]] =
+  def readFullBlock(): IO[swaydb.Error.Segment, Slice[Byte]] =
     reader
       .moveTo(offset.start)
       .read(offset.size)
 
-  def readAllOrNone(): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
+  def readFullBlockOrNone(): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
     if (offset.size == 0)
       IO.none
     else
-      readAll().map(Some(_))
+      readFullBlock().map(Some(_))
 
   override def readRemaining(): IO[swaydb.Error.Segment, Slice[Byte]] =
     remaining flatMap read
