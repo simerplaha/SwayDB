@@ -23,9 +23,11 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues}
@@ -34,9 +36,10 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
-//@formatter:off
 class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
   val testGroupedKeyValues: Boolean = false
+  //  override def mmapSegmentsOnWrite = false
+  //  override def mmapSegmentsOnRead = false
 }
 
 class SegmentReadPerformanceSpec1 extends SegmentReadPerformanceSpec {
@@ -90,7 +93,6 @@ class SegmentReadPerformanceGroupedKeyValuesSpec3 extends SegmentReadPerformance
   val testGroupedKeyValues: Boolean = true
   override def inMemoryStorage = true
 }
-//@formatter:on
 
 sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
 
@@ -108,7 +110,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
       case IOAction.ReadDataOverview(size) =>
         IOStrategy.ConcurrentIO(cacheOnAccess = true)
       case IOAction.ReadCompressedData(compressedSize, decompressedSize) =>
-        IOStrategy.ConcurrentIO(cacheOnAccess = true)
+        ???
       case IOAction.ReadUncompressedData(size) =>
         IOStrategy.ConcurrentIO(cacheOnAccess = false)
       case IOAction.OpenResource =>
@@ -119,36 +121,75 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
     new SegmentIO(
       segmentBlockIO = strategy,
       hashIndexBlockIO = strategy,
-      bloomFilterBlockIO = strategy,
+      bloomFilterBlockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
       binarySearchIndexBlockIO = strategy,
       sortedIndexBlockIO = strategy,
       valuesBlockIO = strategy,
       segmentFooterBlockIO = strategy
     )
 
+  //    lazy val unGroupedKeyValues: Slice[Transient] =
+  //      randomKeyValues(
+  //        keyValuesCount,
+  //        startId = Some(1),
+  //        valuesConfig =
+  //          ValuesBlock.Config(
+  //            compressDuplicateValues = true,
+  //            compressDuplicateRangeValues = true,
+  //            blockIO = strategy,
+  //            compressions = _ => Seq.empty
+  //          ),
+  //        sortedIndexConfig =
+  //          SortedIndexBlock.Config(
+  //            blockIO = strategy,
+  //            prefixCompressionResetCount = 0,
+  //            enableAccessPositionIndex = true,
+  //            compressions = _ => Seq.empty
+  //          ),
+  //        binarySearchIndexConfig =
+  //          BinarySearchIndexBlock.Config(
+  //            enabled = true,
+  //            minimumNumberOfKeys = 1,
+  //            fullIndex = true,
+  //            blockIO = strategy,
+  //            compressions = _ => Seq.empty
+  //          ),
+  //        hashIndexConfig =
+  //          HashIndexBlock.Config(
+  //            maxProbe = 5,
+  //            minimumNumberOfKeys = 2,
+  //            minimumNumberOfHits = 2,
+  //            allocateSpace = _.requiredSpace * 10,
+  //            blockIO = strategy,
+  //            compressions = _ => Seq.empty
+  //          ),
+  //        bloomFilterConfig =
+  //          BloomFilterBlock.Config(
+  //            falsePositiveRate = 0.001,
+  //            minimumNumberOfKeys = 2,
+  //            blockIO = strategy,
+  //            compressions = _ => Seq.empty
+  //          )
+  //      )
+
   lazy val unGroupedKeyValues: Slice[Transient] =
     randomKeyValues(
       keyValuesCount,
+      valueSize = 4,
       startId = Some(1),
-      valuesConfig =
-        ValuesBlock.Config(
-          compressDuplicateValues = randomBoolean(),
-          compressDuplicateRangeValues = randomBoolean(),
-          blockIO = strategy,
-          compressions = _ => Seq.empty
-        ),
       sortedIndexConfig =
         SortedIndexBlock.Config(
           blockIO = strategy,
           prefixCompressionResetCount = 0,
-          enableAccessPositionIndex = true,
+          enableAccessPositionIndex = false,
           compressions = _ => Seq.empty
         ),
       binarySearchIndexConfig =
-        BinarySearchIndexBlock.Config(
-          enabled = true,
-          minimumNumberOfKeys = 1,
-          fullIndex = true,
+        BinarySearchIndexBlock.Config.disabled,
+      valuesConfig =
+        ValuesBlock.Config(
+          compressDuplicateValues = true,
+          compressDuplicateRangeValues = true,
           blockIO = strategy,
           compressions = _ => Seq.empty
         ),
@@ -162,12 +203,14 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
           compressions = _ => Seq.empty
         ),
       bloomFilterConfig =
-        BloomFilterBlock.Config(
-          falsePositiveRate = 0.001,
-          minimumNumberOfKeys = 2,
-          blockIO = strategy,
-          compressions = _ => Seq.empty
-        )
+        BloomFilterBlock.Config.disabled
+      //      bloomFilterConfig =
+      //        BloomFilterBlock.Config(
+      //          falsePositiveRate = 0.001,
+      //          minimumNumberOfKeys = 2,
+      //          blockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+      //          compressions = _ => Seq.empty
+      //        )
     )
 
   //  val unGroupedRandomKeyValues: List[Transient] =
@@ -195,14 +238,26 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
 
   def keyValues = if (testGroupedKeyValues) groupedKeyValues else unGroupedKeyValues
 
-  def assertGet(segment: Segment) =
-    unGroupedKeyValues foreach {
+  def assertGet(segment: Segment) = {
+    //        val shuffed = Random.shuffle(unGroupedKeyValues)
+    //        Benchmark("shuffled") {
+    //          shuffed foreach {
+    //            keyValue =>
+    //              //        val key = keyValue.key.readInt()
+    //              //        if (key % 1000 == 0)
+    //              //          println(key)
+    //              segment.get(keyValue.key).get
+    //          }
+    //        }
+
+    keyValues.par foreach {
       keyValue =>
         //        val key = keyValue.key.readInt()
         //        if (key % 1000 == 0)
         //          println(key)
         segment.get(keyValue.key)
     }
+  }
 
   def assertHigher(segment: Segment) = {
     (0 until unGroupedKeyValues.size - 1) foreach {
@@ -227,10 +282,19 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
 
   var segment: Segment = null
 
-  def initSegment() =
-    Benchmark(s"Creating segment. keyValues: ${keyValues.size}") {
-      segment = TestSegment(keyValues).value
+  def warmUp() =
+    Benchmark("warm up") {
+      BaseEntryIdFormatA.baseIds.foreach(id => id.getClass)
     }
+
+  def initSegment() = {
+    warmUp()
+    Benchmark(s"Creating segment. keyValues: ${keyValues.size}") {
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
+      val segmentConfig = SegmentBlock.Config(strategy, _ => Seq.empty)
+      segment = TestSegment(keyValues, segmentConfig = segmentConfig).value
+    }
+  }
 
   def reopenSegment() = {
     println("Re-opening Segment")
@@ -251,6 +315,12 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
   "Segment value benchmark 1" in {
     initSegment()
 
+    benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+      assertGet(segment)
+    }
+
+    //    segment.clearCachedKeyValues()
+    //
     benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertGet(segment)
     }

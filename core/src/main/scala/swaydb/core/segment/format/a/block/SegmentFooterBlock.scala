@@ -169,7 +169,7 @@ object SegmentFooterBlock {
       val footerStartOffset = footerOffsetAndCrc.readInt().get
       val expectedCRC = footerOffsetAndCrc.readLong().get
       val footerSize = segmentBlockSize - footerStartOffset
-      val footerBytes = fullFooterBytes.moveTo(footerStartOffset).read(footerSize).get
+      val footerBytes = fullFooterBytes.moveTo(fullFooterBytes.size.get - footerSize).readRemaining().get
       val actualCRC = CRC32.forBytes(footerBytes dropRight ByteSizeOf.long) //drop crc bytes.
       if (expectedCRC != actualCRC) {
         IO.Failure(swaydb.Error.DataAccess(s"Corrupted Segment: CRC Check failed. $expectedCRC != $actualCRC", new Exception("CRC check failed.")))

@@ -329,7 +329,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   def search(key: Slice[Byte],
              startFrom: Option[Persistent],
-             indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+             sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
     if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
       IO.Failure(swaydb.Error.Unknown("startFrom key is greater than target key."))
@@ -337,6 +337,20 @@ private[core] object SortedIndexBlock extends LazyLogging {
       search(
         matcher = KeyMatcher.Get(key),
         startFrom = startFrom,
+        indexReader = sortedIndexReader,
+        valuesReader = valuesReader
+      )
+
+  def searchSeekOne(key: Slice[Byte],
+                    start: Persistent,
+                    indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
+    if (order.gt(start.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+      IO.Failure(swaydb.Error.Unknown("startFrom key is greater than target key."))
+    else
+      search(
+        matcher = KeyMatcher.Get.SeekOne(key),
+        startFrom = Some(start),
         indexReader = indexReader,
         valuesReader = valuesReader
       )
@@ -357,7 +371,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   def searchHigherSeekOne(key: Slice[Byte],
                           startFrom: Persistent,
-                          indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                          sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                           valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
     if (order.gt(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
       IO.Failure(swaydb.Error.Unknown("startFrom key is greater than target key."))
@@ -365,13 +379,13 @@ private[core] object SortedIndexBlock extends LazyLogging {
       search(
         matcher = KeyMatcher.Higher.SeekOne(key),
         startFrom = Some(startFrom),
-        indexReader = indexReader,
+        indexReader = sortedIndexReader,
         valuesReader = valuesReader
       )
 
   def searchLower(key: Slice[Byte],
                   startFrom: Option[Persistent],
-                  indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
     if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
       IO.Failure(swaydb.Error.Unknown("startFrom key is greater than target key."))
@@ -379,7 +393,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       search(
         matcher = KeyMatcher.Lower(key),
         startFrom = startFrom,
-        indexReader = indexReader,
+        indexReader = sortedIndexReader,
         valuesReader = valuesReader
       )
 

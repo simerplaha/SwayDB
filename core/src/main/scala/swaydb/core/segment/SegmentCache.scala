@@ -23,15 +23,14 @@ import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
-import swaydb.IO
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.reader.BlockRefReader
-import swaydb.core.util.Benchmark
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.{Error, IO}
 
 private[core] object SegmentCache {
 
@@ -68,6 +67,8 @@ private[core] class SegmentCache(id: String,
 
   import keyOrder._
 
+  private val segmentReader = ThreadLocal.withInitial[LocalSegmentReaders](() => LocalSegmentReaders(None, None, None, None, None))
+
   /**
    * Notes for why use putIfAbsent before adding to cache:
    *
@@ -88,11 +89,66 @@ private[core] class SegmentCache(id: String,
       keyValueLimiter.add(group, keyValueCache)
   }
 
+  private def createSortedIndexReader(): IO[Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] = {
+    val localSegmentReaders = segmentReader.get()
+    localSegmentReaders.sortedIndexReader getOrElse {
+      blockCache.createSortedIndexReader() map {
+        sortedIndexReader =>
+          localSegmentReaders setSortedIndexReader Some(IO.Success(sortedIndexReader))
+          sortedIndexReader
+      }
+    }
+  }
+
+  private def createBloomFilterReader(): IO[Error.Segment, Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]] = {
+    val localSegmentReaders = segmentReader.get()
+    localSegmentReaders.bloomFilterReader getOrElse {
+      blockCache.createBloomFilterReader() map {
+        reader =>
+          localSegmentReaders setBloomFilterReader Some(IO.Success(reader))
+          reader
+      }
+    }
+  }
+
+  private def createHashIndexReader(): IO[Error.Segment, Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]]] = {
+    val localSegmentReaders = segmentReader.get()
+    localSegmentReaders.hashIndexReader getOrElse {
+      blockCache.createHashIndexReader() map {
+        reader =>
+          localSegmentReaders setHashIndexReader Some(IO.Success(reader))
+          reader
+      }
+    }
+  }
+
+  private def createBinarySearchIndexReader(): IO[Error.Segment, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]]] = {
+    val localSegmentReaders = segmentReader.get()
+    localSegmentReaders.binarySearchIndexReader getOrElse {
+      blockCache.createBinarySearchIndexReader() map {
+        reader =>
+          localSegmentReaders setBinarySearchIndexReader Some(IO.Success(reader))
+          reader
+      }
+    }
+  }
+
+  private def createValuesReader(): IO[Error.Segment, Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] = {
+    val localSegmentReaders = segmentReader.get()
+    localSegmentReaders.valuesReader getOrElse {
+      blockCache.createValuesReader map {
+        reader =>
+          localSegmentReaders setValuesReader Some(IO.Success(reader))
+          reader
+      }
+    }
+  }
+
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     Option(keyValueCache.get(key))
 
   def mightContain(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
-    blockCache.createBloomFilterReader() flatMap {
+    createBloomFilterReader() flatMap {
       bloomFilterReaderOption =>
         bloomFilterReaderOption map {
           bloomFilterReader =>
@@ -108,13 +164,13 @@ private[core] class SegmentCache(id: String,
                   end: Option[Persistent],
                   hasRange: Boolean,
                   hashIndexSearchOnly: Boolean): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
-    blockCache.createHashIndexReader() flatMap {
+    createHashIndexReader() flatMap {
       hashIndexReader =>
-        blockCache.createBinarySearchIndexReader() flatMap {
+        createBinarySearchIndexReader() flatMap {
           binarySearchIndexReader =>
-            blockCache.createSortedIndexReader() flatMap {
+            createSortedIndexReader() flatMap {
               sortedIndexReader =>
-                blockCache.createValuesReader() flatMap {
+                createValuesReader flatMap {
                   valuesReader =>
                     SegmentSearcher.search(
                       key = key,
@@ -217,11 +273,11 @@ private[core] class SegmentCache(id: String,
   private def lower(key: Slice[Byte],
                     start: Option[Persistent],
                     end: Option[Persistent]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
-    blockCache.createBinarySearchIndexReader() flatMap {
+    createBinarySearchIndexReader() flatMap {
       binarySearchIndexReader =>
-        blockCache.createSortedIndexReader() flatMap {
+        createSortedIndexReader() flatMap {
           sortedIndexReader =>
-            blockCache.createValuesReader() flatMap {
+            createValuesReader flatMap {
               valuesReader =>
                 SegmentSearcher.searchLower(
                   key = key,
@@ -350,11 +406,11 @@ private[core] class SegmentCache(id: String,
                      end: Option[Persistent]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
     blockCache.getFooter() flatMap {
       footer =>
-        blockCache.createBinarySearchIndexReader() flatMap {
+        createBinarySearchIndexReader() flatMap {
           binarySearchIndexReader =>
-            blockCache.createSortedIndexReader() flatMap {
+            createSortedIndexReader() flatMap {
               sortedIndexReader =>
-                blockCache.createValuesReader() flatMap {
+                createValuesReader flatMap {
                   valuesReader =>
                     val startFrom =
                       if (start.isDefined || footer.hasGroup) //don't do get if it has Group because it will fetch the inner group key-value which cannot be used as startFrom.
@@ -444,9 +500,9 @@ private[core] class SegmentCache(id: String,
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
     blockCache.getFooter() flatMap {
       footer =>
-        blockCache.createSortedIndexReader() flatMap {
+        createSortedIndexReader() flatMap {
           sortedIndexReader =>
-            blockCache.createValuesReader() flatMap {
+            createValuesReader flatMap {
               valuesReader =>
                 SortedIndexBlock
                   .readAll(

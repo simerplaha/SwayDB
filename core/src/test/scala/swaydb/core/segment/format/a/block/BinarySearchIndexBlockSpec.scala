@@ -364,7 +364,7 @@ class BinarySearchIndexBlockSpec extends TestBase {
           SortedIndexBlock.search(
             key = keyValue.key,
             startFrom = None,
-            indexReader = blocks.sortedIndexReader,
+            sortedIndexReader = blocks.sortedIndexReader,
             valuesReader = blocks.valuesReader
           ).get
       }
@@ -459,7 +459,7 @@ class BinarySearchIndexBlockSpec extends TestBase {
             SortedIndexBlock.search(
               key = keyValue.key,
               startFrom = None,
-              indexReader = blocks.sortedIndexReader,
+              sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).get
 

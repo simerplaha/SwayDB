@@ -89,7 +89,7 @@ class SegmentBlockCache(id: String,
   def buildBlockReaderCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
                                                              resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockedReader[O, B], UnblockedReader[O, B]](
-      strategy = reader => blockIO(reader.block.dataType),
+      strategy = reader => blockIO(reader.block.dataType).withCacheOnAccess,
       reserveError = swaydb.Error.ReservedResource(Reserve(name = s"$id: $resourceName"))
     ) {
       blockedReader =>
@@ -102,7 +102,7 @@ class SegmentBlockCache(id: String,
   def buildBlockReaderCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
                                                                      resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]](
-      strategy = _.map(reader => blockIO(reader.block.dataType)) getOrElse IOStrategy.defaultBlockReadersStored,
+      strategy = _.map(reader => blockIO(reader.block.dataType).withCacheOnAccess) getOrElse IOStrategy.defaultBlockReadersStored,
       reserveError = swaydb.Error.ReservedResource(Reserve(name = s"$id: $resourceName"))
     ) {
       blockedReader =>
