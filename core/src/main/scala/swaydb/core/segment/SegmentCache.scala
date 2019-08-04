@@ -44,7 +44,7 @@ private[core] object SegmentCache {
       id = id,
       maxKey = maxKey,
       minKey = minKey,
-      keyValueCache = SkipList.value[Slice[Byte], Persistent],
+      _skipList = None,
       unsliceKey = unsliceKey,
       blockCache =
         SegmentBlockCache(
@@ -57,7 +57,7 @@ private[core] object SegmentCache {
 private[core] class SegmentCache(id: String,
                                  maxKey: MaxKey[Slice[Byte]],
                                  minKey: Slice[Byte],
-                                 private[segment] val keyValueCache: SkipList[Slice[Byte], Persistent],
+                                 _skipList: Option[SkipList[Slice[Byte], Persistent]],
                                  unsliceKey: Boolean,
                                  val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                     keyValueLimiter: KeyValueLimiter,
@@ -66,7 +66,10 @@ private[core] class SegmentCache(id: String,
 
   import keyOrder._
 
-  private val local = ThreadLocalState.create()
+  private val local = SegmentThreadLocalState.create[Slice[Byte], Persistent]()
+
+  def skipList: SkipList[Slice[Byte], Persistent] =
+    _skipList getOrElse local.get().skipList
 
   /**
    * Notes for why use putIfAbsent before adding to cache:
@@ -78,18 +81,18 @@ private[core] class SegmentCache(id: String,
    */
   private def addToCache(keyValue: Persistent.SegmentResponse): Unit = {
     if (unsliceKey) keyValue.unsliceKeys
-    if (keyValueCache.isConcurrent && keyValueCache.putIfAbsent(keyValue.key, keyValue))
-      keyValueLimiter.add(keyValue, keyValueCache)
+    if (skipList.isConcurrent && skipList.putIfAbsent(keyValue.key, keyValue))
+      keyValueLimiter.add(keyValue, skipList)
     else
-      keyValueCache.put(keyValue.key, keyValue)
+      skipList.put(keyValue.key, keyValue)
   }
 
   private def addToCache(group: Persistent.Group): Unit = {
     if (unsliceKey) group.unsliceKeys
-    if (keyValueCache.isConcurrent && keyValueCache.putIfAbsent(group.key, group))
-      keyValueLimiter.add(group, keyValueCache)
+    if (skipList.isConcurrent && skipList.putIfAbsent(group.key, group))
+      keyValueLimiter.add(group, skipList)
     else
-      keyValueCache.put(group.key, group)
+      skipList.put(group.key, group)
   }
 
   private def createSortedIndexReader(): IO[Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] = {
@@ -148,7 +151,7 @@ private[core] class SegmentCache(id: String,
   }
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
-    keyValueCache.get(key)
+    skipList.get(key)
 
   def mightContain(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
     createBloomFilterReader() flatMap {
@@ -222,7 +225,7 @@ private[core] class SegmentCache(id: String,
           if (hashIndexSearchOnly)
             None
           else
-            keyValueCache.floor(key)
+            skipList.floor(key)
 
         floor match {
           case Some(floor: Persistent.SegmentResponse) if floor.key equiv key =>
@@ -241,7 +244,7 @@ private[core] class SegmentCache(id: String,
                 //if there is no hashIndex help binarySearch by sending it a higher entry.
                 def getHigherForBinarySearch() =
                   if (!hashIndexSearchOnly && footer.hashIndexOffset.isEmpty && footer.binarySearchIndexOffset.isDefined)
-                    keyValueCache.higher(key)
+                    skipList.higher(key)
                   else
                     None
 
@@ -306,7 +309,7 @@ private[core] class SegmentCache(id: String,
     }
 
   private def ceilingForLower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
-    keyValueCache.ceiling(key) match {
+    skipList.ceiling(key) match {
       case some @ Some(_) =>
         IO(some)
 
@@ -332,7 +335,7 @@ private[core] class SegmentCache(id: String,
           get(fromKey)
 
         case _ =>
-          keyValueCache.lower(key) match {
+          skipList.lower(key) match {
             case someLower @ Some(lowerKeyValue) =>
               //if the lowest key-value in the cache is the last key-value, then lower is the next lowest key-value for the key.
               if (lowerKeyValue.nextIndexOffset == -1) //-1 indicated last key-value in the Segment.
@@ -457,7 +460,7 @@ private[core] class SegmentCache(id: String,
         IO.none
 
       case _ =>
-        keyValueCache.floor(key) match {
+        skipList.floor(key) match {
           case someFloor @ Some(floorEntry) =>
             floorEntry match {
               case floor: Persistent.Range if floor contains key =>
@@ -467,7 +470,7 @@ private[core] class SegmentCache(id: String,
                 floor.segment.higher(key)
 
               case _ =>
-                keyValueCache.higher(key) match {
+                skipList.higher(key) match {
                   case Some(higherRange: Persistent.Range) if higherRange contains key =>
                     IO.Success(Some(higherRange))
 
@@ -495,7 +498,7 @@ private[core] class SegmentCache(id: String,
             higher(
               key = key,
               start = None,
-              end = keyValueCache.higher(key)
+              end = skipList.higher(key)
             )
         }
     }
@@ -538,7 +541,7 @@ private[core] class SegmentCache(id: String,
     blockCache.getFooter().map(_.hasPut)
 
   def isKeyValueCacheEmpty =
-    keyValueCache.isEmpty
+    skipList.isEmpty
 
   def isBlockCacheEmpty =
     !blockCache.isCached
@@ -556,13 +559,13 @@ private[core] class SegmentCache(id: String,
     blockCache.getFooter().map(_.hasGroup)
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean =
-    keyValueCache contains key
+    skipList contains key
 
   def cacheSize: Int =
-    keyValueCache.size
+    skipList.size
 
   def clearCachedKeyValues() =
-    keyValueCache.clear()
+    skipList.clear()
 
   def clearLocalAndBlockCache() = { //cached key-value are not required to be clear. Limiter will clear them eventually since they are stored as WeakReferences.
     local.remove()

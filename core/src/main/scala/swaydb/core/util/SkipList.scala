@@ -110,6 +110,7 @@ private[core] object SkipList {
 
   def value[K, V: ClassTag](implicit ordering: Ordering[K]): SkipListValue[K, V] =
     new SkipListValue[K, V](None)
+
 }
 
 private[core] class ConcurrentSkipList[K, V](skipList: ConcurrentSkipListMap[K, V]) extends SkipList[K, V] {
@@ -244,7 +245,7 @@ private[core] class ConcurrentSkipList[K, V](skipList: ConcurrentSkipListMap[K, 
     skipList.asScala
 }
 
-private[core] class SkipListValue[K, V: ClassTag](private var keyValue: Option[SkipList.KeyValue[K, V]])(implicit order: Ordering[K]) extends SkipList[K, V] {
+private[core] class SkipListValue[K, V: ClassTag](@volatile private var keyValue: Option[SkipList.KeyValue[K, V]])(implicit order: Ordering[K]) extends SkipList[K, V] {
 
   import order._
 

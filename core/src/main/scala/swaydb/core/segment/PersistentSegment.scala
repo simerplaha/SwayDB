@@ -100,7 +100,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def path = file.path
 
   def cache: SkipList[Slice[Byte], Persistent] =
-    segmentCache.keyValueCache
+    segmentCache.skipList
 
   def close: IO[swaydb.Error.Segment, Unit] =
     file.close map {
