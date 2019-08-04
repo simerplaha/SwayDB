@@ -31,13 +31,13 @@ import scala.reflect.ClassTag
 
 object SegmentThreadState {
   def create[K, V: ClassTag]()(implicit ordering: Ordering[K]) =
-    new SegmentThreadStates(new ConcurrentHashMap[String, SegmentThreadState[K, V]]())
+    new SegmentThreadStates(new ConcurrentHashMap[Long, SegmentThreadState[K, V]]())
 }
 
-class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[String, SegmentThreadState[K, V]])(implicit val ordering: Ordering[K]) {
+class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[Long, SegmentThreadState[K, V]])(implicit val ordering: Ordering[K]) {
   def get(): SegmentThreadState[K, V] = {
-    val threadName = Thread.currentThread().getName
-    val existingState = states.get(threadName)
+    val threadId = Thread.currentThread().getId
+    val existingState = states.get(threadId)
     if (existingState == null) {
       val newState =
         new SegmentThreadState[K, V](
@@ -48,7 +48,7 @@ class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[String, Segm
           sortedIndexReader = None,
           skipList = SkipList.value[K, V]()
         )
-      states.put(threadName, newState)
+      states.put(threadId, newState)
       newState
     } else {
       existingState
