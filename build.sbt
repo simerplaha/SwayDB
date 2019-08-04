@@ -7,7 +7,7 @@ val lz4Version = "1.6.0"
 val snappyVersion = "1.1.7.3"
 val logbackClassicVersion = "1.2.3"
 val scalaLoggingVersion = "3.8.0"
-val scalaMockVersion = "4.2.0"
+val scalaMockVersion = "4.3.0"
 val scalaTestVersion = "3.0.5-M1"
 val reactiveStreamsVersion = "1.0.2"
 val boopickleVersion = "1.3.1"
@@ -21,7 +21,7 @@ lazy val commonSettings = Seq(
 )
 
 val publishSettings = Seq[Setting[_]](
-  crossScalaVersions := Seq("2.11.12", "2.12.9", "2.13.0-M3"),
+  crossScalaVersions := Seq("2.11.12", "2.12.8", "2.13.0-M3"),
   sonatypeProfileName := "io.swaydb",
   publishMavenStyle := true,
   licenses := Seq("AGPL3" -> url("https://www.gnu.org/licenses/agpl-3.0.en.html")),
