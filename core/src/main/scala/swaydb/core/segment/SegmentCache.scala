@@ -568,7 +568,7 @@ private[core] class SegmentCache(id: String,
     skipList.clear()
 
   def clearLocalAndBlockCache() = { //cached key-value are not required to be clear. Limiter will clear them eventually since they are stored as WeakReferences.
-    local.remove()
+    local.remove() //todo this should remove maps of all threads.
     blockCache.clear()
   }
 
