@@ -66,10 +66,10 @@ private[core] class SegmentCache(id: String,
 
   import keyOrder._
 
-  private val local = SegmentThreadLocalState.create[Slice[Byte], Persistent]()
+  private val threadStates = SegmentThreadState.create[Slice[Byte], Persistent]()
 
   def skipList: SkipList[Slice[Byte], Persistent] =
-    _skipList getOrElse local.get().skipList
+    _skipList getOrElse threadStates.get().skipList
 
   /**
    * Notes for why use putIfAbsent before adding to cache:
@@ -96,7 +96,7 @@ private[core] class SegmentCache(id: String,
   }
 
   private def createSortedIndexReader(): IO[Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] = {
-    val localSegmentReaders = local.get()
+    val localSegmentReaders = threadStates.get()
     localSegmentReaders.sortedIndexReader getOrElse {
       blockCache.createSortedIndexReader() map {
         sortedIndexReader =>
@@ -107,7 +107,7 @@ private[core] class SegmentCache(id: String,
   }
 
   private def createBloomFilterReader(): IO[Error.Segment, Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]] = {
-    val localSegmentReaders = local.get()
+    val localSegmentReaders = threadStates.get()
     localSegmentReaders.bloomFilterReader getOrElse {
       blockCache.createBloomFilterReader() map {
         reader =>
@@ -118,7 +118,7 @@ private[core] class SegmentCache(id: String,
   }
 
   private def createHashIndexReader(): IO[Error.Segment, Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]]] = {
-    val localSegmentReaders = local.get()
+    val localSegmentReaders = threadStates.get()
     localSegmentReaders.hashIndexReader getOrElse {
       blockCache.createHashIndexReader() map {
         reader =>
@@ -129,7 +129,7 @@ private[core] class SegmentCache(id: String,
   }
 
   private def createBinarySearchIndexReader(): IO[Error.Segment, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]]] = {
-    val localSegmentReaders = local.get()
+    val localSegmentReaders = threadStates.get()
     localSegmentReaders.binarySearchIndexReader getOrElse {
       blockCache.createBinarySearchIndexReader() map {
         reader =>
@@ -140,7 +140,7 @@ private[core] class SegmentCache(id: String,
   }
 
   private def createValuesReader(): IO[Error.Segment, Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] = {
-    val localSegmentReaders = local.get()
+    val localSegmentReaders = threadStates.get()
     localSegmentReaders.valuesReader getOrElse {
       blockCache.createValuesReader map {
         reader =>
@@ -567,8 +567,8 @@ private[core] class SegmentCache(id: String,
   def clearCachedKeyValues() =
     skipList.clear()
 
-  def clearLocalAndBlockCache() = { //cached key-value are not required to be clear. Limiter will clear them eventually since they are stored as WeakReferences.
-    local.remove() //todo this should remove maps of all threads.
+  def clearLocalAndBlockCache() = {
+    threadStates.clear()
     blockCache.clear()
   }
 

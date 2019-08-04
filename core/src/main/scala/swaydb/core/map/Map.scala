@@ -82,7 +82,7 @@ private[core] object Map extends LazyLogging {
                                                               skipListMerge: SkipListMerger[K, V],
                                                               writer: MapEntryWriter[MapEntry.Put[K, V]]): MemoryMap[K, V] =
     new MemoryMap[K, V](
-      skipList = SkipList.concurrent[K, V](keyOrder),
+      skipList = SkipList.concurrent[K, V]()(keyOrder),
       flushOnOverflow = flushOnOverflow,
       fileSize = fileSize
     )

@@ -56,7 +56,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                             writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                             skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, RecoveryResult[PersistentMap[K, V]]] = {
     IOEffect.createDirectoryIfAbsent(folder)
-    val skipList: ConcurrentSkipList[K, V] = SkipList.concurrent[K, V](keyOrder)
+    val skipList: ConcurrentSkipList[K, V] = SkipList.concurrent[K, V]()(keyOrder)
 
     recover(folder, mmap, fileSize, skipList, dropCorruptedTailEntries) map {
       case (fileRecoveryResult, hasRange) =>
@@ -87,7 +87,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                   skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, PersistentMap[K, V]] = {
     IOEffect.createDirectoryIfAbsent(folder)
-    val skipList: ConcurrentSkipList[K, V] = SkipList.concurrent[K, V](keyOrder)
+    val skipList: ConcurrentSkipList[K, V] = SkipList.concurrent[K, V]()(keyOrder)
 
     firstFile(folder, mmap, fileSize) map {
       file =>
@@ -336,7 +336,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   override def close(): IO[swaydb.Error.Map, Unit] =
     currentFile.close
 
-  override def exists =
+  override def exists: Boolean =
     currentFile.existsOnDisk
 
   override def delete: IO[swaydb.Error.Map, Unit] =
