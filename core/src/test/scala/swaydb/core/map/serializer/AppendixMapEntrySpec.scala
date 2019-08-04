@@ -19,7 +19,6 @@
 
 package swaydb.core.map.serializer
 
-import java.util.concurrent.ConcurrentSkipListMap
 
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
@@ -30,6 +29,7 @@ import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
+import swaydb.core.util.SkipList
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -68,7 +68,7 @@ class AppendixMapEntrySpec extends TestBase {
       val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
       readEntry shouldBe entry
 
-      val skipList = new ConcurrentSkipListMap[Slice[Byte], Segment](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Segment](keyOrder)
       readEntry applyTo skipList
       val scalaSkipList = skipList.asScala
 
@@ -94,7 +94,7 @@ class AppendixMapEntrySpec extends TestBase {
       val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
       readEntry shouldBe entry
 
-      val skipList = new ConcurrentSkipListMap[Slice[Byte], Segment](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Segment](keyOrder)
       readEntry applyTo skipList
       skipList shouldBe empty
     }
@@ -126,7 +126,7 @@ class AppendixMapEntrySpec extends TestBase {
       val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
       readEntry shouldBe entry
 
-      val skipList = new ConcurrentSkipListMap[Slice[Byte], Segment](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Segment](keyOrder)
       readEntry applyTo skipList
       val scalaSkipList = skipList.asScala
       assertSkipList()

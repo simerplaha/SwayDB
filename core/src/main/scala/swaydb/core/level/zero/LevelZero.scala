@@ -335,7 +335,7 @@ private[core] case class LevelZero(path: Path,
                          currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                          preFetched: Option[Memory.SegmentResponse] = None): Option[Memory.SegmentResponse] =
     if (currentMap.hasRange)
-      preFetched orElse currentMap.floor(key) match {
+      preFetched orElse currentMap.skipList.floor(key) match {
         case floor @ Some(floorRange: Memory.Range) if key < floorRange.toKey =>
           floor
 
@@ -350,7 +350,7 @@ private[core] case class LevelZero(path: Path,
           //searching to key-values to invalid range entry or there is an issue with skipList merger.
           //Temporary solution is to retry read. If the retried read returns a different result to existing that means that
           //the current map is going through concurrent range updates and the read is retried.
-          val reFetched = currentMap.floor(key)
+          val reFetched = currentMap.skipList.floor(key)
           //          val fetchedRange = reFetched.map(_.asInstanceOf[Memory.Range])
           //          println(s"Key: ${key.readInt()}")
           //          println(s"Existing floor: fromKey : ${range.fromKey.readInt()} -> fromKey: ${range.toKey.readInt()}")
@@ -366,7 +366,7 @@ private[core] case class LevelZero(path: Path,
           None
       }
     else
-      currentMap.get(key)(keyOrder)
+      currentMap.skipList.get(key)
 
   private def getFromNextLevel(key: Slice[Byte],
                                mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
@@ -407,13 +407,13 @@ private[core] case class LevelZero(path: Path,
     get(key).map(_.map(_.key))
 
   def firstKeyFromMaps =
-    maps.reduce[Slice[Byte]](_.firstKey, MinMax.min(_, _)(keyOrder))
+    maps.reduce[Slice[Byte]](_.skipList.firstKey, MinMax.min(_, _)(keyOrder))
 
   def lastKeyFromMaps =
     maps.reduce[Slice[Byte]](
       matcher =
         map =>
-          map.lastValue() map {
+          map.skipList.lastValue() map {
             case fixed: KeyValue.ReadOnly.Fixed =>
               fixed.key
             case range: KeyValue.ReadOnly.Range =>
@@ -483,22 +483,22 @@ private[core] case class LevelZero(path: Path,
                             currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                             preFetched: Option[Memory] = None): Option[Memory.SegmentResponse] =
     if (currentMap.hasRange)
-      preFetched orElse currentMap.floor(key) match {
+      preFetched orElse currentMap.skipList.floor(key) match {
         case Some(floorRange: Memory.Range) if key >= floorRange.fromKey && key < floorRange.toKey =>
           Some(floorRange)
 
         case Some(range: Memory.Range) =>
-          val reFetched = currentMap.floor(key)
+          val reFetched = currentMap.skipList.floor(key)
           if (!reFetched.exists(_.key equiv range.key))
             higherFromMap(key, currentMap, reFetched)
           else
-            currentMap.higherValue(key)
+            currentMap.skipList.higherValue(key)
 
         case _ =>
-          currentMap.higherValue(key)
+          currentMap.skipList.higherValue(key)
       }
     else
-      currentMap.higher(key).map(_._2)
+      currentMap.skipList.higher(key)
 
   def findHigherInNextLevel(key: Slice[Byte],
                             otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
@@ -580,22 +580,22 @@ private[core] case class LevelZero(path: Path,
                            currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                            preFetched: Option[Memory] = None): Option[Memory.SegmentResponse] =
     if (currentMap.hasRange)
-      preFetched orElse currentMap.floor(key) match {
+      preFetched orElse currentMap.skipList.floor(key) match {
         case Some(floorRange: Memory.Range) if key > floorRange.fromKey && key <= floorRange.toKey =>
           Some(floorRange)
 
         case Some(range: Memory.Range) =>
-          val reFetched = currentMap.floor(key)
+          val reFetched = currentMap.skipList.floor(key)
           if (!reFetched.exists(_.key equiv range.key))
             lowerFromMap(key, currentMap, reFetched)
           else
-            currentMap.lowerValue(key)
+            currentMap.skipList.lowerValue(key)
 
         case _ =>
-          currentMap.lowerValue(key)
+          currentMap.skipList.lowerValue(key)
       }
     else
-      currentMap.lower(key).map(_._2)
+      currentMap.skipList.lower(key)
 
   def findLowerInNextLevel(key: Slice[Byte],
                            otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
@@ -690,7 +690,7 @@ private[core] case class LevelZero(path: Path,
     maps.find[Boolean] {
       map =>
         Option {
-          map.values().asScala exists {
+          map.skipList.values().asScala exists {
             case _: Memory.Put | _: Memory.Remove | _: Memory.Update =>
               false
 

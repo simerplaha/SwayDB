@@ -59,7 +59,7 @@ class MapStressSpec extends TestBase {
       def testRead(map: Map[Slice[Byte], Memory.SegmentResponse]) =
         keyValues foreach {
           keyValue =>
-            map.get(keyValue.key).value shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
+            map.skipList.get(keyValue.key).value shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
         }
 
       val dir1 = createRandomDir

@@ -20,11 +20,10 @@
 package swaydb.core.util
 
 import java.util
-import java.util.concurrent.ConcurrentSkipListMap
+import java.util.concurrent.{ConcurrentNavigableMap, ConcurrentSkipListMap}
 import java.util.function.BiConsumer
 
 import swaydb.IO
-import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -32,7 +31,10 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 private[core] sealed trait SkipList[K, V] {
+  def put(key: K, value: V): Unit
+  def putIfAbsent(key: K, value: V): Boolean
   def get(key: K): Option[V]
+  def remove(key: K): Unit
   def floor(key: K): Option[V]
   def higher(key: K): Option[V]
   def higherKeyValue(key: K): Option[(K, V)]
@@ -51,7 +53,7 @@ private[core] sealed trait SkipList[K, V] {
   def higherValue(key: K): Option[V]
   def higherKey(key: K): Option[K]
   def lowerValue(key: K): Option[V]
-  def lower(key: K): Option[(K, V)]
+  def lower(key: K): Option[V]
   def lowerKey(key: K): Option[K]
   def count(): Int
   def lastValue(): Option[V]
@@ -59,10 +61,11 @@ private[core] sealed trait SkipList[K, V] {
   def head: Option[(K, V)]
   def values(): util.Collection[V]
   def keys(): util.NavigableSet[K]
-  def get(key: K)(implicit keyOrder: KeyOrder[K]): Option[V]
   def take(count: Int): Slice[V]
   def foldLeft[R](r: R)(f: (R, (K, V)) => R): R
   def foreach[R](f: (K, V) => R): Unit
+  def subMap(from: K, to: K): ConcurrentNavigableMap[K, V]
+  def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): ConcurrentNavigableMap[K, V]
   def asScala: mutable.Map[K, V]
 }
 
@@ -105,6 +108,24 @@ private[core] class ConcurrentSkipList[K, V](skipList: ConcurrentSkipListMap[K, 
 
   override def get(key: K): Option[V] =
     Option(skipList.get(key))
+
+  override def remove(key: K): Unit =
+    skipList.remove(key)
+
+  override def put(key: K, value: V): Unit =
+    skipList.put(key, value)
+
+  def subMap(from: K, to: K): ConcurrentNavigableMap[K, V] =
+    skipList.subMap(from, to)
+
+  def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): ConcurrentNavigableMap[K, V] =
+    skipList.subMap(from, fromInclusive, to, toInclusive)
+
+  /**
+   * @return true
+   */
+  override def putIfAbsent(key: K, value: V): Boolean =
+    skipList.putIfAbsent(key, value) == null
 
   override def floor(key: K): Option[V] =
     toOptionValue(skipList.floorEntry(key))
@@ -160,8 +181,8 @@ private[core] class ConcurrentSkipList[K, V](skipList: ConcurrentSkipListMap[K, 
   def lowerValue(key: K): Option[V] =
     toOptionValue(skipList.lowerEntry(key))
 
-  def lower(key: K): Option[(K, V)] =
-    toOptionKeyValue(skipList.lowerEntry(key))
+  def lower(key: K): Option[V] =
+    toOptionValue(skipList.lowerEntry(key))
 
   def lowerKey(key: K): Option[K] =
     Option(skipList.lowerKey(key))
@@ -183,9 +204,6 @@ private[core] class ConcurrentSkipList[K, V](skipList: ConcurrentSkipListMap[K, 
 
   def keys(): util.NavigableSet[K] =
     skipList.keySet()
-
-  def get(key: K)(implicit keyOrder: KeyOrder[K]): Option[V] =
-    Option(skipList.get(key))
 
   def take(count: Int): Slice[V] = {
     val slice = Slice.create(count)

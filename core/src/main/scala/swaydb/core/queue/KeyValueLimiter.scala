@@ -19,11 +19,10 @@
 
 package swaydb.core.queue
 
-import java.util.concurrent.ConcurrentSkipListMap
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.queue.Command.{AddWeighed, WeighAndAdd}
+import swaydb.core.util.ConcurrentSkipList
 import swaydb.data.slice.Slice
 
 import scala.concurrent.ExecutionContext
@@ -32,16 +31,16 @@ import scala.ref.WeakReference
 
 private sealed trait Command {
   val keyValueRef: WeakReference[KeyValue.CacheAble]
-  val skipListRef: WeakReference[ConcurrentSkipListMap[Slice[Byte], _]]
+  val skipListRef: WeakReference[ConcurrentSkipList[Slice[Byte], _]]
 }
 
 private object Command {
 
   case class WeighAndAdd(keyValueRef: WeakReference[Persistent.SegmentResponse],
-                         skipListRef: WeakReference[ConcurrentSkipListMap[Slice[Byte], _]]) extends Command
+                         skipListRef: WeakReference[ConcurrentSkipList[Slice[Byte], _]]) extends Command
 
   case class AddWeighed(keyValueRef: WeakReference[KeyValue.ReadOnly.Group],
-                        skipListRef: WeakReference[ConcurrentSkipListMap[Slice[Byte], _]],
+                        skipListRef: WeakReference[ConcurrentSkipList[Slice[Byte], _]],
                         weight: Int) extends Command
 }
 
@@ -64,10 +63,10 @@ private[core] object KeyValueLimiter {
 
 private[core] sealed trait KeyValueLimiter {
   def add(keyValue: Persistent.SegmentResponse,
-          skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit
+          skipList: ConcurrentSkipList[Slice[Byte], _]): Unit
 
   def add(keyValue: KeyValue.ReadOnly.Group,
-          skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit
+          skipList: ConcurrentSkipList[Slice[Byte], _]): Unit
 
   def terminate(): Unit
 }
@@ -113,7 +112,7 @@ private class KeyValueLimiterImpl(cacheSize: Long,
               group match {
                 case group: Memory.Group =>
                   //Memory.Group key-values are only uncompressed. DO NOT REMOVE THEM!
-                  skipList.asInstanceOf[ConcurrentSkipListMap[Slice[Byte], Memory]].put(group.key, group.uncompress())
+                  skipList.asInstanceOf[ConcurrentSkipList[Slice[Byte], Memory]].put(group.key, group.uncompress())
 
                 case group: Persistent.Group =>
                   skipList remove group.key
@@ -130,8 +129,8 @@ private class KeyValueLimiterImpl(cacheSize: Long,
     queue.terminate()
 
   def add(keyValue: Persistent.SegmentResponse,
-          skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =
-    queue ! Command.WeighAndAdd(new WeakReference(keyValue), new WeakReference[ConcurrentSkipListMap[Slice[Byte], _]](skipList))
+          skipList: ConcurrentSkipList[Slice[Byte], _]): Unit =
+    queue ! Command.WeighAndAdd(new WeakReference(keyValue), new WeakReference[ConcurrentSkipList[Slice[Byte], _]](skipList))
 
   /**
    * If there was failure reading the Group's header guess it's weight. Successful reads are priority over 100% cache's accuracy.
@@ -139,20 +138,20 @@ private class KeyValueLimiterImpl(cacheSize: Long,
    * weights can also be used.
    */
   def add(keyValue: KeyValue.ReadOnly.Group,
-          skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit = {
+          skipList: ConcurrentSkipList[Slice[Byte], _]): Unit = {
     val weight = keyValue.valueLength
-    queue ! Command.AddWeighed(new WeakReference(keyValue), new WeakReference[ConcurrentSkipListMap[Slice[Byte], _]](skipList), weight)
+    queue ! Command.AddWeighed(new WeakReference(keyValue), new WeakReference[ConcurrentSkipList[Slice[Byte], _]](skipList), weight)
   }
 }
 
 private object NoneKeyValueLimiter extends KeyValueLimiter {
 
   override def add(keyValue: KeyValue.ReadOnly.Group,
-                   skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =
+                   skipList: ConcurrentSkipList[Slice[Byte], _]): Unit =
     ()
 
   override def add(keyValue: Persistent.SegmentResponse,
-                   skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =
+                   skipList: ConcurrentSkipList[Slice[Byte], _]): Unit =
     ()
 
   override def terminate(): Unit = ()

@@ -19,8 +19,6 @@
 
 package swaydb.core.map.serializer
 
-import java.util.concurrent.ConcurrentSkipListMap
-
 import org.scalatest.OptionValues._
 import swaydb.Error.Map.ErrorHandler
 import swaydb.IO
@@ -31,6 +29,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
+import swaydb.core.util.SkipList
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -66,7 +65,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
         readEntry shouldBe addEntry
 
-        val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
+        val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
@@ -95,7 +94,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
         readEntry shouldBe entry
 
-        val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
+        val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
@@ -124,7 +123,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
         readEntry shouldBe addEntry
 
-        val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
+        val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
@@ -153,7 +152,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
         readEntry shouldBe addEntry
 
-        val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
+        val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
@@ -183,7 +182,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
         readEntry shouldBe entry
 
-        val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
+        val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
@@ -212,7 +211,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
         readEntry shouldBe addEntry
 
-        val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
+        val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
@@ -269,7 +268,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
         readEntry shouldBe entry
 
-        val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
+        val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
         assertSkipList()

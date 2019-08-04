@@ -20,7 +20,6 @@
 package swaydb.core.segment
 
 import java.nio.file.Path
-import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
@@ -56,7 +55,7 @@ private[segment] case class MemorySegment(path: Path,
                                           _hasGroup: Boolean,
                                           _isGrouped: Boolean,
                                           _createdInLevel: Int,
-                                          private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
+                                          private[segment] val cache: ConcurrentSkipList[Slice[Byte], Memory],
                                           bloomFilterReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
                                           nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
@@ -192,14 +191,14 @@ private[segment] case class MemorySegment(path: Path,
       }
 
   override def getFromCache(key: Slice[Byte]): Option[KeyValue.ReadOnly] =
-    Option(cache.get(key))
+    cache.get(key)
 
   /**
    * Basic value does not perform floor checks on the cache which are only required if the Segment contains
    * range or groups.
    */
   private def doBasicGet(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
-    Option(cache.get(key)) map {
+    cache.get(key) map {
       case response: Memory.SegmentResponse =>
         IO.Success(Some(response))
 
@@ -225,7 +224,7 @@ private[segment] case class MemorySegment(path: Path,
 
               case _ =>
                 if (_hasRange || _hasGroup)
-                  Option(cache.floorEntry(key)).map(_.getValue) match {
+                  cache.floor(key) match {
                     case Some(range: Memory.Range) if range contains key =>
                       IO.Success(Some(range))
 
@@ -279,19 +278,16 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted)
       IO.Failure(swaydb.Error.NoSuchFile(path))
     else
-      Option(cache.lowerEntry(key)) map {
-        entry =>
-          entry.getValue match {
-            case response: Memory.SegmentResponse =>
-              IO.Success(Some(response))
-            case group: Memory.Group =>
-              addToQueueMayBe(group)
-              group.segment.lower(key) flatMap {
-                case Some(persistent) =>
-                  persistent.toMemoryResponseOption()
-                case None =>
-                  IO.none
-              }
+      cache.lower(key) map {
+        case response: Memory.SegmentResponse =>
+          IO.Success(Some(response))
+        case group: Memory.Group =>
+          addToQueueMayBe(group)
+          group.segment.lower(key) flatMap {
+            case Some(persistent) =>
+              persistent.toMemoryResponseOption()
+            case None =>
+              IO.none
           }
       } getOrElse {
         IO.none
@@ -302,7 +298,7 @@ private[segment] case class MemorySegment(path: Path,
    * range or groups.
    */
   private def doBasicHigher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
-    Option(cache.higherEntry(key)).map(_.getValue) map {
+    cache.higher(key) map {
       case response: Memory.SegmentResponse =>
         IO.Success(Some(response))
       case group: Memory.Group =>
@@ -337,7 +333,7 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted)
       IO.Failure(swaydb.Error.NoSuchFile(path))
     else if (_hasRange || _hasGroup)
-      Option(cache.floorEntry(key)).map(_.getValue) map {
+      cache.floor(key) map {
         case floorRange: Memory.Range if floorRange contains key =>
           IO.Success(Some(floorRange))
 
@@ -370,7 +366,7 @@ private[segment] case class MemorySegment(path: Path,
       IO.Failure(swaydb.Error.NoSuchFile(path))
     else
       IO {
-        val slice = addTo getOrElse Slice.create[KeyValue.ReadOnly](cache.size())
+        val slice = addTo getOrElse Slice.create[KeyValue.ReadOnly](cache.size)
         cache.values() forEach {
           new Consumer[Memory] {
             override def accept(value: Memory): Unit =
@@ -413,7 +409,7 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted)
       IO.Failure(swaydb.Error.NoSuchFile(path))
     else
-      IO.Success(cache.size())
+      IO.Success(cache.size)
 
   override def isOpen: Boolean =
     !deleted
@@ -472,7 +468,7 @@ private[segment] case class MemorySegment(path: Path,
     }
 
   override def isInKeyValueCache(key: Slice[Byte]): Boolean =
-    cache containsKey key
+    cache contains key
 
   override def isKeyValueCacheEmpty: Boolean =
     cache.isEmpty
@@ -481,5 +477,5 @@ private[segment] case class MemorySegment(path: Path,
     isKeyValueCacheEmpty
 
   override def cachedKeyValueSize: Int =
-    cache.size()
+    cache.size
 }

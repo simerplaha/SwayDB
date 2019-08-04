@@ -20,7 +20,6 @@
 package swaydb.core.segment
 
 import java.nio.file.Path
-import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
@@ -100,7 +99,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def path = file.path
 
-  def cache: ConcurrentSkipListMap[Slice[Byte], Persistent] =
+  def cache: ConcurrentSkipList[Slice[Byte], Persistent] =
     segmentCache.keyValueCache
 
   def close: IO[swaydb.Error.Segment, Unit] =

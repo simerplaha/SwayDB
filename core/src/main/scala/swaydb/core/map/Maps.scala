@@ -307,6 +307,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
 
   /**
    * @param entry entry to add
+   *
    * @return IO.Success(true) when new map gets added to maps. This return value is currently used
    *         in LevelZero to determine if there is a map that should be converted Segment.
    */
@@ -422,7 +423,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     get(key).isDefined
 
   def get(key: K): Option[V] =
-    find(_.get(key)(keyOrder))
+    find(_.skipList.get(key))
 
   def reduce[R](matcher: Map[K, V] => Option[R],
                 reduce: (Option[R], Option[R]) => Option[R]): Option[R] =
@@ -449,7 +450,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     }
 
   def keyValueCount: Option[Int] =
-    reduce[Int](map => Some(map.count()), (one, two) => Some(one.getOrElse(0) + two.getOrElse(0)))
+    reduce[Int](map => Some(map.size), (one, two) => Some(one.getOrElse(0) + two.getOrElse(0)))
 
   def queuedMapsCount =
     maps.size()

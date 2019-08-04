@@ -61,7 +61,7 @@ class LimitQueueStressSpec extends TestBase {
     //      val limitQueue = KeyValueLimiter(100.mb, 5.seconds)
     //      val segment = TestSegment().get
     //
-    //      val skipList = new ConcurrentSkipListMap[Slice[Byte], Int](KeyOrder.default)
+    //      val skipList = SkipList.concurrent[Slice[Byte], Int](KeyOrder.default)
     //
     //      (1 to itemCount) foreach {
     //        i =>

@@ -19,16 +19,14 @@
 
 package swaydb.core.level.zero
 
-import java.util.concurrent.ConcurrentSkipListMap
-
 import swaydb.core.data.{Memory, Transient}
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.{MapEntry, SkipListMerger}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.segment.merge.SegmentMerger
+import swaydb.core.util.ConcurrentSkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-
 import scala.collection.JavaConverters._
 
 /**
@@ -53,13 +51,13 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.Segmen
    * Inserts a [[Memory.Fixed]] key-value into skipList.
    */
   def insert(insert: Memory.Fixed,
-             skipList: ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                                                   functionStore: FunctionStore): Unit = {
+             skipList: ConcurrentSkipList[Slice[Byte], Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                                                functionStore: FunctionStore): Unit = {
     import keyOrder._
-    Option(skipList.floorEntry(insert.key)) match {
+    skipList.floor(insert.key) match {
       case Some(floorEntry) =>
-        floorEntry.getValue match {
+        floorEntry match {
           //if floor entry for input Fixed entry & if they keys match, do applyValue else simply add the new key-value.
           case floor: Memory.Fixed if floor.key equiv insert.key =>
             skipList.put(insert.key, applyValue(insert, floor))
@@ -88,21 +86,19 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.Segmen
    * the skipList before applying the new state so that all read queries read the latest write.
    */
   def insert(insert: Memory.Range,
-             skipList: ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                                                   functionStore: FunctionStore): Unit = {
+             skipList: ConcurrentSkipList[Slice[Byte], Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                                                functionStore: FunctionStore): Unit = {
     import keyOrder._
     //value the start position of this range to fetch the range's start and end key-values for the skipList.
-    val startKey = Option(skipList.floorEntry(insert.fromKey)) map {
-      floorEntry =>
-        floorEntry.getValue match {
-          case range: Memory.Range if insert.fromKey < range.toKey =>
-            range.fromKey
+    val startKey =
+      skipList.floor(insert.fromKey) map {
+        case range: Memory.Range if insert.fromKey < range.toKey =>
+          range.fromKey
 
-          case _ =>
-            insert.fromKey
-        }
-    } getOrElse insert.fromKey
+        case _ =>
+          insert.fromKey
+      } getOrElse insert.fromKey
 
     val conflictingKeyValues = skipList.subMap(startKey, true, insert.toKey, false)
     if (conflictingKeyValues.isEmpty) {
@@ -125,9 +121,9 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.Segmen
 
   override def insert(insertKey: Slice[Byte],
                       insertValue: Memory.SegmentResponse,
-                      skipList: ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                            timeOrder: TimeOrder[Slice[Byte]],
-                                                                                            functionStore: FunctionStore): Unit =
+                      skipList: ConcurrentSkipList[Slice[Byte], Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                                                         functionStore: FunctionStore): Unit =
     insertValue match {
       //if insert value is fixed, check the floor entry
       case insertValue: Memory.Fixed =>
@@ -141,9 +137,9 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.Segmen
     }
 
   override def insert(entry: MapEntry[Slice[Byte], Memory.SegmentResponse],
-                      skipList: ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                            timeOrder: TimeOrder[Slice[Byte]],
-                                                                                            functionStore: FunctionStore): Unit =
+                      skipList: ConcurrentSkipList[Slice[Byte], Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                                                         functionStore: FunctionStore): Unit =
     entry match {
       case MapEntry.Put(key, value: Memory.SegmentResponse) =>
         insert(key, value, skipList)

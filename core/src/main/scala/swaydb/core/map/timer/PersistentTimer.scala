@@ -20,7 +20,6 @@
 package swaydb.core.map.timer
 
 import java.nio.file.Path
-import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicLong
 
 import com.typesafe.scalalogging.LazyLogging
@@ -31,6 +30,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
 import swaydb.core.queue.FileLimiter
+import swaydb.core.util.ConcurrentSkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -39,13 +39,13 @@ private[core] object PersistentTimer extends LazyLogging {
   private implicit object TimerSkipListMerger extends SkipListMerger[Slice[Byte], Slice[Byte]] {
     override def insert(insertKey: Slice[Byte],
                         insertValue: Slice[Byte],
-                        skipList: ConcurrentSkipListMap[Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                        skipList: ConcurrentSkipList[Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore): Unit =
       throw new IllegalAccessException("Timer does not require skipList merger.")
 
     override def insert(entry: MapEntry[Slice[Byte], Slice[Byte]],
-                        skipList: ConcurrentSkipListMap[Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                        skipList: ConcurrentSkipList[Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore): Unit =
       throw new IllegalAccessException("Timer does not require skipList merger.")
@@ -70,7 +70,7 @@ private[core] object PersistentTimer extends LazyLogging {
       dropCorruptedTailEntries = false
     ).map(_.item) flatMap {
       map =>
-        map.headValue() match {
+        map.skipList.headValue() match {
           case Some(usedID) =>
             val startId = usedID.readLong()
             map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(startId + mod))) flatMap {

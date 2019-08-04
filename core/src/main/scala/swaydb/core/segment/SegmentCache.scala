@@ -19,14 +19,13 @@
 
 package swaydb.core.segment
 
-import java.util.concurrent.ConcurrentSkipListMap
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.util.{ConcurrentSkipList, SkipList}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -45,7 +44,7 @@ private[core] object SegmentCache {
       id = id,
       maxKey = maxKey,
       minKey = minKey,
-      keyValueCache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder),
+      keyValueCache = SkipList.concurrent[Slice[Byte], Persistent](keyOrder),
       unsliceKey = unsliceKey,
       blockCache =
         SegmentBlockCache(
@@ -58,7 +57,7 @@ private[core] object SegmentCache {
 private[core] class SegmentCache(id: String,
                                  maxKey: MaxKey[Slice[Byte]],
                                  minKey: Slice[Byte],
-                                 private[segment] val keyValueCache: ConcurrentSkipListMap[Slice[Byte], Persistent],
+                                 private[segment] val keyValueCache: ConcurrentSkipList[Slice[Byte], Persistent],
                                  unsliceKey: Boolean,
                                  val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                     keyValueLimiter: KeyValueLimiter,
@@ -79,13 +78,13 @@ private[core] class SegmentCache(id: String,
    */
   private def addToCache(keyValue: Persistent.SegmentResponse): Unit = {
     if (unsliceKey) keyValue.unsliceKeys
-    if (keyValueCache.putIfAbsent(keyValue.key, keyValue) == null)
+    if (keyValueCache.putIfAbsent(keyValue.key, keyValue))
       keyValueLimiter.add(keyValue, keyValueCache)
   }
 
   private def addToCache(group: Persistent.Group): Unit = {
     if (unsliceKey) group.unsliceKeys
-    if (keyValueCache.putIfAbsent(group.key, group) == null)
+    if (keyValueCache.putIfAbsent(group.key, group))
       keyValueLimiter.add(group, keyValueCache)
   }
 
@@ -145,7 +144,7 @@ private[core] class SegmentCache(id: String,
   }
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
-    Option(keyValueCache.get(key))
+    keyValueCache.get(key)
 
   def mightContain(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
     createBloomFilterReader() flatMap {
@@ -219,7 +218,7 @@ private[core] class SegmentCache(id: String,
           if (hashIndexSearchOnly)
             None
           else
-            Option(keyValueCache.floorEntry(key)).map(_.getValue)
+            keyValueCache.floor(key)
 
         floor match {
           case Some(floor: Persistent.SegmentResponse) if floor.key equiv key =>
@@ -238,7 +237,7 @@ private[core] class SegmentCache(id: String,
                 //if there is no hashIndex help binarySearch by sending it a higher entry.
                 def getHigherForBinarySearch() =
                   if (!hashIndexSearchOnly && footer.hashIndexOffset.isEmpty && footer.binarySearchIndexOffset.isDefined)
-                    Option(keyValueCache.higherEntry(key)).map(_.getValue)
+                    keyValueCache.higher(key)
                   else
                     None
 
@@ -303,7 +302,7 @@ private[core] class SegmentCache(id: String,
     }
 
   private def ceilingForLower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
-    Option(keyValueCache.ceilingEntry(key)).map(_.getValue) match {
+    keyValueCache.ceiling(key) match {
       case some @ Some(_) =>
         IO(some)
 
@@ -329,7 +328,7 @@ private[core] class SegmentCache(id: String,
           get(fromKey)
 
         case _ =>
-          Option(keyValueCache.lowerEntry(key)).map(_.getValue) match {
+          keyValueCache.lower(key) match {
             case someLower @ Some(lowerKeyValue) =>
               //if the lowest key-value in the cache is the last key-value, then lower is the next lowest key-value for the key.
               if (lowerKeyValue.nextIndexOffset == -1) //-1 indicated last key-value in the Segment.
@@ -454,7 +453,7 @@ private[core] class SegmentCache(id: String,
         IO.none
 
       case _ =>
-        Option(keyValueCache.floorEntry(key)).map(_.getValue) match {
+        keyValueCache.floor(key) match {
           case someFloor @ Some(floorEntry) =>
             floorEntry match {
               case floor: Persistent.Range if floor contains key =>
@@ -464,7 +463,7 @@ private[core] class SegmentCache(id: String,
                 floor.segment.higher(key)
 
               case _ =>
-                Option(keyValueCache.higherEntry(key)).map(_.getValue) match {
+                keyValueCache.higher(key) match {
                   case Some(higherRange: Persistent.Range) if higherRange contains key =>
                     IO.Success(Some(higherRange))
 
@@ -492,7 +491,7 @@ private[core] class SegmentCache(id: String,
             higher(
               key = key,
               start = None,
-              end = Option(keyValueCache.higherEntry(key)).map(_.getValue)
+              end = keyValueCache.higher(key)
             )
         }
     }
@@ -553,10 +552,10 @@ private[core] class SegmentCache(id: String,
     blockCache.getFooter().map(_.hasGroup)
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean =
-    keyValueCache containsKey key
+    keyValueCache contains key
 
   def cacheSize: Int =
-    keyValueCache.size()
+    keyValueCache.size
 
   def clearCachedKeyValues() =
     keyValueCache.clear()

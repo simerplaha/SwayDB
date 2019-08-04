@@ -20,7 +20,6 @@
 package swaydb.core.segment
 
 import java.nio.file.Path
-import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
@@ -37,7 +36,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
-import swaydb.core.util.{FiniteDurationUtil, IDGenerator, MinMax}
+import swaydb.core.util.{ConcurrentSkipList, FiniteDurationUtil, IDGenerator, MinMax, SkipList}
 import swaydb.data.MaxKey
 import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -65,7 +64,7 @@ private[core] object Segment extends LazyLogging {
       IO.failed("Empty key-values submitted to memory Segment.")
     } else {
       val bloomFilter: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
-      val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Memory](keyOrder)
       //Note: Transient key-values can be received from Persistent Segments in which case it's important that
       //all byte arrays are unsliced before writing them to Memory Segment.
       keyValues.foldLeftIO(DeadlineAndFunctionId.empty) {
@@ -668,8 +667,8 @@ private[core] object Segment extends LazyLogging {
 
   def tempMinMaxKeyValues(map: Map[Slice[Byte], Memory.SegmentResponse]): Slice[Memory.SegmentResponse] = {
     for {
-      minKey <- map.headValue().map(memory => Memory.Put(memory.key, None, None, Time.empty))
-      maxKey <- map.lastValue() map {
+      minKey <- map.skipList.headValue().map(memory => Memory.Put(memory.key, None, None, Time.empty))
+      maxKey <- map.skipList.lastValue() map {
         case fixed: Memory.Fixed =>
           Memory.Put(fixed.key, None, None, Time.empty)
 
@@ -682,8 +681,8 @@ private[core] object Segment extends LazyLogging {
 
   def minMaxKey(map: Map[Slice[Byte], Memory.SegmentResponse]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
     for {
-      minKey <- map.headValue().map(_.key)
-      maxKey <- map.lastValue() map {
+      minKey <- map.skipList.headValue().map(_.key)
+      maxKey <- map.skipList.lastValue() map {
         case fixed: Memory.Fixed =>
           (fixed.key, true)
 
@@ -740,8 +739,8 @@ private[core] object Segment extends LazyLogging {
       IO.`false`
     else {
       for {
-        head <- map.headValue()
-        last <- map.lastValue()
+        head <- map.skipList.headValue()
+        last <- map.skipList.lastValue()
       } yield {
         {
           if (keyOrder.equiv(head.key, last.key))
@@ -890,7 +889,7 @@ private[core] trait Segment extends FileLimiterItem {
   val segmentSize: Int
   val nearestExpiryDeadline: Option[Deadline]
   val minMaxFunctionId: Option[MinMax[Slice[Byte]]]
-  private[segment] def cache: ConcurrentSkipListMap[Slice[Byte], _ <: KeyValue.ReadOnly]
+  private[segment] def cache: ConcurrentSkipList[Slice[Byte], _ <: KeyValue.ReadOnly]
 
   def createdInLevel: IO[swaydb.Error.Segment, Int]
 

@@ -164,7 +164,7 @@ private[core] object Level extends LazyLogging {
           appendix =>
             logger.debug("{}: Checking Segments exist.", levelStorage.dir)
             //check that all existing Segments in appendix also exists on disk or else return error message.
-            appendix.asScala foreachIO {
+            appendix.skipList.asScala foreachIO {
               case (_, segment) =>
                 if (segment.existsOnDisk)
                   IO.unit
@@ -177,14 +177,14 @@ private[core] object Level extends LazyLogging {
               case None =>
                 logger.info("{}: Starting level.", levelStorage.dir)
 
-                val allSegments = appendix.values().asScala
+                val allSegments = appendix.skipList.values().asScala
                 implicit val segmentIDGenerator = IDGenerator(initial = largestSegmentId(allSegments))
                 implicit val reserveRange = ReserveRange.create[Unit]()
                 val paths: PathsDistributor = PathsDistributor(levelStorage.dirs, () => allSegments)
 
                 val deletedUnCommittedSegments =
                   if (appendixStorage.persistent)
-                    deleteUncommittedSegments(levelStorage.dirs, appendix.values().asScala)
+                    deleteUncommittedSegments(levelStorage.dirs, appendix.skipList.values().asScala)
                   else
                     IO.unit
 
@@ -469,7 +469,7 @@ private[core] case class Level(dirs: Seq[Dir],
   private[level] def reserve(segments: Iterable[Segment]): IO[swaydb.Error.Level, Either[Future[Unit], Slice[Byte]]] =
     SegmentAssigner.assignMinMaxOnly(
       inputSegments = segments,
-      targetSegments = appendix.values().asScala
+      targetSegments = appendix.skipList.values().asScala
     ) map {
       assigned =>
         Segment.minMaxKey(assigned, segments)
@@ -483,7 +483,7 @@ private[core] case class Level(dirs: Seq[Dir],
   private[level] def reserve(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[swaydb.Error.Level, Either[Future[Unit], Slice[Byte]]] =
     SegmentAssigner.assignMinMaxOnly(
       map = map,
-      targetSegments = appendix.values().asScala
+      targetSegments = appendix.skipList.values().asScala
     ) map {
       assigned =>
         Segment.minMaxKey(
@@ -557,7 +557,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
       case Right(minKey) =>
         ensureRelease(minKey) {
-          val appendixSegments = appendix.values().asScala
+          val appendixSegments = appendix.skipList.values().asScala
           val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixSegments)
           put(
             segmentsToMerge = segmentToMerge,
@@ -624,18 +624,18 @@ private[core] case class Level(dirs: Seq[Dir],
       )
 
   def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Deferred[swaydb.Error.Level, Unit] = {
-    logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
+    logger.trace("{}: PutMap '{}' Maps.", paths.head, map.skipList.count())
     reserve(map).toDeferred flatMap {
       case Left(future) =>
         IO.fromFuture(future)
 
       case Right(minKey) =>
         ensureRelease(minKey) {
-          val appendixValues = appendix.values().asScala
+          val appendixValues = appendix.skipList.values().asScala
           val result =
             if (Segment.overlaps(map, appendixValues))
               putKeyValues(
-                keyValues = Slice(map.values().toArray(new Array[Memory](map.skipList.size()))),
+                keyValues = Slice(map.skipList.values().toArray(new Array[Memory](map.skipList.size))),
                 targetSegments = appendixValues,
                 appendEntry = None
               )
@@ -1121,7 +1121,7 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   def getFromThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
-    appendixWithReadLocked(_.floor(key)) match {
+    appendixWithReadLocked(_.skipList.floor(key)) match {
       case Some(segment) =>
         segment get key
 
@@ -1136,7 +1136,7 @@ private[core] case class Level(dirs: Seq[Dir],
     Get(key)
 
   private def mightContainKeyInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Boolean] =
-    appendixWithReadLocked(_.floor(key)) match {
+    appendixWithReadLocked(_.skipList.floor(key)) match {
       case Some(segment) =>
         segment mightContainKey key
 
@@ -1146,7 +1146,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private def mightContainFunctionInThisLevel(functionId: Slice[Byte]): IO[swaydb.Error.Level, Boolean] =
     IO {
-      appendix.values().asScala exists {
+      appendix.skipList.values().asScala exists {
         segment =>
           segment.minMaxFunctionId exists {
             minMax =>
@@ -1177,7 +1177,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   private def lowerInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
-    appendixWithReadLocked(_.lowerValue(key)).map(_.lower(key)) getOrElse IO.none
+    appendixWithReadLocked(_.skipList.lowerValue(key)).map(_.lower(key)) getOrElse IO.none
 
   private def lowerFromNextLevel(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[ReadOnly.Put]] =
     nextLevel.map(_.lower(key)) getOrElse IO.Deferred.none
@@ -1199,10 +1199,10 @@ private[core] case class Level(dirs: Seq[Dir],
     )
 
   private def higherFromFloorSegment(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
-    appendixWithReadLocked(_.floor(key)).map(_.higher(key)) getOrElse IO.none
+    appendixWithReadLocked(_.skipList.floor(key)).map(_.higher(key)) getOrElse IO.none
 
   private def higherFromHigherSegment(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
-    appendixWithReadLocked(_.higherValue(key)).map(_.higher(key)) getOrElse IO.none
+    appendixWithReadLocked(_.skipList.higherValue(key)).map(_.higher(key)) getOrElse IO.none
 
   private[core] def higherInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
     higherFromFloorSegment(key) flatMap {
@@ -1239,7 +1239,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def headKey: IO.Deferred[swaydb.Error.Level, Option[Slice[Byte]]] =
     nextLevel.map(_.headKey) getOrElse IO.Deferred.none map {
       nextLevelFirstKey =>
-        MinMax.min(appendixWithReadLocked(_.firstKey), nextLevelFirstKey)(keyOrder)
+        MinMax.min(appendixWithReadLocked(_.skipList.firstKey), nextLevelFirstKey)(keyOrder)
     }
 
   /**
@@ -1249,7 +1249,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def lastKey: IO.Deferred[swaydb.Error.Level, Option[Slice[Byte]]] =
     nextLevel.map(_.lastKey) getOrElse IO.Deferred.none map {
       nextLevelLastKey =>
-        MinMax.max(appendixWithReadLocked(_.lastValue()).map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
+        MinMax.max(appendixWithReadLocked(_.skipList.lastValue()).map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
     }
 
   override def head: IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
@@ -1265,10 +1265,10 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean =
-    appendix contains minKey
+    appendix.skipList contains minKey
 
   override def bloomFilterKeyValueCount: IO[swaydb.Error.Level, Int] =
-    appendix.foldLeft(IO[swaydb.Error.Level, Int](0)) {
+    appendix.skipList.foldLeft(IO[swaydb.Error.Level, Int](0)) {
       case (currentTotal, (_, segment)) =>
         segment.getBloomFilterKeyValueCount() flatMap {
           segmentSize =>
@@ -1280,13 +1280,13 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   def getSegment(minKey: Slice[Byte]): Option[Segment] =
-    appendix.get(minKey)(keyOrder)
+    appendix.skipList.get(minKey)
 
   override def segmentsCount(): Int =
-    appendix.count()
+    appendix.skipList.count()
 
   override def take(count: Int): Slice[Segment] =
-    appendix take count
+    appendix.skipList take count
 
   def isEmpty: Boolean =
     appendix.isEmpty
@@ -1295,13 +1295,13 @@ private[core] case class Level(dirs: Seq[Dir],
     IOEffect.segmentFilesOnDisk(dirs.map(_.path))
 
   def segmentFilesInAppendix: Int =
-    appendix.count()
+    appendix.skipList.count()
 
   def foreachSegment[T](f: (Slice[Byte], Segment) => T): Unit =
-    appendix.foreach(f)
+    appendix.skipList.foreach(f)
 
   def segmentsInLevel(): Iterable[Segment] =
-    appendix.values().asScala
+    appendix.skipList.values().asScala
 
   def hasNextLevel: Boolean =
     nextLevel.isDefined
@@ -1310,13 +1310,13 @@ private[core] case class Level(dirs: Seq[Dir],
     dirs.forall(_.path.exists)
 
   override def levelSize: Long =
-    appendix.foldLeft(0)(_ + _._2.segmentSize)
+    appendix.skipList.foldLeft(0)(_ + _._2.segmentSize)
 
   override def sizeOfSegments: Long =
     levelSize + nextLevel.map(_.levelSize).getOrElse(0L)
 
   def segmentCountAndLevelSize: (Int, Long) =
-    appendix.foldLeft(0, 0L) {
+    appendix.skipList.foldLeft(0, 0L) {
       case ((segments, size), (_, segment)) =>
         (segments + 1, size + segment.segmentSize)
     }
@@ -1331,20 +1331,22 @@ private[core] case class Level(dirs: Seq[Dir],
       nextLevel.flatMap(_.meterFor(levelNumber))
 
   override def takeSegments(size: Int, condition: Segment => Boolean): Iterable[Segment] =
-    appendix.values().asScala filter {
+    appendix.skipList.values().asScala filter {
       segment =>
         condition(segment)
     } take size
 
   override def takeLargeSegments(size: Int): Iterable[Segment] =
     appendix
-      .values()
+      .skipList.
+      values()
       .asScala
       .filter(_.segmentSize > segmentSize) take size
 
   override def takeSmallSegments(size: Int): Iterable[Segment] =
     appendix
-      .values()
+      .skipList.
+      values()
       .asScala
       .filter(Level.isSmallSegment(_, segmentSize)) take size
 
@@ -1366,7 +1368,8 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def hasSmallSegments: Boolean =
     appendix
-      .values()
+      .skipList.
+      values()
       .asScala exists (Level.isSmallSegment(_, segmentSize))
 
   def shouldSelfCompactOrExpire: Boolean =
