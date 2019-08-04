@@ -376,7 +376,7 @@ class MapEntrySpec extends TestBase {
       val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
       readMapEntry applyTo skipList
       skipList should have size 10001
-      skipList.firstKey.value shouldBe (0: Slice[Byte])
+      skipList.headKey.value shouldBe (0: Slice[Byte])
       skipList.lastKey.value shouldBe (10000: Slice[Byte])
       skipList.subMap(0, true, 4999, true).asScala.foreach(_._2.isInstanceOf[Memory.Put] shouldBe true)
       skipList.subMap(5000, true, 10000, true).asScala.foreach(_._2.isInstanceOf[Memory.Remove] shouldBe true)
@@ -412,7 +412,7 @@ class MapEntrySpec extends TestBase {
       val skipList = SkipList.concurrent[Slice[Byte], Segment](keyOrder)
       readMapEntry applyTo skipList
       skipList should have size 5000
-      skipList.firstKey.value shouldBe (0: Slice[Byte])
+      skipList.headKey.value shouldBe (0: Slice[Byte])
       skipList.lastKey.value shouldBe (4999: Slice[Byte])
 
       segment.close.runRandomIO.value

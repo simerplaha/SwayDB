@@ -1177,7 +1177,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   private def lowerInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
-    appendixWithReadLocked(_.skipList.lowerValue(key)).map(_.lower(key)) getOrElse IO.none
+    appendixWithReadLocked(_.skipList.lower(key)).map(_.lower(key)) getOrElse IO.none
 
   private def lowerFromNextLevel(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[ReadOnly.Put]] =
     nextLevel.map(_.lower(key)) getOrElse IO.Deferred.none
@@ -1202,7 +1202,7 @@ private[core] case class Level(dirs: Seq[Dir],
     appendixWithReadLocked(_.skipList.floor(key)).map(_.higher(key)) getOrElse IO.none
 
   private def higherFromHigherSegment(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
-    appendixWithReadLocked(_.skipList.higherValue(key)).map(_.higher(key)) getOrElse IO.none
+    appendixWithReadLocked(_.skipList.higher(key)).map(_.higher(key)) getOrElse IO.none
 
   private[core] def higherInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
     higherFromFloorSegment(key) flatMap {
@@ -1239,7 +1239,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def headKey: IO.Deferred[swaydb.Error.Level, Option[Slice[Byte]]] =
     nextLevel.map(_.headKey) getOrElse IO.Deferred.none map {
       nextLevelFirstKey =>
-        MinMax.min(appendixWithReadLocked(_.skipList.firstKey), nextLevelFirstKey)(keyOrder)
+        MinMax.min(appendixWithReadLocked(_.skipList.headKey), nextLevelFirstKey)(keyOrder)
     }
 
   /**
@@ -1249,7 +1249,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def lastKey: IO.Deferred[swaydb.Error.Level, Option[Slice[Byte]]] =
     nextLevel.map(_.lastKey) getOrElse IO.Deferred.none map {
       nextLevelLastKey =>
-        MinMax.max(appendixWithReadLocked(_.skipList.lastValue()).map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
+        MinMax.max(appendixWithReadLocked(_.skipList.last()).map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
     }
 
   override def head: IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =

@@ -407,13 +407,13 @@ private[core] case class LevelZero(path: Path,
     get(key).map(_.map(_.key))
 
   def firstKeyFromMaps =
-    maps.reduce[Slice[Byte]](_.skipList.firstKey, MinMax.min(_, _)(keyOrder))
+    maps.reduce[Slice[Byte]](_.skipList.headKey, MinMax.min(_, _)(keyOrder))
 
   def lastKeyFromMaps =
     maps.reduce[Slice[Byte]](
       matcher =
         map =>
-          map.skipList.lastValue() map {
+          map.skipList.last() map {
             case fixed: KeyValue.ReadOnly.Fixed =>
               fixed.key
             case range: KeyValue.ReadOnly.Range =>
@@ -492,10 +492,10 @@ private[core] case class LevelZero(path: Path,
           if (!reFetched.exists(_.key equiv range.key))
             higherFromMap(key, currentMap, reFetched)
           else
-            currentMap.skipList.higherValue(key)
+            currentMap.skipList.higher(key)
 
         case _ =>
-          currentMap.skipList.higherValue(key)
+          currentMap.skipList.higher(key)
       }
     else
       currentMap.skipList.higher(key)
@@ -589,10 +589,10 @@ private[core] case class LevelZero(path: Path,
           if (!reFetched.exists(_.key equiv range.key))
             lowerFromMap(key, currentMap, reFetched)
           else
-            currentMap.skipList.lowerValue(key)
+            currentMap.skipList.lower(key)
 
         case _ =>
-          currentMap.skipList.lowerValue(key)
+          currentMap.skipList.lower(key)
       }
     else
       currentMap.skipList.lower(key)

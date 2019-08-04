@@ -667,8 +667,8 @@ private[core] object Segment extends LazyLogging {
 
   def tempMinMaxKeyValues(map: Map[Slice[Byte], Memory.SegmentResponse]): Slice[Memory.SegmentResponse] = {
     for {
-      minKey <- map.skipList.headValue().map(memory => Memory.Put(memory.key, None, None, Time.empty))
-      maxKey <- map.skipList.lastValue() map {
+      minKey <- map.skipList.head().map(memory => Memory.Put(memory.key, None, None, Time.empty))
+      maxKey <- map.skipList.last() map {
         case fixed: Memory.Fixed =>
           Memory.Put(fixed.key, None, None, Time.empty)
 
@@ -681,8 +681,8 @@ private[core] object Segment extends LazyLogging {
 
   def minMaxKey(map: Map[Slice[Byte], Memory.SegmentResponse]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
     for {
-      minKey <- map.skipList.headValue().map(_.key)
-      maxKey <- map.skipList.lastValue() map {
+      minKey <- map.skipList.head().map(_.key)
+      maxKey <- map.skipList.last() map {
         case fixed: Memory.Fixed =>
           (fixed.key, true)
 
@@ -739,8 +739,8 @@ private[core] object Segment extends LazyLogging {
       IO.`false`
     else {
       for {
-        head <- map.skipList.headValue()
-        last <- map.skipList.lastValue()
+        head <- map.skipList.head()
+        last <- map.skipList.last()
       } yield {
         {
           if (keyOrder.equiv(head.key, last.key))

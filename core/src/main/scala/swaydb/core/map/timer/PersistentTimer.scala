@@ -70,7 +70,7 @@ private[core] object PersistentTimer extends LazyLogging {
       dropCorruptedTailEntries = false
     ).map(_.item) flatMap {
       map =>
-        map.skipList.headValue() match {
+        map.skipList.head() match {
           case Some(usedID) =>
             val startId = usedID.readLong()
             map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(startId + mod))) flatMap {
