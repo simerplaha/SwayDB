@@ -250,7 +250,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
     //          }
     //        }
 
-    keyValues.par foreach {
+    keyValues foreach {
       keyValue =>
         //        val key = keyValue.key.readInt()
         //        if (key % 1000 == 0)
