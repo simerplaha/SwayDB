@@ -104,7 +104,7 @@ object CommonAssertions {
       }
 
     def shouldBe(expected: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                     keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                     keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                      segmentIO: SegmentIO = SegmentIO.random): Unit = {
       val actualMemory = actual.toMemory
       val expectedMemory = expected.toMemory
@@ -352,7 +352,7 @@ object CommonAssertions {
                           oldKeyValues: Iterable[KeyValue.ReadOnly.SegmentResponse],
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): ConcurrentSkipList[Slice[Byte], Memory.SegmentResponse] = {
-    val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](KeyOrder.default)
+    val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse]()(KeyOrder.default)
     (oldKeyValues ++ newKeyValues).map(_.toMemoryResponse) foreach (memory => LevelZeroSkipListMerger.insert(memory.key, memory, skipList))
     skipList.size shouldBe expected.size
     skipList.asScala.toList shouldBe expected.map(keyValue => (keyValue.key, keyValue.toMemory))
@@ -683,10 +683,10 @@ object CommonAssertions {
     def shouldBe(expected: MapEntry[Slice[Byte], Segment]): Unit = {
       actual.entryBytesSize shouldBe expected.entryBytesSize
 
-      val actualMap = SkipList.concurrent[Slice[Byte], Segment](KeyOrder.default)
+      val actualMap = SkipList.concurrent[Slice[Byte], Segment]()(KeyOrder.default)
       actual.applyTo(actualMap)
 
-      val expectedMap = SkipList.concurrent[Slice[Byte], Segment](KeyOrder.default)
+      val expectedMap = SkipList.concurrent[Slice[Byte], Segment]()(KeyOrder.default)
       expected.applyTo(expectedMap)
 
       actualMap.size shouldBe expectedMap.size
@@ -1215,7 +1215,7 @@ object CommonAssertions {
   }
 
   def unzipGroups[T <: KeyValue](keyValues: Iterable[T])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                         keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                         keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                          segmentIO: SegmentIO = SegmentIO.random): Slice[Transient] =
     keyValues.flatMap {
       case keyValue: Transient.Group =>
@@ -1449,7 +1449,7 @@ object CommonAssertions {
     }
 
   def printGroupHierarchy(keyValues: Slice[KeyValue.ReadOnly], spaces: Int)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                            keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                                            keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                                             segmentIO: SegmentIO = SegmentIO.random): Unit =
     keyValues foreachBreak {
       case group: Persistent.Group =>
@@ -1481,7 +1481,7 @@ object CommonAssertions {
     }
 
   def openGroup(group: KeyValue.ReadOnly.Group)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                 segmentIO: SegmentIO = SegmentIO.random): Slice[KeyValue.ReadOnly] = {
     val allKeyValues = group.segment.getAll().runRandomIO.value
     allKeyValues flatMap {
@@ -1647,7 +1647,7 @@ object CommonAssertions {
   }
 
   def assertGroup(group: Transient.Group)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                          limiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                          limiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                           segmentIO: SegmentIO = SegmentIO.random): Persistent.Group = {
     val readKeyValues = readAll(group).get
     readKeyValues should have size 1

@@ -43,7 +43,7 @@ object AppendixMapEntryReader {
             mmapSegmentsOnWrite: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                           timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore,
-                                          keyValueLimiter: KeyValueLimiter,
+                                          keyValueLimiter: Option[KeyValueLimiter],
                                           fileOpenLimiter: FileLimiter,
                                           segmentIO: SegmentIO,
                                           compression: Option[GroupByInternal.KeyValues]): AppendixMapEntryReader =
@@ -66,7 +66,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                              mmapSegmentsOnWrite: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                            functionStore: FunctionStore,
-                                                           keyValueLimiter: KeyValueLimiter,
+                                                           keyValueLimiter: Option[KeyValueLimiter],
                                                            fileOpenLimiter: FileLimiter,
                                                            segmentIO: SegmentIO,
                                                            compression: Option[GroupByInternal.KeyValues]) {

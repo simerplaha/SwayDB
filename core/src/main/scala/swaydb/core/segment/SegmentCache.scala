@@ -39,12 +39,12 @@ private[core] object SegmentCache {
             unsliceKey: Boolean,
             blockRef: BlockRefReader[SegmentBlock.Offset],
             segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  keyValueLimiter: KeyValueLimiter): SegmentCache =
+                                  keyValueLimiter: Option[KeyValueLimiter]): SegmentCache =
     new SegmentCache(
       id = id,
       maxKey = maxKey,
       minKey = minKey,
-      _skipList = None,
+      _skipList = if (keyValueLimiter.isDefined) Some(SkipList.concurrent()) else None,
       unsliceKey = unsliceKey,
       blockCache =
         SegmentBlockCache(
@@ -60,7 +60,7 @@ private[core] class SegmentCache(id: String,
                                  _skipList: Option[SkipList[Slice[Byte], Persistent]],
                                  unsliceKey: Boolean,
                                  val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    keyValueLimiter: KeyValueLimiter,
+                                                                    keyValueLimiter: Option[KeyValueLimiter],
                                                                     groupIO: SegmentIO) extends LazyLogging {
 
 
@@ -82,7 +82,7 @@ private[core] class SegmentCache(id: String,
   private def addToCache(keyValue: Persistent.SegmentResponse): Unit = {
     if (unsliceKey) keyValue.unsliceKeys
     if (skipList.isConcurrent && skipList.putIfAbsent(keyValue.key, keyValue))
-      keyValueLimiter.add(keyValue, skipList)
+      keyValueLimiter.foreach(_.add(keyValue, skipList))
     else
       skipList.put(keyValue.key, keyValue)
   }
@@ -90,7 +90,7 @@ private[core] class SegmentCache(id: String,
   private def addToCache(group: Persistent.Group): Unit = {
     if (unsliceKey) group.unsliceKeys
     if (skipList.isConcurrent && skipList.putIfAbsent(group.key, group))
-      keyValueLimiter.add(group, skipList)
+      keyValueLimiter.foreach(_.add(group, skipList))
     else
       skipList.put(group.key, group)
   }

@@ -133,7 +133,7 @@ private[core] object CoreInitializer extends LazyLogging {
 
   def apply(config: SwayDBConfig,
             maxSegmentsOpen: Int,
-            cacheSize: Long,
+            cacheSize: Option[Long],
             keyValueQueueDelay: FiniteDuration,
             segmentCloserDelay: FiniteDuration,
             fileOpenLimiterEC: ExecutionContext,
@@ -143,8 +143,11 @@ private[core] object CoreInitializer extends LazyLogging {
     implicit val fileOpenLimiter: FileLimiter =
       FileLimiter(maxSegmentsOpen, segmentCloserDelay)(fileOpenLimiterEC)
 
-    implicit val keyValueLimiter: KeyValueLimiter =
-      KeyValueLimiter(cacheSize, keyValueQueueDelay)(cacheLimiterEC)
+    implicit val keyValueLimiter: Option[KeyValueLimiter] =
+      cacheSize map {
+        cacheSize =>
+          KeyValueLimiter(cacheSize, keyValueQueueDelay)(cacheLimiterEC)
+      }
 
     implicit val compactionStrategy: CompactionStrategy[CompactorState] =
       Compactor
@@ -260,7 +263,7 @@ private[core] object CoreInitializer extends LazyLogging {
     logger.info(s"Starting ${config.otherLevels.size} configured Levels.")
 
     /**
-     * Convert [[swaydb.Error.Level]] to [[swaydb.Error.Public]]
+     * Convert [[swaydb.Error.Level]] to [[swaydb.Error]]
      */
     createLevels(config.otherLevels.reverse, None) match {
       case IO.Success(core) =>

@@ -42,7 +42,7 @@ class AppendixMapEntrySpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def compression = randomGroupByOption(randomNextInt(1000))
   implicit def segmentIO: SegmentIO = SegmentIO.random
@@ -68,7 +68,7 @@ class AppendixMapEntrySpec extends TestBase {
       val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
       readEntry shouldBe entry
 
-      val skipList = SkipList.concurrent[Slice[Byte], Segment](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
       readEntry applyTo skipList
       val scalaSkipList = skipList.asScala
 
@@ -94,7 +94,7 @@ class AppendixMapEntrySpec extends TestBase {
       val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
       readEntry shouldBe entry
 
-      val skipList = SkipList.concurrent[Slice[Byte], Segment](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
       readEntry applyTo skipList
       skipList shouldBe empty
     }
@@ -126,7 +126,7 @@ class AppendixMapEntrySpec extends TestBase {
       val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
       readEntry shouldBe entry
 
-      val skipList = SkipList.concurrent[Slice[Byte], Segment](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
       readEntry applyTo skipList
       val scalaSkipList = skipList.asScala
       assertSkipList()

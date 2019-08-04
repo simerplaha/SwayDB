@@ -71,6 +71,7 @@ object Map extends LazyLogging {
    * @param fileOpenLimiterEC           ExecutionContext
    * @tparam K Type of key
    * @tparam V Type of value
+   *
    * @return Database instance
    */
 
@@ -113,7 +114,7 @@ object Map extends LazyLogging {
         acceleration = acceleration
       ),
       maxOpenSegments = maxOpenSegments,
-      cacheSize = cacheSize,
+      cacheSize = Some(cacheSize),
       cacheCheckDelay = cacheCheckDelay,
       segmentsOpenCheckDelay = segmentsOpenCheckDelay,
       fileOpenLimiterEC = fileOpenLimiterEC,

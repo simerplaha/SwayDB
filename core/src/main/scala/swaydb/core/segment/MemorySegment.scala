@@ -60,7 +60,7 @@ private[segment] case class MemorySegment(path: Path,
                                           nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore,
-                                                                                   keyValueLimiter: KeyValueLimiter,
+                                                                                   keyValueLimiter: Option[KeyValueLimiter],
                                                                                    fileLimiter: FileLimiter,
                                                                                    segmentIO: SegmentIO) extends Segment with LazyLogging {
 
@@ -81,7 +81,7 @@ private[segment] case class MemorySegment(path: Path,
     val groupSegment = group.segment
     //If the group is already initialised then this Group is already in the Limit queue as the queue always pre-reads the header
     if (!groupSegment.blockCache.isCached && groupSegment.isKeyValueCacheEmpty)
-      keyValueLimiter.add(group, cache) //this is a new decompression, add to queue.
+      keyValueLimiter.foreach(_.add(group, cache)) //this is a new decompression, add to queue.
   }
 
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],

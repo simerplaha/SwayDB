@@ -54,7 +54,7 @@ class MapSpec extends TestBase {
   implicit def testTimer: TestTimer = TestTimer.Empty
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
@@ -328,7 +328,7 @@ class MapSpec extends TestBase {
       import LevelZeroMapEntryReader._
       import LevelZeroMapEntryWriter._
 
-      val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse]()(keyOrder)
       val file = PersistentMap.recover[Slice[Byte], Memory.SegmentResponse](createRandomDir, false, 4.mb, skipList, dropCorruptedTailEntries = false).runRandomIO.value._1.item
 
       file.isOpen shouldBe true
@@ -358,7 +358,7 @@ class MapSpec extends TestBase {
 
       map.hasRange shouldBe true
 
-      val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse]()(keyOrder)
       val recoveredFile = PersistentMap.recover(map.path, false, 4.mb, skipList, dropCorruptedTailEntries = false).runRandomIO.value._1.item
 
       recoveredFile.isOpen shouldBe true
@@ -396,7 +396,7 @@ class MapSpec extends TestBase {
       map.path.resolveSibling(4.toLogFileId).exists shouldBe false //4.log gets deleted
 
       //reopen file
-      val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse]()(keyOrder)
       val recoveredFile = PersistentMap.recover(map.path, true, 1.byte, skipList, dropCorruptedTailEntries = false).runRandomIO.value._1.item
       recoveredFile.isOpen shouldBe true
       recoveredFile.isMemoryMapped.runRandomIO.value shouldBe true
@@ -412,7 +412,7 @@ class MapSpec extends TestBase {
       skipList.get(15: Slice[Byte]).value shouldBe Memory.Range(15, 20, None, Value.update(20))
 
       //reopen the recovered file
-      val skipList2 = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
+      val skipList2 = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse]()(keyOrder)
       val recoveredFile2 = PersistentMap.recover(map.path, true, 1.byte, skipList2, dropCorruptedTailEntries = false).runRandomIO.value._1.item
       recoveredFile2.isOpen shouldBe true
       recoveredFile2.isMemoryMapped.runRandomIO.value shouldBe true
@@ -441,7 +441,7 @@ class MapSpec extends TestBase {
       map.currentFilePath.fileId.runRandomIO.value shouldBe(0, Extension.Log)
       map.close().runRandomIO.value
 
-      val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse]()(keyOrder)
       val file = PersistentMap.recover(map.path, false, 4.mb, skipList, dropCorruptedTailEntries = false).runRandomIO.value._1.item
 
       file.isOpen shouldBe true
@@ -461,7 +461,7 @@ class MapSpec extends TestBase {
       import LevelZeroMapEntryReader._
       import LevelZeroMapEntryWriter._
 
-      val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse]()(keyOrder)
       skipList.put(1, Memory.put(1, 1))
       skipList.put(2, Memory.put(2, 2))
       skipList.put(3, Memory.remove(3))
@@ -471,7 +471,7 @@ class MapSpec extends TestBase {
       val currentFile = PersistentMap.recover(createRandomDir, false, 4.mb, skipList, dropCorruptedTailEntries = false).runRandomIO.value._1.item
       val nextFile = PersistentMap.nextFile(currentFile, false, 4.mb, skipList).runRandomIO.value
 
-      val nextFileSkipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse](keyOrder)
+      val nextFileSkipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse]()(keyOrder)
       val nextFileBytes = DBFile.channelRead(nextFile.path, randomIOStrategy(), autoClose = false).runRandomIO.value.readAll.runRandomIO.value
       val mapEntries = MapCodec.read(nextFileBytes, dropCorruptedTailEntries = false).runRandomIO.value.item.value
       mapEntries applyTo nextFileSkipList

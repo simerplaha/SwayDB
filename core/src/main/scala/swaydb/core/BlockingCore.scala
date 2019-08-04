@@ -29,7 +29,7 @@ import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.map.timer.Timer
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}
+import swaydb.data.config.{LevelZeroConfig, SwayDBMemoryConfig, SwayDBPersistentConfig}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.{IO, Prepare, Tag}
@@ -39,9 +39,9 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 private[swaydb] object BlockingCore {
 
-  def apply(config: SwayDBConfig,
+  def apply(config: SwayDBPersistentConfig,
             maxOpenSegments: Int,
-            cacheSize: Long,
+            cacheSize: Option[Int],
             cacheCheckDelay: FiniteDuration,
             segmentsOpenCheckDelay: FiniteDuration,
             fileOpenLimiterEC: ExecutionContext,
@@ -51,7 +51,26 @@ private[swaydb] object BlockingCore {
     CoreInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
-      cacheSize = cacheSize,
+      cacheSize = cacheSize.map(_.toLong),
+      keyValueQueueDelay = cacheCheckDelay,
+      segmentCloserDelay = segmentsOpenCheckDelay,
+      fileOpenLimiterEC = fileOpenLimiterEC,
+      cacheLimiterEC = cacheLimiterEC
+    )
+
+  def apply(config: SwayDBMemoryConfig,
+            maxOpenSegments: Int,
+            cacheSize: Int,
+            cacheCheckDelay: FiniteDuration,
+            segmentsOpenCheckDelay: FiniteDuration,
+            fileOpenLimiterEC: ExecutionContext,
+            cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                              timeOrder: TimeOrder[Slice[Byte]],
+                                              functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
+    CoreInitializer(
+      config = config,
+      maxSegmentsOpen = maxOpenSegments,
+      cacheSize = Some(cacheSize),
       keyValueQueueDelay = cacheCheckDelay,
       segmentCloserDelay = segmentsOpenCheckDelay,
       fileOpenLimiterEC = fileOpenLimiterEC,

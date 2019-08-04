@@ -44,7 +44,7 @@ private[core] object DeadlineAndFunctionId {
     )
 
   def apply(keyValues: Iterable[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                    keyValueLimiter: KeyValueLimiter,
+                                                    keyValueLimiter: Option[KeyValueLimiter],
                                                     segmentIO: SegmentIO): IO[swaydb.Error.Segment, DeadlineAndFunctionId] =
     keyValues.foldLeftIO(DeadlineAndFunctionId.empty) {
       case (minMax, keyValue) =>
@@ -58,7 +58,7 @@ private[core] object DeadlineAndFunctionId {
   def apply(deadline: Option[Deadline],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             next: KeyValue.ReadOnly)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                     keyValueLimiter: KeyValueLimiter,
+                                     keyValueLimiter: Option[KeyValueLimiter],
                                      segmentIO: SegmentIO): IO[swaydb.Error.Segment, DeadlineAndFunctionId] =
     next match {
       case readOnly: KeyValue.ReadOnly.Put =>

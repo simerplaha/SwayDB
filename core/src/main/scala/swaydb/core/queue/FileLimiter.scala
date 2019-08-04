@@ -49,6 +49,8 @@ private[core] object FileLimiter extends LazyLogging {
       override def terminate(): Unit = ()
     }
 
+  val none = Option.empty[FileLimiter]
+
   private sealed trait Action {
     def isDelete: Boolean
   }

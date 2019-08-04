@@ -53,7 +53,7 @@ object PersistentSegment {
             nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                      functionStore: FunctionStore,
-                                                     keyValueLimiter: KeyValueLimiter,
+                                                     keyValueLimiter: Option[KeyValueLimiter],
                                                      fileOpenLimiter: FileLimiter,
                                                      segmentIO: SegmentIO): IO[swaydb.Error.Segment, PersistentSegment] =
     BlockRefReader(file) map {
@@ -93,7 +93,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                                               segmentCache: SegmentCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                                           functionStore: FunctionStore,
-                                                                          keyValueLimiter: KeyValueLimiter,
+                                                                          keyValueLimiter: Option[KeyValueLimiter],
                                                                           fileOpenLimiter: FileLimiter,
                                                                           segmentIO: SegmentIO) extends Segment with LazyLogging {
 

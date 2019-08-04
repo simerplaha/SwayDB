@@ -34,7 +34,13 @@ object SegmentThreadLocalState {
     ThreadLocal.withInitial[SegmentThreadLocalState[K, V]] {
       new Supplier[SegmentThreadLocalState[K, V]] {
         override def get(): SegmentThreadLocalState[K, V] =
-          new SegmentThreadLocalState[K, V](None, None, None, None, None, SkipList.value[K, V])
+          new SegmentThreadLocalState[K, V](
+            hashIndexReader = None,
+            bloomFilterReader = None,
+            binarySearchIndexReader = None,
+            valuesReader = None, sortedIndexReader = None,
+            skipList = SkipList.value[K, V]()
+          )
       }
     }
 }

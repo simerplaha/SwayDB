@@ -103,7 +103,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
   val keyValuesCount = 1000000
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
 
   def strategy(action: IOAction): IOStrategy =
     action match {

@@ -105,10 +105,10 @@ private[core] object SkipList {
         None
     }
 
-  def concurrent[K, V](implicit ordering: Ordering[K]): ConcurrentSkipList[K, V] =
+  def concurrent[K, V]()(implicit ordering: Ordering[K]): ConcurrentSkipList[K, V] =
     new ConcurrentSkipList[K, V](new ConcurrentSkipListMap[K, V](ordering))
 
-  def value[K, V: ClassTag](implicit ordering: Ordering[K]): SkipListValue[K, V] =
+  def value[K, V: ClassTag]()(implicit ordering: Ordering[K]): SkipListValue[K, V] =
     new SkipListValue[K, V](None)
 
 }

@@ -81,11 +81,12 @@ object SwayDB extends LazyLogging {
    * @param keyOrder               Sort order for keys
    * @tparam K Type of key
    * @tparam V Type of value
+   *
    * @return Database instance
    */
   def apply[K, V](config: SwayDBPersistentConfig,
                   maxSegmentsOpen: Int,
-                  cacheSize: Int,
+                  cacheSize: Option[Int],
                   cacheCheckDelay: FiniteDuration,
                   segmentsOpenCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                           valueSerializer: Serializer[V],
@@ -107,7 +108,7 @@ object SwayDB extends LazyLogging {
 
   def apply[T](config: SwayDBPersistentConfig,
                maxSegmentsOpen: Int,
-               cacheSize: Int,
+               cacheSize: Option[Int],
                cacheCheckDelay: FiniteDuration,
                segmentsOpenCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                        keyOrder: KeyOrder[Slice[Byte]],

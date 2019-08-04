@@ -116,7 +116,7 @@ object TestData {
 
   implicit class ReopenSegment(segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                  ec: ExecutionContext,
-                                                 keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                 keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                  fileOpenLimiter: FileLimiter = fileOpenLimiter,
                                                  timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                  segmentIO: SegmentIO = SegmentIO.random,
@@ -153,7 +153,7 @@ object TestData {
   implicit class ReopenLevel(level: Level)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                            ec: ExecutionContext,
                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                           keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                           keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                            compression: Option[GroupByInternal.KeyValues] = randomGroupByOption(randomNextInt(1000)),
                                            segmentIO: SegmentIO = SegmentIO.random) {
 
@@ -223,7 +223,7 @@ object TestData {
 
     def reopen(segmentSize: Long = level.segmentSize,
                throttle: LevelMeter => Throttle = level.throttle,
-               nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+               nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                                fileOpenLimiter: FileLimiter = fileOpenLimiter): Level =
       tryReopen(
         segmentSize = segmentSize,
@@ -233,7 +233,7 @@ object TestData {
 
     def tryReopen(segmentSize: Long = level.segmentSize,
                   throttle: LevelMeter => Throttle = level.throttle,
-                  nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                  nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                                   fileOpenLimiter: FileLimiter = fileOpenLimiter): IO[swaydb.Error.Level, Level] =
       level.releaseLocks flatMap {
         _ =>
@@ -271,7 +271,7 @@ object TestData {
     def reopen: LevelZero =
       reopen()
 
-    def reopen(mapSize: Long = level.maps.map.size)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+    def reopen(mapSize: Long = level.maps.map.size)(implicit keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                     fileOpenLimiter: FileLimiter = fileOpenLimiter): LevelZero = {
       val reopened =
@@ -436,7 +436,7 @@ object TestData {
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                     hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                     bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                 keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
+                                                                                                 keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
       val slice = Slice.create[Transient](keyValues.size)
 
       keyValues foreach {
@@ -545,7 +545,7 @@ object TestData {
   }
 
   implicit class ReadOnlyKeyValueToMemory(keyValue: KeyValue.ReadOnly)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter) {
+                                                                       keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter) {
 
     def toTransient: Transient =
       toTransient(None)
@@ -1596,7 +1596,7 @@ object TestData {
                                addRemoveDeadlines: Boolean = false,
                                addPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental(),
                                                                  keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                 keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
+                                                                 keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1629,7 +1629,7 @@ object TestData {
                           hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                           bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit testTimer: TestTimer = TestTimer.Incremental(),
                                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
+                                                                                                       keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1659,7 +1659,7 @@ object TestData {
                  valueSize: Int = 50,
                  nonValue: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental(),
                                             keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                            keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
+                                            keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1710,7 +1710,7 @@ object TestData {
                       bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                       createdInLevel: Int = Int.MaxValue)(implicit testTimer: TestTimer = TestTimer.Incremental(),
                                                           keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                          keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
+                                                          keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
     val slice = Slice.create[Transient](count * 50) //extra space because addRanges and random Groups can be added for Fixed and Range key-values in the same iteration.
     //            var key = 1
     var key = startId getOrElse randomInt(minus = count)
@@ -1890,7 +1890,7 @@ object TestData {
                            addRemoves: Boolean = true,
                            addRemoveDeadlines: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
                                                                keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                               keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
+                                                               keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,

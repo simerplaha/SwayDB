@@ -58,13 +58,13 @@ private[core] object Segment extends LazyLogging {
                                              functionStore: FunctionStore,
                                              fileLimiter: FileLimiter,
                                              groupBy: Option[GroupByInternal.KeyValues],
-                                             keyValueLimiter: KeyValueLimiter,
+                                             keyValueLimiter: Option[KeyValueLimiter],
                                              segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] =
     if (keyValues.isEmpty) {
       IO.failed("Empty key-values submitted to memory Segment.")
     } else {
       val bloomFilter: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
-      val skipList = SkipList.concurrent[Slice[Byte], Memory](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
       //Note: Transient key-values can be received from Persistent Segments in which case it's important that
       //all byte arrays are unsliced before writing them to Memory Segment.
       keyValues.foldLeftIO(DeadlineAndFunctionId.empty) {
@@ -122,7 +122,7 @@ private[core] object Segment extends LazyLogging {
                  keyValues: Iterable[Transient])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                  functionStore: FunctionStore,
-                                                 keyValueLimiter: KeyValueLimiter,
+                                                 keyValueLimiter: Option[KeyValueLimiter],
                                                  fileOpenLimiter: FileLimiter,
                                                  segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] =
     SegmentBlock.writeClosed(
@@ -225,7 +225,7 @@ private[core] object Segment extends LazyLogging {
                     bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                                 functionStore: FunctionStore,
-                                                                keyValueLimiter: KeyValueLimiter,
+                                                                keyValueLimiter: Option[KeyValueLimiter],
                                                                 fileOpenLimiter: FileLimiter,
                                                                 compression: Option[GroupByInternal.KeyValues],
                                                                 segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
@@ -289,7 +289,7 @@ private[core] object Segment extends LazyLogging {
                     bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                                 functionStore: FunctionStore,
-                                                                keyValueLimiter: KeyValueLimiter,
+                                                                keyValueLimiter: Option[KeyValueLimiter],
                                                                 fileOpenLimiter: FileLimiter,
                                                                 compression: Option[GroupByInternal.KeyValues],
                                                                 segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
@@ -345,7 +345,7 @@ private[core] object Segment extends LazyLogging {
                                                                functionStore: FunctionStore,
                                                                fileLimiter: FileLimiter,
                                                                groupBy: Option[GroupByInternal.KeyValues],
-                                                               keyValueLimiter: KeyValueLimiter,
+                                                               keyValueLimiter: Option[KeyValueLimiter],
                                                                segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     segment.getAll() flatMap {
       keyValues =>
@@ -377,7 +377,7 @@ private[core] object Segment extends LazyLogging {
                                                                functionStore: FunctionStore,
                                                                fileLimiter: FileLimiter,
                                                                groupBy: Option[GroupByInternal.KeyValues],
-                                                               keyValueLimiter: KeyValueLimiter,
+                                                               keyValueLimiter: Option[KeyValueLimiter],
                                                                segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
@@ -414,7 +414,7 @@ private[core] object Segment extends LazyLogging {
             checkExists: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                          timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: FunctionStore,
-                                         keyValueLimiter: KeyValueLimiter,
+                                         keyValueLimiter: Option[KeyValueLimiter],
                                          fileOpenLimiter: FileLimiter,
                                          segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] = {
 
@@ -463,7 +463,7 @@ private[core] object Segment extends LazyLogging {
             checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
-                                  keyValueLimiter: KeyValueLimiter,
+                                  keyValueLimiter: Option[KeyValueLimiter],
                                   fileOpenLimiter: FileLimiter): IO[swaydb.Error.Segment, Segment] = {
 
     implicit val segmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed

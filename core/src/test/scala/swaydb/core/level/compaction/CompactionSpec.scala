@@ -70,7 +70,7 @@
 //  implicit val timer = TestTimer.Empty
 //
 //  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-//  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
+//  implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
 //
 //  "putForward" should {
 //    "return zero" when {

@@ -52,7 +52,7 @@ private[core] object KeyValueLimiter {
       delay = delay
     )
 
-  val none: KeyValueLimiter = NoneKeyValueLimiter
+  val none: Option[KeyValueLimiter] = None
 
   def weight(keyValue: Persistent.SegmentResponse) = {
     val otherBytes = (Math.ceil(keyValue.key.size + keyValue.valueLength / 8.0) - 1.0) * 8
@@ -142,17 +142,4 @@ private class KeyValueLimiterImpl(cacheSize: Long,
     val weight = keyValue.valueLength
     queue ! Command.AddWeighed(new WeakReference(keyValue), new WeakReference[SkipList[Slice[Byte], _]](skipList), weight)
   }
-}
-
-private object NoneKeyValueLimiter extends KeyValueLimiter {
-
-  override def add(keyValue: KeyValue.ReadOnly.Group,
-                   skipList: SkipList[Slice[Byte], _]): Unit =
-    ()
-
-  override def add(keyValue: Persistent.SegmentResponse,
-                   skipList: SkipList[Slice[Byte], _]): Unit =
-    ()
-
-  override def terminate(): Unit = ()
 }

@@ -82,7 +82,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
             path = Paths.get("/test"),
             createdInLevel = 0,
             keyValues = mergedKeyValues
-          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileOpenLimiter, None, keyValueLimiter, SegmentIO.random).runRandomIO.value
+          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileOpenLimiter, None, Some(keyValueLimiter), SegmentIO.random).runRandomIO.value
 
         //perform reads multiple times and assert that while the key-values are getting drop, the group key-value does
         //not value dropped
@@ -149,7 +149,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
       try {
 
         //create persistent Segment
-        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, keyValueLimiter, FileLimiter.empty, timeOrder, SegmentIO.random, None).runRandomIO.value
+        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, Some(keyValueLimiter), FileLimiter.empty, timeOrder, SegmentIO.random, None).runRandomIO.value
 
         //initially Segment's cache is empty
         segment.areAllCachesEmpty shouldBe true

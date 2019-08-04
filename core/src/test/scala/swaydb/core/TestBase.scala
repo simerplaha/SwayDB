@@ -214,7 +214,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               path: Path = testMapFile,
               flushOnOverflow: Boolean = false,
               mmap: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                    keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                    keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                     fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[Slice[Byte], Memory.SegmentResponse] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
@@ -248,7 +248,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     def apply(keyValues: Slice[Transient] = randomizedKeyValues(addPut = true)(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
               path: Path = testSegmentFile,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                               keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                                               keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                                                fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                segmentIO: SegmentIO = SegmentIO.random,
@@ -311,7 +311,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random,
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                      keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                      keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                       compression: Option[GroupByInternal.KeyValues] = randomGroupBy(randomNextInt(1000))): Level =
@@ -344,7 +344,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               mapSize: Long = mapSize,
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
               throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                               keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                                               keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): LevelZero =
       LevelZero(

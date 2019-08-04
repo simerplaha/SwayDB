@@ -115,7 +115,7 @@ object Map extends LazyLogging {
           acceleration = acceleration
         ),
       maxOpenSegments = maxOpenSegments,
-      cacheSize = cacheSize,
+      cacheSize = Some(cacheSize),
       cacheCheckDelay = cacheCheckDelay,
       segmentsOpenCheckDelay = segmentsOpenCheckDelay,
       fileOpenLimiterEC = fileOpenLimiterEC,
