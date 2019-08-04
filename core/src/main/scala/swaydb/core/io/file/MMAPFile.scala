@@ -22,7 +22,7 @@ package swaydb.core.io.file
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.{Path, StandardOpenOption}
-import java.nio.{BufferOverflowException, MappedByteBuffer}
+import java.nio.{BufferOverflowException, BufferUnderflowException, MappedByteBuffer}
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
@@ -173,8 +173,6 @@ private[file] class MMAPFile(val path: Path,
   def read(position: Int, size: Int): IO[swaydb.Error.IO, Slice[Byte]] =
     recoverFromNullPointer {
       val array = new Array[Byte](size)
-      //      buffer position position
-      //      buffer get array
       var i = 0
       while (i < size) {
         array(i) = buffer.get(i + position)

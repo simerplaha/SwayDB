@@ -106,7 +106,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def close: IO[swaydb.Error.Segment, Unit] =
     file.close map {
       _ =>
-        segmentCache.clearBlockCache()
+        segmentCache.clearLocalAndBlockCache()
     }
 
   def isOpen: Boolean =
@@ -125,7 +125,7 @@ private[segment] case class PersistentSegment(file: DBFile,
         logger.error(s"{}: Failed to delete Segment file.", path, failure)
     } map {
       _ =>
-        segmentCache.clearBlockCache()
+        segmentCache.clearLocalAndBlockCache()
     }
   }
 
@@ -320,7 +320,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def clearAllCaches(): Unit = {
     clearCachedKeyValues()
-    segmentCache.clearBlockCache()
+    segmentCache.clearLocalAndBlockCache()
   }
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean =

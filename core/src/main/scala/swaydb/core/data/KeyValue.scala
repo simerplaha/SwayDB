@@ -432,7 +432,7 @@ private[swaydb] object Memory {
       segmentCache.get() foreach (_.clearCachedKeyValues())
 
     def clearBlockCache(): Unit =
-      segmentCache.get() foreach (_.clearBlockCache())
+      segmentCache.get() foreach (_.clearLocalAndBlockCache())
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
                 keyValueLimiter: KeyValueLimiter,
@@ -1890,7 +1890,7 @@ private[core] object Persistent {
       segmentCache.get() foreach (_.clearCachedKeyValues())
 
     def clearBlockCache(): Unit =
-      segmentCache.get() foreach (_.clearBlockCache())
+      segmentCache.get() foreach (_.clearLocalAndBlockCache())
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 

@@ -561,8 +561,10 @@ private[core] class SegmentCache(id: String,
   def clearCachedKeyValues() =
     keyValueCache.clear()
 
-  def clearBlockCache() = //cached key-value are not required to be clear. Limiter will clear them eventually since they are stored as WeakReferences.
+  def clearLocalAndBlockCache() = { //cached key-value are not required to be clear. Limiter will clear them eventually since they are stored as WeakReferences.
+    segmentReader.remove()
     blockCache.clear()
+  }
 
   def areAllCachesEmpty =
     isKeyValueCacheEmpty && !blockCache.isCached

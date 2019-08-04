@@ -465,7 +465,7 @@ private[segment] case class MemorySegment(path: Path,
       case group: Group =>
         val groupSegment = group.segment
         groupSegment.clearCachedKeyValues()
-        groupSegment.clearBlockCache()
+        groupSegment.clearLocalAndBlockCache()
 
       case _: SegmentResponse =>
         ()
