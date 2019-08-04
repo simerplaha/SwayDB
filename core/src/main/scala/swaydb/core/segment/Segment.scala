@@ -889,7 +889,7 @@ private[core] trait Segment extends FileLimiterItem {
   val segmentSize: Int
   val nearestExpiryDeadline: Option[Deadline]
   val minMaxFunctionId: Option[MinMax[Slice[Byte]]]
-  private[segment] def cache: ConcurrentSkipList[Slice[Byte], _ <: KeyValue.ReadOnly]
+  private[segment] def cache: SkipList[Slice[Byte], _ <: KeyValue.ReadOnly]
 
   def createdInLevel: IO[swaydb.Error.Segment, Int]
 

@@ -33,7 +33,7 @@ object ThreadLocalState {
     ThreadLocal.withInitial[ThreadLocalState] {
       new Supplier[ThreadLocalState] {
         override def get(): ThreadLocalState =
-          ThreadLocalState(None, None, None, None, None, None)
+          ThreadLocalState(None, None, None, None, None)
       }
     }
 }
@@ -42,5 +42,4 @@ case class ThreadLocalState(@BeanProperty var hashIndexReader: Option[IO.Success
                             @BeanProperty var bloomFilterReader: Option[IO.Success[swaydb.Error.Segment, Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]]],
                             @BeanProperty var binarySearchIndexReader: Option[IO.Success[swaydb.Error.Segment, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]]]],
                             @BeanProperty var valuesReader: Option[IO.Success[swaydb.Error.Segment, Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]]],
-                            @BeanProperty var sortedIndexReader: Option[IO.Success[swaydb.Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]]],
-                            @BeanProperty var keyValue: Option[Persistent])
+                            @BeanProperty var sortedIndexReader: Option[IO.Success[swaydb.Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]]])

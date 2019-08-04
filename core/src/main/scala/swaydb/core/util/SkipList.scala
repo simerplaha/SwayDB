@@ -67,6 +67,7 @@ private[core] sealed trait SkipList[K, V] {
   def subMap(from: K, to: K): util.NavigableMap[K, V]
   def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): util.NavigableMap[K, V]
   def asScala: mutable.Map[K, V]
+  def isConcurrent: Boolean
 }
 
 private[core] object SkipList {
@@ -107,13 +108,15 @@ private[core] object SkipList {
   def concurrent[K, V](implicit ordering: Ordering[K]): ConcurrentSkipList[K, V] =
     new ConcurrentSkipList[K, V](new ConcurrentSkipListMap[K, V](ordering))
 
-  def single[K, V: ClassTag](implicit ordering: Ordering[K]): SingleKeyValue[K, V] =
-    new SingleKeyValue[K, V](None)
+  def value[K, V: ClassTag](implicit ordering: Ordering[K]): SkipListValue[K, V] =
+    new SkipListValue[K, V](None)
 }
 
 private[core] class ConcurrentSkipList[K, V](skipList: ConcurrentSkipListMap[K, V]) extends SkipList[K, V] {
 
   import SkipList._
+
+  val isConcurrent: Boolean = true
 
   override def get(key: K): Option[V] =
     Option(skipList.get(key))
@@ -241,13 +244,14 @@ private[core] class ConcurrentSkipList[K, V](skipList: ConcurrentSkipListMap[K, 
     skipList.asScala
 }
 
-private[core] class SingleKeyValue[K, V: ClassTag](private var keyValue: Option[SkipList.KeyValue[K, V]])(implicit order: Ordering[K]) extends SkipList[K, V] {
+private[core] class SkipListValue[K, V: ClassTag](private var keyValue: Option[SkipList.KeyValue[K, V]])(implicit order: Ordering[K]) extends SkipList[K, V] {
 
   import order._
 
-  override def put(key: K, value: V): Unit = {
+  val isConcurrent: Boolean = false
+
+  override def put(key: K, value: V): Unit =
     keyValue = Some(SkipList.KeyValue(key, value))
-  }
 
   override def putIfAbsent(key: K, value: V): Boolean =
     if (keyValue.exists(_.key equiv key)) {
@@ -315,9 +319,8 @@ private[core] class SingleKeyValue[K, V: ClassTag](private var keyValue: Option[
   override def nonEmpty: Boolean =
     !isEmpty
 
-  override def clear(): Unit = {
+  override def clear(): Unit =
     keyValue = None
-  }
 
   override def size: Int =
     if (isEmpty) 0 else 1

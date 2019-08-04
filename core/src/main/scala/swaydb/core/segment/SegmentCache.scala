@@ -25,7 +25,7 @@ import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.util.{ConcurrentSkipList, SkipList}
+import swaydb.core.util.SkipList
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -44,7 +44,7 @@ private[core] object SegmentCache {
       id = id,
       maxKey = maxKey,
       minKey = minKey,
-      keyValueCache = SkipList.concurrent[Slice[Byte], Persistent](keyOrder),
+      keyValueCache = SkipList.value[Slice[Byte], Persistent],
       unsliceKey = unsliceKey,
       blockCache =
         SegmentBlockCache(
@@ -57,7 +57,7 @@ private[core] object SegmentCache {
 private[core] class SegmentCache(id: String,
                                  maxKey: MaxKey[Slice[Byte]],
                                  minKey: Slice[Byte],
-                                 private[segment] val keyValueCache: ConcurrentSkipList[Slice[Byte], Persistent],
+                                 private[segment] val keyValueCache: SkipList[Slice[Byte], Persistent],
                                  unsliceKey: Boolean,
                                  val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                     keyValueLimiter: KeyValueLimiter,
@@ -78,14 +78,18 @@ private[core] class SegmentCache(id: String,
    */
   private def addToCache(keyValue: Persistent.SegmentResponse): Unit = {
     if (unsliceKey) keyValue.unsliceKeys
-    if (keyValueCache.putIfAbsent(keyValue.key, keyValue))
+    if (keyValueCache.isConcurrent && keyValueCache.putIfAbsent(keyValue.key, keyValue))
       keyValueLimiter.add(keyValue, keyValueCache)
+    else
+      keyValueCache.put(keyValue.key, keyValue)
   }
 
   private def addToCache(group: Persistent.Group): Unit = {
     if (unsliceKey) group.unsliceKeys
-    if (keyValueCache.putIfAbsent(group.key, group))
+    if (keyValueCache.isConcurrent && keyValueCache.putIfAbsent(group.key, group))
       keyValueLimiter.add(group, keyValueCache)
+    else
+      keyValueCache.put(group.key, group)
   }
 
   private def createSortedIndexReader(): IO[Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] = {
