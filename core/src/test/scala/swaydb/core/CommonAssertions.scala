@@ -196,6 +196,12 @@ object CommonAssertions {
     else
       right
 
+  def orNone[T](option: => Option[T]): Option[T] =
+    if (Random.nextBoolean())
+      None
+    else
+      option
+
   def anyOrder[T](left: => T, right: => T): Unit =
     if (Random.nextBoolean()) {
       left

@@ -181,11 +181,17 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
         SortedIndexBlock.Config(
           blockIO = strategy,
           prefixCompressionResetCount = 0,
-          enableAccessPositionIndex = false,
+          enableAccessPositionIndex = true,
           compressions = _ => Seq.empty
         ),
       binarySearchIndexConfig =
-        BinarySearchIndexBlock.Config.disabled,
+        BinarySearchIndexBlock.Config(
+          enabled = true,
+          minimumNumberOfKeys = 1,
+          fullIndex = true,
+          blockIO = strategy,
+          compressions = _ => Seq.empty
+        ),
       valuesConfig =
         ValuesBlock.Config(
           compressDuplicateValues = true,
@@ -254,7 +260,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
         //        val key = keyValue.key.readInt()
         //        if (key % 1000 == 0)
         //          println(key)
-        segment.get(keyValue.key).get.get.key.readInt() shouldBe keyValue.key.readInt()
+        val found = segment.get(keyValue.key).get.get
+        found.getOrFetchValue
     }
   }
 
@@ -265,7 +272,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
         //        println(s"index: $index")
         val keyValue = unGroupedKeyValues(index)
         val expectedHigher = unGroupedKeyValues(index + 1)
-        segment.higher(keyValue.key).value shouldBe expectedHigher
+        segment.higher(keyValue.key).get.get shouldBe expectedHigher
     }
   }
 
@@ -276,7 +283,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
         //        segment.lowerKeyValue(keyValues(index).key)
         val keyValue = unGroupedKeyValues(index)
         val expectedLower = unGroupedKeyValues(index - 1)
-        segment.lower(keyValue.key).value shouldBe expectedLower
+        segment.lower(keyValue.key).value.get shouldBe expectedLower
+      //        segment.lower(keyValue.key).get
     }
 
   var segment: Segment = null
@@ -332,7 +340,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
   }
 
   "Segment lower benchmark 3" in {
-    if (persistent) reopenSegment()
+    initSegment()
+    //    if (persistent) reopenSegment()
     benchmark(s"lower ${keyValues.size} lower keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertLower(segment)
     }
@@ -345,7 +354,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
   }
 
   "Segment higher benchmark 5" in {
-    if (persistent) reopenSegment()
+    initSegment()
+    //    if (persistent) reopenSegment()
     benchmark(s"higher ${keyValues.size} higher keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertHigher(segment)
     }

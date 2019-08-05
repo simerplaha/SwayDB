@@ -44,7 +44,7 @@ private[core] object SegmentCache {
       id = id,
       maxKey = maxKey,
       minKey = minKey,
-      _skipList = if (keyValueLimiter.isDefined) Some(SkipList.concurrent()) else None,
+      _skipList = None,
       unsliceKey = unsliceKey,
       blockCache =
         SegmentBlockCache(
@@ -355,7 +355,7 @@ private[core] class SegmentCache(id: String,
                     lowerGroup.segment.lower(key)
 
                   case lowerKeyValue: Persistent =>
-                    ceilingForLower(key) flatMap {
+                    skipList.ceiling(key) match {
                       case Some(ceiling) if lowerKeyValue.nextIndexOffset == ceiling.indexOffset =>
                         lowerKeyValue match {
                           case response: Persistent.SegmentResponse =>
@@ -386,10 +386,22 @@ private[core] class SegmentCache(id: String,
                 }
 
             case None =>
-              ceilingForLower(key) flatMap {
-                ceiling =>
-                  lower(key, None, ceiling)
-              }
+              val ceiling = skipList.ceiling(key)
+              if (ceiling.isDefined)
+                lower(
+                  key = key,
+                  start = None,
+                  end = ceiling
+                )
+              else
+                ceilingForLower(key) flatMap {
+                  ceiling =>
+                    lower(
+                      key = key,
+                      start = None,
+                      end = ceiling
+                    )
+                }
           }
       }
 

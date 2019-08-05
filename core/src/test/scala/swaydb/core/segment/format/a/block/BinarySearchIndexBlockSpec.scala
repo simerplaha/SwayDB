@@ -22,7 +22,7 @@ import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.{Blocks, TestBase}
 import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
@@ -165,35 +165,41 @@ class BinarySearchIndexBlockSpec extends TestBase {
   }
 
   "fully indexed search" should {
-
     val startId = 100
 
-    val keyValues =
-      randomizedKeyValues(
-        count = 1000,
-        startId = Some(startId),
-        addRanges = true,
-        addGroups = true,
-        addPut = true
-      ).updateStats(
-        binarySearchIndexConfig =
-          BinarySearchIndexBlock.Config.random.copy(
-            enabled = true,
-            minimumNumberOfKeys = 0,
-            fullIndex = true
-          )
-      )
+    def genKeyValuesAndBlocks(keyValuesCount: Int = 10): (Slice[Transient], Blocks) = {
 
-    val blocks = getBlocks(keyValues).get
+      val keyValues =
+        randomizedKeyValues(
+          count = keyValuesCount,
+          startId = Some(startId),
+          addRanges = false,
+          addGroups = false,
+          addPut = true
+        ).updateStats(
+          binarySearchIndexConfig =
+            BinarySearchIndexBlock.Config.random.copy(
+              enabled = true,
+              minimumNumberOfKeys = 0,
+              fullIndex = true
+            )
+        )
 
-    blocks.binarySearchIndexReader shouldBe defined
-    blocks.binarySearchIndexReader.get.block.isFullIndex shouldBe true
+      val blocks = getBlocks(keyValues).get
 
-    if (!blocks.sortedIndexReader.block.hasPrefixCompression)
-      blocks.binarySearchIndexReader.get.block.valuesCount shouldBe keyValues.size
+      blocks.binarySearchIndexReader shouldBe defined
+      blocks.binarySearchIndexReader.get.block.isFullIndex shouldBe true
+
+      if (!blocks.sortedIndexReader.block.hasPrefixCompression)
+        blocks.binarySearchIndexReader.get.block.valuesCount shouldBe keyValues.size
+
+      (keyValues, blocks)
+    }
 
     "search key-values" in {
-      runThis(20.times, log = true, s"Running binary search test on ${keyValues.size} key-values 50 times") {
+      runThis(100.times, log = true, s"Running binary search test") {
+        val (keyValues, blocks) = genKeyValuesAndBlocks()
+
         keyValues.zipWithIndex.foldLeft(Option.empty[Persistent]) {
           case (previous, (keyValue, index)) =>
 
@@ -204,7 +210,7 @@ class BinarySearchIndexBlockSpec extends TestBase {
               eitherOne(
                 left = None,
                 right = //There is a random test. It could get index out of bounds.
-                  Try(keyValues(index + eitherOne(0, 1, 2, 3, 4, 5))).toOption flatMap {
+                  Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption flatMap {
                     keyValue =>
                       //read the end key from index.
                       BinarySearchIndexBlock.search(
@@ -255,216 +261,309 @@ class BinarySearchIndexBlockSpec extends TestBase {
               }
 
             found shouldBe keyValue
-            found
+            eitherOne(None, found, previous)
         }
       }
     }
 
     "search non existent key-values" in {
-      val higherStartFrom = keyValues.last.key.readInt() + 1000000
-      (higherStartFrom to higherStartFrom + 100) foreach {
-        key =>
-          //          println(s"find: $key")
-          BinarySearchIndexBlock.search(
-            key = key,
-            start = None,
-            end = None,
-            binarySearchIndexReader = blocks.binarySearchIndexReader.get,
-            sortedIndexReader = blocks.sortedIndexReader,
-            valuesReader = blocks.valuesReader
-          ).get match {
-            case SearchResult.None(lower) =>
-              //lower will always be the last known uncompressed key before the last key-value.
-              val expectedLower = keyValues.dropRight(1).reverse.find(!_.isPrefixCompressed).get
-              lower.get.key shouldBe expectedLower.key
+      runThis(100.times) {
+        val (keyValues, blocks) = genKeyValuesAndBlocks()
+        val higherStartFrom = keyValues.last.key.readInt() + 1000000
+        (higherStartFrom to higherStartFrom + 100) foreach {
+          key =>
+            //          println(s"find: $key")
+            BinarySearchIndexBlock.search(
+              key = key,
+              start = None,
+              end = None,
+              binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReader = blocks.valuesReader
+            ).get match {
+              case SearchResult.None(lower) =>
+                //lower will always be the last known uncompressed key before the last key-value.
+                keyValues.dropRight(1).reverse.find(!_.isPrefixCompressed) foreach {
+                  expectedLower =>
+                    lower.get.key shouldBe expectedLower.key
+                }
 
-            case _: SearchResult.Some[_] =>
-              fail("Didn't expect a match")
-          }
-      }
+              case _: SearchResult.Some[_] =>
+                fail("Didn't expect a match")
+            }
+        }
 
-      (0 until startId) foreach {
-        key =>
-          //          println(s"find: $key")
-          BinarySearchIndexBlock.search(
-            key = key,
-            start = None,
-            end = None,
-            binarySearchIndexReader = blocks.binarySearchIndexReader.get,
-            sortedIndexReader = blocks.sortedIndexReader,
-            valuesReader = blocks.valuesReader
-          ).get match {
-            case SearchResult.None(lower) =>
-              //lower is always empty since the test keys are lower than the actual key-values.
-              lower shouldBe empty
+        (0 until startId) foreach {
+          key =>
+            //          println(s"find: $key")
+            BinarySearchIndexBlock.search(
+              key = key,
+              start = None,
+              end = None,
+              binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReader = blocks.valuesReader
+            ).get match {
+              case SearchResult.None(lower) =>
+                //lower is always empty since the test keys are lower than the actual key-values.
+                lower shouldBe empty
 
-            case _: SearchResult.Some[_] =>
-              fail("Didn't expect a math")
-          }
+              case _: SearchResult.Some[_] =>
+                fail("Didn't expect a math")
+            }
+        }
       }
     }
 
     "search higher for existing key-values" in {
-      //test higher in reverse order
-      keyValues.foldRight(Option.empty[Persistent]) {
-        case (keyValue, expectedHigher) =>
+      runThis(100.times, log = true) {
+        val (keyValues, blocks) = genKeyValuesAndBlocks()
+        //test higher in reverse order
+        keyValues.zipWithIndex.foldRight(Option.empty[Persistent]) {
+          case ((keyValue, index), expectedHigher) =>
 
-          def getHigher(key: Slice[Byte]) =
-            BinarySearchIndexBlock.searchHigher(
-              key = key,
-              start = None,
-              end = None,
-              binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+            val start: Option[Persistent] =
+              eitherOne(
+                left = None,
+                right = //There is a random test. It could get index out of bounds.
+                  Try(keyValues(randomIntMax(index))).toOption flatMap {
+                    keyValue =>
+                      //read the end key from index.
+                      BinarySearchIndexBlock.search(
+                        key = keyValue.key,
+                        start = None,
+                        end = None,
+                        binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+                        sortedIndexReader = blocks.sortedIndexReader,
+                        valuesReader = blocks.valuesReader
+                      ).get.toOption
+                  }
+              )
+
+            //randomly set start and end. Select a higher key-value which is a few indexes away from the actual key.
+            val end: Option[Persistent] =
+              eitherOne(
+                left = None,
+                right = //There is a random test. It could get index out of bounds.
+                  Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption flatMap {
+                    keyValue =>
+                      //read the end key from index.
+                      BinarySearchIndexBlock.search(
+                        key = keyValue.key,
+                        start = eitherOne(None, start),
+                        end = None,
+                        binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+                        sortedIndexReader = blocks.sortedIndexReader,
+                        valuesReader = blocks.valuesReader
+                      ).get.toOption
+                  }
+              )
+
+            def getHigher(key: Slice[Byte]) =
+              BinarySearchIndexBlock.searchHigher(
+                key = key,
+                start = start,
+                end = end,
+                binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+                sortedIndexReader = blocks.sortedIndexReader,
+                valuesReader = blocks.valuesReader
+              ).get
+
+            keyValue match {
+              case fixed: Transient.Fixed =>
+                getHigher(fixed.key) match {
+                  case SearchResult.None(lower) =>
+                    if (keyValues.size > 2)
+                      lower.get.key.readInt() should be < fixed.key.readInt()
+                    expectedHigher shouldBe empty
+
+                  case SearchResult.Some(lower, actualHigher) =>
+                    lower.foreach(_.key.readInt() should be < actualHigher.key.readInt())
+                    actualHigher.key shouldBe expectedHigher.get.key
+                }
+
+              case range: Transient.Range =>
+                (range.fromKey.readInt() until range.toKey.readInt()) foreach {
+                  key =>
+                    getHigher(key) match {
+                      case SearchResult.None(lower) =>
+                        lower.get.key.readInt() should be < key
+                        expectedHigher shouldBe empty
+
+                      case SearchResult.Some(lower, actualHigher) =>
+                        lower.foreach(_.key.readInt() should be < actualHigher.key.readInt())
+                        actualHigher shouldBe range
+                    }
+                }
+              //
+              case group: Transient.Group =>
+                (group.key.readInt() until group.maxKey.maxKey.readInt()) foreach {
+                  key =>
+                    getHigher(key) match {
+                      case SearchResult.None(lower) =>
+                        lower.get.key.readInt() should be < key
+                        expectedHigher shouldBe empty
+
+                      case SearchResult.Some(lower, actualHigher) =>
+                        lower.foreach(_.key.readInt() should be < actualHigher.key.readInt())
+                        actualHigher.key shouldBe group.key
+                    }
+                }
+            }
+
+            //get the persistent key-value for the next higher assert.
+            SortedIndexBlock.search(
+              key = keyValue.key,
+              startFrom = eitherOne(start, None),
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).get
-
-          keyValue match {
-            case fixed: Transient.Fixed =>
-              getHigher(fixed.key) match {
-                case SearchResult.None(lower) =>
-                  lower.get.key.readInt() should be < fixed.key.readInt()
-                  expectedHigher shouldBe empty
-
-                case SearchResult.Some(lower, actualHigher) =>
-                  lower.foreach(_.key.readInt() should be < actualHigher.key.readInt())
-                  actualHigher.key shouldBe expectedHigher.get.key
-              }
-
-            case range: Transient.Range =>
-              (range.fromKey.readInt() until range.toKey.readInt()) foreach {
-                key =>
-                  getHigher(key) match {
-                    case SearchResult.None(lower) =>
-                      lower.get.key.readInt() should be < key
-                      expectedHigher shouldBe empty
-
-                    case SearchResult.Some(lower, actualHigher) =>
-                      lower.foreach(_.key.readInt() should be < actualHigher.key.readInt())
-                      actualHigher shouldBe range
-                  }
-              }
-            //
-            case group: Transient.Group =>
-              (group.key.readInt() until group.maxKey.maxKey.readInt()) foreach {
-                key =>
-                  getHigher(key) match {
-                    case SearchResult.None(lower) =>
-                      lower.get.key.readInt() should be < key
-                      expectedHigher shouldBe empty
-
-                    case SearchResult.Some(lower, actualHigher) =>
-                      lower.foreach(_.key.readInt() should be < actualHigher.key.readInt())
-                      actualHigher.key shouldBe group.key
-                  }
-              }
-          }
-
-          //get the persistent key-value for the next higher assert.
-          SortedIndexBlock.search(
-            key = keyValue.key,
-            startFrom = None,
-            sortedIndexReader = blocks.sortedIndexReader,
-            valuesReader = blocks.valuesReader
-          ).get
+        }
       }
     }
 
     "search lower for existing key-values" in {
-      keyValues.zipWithIndex.foldLeft(Option.empty[Persistent]) {
-        case (expectedLower, (keyValue, index)) =>
+      runThis(100.times, log = true) {
+        val (keyValues, blocks) = genKeyValuesAndBlocks()
 
-          def getLower(key: Slice[Byte]) =
-            BinarySearchIndexBlock.searchLower(
-              key = key,
-              start = None,
-              end = None,
-              binarySearchIndexReader = blocks.binarySearchIndexReader.get,
-              sortedIndexReader = blocks.sortedIndexReader,
-              valuesReader = blocks.valuesReader
-            ).get
+        keyValues.zipWithIndex.foldLeft(Option.empty[Persistent]) {
+          case (expectedLower, (keyValue, index)) =>
 
-          //          println(s"Lower for: ${keyValue.minKey.readInt()}")
+            val start: Option[Persistent] =
+              eitherOne(
+                left = None,
+                right = //There is a random test. It could get index out of bounds.
+                  Try(keyValues(randomIntMax(index))).toOption flatMap {
+                    keyValue =>
+                      //read the end key from index.
+                      BinarySearchIndexBlock.search(
+                        key = keyValue.key,
+                        start = orNone(expectedLower),
+                        end = None,
+                        binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+                        sortedIndexReader = blocks.sortedIndexReader,
+                        valuesReader = blocks.valuesReader
+                      ).get.toOption
+                  }
+              )
 
-          keyValue match {
-            case fixed: Transient.Fixed =>
-              getLower(fixed.key) match {
-                case SearchResult.None(lower) =>
-                  if (index == 0)
-                    lower shouldBe empty
-                  else
-                    fail("Didn't expect None")
+            //randomly set start and end. Select a higher key-value which is a few indexes away from the actual key.
+            val end: Option[Persistent] =
+              eitherOne(
+                left = None,
+                right = //There is a random test. It could get index out of bounds.
+                  Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption flatMap {
+                    keyValue =>
+                      //read the end key from index.
+                      BinarySearchIndexBlock.search(
+                        key = keyValue.key,
+                        start = orNone(start),
+                        end = None,
+                        binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+                        sortedIndexReader = blocks.sortedIndexReader,
+                        valuesReader = blocks.valuesReader
+                      ).get.toOption
+                  }
+              )
 
-                case SearchResult.Some(lower, actualLower) =>
-                  lower shouldBe empty
-                  actualLower.key shouldBe expectedLower.get.key
-              }
+            def getLower(key: Slice[Byte]) =
+              BinarySearchIndexBlock.searchLower(
+                key = key,
+                start = start,
+                end = end,
+                binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+                sortedIndexReader = blocks.sortedIndexReader,
+                valuesReader = blocks.valuesReader
+              ).get
 
-            case range: Transient.Range =>
-              //do a lower on fromKey first.
-              getLower(range.fromKey) match {
-                case SearchResult.None(lower) =>
-                  if (index == 0)
-                    lower shouldBe empty
-                  else
-                    fail("Didn't expect None")
+            //          println(s"Lower for: ${keyValue.minKey.readInt()}")
 
-                case SearchResult.Some(lower, actualLower) =>
-                  lower shouldBe empty
-                  actualLower shouldBe expectedLower.get
-              }
-
-              //do lower on within range keys
-              (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
-                key =>
-                  getLower(key) match {
-                    case SearchResult.None(lower) =>
+            keyValue match {
+              case fixed: Transient.Fixed =>
+                getLower(fixed.key) match {
+                  case SearchResult.None(lower) =>
+                    if (index == 0)
+                      lower shouldBe empty
+                    else
                       fail("Didn't expect None")
 
-                    case SearchResult.Some(lower, actualLower) =>
-                      lower shouldBe empty
-                      actualLower shouldBe range
-                  }
-              }
-
-            case group: Transient.Group =>
-              //do lower on Group's minKey first
-              getLower(group.key) match {
-                case SearchResult.None(lower) =>
-                  if (index == 0)
+                  case SearchResult.Some(lower, actualLower) =>
                     lower shouldBe empty
-                  else
-                    fail("Didn't expect None")
+                    try
+                      actualLower.key shouldBe expectedLower.get.key
+                    catch {
+                      case exception: Exception =>
+                        getLower(fixed.key)
+                        throw exception
+                    }
+                }
 
-                case SearchResult.Some(lower, actualLower) =>
-                  lower shouldBe empty
-                  actualLower shouldBe expectedLower.get
-              }
-
-              (group.key.readInt() + 1 to group.maxKey.maxKey.readInt()) foreach {
-                key =>
-                  getLower(key) match {
-                    case SearchResult.None(_) =>
+              case range: Transient.Range =>
+                //do a lower on fromKey first.
+                getLower(range.fromKey) match {
+                  case SearchResult.None(lower) =>
+                    if (index == 0)
+                      lower shouldBe empty
+                    else
                       fail("Didn't expect None")
 
-                    case SearchResult.Some(lower, actualLower) =>
+                  case SearchResult.Some(lower, actualLower) =>
+                    lower shouldBe empty
+                    actualLower shouldBe expectedLower.get
+                }
+
+                //do lower on within range keys
+                (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
+                  key =>
+                    getLower(key) match {
+                      case SearchResult.None(lower) =>
+                        fail("Didn't expect None")
+
+                      case SearchResult.Some(lower, actualLower) =>
+                        lower shouldBe empty
+                        actualLower shouldBe range
+                    }
+                }
+
+              case group: Transient.Group =>
+                //do lower on Group's minKey first
+                getLower(group.key) match {
+                  case SearchResult.None(lower) =>
+                    if (index == 0)
                       lower shouldBe empty
-                      actualLower.key shouldBe group.key
-                  }
-              }
-          }
+                    else
+                      fail("Didn't expect None")
 
-          //get the persistent key-value for the next lower assert.
-          val got =
-            SortedIndexBlock.search(
-              key = keyValue.key,
-              startFrom = None,
-              sortedIndexReader = blocks.sortedIndexReader,
-              valuesReader = blocks.valuesReader
-            ).get
+                  case SearchResult.Some(lower, actualLower) =>
+                    lower shouldBe empty
+                    actualLower shouldBe expectedLower.get
+                }
 
-          got.get.key shouldBe keyValue.key
-          got
+                (group.key.readInt() + 1 to group.maxKey.maxKey.readInt()) foreach {
+                  key =>
+                    getLower(key) match {
+                      case SearchResult.None(_) =>
+                        fail("Didn't expect None")
+
+                      case SearchResult.Some(lower, actualLower) =>
+                        lower shouldBe empty
+                        actualLower.key shouldBe group.key
+                    }
+                }
+            }
+
+            //get the persistent key-value for the next lower assert.
+            val got =
+              SortedIndexBlock.search(
+                key = keyValue.key,
+                startFrom = None,
+                sortedIndexReader = blocks.sortedIndexReader,
+                valuesReader = blocks.valuesReader
+              ).get
+
+            got.get.key shouldBe keyValue.key
+            got
+        }
       }
     }
   }
