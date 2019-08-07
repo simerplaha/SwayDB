@@ -33,8 +33,6 @@ protected trait BlockReader extends ReaderBase[swaydb.Error.Segment] with LazyLo
 
   private[reader] def reader: Reader[swaydb.Error.Segment]
   override val isFile: Boolean = reader.isFile
-  val isFileReader = reader.isInstanceOf[FileReader]
-
   private var position: Int = 0
 
   private var previousReadEndPosition = position
@@ -190,7 +188,7 @@ protected trait BlockReader extends ReaderBase[swaydb.Error.Segment] with LazyLo
   override def read(size: Int): IO[swaydb.Error.Segment, Slice[Byte]] = {
     val fromCache = readFromCache(position, size)
 
-    if (fromCache.isEmpty || !isFileReader || !isSequentialRead())
+    if (fromCache.isEmpty && (!isFile || !isSequentialRead()))
       readRandomAccess(size)
     else
       readSequentialAccess(size, fromCache)
