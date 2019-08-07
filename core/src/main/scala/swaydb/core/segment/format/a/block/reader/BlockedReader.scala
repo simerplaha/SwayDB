@@ -43,16 +43,16 @@ private[core] object BlockedReader {
         blockOps.readBlock(header) map {
           block =>
             new BlockedReader[O, B](
-              reader = ref.reader.copy(),
+              reader = ref.reader,
               block = blockOps.updateBlockOffset(block, block.offset.start + ref.offset.start, block.offset.size)
             )
         }
     }
 
-  def apply[O <: BlockOffset, B <: Block[O]](block: B, parent: UnblockedReader[SegmentBlock.Offset, SegmentBlock])(implicit blockOps: BlockOps[O, B]): BlockedReader[O, B] =
+  def apply[O <: BlockOffset, B <: Block[O]](block: B, reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock])(implicit blockOps: BlockOps[O, B]): BlockedReader[O, B] =
     new BlockedReader[O, B](
-      reader = parent.reader.copy(),
-      block = blockOps.updateBlockOffset(block, block.offset.start + parent.offset.start, block.offset.size)
+      reader = reader.reader,
+      block = blockOps.updateBlockOffset(block, block.offset.start + reader.offset.start, block.offset.size)
     )
 }
 

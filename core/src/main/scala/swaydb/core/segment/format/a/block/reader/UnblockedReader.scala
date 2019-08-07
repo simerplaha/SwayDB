@@ -19,9 +19,11 @@
 
 package swaydb.core.segment.format.a.block.reader
 
+import java.nio.file.Path
+
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
-import swaydb.core.io.reader.{FileReader, Reader}
+import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
 import swaydb.data.slice.{Reader, Slice}
 
@@ -47,10 +49,10 @@ private[core] object UnblockedReader {
     )
 
   def moveTo[O <: BlockOffset, B <: Block[O]](offset: O,
-                                              parent: UnblockedReader[O, B])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
+                                              reader: UnblockedReader[O, B])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
     new UnblockedReader[O, B](
-      block = blockOps.updateBlockOffset(parent.block, offset.start + parent.offset.start, offset.size),
-      reader = parent.reader.copy()
+      block = blockOps.updateBlockOffset(reader.block, reader.offset.start + offset.start, offset.size),
+      reader = reader.reader
     )
 
   def apply[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B],
@@ -60,19 +62,26 @@ private[core] object UnblockedReader {
       readAllIfUncompressed = readAllIfUncompressed
     )
 
-  def asUnblocked[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
-    new UnblockedReader(
-      block = blockOps.updateBlockOffset(blockedReader.block, blockedReader.offset.start, blockedReader.offset.size),
-      reader = blockedReader.reader.copy()
+  def skipHeader[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
+    new UnblockedReader[O, B](
+      block =
+        blockOps.updateBlockOffset(
+          block = blockedReader.block,
+          start = blockedReader.offset.start + blockedReader.block.headerSize,
+          size = blockedReader.offset.size - blockedReader.block.headerSize
+        ),
+      reader = blockedReader.reader
     )
+  //    new UnblockedReader[O, B](
+  //      block = blockOps.updateBlockOffset(blockedReader.block, 0, blockedReader.offset.size),
+  //      reader = blockedReader
+  //    )
 }
 
 private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val block: B,
                                                                              private[reader] val reader: Reader[swaydb.Error.Segment]) extends BlockReader with LazyLogging {
 
   def offset = block.offset
-
-  def path = reader.path
 
   override def moveTo(newPosition: Long): UnblockedReader[O, B] = {
     super.moveTo(newPosition)
@@ -95,5 +104,7 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
       reader = reader.copy()
     )
 
+  override val isFile: Boolean = reader.isFile
   override def blockSize: Int = 4096
+  override def path: Path = ???
 }

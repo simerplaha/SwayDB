@@ -26,12 +26,12 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
 import swaydb.core.util.cache.Cache
-import swaydb.data.slice.Reader
+import swaydb.data.slice.ReaderBase
 
 trait EntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
-                              indexReader: Reader[swaydb.Error.Segment],
+                              indexReader: ReaderBase[swaydb.Error.Segment],
                               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
@@ -60,7 +60,7 @@ object EntryReader {
   def read[T](baseId: Int,
               keyValueId: Int,
               mightBeCompressed: Boolean,
-              indexReader: Reader[swaydb.Error.Segment],
+              indexReader: ReaderBase[swaydb.Error.Segment],
               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
               indexOffset: Int,
               nextIndexOffset: Int,
@@ -84,7 +84,7 @@ object EntryReader {
         )
     } getOrElse IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
 
-  def read(indexReader: Reader[swaydb.Error.Segment],
+  def read(indexReader: ReaderBase[swaydb.Error.Segment],
            mightBeCompressed: Boolean,
            valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
            indexOffset: Int,

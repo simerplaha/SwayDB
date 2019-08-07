@@ -26,7 +26,7 @@ import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.core.util.TimeUtil._
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.implicitNotFound
@@ -39,7 +39,7 @@ sealed trait ValueSerializer[T] {
 
   def write(value: T, bytes: Slice[Byte]): Unit
 
-  def read(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, T]
+  def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, T]
 
   def read(bytes: Slice[Byte]): IO[swaydb.Error.IO, T] =
     read(Reader(bytes))
@@ -49,7 +49,7 @@ sealed trait ValueSerializer[T] {
 
 object ValueSerializer {
 
-  def readDeadline(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, Option[Deadline]] =
+  def readDeadline(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Option[Deadline]] =
     reader.readLongUnsigned() map {
       deadline =>
         if (deadline == 0)
@@ -58,7 +58,7 @@ object ValueSerializer {
           deadline.toDeadlineOption
     }
 
-  def readTime(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, Time] =
+  def readTime(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Time] =
     reader.readIntUnsigned() flatMap {
       timeSize =>
         if (timeSize == 0)
@@ -67,7 +67,7 @@ object ValueSerializer {
           reader.read(timeSize) map (Time(_))
     }
 
-  def readRemainingTime(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, Time] =
+  def readRemainingTime(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Time] =
     reader.readRemaining() map {
       remaining =>
         if (remaining.isEmpty)
@@ -76,7 +76,7 @@ object ValueSerializer {
           Time(remaining)
     }
 
-  def readValue(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, Option[Slice[Byte]]] =
+  def readValue(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Option[Slice[Byte]]] =
     reader.readRemaining() map {
       remaining =>
         if (remaining.isEmpty)
@@ -100,7 +100,7 @@ object ValueSerializer {
         value.time.size +
         value.value.map(_.size).getOrElse(0)
 
-    override def read(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.Put] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.Put] =
       for {
         deadline <- readDeadline(reader)
         time <- readTime(reader)
@@ -125,7 +125,7 @@ object ValueSerializer {
         value.time.size +
         value.value.map(_.size).getOrElse(0)
 
-    override def read(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.Update] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.Update] =
       for {
         deadline <- readDeadline(reader)
         time <- readTime(reader)
@@ -146,7 +146,7 @@ object ValueSerializer {
       Bytes.sizeOf(value.deadline.toNanos) +
         value.time.size
 
-    override def read(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.Remove] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.Remove] =
       for {
         deadline <- readDeadline(reader)
         time <- readRemainingTime(reader)
@@ -162,7 +162,7 @@ object ValueSerializer {
     override def bytesRequired(value: Value.Function): Int =
       ValueSerializer.bytesRequired((value.function, value.time.time))(TupleOfBytesSerializer)
 
-    override def read(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.Function] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.Function] =
       ValueSerializer.read[(Slice[Byte], Slice[Byte])](reader) map {
         case (function, time) =>
           Value.Function(function, Time(time))
@@ -207,7 +207,7 @@ object ValueSerializer {
           }
       }
 
-    override def read(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, Slice[Value.Apply]] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Slice[Value.Apply]] =
       reader.readIntUnsigned() flatMap {
         count =>
           reader.foldLeftIO(Slice.create[Value.Apply](count)) {
@@ -250,7 +250,7 @@ object ValueSerializer {
     override def bytesRequired(value: Value.PendingApply): Int =
       ValueSerializer.bytesRequired(value.applies)
 
-    override def read(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.PendingApply] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.PendingApply] =
       ValueSerializer.read[Slice[Value.Apply]](reader) map Value.PendingApply
   }
 
@@ -273,7 +273,7 @@ object ValueSerializer {
           size + Bytes.sizeOf(valueBytes.size) + valueBytes.size
       }
 
-    override def read(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, Seq[Slice[Byte]]] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Seq[Slice[Byte]]] =
       reader.foldLeftIO(ListBuffer.empty[Slice[Byte]]) {
         case (result, reader) =>
           reader.readIntUnsigned() flatMap {
@@ -297,7 +297,7 @@ object ValueSerializer {
     override def bytesRequired(value: (Slice[Byte], Slice[Byte])): Int =
       SeqOfBytesSerializer.bytesRequired(Seq(value._1, value._2))
 
-    override def read(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, (Slice[Byte], Slice[Byte])] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Slice[Byte], Slice[Byte])] =
       SeqOfBytesSerializer.read(reader) flatMap {
         bytes =>
           if (bytes.size != 2)
@@ -332,7 +332,7 @@ object ValueSerializer {
             value._1.size
       }
 
-    override def read(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, (Slice[Byte], Option[Slice[Byte]])] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Slice[Byte], Option[Slice[Byte]])] =
       reader.readIntUnsigned() flatMap {
         id =>
           if (id == 0)
@@ -370,7 +370,7 @@ object ValueSerializer {
       }
     }
 
-    override def read(reader: Reader[swaydb.Error.IO]): IO[swaydb.Error.IO, mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]]] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]]] =
       reader.get() flatMap {
         format =>
           if (format != formatId)
@@ -450,7 +450,7 @@ object ValueSerializer {
   def read[T](value: Slice[Byte])(implicit serializer: ValueSerializer[T]): IO[swaydb.Error.IO, T] =
     serializer.read(value)
 
-  def read[T](reader: Reader[swaydb.Error.IO])(implicit serializer: ValueSerializer[T]): IO[swaydb.Error.IO, T] =
+  def read[T](reader: ReaderBase[swaydb.Error.IO])(implicit serializer: ValueSerializer[T]): IO[swaydb.Error.IO, T] =
     serializer.read(reader)
 
   def bytesRequired[T](value: T)(implicit serializer: ValueSerializer[T]): Int =

@@ -28,27 +28,27 @@ private[core] class FileReader(file: DBFile) extends Reader[swaydb.Error.Segment
 
   private var position: Int = 0
 
-  def isLoaded: IO[swaydb.Error.Segment, Boolean] =
+  def isLoaded: IO[swaydb.Error.IO, Boolean] =
     file.isLoaded
 
-  override def size: IO[swaydb.Error.Segment, Long] =
+  override def size: IO[swaydb.Error.IO, Long] =
     file.fileSize
 
-  def moveTo(newPosition: Long): Reader[swaydb.Error.Segment] = {
+  def moveTo(newPosition: Long): FileReader = {
     position = newPosition.toInt max 0
     this
   }
 
-  def hasMore: IO[swaydb.Error.Segment, Boolean] =
+  def hasMore: IO[swaydb.Error.IO, Boolean] =
     size.map(position < _)
 
-  def hasAtLeast(size: Long): IO[swaydb.Error.Segment, Boolean] =
+  def hasAtLeast(size: Long): IO[swaydb.Error.IO, Boolean] =
     file.fileSize map {
       fileSize =>
         (fileSize - position) >= size
     }
 
-  override def copy(): Reader[swaydb.Error.Segment] =
+  override def copy(): FileReader =
     new FileReader(file)
 
   override def getPosition: Int = position

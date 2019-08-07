@@ -26,7 +26,7 @@ import swaydb.{ErrorHandler, IO}
 /**
  * http://www.swaydb.io/slice/byte-slice
  */
-private[swaydb] case class SliceReader[E >: swaydb.Error.IO: ErrorHandler](slice: Slice[Byte]) extends Reader[E] {
+private[swaydb] case class SliceReader[E >: swaydb.Error.IO : ErrorHandler](slice: Slice[Byte]) extends Reader[E] {
 
   private var position: Int = 0
 
@@ -49,7 +49,7 @@ private[swaydb] case class SliceReader[E >: swaydb.Error.IO: ErrorHandler](slice
       }
     }
 
-  def moveTo(newPosition: Long): Reader[E] = {
+  def moveTo(newPosition: Long): SliceReader[E] = {
     position = newPosition.toInt max 0
     this
   }
@@ -67,7 +67,7 @@ private[swaydb] case class SliceReader[E >: swaydb.Error.IO: ErrorHandler](slice
   override def getPosition: Int =
     position
 
-  override def copy(): Reader[E] =
+  override def copy(): SliceReader[E] =
     SliceReader(slice)
 
   override def readRemaining(): IO[E, Slice[Byte]] =

@@ -24,9 +24,9 @@ import swaydb.Error.Segment.ErrorHandler
 import swaydb.{Error, IO}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.segment.format.a.block.BlockOffset
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.{Reader, ReaderBase, Slice}
 
-protected trait BlockReader extends Reader[swaydb.Error.Segment] with LazyLogging {
+protected trait BlockReader extends ReaderBase[swaydb.Error.Segment] with LazyLogging {
 
   def offset: BlockOffset
   def blockSize: Int

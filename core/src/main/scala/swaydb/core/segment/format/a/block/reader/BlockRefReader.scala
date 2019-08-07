@@ -19,12 +19,10 @@
 
 package swaydb.core.segment.format.a.block.reader
 
-import java.nio.file.Paths
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.io.file.DBFile
-import swaydb.core.io.reader.{FileReader, Reader}
+import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block._
 import swaydb.data.slice.{Reader, Slice}
 
@@ -42,7 +40,7 @@ private[core] object BlockRefReader {
   def apply[O <: BlockOffset](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader(
       offset = blockOps.createOffset(0, bytes.size),
-      reader = Reader(bytes)
+      reader = Reader[swaydb.Error.Segment](bytes)
     )
 
   def apply[O <: BlockOffset](reader: Reader[swaydb.Error.Segment])(implicit blockOps: BlockOps[O, _]): IO[swaydb.Error.Segment, BlockRefReader[O]] =
@@ -54,16 +52,19 @@ private[core] object BlockRefReader {
         )
     }
 
-  def moveTo(offset: SegmentBlock.Offset, reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): BlockRefReader[SegmentBlock.Offset] =
+  /**
+   * @note these readers are required to be nested because [[UnblockedReader]] might have a header size which is not current read.
+   */
+  def moveTo[O <: BlockOffset](start: Int, size: Int, reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader(
-      offset = offset,
-      reader = reader
+      offset = blockOps.createOffset(reader.offset.start + start, size),
+      reader = reader.reader
     )
 
-  def moveWithin[O <: BlockOffset](offset: O, reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): BlockRefReader[O] =
+  def moveWithin[O <: BlockOffset](offset: O, reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader(
-      offset = offset,
-      reader = reader
+      offset = blockOps.createOffset(offset.start + reader.offset.start, offset.size),
+      reader = reader.reader
     )
 }
 

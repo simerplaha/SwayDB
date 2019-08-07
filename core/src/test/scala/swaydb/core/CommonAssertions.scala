@@ -55,7 +55,6 @@ import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.StorageUnits._
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.util.{Random, Try}
 
@@ -765,18 +764,17 @@ object CommonAssertions {
         //        val key = keyValue.minKey.readInt()
         //        if (key % 100 == 0)
         //          println(s"Key: $key")
-        val result =
-          SegmentSearcher.search(
-            key = keyValue.key,
-            start = None,
-            end = None,
-            hashIndexReader = blocks.hashIndexReader,
-            binarySearchIndexReader = blocks.binarySearchIndexReader,
-            sortedIndexReader = blocks.sortedIndexReader,
-            valuesReader = blocks.valuesReader,
-            hasRange = blocks.footer.hasRange,
-            hashIndexSearchOnly = false
-          ).runRandomIO.value.value shouldBe keyValue
+        SegmentSearcher.search(
+          key = keyValue.key,
+          start = None,
+          end = None,
+          hashIndexReader = blocks.hashIndexReader,
+          binarySearchIndexReader = blocks.binarySearchIndexReader,
+          sortedIndexReader = blocks.sortedIndexReader,
+          valuesReader = blocks.valuesReader,
+          hasRange = blocks.footer.hasRange,
+          hashIndexSearchOnly = false
+        ).runRandomIO.value.value shouldBe keyValue
     }
   }
 

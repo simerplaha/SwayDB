@@ -21,12 +21,12 @@ package swaydb.core.map.serializer
 
 import swaydb.IO
 import swaydb.core.map.MapEntry
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.{ReaderBase, Slice}
 
 object TimerMapEntryReader {
 
   implicit object TimerPutMapEntryReader extends MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]] {
-    override def read(reader: Reader[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Slice[Byte]]]] =
+    override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Slice[Byte]]]] =
       for {
         id <- reader.readIntUnsigned()
         keySize <- reader.readIntUnsigned()

@@ -1827,11 +1827,9 @@ private[core] object Persistent {
                   case (keyOrder: KeyOrder[Slice[Byte]], limiter: Option[KeyValueLimiter], groupIO: SegmentIO) =>
                     val moved: BlockRefReader[SegmentBlock.Offset] =
                       BlockRefReader.moveTo(
-                        SegmentBlock.Offset(
-                          //cache will return a reader with the offset pointing to this Group's offset, here simply reset to return as an BlockRef within the parent Segment's values block.
-                          start = 0,
-                          size = valueLength
-                        ),
+                        //cache will return a reader with the offset pointing to this Group's offset, here simply reset to return as an BlockRef within the parent Segment's values block.
+                        start = 0,
+                        size = valueLength,
                         reader = reader.copy()
                       )
 

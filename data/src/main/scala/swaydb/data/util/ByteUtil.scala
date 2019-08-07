@@ -21,7 +21,7 @@ package swaydb.data.util
 
 import java.nio.charset.Charset
 
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.{ErrorHandler, IO}
 
 object ByteUtil {
@@ -33,7 +33,7 @@ object ByteUtil {
     slice add int.toByte
   }
 
-  def readInt[E >: swaydb.Error.IO : ErrorHandler](reader: Reader[E]): IO[E, Int] = {
+  def readInt[E >: swaydb.Error.IO : ErrorHandler](reader: ReaderBase[E]): IO[E, Int] = {
     reader.read(ByteSizeOf.int) map readInt
   }
 
@@ -64,20 +64,20 @@ object ByteUtil {
       ((bytes(6) & 0xffL) << 8) |
       bytes(7) & 0xffL
 
-  def readLong[E >: swaydb.Error.IO : ErrorHandler](reader: Reader[E]): IO[E, Long] =
+  def readLong[E >: swaydb.Error.IO : ErrorHandler](reader: ReaderBase[E]): IO[E, Long] =
     reader.read(ByteSizeOf.long) map readLong
 
-  def readBoolean[E >: swaydb.Error.IO : ErrorHandler](reader: Reader[E]): IO[E, Boolean] =
+  def readBoolean[E >: swaydb.Error.IO : ErrorHandler](reader: ReaderBase[E]): IO[E, Boolean] =
     reader.get() map (_ == 1)
 
-  def readString[E >: swaydb.Error.IO : ErrorHandler](reader: Reader[E], charset: Charset): IO[E, String] =
+  def readString[E >: swaydb.Error.IO : ErrorHandler](reader: ReaderBase[E], charset: Charset): IO[E, String] =
     reader.size flatMap {
       size =>
         reader.read((size - reader.getPosition).toInt) map (readString(_, charset))
     }
 
   def readString[E >: swaydb.Error.IO : ErrorHandler](size: Int,
-                                                      reader: Reader[E],
+                                                      reader: ReaderBase[E],
                                                       charset: Charset): IO[E, String] =
     reader.read(size) map (readString(_, charset))
 
@@ -104,7 +104,7 @@ object ByteUtil {
   def writeSignedInt(x: Int, slice: Slice[Byte]): Unit =
     writeUnsignedInt((x << 1) ^ (x >> 31), slice)
 
-  def readSignedInt[E >: swaydb.Error.IO : ErrorHandler](reader: Reader[E]): IO[E, Int] = {
+  def readSignedInt[E >: swaydb.Error.IO : ErrorHandler](reader: ReaderBase[E]): IO[E, Int] = {
     readUnsignedInt(reader) map {
       unsigned =>
         // undo even odd mapping
@@ -146,7 +146,7 @@ object ByteUtil {
     Slice(array).slice(i, array.length - 1)
   }
 
-  def readUnsignedInt[E >: swaydb.Error.IO : ErrorHandler](reader: Reader[E]): IO[E, Int] =
+  def readUnsignedInt[E >: swaydb.Error.IO : ErrorHandler](reader: ReaderBase[E]): IO[E, Int] =
     IO {
       var i = 0
       var int = 0
@@ -216,7 +216,7 @@ object ByteUtil {
   def writeSignedLong(long: Long, slice: Slice[Byte]): Unit =
     writeUnsignedLong((long << 1) ^ (long >> 63), slice)
 
-  def readSignedLong[E >: swaydb.Error.IO : ErrorHandler](reader: Reader[E]): IO[E, Long] =
+  def readSignedLong[E >: swaydb.Error.IO : ErrorHandler](reader: ReaderBase[E]): IO[E, Long] =
     readUnsignedLong(reader) map {
       unsigned =>
         // undo even odd mapping
@@ -243,7 +243,7 @@ object ByteUtil {
     slice add (x & 0x7F).toByte
   }
 
-  def readUnsignedLong[E >: swaydb.Error.IO : ErrorHandler](reader: Reader[E]): IO[E, Long] =
+  def readUnsignedLong[E >: swaydb.Error.IO : ErrorHandler](reader: ReaderBase[E]): IO[E, Long] =
     IO {
       var i = 0
       var long = 0L

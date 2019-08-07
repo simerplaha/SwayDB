@@ -24,13 +24,13 @@ import java.nio.file.Paths
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.{ReaderBase, Slice}
 
 private[core] class GroupReader(decompressedValuesSize: Int,
                                 startIndexOffset: Int,
                                 endIndexOffset: Int,
-                                valuesDecompressor: () => IO[swaydb.Error.Segment, Reader[swaydb.Error.Segment]],
-                                indexReader: Reader[swaydb.Error.Segment]) extends Reader[swaydb.Error.Segment] with LazyLogging {
+                                valuesDecompressor: () => IO[swaydb.Error.Segment, ReaderBase[swaydb.Error.Segment]],
+                                indexReader: ReaderBase[swaydb.Error.Segment]) extends ReaderBase[swaydb.Error.Segment] with LazyLogging {
 
   private var position: Int = 0
 
@@ -39,7 +39,7 @@ private[core] class GroupReader(decompressedValuesSize: Int,
   override def size: IO[swaydb.Error.Segment, Long] =
     indexReader.size map (_ + decompressedValuesSize)
 
-  def moveTo(newPosition: Long): Reader[swaydb.Error.Segment] = {
+  def moveTo(newPosition: Long): ReaderBase[swaydb.Error.Segment] = {
     position = newPosition.toInt max 0
     this
   }
@@ -53,7 +53,7 @@ private[core] class GroupReader(decompressedValuesSize: Int,
         (size - position) >= atLeastSize
     }
 
-  override def copy(): Reader[swaydb.Error.Segment] =
+  override def copy(): ReaderBase[swaydb.Error.Segment] =
     new GroupReader(
       decompressedValuesSize = decompressedValuesSize,
       startIndexOffset = startIndexOffset,
