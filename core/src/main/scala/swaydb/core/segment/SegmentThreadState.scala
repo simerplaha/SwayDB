@@ -24,17 +24,18 @@ import java.util.concurrent.ConcurrentHashMap
 import swaydb.IO
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.{SkipList, SkipListValue}
+import swaydb.core.util.{MinMaxSkipList, SkipList}
+import swaydb.data.order.KeyOrder
 
 import scala.beans.BeanProperty
 import scala.reflect.ClassTag
 
 object SegmentThreadState {
-  def create[K, V: ClassTag]()(implicit ordering: Ordering[K]) =
+  def create[K, V: ClassTag]()(implicit ordering: KeyOrder[K]) =
     new SegmentThreadStates(new ConcurrentHashMap[Long, SegmentThreadState[K, V]]())
 }
 
-class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[Long, SegmentThreadState[K, V]])(implicit val ordering: Ordering[K]) {
+class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[Long, SegmentThreadState[K, V]])(implicit val ordering: KeyOrder[K]) {
   def get(): SegmentThreadState[K, V] = {
     val threadId = Thread.currentThread().getId
     val existingState = states.get(threadId)
@@ -64,4 +65,4 @@ class SegmentThreadState[K, V](@BeanProperty var hashIndexReader: Option[IO.Succ
                                @BeanProperty var binarySearchIndexReader: Option[IO.Success[swaydb.Error.Segment, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]]]],
                                @BeanProperty var valuesReader: Option[IO.Success[swaydb.Error.Segment, Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]]],
                                @BeanProperty var sortedIndexReader: Option[IO.Success[swaydb.Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]]],
-                               @BeanProperty var skipList: SkipListValue[K, V])
+                               @BeanProperty var skipList: MinMaxSkipList[K, V])

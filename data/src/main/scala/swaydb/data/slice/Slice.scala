@@ -261,6 +261,9 @@ object Slice {
     def readIntUnsigned[E >: swaydb.Error.IO : ErrorHandler](): IO[E, Int] =
       ByteUtil.readUnsignedInt(slice)
 
+    def readIntUnsignedWithByteSize[E >: swaydb.Error.IO : ErrorHandler](): IO[E, (Int, Int)] =
+      ByteUtil.readUnsignedIntWithByteSize(slice)
+
     def addLong(long: Long): Slice[Byte] = {
       ByteUtil.writeLong(long, slice)
       slice

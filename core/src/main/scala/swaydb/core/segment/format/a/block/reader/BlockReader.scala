@@ -21,23 +21,25 @@ package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
-import swaydb.IO
+import swaydb.{Error, IO}
+import swaydb.core.io.reader.FileReader
 import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.data.slice.{Reader, Slice}
 
 protected trait BlockReader extends Reader[swaydb.Error.Segment] with LazyLogging {
 
-  private[reader] def reader: Reader[swaydb.Error.Segment]
-
   def offset: BlockOffset
-
   def blockSize: Int
+
+  private[reader] def reader: Reader[swaydb.Error.Segment]
+  override val isFile: Boolean = reader.isFile
+  val isFileReader = reader.isInstanceOf[FileReader]
 
   private var position: Int = 0
 
-  private val cache: BlockReaderCache.State = BlockReaderCache.init(0, Slice.emptyBytes)
+  private var previousReadEndPosition = position
 
-  override val isFile: Boolean = reader.isFile
+  private val cache: BlockReaderCache.State = BlockReaderCache.init(0, Slice.emptyBytes)
 
   override val size: IO[swaydb.Error.Segment, Long] =
     IO(offset.size)
@@ -91,17 +93,45 @@ protected trait BlockReader extends Reader[swaydb.Error.Segment] with LazyLoggin
     else
       Slice.emptyBytes
 
-  override def read(size: Int): IO[swaydb.Error.Segment, Slice[Byte]] = {
-    val fromCache =
-      if (blockSize <= 0)
-        Slice.emptyBytes
-      else
-        readFromCache(position, size)
+  var missedCacheReads = 0
 
+  var totalMissed = 0
+  var totalHit = 0
+
+  def isSequentialRead(): Boolean =
+    previousReadEndPosition == 0 || {
+      val diff = position - previousReadEndPosition
+      diff >= -this.blockSize && diff <= this.blockSize
+    }
+
+  def readRandomAccess(size: Int): IO[Error.Segment, Slice[Byte]] =
+    remaining flatMap {
+      remaining =>
+        if (remaining <= 0) {
+          IO.emptyBytes
+        } else {
+          val actualBlockReadSize = size min remaining.toInt
+          //skip bytes already read from the blockCache.
+          val nextBlockReadPosition = offset.start + position
+          reader
+            .moveTo(nextBlockReadPosition)
+            .read(actualBlockReadSize)
+            .map {
+              bytes =>
+                previousReadEndPosition = position + actualBlockReadSize.toInt
+                val actualSize = size min remaining.toInt
+                position += actualSize
+                bytes
+            }
+        }
+    }
+
+  def readSequentialAccess(size: Int, fromCache: Slice[Byte]): IO[Error.Segment, Slice[Byte]] =
     if (size <= fromCache.size)
       IO {
-        logger.debug(s"BlockReader #${this.hashCode()}: Seek from cache: ${fromCache.size}.bytes")
+        logger.debug(s"${this.getClass.getName} #${this.hashCode()}: Path: ${reader.path}, ${offset.getClass.getSimpleName}: Seek from cache: ${fromCache.size}.bytes")
         position += size
+        totalHit += 1
         fromCache take size
       }
     else
@@ -110,16 +140,20 @@ protected trait BlockReader extends Reader[swaydb.Error.Segment] with LazyLoggin
           if (remaining <= 0) {
             IO.emptyBytes
           } else {
+            //if reads are random do not read full block size lets the reads below decide how much to read.
+            //read full block on random reads is very slow.
             //adjust the seek size to be a multiple of blockSize.
+            //also check if there are too many cache misses.
             val blockSizeToRead =
-              if (blockSize <= 0)
-                size
-              else
-                blockSize.toDouble * Math.ceil(Math.abs((size - fromCache.size) / blockSize.toDouble))
+            if (blockSize <= 0)
+              size
+            else
+              blockSize.toDouble * Math.ceil(Math.abs((size - fromCache.size) / blockSize.toDouble))
             //read the blockSize if there are enough bytes or else only read only the remaining.
             val actualBlockReadSize = blockSizeToRead.toInt min (remaining.toInt - fromCache.size)
             //skip bytes already read from the blockCache.
             val nextBlockReadPosition = offset.start + position + fromCache.size
+            totalMissed += 1
 
             reader
               .moveTo(nextBlockReadPosition)
@@ -132,15 +166,17 @@ protected trait BlockReader extends Reader[swaydb.Error.Segment] with LazyLoggin
                    * then cache the entire bytes since it's known that a minimum of [[blockSize]] is allowed to be cached.
                    * If seeks are too large then cache only the extra tail bytes which are currently un-read by the client.
                    */
-                  if (isFile && blockSize > 0) {
-                    logger.debug(s"BlockReader #${this.hashCode()}: Seek from disk: ${bytes.size}.bytes")
+                  if (blockSize > 0) {
+                    logger.debug(s"${this.getClass.getName} #${this.hashCode()}: Path: ${reader.path}, ${offset.getClass.getSimpleName}: ${nextBlockReadPosition} Seek from disk: ${bytes.size}.bytes.")
                     if (bytes.size <= blockSize)
                       BlockReaderCache.set(nextBlockReadPosition - offset.start, bytes, cache)
                     else
                       BlockReaderCache.set(nextBlockReadPosition - offset.start + size, bytes.drop(size).unslice(), cache)
                   }
 
+                  previousReadEndPosition = position + actualBlockReadSize
                   val actualSize = size min remaining.toInt
+
                   position += actualSize
 
                   if (fromCache.isEmpty)
@@ -150,6 +186,14 @@ protected trait BlockReader extends Reader[swaydb.Error.Segment] with LazyLoggin
               }
           }
       }
+
+  override def read(size: Int): IO[swaydb.Error.Segment, Slice[Byte]] = {
+    val fromCache = readFromCache(position, size)
+
+    if (fromCache.isEmpty || !isFileReader || !isSequentialRead())
+      readRandomAccess(size)
+    else
+      readSequentialAccess(size, fromCache)
   }
 
   def readFullBlock(): IO[swaydb.Error.Segment, Slice[Byte]] =

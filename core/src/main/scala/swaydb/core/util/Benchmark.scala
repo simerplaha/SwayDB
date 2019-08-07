@@ -19,9 +19,9 @@
 
 package swaydb.core.util
 
-trait Benchmark {
 
-  def benchmark[R](message: String, inlinePrint: Boolean = false)(benchmarkThis: => R): R = {
+object Benchmark {
+  def apply[R](message: String, inlinePrint: Boolean = false)(benchmarkThis: => R): R = {
     if (inlinePrint)
       print(s"Benchmarking: $message: ")
     else
@@ -36,9 +36,11 @@ trait Benchmark {
     println
     result
   }
-}
 
-object Benchmark extends Benchmark {
-  def apply[R](message: String, inlinePrint: Boolean = false)(benchmarkThis: => R): R =
-    benchmark[R](message, inlinePrint)(benchmarkThis)
+  def apply(benchmarkThis: => Unit): Double = {
+    val startTime = System.nanoTime()
+    benchmarkThis
+    val endTime = System.nanoTime()
+    (endTime - startTime) / 1000000000.0: Double
+  }
 }

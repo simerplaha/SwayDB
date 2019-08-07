@@ -29,7 +29,7 @@ import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.util.Random
 
-case class Runner(test: Test) extends Benchmark with LazyLogging {
+case class Runner(test: Test) extends LazyLogging {
 
   private val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], IO.ApiIO] = test.map
   private val randomWrite: Boolean = test.randomWrite
@@ -63,7 +63,7 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
 
     val writeKeys = if (randomWrite) shuffledKeys else keys
 
-    benchmark("Write benchmark") {
+    Benchmark("Write benchmark") {
       writeKeys foreach {
         key =>
           map.put(key, testValue)
@@ -77,7 +77,7 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
     }
 
     if (forwardIteration)
-      benchmark("Forward iteration benchmark during compaction") {
+      Benchmark("Forward iteration benchmark during compaction") {
         map foreach {
           keyValue =>
             val key = keyValue._1.readLong()
@@ -86,7 +86,7 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
         }
       }
     else if (reverseIteration)
-      benchmark("Reverse iteration benchmark during compaction") {
+      Benchmark("Reverse iteration benchmark during compaction") {
         map
           .reverse
           .foreach {
@@ -96,7 +96,7 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
       }
     else {
       val readKeys = if (randomRead) shuffledKeys else keys
-      benchmark("Read benchmark during compaction") {
+      Benchmark("Read benchmark during compaction") {
         (1 to 5).par foreach {
           _ =>
             readKeys foreach {
@@ -145,13 +145,13 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
     areTopLevelsEmpty(1)
 
     if (forwardIteration)
-      benchmark("Forward iteration benchmark after compaction") {
+      Benchmark("Forward iteration benchmark after compaction") {
         map foreach {
           _ =>
         }
       }
     else if (reverseIteration)
-      benchmark("Reverse iteration benchmark after compaction") {
+      Benchmark("Reverse iteration benchmark after compaction") {
         map
           .reverse
           .foreach {
@@ -160,7 +160,7 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
       }
     else {
       val readKeys = if (randomRead) shuffledKeys else keys
-      benchmark("Read benchmark after compaction") {
+      Benchmark("Read benchmark after compaction") {
         readKeys foreach {
           key =>
             try {

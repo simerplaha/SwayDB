@@ -308,8 +308,8 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  private def ceilingForLower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
-    skipList.ceiling(key) match {
+  private def getForLower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
+    skipList.get(key) match {
       case some @ Some(_) =>
         IO(some)
 
@@ -319,7 +319,7 @@ private[core] class SegmentCache(id: String,
             if (footer.hasGroup) //don't do get if it has Group because it will fetch the inner group key-value which cannot be used as startFrom.
               IO.none
             else
-              get(key = key, hashIndexSearchOnly = true)
+              get(key = key)
         }
     }
 
@@ -355,8 +355,8 @@ private[core] class SegmentCache(id: String,
                     lowerGroup.segment.lower(key)
 
                   case lowerKeyValue: Persistent =>
-                    skipList.ceiling(key) match {
-                      case Some(ceiling) if lowerKeyValue.nextIndexOffset == ceiling.indexOffset =>
+                    getForLower(key) flatMap {
+                      case Some(got) if lowerKeyValue.nextIndexOffset == got.indexOffset =>
                         lowerKeyValue match {
                           case response: Persistent.SegmentResponse =>
                             IO.Success(Some(response))
@@ -386,22 +386,14 @@ private[core] class SegmentCache(id: String,
                 }
 
             case None =>
-              val ceiling = skipList.ceiling(key)
-              if (ceiling.isDefined)
-                lower(
-                  key = key,
-                  start = None,
-                  end = ceiling
-                )
-              else
-                ceilingForLower(key) flatMap {
-                  ceiling =>
-                    lower(
-                      key = key,
-                      start = None,
-                      end = ceiling
-                    )
-                }
+              getForLower(key) flatMap {
+                got =>
+                  lower(
+                    key = key,
+                    start = None,
+                    end = got
+                  )
+              }
           }
       }
 
@@ -434,7 +426,7 @@ private[core] class SegmentCache(id: String,
                       if (start.isDefined || footer.hasGroup) //don't do get if it has Group because it will fetch the inner group key-value which cannot be used as startFrom.
                         IO.Success(start)
                       else
-                        get(key, hashIndexSearchOnly = true)
+                        get(key)
 
                     startFrom flatMap {
                       startFrom =>

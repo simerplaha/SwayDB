@@ -51,7 +51,7 @@ class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
   override val db = swaydb.eventually.persistent.Map[Int, WeatherData](randomDir, maxOpenSegments = 10, cacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
 }
 
-sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark with BeforeAndAfterAll {
+sealed trait WeatherDataSpec extends TestBase with LazyLogging with BeforeAndAfterAll {
 
   val db: swaydb.Map[Int, WeatherData, IO.ApiIO]
 

@@ -489,13 +489,7 @@ class BinarySearchIndexBlockSpec extends TestBase {
 
                   case SearchResult.Some(lower, actualLower) =>
                     lower shouldBe empty
-                    try
-                      actualLower.key shouldBe expectedLower.get.key
-                    catch {
-                      case exception: Exception =>
-                        getLower(fixed.key)
-                        throw exception
-                    }
+                    actualLower.key shouldBe expectedLower.get.key
                 }
 
               case range: Transient.Range =>

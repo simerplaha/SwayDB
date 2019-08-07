@@ -30,7 +30,7 @@ import swaydb.data.util.StorageUnits._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class DBFileStressWriteSpec extends TestBase with Benchmark {
+class DBFileStressWriteSpec extends TestBase {
 
   implicit val limiter = fileOpenLimiter
 
@@ -42,7 +42,7 @@ class DBFileStressWriteSpec extends TestBase with Benchmark {
       val path = randomFilePath
 
       val file = DBFile.channelWrite(path, randomIOAccess(true), autoClose = false).runRandomIO.value
-      benchmark("write 1 million key values to a ChannelFile") {
+      Benchmark("write 1 million key values to a ChannelFile") {
         bytes foreach {
           byteChunk =>
             file.append(byteChunk).runRandomIO.value
@@ -55,7 +55,7 @@ class DBFileStressWriteSpec extends TestBase with Benchmark {
       val path = randomFilePath
 
       val file = DBFile.channelWrite(path, randomIOAccess(true), autoClose = false).runRandomIO.value
-      benchmark("write 1 million key values to a ChannelFile concurrently") {
+      Benchmark("write 1 million key values to a ChannelFile concurrently") {
         Future.sequence {
           bytes map {
             chunk =>
@@ -70,7 +70,7 @@ class DBFileStressWriteSpec extends TestBase with Benchmark {
       val path = randomFilePath
 
       val file = DBFile.mmapInit(path, randomIOAccess(true), bytes.size * 50, autoClose = false).runRandomIO.value
-      benchmark("write 1 million key values to a MMAPlFile") {
+      Benchmark("write 1 million key values to a MMAPlFile") {
         bytes foreach {
           chunk =>
             file.append(chunk).runRandomIO.value
@@ -83,7 +83,7 @@ class DBFileStressWriteSpec extends TestBase with Benchmark {
       val path = randomFilePath
 
       val file = DBFile.mmapInit(path, randomIOAccess(true), bytes.size * 50, autoClose = false).runRandomIO.value
-      benchmark("write 1 million key values to a MMAPlFile concurrently") {
+      Benchmark("write 1 million key values to a MMAPlFile concurrently") {
         Future.sequence {
           bytes map {
             chunk =>

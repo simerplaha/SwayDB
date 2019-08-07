@@ -19,10 +19,12 @@
 
 package swaydb.core.segment.format.a.block.reader
 
+import java.nio.file.Paths
+
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.io.file.DBFile
-import swaydb.core.io.reader.Reader
+import swaydb.core.io.reader.{FileReader, Reader}
 import swaydb.core.segment.format.a.block._
 import swaydb.data.slice.{Reader, Slice}
 
@@ -52,12 +54,6 @@ private[core] object BlockRefReader {
         )
     }
 
-  def moveTo[O <: BlockOffset, B <: Block[O]](offset: O, reader: UnblockedReader[O, B]): BlockRefReader[O] =
-    new BlockRefReader(
-      offset = offset,
-      reader = reader
-    )
-
   def moveTo(offset: SegmentBlock.Offset, reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): BlockRefReader[SegmentBlock.Offset] =
     new BlockRefReader(
       offset = offset,
@@ -74,6 +70,8 @@ private[core] object BlockRefReader {
 private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
                                                              private[reader] val reader: Reader[swaydb.Error.Segment]) extends BlockReader with LazyLogging {
 
+  def path = reader.path
+
   override def moveTo(newPosition: Long): BlockRefReader[O] = {
     super.moveTo(newPosition)
     this
@@ -88,6 +86,5 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
       offset = offset
     )
 
-  override val isFile: Boolean = reader.isFile
   override def blockSize: Int = 4096
 }

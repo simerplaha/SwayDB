@@ -316,8 +316,6 @@ private[core] object BinarySearchIndexBlock {
     def hop(start: Int, end: Int, knownLowest: Option[Persistent], knownMatch: Option[Persistent]): IO[swaydb.Error.Segment, SearchResult[Persistent]] = {
       val mid = start + (end - start) / 2
 
-      println(s"mid: $mid")
-
       val valueOffset = mid * reader.block.bytesPerValue
 
       if (start > end)
@@ -459,8 +457,6 @@ private[core] object BinarySearchIndexBlock {
         else
           KeyMatcher.Get.SeekOne(key)
       }
-
-    println(s"Key: $key")
 
     search(
       reader = binarySearchIndex,

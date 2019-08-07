@@ -33,6 +33,7 @@ class BlockReaderSpec extends TestBase with MockFactory {
   object BlockReader {
     def apply(blockReader: Reader[swaydb.Error.Segment], blockOffset: BlockOffset, _blockSize: Int): BlockReader =
       new BlockReader {
+        def path = reader.path
         override private[reader] def reader = blockReader
         override def offset: BlockOffset = blockOffset
         override def copy(): Reader[swaydb.Error.Segment] = apply(blockReader.copy(), blockOffset, _blockSize)

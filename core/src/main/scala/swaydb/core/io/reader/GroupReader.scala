@@ -19,6 +19,8 @@
 
 package swaydb.core.io.reader
 
+import java.nio.file.Paths
+
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
@@ -31,6 +33,8 @@ private[core] class GroupReader(decompressedValuesSize: Int,
                                 indexReader: Reader[swaydb.Error.Segment]) extends Reader[swaydb.Error.Segment] with LazyLogging {
 
   private var position: Int = 0
+
+  def path = Paths.get(this.getClass.getSimpleName)
 
   override def size: IO[swaydb.Error.Segment, Long] =
     indexReader.size map (_ + decompressedValuesSize)

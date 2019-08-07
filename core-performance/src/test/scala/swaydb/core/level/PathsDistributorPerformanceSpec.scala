@@ -29,7 +29,7 @@ import swaydb.data.order.KeyOrder
 
 import scala.util.Random
 
-class PathsDistributorPerformanceSpec extends TestBase with Benchmark {
+class PathsDistributorPerformanceSpec extends TestBase  {
 
   implicit val keyOrder = KeyOrder.default
 
@@ -75,7 +75,7 @@ class PathsDistributorPerformanceSpec extends TestBase with Benchmark {
     //in production scenarios there will never be more then 10 request/seconds, depending on the number of Segments being merged
     //into next Level at one time.
     //These benchmark also include Segment creation in randomlyDistributeSegments which should be accounted for.
-    benchmark("Benchmark PathsDistributor") {
+    Benchmark("Benchmark PathsDistributor") {
       (1 to 10000) foreach {
         _ =>
           distributor.next

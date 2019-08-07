@@ -70,6 +70,9 @@ private[core] class FileReader(file: DBFile) extends Reader[swaydb.Error.Segment
           bytes
       }
 
+  def path =
+    file.path
+
   override def readRemaining(): IO[swaydb.Error.Segment, Slice[Byte]] =
     remaining flatMap read
 

@@ -43,16 +43,16 @@ private[core] object BlockedReader {
         blockOps.readBlock(header) map {
           block =>
             new BlockedReader[O, B](
-              reader = ref.copy(),
-              block = block
+              reader = ref.reader.copy(),
+              block = blockOps.updateBlockOffset(block, block.offset.start + ref.offset.start, block.offset.size)
             )
         }
     }
 
-  def apply[O <: BlockOffset, B <: Block[O]](block: B, parent: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): BlockedReader[O, B] =
+  def apply[O <: BlockOffset, B <: Block[O]](block: B, parent: UnblockedReader[SegmentBlock.Offset, SegmentBlock])(implicit blockOps: BlockOps[O, B]): BlockedReader[O, B] =
     new BlockedReader[O, B](
-      reader = parent.copy(),
-      block = block
+      reader = parent.reader.copy(),
+      block = blockOps.updateBlockOffset(block, block.offset.start + parent.offset.start, block.offset.size)
     )
 }
 
@@ -60,6 +60,8 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
                                                                            val block: B) extends BlockReader with LazyLogging {
 
   def offset = block.offset
+
+  def path = reader.path
 
   override def moveTo(newPosition: Long): BlockedReader[O, B] = {
     super.moveTo(newPosition)
@@ -82,6 +84,5 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
       block = block
     )
 
-  override val isFile: Boolean = reader.isFile
-  override def blockSize: Int = 4096
+  override val blockSize: Int = 4096
 }

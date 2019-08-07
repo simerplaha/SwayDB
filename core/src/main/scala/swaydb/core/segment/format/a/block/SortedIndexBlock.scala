@@ -29,7 +29,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.cache.Cache
-import swaydb.core.util.{Bytes, FunctionUtil}
+import swaydb.core.util.{Benchmark, Bytes, FunctionUtil}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -215,6 +215,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                                valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                                previous: Option[Persistent]): IO[swaydb.Error.Segment, Persistent] =
     try {
+      //println("readNextKeyValue")
       val positionBeforeRead = indexReader.getPosition
       //size of the index entry to read
       val indexSize =
@@ -439,6 +440,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReader = valuesReader
     ) flatMap {
       persistent =>
+        //println("matchOrNextAndPersistent")
         matchOrNextAndPersistent(
           previous = persistent,
           next = None,
@@ -479,6 +481,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       hasMore = hasMore(next getOrElse previous)
     ) match {
       case KeyMatcher.Result.BehindFetchNext(previousKeyValue) =>
+        //println("BehindFetchNext")
         //        assert(previous.key.readInt() <= previousKeyValue.key.readInt())
         val readFrom = next getOrElse previousKeyValue
         readNextKeyValue(
@@ -487,6 +490,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           valuesReader = valuesReader
         ) match {
           case IO.Success(nextNextKeyValue) =>
+            //println("match pr next")
             matchOrNext(
               previous = readFrom,
               next = Some(nextNextKeyValue),
@@ -500,6 +504,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         }
 
       case result: KeyMatcher.Result.Complete =>
+        //println("Complete")
         result.asIO
     }
 

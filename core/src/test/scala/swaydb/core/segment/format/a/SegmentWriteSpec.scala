@@ -77,7 +77,7 @@ class SegmentWriteSpec3 extends SegmentWriteSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait SegmentWriteSpec extends TestBase with Benchmark {
+sealed trait SegmentWriteSpec extends TestBase {
 
   val keyValuesCount = 100
 
@@ -794,7 +794,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           minSegmentSize = keyValues.last.stats.segmentSize / 10
         ).value
 
-      if(persistent)
+      if (persistent)
         segments.size shouldBe 1
       else
         segments.size should be > 1

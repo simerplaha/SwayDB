@@ -220,9 +220,9 @@ class BlockSpec extends TestBase {
     val decompressedRoot = decompressedRootBlock.readAllAndGetReader().get
     decompressedRoot.readFullBlock().get shouldBe rootUncompressedBytes.drop(headerSize)
 
-    val child1Ref = BlockRefReader.moveTo[SegmentBlock.Offset, SegmentBlock](SegmentBlock.Offset(0, compressedChildBytes1.size), decompressedRoot.copy())
-    val child1DecompressedBytes = Block.unblock(child1Ref).get
-    child1DecompressedBytes.readFullBlock().get shouldBe child1Bytes.drop(headerSize)
+//    val child1Ref = BlockRefReader.moveTo[SegmentBlock.Offset, SegmentBlock](SegmentBlock.Offset(0, compressedChildBytes1.size), decompressedRoot.copy())
+//    val child1DecompressedBytes = Block.unblock(child1Ref).get
+//    child1DecompressedBytes.readFullBlock().get shouldBe child1Bytes.drop(headerSize)
 
     //read child block2 using the same decompressed reader from root block but set the offset start to be the end of child1's compressed bytes end.
     //    decompressedRootBytes.readAll().get.drop(compressedChildBytes1.size)

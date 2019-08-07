@@ -54,7 +54,7 @@ class LevelReadNoneSpec3 extends LevelReadNoneSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark {
+sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
 
   implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
 

@@ -19,6 +19,8 @@
 
 package swaydb.data.slice
 
+import java.nio.file.Paths
+
 import swaydb.{ErrorHandler, IO}
 
 /**
@@ -27,6 +29,8 @@ import swaydb.{ErrorHandler, IO}
 private[swaydb] case class SliceReader[E >: swaydb.Error.IO: ErrorHandler](slice: Slice[Byte]) extends Reader[E] {
 
   private var position: Int = 0
+
+  def path = Paths.get(this.getClass.getSimpleName)
 
   override val size: IO[E, Long] =
     IO(slice.size.toLong)

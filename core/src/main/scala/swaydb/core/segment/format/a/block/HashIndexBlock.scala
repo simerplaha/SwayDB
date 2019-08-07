@@ -353,10 +353,10 @@ private[core] object HashIndexBlock extends LazyLogging {
                 doFind(probe + 1, checkedHashIndexes)
               } else {
                 val possibleValueWithoutHeader = possibleValueBytes.dropHead()
-                possibleValueWithoutHeader.readIntUnsigned() match {
-                  case IO.Success(possibleValue) =>
+                possibleValueWithoutHeader.readIntUnsignedWithByteSize() match {
+                  case IO.Success((possibleValue, bytesRead)) =>
                     //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe, sortedIndex: ${possibleValue - 1} = reading now!")
-                    if (possibleValue == 0 || possibleValueWithoutHeader.take(Bytes.sizeOf(possibleValue)).exists(_ == 0))
+                    if (possibleValue == 0 || possibleValueWithoutHeader.take(bytesRead).exists(_ == 0))
                       doFind(probe + 1, checkedHashIndexes)
                     else
                       assertValue(possibleValue - 1) match { //assert value removing the 1 added on write.

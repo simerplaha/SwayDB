@@ -177,6 +177,23 @@ object ByteUtil {
       int
     }
 
+  def readUnsignedIntWithByteSize[E >: swaydb.Error.IO : ErrorHandler](slice: Slice[Byte]): IO[E, (Int, Int)] =
+    IO {
+      var index = 0
+      var i = 0
+      var int = 0
+      var read = 0
+      do {
+        read = slice(index)
+        int |= (read & 0x7F) << i
+        i += 7
+        index += 1
+        require(i <= 35)
+      } while ((read & 0x80) != 0)
+
+      (int, index)
+    }
+
   /**
    * @return Tuple where the first integer is the unsigned integer and the second is the number of bytes read.
    */

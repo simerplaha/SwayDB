@@ -40,7 +40,7 @@ import scala.concurrent.duration._
 /**
  * These class has tests to assert the behavior of [[KeyValueLimiter]] on [[swaydb.core.segment.Segment]]s.
  */
-class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
+class SegmentKeyValueLimiterSpec extends TestBase {
 
   val keyValuesCount = 100
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
