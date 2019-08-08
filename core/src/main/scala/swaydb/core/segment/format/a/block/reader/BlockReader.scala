@@ -20,191 +20,178 @@
 package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.IO
 import swaydb.core.segment.format.a.block.BlockOffset
-import swaydb.data.slice.{Reader, ReaderBase, Slice}
-import swaydb.{Error, IO}
+import swaydb.data.slice.{Reader, Slice}
+import swaydb.Error
+import swaydb.Error.Segment.ErrorHandler
 
-protected trait BlockReader extends ReaderBase[swaydb.Error.Segment] with LazyLogging {
+object BlockReader extends LazyLogging {
 
-  def offset: BlockOffset
+  def apply(offset: BlockOffset,
+            blockSize: Int,
+            reader: Reader[swaydb.Error.Segment]): BlockReader.State =
+    new State(
+      offset = offset,
+      blockSize = blockSize,
+      position = 0,
+      previousReadEndPosition = 0,
+      cache = BlockReaderCache.init(0, Slice.emptyBytes),
+      reader = reader
+    )
 
-  def blockSize: Int
+  class State(val offset: BlockOffset,
+              val blockSize: Int,
+              val cache: BlockReaderCache.State,
+              val reader: Reader[swaydb.Error.Segment],
+              var position: Int,
+              var previousReadEndPosition: Int) {
 
-  private[reader] def reader: Reader[swaydb.Error.Segment]
+    val isFile = reader.isFile
 
-  override val isFile: Boolean = reader.isFile
+    val size = offset.size
 
-  private var position: Int = 0
+    def updatePreviousEndPosition(): Unit =
+      previousReadEndPosition = position - 1
 
-  private var previousReadEndPosition = position
+    def remaining: Int =
+      size - position
 
-  private val cache: BlockReaderCache.State = BlockReaderCache.init(0, Slice.emptyBytes)
+    def moveTo(position: Int) =
+      this.position = position
 
-  override val size: IO[swaydb.Error.Segment, Long] =
-    IO(offset.size)
+    def cachedBytes =
+      cache.bytes
 
-  override def moveTo(position: Long): BlockReader = {
-    this.position = position.toInt
-    this
+    def hasMore: Boolean =
+      hasAtLeast(1)
+
+    def hasAtLeast(atLeastSize: Long): Boolean =
+      hasAtLeast(position, atLeastSize)
+
+    def hasAtLeast(fromPosition: Long, atLeastSize: Long): Boolean =
+      (size - fromPosition) >= atLeastSize
   }
 
-  def hasMore: IO[swaydb.Error.Segment, Boolean] =
-    hasAtLeast(1)
+  def readFromCache(size: Int, state: State): Slice[Byte] =
+    BlockReaderCache.read(
+      position = state.position,
+      size = size,
+      state = state.cache
+    )
 
-  def hasAtLeast(atLeastSize: Long): IO[swaydb.Error.Segment, Boolean] =
-    hasAtLeast(position, atLeastSize)
-
-  def hasAtLeast(fromPosition: Long, atLeastSize: Long): IO[swaydb.Error.Segment, Boolean] =
-    size map {
-      size =>
-        (size - fromPosition) >= atLeastSize
-    }
-
-  override def getPosition: Int =
-    position
-
-  def cacheSize = cache.size
-
-  def cachedBytes = cache.bytes
-
-  override def get(): IO[swaydb.Error.Segment, Int] =
-    if (isFile)
-      read(1).map(_.head)
-    else
-      hasMore flatMap {
-        hasMore =>
-          if (hasMore)
-            reader
-              .moveTo(offset.start + position)
-              .get()
-              .map {
-                got =>
-                  position += 1
-                  got
-              }
-          else
-            IO.Failure(swaydb.Error.Unknown(s"Has no more bytes. Position: $getPosition"))
+  def isSequentialRead(fromCache: Slice[Byte], state: State): Boolean =
+    fromCache.nonEmpty || {
+      state.isFile && {
+        state.previousReadEndPosition == 0 || {
+          val diff = state.position - state.previousReadEndPosition
+          diff >= -1 && diff <= 10
+        }
       }
-
-  def readFromCache(position: Int, size: Int): Slice[Byte] =
-    if (isFile)
-      BlockReaderCache.read(position = position, size = size, state = cache)
-    else
-      Slice.emptyBytes
-
-  def isSequentialRead(): Boolean =
-    previousReadEndPosition == 0 || {
-      val diff = position - previousReadEndPosition
-      diff >= -1 && diff <= 10
     }
 
-  def updatePreviousEndPosition(): Unit =
-    previousReadEndPosition = position - 1
+  def readRandom(size: Int, state: State): IO[Error.Segment, Slice[Byte]] = {
+    val remaining = state.remaining
+    if (remaining <= 0)
+      IO.emptyBytes
+    else
+      state
+        .reader
+        .moveTo(state.offset.start + state.position)
+        .read(size min remaining)
+        .map {
+          bytes =>
+            val actualSize = size min remaining
+            state.position += actualSize
+            state.updatePreviousEndPosition()
+            bytes
+        }
+  }
 
-  def isRandomRead(): Boolean =
-    !isSequentialRead()
+  def readSequential(size: Int, fromCache: Slice[Byte], state: State): IO[Error.Segment, Slice[Byte]] =
+    if (size <= fromCache.size) {
+      IO {
+        logger.debug(s"${this.getClass.getName} #${this.hashCode()}: Path: ${state.reader.path}, Offset: Seek from cache: ${fromCache.size}.bytes")
+        state.position += size
+        fromCache take size
+      }
+    } else if (state.remaining <= 0) {
+      IO.emptyBytes
+    } else {
+      val remaining = state.remaining
+      //if reads are random do not read full block size lets the reads below decide how much to read.
+      //read full block on random reads is very slow.
+      //adjust the seek size to be a multiple of blockSize.
+      //also check if there are too many cache misses.
+      val blockSizeToRead =
+      if (state.blockSize <= 0)
+        size
+      else
+        state.blockSize.toDouble * Math.ceil(Math.abs((size - fromCache.size) / state.blockSize.toDouble))
+      //read the blockSize if there are enough bytes or else only read only the remaining.
+      val actualBlockReadSize = blockSizeToRead.toInt min (remaining - fromCache.size)
+      //skip bytes already read from the blockCache.
+      val nextBlockReadPosition = state.offset.start + state.position + fromCache.size
 
-  def readRandomAccess(size: Int): IO[Error.Segment, Slice[Byte]] =
-    remaining flatMap {
-      remaining =>
-        if (remaining <= 0) {
-          IO.emptyBytes
-        } else {
-          val bytesToRead = size min remaining.toInt
-          reader
-            .moveTo(offset.start + position)
-            .read(bytesToRead)
-            .map {
-              bytes =>
-                val actualSize = size min remaining.toInt
-                position += actualSize
-                updatePreviousEndPosition()
-                bytes
+      state
+        .reader
+        .moveTo(nextBlockReadPosition)
+        .read(actualBlockReadSize)
+        .map {
+          bytes =>
+
+            /**
+             * [[size]] can be larger than [[blockSize]]. If the seeks are smaller than [[blockSize]]
+             * then cache the entire bytes since it's known that a minimum of [[blockSize]] is allowed to be cached.
+             * If seeks are too large then cache only the extra tail bytes which are currently un-read by the client.
+             */
+            if (state.blockSize > 0) {
+              logger.debug(s"${this.getClass.getName} #${this.hashCode()}: Path: ${state.reader.path}, ${state.offset.getClass.getSimpleName}: ${nextBlockReadPosition} Seek from disk: ${bytes.size}.bytes.")
+              if (bytes.size <= state.blockSize)
+                BlockReaderCache.set(nextBlockReadPosition - state.offset.start, bytes, state.cache)
+              else
+                BlockReaderCache.set(nextBlockReadPosition - state.offset.start + size, bytes.drop(size).unslice(), state.cache)
             }
+
+            val actualSize = size min remaining
+            state.position += actualSize
+
+            state.updatePreviousEndPosition()
+
+            if (fromCache.isEmpty)
+              bytes take size
+            else
+              fromCache ++ bytes.take(actualSize - fromCache.size)
         }
     }
 
-  def readSequentialAccess(size: Int, fromCache: Slice[Byte]): IO[Error.Segment, Slice[Byte]] =
-    if (size <= fromCache.size)
-      IO {
-        logger.debug(s"${this.getClass.getName} #${this.hashCode()}: Path: ${reader.path}, ${offset.getClass.getSimpleName}: Seek from cache: ${fromCache.size}.bytes")
-        position += size
-        fromCache take size
-      }
+  def get(state: State): IO[swaydb.Error.Segment, Int] =
+    if (state.isFile)
+      read(1, state).map(_.head)
+    else if (state.hasMore)
+      state.
+        reader
+        .moveTo(state.offset.start + state.position)
+        .get()
+        .map {
+          byte =>
+            state.position += 1
+            byte
+        }
     else
-      remaining flatMap {
-        remaining =>
-          if (remaining <= 0) {
-            IO.emptyBytes
-          } else {
-            //if reads are random do not read full block size lets the reads below decide how much to read.
-            //read full block on random reads is very slow.
-            //adjust the seek size to be a multiple of blockSize.
-            //also check if there are too many cache misses.
-            val blockSizeToRead =
-            if (blockSize <= 0)
-              size
-            else
-              blockSize.toDouble * Math.ceil(Math.abs((size - fromCache.size) / blockSize.toDouble))
-            //read the blockSize if there are enough bytes or else only read only the remaining.
-            val actualBlockReadSize = blockSizeToRead.toInt min (remaining.toInt - fromCache.size)
-            //skip bytes already read from the blockCache.
-            val nextBlockReadPosition = offset.start + position + fromCache.size
+      IO.Failure(swaydb.Error.Unknown(s"Has no more bytes. Position: ${state.position}"))
 
-            reader
-              .moveTo(nextBlockReadPosition)
-              .read(actualBlockReadSize)
-              .map {
-                bytes =>
-
-                  /**
-                   * [[size]] can be larger than [[blockSize]]. If the seeks are smaller than [[blockSize]]
-                   * then cache the entire bytes since it's known that a minimum of [[blockSize]] is allowed to be cached.
-                   * If seeks are too large then cache only the extra tail bytes which are currently un-read by the client.
-                   */
-                  if (blockSize > 0) {
-                    logger.debug(s"${this.getClass.getName} #${this.hashCode()}: Path: ${reader.path}, ${offset.getClass.getSimpleName}: ${nextBlockReadPosition} Seek from disk: ${bytes.size}.bytes.")
-                    if (bytes.size <= blockSize)
-                      BlockReaderCache.set(nextBlockReadPosition - offset.start, bytes, cache)
-                    else
-                      BlockReaderCache.set(nextBlockReadPosition - offset.start + size, bytes.drop(size).unslice(), cache)
-                  }
-
-                  val actualSize = size min remaining.toInt
-                  position += actualSize
-
-                  updatePreviousEndPosition()
-
-                  if (fromCache.isEmpty)
-                    bytes take size
-                  else
-                    fromCache ++ bytes.take(actualSize - fromCache.size)
-              }
-          }
-      }
-
-  override def read(size: Int): IO[swaydb.Error.Segment, Slice[Byte]] = {
-    var fromCache = Slice.emptyBytes
-    //@formatter:off
-    if (!isFile && (isSequentialRead() || {fromCache = readFromCache(position, size); fromCache.nonEmpty}))
-      readSequentialAccess(size, readFromCache(position, size))
+  def read(size: Int, state: State): IO[swaydb.Error.Segment, Slice[Byte]] = {
+    val fromCache = readFromCache(size, state)
+    if (isSequentialRead(fromCache, state))
+      readSequential(size, fromCache, state)
     else
-      readRandomAccess(size)
-    //@formatter:on
+      readRandom(size, state)
   }
 
-  def readFullBlock(): IO[swaydb.Error.Segment, Slice[Byte]] =
-    reader
-      .moveTo(offset.start)
-      .read(offset.size)
-
-  def readFullBlockOrNone(): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
-    if (offset.size == 0)
-      IO.none
-    else
-      readFullBlock().map(Some(_))
-
-  override def readRemaining(): IO[swaydb.Error.Segment, Slice[Byte]] =
-    remaining flatMap read
+  def readFullBlock(state: State): IO[swaydb.Error.Segment, Slice[Byte]] =
+    state.
+      reader
+      .moveTo(state.offset.start)
+      .read(state.offset.size)
 }

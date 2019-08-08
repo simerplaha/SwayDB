@@ -70,12 +70,15 @@ private[core] object UnblockedReader {
 }
 
 private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val block: B,
-                                                                             private[reader] val reader: Reader[swaydb.Error.Segment]) extends BlockReader with LazyLogging {
+                                                                             private[reader] val reader: Reader[swaydb.Error.Segment]) extends BlockReaderBase with LazyLogging {
 
-  def offset = block.offset
+  val offset = block.offset
+
+  override val state: BlockReader.State =
+    BlockReader(offset, 4028, reader)
 
   override def moveTo(newPosition: Long): UnblockedReader[O, B] = {
-    super.moveTo(newPosition)
+    state moveTo newPosition.toInt
     this
   }
 
@@ -94,8 +97,4 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
       block = block,
       reader = reader.copy()
     )
-
-  override val isFile: Boolean = reader.isFile
-  override def blockSize: Int = 4096
-  override def path: Path = ???
 }

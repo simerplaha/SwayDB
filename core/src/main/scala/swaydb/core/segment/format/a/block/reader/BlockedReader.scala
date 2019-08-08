@@ -57,14 +57,15 @@ private[core] object BlockedReader {
 }
 
 private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(private[reader] val reader: Reader[swaydb.Error.Segment],
-                                                                           val block: B) extends BlockReader with LazyLogging {
+                                                                           val block: B) extends BlockReaderBase with LazyLogging {
 
-  def offset = block.offset
+  val offset = block.offset
 
-  def path = reader.path
+  override val state: BlockReader.State =
+    BlockReader(offset, 4028, reader)
 
   override def moveTo(newPosition: Long): BlockedReader[O, B] = {
-    super.moveTo(newPosition)
+    state moveTo newPosition.toInt
     this
   }
 
@@ -84,5 +85,4 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
       block = block
     )
 
-  override val blockSize: Int = 4096
 }
