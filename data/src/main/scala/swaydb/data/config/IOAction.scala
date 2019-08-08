@@ -23,13 +23,15 @@ sealed trait IOAction {
 }
 
 object IOAction {
-  case class ReadDataOverview(size: Int) extends IOAction {
+  case object ReadDataOverview extends IOAction {
     override def isCompressed: Boolean = false
   }
-  case class ReadCompressedData(compressedSize: Int, decompressedSize: Int) extends IOAction {
+
+  sealed trait CompressionAction extends IOAction
+  case class ReadCompressedData(compressedSize: Int, decompressedSize: Int) extends CompressionAction {
     override def isCompressed: Boolean = true
   }
-  case class ReadUncompressedData(size: Int) extends IOAction {
+  case class ReadUncompressedData(size: Int) extends CompressionAction {
     override def isCompressed: Boolean = false
   }
   case object OpenResource extends IOAction {

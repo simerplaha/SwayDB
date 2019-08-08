@@ -113,7 +113,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   def strategy(action: IOAction): IOStrategy =
     action match {
-      case IOAction.ReadDataOverview(size) =>
+      case IOAction.ReadDataOverview =>
         IOStrategy.ConcurrentIO(cacheOnAccess = true)
       case IOAction.ReadCompressedData(compressedSize, decompressedSize) =>
         ???
@@ -267,8 +267,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         //          println(key)
         //        val found = segment.get(keyValue.key).get.get
         //        found.getOrFetchValue
-//        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
-        segment.get(keyValue.key).get
+        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
+//        segment.get(keyValue.key).get
     }
   }
 

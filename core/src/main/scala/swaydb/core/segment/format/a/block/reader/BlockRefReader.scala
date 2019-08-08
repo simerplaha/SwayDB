@@ -78,7 +78,7 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
     this
   }
 
-  def readAllAndGetReader()(implicit blockOps: BlockOps[O, _]): IO[swaydb.Error.Segment, BlockRefReader[O]] =
+  def readFullBlockAndGetReader()(implicit blockOps: BlockOps[O, _]): IO[swaydb.Error.Segment, BlockRefReader[O]] =
     readFullBlock() map (BlockRefReader(_))
 
   def copy(): BlockRefReader[O] =

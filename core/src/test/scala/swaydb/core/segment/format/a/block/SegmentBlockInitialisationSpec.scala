@@ -473,7 +473,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
       cache.hashIndexBlockCache.isCached shouldBe true
       cache.valuesBlockCache.isCached shouldBe true
 
-      cache.segmentBlockReaderCache.isCached shouldBe true
+      cache.segmentReaderCache.isCached shouldBe true
 
       cache.binarySearchIndexReaderCache.isCached shouldBe false
       cache.sortedIndexReaderCache.isCached shouldBe false

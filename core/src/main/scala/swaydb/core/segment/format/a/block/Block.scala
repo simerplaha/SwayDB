@@ -38,7 +38,7 @@ private[core] trait Block[O <: BlockOffset] {
   def offset: O
   def headerSize: Int
   def compressionInfo: Option[Block.CompressionInfo]
-  def dataType: IOAction =
+  def dataType: IOAction.CompressionAction =
     compressionInfo map {
       compressionInfo =>
         IOAction.ReadCompressedData(
@@ -215,12 +215,13 @@ private[core] object Block extends LazyLogging {
   def unblock[O <: BlockOffset, B <: Block[O]](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, B]): IO[swaydb.Error.Segment, UnblockedReader[O, B]] =
     unblock(BlockRefReader(bytes))
 
-  def unblock[O <: BlockOffset, B <: Block[O]](ref: BlockRefReader[O])(implicit blockOps: BlockOps[O, B]): IO[swaydb.Error.Segment, UnblockedReader[O, B]] =
+  def unblock[O <: BlockOffset, B <: Block[O]](ref: BlockRefReader[O],
+                                               readAllIfUncompressed: Boolean = false)(implicit blockOps: BlockOps[O, B]): IO[swaydb.Error.Segment, UnblockedReader[O, B]] =
     BlockedReader(ref) flatMap {
       blockedReader =>
         Block.unblock[O, B](
           reader = blockedReader,
-          readAllIfUncompressed = false
+          readAllIfUncompressed = readAllIfUncompressed
         )
     }
 

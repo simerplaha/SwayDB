@@ -57,6 +57,7 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
 
       val ref = BlockRefReader[ValuesBlock.Offset](bytes)
       ref.copy().readRemaining().get shouldBe bytes
+      ref.copy().moveTo(10).readRemaining().get shouldBe bytes.drop(10)
 
       val blocked = BlockedReader(ref).value
       blocked.copy().readRemaining().get shouldBe bodyBytes
@@ -80,6 +81,7 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
 
         val ref = BlockRefReader[ValuesBlock.Offset](compressed)
         ref.copy().readRemaining().get shouldBe compressed
+        ref.copy().moveTo(10).readRemaining().get shouldBe compressed.drop(10)
 
         val blocked = BlockedReader(ref).value
         blocked.copy().readRemaining().get shouldBe compressed.drop(5)
