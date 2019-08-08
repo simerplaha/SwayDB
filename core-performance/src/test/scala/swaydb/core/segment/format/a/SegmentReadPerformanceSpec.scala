@@ -260,15 +260,15 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     //              segment.get(keyValue.key).get
     //          }
     //        }
-    shuffledUnGroupedKeyValues foreach {
+    unGroupedKeyValues foreach {
       keyValue =>
         //        val key = keyValue.key.readInt()
         //        if (key % 1000 == 0)
         //          println(key)
         //        val found = segment.get(keyValue.key).get.get
         //        found.getOrFetchValue
-        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
-//        segment.get(keyValue.key).get
+//        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
+        segment.get(keyValue.key).get
     }
   }
 

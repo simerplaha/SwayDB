@@ -38,7 +38,7 @@ private[core] trait Block[O <: BlockOffset] {
   def offset: O
   def headerSize: Int
   def compressionInfo: Option[Block.CompressionInfo]
-  def dataType: IOAction.CompressionAction =
+  def dataType: IOAction.DataAction =
     compressionInfo map {
       compressionInfo =>
         IOAction.ReadCompressedData(

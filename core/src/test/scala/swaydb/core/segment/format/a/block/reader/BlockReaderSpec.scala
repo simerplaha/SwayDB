@@ -42,21 +42,17 @@ class BlockReaderSpec extends TestBase with MockFactory {
   }
 
   "isSequentialRead" in {
-    val slice = (1 to 1000).map(_.toByte).toSlice
+    val slice = (1 to 20).map(_.toByte).toSlice
     val fileReader = createRandomFileReader(slice)
 
     val reader = BlockReader(blockReader = fileReader, blockOffset = ValuesBlock.Offset(0, slice.size), _blockSize = 2)
+    //1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
+    reader.isSequentialRead() shouldBe true
+    //   2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
+    reader.moveTo(1)
+    reader.updatePreviousEndPosition()
+    reader.isSequentialRead() shouldBe true
 
-//    reader.moveTo(0).read(10).get
-//    reader.isSequentialRead() shouldBe true
-//    reader.moveTo(0)
-//    reader.isSequentialRead() shouldBe false
-//    reader.moveTo(0).read(1)
-//    reader.isSequentialRead() shouldBe true
-//    reader.moveTo(1).read(1)
-//    reader.readFromCache(2, 1) shouldBe Slice(3.toByte)
-//    reader.moveTo(2)
-//    reader.isSequentialRead() shouldBe true
   }
 
   "read" when {

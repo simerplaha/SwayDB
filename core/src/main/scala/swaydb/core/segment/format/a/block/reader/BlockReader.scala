@@ -96,8 +96,14 @@ protected trait BlockReader extends ReaderBase[swaydb.Error.Segment] with LazyLo
   def isSequentialRead(): Boolean =
     previousReadEndPosition == 0 || {
       val diff = position - previousReadEndPosition
-      diff >= -this.blockSize && diff <= this.blockSize
+      diff >= -1 && diff <= 10
     }
+
+  def updatePreviousEndPosition(): Unit =
+    previousReadEndPosition = position - 1
+
+  def isRandomRead(): Boolean =
+    !isSequentialRead()
 
   def readRandomAccess(size: Int): IO[Error.Segment, Slice[Byte]] =
     remaining flatMap {
@@ -113,7 +119,7 @@ protected trait BlockReader extends ReaderBase[swaydb.Error.Segment] with LazyLo
               bytes =>
                 val actualSize = size min remaining.toInt
                 position += actualSize
-                previousReadEndPosition = position - 1
+                updatePreviousEndPosition()
                 bytes
             }
         }
@@ -168,7 +174,7 @@ protected trait BlockReader extends ReaderBase[swaydb.Error.Segment] with LazyLo
                   val actualSize = size min remaining.toInt
                   position += actualSize
 
-                  previousReadEndPosition = position - 1
+                  updatePreviousEndPosition()
 
                   if (fromCache.isEmpty)
                     bytes take size
@@ -181,7 +187,7 @@ protected trait BlockReader extends ReaderBase[swaydb.Error.Segment] with LazyLo
   override def read(size: Int): IO[swaydb.Error.Segment, Slice[Byte]] = {
     var fromCache = Slice.emptyBytes
     //@formatter:off
-    if ((isFile && isSequentialRead()) || {fromCache = readFromCache(position, size); fromCache.nonEmpty})
+    if (!isFile && (isSequentialRead() || {fromCache = readFromCache(position, size); fromCache.nonEmpty}))
       readSequentialAccess(size, readFromCache(position, size))
     else
       readRandomAccess(size)
