@@ -26,6 +26,8 @@ import swaydb.data.slice.{Reader, Slice}
 import swaydb.Error
 import swaydb.Error.Segment.ErrorHandler
 
+import scala.beans.BeanProperty
+
 object BlockReader extends LazyLogging {
 
   def apply(offset: BlockOffset,
@@ -44,8 +46,8 @@ object BlockReader extends LazyLogging {
               val blockSize: Int,
               val cache: BlockReaderCache.State,
               val reader: Reader[swaydb.Error.Segment],
-              var position: Int,
-              var previousReadEndPosition: Int) {
+              @BeanProperty var position: Int,
+              @BeanProperty var previousReadEndPosition: Int) {
 
     val isFile = reader.isFile
 
@@ -115,54 +117,56 @@ object BlockReader extends LazyLogging {
         state.position += size
         fromCache take size
       }
-    } else if (state.remaining <= 0) {
-      IO.emptyBytes
     } else {
       val remaining = state.remaining
-      //if reads are random do not read full block size lets the reads below decide how much to read.
-      //read full block on random reads is very slow.
-      //adjust the seek size to be a multiple of blockSize.
-      //also check if there are too many cache misses.
-      val blockSizeToRead =
-      if (state.blockSize <= 0)
-        size
-      else
-        state.blockSize.toDouble * Math.ceil(Math.abs((size - fromCache.size) / state.blockSize.toDouble))
-      //read the blockSize if there are enough bytes or else only read only the remaining.
-      val actualBlockReadSize = blockSizeToRead.toInt min (remaining - fromCache.size)
-      //skip bytes already read from the blockCache.
-      val nextBlockReadPosition = state.offset.start + state.position + fromCache.size
+      if (remaining <= 0) {
+        IO.emptyBytes
+      } else {
+        //if reads are random do not read full block size lets the reads below decide how much to read.
+        //read full block on random reads is very slow.
+        //adjust the seek size to be a multiple of blockSize.
+        //also check if there are too many cache misses.
+        val blockSizeToRead =
+        if (state.blockSize <= 0)
+          size
+        else
+          state.blockSize.toDouble * Math.ceil(Math.abs((size - fromCache.size) / state.blockSize.toDouble))
+        //read the blockSize if there are enough bytes or else only read only the remaining.
+        val actualBlockReadSize = blockSizeToRead.toInt min (remaining - fromCache.size)
+        //skip bytes already read from the blockCache.
+        val nextBlockReadPosition = state.offset.start + state.position + fromCache.size
 
-      state
-        .reader
-        .moveTo(nextBlockReadPosition)
-        .read(actualBlockReadSize)
-        .map {
-          bytes =>
+        state
+          .reader
+          .moveTo(nextBlockReadPosition)
+          .read(actualBlockReadSize)
+          .map {
+            bytes =>
 
-            /**
-             * [[size]] can be larger than [[blockSize]]. If the seeks are smaller than [[blockSize]]
-             * then cache the entire bytes since it's known that a minimum of [[blockSize]] is allowed to be cached.
-             * If seeks are too large then cache only the extra tail bytes which are currently un-read by the client.
-             */
-            if (state.blockSize > 0) {
-              logger.debug(s"${this.getClass.getName} #${this.hashCode()}: Path: ${state.reader.path}, ${state.offset.getClass.getSimpleName}: ${nextBlockReadPosition} Seek from disk: ${bytes.size}.bytes.")
-              if (bytes.size <= state.blockSize)
-                BlockReaderCache.set(nextBlockReadPosition - state.offset.start, bytes, state.cache)
+              /**
+               * [[size]] can be larger than [[blockSize]]. If the seeks are smaller than [[blockSize]]
+               * then cache the entire bytes since it's known that a minimum of [[blockSize]] is allowed to be cached.
+               * If seeks are too large then cache only the extra tail bytes which are currently un-read by the client.
+               */
+              if (state.blockSize > 0) {
+                logger.debug(s"${this.getClass.getName} #${this.hashCode()}: Path: ${state.reader.path}, ${state.offset.getClass.getSimpleName}: ${nextBlockReadPosition} Seek from disk: ${bytes.size}.bytes.")
+                if (bytes.size <= state.blockSize)
+                  BlockReaderCache.set(nextBlockReadPosition - state.offset.start, bytes, state.cache)
+                else
+                  BlockReaderCache.set(nextBlockReadPosition - state.offset.start + size, bytes.drop(size).unslice(), state.cache)
+              }
+
+              val actualSize = size min remaining
+              state.position += actualSize
+
+              state.updatePreviousEndPosition()
+
+              if (fromCache.isEmpty)
+                bytes take size
               else
-                BlockReaderCache.set(nextBlockReadPosition - state.offset.start + size, bytes.drop(size).unslice(), state.cache)
-            }
-
-            val actualSize = size min remaining
-            state.position += actualSize
-
-            state.updatePreviousEndPosition()
-
-            if (fromCache.isEmpty)
-              bytes take size
-            else
-              fromCache ++ bytes.take(actualSize - fromCache.size)
-        }
+                fromCache ++ bytes.take(actualSize - fromCache.size)
+          }
+      }
     }
 
   def get(state: State): IO[swaydb.Error.Segment, Int] =
