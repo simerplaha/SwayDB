@@ -3,8 +3,10 @@ package swaydb.core.segment.format.a.block
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
+import swaydb.core.segment.format.a.block
 import swaydb.core.segment.format.a.block.Block.CompressionInfo
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
+import swaydb.core.segment.format.a.entry.id.BaseEntryId.ValueOffset
 import swaydb.data.config.IOAction
 import swaydb.data.slice.Slice
 
@@ -33,7 +35,8 @@ class BlockSpec extends TestBase {
       "for bytes" in {
         runThis(100.times) {
           val headerSize = Block.headerSize(false) + 1 //+1 for Bytes.sizeOf(headerSize) that is calculated by the block itself.
-          val dataBytes = randomBytesSlice(randomIntMax(100) + 1)
+          //          val dataBytes = randomBytesSlice(randomIntMax(100) + 1)
+          val dataBytes = randomBytesSlice(10)
           val uncompressedBytes = Slice.fill(headerSize)(0.toByte) ++ dataBytes
 
           val compressedBytes = Block.block(headerSize, uncompressedBytes, Seq.empty, "test-block").get
@@ -213,16 +216,16 @@ class BlockSpec extends TestBase {
     val rootUncompressedBytes = Slice.fill[Byte](headerSize)(3.toByte) ++ compressedChildBytes1 ++ compressedChildBytes2
     val compressedRootBytes = Block.block(headerSize, rootUncompressedBytes, Seq(compression), "compressedRootBlocks").get
 
-    val rootRef = BlockRefReader[SegmentBlock.Offset](compressedRootBytes)
+    val rootRef = BlockRefReader[ValuesBlock.Offset](compressedRootBytes)
     val decompressedRootBlock = Block.unblock(rootRef).get
 
     //got the original rootBlock bytes without the header.
     val decompressedRoot = decompressedRootBlock.readAllAndGetReader().get
     decompressedRoot.readFullBlock().get shouldBe rootUncompressedBytes.drop(headerSize)
 
-//    val child1Ref = BlockRefReader.moveTo[SegmentBlock.Offset, SegmentBlock](SegmentBlock.Offset(0, compressedChildBytes1.size), decompressedRoot.copy())
-//    val child1DecompressedBytes = Block.unblock(child1Ref).get
-//    child1DecompressedBytes.readFullBlock().get shouldBe child1Bytes.drop(headerSize)
+    val child1Ref = BlockRefReader.moveTo[ValuesBlock.Offset, ValuesBlock.Offset](0, compressedChildBytes1.size, decompressedRoot.copy())
+    val child1DecompressedBytes = Block.unblock(child1Ref).get
+    child1DecompressedBytes.readFullBlock().get shouldBe child1Bytes.drop(headerSize)
 
     //read child block2 using the same decompressed reader from root block but set the offset start to be the end of child1's compressed bytes end.
     //    decompressedRootBytes.readAll().get.drop(compressedChildBytes1.size)

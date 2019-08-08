@@ -55,15 +55,15 @@ private[core] object BlockRefReader {
   /**
    * @note these readers are required to be nested because [[UnblockedReader]] might have a header size which is not current read.
    */
-  def moveTo[O <: BlockOffset](start: Int, size: Int, reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
+  def moveTo[O <: BlockOffset, OO <: BlockOffset](start: Int, size: Int, reader: UnblockedReader[OO, _])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader(
       offset = blockOps.createOffset(reader.offset.start + start, size),
       reader = reader.reader
     )
 
-  def moveWithin[O <: BlockOffset](offset: O, reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
+  def moveTo[O <: BlockOffset, OO <: BlockOffset](offset: O, reader: UnblockedReader[OO, _])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader(
-      offset = blockOps.createOffset(offset.start + reader.offset.start, offset.size),
+      offset = blockOps.createOffset(reader.offset.start + offset.start, offset.size),
       reader = reader.reader
     )
 }

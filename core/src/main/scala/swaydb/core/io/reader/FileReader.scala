@@ -24,7 +24,7 @@ import swaydb.IO
 import swaydb.core.io.file.DBFile
 import swaydb.data.slice.{Reader, Slice}
 
-private[core] class FileReader(file: DBFile) extends Reader[swaydb.Error.Segment] with LazyLogging {
+private[core] class FileReader(val file: DBFile) extends Reader[swaydb.Error.Segment] with LazyLogging {
 
   private var position: Int = 0
 

@@ -756,7 +756,8 @@ object CommonAssertions {
   }
 
   def assertGet(keyValues: Slice[Transient],
-                rawSegmentReader: Reader[swaydb.Error.Segment])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
+                rawSegmentReader: Reader[swaydb.Error.Segment],
+                segmentIO: SegmentIO = SegmentIO.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
     val blocks = readBlocksFromReader(rawSegmentReader.copy()).get
 
     keyValues foreach {

@@ -276,6 +276,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
             }
         }
 
+      if (sortedIndexReader.copy().readIntUnsigned().get == 0)
+        ""
+
       EntryReader.read(
         //take only the bytes required for this in entry and submit it for parsing/reading.
         indexReader = sortedIndexReader,

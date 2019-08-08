@@ -260,7 +260,7 @@ private[core] object Block extends LazyLogging {
 
       case None =>
         //no compression just skip the header bytes.
-        val unblockedReader = UnblockedReader.skipHeader(reader)
+        val unblockedReader = UnblockedReader.fromUncompressed(reader)
         if (readAllIfUncompressed)
           unblockedReader.readAllAndGetReader()
         else

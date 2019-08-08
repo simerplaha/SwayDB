@@ -198,7 +198,7 @@ class SegmentBlockCache(id: String,
             offset =>
               createSegmentBlockReader() flatMap {
                 segmentReader =>
-                  cache.value(Some(BlockRefReader.moveWithin(offset, segmentReader)))
+                  cache.value(Some(BlockRefReader.moveTo(offset, segmentReader)))
               }
           } getOrElse cache.value(None)
       }
@@ -211,7 +211,7 @@ class SegmentBlockCache(id: String,
         footer =>
           createSegmentBlockReader() flatMap {
             segmentReader =>
-              cache.value(BlockRefReader.moveWithin(offset(footer), segmentReader))
+              cache.value(BlockRefReader.moveTo(offset(footer), segmentReader))
           }
       }
     }
