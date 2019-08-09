@@ -168,8 +168,7 @@ private[core] class SegmentCache(id: String,
   private def get(key: Slice[Byte],
                   start: Option[Persistent],
                   end: Option[Persistent],
-                  hasRange: Boolean,
-                  hashIndexSearchOnly: Boolean): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+                  hasRange: Boolean): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
     createHashIndexReader() flatMap {
       hashIndexReader =>
         createBinarySearchIndexReader() flatMap {
@@ -186,7 +185,6 @@ private[core] class SegmentCache(id: String,
                       binarySearchIndexReader = binarySearchIndexReader,
                       sortedIndexReader = sortedIndexReader,
                       valuesReader = valuesReader,
-                      hashIndexSearchOnly = hashIndexSearchOnly,
                       hasRange = hasRange
                     ) flatMap {
                       case Some(response: Persistent.SegmentResponse) =>
@@ -206,9 +204,6 @@ private[core] class SegmentCache(id: String,
     }
 
   def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
-    get(key = key, hashIndexSearchOnly = false)
-
-  private def get(key: Slice[Byte], hashIndexSearchOnly: Boolean): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key > maxKey =>
         IO.none
@@ -221,11 +216,7 @@ private[core] class SegmentCache(id: String,
       //        IO.none
 
       case _ =>
-        val floor =
-          if (hashIndexSearchOnly)
-            None
-          else
-            skipList.floor(key)
+        val floor = skipList.floor(key)
 
         floor match {
           case Some(floor: Persistent.SegmentResponse) if floor.key equiv key =>
@@ -243,20 +234,19 @@ private[core] class SegmentCache(id: String,
               footer =>
                 //if there is no hashIndex help binarySearch by sending it a higher entry.
                 def getHigherForBinarySearch() =
-                  if (!hashIndexSearchOnly && footer.hashIndexOffset.isEmpty && footer.binarySearchIndexOffset.isDefined)
+                  if (footer.hashIndexOffset.isEmpty && footer.binarySearchIndexOffset.isDefined)
                     skipList.higher(key)
                   else
                     None
 
-                if (hashIndexSearchOnly && footer.hashIndexOffset.isEmpty)
+                if (footer.hashIndexOffset.isEmpty)
                   IO.none
                 else if (footer.hasRange)
                   get(
                     key = key,
                     start = floorValue,
                     end = getHigherForBinarySearch(),
-                    hasRange = footer.hasRange,
-                    hashIndexSearchOnly = hashIndexSearchOnly
+                    hasRange = footer.hasRange
                   )
                 else
                   mightContain(key) flatMap {
@@ -266,8 +256,7 @@ private[core] class SegmentCache(id: String,
                           key = key,
                           start = floorValue,
                           end = getHigherForBinarySearch(),
-                          hasRange = footer.hasRange,
-                          hashIndexSearchOnly = hashIndexSearchOnly
+                          hasRange = footer.hasRange
                         )
                       else
                         IO.none

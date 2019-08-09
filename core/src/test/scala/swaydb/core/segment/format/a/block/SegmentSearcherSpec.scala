@@ -58,8 +58,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
             binarySearchIndexReader = null, //set it to null. BinarySearchIndex is not accessed.
             sortedIndexReader = blocks.sortedIndexReader,
             valuesReader = blocks.valuesReader,
-            hasRange = keyValues.last.stats.segmentHasRange,
-            hashIndexSearchOnly = false
+            hasRange = keyValues.last.stats.segmentHasRange
           ).get
 
         got shouldBe defined
@@ -73,46 +72,6 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
     persistentKeyValues should have size keyValues.size
 
     val zippedPersistentKeyValues = persistentKeyValues.zipWithIndex
-
-    //TEST - hashIndexSearchOnly == true
-    zippedPersistentKeyValues.foldLeft(Option.empty[Persistent]) {
-      case (previous, (keyValue, index)) =>
-        val got =
-          SegmentSearcher.search(
-            key = keyValue.key,
-            start = randomlySelectLower(index, persistentKeyValues),
-            end = randomlySelectHigher(index, persistentKeyValues),
-            hashIndexReader = blocks.hashIndexReader,
-            binarySearchIndexReader = null, //set it to null. BinarySearchIndex is not accessed.
-            sortedIndexReader = blocks.sortedIndexReader,
-            valuesReader = blocks.valuesReader,
-            hasRange = keyValues.last.stats.segmentHasRange,
-            hashIndexSearchOnly = true
-          ).get
-
-        got.get shouldBe keyValue
-        eitherOne(None, got, previous)
-    }
-
-    //TEST - hashIndexSearchOnly does not exist and hashIndexSearchOnly = true
-    zippedPersistentKeyValues.foldLeft(Option.empty[Persistent]) {
-      case (previous, (keyValue, index)) =>
-        val got =
-          SegmentSearcher.search(
-            key = keyValue.key,
-            start = randomlySelectLower(index, persistentKeyValues),
-            end = randomlySelectHigher(index, persistentKeyValues),
-            hashIndexReader = None,
-            binarySearchIndexReader = null, //set it to null. BinarySearchIndex is not accessed.
-            sortedIndexReader = null,
-            valuesReader = null,
-            hasRange = keyValues.last.stats.segmentHasRange,
-            hashIndexSearchOnly = true
-          ).get
-
-        got shouldBe empty
-        eitherOne(None, got, previous)
-    }
 
     //TEST - hashIndexSearchOnly does not exist and hashIndexSearchOnly = false then sorted index is used.
     Benchmark("Benchmarking slow test", inlinePrint = true) {
@@ -133,8 +92,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               binarySearchIndexReader = binarySearchIndexOptional,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader,
-              hasRange = keyValues.last.stats.segmentHasRange,
-              hashIndexSearchOnly = false
+              hasRange = keyValues.last.stats.segmentHasRange
             ).get
 
           found.get shouldBe keyValue
@@ -162,25 +120,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
             },
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = Some(ValuesBlock.emptyUnblocked), //give it empty blocks since values are not read.
-          hasRange = keyValues.last.stats.segmentHasRange,
-          hashIndexSearchOnly = false
-        ).get shouldBe empty
-    }
-
-
-    //TEST - hashIndexSearchOnly == true
-    ((1 until 100) ++ (maxKey + 1 to maxKey + 100)) foreach {
-      key =>
-        SegmentSearcher.search(
-          key = key,
-          start = None,
-          end = None,
-          hashIndexReader = blocks.hashIndexReader,
-          binarySearchIndexReader = null,
-          valuesReader = Some(ValuesBlock.emptyUnblocked), //give it empty blocks since values are not read.
-          sortedIndexReader = blocks.sortedIndexReader,
-          hasRange = keyValues.last.stats.segmentHasRange,
-          hashIndexSearchOnly = true
+          hasRange = keyValues.last.stats.segmentHasRange
         ).get shouldBe empty
     }
 

@@ -44,7 +44,7 @@ private[reader] object BlockReader extends LazyLogging {
               val blockSize: Int,
               val cache: BlockReaderCache.State,
               val reader: Reader[swaydb.Error.Segment],
-              var isSequentialRead: Boolean,
+              var isSequentialRead: Boolean, //var that stores the guess if the previous read was sequential.
               var position: Int,
               var previousReadEndPosition: Int) {
 

@@ -113,8 +113,7 @@ class SegmentSearcherPerformanceSpec extends TestBase with MockFactory {
             binarySearchIndexReader = blocks.binarySearchIndexReader,
             sortedIndexReader = blocks.sortedIndexReader,
             valuesReader = blocks.valuesReader,
-            hasRange = keyValues.last.stats.segmentHasRange,
-            hashIndexSearchOnly = false
+            hasRange = keyValues.last.stats.segmentHasRange
           ).get shouldBe keyValue
       }
     }

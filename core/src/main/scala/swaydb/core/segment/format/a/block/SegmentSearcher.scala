@@ -36,9 +36,8 @@ private[core] object SegmentSearcher extends LazyLogging {
              binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-             hasRange: Boolean,
-             hashIndexSearchOnly: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
-    when(!hashIndexSearchOnly)(start) map {
+             hasRange: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
+    when(sortedIndexReader.isSequentialRead)(start) map {
       startFrom =>
         SortedIndexBlock.searchSeekOne(
           key = key,
@@ -58,8 +57,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                 binarySearchIndexReader = binarySearchIndexReader,
                 sortedIndexReader = sortedIndexReader,
                 valuesReader = valuesReader,
-                hasRange = hasRange,
-                hashIndexSearchOnly = hashIndexSearchOnly
+                hasRange = hasRange
               )
         }
     } getOrElse {
@@ -71,8 +69,7 @@ private[core] object SegmentSearcher extends LazyLogging {
         binarySearchIndexReader = binarySearchIndexReader,
         sortedIndexReader = sortedIndexReader,
         valuesReader = valuesReader,
-        hasRange = hasRange,
-        hashIndexSearchOnly = hashIndexSearchOnly
+        hasRange = hasRange
       )
     }
 
@@ -83,8 +80,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                       binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                       sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                       valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                      hasRange: Boolean,
-                      hashIndexSearchOnly: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
+                      hasRange: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
     hashIndexReader map {
       hashIndexReader =>
         HashIndexBlock.search(
@@ -97,7 +93,7 @@ private[core] object SegmentSearcher extends LazyLogging {
             IO.Success(some)
 
           case None =>
-            if (hashIndexSearchOnly || (hashIndexReader.block.isPerfect && !hasRange))
+            if ((hashIndexReader.block.isPerfect && !hasRange))
               IO.none
             else
               binarySearch(
@@ -110,17 +106,14 @@ private[core] object SegmentSearcher extends LazyLogging {
               )
         }
     } getOrElse {
-      if (hashIndexSearchOnly)
-        IO.none
-      else
-        binarySearch(
-          key = key,
-          start = start,
-          end = end,
-          binarySearchIndexReader = binarySearchIndexReader,
-          sortedIndexReader = sortedIndexReader,
-          valuesReader = valuesReader
-        )
+      binarySearch(
+        key = key,
+        start = start,
+        end = end,
+        binarySearchIndexReader = binarySearchIndexReader,
+        sortedIndexReader = sortedIndexReader,
+        valuesReader = valuesReader
+      )
     }
 
   private def binarySearch(key: Slice[Byte],
