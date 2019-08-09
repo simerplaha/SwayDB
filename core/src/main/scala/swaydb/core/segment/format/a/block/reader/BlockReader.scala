@@ -20,15 +20,12 @@
 package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
+import swaydb.Error.Segment.ErrorHandler
+import swaydb.{Error, IO}
 import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.data.slice.{Reader, Slice}
-import swaydb.Error
-import swaydb.Error.Segment.ErrorHandler
 
-import scala.beans.BeanProperty
-
-object BlockReader extends LazyLogging {
+private[reader] object BlockReader extends LazyLogging {
 
   def apply(offset: BlockOffset,
             blockSize: Int,
@@ -38,6 +35,7 @@ object BlockReader extends LazyLogging {
       blockSize = blockSize,
       position = 0,
       previousReadEndPosition = 0,
+      isSequentialRead = true,
       cache = BlockReaderCache.init(0, Slice.emptyBytes),
       reader = reader
     )
@@ -46,8 +44,9 @@ object BlockReader extends LazyLogging {
               val blockSize: Int,
               val cache: BlockReaderCache.State,
               val reader: Reader[swaydb.Error.Segment],
-              @BeanProperty var position: Int,
-              @BeanProperty var previousReadEndPosition: Int) {
+              var isSequentialRead: Boolean,
+              var position: Int,
+              var previousReadEndPosition: Int) {
 
     val isFile = reader.isFile
 
@@ -82,15 +81,24 @@ object BlockReader extends LazyLogging {
       state = state.cache
     )
 
-  def isSequentialRead(fromCache: Slice[Byte], state: State): Boolean =
-    fromCache.nonEmpty || {
-      state.isFile && {
-        state.previousReadEndPosition == 0 || {
-          val diff = state.position - state.previousReadEndPosition
-          diff >= -1 && diff <= 10
+  def isSequentialRead(fromCache: Slice[Byte], state: State): Boolean = {
+    val isSeq =
+      fromCache.nonEmpty || //if there was data fetch from cache
+        (state.cache.toOffset + 1) == state.position || { //if position is the start of the next block.
+        state.isFile && {
+          state.previousReadEndPosition == 0 || //if this is the initial read.
+            state.position - state.previousReadEndPosition == 0 //if position is continuation of previous read's end position
         }
       }
-    }
+    state.isSequentialRead = isSeq
+    isSeq
+  }
+
+  def isSequentialRead(size: Int, state: State): Boolean =
+    isSequentialRead(
+      fromCache = readFromCache(size, state),
+      state = state
+    )
 
   def readRandom(size: Int, state: State): IO[Error.Segment, Slice[Byte]] = {
     val remaining = state.remaining
