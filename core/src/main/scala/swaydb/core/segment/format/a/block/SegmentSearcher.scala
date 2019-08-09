@@ -31,7 +31,7 @@ private[core] object SegmentSearcher extends LazyLogging {
 
   def search(key: Slice[Byte],
              start: Option[Persistent],
-             end: Option[Persistent],
+             end: => Option[Persistent],
              hashIndexReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
              binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
@@ -75,7 +75,7 @@ private[core] object SegmentSearcher extends LazyLogging {
 
   def hashIndexSearch(key: Slice[Byte],
                       start: Option[Persistent],
-                      end: Option[Persistent],
+                      end: => Option[Persistent],
                       hashIndexReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
                       binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                       sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
@@ -118,7 +118,7 @@ private[core] object SegmentSearcher extends LazyLogging {
 
   private def binarySearch(key: Slice[Byte],
                            start: Option[Persistent],
-                           end: Option[Persistent],
+                           end: => Option[Persistent],
                            binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                            sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
@@ -157,7 +157,7 @@ private[core] object SegmentSearcher extends LazyLogging {
 
   def searchHigher(key: Slice[Byte],
                    start: Option[Persistent],
-                   end: Option[Persistent],
+                   end: => Option[Persistent],
                    binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
@@ -202,7 +202,7 @@ private[core] object SegmentSearcher extends LazyLogging {
 
   private def binarySearchHigher(key: Slice[Byte],
                                  start: Option[Persistent],
-                                 end: Option[Persistent],
+                                 end: => Option[Persistent],
                                  binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
@@ -255,7 +255,7 @@ private[core] object SegmentSearcher extends LazyLogging {
 
   def searchLower(key: Slice[Byte],
                   start: Option[Persistent],
-                  end: Option[Persistent],
+                  end: => Option[Persistent],
                   binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =

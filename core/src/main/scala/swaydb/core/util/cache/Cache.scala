@@ -111,7 +111,7 @@ private[core] object Cache {
           stored = cacheOnAccess
         )(fetch)
 
-      case IOStrategy.ReservedIO(cacheOnAccess) =>
+      case IOStrategy.AsyncIO(cacheOnAccess) =>
         Cache.reservedIO[E, ER, I, O](
           stored = cacheOnAccess,
           initial = initial,

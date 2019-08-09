@@ -922,8 +922,7 @@ object CommonAssertions {
           segment.get(keyValue.key).runRandomIO.value.value shouldBe keyValue
         catch {
           case exception: Exception =>
-            exception.printStackTrace()
-            System.exit(1)
+            println(s"Failed to get: ${keyValue.key.readInt()}")
             throw exception
         }
     }
@@ -1406,7 +1405,7 @@ object CommonAssertions {
     if (randomBoolean())
       IOStrategy.SynchronisedIO(cacheOnAccess)
     else if (includeReserved && randomBoolean())
-      IOStrategy.ReservedIO(cacheOnAccess = true) //this not being stored will result in too many retries. =
+      IOStrategy.AsyncIO(cacheOnAccess = true) //this not being stored will result in too many retries. =
     else
       IOStrategy.ConcurrentIO(cacheOnAccess)
 

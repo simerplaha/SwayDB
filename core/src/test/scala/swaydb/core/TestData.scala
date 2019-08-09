@@ -2623,7 +2623,7 @@ object TestData {
       Seq(
         IOStrategy.ConcurrentIO(cacheOnAccess),
         IOStrategy.SynchronisedIO(cacheOnAccess),
-        IOStrategy.ReservedIO(cacheOnAccess = true)
+        IOStrategy.AsyncIO(cacheOnAccess = true)
       )
     ).head
 

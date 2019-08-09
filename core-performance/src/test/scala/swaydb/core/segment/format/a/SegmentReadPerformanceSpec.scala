@@ -118,7 +118,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       case IOAction.ReadCompressedData(compressedSize, decompressedSize) =>
         ???
       case IOAction.ReadUncompressedData(size) =>
-        IOStrategy.ConcurrentIO(cacheOnAccess = false)
+        IOStrategy.SynchronisedIO(cacheOnAccess = false)
       case IOAction.OpenResource =>
         IOStrategy.ConcurrentIO(cacheOnAccess = true)
     }
@@ -260,15 +260,15 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     //              segment.get(keyValue.key).get
     //          }
     //        }
-    shuffledUnGroupedKeyValues foreach {
+    unGroupedKeyValues foreach {
       keyValue =>
         //        val key = keyValue.key.readInt()
         //        if (key % 1000 == 0)
         //          println(key)
         //        val found = segment.get(keyValue.key).get.get
         //        found.getOrFetchValue
-        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
-//        segment.get(keyValue.key).get
+//        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
+        segment.get(keyValue.key).get
     }
   }
 
@@ -358,6 +358,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertGet(segment)
     }
+
     //
     //    //    segment.clearCachedKeyValues()
     //    //

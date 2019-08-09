@@ -44,9 +44,9 @@ object IOStrategy {
     (_: IOAction) =>
       IOStrategy.SynchronisedIO(cacheOnAccess = true)
 
-  val reserved: IOAction => IOStrategy.ReservedIO =
+  val reserved: IOAction => IOStrategy.AsyncIO =
     (_: IOAction) =>
-      IOStrategy.ReservedIO(cacheOnAccess = true)
+      IOStrategy.AsyncIO(cacheOnAccess = true)
 
   /**
    * The default [[IOStrategy]] strategy used for all [[IOAction.ReadDataOverview]].
@@ -66,8 +66,8 @@ object IOStrategy {
     def withCacheOnAccess: SynchronisedIO =
       copy(cacheOnAccess = true)
   }
-  case class ReservedIO(cacheOnAccess: Boolean) extends IOStrategy {
-    def withCacheOnAccess: ReservedIO =
+  case class AsyncIO(cacheOnAccess: Boolean) extends IOStrategy {
+    def withCacheOnAccess: AsyncIO =
       copy(cacheOnAccess = true)
   }
 }

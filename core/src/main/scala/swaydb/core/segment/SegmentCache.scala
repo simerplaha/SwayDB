@@ -167,7 +167,7 @@ private[core] class SegmentCache(id: String,
 
   private def get(key: Slice[Byte],
                   start: Option[Persistent],
-                  end: Option[Persistent],
+                  end: => Option[Persistent],
                   hasRange: Boolean): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
     createHashIndexReader() flatMap {
       hashIndexReader =>
@@ -232,20 +232,12 @@ private[core] class SegmentCache(id: String,
           case floorValue =>
             blockCache.getFooter() flatMap {
               footer =>
-                //if there is no hashIndex help binarySearch by sending it a higher entry.
-                def getHigherForBinarySearch() =
-                  if (footer.hashIndexOffset.isEmpty && footer.binarySearchIndexOffset.isDefined)
-                    skipList.higher(key)
-                  else
-                    None
 
-                if (footer.hashIndexOffset.isEmpty)
-                  IO.none
-                else if (footer.hasRange)
+                if (footer.hasRange)
                   get(
                     key = key,
                     start = floorValue,
-                    end = getHigherForBinarySearch(),
+                    end = skipList.higher(key),
                     hasRange = footer.hasRange
                   )
                 else
@@ -255,7 +247,7 @@ private[core] class SegmentCache(id: String,
                         get(
                           key = key,
                           start = floorValue,
-                          end = getHigherForBinarySearch(),
+                          end = skipList.higher(key),
                           hasRange = footer.hasRange
                         )
                       else
@@ -267,7 +259,7 @@ private[core] class SegmentCache(id: String,
 
   private def lower(key: Slice[Byte],
                     start: Option[Persistent],
-                    end: Option[Persistent]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+                    end: => Option[Persistent]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
     createBinarySearchIndexReader() flatMap {
       binarySearchIndexReader =>
         createSortedIndexReader() flatMap {
@@ -375,14 +367,11 @@ private[core] class SegmentCache(id: String,
                 }
 
             case None =>
-              getForLower(key) flatMap {
-                got =>
-                  lower(
-                    key = key,
-                    start = None,
-                    end = got
-                  )
-              }
+              lower(
+                key = key,
+                start = None,
+                end = getForLower(key).toOption.flatten
+              )
           }
       }
 
@@ -402,7 +391,7 @@ private[core] class SegmentCache(id: String,
 
   private def higher(key: Slice[Byte],
                      start: Option[Persistent],
-                     end: Option[Persistent]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+                     end: => Option[Persistent]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
     blockCache.getFooter() flatMap {
       footer =>
         createBinarySearchIndexReader() flatMap {

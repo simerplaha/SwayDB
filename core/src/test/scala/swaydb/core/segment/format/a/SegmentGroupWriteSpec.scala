@@ -60,7 +60,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
 
   "Deleting all Grouped key-values" should {
     "return empty Segments" in {
-      runThis(1.times) {
+      runThis(20.times, log = true) {
         val rightKeyValues = randomizedKeyValues(keyValuesCount)
         //add another head key-value that is used to a merge split to occur.
         val mergePut = randomPutKeyValue(rightKeyValues.head.key.readInt() - 1).toTransient
@@ -89,9 +89,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
         groupedSegments should have size 1
         val newGroupedSegment = groupedSegments.head
         //perform reads, grouping should result in accurate read results.
-//        assertReads(keyValues, newGroupedSegment)
-
-        assertGet(keyValues, newGroupedSegment)
+        assertReads(keyValues, newGroupedSegment)
         //submit remove key-values either single removes or range removed.
         val removeKeyValues: Slice[Transient] =
           eitherOne(

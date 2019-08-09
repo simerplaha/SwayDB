@@ -60,7 +60,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     else if (isSynchronised)
       IOStrategy.SynchronisedIO(cacheOnAccess = stored)
     else if (isReserved)
-      IOStrategy.ReservedIO(cacheOnAccess = stored)
+      IOStrategy.AsyncIO(cacheOnAccess = stored)
     else
       IOStrategy.ConcurrentIO(cacheOnAccess = stored) //then it's concurrent
 
@@ -330,7 +330,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
           val simpleCache =
             if (blockIO)
-              Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](strategy = _ => IOStrategy.ReservedIO(true), swaydb.Error.ReservedResource(Reserve(name = "test"))) {
+              Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](strategy = _ => IOStrategy.AsyncIO(true), swaydb.Error.ReservedResource(Reserve(name = "test"))) {
                 _ =>
                   invokeCount += 1
                   sleep(5.millisecond) //delay access
