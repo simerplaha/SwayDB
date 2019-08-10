@@ -128,22 +128,55 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.value() shouldBe IO.Success(123) //value again mock function is not invoked again
         cache.getOrElse(fail()) shouldBe IO.Success(123)
 
-        val mapCache = cache.map(int => IO(int))
-        mapCache.get() shouldBe Some(IO.Success(123))
-        mapCache.value(fail()) shouldBe IO.Success(123)
-        mapCache.value(fail()) shouldBe IO.Success(123)
-        mapCache.isCached shouldBe cache.isCached
+        val mapNotStoredCache = cache.map(int => IO(int + 1))
+        mapNotStoredCache.get() shouldBe Some(IO.Success(124))
+        mapNotStoredCache.value(fail()) shouldBe IO.Success(124)
+        mapNotStoredCache.value(fail()) shouldBe IO.Success(124)
+        mapNotStoredCache.isCached shouldBe cache.isCached
 
-        val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean(), None)((int: Int) => IO(int + 1)))
-        flatMapCache.value() shouldBe IO.Success(124)
-        flatMapCache.value(fail()) shouldBe IO.Success(124)
+        val mapStoredCache = cache.mapStored(int => IO(int + 5))
+        mapStoredCache.get() shouldBe Some(IO.Success(128))
+        mapStoredCache.value(fail()) shouldBe IO.Success(128)
+        mapStoredCache.value(fail()) shouldBe IO.Success(128)
+        mapStoredCache.isCached shouldBe cache.isCached
+
+        val flatMapStoredCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), stored = true, None)((int: Int) => IO(int + 2)))
+        flatMapStoredCache.value() shouldBe IO.Success(125)
+        flatMapStoredCache.value(fail()) shouldBe IO.Success(125)
+        flatMapStoredCache.get() shouldBe Some(IO.Success(125))
+
+        val flatMapNotStoredCache =
+          cache flatMap {
+            Cache.concurrentIO(
+              synchronised = randomBoolean(),
+              stored = false,
+              initial = orNone(Some(randomInt()))) {
+              int: Int =>
+                IO(int + 3)
+            }
+          }
+        flatMapNotStoredCache.value() shouldBe IO.Success(126)
+        flatMapNotStoredCache.value(fail()) shouldBe IO.Success(126)
+        //stored is false but get() will apply the value function fetching the value from parent cache.
+        flatMapNotStoredCache.get() shouldBe Some(IO.Success(126))
 
         //getOrElse on cached is not invoked on new value
         cache.getOrElse(fail()) shouldBe IO(123)
 
         cache.clear()
         cache.isCached shouldBe false
-        mapCache.isCached shouldBe false
+        mapNotStoredCache.isCached shouldBe false
+
+        mapStoredCache.isCached shouldBe true
+        flatMapStoredCache.isCached shouldBe true
+
+        mapStoredCache.clear()
+        mapStoredCache.isCached shouldBe false
+        mapStoredCache.get() shouldBe empty
+
+        flatMapStoredCache.clear()
+        flatMapStoredCache.isCached shouldBe false
+        flatMapStoredCache.get() shouldBe empty
       }
 
       runTestForAllCombinations(doTest)
@@ -199,16 +232,59 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.isCached shouldBe false
 
         mock.expects() returning IO(111)
-        cache.map(int => IO(int)).value(fail()) shouldBe IO(111)
-        cache.flatMap(Cache.concurrentIO(randomBoolean(), true, None)((int: Int) => IO(int + 1))).value(fail()) shouldBe IO(112)
+        cache.map(int => IO(int)).value(()) shouldBe IO(111)
+
+        cache.isCached shouldBe true
+
+        val flatMapCache1 =
+          cache.flatMap(
+            Cache.concurrentIO(
+              synchronised = randomBoolean(),
+              stored = true,
+              initial = None
+            )((int: Int) => IO(int + 1))
+          )
+
+        //since cache is populated value will not be fetched
+        flatMapCache1.value(fail()) shouldBe IO(112) //value is not invoked since value is already set.
+        //since cache is populated value will not be fetched
+        flatMapCache1.get().get.get shouldBe 112
 
         cache.clear()
         cache.isCached shouldBe false
         mock.expects() returning IO(222)
-        cache.flatMap(Cache.concurrentIO(randomBoolean(), true, None)((int: Int) => IO(int + 2))).value(fail()) shouldBe IO(224)
 
+        val flatMapCache2 =
+          cache flatMap {
+            Cache.concurrentIO(
+              synchronised = randomBoolean(),
+              stored = true,
+              initial = None
+            )((int: Int) => IO(int + 2))
+          }
+
+        flatMapCache2.value(()) shouldBe IO(224)
+        flatMapCache2.value(fail()) shouldBe IO(224)
+
+        cache.isCached shouldBe true
         //on cached value fail() is not invoked.
         cache.getOrElse(fail()) shouldBe IO(222)
+
+        cache.clear()
+        cache.isCached shouldBe false
+
+        flatMapCache1.value(fail()) shouldBe IO(112)
+        flatMapCache2.value(fail()) shouldBe IO(224)
+
+        //child caches are fetched above but since they are already populated
+        //root cache's value should still remaing cleared
+        cache.isCached shouldBe false
+        cache.get() shouldBe empty
+
+        flatMapCache1.get().get.get shouldBe 112
+        flatMapCache2.get().get.get shouldBe 224
+
+        cache.isCached shouldBe false
       }
 
       runTestForAllCombinations(doTest)

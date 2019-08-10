@@ -173,7 +173,7 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
                 Some(success)
 
               case ex: IO.Failure[F, B] =>
-                logger.error("Failed to apply map function on Cache.", ex)
+                logger.error("Failed to apply map function on Cache.", ex.exception)
                 None
             }
         }
@@ -195,8 +195,24 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
       override def getOrElse[FF >: F : ErrorHandler, BB >: B](f: => IO[FF, BB]): IO[FF, BB] =
         next getOrElse f
 
+      /**
+       * If [[next]] is not already cached see if [[self]] is cached
+       * and send it's value to [[next]]'s cache to populate.
+       */
       override def get(): Option[IO.Success[F, B]] =
-        next.get()
+        next.get() orElse {
+          self.get() flatMap {
+            value =>
+              next.value(value.get) match {
+                case success @ IO.Success(_) =>
+                  Some(success)
+
+                case failure @ IO.Failure(_) =>
+                  logger.error("Failed to apply flatMap function on Cache.", failure.exception)
+                  None
+              }
+          }
+        }
 
       override def clear(): Unit = {
         self.clear()
