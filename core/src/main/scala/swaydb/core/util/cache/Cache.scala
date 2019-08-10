@@ -282,7 +282,7 @@ private class ReservedIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable,
  * Caches a value on read. Used for IO operations where the output does not change.
  * For example: A file's size.
  */
-class NoIO[-I, +O](fetch: I => O, lazyValue: LazyValue[O]) {
+private[swaydb] class NoIO[-I, +O](fetch: I => O, lazyValue: LazyValue[O]) {
 
   def value(input: => I): O =
     lazyValue getOrSet fetch(input)

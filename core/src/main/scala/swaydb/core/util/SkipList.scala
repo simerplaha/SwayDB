@@ -112,7 +112,7 @@ private[core] object SkipList {
   def concurrent[K, V]()(implicit ordering: KeyOrder[K]): ConcurrentSkipList[K, V] =
     new ConcurrentSkipList[K, V](new ConcurrentSkipListMap[K, V](ordering))
 
-  def value[K, V: ClassTag]()(implicit ordering: KeyOrder[K]): MinMaxSkipList[K, V] =
+  def minMax[K, V: ClassTag]()(implicit ordering: KeyOrder[K]): MinMaxSkipList[K, V] =
     new MinMaxSkipList[K, V](None)
 }
 

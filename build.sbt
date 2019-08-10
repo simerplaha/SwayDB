@@ -160,4 +160,3 @@ lazy val benchmark =
       libraryDependencies ++= commonDependencies
     ).dependsOn(core, configs)
     .dependsOn(api, core % "test->test")
-

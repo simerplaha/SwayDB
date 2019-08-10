@@ -47,7 +47,7 @@ class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[Long, Segmen
           binarySearchIndexReader = None,
           valuesReader = None,
           sortedIndexReader = None,
-          skipList = SkipList.value[K, V]()
+          skipList = SkipList.minMax[K, V]()
         )
       states.put(threadId, newState)
       newState

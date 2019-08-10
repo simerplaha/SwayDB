@@ -21,7 +21,7 @@ package swaydb.core.util.cache
 
 import swaydb.{ErrorHandler, IO}
 
-object Lazy {
+private[swaydb] object Lazy {
   def value[A](synchronised: Boolean,
                stored: Boolean,
                initial: Option[A]): LazyValue[A] = {
@@ -53,10 +53,11 @@ protected sealed trait Lazy[A] {
   def getOrSet(value: => A): A
   def getOrElse[B >: A](f: => B): B
   def isDefined: Boolean
+  def isEmpty: Boolean
   def clear(): Unit
 }
 
-class LazyValue[A](synchronised: Boolean, stored: Boolean) extends Lazy[A] {
+private[swaydb] class LazyValue[A](synchronised: Boolean, stored: Boolean) extends Lazy[A] {
 
   @volatile private var cache: Option[A] = None
 
@@ -108,11 +109,14 @@ class LazyValue[A](synchronised: Boolean, stored: Boolean) extends Lazy[A] {
   def isDefined: Boolean =
     get().isDefined
 
+  def isEmpty: Boolean =
+    get().isEmpty
+
   def clear(): Unit =
     this.cache = None
 }
 
-class LazyIO[E: ErrorHandler, A](lazyValue: LazyValue[IO.Success[E, A]]) extends Lazy[IO[E, A]] {
+private[swaydb] class LazyIO[E: ErrorHandler, A](lazyValue: LazyValue[IO.Success[E, A]]) extends Lazy[IO[E, A]] {
 
   def set(value: => IO[E, A]): IO[E, A] =
     try
@@ -150,6 +154,9 @@ class LazyIO[E: ErrorHandler, A](lazyValue: LazyValue[IO.Success[E, A]]) extends
 
   override def isDefined: Boolean =
     lazyValue.isDefined
+
+  override def isEmpty: Boolean =
+    get().isEmpty
 
   override def clear(): Unit =
     lazyValue.clear()

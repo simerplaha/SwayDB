@@ -34,22 +34,28 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
 
   "Lazy.value" when {
     "empty" should {
-      "return undefined and not set value on getOrElse" in {
+      "return undefined & empty and not set value on getOrElse" in {
         def doTest(isSynchronised: Boolean, stored: Boolean) = {
           val lazyValue = Lazy.value[Int](isSynchronised, stored, None)
 
           lazyValue.isDefined shouldBe false
-          lazyValue getOrElse 10 shouldBe 10
+          lazyValue.isEmpty shouldBe true
+          lazyValue.getOrElse(10) shouldBe 10
           lazyValue.isDefined shouldBe false
+          lazyValue.isEmpty shouldBe true
 
           lazyValue.getOrElse(20) shouldBe 20
           lazyValue.isDefined shouldBe false
+          lazyValue.isEmpty shouldBe true
           lazyValue.getOrElse(100) shouldBe 100
           lazyValue.isDefined shouldBe false
+          lazyValue.isEmpty shouldBe true
 
           //map and flatMap should return empty since value is not set
-          lazyValue map (_ => 20101) shouldBe empty
-          lazyValue flatMap (_ => Some(32323)) shouldBe empty
+          lazyValue map (_ => randomInt()) shouldBe empty
+          lazyValue flatMap (_ => Some(randomInt())) shouldBe empty
+          lazyValue.isDefined shouldBe false
+          lazyValue.isEmpty shouldBe true
         }
 
         doTest(isSynchronised = true, stored = true)
@@ -65,17 +71,18 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
           val lazyValue = Lazy.value[Int](isSynchronised, true, None)
 
           lazyValue.getOrSet(20) shouldBe 20
-          lazyValue getOrElse 10 shouldBe 20
+          lazyValue.getOrElse(fail()) shouldBe 20
           lazyValue.isDefined shouldBe true
+          lazyValue.isEmpty shouldBe false
 
           //but overwrites when set is invoked
           lazyValue.set(100)
-          lazyValue.getOrSet(39393) shouldBe 100
-          lazyValue getOrElse 10 shouldBe 100
+          lazyValue.getOrSet(fail()) shouldBe 100
+          lazyValue.getOrElse(fail()) shouldBe 100
 
           //map and flatMap should return value
-          lazyValue map (_ => 20101) should contain(20101)
-          lazyValue flatMap (_ => Some(32323)) should contain(32323)
+          lazyValue.map(previous => previous + 1) should contain(101)
+          lazyValue.flatMap(previous => Some(previous + 2)) should contain(102)
         }
 
         doTest(isSynchronised = true)
@@ -103,8 +110,8 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
         lazyValue.get() should contain(value)
 
         //map and flatMap should return value
-        lazyValue map (_ => 20101) should contain(20101)
-        lazyValue flatMap (_ => Some(32323)) should contain(32323)
+        lazyValue map (value => value + 1) should contain(value + 1)
+        lazyValue flatMap (value => Some(value + 2)) should contain(value + 2)
       }
     }
 
@@ -135,49 +142,13 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
   }
 
   "Lazy.io" when {
-    "empty" should {
-      "return undefined and not set value on getOrElse" in {
-        def doTest(isSynchronised: Boolean, stored: Boolean) = {
-          val initialValue = eitherOne(None, Some(randomIntMax()))
+    "empty" in {
+      def doTest(isSynchronised: Boolean, stored: Boolean) = {
+        val initialValue = eitherOne(None, Some(randomIntMax()))
 
-          val lazyValue = Lazy.io[Throwable, Int](isSynchronised, stored, initialValue)
+        val lazyValue = Lazy.io[Throwable, Int](isSynchronised, stored, initialValue)
 
-          if (stored)
-            initialValue foreach {
-              initialValue =>
-                lazyValue.isDefined shouldBe true
-                lazyValue.get().get.get shouldBe initialValue
-                lazyValue.getOrElse(fail()) shouldBe IO.Success(initialValue)
-                lazyValue.clear()
-            }
-
-          lazyValue.isDefined shouldBe false
-          lazyValue getOrElse 10 shouldBe 10
-          lazyValue.isDefined shouldBe false
-
-          lazyValue getOrElse 20 shouldBe 20
-          lazyValue.isDefined shouldBe false
-          lazyValue getOrElse 100 shouldBe 100
-          lazyValue.isDefined shouldBe false
-
-          lazyValue.clear()
-          lazyValue.isDefined shouldBe false
-        }
-
-        doTest(isSynchronised = true, stored = true)
-        doTest(isSynchronised = true, stored = false)
-        doTest(isSynchronised = false, stored = false)
-        doTest(isSynchronised = false, stored = true)
-      }
-    }
-
-    "value is already set" should {
-      "not update value on getOrSet but update on set" in {
-        def doTest(isSynchronised: Boolean) = {
-          val initialValue = eitherOne(None, Some(randomIntMax()))
-
-          val lazyValue = Lazy.io[Throwable, Int](isSynchronised, true, initialValue)
-
+        if (stored)
           initialValue foreach {
             initialValue =>
               lazyValue.isDefined shouldBe true
@@ -186,27 +157,59 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
               lazyValue.clear()
           }
 
-          lazyValue getOrSet IO(20) shouldBe IO.Success(20)
-          lazyValue getOrElse 10 shouldBe IO.Success(20)
-          lazyValue.isDefined shouldBe true
+        lazyValue.isDefined shouldBe false
+        lazyValue getOrElse 10 shouldBe 10
+        lazyValue.isDefined shouldBe false
 
-          //but overwrites when set is invoked
-          lazyValue set IO.Success(100)
-          lazyValue getOrSet IO.Success(4234242) shouldBe IO.Success(100)
-          lazyValue getOrElse 10 shouldBe IO.Success(100)
+        lazyValue getOrElse 20 shouldBe 20
+        lazyValue.isDefined shouldBe false
+        lazyValue getOrElse 100 shouldBe 100
+        lazyValue.isDefined shouldBe false
 
-          lazyValue.clear()
-          lazyValue.isDefined shouldBe false
+        lazyValue.clear()
+        lazyValue.isDefined shouldBe false
+      }
+
+      doTest(isSynchronised = true, stored = true)
+      doTest(isSynchronised = true, stored = false)
+      doTest(isSynchronised = false, stored = false)
+      doTest(isSynchronised = false, stored = true)
+    }
+
+    "nonEmpty" in {
+      def doTest(isSynchronised: Boolean) = {
+        val initialValue = eitherOne(None, Some(randomIntMax()))
+
+        val lazyValue = Lazy.io[Throwable, Int](isSynchronised, true, initialValue)
+
+        initialValue foreach {
+          initialValue =>
+            lazyValue.isDefined shouldBe true
+            lazyValue.get().get.get shouldBe initialValue
+            lazyValue.getOrElse(fail()) shouldBe IO.Success(initialValue)
+            lazyValue.clear()
         }
 
-        doTest(isSynchronised = true)
-        doTest(isSynchronised = true)
+        lazyValue.getOrSet(IO(20)) shouldBe IO.Success(20)
+        lazyValue.getOrElse(fail()) shouldBe IO.Success(20)
+        lazyValue.isDefined shouldBe true
+
+        //but overwrites when set is invoked
+        lazyValue set IO.Success(100)
+        lazyValue.getOrSet(fail()) shouldBe IO.Success(100)
+        lazyValue.getOrElse(fail()) shouldBe IO.Success(100)
+
+        lazyValue.clear()
+        lazyValue.isDefined shouldBe false
       }
+
+      doTest(isSynchronised = true)
+      doTest(isSynchronised = false)
     }
 
     "synchronised and stored" should {
-      "not allow concurrent modifications of value" in {
-        val value = Random.nextInt()
+      "not allow concurrent modifications" in {
+        val value = randomInt()
 
         val mockValueFunction = mockFunction[Int]
         mockValueFunction expects() returning value //this function is only invoked once.
@@ -231,16 +234,17 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
         lazyValue.get() should contain(IO.Success(value))
 
         //map and flatMap should return value
-        lazyValue map (_ => 20101) shouldBe IO.Success(Some(20101))
-        lazyValue flatMap (_ => IO.Success(32323)) shouldBe IO.Success(Some(32323))
+        lazyValue map (value => value + 1) shouldBe IO.Success(Some(value + 1))
+        lazyValue flatMap (value => IO.Success(value + 2)) shouldBe IO.Success(Some(value + 2))
 
         lazyValue.clear()
         lazyValue.isDefined shouldBe false
+        lazyValue.isEmpty shouldBe true
       }
     }
 
     "synchronised is false" should {
-      "allow concurrent modifications of value" in {
+      "allow concurrent modifications" in {
         val value = Random.nextInt()
 
         val mockValueFunction = mockFunction[Int]
@@ -269,8 +273,8 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
         lazyValue.get() should contain(IO.Success(value))
 
         //map and flatMap should return value
-        lazyValue map (_ => 20101) shouldBe IO.Success(Some(20101))
-        lazyValue flatMap (_ => IO.Success(32323)) shouldBe IO.Success(Some(32323))
+        lazyValue map (_ + 1) shouldBe IO.Success(Some(value + 1))
+        lazyValue flatMap (value => IO.Success(value + 1)) shouldBe IO.Success(Some(value + 1))
 
         lazyValue.clear()
         lazyValue.isDefined shouldBe false

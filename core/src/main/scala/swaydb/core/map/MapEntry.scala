@@ -109,9 +109,9 @@ private[swaydb] object MapEntry {
       case (newEntry, oldEntry) =>
         newEntry ++ {
           oldEntry match {
-            case entry @ MapEntry.Put(newKey, _) =>
+            case entry @ MapEntry.Put(_, _) =>
               entry.copySingle()
-            case entry @ MapEntry.Remove(newKey) =>
+            case entry @ MapEntry.Remove(_) =>
               entry.copySingle()
           }
         }
