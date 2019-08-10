@@ -199,13 +199,13 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.isCached shouldBe false
 
         mock.expects() returning IO(111)
-        cache.map(int => IO(int)).value(12332) shouldBe IO(111)
-        cache.flatMap(Cache.concurrentIO(randomBoolean(), true, None)((int: Int) => IO(int + 1))).value(23434) shouldBe IO(112)
+        cache.map(int => IO(int)).value(fail()) shouldBe IO(111)
+        cache.flatMap(Cache.concurrentIO(randomBoolean(), true, None)((int: Int) => IO(int + 1))).value(fail()) shouldBe IO(112)
 
         cache.clear()
         cache.isCached shouldBe false
         mock.expects() returning IO(222)
-        cache.flatMap(Cache.concurrentIO(randomBoolean(), true, None)((int: Int) => IO(int + 2))).value(43433434) shouldBe IO(224)
+        cache.flatMap(Cache.concurrentIO(randomBoolean(), true, None)((int: Int) => IO(int + 2))).value(fail()) shouldBe IO(224)
 
         //on cached value fail() is not invoked.
         cache.getOrElse(fail()) shouldBe IO(222)
