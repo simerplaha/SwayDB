@@ -35,7 +35,7 @@ class IOSpec extends WordSpec with Matchers {
 
       def io: IO.Success[swaydb.Error.Segment, Unit] = throw exception
 
-      IO.Catch(io).failed.get shouldBe swaydb.Error.Unknown(exception)
+      IO.Catch(io).failed.get shouldBe swaydb.Error.Fatal(exception)
     }
 
     "no exception" in {

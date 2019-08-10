@@ -191,7 +191,7 @@ private[reader] object BlockReader extends LazyLogging {
             byte
         }
     else
-      IO.Failure(swaydb.Error.Unknown(s"Has no more bytes. Position: ${state.position}"))
+      IO.Failure(swaydb.Error.Fatal(s"Has no more bytes. Position: ${state.position}"))
 
   def read(size: Int, state: State): IO[swaydb.Error.Segment, Slice[Byte]] = {
     val fromCache = readFromCache(size, state)

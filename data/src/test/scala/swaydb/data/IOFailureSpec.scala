@@ -28,7 +28,7 @@ import swaydb.data.Base._
 
 class IOFailureSpec extends WordSpec with Matchers {
 
-  val error = swaydb.Error.Unknown(this.getClass.getSimpleName + " test exception.")
+  val error = swaydb.Error.Fatal(this.getClass.getSimpleName + " test exception.")
   val otherError = swaydb.Error.FileNotFound(new FileNotFoundException())
 
   "set booleans" in {
@@ -49,7 +49,7 @@ class IOFailureSpec extends WordSpec with Matchers {
 
   "getOrElse" in {
     IO.Failure(error) getOrElse 2 shouldBe 2
-    IO.Failure(swaydb.Error.Unknown("")) getOrElse 3 shouldBe 3
+    IO.Failure(swaydb.Error.Fatal("")) getOrElse 3 shouldBe 3
   }
 
   "orElse" in {

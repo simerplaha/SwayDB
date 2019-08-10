@@ -163,16 +163,16 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.isCached shouldBe false
 
         //failure
-        cache.value().failed.get shouldBe swaydb.Error.Unknown(kaboom)
+        cache.value().failed.get shouldBe swaydb.Error.Fatal(kaboom)
         cache.isCached shouldBe false
 
         val mapCache = cache.map(int => IO(int))
-        mapCache.value().failed.get shouldBe swaydb.Error.Unknown(kaboom)
-        mapCache.value().failed.get shouldBe swaydb.Error.Unknown(kaboom)
+        mapCache.value().failed.get shouldBe swaydb.Error.Fatal(kaboom)
+        mapCache.value().failed.get shouldBe swaydb.Error.Fatal(kaboom)
 
         val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean(), None)((int: Int) => IO(int + 1)))
-        flatMapCache.value().failed.get shouldBe swaydb.Error.Unknown(kaboom)
-        flatMapCache.value().failed.get shouldBe swaydb.Error.Unknown(kaboom)
+        flatMapCache.value().failed.get shouldBe swaydb.Error.Fatal(kaboom)
+        flatMapCache.value().failed.get shouldBe swaydb.Error.Fatal(kaboom)
 
         //success
         mock.expects() returning IO(123)
@@ -225,14 +225,14 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         val exception = IO.failed("Kaboom!").exception
 
         mock.expects() returning IO.failed(exception) repeat 2.times
-        cache.map(IO(_)).value().failed.get shouldBe swaydb.Error.Unknown(exception)
+        cache.map(IO(_)).value().failed.get shouldBe swaydb.Error.Fatal(exception)
         cache.isCached shouldBe false
         cache.flatMap {
           Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](true, swaydb.Error.ReservedResource(Reserve(name = "test")), None) {
             int =>
               IO.Success(int + 1)
           }
-        }.value().failed.get shouldBe swaydb.Error.Unknown(exception)
+        }.value().failed.get shouldBe swaydb.Error.Fatal(exception)
         cache.isCached shouldBe false
 
         mock.expects() returning IO(222)

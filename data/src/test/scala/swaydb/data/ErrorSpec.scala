@@ -111,6 +111,6 @@ class ErrorSpec extends FlatSpec with Matchers {
     Error(invalidKeyValueId) shouldBe Error.InvalidKeyValueId(invalidKeyValueId)
 
     val exception = new Throwable("Some unknown exception")
-    Error(exception) shouldBe Error.Unknown(exception)
+    Error(exception) shouldBe Error.Fatal(exception)
   }
 }

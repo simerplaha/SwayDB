@@ -95,7 +95,7 @@ private[file] class MMAPFile(val path: Path,
    */
   def recoverFromNullPointer[T](f: => T): IO[swaydb.Error.IO, T] =
     IO[swaydb.Error.IO, T](f) recoverWith {
-      case swaydb.Error.Unknown(ex: NullPointerException) =>
+      case swaydb.Error.Fatal(ex: NullPointerException) =>
         IO.Failure(swaydb.Error.NullMappedByteBuffer(swaydb.Exception.NullMappedByteBuffer(ex, Reserve(name = s"${this.getClass.getSimpleName}: $path"))))
 
       case other =>
@@ -155,7 +155,7 @@ private[file] class MMAPFile(val path: Path,
 
       //Although this code extends the buffer, currently there is no implementation that requires this feature.
       //All the bytes requires for each write operation are pre-calculated EXACTLY and an overflow should NEVER occur.
-      case IO.Failure(swaydb.Error.Unknown(ex: BufferOverflowException)) =>
+      case IO.Failure(swaydb.Error.Fatal(ex: BufferOverflowException)) =>
         val requiredByteSize = slice.size.toLong
         logger.debug("{}: BufferOverflowException. Required bytes: {}. Remaining bytes: {}. Extending buffer with {} bytes.",
           path, requiredByteSize, buffer.remaining(), requiredByteSize, ex)

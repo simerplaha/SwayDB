@@ -29,7 +29,7 @@ private[core] object ExceptionUtil extends LazyLogging {
 
   def logFailure(message: => String, error: swaydb.Error): Unit =
     error match {
-      case swaydb.Error.Unknown(exception) =>
+      case swaydb.Error.Fatal(exception) =>
         logger.error(message, exception)
 
       case _: swaydb.Error =>

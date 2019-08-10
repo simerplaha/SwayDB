@@ -28,7 +28,7 @@ import scala.util.Try
 
 class IOSuccessSpec extends WordSpec with Matchers {
 
-  val error = swaydb.Error.Unknown(this.getClass.getSimpleName + " test exception.")
+  val error = swaydb.Error.Fatal(this.getClass.getSimpleName + " test exception.")
 
   "set booleans" in {
     val io = IO.Success(1)
@@ -48,7 +48,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
 
   "getOrElse" in {
     IO.Success(1) getOrElse 2 shouldBe 1
-    IO.Failure(swaydb.Error.Unknown("")) getOrElse 3 shouldBe 3
+    IO.Failure(swaydb.Error.Fatal("")) getOrElse 3 shouldBe 3
   }
 
   "orElse" in {
@@ -122,7 +122,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
   }
 
   "flatten on successes with failure" in {
-    val nested = IO.Success(IO.Success(IO.Success(IO.Failure(swaydb.Error.Unknown(new Exception("Kaboom!"))))))
+    val nested = IO.Success(IO.Success(IO.Success(IO.Failure(swaydb.Error.Fatal(new Exception("Kaboom!"))))))
 
     nested.flatten.flatten.flatten.failed.get.exception.getMessage shouldBe "Kaboom!"
   }

@@ -76,7 +76,7 @@ private[core] object ValuesBlock {
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   def valuesBlockNotInitialised: IO.Failure[swaydb.Error.Segment, Nothing] =
-    IO.Failure(swaydb.Error.Unknown("Value block not initialised."))
+    IO.Failure(swaydb.Error.Fatal("Value block not initialised."))
 
   case class State(var _bytes: Slice[Byte],
                    headerSize: Int,

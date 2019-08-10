@@ -268,7 +268,7 @@ object SegmentFooterBlock {
       SegmentFooterBlock.Offset(start, size)
 
     override def readBlock(header: Block.Header[Offset]): IO[swaydb.Error.Segment, SegmentFooterBlock] =
-      IO.Failure(swaydb.Error.Unknown("Footers do not have block header readers."))
+      IO.Failure(swaydb.Error.Fatal("Footers do not have block header readers."))
   }
 }
 

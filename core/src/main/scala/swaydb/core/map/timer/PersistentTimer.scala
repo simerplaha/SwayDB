@@ -84,7 +84,7 @@ private[core] object PersistentTimer extends LazyLogging {
                     )
                   }
                 else
-                  IO.Failure(swaydb.Error.Unknown(new Exception("Failed to initialise PersistentTimer.")))
+                  IO.Failure(swaydb.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
             }
 
           case None =>
@@ -99,7 +99,7 @@ private[core] object PersistentTimer extends LazyLogging {
                     )
                   }
                 else
-                  IO.Failure(swaydb.Error.Unknown(new Exception("Failed to initialise PersistentTimer.")))
+                  IO.Failure(swaydb.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
             }
         }
     }

@@ -231,7 +231,7 @@ object SwayDB extends LazyLogging {
                                                                 ec: ExecutionContext = defaultExecutionContext): IO[swaydb.Error.Level, RepairResult[K]] =
   //convert to typed result.
     AppendixRepairer(levelPath, repairStrategy) match {
-      case IO.Failure(swaydb.Error.Unknown(OverlappingSegmentsException(segmentInfo, overlappingSegmentInfo))) =>
+      case IO.Failure(swaydb.Error.Fatal(OverlappingSegmentsException(segmentInfo, overlappingSegmentInfo))) =>
         IO.Success[swaydb.Error.Segment, RepairResult[K]](
           OverlappingSegments[K](
             segmentInfo =

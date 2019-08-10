@@ -36,7 +36,7 @@ import scala.util.Random
 
 class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFactory with Futures {
 
-  val unknownError = swaydb.Error.Unknown(this.getClass.getSimpleName + " test exception.")
+  val unknownError = swaydb.Error.Fatal(this.getClass.getSimpleName + " test exception.")
   val recoverableError = swaydb.Error.FileNotFound(new FileNotFoundException())
 
   "apply" in {
@@ -389,7 +389,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
       ioDeferred.isComplete shouldBe false
       ioDeferred.isReady shouldBe true
 
-      ioDeferred.runBlockingIO shouldBe IO.Failure(swaydb.Error.Unknown(failure.exception))
+      ioDeferred.runBlockingIO shouldBe IO.Failure(swaydb.Error.Fatal(failure.exception))
     }
 
     "failed non-recoverable deferred and successful IO" in {
@@ -408,7 +408,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
       ioDeferred.isComplete shouldBe false
       ioDeferred.isReady shouldBe true
 
-      ioDeferred.runBlockingIO shouldBe IO.Failure(swaydb.Error.Unknown(failure.exception))
+      ioDeferred.runBlockingIO shouldBe IO.Failure(swaydb.Error.Fatal(failure.exception))
     }
 
     "failed recoverable deferred and successful IO" in {

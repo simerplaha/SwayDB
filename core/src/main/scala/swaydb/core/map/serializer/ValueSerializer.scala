@@ -374,7 +374,7 @@ object ValueSerializer {
       reader.get() flatMap {
         format =>
           if (format != formatId)
-            IO.Failure(swaydb.Error.Unknown(new Exception(s"Invalid formatID: $format")))
+            IO.Failure(swaydb.Error.Fatal(new Exception(s"Invalid formatID: $format")))
           else
             reader.foldLeftIO(mutable.Map.empty[Int, Iterable[(Slice[Byte], Slice[Byte])]]) {
               case (map, reader) =>

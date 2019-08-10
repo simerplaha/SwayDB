@@ -142,9 +142,7 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
   def value(i: => I): IO[E, O]
   def isCached: Boolean
   def clear(): Unit
-
   def get(): Option[IO.Success[E, O]]
-
   def getOrElse[F >: E : ErrorHandler, B >: O](f: => IO[F, B]): IO[F, B]
 
   def getSomeOrElse[F >: E : ErrorHandler, B >: O](f: => IO[F, Option[B]]): IO[F, Option[B]] =

@@ -44,7 +44,7 @@ object Error {
           error.asInstanceOf[F]
 
         case otherError: Error =>
-          Error.Unknown(otherError.exception).asInstanceOf[F]
+          Error.Fatal(otherError.exception).asInstanceOf[F]
       }
 
     override def reserve(e: E): Option[Reserve[Unit]] =
@@ -138,7 +138,7 @@ object Error {
         Error.DataAccess(DataAccess.message, exception)
 
       //Unknown error.
-      case exception: Throwable => Error.Unknown(exception)
+      case exception: Throwable => Error.Fatal(exception)
     }
 
   trait Recoverable extends Error.Segment {
@@ -261,14 +261,14 @@ object Error {
     * Pre-cautions are implemented in place to even recover from these failures using tools like AppendixRepairer.
     * This Error is not expected to occur on healthy databases.
     */
-  object Unknown {
-    def apply(message: String): Unknown =
-      new Unknown(new scala.Exception(message))
+  object Fatal {
+    def apply(message: String): Fatal =
+      new Fatal(new scala.Exception(message))
 
-    implicit object ErrorHandler extends BaseErrorHandler[Error.Unknown]
+    implicit object ErrorHandler extends BaseErrorHandler[Error.Fatal]
   }
 
-  case class Unknown(exception: Throwable)
+  case class Fatal(exception: Throwable)
     extends Error.API
       with Error.Boot
       with Error.IO
