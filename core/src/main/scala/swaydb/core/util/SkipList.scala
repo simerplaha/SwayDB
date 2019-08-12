@@ -33,6 +33,8 @@ import scala.collection.mutable
 import scala.reflect.ClassTag
 
 private[core] sealed trait SkipList[K, V] {
+  def put(keyValues: Iterable[(K, V)]): Unit
+  def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit
   def put(key: K, value: V): Unit
   def putIfAbsent(key: K, value: V): Boolean
   def get(key: K): Option[V]
@@ -72,6 +74,17 @@ private[core] sealed trait SkipList[K, V] {
 }
 
 private[core] object SkipList {
+  object Batch {
+    case class Remove[K](key: K) extends Batch[K, Nothing] {
+      override def apply[VV >: Nothing](skipList: SkipList[K, VV]): Unit =
+        skipList.remove(key)
+    }
+    case class Put[K, V](key: K, value: V) extends Batch[K, V] {
+      override def apply[VV >: V](skipList: SkipList[K, VV]): Unit =
+        skipList.put(key, value)
+    }
+  }
+
   object KeyValue {
     def apply[K, V](key: K, value: V): KeyValue[K, V] =
       new KeyValue(key, value)
@@ -79,6 +92,10 @@ private[core] object SkipList {
   class KeyValue[K, V](val key: K, val value: V) {
     def tuple: (K, V) =
       (key, value)
+  }
+
+  sealed trait Batch[K, +V] {
+    def apply[VV >: V](skipList: SkipList[K, VV]): Unit
   }
 
   @inline def toOptionValue[K, V](entry: java.util.Map.Entry[K, V]): Option[V] =
@@ -120,13 +137,25 @@ private[core] class ConcurrentSkipList[K, V](skipList: ConcurrentSkipListMap[K, 
 
   import SkipList._
 
-  val isConcurrent: Boolean = true
+  def isConcurrent: Boolean = true
 
   override def get(key: K): Option[V] =
     Option(skipList.get(key))
 
   override def remove(key: K): Unit =
     skipList.remove(key)
+
+  def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit =
+    batches foreach {
+      batch =>
+        batch.apply(this)
+    }
+
+  override def put(keyValues: Iterable[(K, V)]): Unit =
+    keyValues foreach {
+      case (key, value) =>
+        put(key, value)
+    }
 
   override def put(key: K, value: V): Unit =
     skipList.put(key, value)
@@ -254,14 +283,28 @@ private[core] class MinMaxSkipList[K, V: ClassTag](@volatile private var minMax:
 
   implicit val minMaxOrder = order.on[SkipList.KeyValue[K, V]](_.key)
 
-  val isConcurrent: Boolean = false
+  def isConcurrent: Boolean = false
 
-  override def put(key: K, value: V): Unit = {
-    val nextMinMax: MinMax[SkipList.KeyValue[K, V]] =
+  def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit =
+    batches foreach {
+      batch =>
+        batch.apply(this)
+    }
+
+  override def put(keyValues: Iterable[(K, V)]): Unit =
+    keyValues foreach {
+      case (key, value) =>
+        put(key, value)
+    }
+
+  override def put(key: K, value: V): Unit =
+    this.minMax =
       if (contains(key))
-        MinMax.minMax(
-          current = minMax,
-          next = SkipList.KeyValue(key, value)
+        Some(
+          MinMax.minMax(
+            current = minMax,
+            next = SkipList.KeyValue(key, value)
+          )
         )
       else
         minMax flatMap {
@@ -300,15 +343,14 @@ private[core] class MinMaxSkipList[K, V: ClassTag](@volatile private var minMax:
                 else
                   None
             }
-        } getOrElse {
-          MinMax.minMax(
-            current = minMax,
-            next = SkipList.KeyValue(key, value)
+        } orElse {
+          Some(
+            MinMax.minMax(
+              current = minMax,
+              next = SkipList.KeyValue(key, value)
+            )
           )
         }
-
-    this.minMax = Some(nextMinMax)
-  }
 
   override def putIfAbsent(key: K, value: V): Boolean =
     if (contains(key)) {
@@ -316,6 +358,27 @@ private[core] class MinMaxSkipList[K, V: ClassTag](@volatile private var minMax:
     } else {
       put(key, value)
       true
+    }
+
+  override def head(): Option[V] =
+    minMax.map(_.min.value)
+
+  override def headKey: Option[K] =
+    minMax.map(_.min.key)
+
+  override def headKeyValue: Option[(K, V)] =
+    minMax.map(_.min.tuple)
+
+  override def last(): Option[V] =
+    minMax map {
+      minMax =>
+        (minMax.max getOrElse minMax.min).value
+    }
+
+  override def lastKey: Option[K] =
+    minMax map {
+      minMax =>
+        (minMax.max getOrElse minMax.min).key
     }
 
   override def get(key: K): Option[V] =
@@ -365,6 +428,17 @@ private[core] class MinMaxSkipList[K, V: ClassTag](@volatile private var minMax:
           None
     }
 
+  override def higherKey(key: K): Option[K] =
+    minMax flatMap {
+      keyValue =>
+        if (keyValue.min.key > key)
+          Some(keyValue.min.key)
+        else if (keyValue.max.exists(_.key > key))
+          keyValue.max.map(_.key)
+        else
+          None
+    }
+
   override def higherKeyValue(key: K): Option[(K, V)] =
     minMax flatMap {
       keyValue =>
@@ -387,63 +461,12 @@ private[core] class MinMaxSkipList[K, V: ClassTag](@volatile private var minMax:
           None
     }
 
-  override def isEmpty: Boolean =
-    minMax.isEmpty
-
-  override def nonEmpty: Boolean =
-    !isEmpty
-
-  override def clear(): Unit =
-    minMax = None
-
-  override def size: Int =
-    if (isEmpty) 0 else 1
-
-  override def contains(key: K): Boolean =
-    minMax exists {
-      minMax =>
-        minMax.min.key.equiv(key) ||
-          minMax.max.exists(_.key equiv key)
-    }
-
-  override def head(): Option[V] =
-    minMax.map(_.min.value)
-
-  override def headKey: Option[K] =
-    minMax.map(_.min.key)
-
-  override def headKeyValue: Option[(K, V)] =
-    minMax.map(_.min.tuple)
-
-  override def last(): Option[V] =
-    minMax map {
-      minMax =>
-        (minMax.max getOrElse minMax.min).value
-    }
-
-  override def lastKey: Option[K] =
-    minMax map {
-      minMax =>
-        (minMax.max getOrElse minMax.min).key
-    }
-
   override def ceilingKey(key: K): Option[K] =
     minMax flatMap {
       keyValue =>
         if (keyValue.min.key >= key)
           Some(keyValue.min.key)
         else if (keyValue.max.exists(_.key >= key))
-          keyValue.max.map(_.key)
-        else
-          None
-    }
-
-  override def higherKey(key: K): Option[K] =
-    minMax flatMap {
-      keyValue =>
-        if (keyValue.min.key > key)
-          Some(keyValue.min.key)
-        else if (keyValue.max.exists(_.key > key))
           keyValue.max.map(_.key)
         else
           None
@@ -469,6 +492,31 @@ private[core] class MinMaxSkipList[K, V: ClassTag](@volatile private var minMax:
           Some(keyValue.min.key)
         else
           None
+    }
+
+  override def isEmpty: Boolean =
+    minMax.isEmpty
+
+  override def nonEmpty: Boolean =
+    !isEmpty
+
+  override def clear(): Unit =
+    minMax = None
+
+  override def size: Int =
+    minMax map {
+      minMax =>
+        if (minMax.max.isDefined)
+          2
+        else
+          1
+    } getOrElse 0
+
+  override def contains(key: K): Boolean =
+    minMax exists {
+      minMax =>
+        minMax.min.key.equiv(key) ||
+          minMax.max.exists(_.key equiv key)
     }
 
   override def count(): Int =

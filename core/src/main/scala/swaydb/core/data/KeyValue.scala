@@ -635,16 +635,32 @@ private[core] object Transient {
     def toMemoryResponse: Memory.SegmentResponse =
       transient match {
         case put: Transient.Put =>
-          Memory.Put(put.key, put.value, put.deadline, put.time)
+          Memory.Put(
+            key = put.key,
+            value = put.value,
+            deadline = put.deadline,
+            time = put.time
+          )
 
         case remove: Transient.Remove =>
-          Memory.Remove(remove.key, remove.deadline, remove.time)
+          Memory.Remove(
+            key = remove.key,
+            deadline = remove.deadline,
+            time = remove.time
+          )
 
         case function: Transient.Function =>
-          Memory.Function(function.key, function.function, function.time)
+          Memory.Function(
+            key = function.key,
+            function = function.function,
+            time = function.time
+          )
 
         case apply: Transient.PendingApply =>
-          Memory.PendingApply(apply.key, apply.applies)
+          Memory.PendingApply(
+            key = apply.key,
+            applies = apply.applies
+          )
 
         case update: Transient.Update =>
           Memory.Update(

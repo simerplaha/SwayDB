@@ -230,13 +230,16 @@ private[core] object MinMax {
     import order._
     val minCompare = order.compare(next, current.min)
     if (minCompare == 0)
-      current
+      MinMax(
+        min = next,
+        max = current.max
+      )
     else if (minCompare < 0)
       MinMax(
         min = next,
         max = current.max orElse Some(current.min)
       )
-    else if (current.max.forall(_ < next))
+    else if (current.max.forall(_ <= next))
       current.copy(max = Some(next))
     else
       current

@@ -41,7 +41,7 @@ import scala.collection.mutable.ListBuffer
  */
 private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
 
-  def applyTo[T >: V](map: ConcurrentSkipList[K, T]): Unit
+  def applyTo[T >: V](skipList: ConcurrentSkipList[K, T]): Unit
 
   val hasRange: Boolean
   val hasUpdate: Boolean
@@ -134,8 +134,8 @@ private[swaydb] object MapEntry {
         override val entryBytesSize =
           left.entryBytesSize + right.entryBytesSize
 
-        override def applyTo[T >: V](map: ConcurrentSkipList[K, T]): Unit =
-          _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] foreach (_.applyTo(map))
+        override def applyTo[T >: V](skipList: ConcurrentSkipList[K, T]): Unit =
+          _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] foreach (_.applyTo(skipList))
 
         override val hasRange: Boolean =
           left.hasRange || right.hasRange
@@ -171,8 +171,8 @@ private[swaydb] object MapEntry {
     override def writeTo(slice: Slice[Byte]): Unit =
       serializer.write(this, slice)
 
-    override def applyTo[T >: V](map: ConcurrentSkipList[K, T]): Unit =
-      map.put(key, value)
+    override def applyTo[T >: V](skipList: ConcurrentSkipList[K, T]): Unit =
+      skipList.put(key, value)
 
     val entriesCount: Int =
       1
@@ -195,8 +195,8 @@ private[swaydb] object MapEntry {
     override def writeTo(slice: Slice[Byte]): Unit =
       serializer.write(this, slice)
 
-    override def applyTo[T >: Nothing](map: ConcurrentSkipList[K, T]): Unit =
-      map.remove(key)
+    override def applyTo[T >: Nothing](skipList: ConcurrentSkipList[K, T]): Unit =
+      skipList.remove(key)
 
     val entriesCount: Int =
       1

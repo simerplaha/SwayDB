@@ -39,8 +39,6 @@ private[core] sealed trait MergeList[H <: T, T] extends Iterable[T] {
   def dropPrepend(head: H): MergeList[H, T]
 
   def depth: Int
-
-  override def size: Int
 }
 
 private[core] object MergeList {
