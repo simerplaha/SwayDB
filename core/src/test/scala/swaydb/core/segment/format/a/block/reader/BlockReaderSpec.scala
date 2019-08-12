@@ -59,13 +59,15 @@ class BlockReaderSpec extends TestBase with MockFactory {
   }
 
   "isSequentialRead" when {
-    //0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19
-    val blockSize = 5
-    val bytes: Slice[Byte] = (0 to 19).map(_.toByte).toSlice
-    val reader = createRandomFileReader(bytes)
-    val state = BlockReader(ValuesBlock.Offset(0, bytes.size), blockSize, reader)
 
     "previousReadEndPosition is 0" in {
+      //0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19
+      val blockSize = 5
+      val bytes: Slice[Byte] = (0 to 19).map(_.toByte).toSlice
+      val reader = createRandomFileReader(bytes)
+      val state = BlockReader(ValuesBlock.Offset(0, bytes.size), blockSize, reader)
+
+
       //moving position but not reading any data will always assume the read is sequential.
       bytes foreach {
         byte =>
@@ -81,6 +83,12 @@ class BlockReaderSpec extends TestBase with MockFactory {
     }
 
     "read bytes smaller than blockSIze" in {
+      //0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19
+      val blockSize = 5
+      val bytes: Slice[Byte] = (0 to 19).map(_.toByte).toSlice
+      val reader = createRandomFileReader(bytes)
+      val state = BlockReader(ValuesBlock.Offset(0, bytes.size), blockSize, reader)
+
       //empty cache
       //0, 1
       state moveTo 0

@@ -81,8 +81,8 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
   }
 
   "init" in {
-    runThis(10.times, log = true) {
-      val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(1000))
+    runThis(100.times, log = true) {
+      val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(randomIntMax(1000) max 1))
       val sortedIndex = SortedIndexBlock.init(keyValues)
       val uncompressedBlockInfo = UncompressedBlockInfo(keyValues.last.stats.segmentSortedIndexSize)
       val compressions = keyValues.last.sortedIndexConfig.compressions(uncompressedBlockInfo)
@@ -96,8 +96,8 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
   }
 
   "write, close, readAll & search" in {
-    runThis(10.times) {
-      val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(1000, startId = Some(1), addGroups = false, addRanges = false))
+    runThis(20.times, log = true) {
+      val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(randomIntMax(1000) max 1, startId = Some(1), addGroups = false, addRanges = false))
 
       val state = SortedIndexBlock.init(keyValues)
       keyValues foreach {

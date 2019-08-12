@@ -167,15 +167,12 @@ class BinarySearchIndexBlockSpec extends TestBase {
   "fully indexed search" should {
     val startId = 100
 
-    def genKeyValuesAndBlocks(keyValuesCount: Int = 10): (Slice[Transient], Blocks) = {
+    def genKeyValuesAndBlocks(keyValuesCount: Int = 4): (Slice[Transient], Blocks) = {
 
       val keyValues =
         randomizedKeyValues(
           count = keyValuesCount,
-          startId = Some(startId),
-          addRanges = false,
-          addGroups = false,
-          addPut = true
+          startId = Some(startId)
         ).updateStats(
           binarySearchIndexConfig =
             BinarySearchIndexBlock.Config.random.copy(

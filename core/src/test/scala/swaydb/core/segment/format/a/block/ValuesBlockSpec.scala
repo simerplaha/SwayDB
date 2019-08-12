@@ -34,7 +34,7 @@ class ValuesBlockSpec extends TestBase {
 
   "init" should {
     "not initialise if values do not exists" in {
-      runThis(10.times) {
+      runThis(100.times) {
         val keyValues = Slice(Transient.put(key = 1, value = Slice.emptyBytes, removeAfter = None), Transient.remove(key = 1)).updateStats
         keyValues.last.stats.segmentValuesSize shouldBe 0
         keyValues.last.stats.segmentValuesSizeWithoutHeader shouldBe 0
@@ -44,7 +44,7 @@ class ValuesBlockSpec extends TestBase {
     }
 
     "initialise values exists" in {
-      runThis(10.times) {
+      runThis(100.times) {
         val keyValues = Slice(Transient.put(key = 1, value = Slice.writeInt(1), removeAfter = None), randomFixedTransientKeyValue(2, Some(3))).updateStats
         ValuesBlock.init(keyValues) shouldBe defined
       }

@@ -61,28 +61,28 @@ private[core] object MinMax {
     }
 
   /**
-    * Picks the smallest of the two. Favours left if equal.
-    */
-  def min[T](left: Option[T],
-             right: Option[T])(implicit ordering: Ordering[T]): Option[T] =
+   * Picks the smallest of the two. Favours left if equal.
+   */
+  def minFavourLeft[T](left: Option[T],
+                       right: Option[T])(implicit ordering: Ordering[T]): Option[T] =
     pickOne[T](left, right, minimum)
 
   /**
-    * Picks the largest of the two. Favours left if equal.
-    */
-  def max[T](left: Option[T],
-             right: Option[T])(implicit ordering: Ordering[T]): Option[T] =
+   * Picks the largest of the two. Favours left if equal.
+   */
+  def maxFavourLeft[T](left: Option[T],
+                       right: Option[T])(implicit ordering: Ordering[T]): Option[T] =
     pickOne[T](left, right, maximum)
 
-  def max[T](left: T,
-             right: Option[T])(implicit ordering: Ordering[T]): T =
+  def maxFavourLeft[T](left: T,
+                       right: Option[T])(implicit ordering: Ordering[T]): T =
     right map {
       right =>
         maximum[T](left, right)
     } getOrElse left
 
-  def max[T](left: Option[T],
-             right: T)(implicit ordering: Ordering[T]): T =
+  def maxFavourLeft[T](left: Option[T],
+                       right: T)(implicit ordering: Ordering[T]): T =
     left map {
       left =>
         maximum[T](left, right)

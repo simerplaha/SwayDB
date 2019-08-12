@@ -41,12 +41,6 @@ private[core] object ValuesBlock {
   val emptyUnblockedIO: IO[swaydb.Error.Segment, UnblockedReader[Offset, ValuesBlock]] =
     IO(emptyUnblocked)
 
-  def unblocked(bytes: Slice[Byte])(implicit blockOps: BlockOps[ValuesBlock.Offset, ValuesBlock]): UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
-    UnblockedReader(
-      bytes = bytes,
-      block = ValuesBlock(ValuesBlock.Offset(0, bytes.size), 0, None)
-    )
-
   object Config {
 
     val disabled =
@@ -191,12 +185,7 @@ private[core] object ValuesBlock {
 
   implicit object ValuesBlockOps extends BlockOps[ValuesBlock.Offset, ValuesBlock] {
     override def updateBlockOffset(block: ValuesBlock, start: Int, size: Int): ValuesBlock =
-      try
-        block.copy(offset = createOffset(start = start, size = size))
-      catch {
-        case exception: Exception =>
-          throw exception
-      }
+      block.copy(offset = createOffset(start = start, size = size))
 
     override def createOffset(start: Int, size: Int): Offset =
       ValuesBlock.Offset(start = start, size = size)

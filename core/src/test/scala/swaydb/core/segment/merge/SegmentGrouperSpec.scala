@@ -99,7 +99,7 @@ class SegmentGrouperSpec extends TestBase {
     }
 
     "add KeyValue all key-values until Group count is reached" in {
-      runThis(5.times) {
+      runThis(20.times) {
         val forInMemory = randomBoolean()
 
         val keyValueCount = 10000
@@ -160,7 +160,7 @@ class SegmentGrouperSpec extends TestBase {
     }
 
     "group key-values equally" in {
-      runThis(5.times) {
+      runThis(20.times) {
         val forInMemory = randomBoolean()
 
         val keyValueCount = 10000
@@ -221,7 +221,7 @@ class SegmentGrouperSpec extends TestBase {
     }
 
     "group key-values when size is specified" in {
-      runThis(5.times) {
+      runThis(20.times) {
         val forInMemory = randomBoolean()
 
         val keyValueCount = 10000
@@ -297,7 +297,7 @@ class SegmentGrouperSpec extends TestBase {
     }
 
     "group by groups" in {
-      runThis(5.times) {
+      runThis(20.times) {
         val forInMemory = randomBoolean()
 
         val keyValueCount = 1000

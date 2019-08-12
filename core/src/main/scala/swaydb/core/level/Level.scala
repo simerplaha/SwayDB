@@ -1239,7 +1239,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def headKey: IO.Deferred[swaydb.Error.Level, Option[Slice[Byte]]] =
     nextLevel.map(_.headKey) getOrElse IO.Deferred.none map {
       nextLevelFirstKey =>
-        MinMax.min(appendixWithReadLocked(_.skipList.headKey), nextLevelFirstKey)(keyOrder)
+        MinMax.minFavourLeft(appendixWithReadLocked(_.skipList.headKey), nextLevelFirstKey)(keyOrder)
     }
 
   /**
@@ -1249,7 +1249,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def lastKey: IO.Deferred[swaydb.Error.Level, Option[Slice[Byte]]] =
     nextLevel.map(_.lastKey) getOrElse IO.Deferred.none map {
       nextLevelLastKey =>
-        MinMax.max(appendixWithReadLocked(_.skipList.last()).map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
+        MinMax.maxFavourLeft(appendixWithReadLocked(_.skipList.last()).map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
     }
 
   override def head: IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =

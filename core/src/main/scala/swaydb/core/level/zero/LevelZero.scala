@@ -407,7 +407,7 @@ private[core] case class LevelZero(path: Path,
     get(key).map(_.map(_.key))
 
   def firstKeyFromMaps =
-    maps.reduce[Slice[Byte]](_.skipList.headKey, MinMax.min(_, _)(keyOrder))
+    maps.reduce[Slice[Byte]](_.skipList.headKey, MinMax.minFavourLeft(_, _)(keyOrder))
 
   def lastKeyFromMaps =
     maps.reduce[Slice[Byte]](
@@ -419,7 +419,7 @@ private[core] case class LevelZero(path: Path,
             case range: KeyValue.ReadOnly.Range =>
               range.toKey
           },
-      reduce = MinMax.max(_, _)(keyOrder)
+      reduce = MinMax.maxFavourLeft(_, _)(keyOrder)
     )
 
   def lastKey: IO.Deferred[swaydb.Error.Level, Option[Slice[Byte]]] =
@@ -433,7 +433,7 @@ private[core] case class LevelZero(path: Path,
       nextLevel =>
         nextLevel.headKey flatMap {
           nextLevelFirstKey =>
-            MinMax.min(firstKeyFromMaps, nextLevelFirstKey)(keyOrder).map(ceiling) getOrElse IO.Deferred.none
+            MinMax.minFavourLeft(firstKeyFromMaps, nextLevelFirstKey)(keyOrder).map(ceiling) getOrElse IO.Deferred.none
         }
     } getOrElse {
       firstKeyFromMaps.map(ceiling) getOrElse IO.Deferred.none
@@ -444,7 +444,7 @@ private[core] case class LevelZero(path: Path,
       nextLevel =>
         nextLevel.lastKey flatMap {
           nextLevelLastKey =>
-            MinMax.max(lastKeyFromMaps, nextLevelLastKey)(keyOrder).map(floor) getOrElse IO.Deferred.none
+            MinMax.maxFavourLeft(lastKeyFromMaps, nextLevelLastKey)(keyOrder).map(floor) getOrElse IO.Deferred.none
         }
     } getOrElse {
       lastKeyFromMaps.map(floor) getOrElse IO.Deferred.none

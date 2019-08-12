@@ -300,7 +300,7 @@ private[core] object BinarySearchIndexBlock {
           }
       } getOrElse {
         //if no data return None response with lower set.
-        val lowestMax = MinMax.max(knownLowest, startKeyValue)
+        val lowestMax = MinMax.maxFavourLeft(knownLowest, startKeyValue)
         IO.Success(SearchResult.None(lowestMax))
       }
     }
@@ -355,7 +355,7 @@ private[core] object BinarySearchIndexBlock {
                 //seek can also return a lower lower if its not a fullIndex so do a check again.
                 val newKnownLowest =
                   if (!reader.block.isFullIndex || startKeyValue.exists(_.accessPosition == 0))
-                    MinMax.max(knownLowest, behind.previous)
+                    MinMax.maxFavourLeft(knownLowest, behind.previous)
                   else
                     behind.previous
 
