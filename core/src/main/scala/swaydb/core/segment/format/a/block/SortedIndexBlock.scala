@@ -272,12 +272,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
                 if (offset.size == 0)
                   ValuesBlock.emptyUnblockedIO
                 else
-                  IO(UnblockedReader.moveTo(offset, valuesReader.copy()))
+                  IO(UnblockedReader.moveTo(offset, valuesReader))
             }
         }
-
-      if (sortedIndexReader.copy().readIntUnsigned().get == 0)
-        ""
 
       EntryReader.read(
         //take only the bytes required for this in entry and submit it for parsing/reading.

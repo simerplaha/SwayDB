@@ -20,16 +20,18 @@
 package swaydb.core.segment.format.a.block
 
 import org.scalatest.PrivateMethodTester
+import swaydb.IO
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.core.TestData._
 import swaydb.core.data.{KeyValue, Persistent, Transient}
-import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader}
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.util.{Benchmark, Bytes}
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.core.CommonAssertions._
+import swaydb.IOValues._
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -37,6 +39,8 @@ import scala.collection.mutable.ListBuffer
 class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
   implicit val order = KeyOrder.default
+  implicit def keyValueLimiter = TestLimitQueues.keyValueLimiter
+  implicit def segmentIO = SegmentIO.random
 
   private def assetEqual(keyValues: Slice[Transient], readKeyValues: Iterable[KeyValue.ReadOnly]) = {
     keyValues.size shouldBe readKeyValues.size
@@ -46,6 +50,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         persistent.key shouldBe transient.key
         persistent.isPrefixCompressed shouldBe transient.isPrefixCompressed
         persistent.accessPosition shouldBe transient.stats.thisKeyValueAccessIndexPosition
+
         val thisKeyValueRealIndexOffsetFunction = PrivateMethod[Int]('thisKeyValueRealIndexOffset)
         val thisKeyValueRealIndexOffset = transient.stats invokePrivate thisKeyValueRealIndexOffsetFunction()
 
@@ -82,6 +87,15 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
           persistent.nextIndexSize shouldBe 0
         }
 
+        persistent match {
+          case response: Persistent.SegmentResponse =>
+            response.getOrFetchValue shouldBe transient.getOrFetchValue
+
+          case group: Persistent.Group =>
+            group.segment.getAll().get shouldBe transient.asInstanceOf[Transient.Group].keyValues
+        }
+
+
       case ((_, other), _) =>
         fail(s"Didn't expect type: ${other.getClass.getName}")
     }
@@ -102,20 +116,32 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
     }
   }
 
-  "write, close, readAll & search" in {
-    runThis(20.times, log = true) {
-      val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(randomIntMax(1000) max 1, startId = Some(1), addGroups = false, addRanges = false))
+  "write, close, readAll & get" in {
+    runThis(100.times, log = true) {
+      val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(randomIntMax(1000) max 1))
 
-      val state = SortedIndexBlock.init(keyValues)
+      val sortedIndexBlock = SortedIndexBlock.init(keyValues)
+      val valuesBlock = ValuesBlock.init(keyValues)
       keyValues foreach {
         keyValue =>
-          SortedIndexBlock.write(keyValue, state).get
+          SortedIndexBlock.write(keyValue, sortedIndexBlock).get
+          valuesBlock foreach {
+            valuesBlock =>
+              ValuesBlock.write(keyValue, valuesBlock).get
+          }
       }
 
-      val closedState = SortedIndexBlock.close(state).get
-      val ref = BlockRefReader[SortedIndexBlock.Offset](closedState.bytes)
+      val closedSortedIndexBlock = SortedIndexBlock.close(sortedIndexBlock).get
+      val ref = BlockRefReader[SortedIndexBlock.Offset](closedSortedIndexBlock.bytes)
       val header = Block.readHeader(ref.copy()).get
       val block = SortedIndexBlock.read(header).get
+
+      val valuesBlockReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+        valuesBlock map {
+          valuesBlock =>
+            val closedState = ValuesBlock.close(valuesBlock).get
+            Block.unblock[ValuesBlock.Offset, ValuesBlock](closedState.bytes).get
+        }
 
       val expectsCompressions = keyValues.last.sortedIndexConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentSortedIndexSize)).nonEmpty
       block.compressionInfo.isDefined shouldBe expectsCompressions
@@ -124,14 +150,12 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       block.headerSize shouldBe SortedIndexBlock.headerSize(expectsCompressions)
       block.offset.start shouldBe header.headerSize
 
-      val blockedReader = BlockedReader(ref.copy()).get
-      val unblockedReader = Block.unblock(blockedReader, randomBoolean()).get
+      val sortedIndexReader = Block.unblock(ref.copy()).get
       //values are not required for this test. Create an empty reader.
-      val testValuesReader = if (keyValues.last.stats.segmentValuesSize == 0) None else Some(ValuesBlock.emptyUnblocked)
       /**
        * TEST - READ ALL
        */
-      val readAllKeyValues = SortedIndexBlock.readAll(keyValues.size, unblockedReader, testValuesReader).get
+      val readAllKeyValues = SortedIndexBlock.readAll(keyValues.size, sortedIndexReader, valuesBlockReader).get
       assetEqual(keyValues, readAllKeyValues)
       /**
        * TEST - READ ONE BY ONE
@@ -139,47 +163,34 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       val searchedKeyValues = ListBuffer.empty[Persistent]
       keyValues.foldLeft(Option.empty[Persistent]) {
         case (previous, keyValue) =>
-          val searchedKeyValue = SortedIndexBlock.search(keyValue.key, previous, unblockedReader.copy(), testValuesReader).get.get
+          val searchedKeyValue = SortedIndexBlock.search(keyValue.key, previous, sortedIndexReader, valuesBlockReader).get.get
           searchedKeyValue.key shouldBe keyValue.key
           searchedKeyValues += searchedKeyValue
           //randomly set previous
           eitherOne(Some(searchedKeyValue), previous, None)
       }
+
       assetEqual(keyValues, searchedKeyValues)
 
       /**
-       * TEST - searchHigherSeekOne & seekHigher
+       * SEARCH CONCURRENTLY
        */
-      val searchedKeyValuesSeekOne = mutable.SortedSet.empty[Persistent](Ordering.by[Persistent, Slice[Byte]](_.key)(order))
-      keyValues.foldLeft((Option.empty[Persistent], Option.empty[Persistent])) {
-        case ((previousPrevious, previous), keyValue) =>
+      searchedKeyValues.zip(keyValues).par foreach {
+        case (persistent, transient) =>
+          val searchedPersistent = SortedIndexBlock.search(persistent.key, None, sortedIndexReader.copy(), valuesBlockReader).get.get
+          transient match {
+            case transient: Transient.SegmentResponse =>
+              searchedPersistent shouldBe persistent
+              searchedPersistent shouldBe transient
 
-          val searchedKeyValue =
-            previous map {
-              previous =>
-                //previousPrevious is the key that will require 3 seeks to fetch the next highest.
-                //assert that when the next higher key is 2 seeks away it should return none.
-                previousPrevious foreach {
-                  previousPrevious =>
-                    SortedIndexBlock.searchHigherSeekOne(previous.key, previousPrevious, unblockedReader.copy(), testValuesReader).get shouldBe empty
-                }
-                val searchedKeyValue = SortedIndexBlock.searchHigherSeekOne(previous.key, previous, unblockedReader.copy(), testValuesReader).get.get
-
-                //but normal search should return starting from whichever previous.
-                SortedIndexBlock.searchHigher(previous.key, None, unblockedReader.copy(), testValuesReader).get.get.key shouldBe searchedKeyValue.key
-                SortedIndexBlock.searchHigher(previous.key, previousPrevious, unblockedReader.copy(), testValuesReader).get.get.key shouldBe searchedKeyValue.key
-                SortedIndexBlock.searchHigher(previous.key, Some(previous), unblockedReader.copy(), testValuesReader).get.get.key shouldBe searchedKeyValue.key
-
-                searchedKeyValue
-            } getOrElse {
-              //if previous is not defined start with a get
-              SortedIndexBlock.search(keyValue.key, previous, unblockedReader.copy(), testValuesReader).get.get
-            }
-
-          searchedKeyValuesSeekOne += searchedKeyValue
-          (previous, Some(searchedKeyValue))
+            case group: Transient.Group =>
+              val persistentGroup = searchedPersistent.asInstanceOf[Persistent.Group]
+              group.keyValues.par foreach {
+                groupKeyValue =>
+                  persistentGroup.segment.get(groupKeyValue.key).runRandomIO.get shouldBe groupKeyValue
+              }
+          }
       }
-      assetEqual(keyValues, searchedKeyValuesSeekOne)
     }
   }
 }

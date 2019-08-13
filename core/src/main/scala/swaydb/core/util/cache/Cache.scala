@@ -215,8 +215,8 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
         }
 
       override def clear(): Unit = {
-        self.clear()
         next.clear()
+        self.clear()
       }
     }
 }

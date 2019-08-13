@@ -1,106 +1,66 @@
 package swaydb.core.segment.format.a.block
 
 
+import java.util.concurrent.ConcurrentLinkedQueue
+
+import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.data.config.IOStrategy
+import swaydb.core.data.Transient
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
+import swaydb.serializers.Default._
+import swaydb.serializers._
+
+import scala.collection.JavaConverters._
 
 class SegmentBlockCacheSpec extends TestBase {
   implicit val order = KeyOrder.default
+  implicit val timer: TestTimer = TestTimer.Empty
 
-  "read blocks" in {
-    //one big azz test.
-    //It create a Segment with randomly generated key-values and asserts all the caches.
+  /**
+   * Running this test with [[SegmentBlockCache.segmentIOStrategyCache]]'s stored set to false will
+   * result is offset conflicts. Segment's [[swaydb.data.config.IOStrategy]] should be fixed ones read.
+   */
 
-    runThis(100.times) {
+  "it" should {
+    "return distinct Readers" in {
+      runThis(1000.times, log = true) {
+        val keyValues = Slice(Transient.put(1, 1))
+        val blockCache = getSegmentBlockCache(keyValues)
+        blockCache.isCached shouldBe false
 
-      val binarySearchIndexCompression = randomCompressionsOrEmpty()
-      val sortedIndexCompression = randomCompressionsOrEmpty()
-      val keyValues =
-        randomizedKeyValues(100, addPut = true, addGroups = false)
-          .updateStats(
-            binarySearchIndexConfig =
-              BinarySearchIndexBlock.Config(
-                enabled = true,
-                minimumNumberOfKeys = 0,
-                fullIndex = true,
-                blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
-                compressions = _ => binarySearchIndexCompression
-              ),
-            sortedIndexConfig =
-              SortedIndexBlock.Config(
-                blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
-                prefixCompressionResetCount = 3,
-                enableAccessPositionIndex = true,
-                compressions = _ => sortedIndexCompression
-              )
-          )
+        val segmentBlockReader = new ConcurrentLinkedQueue[UnblockedReader[_, _]]()
+        val sortedIndexReader = new ConcurrentLinkedQueue[UnblockedReader[_, _]]()
+        val binarySearchIndexReader = new ConcurrentLinkedQueue[UnblockedReader[_, _]]()
+        val bloomFilterReader = new ConcurrentLinkedQueue[UnblockedReader[_, _]]()
+        val hashIndexReader = new ConcurrentLinkedQueue[UnblockedReader[_, _]]()
+        val valuesReader = new ConcurrentLinkedQueue[UnblockedReader[_, _]]()
 
-      val segmentCompression = Seq.empty
+        (1 to 1000).par foreach {
+          _ =>
+            Seq(
+              () => blockCache.getFooter().runRandomIO.get,
+              () => segmentBlockReader add blockCache.createSegmentBlockReader().runRandomIO.value,
+              () => sortedIndexReader add blockCache.createSortedIndexReader().runRandomIO.value,
+              () => blockCache.createBinarySearchIndexReader().runRandomIO.value.foreach(reader => binarySearchIndexReader.add(reader)),
+              () => blockCache.createBloomFilterReader().runRandomIO.value.foreach(reader => bloomFilterReader.add(reader)),
+              () => blockCache.createHashIndexReader().runRandomIO.value.foreach(reader => hashIndexReader.add(reader)),
+              () => blockCache.createValuesReader().runRandomIO.value.foreach(reader => valuesReader.add(reader)),
+              () => eitherOne(blockCache.clear(), ())
+            ).runThisRandomlyInParallel
+        }
 
-      //create an open block and a closed block. SegmentBlockCache cannot be created on opened block.
-      //Open block is used to assert the decompressed bytes got from closed block.
-      val openSegment: SegmentBlock.Open = SegmentBlock.writeOpen(keyValues, Int.MaxValue, SegmentBlock.Config.random).get
-      val closedSegment: SegmentBlock.Closed = SegmentBlock.writeClosed(keyValues, Int.MaxValue, SegmentBlock.Config.random).get
-
-      //closedSegments are compressed and the sizes will not match
-      //      if (segmentCompression.isEmpty)
-      //        openSegment.segmentSize shouldBe closedSegment.segmentSize
-      //      else
-      //        closedSegment.segmentBytes should have size 1 //compressed bytes.
-
-      //but both will not have the same header bytes because openSegment is not compressed and does not have compression info.
-      openSegment.headerBytes.head shouldBe closedSegment.segmentBytes.head.head
-
-      openSegment.headerBytes.isOriginalFullSlice shouldBe true //bytes should be full.
-      closedSegment.segmentBytes.head.isFull shouldBe true //bytes should be full.
-
-      //initialise a block cache and run asserts
-      val segmentBlockCache = getSegmentBlockCacheFromSegmentClosed(closedSegment)
-      segmentBlockCache.readAll().get shouldBe keyValues
-
-      /**
-       * One by one fetch everything from [[SegmentBlockCache]] and assert.
-       */
-      //on init, nothing is cached.
-      //      segmentBlockCache.isCached shouldBe false
-
-      //      //getSegmentBlock
-      //      segmentBlockCache.segmentBlockReaderCache.isCached shouldBe false
-      //      val segmentBlock = segmentBlockCache.getSegmentBlock().get
-      //      segmentBlockCache.segmentBlockCache.isCached shouldBe true
-      //      segmentBlock.compressionInfo.isDefined shouldBe segmentCompression.nonEmpty //segment is not closed.
-      //      segmentBlock.headerSize shouldBe openSegment.headerBytes.size
-      //      //read the entire segment from blockedSegment. Compressed or uncompressed it should result in the same bytes as original.
-      //      segmentBlockCache.createSegmentBlockReader().get.readRemaining().get shouldBe openSegment.segmentBytes.dropHead().flatten.toSlice
-      //      segmentBlockCache.segmentBlockCache.isCached shouldBe true
-      //      segmentBlockCache.segmentBlockReaderCache.isCached shouldBe segmentCompression.nonEmpty
-      //
-      //      segmentBlockCache.footerBlockCache.isCached shouldBe false
-      //      val footer = segmentBlockCache.getFooter().get
-      //      segmentBlockCache.footerBlockCache.isCached shouldBe true
-      //      footer.keyValueCount shouldBe keyValues.size
-      //      footer.createdInLevel shouldBe Int.MaxValue
-
-
-      //      val binarySearchIndexBytes = segmentBlockCache.createBinarySearchIndexReader().get.get.readRemaining()
-      //
-      //      println(binarySearchIndexBytes)
-
-      //      keyValues foreach {
-      //        keyValue =>
-      //          BinarySearchIndex.search(
-      //            key = keyValue.minKey,
-      //            start = None,
-      //            end = None,
-      //            binarySearchIndexReader = segmentBlockCache.createBinarySearchIndexReader().get.get,
-      //            sortedIndexReader = segmentBlockCache.createSortedIndexReader().get,
-      //            valuesReader = segmentBlockCache.createValuesReader().get
-      //          ).get shouldBe keyValue
-      //      }
+        segmentBlockReader.asScala.toList.distinct.size shouldBe segmentBlockReader.size
+        sortedIndexReader.asScala.toList.distinct.size shouldBe sortedIndexReader.size
+        binarySearchIndexReader.asScala.toList.distinct.size shouldBe binarySearchIndexReader.size
+        bloomFilterReader.asScala.toList.distinct.size shouldBe bloomFilterReader.size
+        hashIndexReader.asScala.toList.distinct.size shouldBe hashIndexReader.size
+        valuesReader.asScala.toList.distinct.size shouldBe valuesReader.size
+      }
     }
   }
 }

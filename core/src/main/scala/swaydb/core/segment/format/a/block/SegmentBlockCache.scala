@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.block.ValuesBlock.ValuesBlockOps
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
-import swaydb.core.util.cache.Cache
+import swaydb.core.util.cache.{Cache, Lazy}
 import swaydb.data.Reserve
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
@@ -47,7 +47,17 @@ class SegmentBlockCache(id: String,
                         val segmentIO: SegmentIO,
                         segmentBlockRef: BlockRefReader[SegmentBlock.Offset]) {
 
-  def segmentBlockIO = segmentIO.segmentBlockIO
+  /**
+   * @note Segment's [[IOStrategy]] is required to be immutable ones read and cannot mutate during runtime.
+   *       Changing IOStrategy during runtime causes offset conflicts.
+   *
+   * @see SegmentBlockCacheSpec which will fail is stored is set to false.
+   */
+  val segmentIOStrategyCache = Lazy.value[IOStrategy](synchronised = true, stored = true, initial = None)
+
+  def segmentBlockIO(action: IOAction) =
+    segmentIOStrategyCache getOrSet segmentIO.segmentBlockIO(action)
+
   def hashIndexBlockIO = segmentIO.hashIndexBlockIO
   def bloomFilterBlockIO = segmentIO.bloomFilterBlockIO
   def binarySearchIndexBlockIO = segmentIO.binarySearchIndexBlockIO
