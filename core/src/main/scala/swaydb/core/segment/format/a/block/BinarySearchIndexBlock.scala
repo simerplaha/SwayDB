@@ -405,11 +405,27 @@ private[core] object BinarySearchIndexBlock {
           case some @ SearchResult.Some(_, _) =>
             IO.Success(some)
 
-          case none @ SearchResult.None(_) =>
+          case none @ SearchResult.None(lower) =>
             if (endPosition > 1)
               hop(start = startPosition, end = endPosition - 1, startKeyValue, None)
             else
-              IO.Success(none)
+
+            /**
+             * [[seekLower]] returning a [[SearchResult.None]] with lower defined is not expected. If it does occur it
+             * would be due to small number of entries in the binarySearch index (1 or 2) where startFrom is returned
+             * to be lower. Here we check if lower is set and the assert is for development environment only.
+             * If lower is returned the check should assert that it's the same object as original startFrom else return none.
+             */
+              lower flatMap {
+                lower =>
+                  startKeyValue map {
+                    startKeyValue =>
+                      if (lower.hashCode() != startKeyValue.hashCode())
+                        IO.failed("Lower was defined.")
+                      else
+                        IO.Success(SearchResult.None(None))
+                  }
+              } getOrElse IO.Success(none)
         }
       else if (startKeyValue.exists(_.accessPosition > 0)) //end should not be larger than the number of entries.
         hop(start = startPosition, end = (startPosition + 1) min (reader.block.valuesCount - 1), None, None) flatMap {

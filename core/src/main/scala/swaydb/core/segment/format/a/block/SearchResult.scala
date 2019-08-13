@@ -19,10 +19,18 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.IO
+
 sealed trait SearchResult[+T] {
   def toOption: Option[T]
 }
 object SearchResult {
+
+  def none: SearchResult.None[Nothing] =
+    SearchResult.None(Option.empty[Nothing])
+
+  def noneIO =
+    IO.Success(none)
 
   case class None[T](lower: Option[T]) extends SearchResult[T] {
     override val toOption: Option[T] = scala.None
