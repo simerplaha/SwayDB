@@ -122,9 +122,9 @@ private[core] object Cache {
   def deferredIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable, I, O](strategy: I => IOStrategy,
                                                                                reserveError: => ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
     new BlockIOCache[E, I, O](
-      Cache.noIO[I, Cache[E, I, O]](synchronised = false, stored = true, initial = None) {
+      Cache.noIO[I, Cache[E, I, O]](synchronised = true, stored = true, initial = None) {
         i =>
-          val ioStrategy = FunctionUtil.safe((_: I) => IOStrategy.ConcurrentIO(false), strategy)(i)
+          val ioStrategy = FunctionUtil.safe((_: I) => IOStrategy.SynchronisedIO(false), strategy)(i)
           Cache.io[E, ER, I, O](
             strategy = ioStrategy,
             reserveError = reserveError,
@@ -152,7 +152,7 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
    * An adapter function that applies the map function to the input on each invocation.
    * The result does not get stored in this cache.
    *
-   * [[mapStored]] Or [[flatMap]] functions are used for where storage is required.
+   * [[mapConcurrentStored]] Or [[flatMap]] functions are used for where storage is required.
    */
   def map[F >: E : ErrorHandler, B](f: O => IO[F, B]): Cache[F, I, B] =
     new Cache[F, I, B] {
@@ -181,7 +181,7 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
         self.clear()
     }
 
-  def mapStored[F >: E : ErrorHandler, O2](f: O => IO[F, O2]): Cache[F, I, O2] =
+  def mapConcurrentStored[F >: E : ErrorHandler, O2](f: O => IO[F, O2]): Cache[F, I, O2] =
     flatMap(Cache.concurrentIO(synchronised = false, stored = true, initial = None)(f))
 
   def flatMap[F >: E : ErrorHandler, B](next: Cache[F, O, B]): Cache[F, I, B] =

@@ -86,8 +86,8 @@ sealed trait SegmentWriteSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val segmentIO = SegmentIO.random
-  implicit val keyValueLimiter = TestLimitQueues.someKeyValueLimiter
+  implicit def segmentIO = SegmentIO.random
+  implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.someKeyValueLimiter
 
   //  override def deleteFiles = false
 
@@ -96,7 +96,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   "Segment" should {
 
     "create a Segment" in {
-      runThis(500.times, log = true) {
+      runThis(1000.times, log = true) {
         assertSegment(
           keyValues =
             randomizedKeyValues(eitherOne(randomIntMax(keyValuesCount) max 1, keyValuesCount)),

@@ -29,6 +29,7 @@ import swaydb.core.util.{Benchmark, Bytes}
 import swaydb.data.config.UncompressedBlockInfo
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.core.CommonAssertions._
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -39,7 +40,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
   private def assetEqual(keyValues: Slice[Transient], readKeyValues: Iterable[KeyValue.ReadOnly]) = {
     keyValues.size shouldBe readKeyValues.size
-    keyValues.zip(readKeyValues).zipWithIndex.foreach {
+    keyValues.zip(readKeyValues).zipWithIndex foreach {
       case ((transient, persistent: Persistent), index) =>
         persistent.getClass.getSimpleName shouldBe transient.getClass.getSimpleName
         persistent.key shouldBe transient.key
@@ -52,7 +53,13 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
           persistent.accessPosition should be > 0
         else
           persistent.accessPosition shouldBe 0 //0 indicates disabled accessIndexPosition
+
         persistent.indexOffset shouldBe thisKeyValueRealIndexOffset
+
+        if (transient.values.isEmpty)
+          persistent.valueOffset shouldBe -1
+        else
+          persistent.valueOffset shouldBe transient.currentStartValueOffsetPosition
 
         def expectedNextIndexOffset =
           if (keyValues.last.sortedIndexConfig.enableAccessPositionIndex)
@@ -104,16 +111,19 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         keyValue =>
           SortedIndexBlock.write(keyValue, state).get
       }
+
       val closedState = SortedIndexBlock.close(state).get
       val ref = BlockRefReader[SortedIndexBlock.Offset](closedState.bytes)
       val header = Block.readHeader(ref.copy()).get
       val block = SortedIndexBlock.read(header).get
+
       val expectsCompressions = keyValues.last.sortedIndexConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentSortedIndexSize)).nonEmpty
       block.compressionInfo.isDefined shouldBe expectsCompressions
       block.enableAccessPositionIndex shouldBe keyValues.last.sortedIndexConfig.enableAccessPositionIndex
       block.hasPrefixCompression shouldBe keyValues.last.stats.hasPrefixCompression
       block.headerSize shouldBe SortedIndexBlock.headerSize(expectsCompressions)
       block.offset.start shouldBe header.headerSize
+
       val blockedReader = BlockedReader(ref.copy()).get
       val unblockedReader = Block.unblock(blockedReader, randomBoolean()).get
       //values are not required for this test. Create an empty reader.
@@ -130,12 +140,10 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       keyValues.foldLeft(Option.empty[Persistent]) {
         case (previous, keyValue) =>
           val searchedKeyValue = SortedIndexBlock.search(keyValue.key, previous, unblockedReader.copy(), testValuesReader).get.get
+          searchedKeyValue.key shouldBe keyValue.key
           searchedKeyValues += searchedKeyValue
           //randomly set previous
-          if (randomBoolean())
-            Some(searchedKeyValue)
-          else
-            None
+          eitherOne(Some(searchedKeyValue), previous, None)
       }
       assetEqual(keyValues, searchedKeyValues)
 

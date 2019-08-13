@@ -1295,7 +1295,7 @@ private[core] object Persistent {
                     isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Remove {
     override val valueLength: Int = 0
     override val isValueCached: Boolean = true
-    override val valueOffset: Int = 0
+    override val valueOffset: Int = -1
 
     def key = _key
 
@@ -1352,7 +1352,7 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          valueCache mapStored {
+          valueCache mapConcurrentStored {
             reader =>
               reader
                 .copy()
@@ -1450,7 +1450,7 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          valueCache mapStored {
+          valueCache mapConcurrentStored {
             reader =>
               reader
                 .copy()
@@ -1579,7 +1579,7 @@ private[core] object Persistent {
       new Function(
         _key = key,
         valueCache =
-          valueCache mapStored {
+          valueCache mapConcurrentStored {
             reader =>
               reader
                 .copy()
@@ -1666,7 +1666,7 @@ private[core] object Persistent {
         _time = time,
         deadline = deadline,
         valueCache =
-          valueCache mapStored {
+          valueCache mapConcurrentStored {
             reader =>
               reader
                 .copy()
@@ -1752,7 +1752,7 @@ private[core] object Persistent {
             _fromKey = fromKey,
             _toKey = toKey,
             valueCache =
-              valueCache mapStored {
+              valueCache mapConcurrentStored {
                 rangeReader =>
                   rangeReader
                     .copy()

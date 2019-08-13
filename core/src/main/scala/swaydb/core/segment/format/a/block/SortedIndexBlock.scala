@@ -272,7 +272,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                 if (offset.size == 0)
                   ValuesBlock.emptyUnblockedIO
                 else
-                  IO(UnblockedReader.moveTo(offset, valuesReader))
+                  IO(UnblockedReader.moveTo(offset, valuesReader.copy()))
             }
         }
 

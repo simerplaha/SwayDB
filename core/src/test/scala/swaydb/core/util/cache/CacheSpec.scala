@@ -134,7 +134,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         mapNotStoredCache.value(fail()) shouldBe IO.Success(124)
         mapNotStoredCache.isCached shouldBe cache.isCached
 
-        val mapStoredCache = cache.mapStored(int => IO(int + 5))
+        val mapStoredCache = cache.mapConcurrentStored(int => IO(int + 5))
         mapStoredCache.get() shouldBe Some(IO.Success(128))
         mapStoredCache.value(fail()) shouldBe IO.Success(128)
         mapStoredCache.value(fail()) shouldBe IO.Success(128)
@@ -359,7 +359,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
         mock.expects() returning IO(3)
         //run stored
-        val storedCache = rootCache.mapStored {
+        val storedCache = rootCache.mapConcurrentStored {
           previous =>
             previous shouldBe 3
             IO(100)
@@ -372,7 +372,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         rootCache.isCached shouldBe false
 
         //run stored
-        val storedCache2 = storedCache.mapStored {
+        val storedCache2 = storedCache.mapConcurrentStored {
           previous =>
             //stored rootCache's value is received
             previous shouldBe 100
@@ -409,14 +409,14 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
               Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](strategy = _ => IOStrategy.AsyncIO(true), swaydb.Error.ReservedResource(Reserve(name = "test"))) {
                 _ =>
                   invokeCount += 1
-                  sleep(5.millisecond) //delay access
+                  sleep(1.millisecond) //delay access
                   IO.Success(10)
               }
             else
               Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](stored = true, swaydb.Error.ReservedResource(Reserve(name = "test")), None) {
                 _ =>
                   invokeCount += 1
-                  sleep(5.millisecond) //delay access
+                  sleep(1.millisecond) //delay access
                   IO.Success(10)
               }
 
@@ -454,7 +454,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
           }
 
           if (blockIO)
-            invokeCount should be <= 5 //since it's cleared above.
+            invokeCount should be <= 2 //since it's cleared above.
           else
             invokeCount shouldBe 1
         }

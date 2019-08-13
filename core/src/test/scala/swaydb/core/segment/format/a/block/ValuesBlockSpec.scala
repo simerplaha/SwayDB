@@ -28,6 +28,8 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
+import scala.collection.mutable.ListBuffer
+
 class ValuesBlockSpec extends TestBase {
 
   implicit val timer = TestTimer.Empty
@@ -52,9 +54,9 @@ class ValuesBlockSpec extends TestBase {
   }
 
   "close" should {
-    "prepare for persisting" in {
+    "prepare for persisting & concurrent read values" in {
       runThis(100.times, log = true) {
-        val keyValues = randomizedKeyValues(count = 100)
+        val keyValues = randomizedKeyValues(count = 1000)
         val state = ValuesBlock.init(keyValues).get
 
         keyValues foreach {
@@ -77,17 +79,27 @@ class ValuesBlockSpec extends TestBase {
 
         val unblocked = Block.unblock(blocked, randomBoolean()).get
 
+        val keyValuesOffset = ListBuffer.empty[(Int, Slice[Byte])]
+
         keyValues.foldLeft(0) {
           case (offset, keyValue) =>
             val valueBytes = keyValue.valueEntryBytes.flatten[Byte].toSlice
             if (valueBytes.isEmpty) {
               offset
             } else {
+              keyValuesOffset += ((offset, valueBytes))
               ValuesBlock.read(offset, valueBytes.size, unblocked).get should contain(valueBytes)
               offset + valueBytes.size
             }
         }
+
+        //concurrent read values
+        keyValuesOffset.par foreach {
+          case (offset, value) =>
+            ValuesBlock.read(offset, value.size, unblocked.copy()).get should contain(value)
+        }
       }
     }
   }
+
 }
