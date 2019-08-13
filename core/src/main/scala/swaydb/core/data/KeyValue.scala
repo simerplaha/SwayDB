@@ -1841,7 +1841,7 @@ private[core] object Persistent {
               val segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[KeyValueLimiter], SegmentIO), SegmentCache] =
                 Cache.noIO(synchronised = true, stored = true, initial = None) {
                   case (keyOrder: KeyOrder[Slice[Byte]], limiter: Option[KeyValueLimiter], groupIO: SegmentIO) =>
-                    val moved: BlockRefReader[SegmentBlock.Offset] =
+                    val blockRef: BlockRefReader[SegmentBlock.Offset] =
                       BlockRefReader.moveTo(
                         //cache will return a reader with the offset pointing to this Group's offset, here simply reset to return as an BlockRef within the parent Segment's values block.
                         start = 0,
@@ -1857,7 +1857,7 @@ private[core] object Persistent {
                       //slicing will just use more memory. On memory overflow the Group itself will find dropped and hence all the
                       //key-values inside the group's SegmentCache will also be GC'd.
                       unsliceKey = false,
-                      blockRef = moved,
+                      blockRef = blockRef,
                       segmentIO = groupIO
                     )(keyOrder, limiter)
                 }

@@ -44,7 +44,7 @@ private[core] object SegmentCache {
       id = id,
       maxKey = maxKey,
       minKey = minKey,
-      _skipList = None,
+      _skipList = if (keyValueLimiter.isDefined) Some(SkipList.concurrent()) else None,
       unsliceKey = unsliceKey,
       blockCache =
         SegmentBlockCache(

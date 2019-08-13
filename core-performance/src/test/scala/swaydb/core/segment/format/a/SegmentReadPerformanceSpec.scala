@@ -330,10 +330,10 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   "Segment value benchmark 1" in {
     initSegment()
 
-    val hashIndex = segment.asInstanceOf[PersistentSegment].segmentCache.blockCache.getHashIndex().get.get
-    println(s"hashIndex.hit: ${hashIndex.hit}")
-    println(s"hashIndex.miss: ${hashIndex.miss}")
-    println(s"hashIndex.size: ${hashIndex.offset.size}")
+//    val hashIndex = segment.asInstanceOf[PersistentSegment].segmentCache.blockCache.getHashIndex().get.get
+//    println(s"hashIndex.hit: ${hashIndex.hit}")
+//    println(s"hashIndex.miss: ${hashIndex.miss}")
+//    println(s"hashIndex.size: ${hashIndex.offset.size}")
 
     //
     //    val file = DBFile.mmapRead(segment.path, randomIOStrategy(false), true).get

@@ -24,9 +24,8 @@ import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import org.scalatest.OptionValues._
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
-import swaydb.configs.level.DefaultGroupBy
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
@@ -35,14 +34,14 @@ import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.IOEffect
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.FileLimiter
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util._
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.MaxKey
-import swaydb.data.config.{Dir, IOStrategy}
+import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -50,7 +49,6 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.Random
@@ -88,8 +86,8 @@ sealed trait SegmentWriteSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
   implicit val segmentIO = SegmentIO.random
+  implicit val keyValueLimiter = TestLimitQueues.someKeyValueLimiter
 
   //  override def deleteFiles = false
 
@@ -98,7 +96,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   "Segment" should {
 
     "create a Segment" in {
-      runThis(100.times, log = true) {
+      runThis(500.times, log = true) {
         assertSegment(
           keyValues =
             randomizedKeyValues(eitherOne(randomIntMax(keyValuesCount) max 1, keyValuesCount)),
@@ -568,6 +566,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             keyValues = randomizedKeyValues(keyValuesCount),
             assert =
               (keyValues, segment) => {
+                implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
                 val readSegment =
                   Segment(
                     path = segment.path,
@@ -699,6 +698,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     if (memory) {
       //memory Segments do not value closed via
     } else {
+      implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
       implicit val segmentOpenLimit = FileLimiter(1, 100.millisecond)
       val keyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
       val segment1 = TestSegment(keyValues)(keyOrder, keyValueLimiter, segmentOpenLimit).value
@@ -773,6 +773,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   "copyToPersist" should {
     "copy the segment and persist it to disk" in {
       implicit val groupBy: Option[GroupByInternal.KeyValues] = None
+      implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
 
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).value
@@ -805,6 +806,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
     "copy the segment and persist it to disk when remove deletes is true" in {
       runThis(10.times) {
+        implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues).value
         val levelPath = createNextLevelPath
@@ -845,6 +847,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     "revert copy if Segment initialisation fails after copy" in {
+      implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).value
       val levelPath = createNextLevelPath
@@ -878,6 +881,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     "revert copy of Key-values if creating at least one Segment fails" in {
+      implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
       val keyValues = randomizedKeyValues(keyValuesCount)
       val levelPath = createNextLevelPath
       val nextSegmentId = nextId
@@ -920,6 +924,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   "copyToMemory" should {
     "copy persistent segment and store it in Memory" in {
       runThis(100.times) {
+        implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
         implicit val groupBy: Option[GroupByInternal.KeyValues] = None
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues).value
@@ -951,6 +956,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
     "copy the segment and persist it to disk when removeDeletes is true" in {
       runThis(10.times) {
+        implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
         implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
         val keyValues = randomizedKeyValues(keyValuesCount)
