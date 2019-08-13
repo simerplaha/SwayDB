@@ -242,7 +242,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
 
   "all searches" in {
     runThis(100.times, log = true) {
-      val _keyValues = Benchmark("Generating key-values", true)(randomizedKeyValues(startId = Some(1), count = 5, addGroups = false, addRanges = true))
+      val _keyValues = Benchmark("Generating key-values", true)(randomizedKeyValues(startId = Some(100), count = randomIntMax(100) max 1))
       val fullIndex = randomBoolean()
 
       val binarySearchCompressions = randomCompressionsOrEmpty()

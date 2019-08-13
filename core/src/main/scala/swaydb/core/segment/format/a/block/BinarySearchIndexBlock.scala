@@ -411,8 +411,8 @@ private[core] object BinarySearchIndexBlock {
             else
               IO.Success(none)
         }
-      else if (startKeyValue.exists(_.accessPosition > 0))
-        hop(start = startPosition, end = startPosition + 1, None, None) flatMap {
+      else if (startKeyValue.exists(_.accessPosition > 0)) //end should not be larger than the number of entries.
+        hop(start = startPosition, end = (startPosition + 1) min (reader.block.valuesCount - 1), None, None) flatMap {
           case some @ SearchResult.Some(_, lower) =>
             if (startKeyValue exists (order.equiv(_, lower)))
               IO.Success(some)

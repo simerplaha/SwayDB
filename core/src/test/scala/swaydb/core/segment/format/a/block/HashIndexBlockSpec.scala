@@ -173,7 +173,6 @@ class HashIndexBlockSpec extends TestBase {
         uncompressedHashIndex.block.miss shouldBe compressedHashIndex.block.miss
         uncompressedHashIndex.block.maxProbe shouldBe compressedHashIndex.block.maxProbe
         uncompressedHashIndex.block.writeAbleLargestValueSize shouldBe compressedHashIndex.block.writeAbleLargestValueSize
-        uncompressedHashIndex.offset.start shouldBe compressedHashIndex.offset.start
 
         //        val uncompressedBlockReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock] = Block.unblock(uncompressedHashIndex, SegmentBlock.unblocked(uncompressedState.bytes), randomBoolean()).get
         //        val compressedBlockReader = Block.unblock(compressedHashIndex, SegmentBlock.unblocked(compressedState.bytes), randomBoolean()).get

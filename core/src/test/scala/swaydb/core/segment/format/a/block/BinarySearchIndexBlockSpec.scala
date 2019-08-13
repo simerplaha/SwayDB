@@ -18,15 +18,17 @@
  */
 package swaydb.core.segment.format.a.block
 
+import org.scalamock.scalatest.MockFactory
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.{Blocks, TestBase}
 import swaydb.core.TestData._
-import swaydb.core.data.{Persistent, Transient}
+import swaydb.core.data.{Persistent, Time, Transient}
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.Bytes
+import swaydb.core.util.cache.Cache
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -34,52 +36,52 @@ import swaydb.serializers._
 
 import scala.util.Try
 
-class BinarySearchIndexBlockSpec extends TestBase {
+class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
 
-  def assertSearch(bytes: Slice[Byte],
-                   values: Seq[Int]) =
-    runThis(10.times) {
-      val largestValue = values.last
+  "write full index" when {
+    def assertSearch(bytes: Slice[Byte],
+                     values: Seq[Int]) =
+      runThis(10.times) {
+        val largestValue = values.last
 
-      def matcher(valueToFind: Int)(valueFound: Int): IO[swaydb.Error.Segment, KeyMatcher.Result] =
-        IO {
-          if (valueToFind == valueFound)
-            KeyMatcher.Result.Matched(None, null, None)
-          else if (valueToFind < valueFound)
-            KeyMatcher.Result.AheadOrNoneOrEnd
-          else
-            KeyMatcher.Result.BehindFetchNext(null)
+        def matcher(valueToFind: Int)(valueFound: Int): IO[swaydb.Error.Segment, KeyMatcher.Result] =
+          IO {
+            if (valueToFind == valueFound)
+              KeyMatcher.Result.Matched(None, null, None)
+            else if (valueToFind < valueFound)
+              KeyMatcher.Result.AheadOrNoneOrEnd
+            else
+              KeyMatcher.Result.BehindFetchNext(null)
+          }
+
+        values foreach {
+          value =>
+            BinarySearchIndexBlock.search(
+              reader = Block.unblock[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](bytes).get,
+              startKeyValue = None,
+              endKeyValue = None,
+              isHigherSeek = None,
+              matchValue = matcher(valueToFind = value)
+            ).get shouldBe a[SearchResult.Some[Int]]
         }
 
-      values foreach {
-        value =>
-          BinarySearchIndexBlock.search(
-            reader = Block.unblock[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](bytes).get,
-            startKeyValue = None,
-            endKeyValue = None,
-            isHigherSeek = None,
-            matchValue = matcher(valueToFind = value)
-          ).get shouldBe a[SearchResult.Some[Int]]
+        //check for items not in the index.
+        val notInIndex = (values.head - 100 until values.head) ++ (largestValue + 1 to largestValue + 100)
+
+        notInIndex foreach {
+          i =>
+            BinarySearchIndexBlock.search(
+              reader = Block.unblock[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](bytes).get,
+              startKeyValue = None,
+              endKeyValue = None,
+              isHigherSeek = None,
+              matchValue = matcher(valueToFind = i)
+            ).get shouldBe a[SearchResult.None[Int]]
+        }
       }
 
-      //check for items not in the index.
-      val notInIndex = (values.head - 100 until values.head) ++ (largestValue + 1 to largestValue + 100)
-
-      notInIndex foreach {
-        i =>
-          BinarySearchIndexBlock.search(
-            reader = Block.unblock[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](bytes).get,
-            startKeyValue = None,
-            endKeyValue = None,
-            isHigherSeek = None,
-            matchValue = matcher(valueToFind = i)
-          ).get shouldBe a[SearchResult.None[Int]]
-      }
-    }
-
-  "write full index" when {
     "all values have the same size" in {
       runThis(10.times) {
         Seq(0 to 127, 128 to 300, 16384 to 16384 + 200, Int.MaxValue - 5000 to Int.MaxValue - 1000) foreach {
@@ -160,6 +162,119 @@ class BinarySearchIndexBlockSpec extends TestBase {
 
             assertSearch(bytes = state.bytes, values = values)
         }
+      }
+    }
+  }
+
+  "search" when {
+    val values = Slice(1, 5, 10)
+    val valuesCount = values.size
+    val largestValue = values.last
+    val compression = eitherOne(Seq.empty, Seq(randomCompression()))
+    val state =
+      BinarySearchIndexBlock.State(
+        largestValue = largestValue,
+        uniqueValuesCount = valuesCount,
+        isFullIndex = true,
+        minimumNumberOfKeys = 0,
+        compressions = _ => compression
+      ).get
+
+    values foreach {
+      value =>
+        BinarySearchIndexBlock.write(value = value, state = state).get
+    }
+    BinarySearchIndexBlock.close(state).get
+
+    state.writtenValues shouldBe 3
+
+    "1" in {
+      //1, 5, 10
+      Seq(
+        BlockRefReader[BinarySearchIndexBlock.Offset](createRandomFileReader(state.bytes)).get,
+        BlockRefReader[BinarySearchIndexBlock.Offset](state.bytes)
+      ) foreach {
+        reader =>
+          val block = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlock.Offset](reader).get).get
+          block.bytesPerValue shouldBe Bytes.sizeOf(largestValue)
+          block.valuesCount shouldBe values.size
+
+          val unblocked = Block.unblock[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](reader.copy()).get
+
+          unblocked.size.get shouldBe 3
+
+          //1, 5, 10
+          //1
+          val one =
+          Persistent.Put.fromCache(
+            key = 1,
+            deadline = None,
+            valueCache = Cache.emptyValuesBlock,
+            time = Time.empty,
+            nextIndexOffset = randomIntMax(),
+            nextIndexSize = randomIntMax(),
+            indexOffset = randomIntMax(),
+            valueOffset = 0,
+            valueLength = 0,
+            accessPosition = eitherOne(0, 1),
+            isPrefixCompressed = randomBoolean()
+          )
+
+          val five =
+            Persistent.Put.fromCache(
+              key = 5,
+              deadline = None,
+              valueCache = Cache.emptyValuesBlock,
+              time = Time.empty,
+              nextIndexOffset = randomIntMax(),
+              nextIndexSize = randomIntMax(),
+              indexOffset = randomIntMax(),
+              valueOffset = 0,
+              valueLength = 0,
+              accessPosition = eitherOne(0, 1),
+              isPrefixCompressed = randomBoolean()
+            )
+
+          val ten =
+            Persistent.Put.fromCache(
+              key = 10,
+              deadline = None,
+              valueCache = Cache.emptyValuesBlock,
+              time = Time.empty,
+              nextIndexOffset = randomIntMax(),
+              nextIndexSize = randomIntMax(),
+              indexOffset = randomIntMax(),
+              valueOffset = 0,
+              valueLength = 0,
+              accessPosition = eitherOne(0, 1),
+              isPrefixCompressed = randomBoolean()
+            )
+
+          val matchResultForOne = KeyMatcher.Result.Matched(None, one, None)
+          KeyMatcher.Get(1).apply(one, None, randomBoolean()) shouldBe matchResultForOne
+
+          val matchResultForFive = KeyMatcher.Result.AheadOrNoneOrEnd
+          KeyMatcher.Get(1).apply(five, None, randomBoolean()) shouldBe matchResultForFive
+
+          val matcher = mockFunction[Int, IO[swaydb.Error.Segment, KeyMatcher.Result]]("matcher")
+          matcher.expects(5) returns IO.Success(matchResultForFive)
+          matcher.expects(1) returns IO.Success(matchResultForOne)
+
+          //search get
+          BinarySearchIndexBlock.search(
+            reader = unblocked,
+            startKeyValue = None,
+            endKeyValue = None,
+            isHigherSeek = None,
+            matchValue = matcher
+          ).get match {
+            case SearchResult.None(_) =>
+              fail()
+
+            case SearchResult.Some(lower, value) =>
+              lower shouldBe empty
+              value shouldBe one
+          }
       }
     }
   }
@@ -280,10 +395,11 @@ class BinarySearchIndexBlockSpec extends TestBase {
             ).get match {
               case SearchResult.None(lower) =>
                 //lower will always be the last known uncompressed key before the last key-value.
-                keyValues.dropRight(1).reverse.find(!_.isPrefixCompressed) foreach {
-                  expectedLower =>
-                    lower.get.key shouldBe expectedLower.key
-                }
+                if (keyValues.size > 4)
+                  keyValues.dropRight(1).reverse.find(!_.isPrefixCompressed) foreach {
+                    expectedLower =>
+                      lower.get.key shouldBe expectedLower.key
+                  }
 
               case _: SearchResult.Some[_] =>
                 fail("Didn't expect a match")
@@ -370,7 +486,7 @@ class BinarySearchIndexBlockSpec extends TestBase {
               case fixed: Transient.Fixed =>
                 getHigher(fixed.key) match {
                   case SearchResult.None(lower) =>
-                    if (keyValues.size > 2)
+                    if (keyValues.size > 4)
                       lower.get.key.readInt() should be < fixed.key.readInt()
                     expectedHigher shouldBe empty
 
