@@ -4,7 +4,7 @@
 [gitter-link]: https://gitter.im/SwayDB-chat/Lobby
 
 [slack-badge]: https://img.shields.io/badge/slack-join%20chat-e01563.svg
-[slack-link]: https://join.slack.com/t/swaydb/shared_invite/enQtNjM5MDM2MjYyMTE2LWU3ZTczNjA4YTAxZGNhMzk2MDc1MDViZTE0MzkyMmI2Y2E0OGE1ODg0MGJiZjY3YzY3MTE2MTA4MDcxZmMzMzY
+[slack-link]: https://join.slack.com/t/swaydb/shared_invite/enQtNzI1NzM1NTA0NzQxLTJiNjRhMDg2NGQ3YzBkNGMxZGRmODlkN2M3MWEwM2U2NWY1ZmU5OWEyYTgyN2ZhYjlhNjdlZTM3YWJjMGZmNzQ
 
 [maven-badge]: https://img.shields.io/maven-central/v/io.swaydb/swaydb_2.12.svg
 [maven-link]: https://search.maven.org/search?q=g:io.swaydb%20AND%20a:swaydb_2.12
