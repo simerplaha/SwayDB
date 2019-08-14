@@ -19,8 +19,6 @@
 
 package swaydb.core.segment.format.a.block.reader
 
-import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.io.reader.Reader

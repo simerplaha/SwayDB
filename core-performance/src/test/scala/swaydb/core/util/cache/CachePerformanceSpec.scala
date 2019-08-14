@@ -39,7 +39,7 @@ class CachePerformanceSpec extends WordSpec with Matchers {
             IO.Success(int)
         }
       }
-    } should be < 0.15
+    } should be < 0.13
   }
 
   "reading concurrentIO" when {

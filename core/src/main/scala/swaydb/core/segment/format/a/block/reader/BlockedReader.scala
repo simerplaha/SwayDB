@@ -25,9 +25,6 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps, SegmentBlock}
 import swaydb.data.slice.{Reader, Slice}
 
-/**
- * Reader[swaydb.Error.Segment] for the [[Block.CompressionInfo]] that skips [[Block.Header]] bytes.
- */
 private[core] object BlockedReader {
 
   def apply[O <: BlockOffset, B <: Block[O]](block: B,
@@ -84,5 +81,4 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
       reader = reader.copy(),
       block = block
     )
-
 }

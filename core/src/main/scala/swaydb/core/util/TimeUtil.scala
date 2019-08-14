@@ -28,24 +28,24 @@ import scala.concurrent.duration.Deadline
 object TimeUtil {
 
   implicit class OptionDeadlineImplicits(deadline: Option[Deadline]) {
-    def toNanos: Long =
+    @inline def toNanos: Long =
       deadline.map(_.time.toNanos).getOrElse(0L)
   }
 
   implicit class DeadlineImplicits(deadline: Deadline) {
-    def toNanos: Long =
+    @inline def toNanos: Long =
       deadline.time.toNanos
 
-    def toLongUnsignedBytes: Slice[Byte] =
+    @inline def toLongUnsignedBytes: Slice[Byte] =
       Slice.writeLongUnsigned(toNanos)
 
-    def toBytes: Slice[Byte] =
+    @inline def toBytes: Slice[Byte] =
       Slice.writeLong(toNanos)
   }
 
   implicit class LongImplicits(deadline: Long) {
 
-    def toDeadlineOption: Option[Deadline] =
+    @inline def toDeadlineOption: Option[Deadline] =
       if (deadline <= 0L)
         None
       else

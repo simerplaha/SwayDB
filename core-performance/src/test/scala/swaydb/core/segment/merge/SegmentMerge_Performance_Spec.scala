@@ -37,10 +37,10 @@ class SegmentMerge_Performance_Spec extends TestBase {
   val keyValueCount = 100
 
   "performance" in {
-    implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupBy(100, keyValueSize = Some(1.mb), groupByGroups = None))
-    //    implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupBy(2, groupByGroups = Some(randomGroupByGroups(Int.MaxValue, size = Some(1.mb)))))
-    //    implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(10, groupByGroups = None)
-//      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
+    //        implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupBy(100, keyValueSize = Some(1.mb), groupByGroups = None))
+    //        implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupBy(2, groupByGroups = Some(randomGroupByGroups(Int.MaxValue, size = Some(1.mb)))))
+    //    implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(10, keyValueSize = None, groupByGroups = None)
+    implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
     val keyValues = randomKeyValues(100000)
     Benchmark(s"SegmentMerger performance. groupBy: ${groupBy.map(_.count)}:${groupBy.flatMap(_.size)}.bytes - groupByGroups: ${groupBy.flatMap(_.groupByGroups.map(_.count))}:${groupBy.flatMap(_.groupByGroups.flatMap(_.size))}.bytes") {
@@ -51,12 +51,12 @@ class SegmentMerge_Performance_Spec extends TestBase {
         isLastLevel = false,
         forInMemory = false,
         createdInLevel = randomIntMax(),
-        valuesConfig = ValuesBlock.Config.random,
-        sortedIndexConfig = SortedIndexBlock.Config.random,
-        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-        hashIndexConfig = HashIndexBlock.Config.random,
-        bloomFilterConfig = BloomFilterBlock.Config.random,
-        segmentIO = SegmentIO.random
+        valuesConfig = ValuesBlock.Config.disabled,
+        sortedIndexConfig = SortedIndexBlock.Config.disabled,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
+        hashIndexConfig = HashIndexBlock.Config.disabled,
+        bloomFilterConfig = BloomFilterBlock.Config.disabled,
+        segmentIO = SegmentIO.defaultConcurrentStoredIfCompressed
       ).get
     }
   }
