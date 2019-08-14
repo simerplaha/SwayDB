@@ -53,7 +53,7 @@ class SegmentBlockCache(id: String,
    *
    * @see SegmentBlockCacheSpec which will fail is stored is set to false.
    */
-  val segmentIOStrategyCache = Lazy.value[IOStrategy](synchronised = true, stored = true, initial = None)
+  private val segmentIOStrategyCache = Lazy.value[IOStrategy](synchronised = true, stored = true, initial = None)
 
   def segmentBlockIO(action: IOAction) =
     segmentIOStrategyCache getOrSet segmentIO.segmentBlockIO(action)

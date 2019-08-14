@@ -72,8 +72,6 @@ sealed trait TimerSpec extends TestBase {
                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer
 
-  override def persistent: Boolean
-
   "it" should {
 
     "write time sequentially" in {

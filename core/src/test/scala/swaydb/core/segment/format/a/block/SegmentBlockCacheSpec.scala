@@ -16,6 +16,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.JavaConverters._
+import scala.util.Random
 
 class SegmentBlockCacheSpec extends TestBase {
   implicit val order = KeyOrder.default
@@ -60,6 +61,38 @@ class SegmentBlockCacheSpec extends TestBase {
         bloomFilterReader.asScala.toList.distinct.size shouldBe bloomFilterReader.size
         hashIndexReader.asScala.toList.distinct.size shouldBe hashIndexReader.size
         valuesReader.asScala.toList.distinct.size shouldBe valuesReader.size
+      }
+    }
+  }
+
+  "clear" should {
+    "none all cached" in {
+      val keyValues = Slice(Transient.put(1, 1))
+      val blockCache = getSegmentBlockCache(keyValues)
+      blockCache.isCached shouldBe false
+
+      val readers: Seq[() => Option[Object]] =
+        Seq(
+          () => Some(blockCache.getFooter().runRandomIO.get),
+          () => Some(blockCache.createSegmentBlockReader().runRandomIO.value),
+          () => Some(blockCache.createSortedIndexReader().runRandomIO.value),
+          () => blockCache.createBinarySearchIndexReader().runRandomIO.value,
+          () => blockCache.createBloomFilterReader().runRandomIO.value,
+          () => blockCache.createHashIndexReader().runRandomIO.value,
+          () => blockCache.createValuesReader().runRandomIO.value
+        )
+
+      runThis(100.times) {
+
+        //this will randomly run some readers and ignore some.
+        Random.shuffle(readers) takeWhile {
+          reader =>
+            reader().isEmpty
+        }
+
+        blockCache.isCached shouldBe true
+        blockCache.clear()
+        blockCache.isCached shouldBe false
       }
     }
   }
