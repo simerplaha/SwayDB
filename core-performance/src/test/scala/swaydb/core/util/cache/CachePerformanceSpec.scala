@@ -32,14 +32,14 @@ class CachePerformanceSpec extends WordSpec with Matchers {
   val range = 1 to 1000000
 
   "initialising caches" in {
-    Benchmark("initialising 1 million concurrent caches") {
+    Benchmark.time("initialising caches") {
       runThis(range.size.times) {
         Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](_ => randomIOStrategy(), swaydb.Error.ReservedResource(Reserve(name = "test"))) {
           int =>
             IO.Success(int)
         }
       }
-    }
+    } should be < 0.15
   }
 
   "reading concurrentIO" when {

@@ -21,7 +21,7 @@ package swaydb.core.util
 
 
 object Benchmark {
-  def apply[R](message: String, inlinePrint: Boolean = false)(benchmarkThis: => R): R = {
+  private def run[R](message: String, inlinePrint: Boolean = false)(benchmarkThis: => R): (R, Double) = {
     if (inlinePrint)
       print(s"Benchmarking: $message: ")
     else
@@ -29,18 +29,18 @@ object Benchmark {
     val startTime = System.nanoTime()
     val result = benchmarkThis
     val endTime = System.nanoTime()
+    val timeTaken = ((endTime - startTime) / 1000000000.0: Double)
     if (inlinePrint)
-      print(((endTime - startTime) / 1000000000.0: Double) + " seconds.")
+      print(timeTaken + " seconds.")
     else
-      println(((endTime - startTime) / 1000000000.0: Double) + " seconds.")
+      println(timeTaken + " seconds.")
     println
-    result
+    (result, timeTaken)
   }
 
-  def apply(benchmarkThis: => Unit): Double = {
-    val startTime = System.nanoTime()
-    benchmarkThis
-    val endTime = System.nanoTime()
-    (endTime - startTime) / 1000000000.0: Double
-  }
+  def apply[R](message: String, inlinePrint: Boolean = false)(benchmarkThis: => R): R =
+    run(message, inlinePrint)(benchmarkThis)._1
+
+  def time(message: String, inlinePrint: Boolean = false)(benchmarkThis: => Unit): Double =
+    run(message, inlinePrint)(benchmarkThis)._2
 }
