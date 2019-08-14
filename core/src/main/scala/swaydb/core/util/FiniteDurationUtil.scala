@@ -50,7 +50,6 @@ object FiniteDurationUtil {
    */
   def getNearestDeadline(deadline: Option[Deadline],
                          next: Option[Deadline]): Option[Deadline] =
-
     (deadline, next) match {
       case (Some(previous), Some(next)) =>
         if (previous < next)

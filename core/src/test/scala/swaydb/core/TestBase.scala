@@ -647,8 +647,10 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                        assert: (Slice[Transient], Segment) => T,
                        testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                          keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                           segmentIO: SegmentIO = SegmentIO.random,
                                                           groupBy: Option[GroupByInternal.KeyValues]) = {
+    println(s"assertSegment - keyValues: ${keyValues.size}")
     val segment = TestSegment(keyValues).value
     if (closeAfterCreate) segment.close.value
 

@@ -101,5 +101,4 @@ class ValuesBlockSpec extends TestBase {
       }
     }
   }
-
 }

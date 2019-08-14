@@ -231,7 +231,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     "un-slice Segment's minKey & maxKey and also un-slice cache key-values" in {
       //assert that all key-values added to cache are not sub-slices.
       def assertCacheKeyValuesAreSliced(segment: Segment) =
-        segment.cache.asScala foreach {
+        segment.skipList.asScala foreach {
           case (key, value: KeyValue.ReadOnly) =>
             key.shouldBeSliced()
             assertSliced(value)
@@ -523,7 +523,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       if (memory) {
         //memory Segments cannot re-initialise Segments after shutdown.
       } else {
-        runThisParallel(1.times) {
+        runThis(10.times) {
           assertSegment(
             keyValues =
               randomizedKeyValues(keyValuesCount),
@@ -541,6 +541,8 @@ sealed trait SegmentWriteSpec extends TestBase {
                 segment.isKeyValueCacheEmpty shouldBe true
 
                 assertReads(keyValues, segment)
+
+                segment.skipList.isConcurrent shouldBe true
 
                 segment.isOpen shouldBe true
                 segment.isFileDefined shouldBe true

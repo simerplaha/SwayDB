@@ -89,11 +89,11 @@ class SegmentKeyValueLimiterSpec extends TestBase {
         runThis(100.times, log = true) {
           eventual(40.seconds) {
             //cache should only contain the uncompressed Group and other non group key-values
-            segment.cache.size shouldBe (nonGroupKeyValues.size + 1)
+            segment.skipList.size shouldBe (nonGroupKeyValues.size + 1)
             segment.areAllCachesEmpty shouldBe false //group and other key-values exists
 
             //assert that group always exists and that it does not value dropped from the cache.
-            def headGroup = segment.cache.headKeyValue.get._2.asInstanceOf[Memory.Group]
+            def headGroup = segment.skipList.headKeyValue.get._2.asInstanceOf[Memory.Group]
 
             //read all key-values and this should trigger dropping of key-values
             assertGet(nonGroupKeyValues, segment)
@@ -112,7 +112,7 @@ class SegmentKeyValueLimiterSpec extends TestBase {
             )
 
             //but Segment's cache is never emptied
-            segment.cache.size shouldBe (nonGroupKeyValues.size + 1)
+            segment.skipList.size shouldBe (nonGroupKeyValues.size + 1)
           }
         }
       } finally {
@@ -159,7 +159,7 @@ class SegmentKeyValueLimiterSpec extends TestBase {
         assertGet(groupKeyValues, segment)
 
         //Group is cached into the Segment
-        val headGroup = segment.cache.headKeyValue.get._2.asInstanceOf[Persistent.Group]
+        val headGroup = segment.skipList.headKeyValue.get._2.asInstanceOf[Persistent.Group]
         headGroup.isKeyValuesCacheEmpty shouldBe false
         headGroup.areAllCachesEmpty shouldBe false
         segment.isInKeyValueCache(headGroup.key) shouldBe true
@@ -168,7 +168,7 @@ class SegmentKeyValueLimiterSpec extends TestBase {
         eventual(2.seconds)(segment.cachedKeyValueSize shouldBe 1)
 
         //fetch the head Group key-value from the Segment's cache and assert that it actually is decompressed and it's cache is empty.
-        val headGroupAgain = segment.cache.headKeyValue.get._2.asInstanceOf[Persistent.Group]
+        val headGroupAgain = segment.skipList.headKeyValue.get._2.asInstanceOf[Persistent.Group]
         eventual(2.seconds)(headGroupAgain.isBlockCacheEmpty shouldBe true)
 
         //remove more key-values so that Group gets pushed out.

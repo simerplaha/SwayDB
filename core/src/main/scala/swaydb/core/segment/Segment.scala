@@ -106,7 +106,7 @@ private[core] object Segment extends LazyLogging {
                   _hasGroup = keyValues.last.stats.segmentHasGroup,
                   _isGrouped = groupBy.isDefined,
                   _createdInLevel = createdInLevel.toInt,
-                  cache = skipList,
+                  skipList = skipList,
                   bloomFilterReader = bloomFilter,
                   nearestExpiryDeadline = minMaxDeadline.nearestDeadline
                 )
@@ -258,7 +258,7 @@ private[core] object Segment extends LazyLogging {
 
       case memory: MemorySegment =>
         copyToPersist(
-          keyValues = memory.cache.values().asScala,
+          keyValues = memory.skipList.values().asScala,
           segmentConfig = segmentConfig,
           createdInLevel = createdInLevel,
           fetchNextPath = fetchNextPath,
@@ -889,7 +889,7 @@ private[core] trait Segment extends FileLimiterItem {
   val segmentSize: Int
   val nearestExpiryDeadline: Option[Deadline]
   val minMaxFunctionId: Option[MinMax[Slice[Byte]]]
-  private[segment] def cache: SkipList[Slice[Byte], _ <: KeyValue.ReadOnly]
+  private[segment] def skipList: SkipList[Slice[Byte], _ <: KeyValue.ReadOnly]
 
   def createdInLevel: IO[swaydb.Error.Segment, Int]
 
