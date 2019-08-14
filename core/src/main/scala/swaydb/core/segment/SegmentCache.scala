@@ -81,22 +81,18 @@ private[core] class SegmentCache(id: String,
    */
   private def addToCache(keyValue: Persistent.SegmentResponse): Unit = {
     if (unsliceKey) keyValue.unsliceKeys
-    if (skipList.isConcurrent) {
-      if (skipList.putIfAbsent(keyValue.key, keyValue))
-        keyValueLimiter.foreach(_.add(keyValue, skipList))
-    } else {
+    if (!skipList.isConcurrent)
       skipList.put(keyValue.key, keyValue)
-    }
+    else if (skipList.putIfAbsent(keyValue.key, keyValue))
+      keyValueLimiter.foreach(_.add(keyValue, skipList))
   }
 
   private def addToCache(group: Persistent.Group): Unit = {
     if (unsliceKey) group.unsliceKeys
-    if (skipList.isConcurrent) {
-      if (skipList.putIfAbsent(group.key, group))
-        keyValueLimiter.foreach(_.add(group, skipList))
-    } else {
+    if (!skipList.isConcurrent)
       skipList.put(group.key, group)
-    }
+    else if (skipList.putIfAbsent(group.key, group))
+      keyValueLimiter.foreach(_.add(group, skipList))
   }
 
   private def createSortedIndexReader(): IO[Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] = {

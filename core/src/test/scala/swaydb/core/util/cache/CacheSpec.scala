@@ -454,7 +454,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
           }
 
           if (blockIO)
-            invokeCount should be <= 2 //since it's cleared above.
+            invokeCount shouldBe 2 //2 because it's cleared above.
           else
             invokeCount shouldBe 1
         }
