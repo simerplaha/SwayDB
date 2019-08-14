@@ -1552,11 +1552,11 @@ object TestData {
 
   def randomBytes(size: Int = 10) = Array.fill(size)(randomByte())
 
-  def randomByteChunks(size: Int = 10, sizePerChunk: Int = 10): Seq[Slice[Byte]] =
-    (1 to size) map {
+  def randomByteChunks(size: Int = 10, sizePerChunk: Int = 10): Slice[Slice[Byte]] =
+    (1 to size).map({
       _ =>
         Slice(randomBytes(sizePerChunk))
-    }
+    })(collection.breakOut)
 
   def randomBytesSlice(size: Int = 10) = Slice(randomBytes(size))
 

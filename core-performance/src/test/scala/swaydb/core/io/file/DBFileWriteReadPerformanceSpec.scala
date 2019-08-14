@@ -19,9 +19,14 @@
 
 package swaydb.core.io.file
 
+import java.nio.channels.FileChannel
+import java.nio.file.StandardOpenOption
+
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.TestData._
 import swaydb.core.queue.FileLimiter
+import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.config.IOStrategy
@@ -34,25 +39,48 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
 
   "DBFile" should {
     //use larger chunkSize to test on larger data-set
-    val chunkSize = 100.kb
-    //val chunkSize = 1.mb
+    //    val chunkSize = 100.kb
+    val chunkSize = 4096
+    val bytes = randomByteChunks(1000, chunkSize)
+    val flattenBytes: Slice[Byte] = bytes.flatten.toSlice
 
+    /**
+     * [[ChannelFile]] and [[FileChannel]] have nearly the same performance results but exactly the same
+     * because [[ChannelFile]] has to maintain cache.
+     */
     "Write performance" in {
+      val path = randomFilePath
+      val channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
 
-      val bytes = (1 to 1000) map (_ => randomBytesSlice(chunkSize))
+      Benchmark("raw channel") {
+        bytes.foldLeft(0) {
+          case (position, bytes) =>
+            channel.write(bytes.toByteBufferWrap, position)
+            position + bytes.size
+        }
+      }
+
+      channel.close()
+      //assert that bytes were
+      IOEffect.readAll(path).get shouldBe flattenBytes
+
       /**
        * Benchmark file channel write
        * Round 1: 1.441824636 seconds
        * Round 2: 1.328009528 seconds
        * Round 3: 1.3148811 seconds
        */
-      val channelFile = DBFile.channelWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(false)).runRandomIO.value
+      val channelFile = DBFile.channelWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
       Benchmark("FileChannel write Benchmark") {
         bytes foreach channelFile.append
       }
+
       //check all the bytes were written
-      val readChannelFile = DBFile.channelRead(channelFile.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(false)).runRandomIO.value
+      val readChannelFile = DBFile.channelRead(channelFile.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
       readChannelFile.fileSize.runRandomIO.value shouldBe bytes.size * chunkSize
+      IOEffect.readAll(channelFile.path).get shouldBe flattenBytes
+      channelFile.close.runRandomIO.value
+      readChannelFile.close.runRandomIO.value
 
       /**
        * Benchmark memory mapped files write
@@ -62,20 +90,18 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
        * Round 3: 0.542235514 seconds
        */
 
-      val mmapFile = DBFile.mmapInit(randomFilePath, IOStrategy.ConcurrentIO(false), bytes.size * chunkSize, autoClose = true).runRandomIO.value
+      val mmapFile = DBFile.mmapInit(randomFilePath, IOStrategy.ConcurrentIO(true), bytes.size * chunkSize, autoClose = true).runRandomIO.value
       Benchmark("mmap write Benchmark") {
         bytes foreach mmapFile.append
       }
       mmapFile.fileSize.runRandomIO.value shouldBe bytes.size * chunkSize
-
-      channelFile.close.runRandomIO.value
-      readChannelFile.close.runRandomIO.value
       mmapFile.close.runRandomIO.value
+      IOEffect.readAll(mmapFile.path).get shouldBe flattenBytes
     }
 
     "Get performance" in {
       val bytes = randomBytes(chunkSize)
-      val file = DBFile.channelWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(false)).runRandomIO.value
+      val file = DBFile.channelWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
       file.append(Slice(bytes))
       file.close.runRandomIO.value
 
@@ -86,7 +112,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
        * Round 3: 1.842739196 seconds
        */
 
-      val channelFile = DBFile.channelRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(false)).runRandomIO.value
+      val channelFile = DBFile.channelRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
       Benchmark("FileChannel value Benchmark") {
         bytes.indices foreach {
           index =>
@@ -102,7 +128,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
        * Round 2: 0.965750206 seconds
        * Round 3: 1.044735106 seconds
        */
-      val mmapFile = DBFile.mmapRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(false)).runRandomIO.value
+      val mmapFile = DBFile.mmapRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
       Benchmark("mmap value Benchmark") {
         bytes.indices foreach {
           index =>
@@ -121,7 +147,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
           allBytes addAll bytes
           bytes
       }
-      val file = DBFile.channelWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(false)).runRandomIO.value
+      val file = DBFile.channelWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
       bytes foreach (file.append(_).runRandomIO.value)
       file.close.runRandomIO.value
 
@@ -132,7 +158,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
        * Round 3: 0.819253382 seconds
        */
 
-      val channelFile = DBFile.channelRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(false)).runRandomIO.value
+      val channelFile = DBFile.channelRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
       Benchmark("FileChannel read Benchmark") {
         bytes.foldLeft(0) {
           case (index, byteSlice) =>
@@ -150,7 +176,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
        * Round 2: 0.54580672 seconds
        * Round 3: 0.463990916 seconds
        */
-      val mmapFile = DBFile.mmapRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(false)).runRandomIO.value
+      val mmapFile = DBFile.mmapRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
 
       Benchmark("mmap read Benchmark") {
         bytes.foldLeft(0) {

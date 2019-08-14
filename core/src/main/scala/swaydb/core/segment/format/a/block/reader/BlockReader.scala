@@ -102,20 +102,21 @@ private[reader] object BlockReader extends LazyLogging {
 
   def readRandom(size: Int, state: State): IO[Error.Segment, Slice[Byte]] = {
     val remaining = state.remaining
-    if (remaining <= 0)
+    if (remaining <= 0) {
       IO.emptyBytes
-    else
+    } else {
+      val bytesToRead = size min remaining
       state
         .reader
         .moveTo(state.offset.start + state.position)
-        .read(size min remaining)
+        .read(bytesToRead)
         .map {
           bytes =>
-            val actualSize = size min remaining
-            state.position += actualSize
+            state.position += bytesToRead
             state.updatePreviousEndPosition()
             bytes
         }
+    }
   }
 
   def readSequential(size: Int, fromCache: Slice[Byte], state: State): IO[Error.Segment, Slice[Byte]] =

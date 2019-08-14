@@ -448,6 +448,7 @@ class Slice[+T: ClassTag] private(array: Array[T],
             toOffsetAdjusted - fromOffsetAdjusted + 1
           else //partially written
             actualWritePosition - fromOffsetAdjusted
+
         new Slice[T](
           array = array,
           fromOffset = fromOffsetAdjusted,

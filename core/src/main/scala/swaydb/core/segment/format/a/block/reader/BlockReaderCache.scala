@@ -29,6 +29,9 @@ object BlockReaderCache {
     def toOffset = fromOffset + bytes.size - 1
 
     def size = bytes.size
+
+    def isEmpty =
+      size == 0
   }
 
   def set(position: Int, bytes: Slice[Byte], state: State): Unit = {
@@ -40,7 +43,9 @@ object BlockReaderCache {
     new State(position, bytes)
 
   def read(position: Int, size: Int, state: State): Slice[Byte] =
-    if (position >= state.fromOffset && position <= state.toOffset)
+    if (state.isEmpty)
+      Slice.emptyBytes
+    else if (position >= state.fromOffset && position <= state.toOffset)
       state.bytes.drop(position - state.fromOffset) take size
     else
       Slice.emptyBytes
