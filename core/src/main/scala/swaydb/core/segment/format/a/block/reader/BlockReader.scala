@@ -21,9 +21,9 @@ package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
-import swaydb.{Error, IO}
 import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.data.slice.{Reader, Slice}
+import swaydb.{Error, IO}
 
 private[reader] object BlockReader extends LazyLogging {
 
@@ -83,11 +83,11 @@ private[reader] object BlockReader extends LazyLogging {
 
   def isSequentialRead(fromCache: Slice[Byte], state: State): Boolean = {
     val isSeq =
-      fromCache.nonEmpty || //if there was data fetch from cache
-        (state.cache.toOffset + 1) == state.position || { //if position is the start of the next block.
-        state.isFile && {
+      state.isFile && state.blockSize > 0 && {
+        fromCache.nonEmpty || //if there was data fetch from cache
+          (state.cache.toOffset + 1) == state.position || { //if position is the start of the next block.
           state.previousReadEndPosition == 0 || //if this is the initial read.
-            state.position - state.previousReadEndPosition == 0 //if position is continuation of previous read's end position
+            state.position - state.previousReadEndPosition <= 1 //if position is continuation of previous read's end position
         }
       }
     state.isSequentialRead = isSeq
@@ -195,7 +195,14 @@ private[reader] object BlockReader extends LazyLogging {
       IO.Failure(swaydb.Error.Fatal(s"Has no more bytes. Position: ${state.position}"))
 
   def read(size: Int, state: State): IO[swaydb.Error.Segment, Slice[Byte]] = {
-    val fromCache = readFromCache(size, state)
+    var fromCache = readFromCache(size, state)
+    if (state.isFile && fromCache.isEmpty && state.blockSize >= state.offset.size)
+      readFullBlock(state) foreach {
+        bytes =>
+          BlockReaderCache.set(0, bytes, state.cache)
+          fromCache = readFromCache(size, state)
+      }
+
     if (isSequentialRead(fromCache, state))
       readSequential(size, fromCache, state)
     else

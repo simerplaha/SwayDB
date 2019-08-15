@@ -43,9 +43,9 @@ import scala.concurrent.duration._
 import scala.util.Random
 
 class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = false
-  //  override def mmapSegmentsOnWrite = false
-  //  override def mmapSegmentsOnRead = false
+  val testGroupedKeyValues: Boolean = true
+  override def mmapSegmentsOnWrite = false
+  override def mmapSegmentsOnRead = false
 }
 
 class SegmentReadPerformanceSpec1 extends SegmentReadPerformanceSpec {
@@ -106,32 +106,83 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   def testGroupedKeyValues: Boolean
 
-  val keyValuesCount = 1000000
+  val keyValuesCount = 100000
+
+  //    override def deleteFiles = false
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = None
 
   def strategy(action: IOAction): IOStrategy =
     action match {
+      case IOAction.OpenResource =>
+        IOStrategy.SynchronisedIO(cacheOnAccess = true)
       case IOAction.ReadDataOverview =>
-        IOStrategy.ConcurrentIO(cacheOnAccess = true)
+        IOStrategy.SynchronisedIO(cacheOnAccess = true)
       case IOAction.ReadCompressedData(compressedSize, decompressedSize) =>
         ???
       case IOAction.ReadUncompressedData(size) =>
         IOStrategy.SynchronisedIO(cacheOnAccess = false)
-      case IOAction.OpenResource =>
-        IOStrategy.ConcurrentIO(cacheOnAccess = true)
     }
 
   implicit val segmentIO =
     new SegmentIO(
-      segmentBlockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-      hashIndexBlockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-      bloomFilterBlockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-      binarySearchIndexBlockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-      sortedIndexBlockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-      valuesBlockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-      segmentFooterBlockIO = strategy
+      segmentBlockIO = {
+        case IOAction.OpenResource =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case IOAction.ReadDataOverview =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case action: IOAction.DataAction =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = false)
+      },
+      hashIndexBlockIO = {
+        case IOAction.OpenResource =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case IOAction.ReadDataOverview =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case action: IOAction.DataAction =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = false)
+      },
+      bloomFilterBlockIO = {
+        case IOAction.OpenResource =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case IOAction.ReadDataOverview =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case action: IOAction.DataAction =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = false)
+      },
+      binarySearchIndexBlockIO = {
+        case IOAction.OpenResource =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case IOAction.ReadDataOverview =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case action: IOAction.DataAction =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = false)
+      },
+      sortedIndexBlockIO = {
+        case IOAction.OpenResource =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case IOAction.ReadDataOverview =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case action: IOAction.DataAction =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = false)
+      },
+      valuesBlockIO = {
+        case IOAction.OpenResource =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case IOAction.ReadDataOverview =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case action: IOAction.DataAction =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = false)
+      },
+      segmentFooterBlockIO = {
+        case IOAction.OpenResource =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case IOAction.ReadDataOverview =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+        case action: IOAction.DataAction =>
+          IOStrategy.SynchronisedIO(cacheOnAccess = false)
+      }
     )
 
   //    lazy val unGroupedKeyValues: Slice[Transient] =
@@ -185,7 +236,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       startId = Some(1),
       sortedIndexConfig =
         SortedIndexBlock.Config(
-          blockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
           prefixCompressionResetCount = 0,
           enableAccessPositionIndex = true,
           compressions = _ => Seq.empty
@@ -205,24 +256,51 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           blockIO = strategy,
           compressions = _ => Seq.empty
         ),
-      hashIndexConfig =
-        HashIndexBlock.Config(
-          maxProbe = 2,
-          minimumNumberOfKeys = 2,
-          minimumNumberOfHits = 2,
-          allocateSpace = _.requiredSpace * 200,
-          blockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-          compressions = _ => Seq.empty
-        ),
+      //      hashIndexConfig =
+      //        HashIndexBlock.Config(
+      //          maxProbe = 2,
+      //          minimumNumberOfKeys = 5,
+      //          minimumNumberOfHits = 5,
+      //          allocateSpace = _.requiredSpace * 10,
+      //          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+      //          compressions = _ => Seq.empty
+      //        ),
+      hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig =
         BloomFilterBlock.Config.disabled
       //      bloomFilterConfig =
       //        BloomFilterBlock.Config(
       //          falsePositiveRate = 0.001,
       //          minimumNumberOfKeys = 2,
-      //          blockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+      //          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
       //          compressions = _ => Seq.empty
       //        )
+    )
+
+  val group =
+    Some(
+      GroupByInternal.KeyValues(
+        count = 1000,
+        size = None,
+        groupByGroups = None,
+        valuesConfig = unGroupedKeyValues.last.valuesConfig,
+        sortedIndexConfig = unGroupedKeyValues.last.sortedIndexConfig,
+        binarySearchIndexConfig = unGroupedKeyValues.last.binarySearchIndexConfig,
+        hashIndexConfig = unGroupedKeyValues.last.hashIndexConfig,
+        bloomFilterConfig = unGroupedKeyValues.last.bloomFilterConfig,
+        groupConfig = SegmentBlock.Config(
+          {
+            case IOAction.OpenResource =>
+              IOStrategy.SynchronisedIO(cacheOnAccess = true)
+            case IOAction.ReadDataOverview =>
+              IOStrategy.SynchronisedIO(cacheOnAccess = true)
+            case action: IOAction.DataAction =>
+              IOStrategy.SynchronisedIO(cacheOnAccess = false)
+          },
+          _ => Seq.empty
+        ),
+        applyGroupingOnCopy = randomBoolean()
+      )
     )
 
   lazy val groupedKeyValues: Slice[Transient] = {
@@ -233,13 +311,13 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         isLastLevel = false,
         forInMemory = false,
         createdInLevel = randomIntMax(),
-        valuesConfig = ValuesBlock.Config.random,
-        sortedIndexConfig = SortedIndexBlock.Config.random,
-        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-        hashIndexConfig = HashIndexBlock.Config.random,
-        bloomFilterConfig = BloomFilterBlock.Config.random,
-        segmentIO = SegmentIO.random
-      )(keyOrder = keyOrder, groupBy = Some(randomGroupBy(100))).value
+        valuesConfig = unGroupedKeyValues.last.valuesConfig,
+        sortedIndexConfig = unGroupedKeyValues.last.sortedIndexConfig,
+        binarySearchIndexConfig = unGroupedKeyValues.last.binarySearchIndexConfig,
+        hashIndexConfig = unGroupedKeyValues.last.hashIndexConfig,
+        bloomFilterConfig = unGroupedKeyValues.last.bloomFilterConfig,
+        segmentIO = segmentIO
+      )(keyOrder = keyOrder, groupBy = group).value
 
     grouped should have size 1
     grouped.head.toSlice
@@ -250,24 +328,14 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   val shuffledUnGroupedKeyValues = Random.shuffle(unGroupedKeyValues)
 
   def assertGet(segment: Segment) = {
-    //        val shuffed = Random.shuffle(unGroupedKeyValues)
-    //        Benchmark("shuffled") {
-    //          shuffed foreach {
-    //            keyValue =>
-    //              //        val key = keyValue.key.readInt()
-    //              //        if (key % 1000 == 0)
-    //              //          println(key)
-    //              segment.get(keyValue.key).get
-    //          }
-    //        }
-    unGroupedKeyValues foreach {
+    shuffledUnGroupedKeyValues foreach {
       keyValue =>
         //        val key = keyValue.key.readInt()
-        //        if (key % 1000 == 0)
+        ////        if (key % 1000 == 0)
         //          println(key)
         //        val found = segment.get(keyValue.key).get.get
         //        found.getOrFetchValue
-//        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
+        //                segment.get(keyValue.key).get.get.key shouldBe keyValue.key
         segment.get(keyValue.key).get
     }
   }
@@ -304,11 +372,14 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   def initSegment() = {
     warmUp()
-    Benchmark(s"Creating segment. keyValues: ${keyValues.size}") {
+
+    Benchmark(s"Creating segment. keyValues: ${keyValues.size}. groupedKeyValues: $testGroupedKeyValues") {
       implicit val groupBy: Option[GroupByInternal.KeyValues] = None
       val segmentConfig = SegmentBlock.Config(strategy, _ => Seq.empty)
       segment = TestSegment(keyValues, segmentConfig = segmentConfig).value
     }
+
+    //    printGroupHierarchy(Slice(segment))
   }
 
   def reopenSegment() = {
@@ -330,10 +401,15 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   "Segment value benchmark 1" in {
     initSegment()
 
-//    val hashIndex = segment.asInstanceOf[PersistentSegment].segmentCache.blockCache.getHashIndex().get.get
-//    println(s"hashIndex.hit: ${hashIndex.hit}")
-//    println(s"hashIndex.miss: ${hashIndex.miss}")
-//    println(s"hashIndex.size: ${hashIndex.offset.size}")
+    //    val all = segment.getAll()
+
+    segment.asInstanceOf[PersistentSegment].segmentCache.blockCache.getHashIndex().get foreach {
+      hashIndex =>
+        println(s"hashIndex.hit: ${hashIndex.hit}")
+        println(s"hashIndex.miss: ${hashIndex.miss}")
+        println(s"hashIndex.size: ${hashIndex.offset.size}")
+        println
+    }
 
     //
     //    val file = DBFile.mmapRead(segment.path, randomIOStrategy(false), true).get
@@ -355,9 +431,9 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       assertGet(segment)
     }
 
-    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
-      assertGet(segment)
-    }
+    //    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+    //      assertGet(segment)
+    //    }
 
     //
     //    //    segment.clearCachedKeyValues()

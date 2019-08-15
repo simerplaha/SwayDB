@@ -216,9 +216,7 @@ private[core] class SegmentCache(id: String,
       //        IO.none
 
       case _ =>
-        val floor = skipList.floor(key)
-
-        floor match {
+        skipList.floor(key) match {
           case Some(floor: Persistent.SegmentResponse) if floor.key equiv key =>
             IO.Success(Some(floor))
 
@@ -230,30 +228,54 @@ private[core] class SegmentCache(id: String,
             IO.Success(Some(floorRange))
 
           case floorValue =>
-            blockCache.getFooter() flatMap {
-              footer =>
+            if (key equiv minKey)
+              createSortedIndexReader() flatMap {
+                sortedIndexReader =>
+                  createValuesReader() flatMap {
+                    valuesReader =>
+                      SortedIndexBlock.search(
+                        key = key,
+                        startFrom = None,
+                        sortedIndexReader = sortedIndexReader,
+                        valuesReader = valuesReader
+                      ) flatMap {
+                        case Some(response: Persistent.SegmentResponse) =>
+                          addToCache(response)
+                          IO.Success(Some(response))
 
-                if (footer.hasRange)
-                  get(
-                    key = key,
-                    start = floorValue,
-                    end = skipList.higher(key),
-                    hasRange = footer.hasRange
-                  )
-                else
-                  mightContain(key) flatMap {
-                    mightContain =>
-                      if (mightContain)
-                        get(
-                          key = key,
-                          start = floorValue,
-                          end = skipList.higher(key),
-                          hasRange = footer.hasRange
-                        )
-                      else
-                        IO.none
+                        case Some(group: Persistent.Group) =>
+                          addToCache(group)
+                          group.segment.get(key)
+
+                        case None =>
+                          IO.none
+                      }
                   }
-            }
+              }
+            else
+              blockCache.getFooter() flatMap {
+                footer =>
+                  if (footer.hasRange)
+                    get(
+                      key = key,
+                      start = floorValue,
+                      end = skipList.higher(key),
+                      hasRange = footer.hasRange
+                    )
+                  else
+                    mightContain(key) flatMap {
+                      mightContain =>
+                        if (mightContain)
+                          get(
+                            key = key,
+                            start = floorValue,
+                            end = skipList.higher(key),
+                            hasRange = footer.hasRange
+                          )
+                        else
+                          IO.none
+                    }
+              }
         }
     }
 

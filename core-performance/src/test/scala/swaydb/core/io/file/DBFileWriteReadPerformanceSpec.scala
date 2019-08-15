@@ -25,6 +25,7 @@ import java.nio.file.StandardOpenOption
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.TestData._
+import swaydb.core.io.reader.Reader
 import swaydb.core.queue.FileLimiter
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.Benchmark
@@ -36,6 +37,39 @@ import swaydb.data.util.StorageUnits._
 class DBFileWriteReadPerformanceSpec extends TestBase {
 
   implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
+
+  "random access" in {
+    val bytes = randomBytesSlice(20.mb)
+
+    val file = DBFile.mmapInit(randomFilePath, randomIOStrategy(cacheOnAccess = true), bytes.size, autoClose = true).runRandomIO.value
+    file.append(bytes).runRandomIO.value
+    file.isFull.runRandomIO.value shouldBe true
+
+    file.forceSave().get
+    file.close.get
+
+    import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
+
+    val readerFile = DBFile.mmapRead(file.path, randomIOStrategy(cacheOnAccess = true), true).get
+
+    //    val reader = BlockRefReader(BlockRefReader(BlockRefReader(readerFile).get).get).get
+        val reader = BlockRefReader(readerFile).get
+//    val reader = Reader(readerFile)
+
+    Benchmark("") {
+      (1 to 10000000) foreach {
+        i =>
+          val index = randomIntMax(bytes.size - 5)
+          reader.moveTo(index).read(4).get
+//                  file.read(index, 4).get
+
+        //          reader.moveTo(i * 4).read(4).get
+      }
+    }
+
+    //    println("reader.totalMiss: " + reader.totalMissed)
+    //    println("reader.totalHit: " + reader.totalHit)
+  }
 
   "DBFile" should {
     //use larger chunkSize to test on larger data-set

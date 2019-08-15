@@ -93,7 +93,7 @@ private[core] object SegmentSearcher extends LazyLogging {
             IO.Success(some)
 
           case None =>
-            if ((hashIndexReader.block.isPerfect && !hasRange))
+            if (hashIndexReader.block.isPerfect && !hasRange)
               IO.none
             else
               binarySearch(
