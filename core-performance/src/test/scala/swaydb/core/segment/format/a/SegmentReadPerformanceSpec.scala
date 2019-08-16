@@ -329,7 +329,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   val shuffledUnGroupedKeyValues = Random.shuffle(unGroupedKeyValues)
 
   def assertGet(segment: Segment) = {
-    shuffledUnGroupedKeyValues foreach {
+    unGroupedKeyValues foreach {
       keyValue =>
         //        val key = keyValue.key.readInt()
         ////        if (key % 1000 == 0)

@@ -95,66 +95,11 @@ private[core] class SegmentCache(id: String,
       keyValueLimiter.foreach(_.add(group, skipList))
   }
 
-  private def createSortedIndexReader(): IO[Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] = {
-    val localSegmentReaders = threadStates.get()
-    localSegmentReaders.sortedIndexReader getOrElse {
-      blockCache.createSortedIndexReader() map {
-        sortedIndexReader =>
-          localSegmentReaders setSortedIndexReader Some(IO.Success(sortedIndexReader))
-          sortedIndexReader
-      }
-    }
-  }
-
-  private def createBloomFilterReader(): IO[Error.Segment, Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]] = {
-    val localSegmentReaders = threadStates.get()
-    localSegmentReaders.bloomFilterReader getOrElse {
-      blockCache.createBloomFilterReader() map {
-        reader =>
-          localSegmentReaders setBloomFilterReader Some(IO.Success(reader))
-          reader
-      }
-    }
-  }
-
-  private def createHashIndexReader(): IO[Error.Segment, Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]]] = {
-    val localSegmentReaders = threadStates.get()
-    localSegmentReaders.hashIndexReader getOrElse {
-      blockCache.createHashIndexReader() map {
-        reader =>
-          localSegmentReaders setHashIndexReader Some(IO.Success(reader))
-          reader
-      }
-    }
-  }
-
-  private def createBinarySearchIndexReader(): IO[Error.Segment, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]]] = {
-    val localSegmentReaders = threadStates.get()
-    localSegmentReaders.binarySearchIndexReader getOrElse {
-      blockCache.createBinarySearchIndexReader() map {
-        reader =>
-          localSegmentReaders setBinarySearchIndexReader Some(IO.Success(reader))
-          reader
-      }
-    }
-  }
-
-  private def createValuesReader(): IO[Error.Segment, Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] = {
-    val localSegmentReaders = threadStates.get()
-    localSegmentReaders.valuesReader getOrElse {
-      blockCache.createValuesReader map {
-        reader =>
-          localSegmentReaders setValuesReader Some(IO.Success(reader))
-          reader
-      }
-    }
-  }
-
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     skipList.get(key)
 
   def mightContain(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
-    createBloomFilterReader() flatMap {
+    blockCache.createBloomFilterReader() flatMap {
       bloomFilterReaderOption =>
         bloomFilterReaderOption map {
           bloomFilterReader =>
@@ -169,13 +114,13 @@ private[core] class SegmentCache(id: String,
                   start: Option[Persistent],
                   end: => Option[Persistent],
                   hasRange: Boolean): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
-    createHashIndexReader() flatMap {
+    blockCache.createHashIndexReader() flatMap {
       hashIndexReader =>
-        createBinarySearchIndexReader() flatMap {
+        blockCache.createBinarySearchIndexReader() flatMap {
           binarySearchIndexReader =>
-            createSortedIndexReader() flatMap {
+            blockCache.createSortedIndexReader() flatMap {
               sortedIndexReader =>
-                createValuesReader flatMap {
+                blockCache.createValuesReader() flatMap {
                   valuesReader =>
                     SegmentSearcher.search(
                       key = key,
@@ -229,9 +174,9 @@ private[core] class SegmentCache(id: String,
 
           case floorValue =>
             if (key equiv minKey)
-              createSortedIndexReader() flatMap {
+              blockCache.createSortedIndexReader() flatMap {
                 sortedIndexReader =>
-                  createValuesReader() flatMap {
+                  blockCache.createValuesReader() flatMap {
                     valuesReader =>
                       SortedIndexBlock.search(
                         key = key,
@@ -282,11 +227,11 @@ private[core] class SegmentCache(id: String,
   private def lower(key: Slice[Byte],
                     start: Option[Persistent],
                     end: => Option[Persistent]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
-    createBinarySearchIndexReader() flatMap {
+    blockCache.createBinarySearchIndexReader() flatMap {
       binarySearchIndexReader =>
-        createSortedIndexReader() flatMap {
+        blockCache.createSortedIndexReader() flatMap {
           sortedIndexReader =>
-            createValuesReader flatMap {
+            blockCache.createValuesReader flatMap {
               valuesReader =>
                 SegmentSearcher.searchLower(
                   key = key,
@@ -416,11 +361,11 @@ private[core] class SegmentCache(id: String,
                      end: => Option[Persistent]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
     blockCache.getFooter() flatMap {
       footer =>
-        createBinarySearchIndexReader() flatMap {
+        blockCache.createBinarySearchIndexReader() flatMap {
           binarySearchIndexReader =>
-            createSortedIndexReader() flatMap {
+            blockCache.createSortedIndexReader() flatMap {
               sortedIndexReader =>
-                createValuesReader flatMap {
+                blockCache.createValuesReader() flatMap {
                   valuesReader =>
                     val startFrom =
                       if (start.isDefined || footer.hasGroup) //don't do get if it has Group because it will fetch the inner group key-value which cannot be used as startFrom.
@@ -510,9 +455,9 @@ private[core] class SegmentCache(id: String,
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
     blockCache.getFooter() flatMap {
       footer =>
-        createSortedIndexReader() flatMap {
+        blockCache.createSortedIndexReader() flatMap {
           sortedIndexReader =>
-            createValuesReader flatMap {
+            blockCache.createValuesReader() flatMap {
               valuesReader =>
                 SortedIndexBlock
                   .readAll(

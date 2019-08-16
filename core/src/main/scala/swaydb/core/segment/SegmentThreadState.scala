@@ -41,15 +41,7 @@ class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[Long, Segmen
     val threadId = Thread.currentThread().getId
     val existingState = states.get(threadId)
     if (existingState == null) {
-      val newState =
-        new SegmentThreadState[K, V](
-          hashIndexReader = None,
-          bloomFilterReader = None,
-          binarySearchIndexReader = None,
-          valuesReader = None,
-          sortedIndexReader = None,
-          skipList = SkipList.minMax[K, V]()
-        )
+      val newState = new SegmentThreadState[K, V](skipList = SkipList.minMax[K, V]())
       states.put(threadId, newState)
       newState
     } else {
@@ -61,9 +53,4 @@ class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[Long, Segmen
     states.clear()
 }
 
-class SegmentThreadState[K, V](@BeanProperty var hashIndexReader: Option[IO.Success[swaydb.Error.Segment, Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]]]],
-                               @BeanProperty var bloomFilterReader: Option[IO.Success[swaydb.Error.Segment, Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]]],
-                               @BeanProperty var binarySearchIndexReader: Option[IO.Success[swaydb.Error.Segment, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]]]],
-                               @BeanProperty var valuesReader: Option[IO.Success[swaydb.Error.Segment, Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]]],
-                               @BeanProperty var sortedIndexReader: Option[IO.Success[swaydb.Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]]],
-                               @BeanProperty var skipList: MinMaxSkipList[K, V])
+class SegmentThreadState[K, V](@BeanProperty var skipList: MinMaxSkipList[K, V])
