@@ -294,23 +294,23 @@ class DBFile(val path: Path,
   def get(position: Int) =
     cache.value() flatMap (_.get(position))
 
-  def readAll =
+  def readAll: IO[Error.IO, Slice[Byte]] =
     cache.value() flatMap (_.readAll)
 
-  def fileSize =
+  def fileSize: IO[Error.IO, Long] =
     cache.value() flatMap (_.fileSize)
 
   //memory files are never closed, if it's memory file return true.
-  def isOpen =
+  def isOpen: Boolean =
     cache.get().exists(_.exists(_.isOpen))
 
-  def isFileDefined =
+  def isFileDefined: Boolean =
     cache.get().isDefined
 
-  def isMemoryMapped =
+  def isMemoryMapped: IO[Error.IO, Boolean] =
     cache.value() flatMap (_.isMemoryMapped)
 
-  def isLoaded =
+  def isLoaded: IO[Error.IO, Boolean] =
     cache.value() flatMap (_.isLoaded)
 
   def isFull: IO[swaydb.Error.IO, Boolean] =

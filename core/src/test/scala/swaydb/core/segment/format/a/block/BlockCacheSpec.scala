@@ -23,6 +23,7 @@ import swaydb.IOValues._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.data.slice.Slice
+import swaydb.core.RunThis._
 
 class BlockCacheSpec extends TestBase {
 
@@ -161,6 +162,55 @@ class BlockCacheSpec extends TestBase {
       BlockCache.getOrSeek(position = 0, size = 20, state = state)(null).get shouldBe bytes.take(20)
       state.map should have size 2
       state.map.last shouldBe(10, bytes.drop(blockSize).take(blockSize))
+    }
+  }
+
+  "randomAccess" in {
+    val bytes: Slice[Byte] = (0.toByte to Byte.MaxValue).toSlice.map(_.toByte)
+    val file = createRandomFileReader(bytes).file
+    runThis(500.times, log = true) {
+      val blockSize = randomIntMax(bytes.size * 2)
+
+      val state =
+        BlockCache.init(
+          file = file,
+          blockSize = blockSize
+        )
+
+      runThis(1000.times) {
+        val position = randomNextInt(bytes.size)
+
+        val readSize = randomIntMax(bytes.size * 3)
+
+        val seek =
+          BlockCache.getOrSeek(
+            position = position,
+            size = readSize,
+            state = state
+          ).get
+
+        seek shouldBe bytes.drop(position).take(readSize)
+      }
+
+      if (blockSize <= 0)
+        state.map shouldBe empty
+      else
+        state.map should not be empty
+
+      val (blockSized, small) =
+      state.map.partition {
+        case (_, bytes) =>
+          bytes.size == state.blockSize
+      }
+
+      //only one offset can be smaller
+      small.size should be <= 1
+
+      //byte values match the index so all the head bytes should match the index.
+      state.map foreach {
+        case (offset, bytes) =>
+          offset shouldBe bytes.head
+      }
     }
   }
 }

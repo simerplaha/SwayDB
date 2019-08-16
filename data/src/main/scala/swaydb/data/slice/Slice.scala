@@ -492,7 +492,10 @@ class Slice[+T: ClassTag] private(array: Array[T],
         group(groups, slice2, size - 1)
       }
 
-    group(Slice.create[Slice[T]](size), this, size)
+    if (size == 0)
+      Slice(this)
+    else
+      group(Slice.create[Slice[T]](size), this, size)
   }
 
   @throws[ArrayIndexOutOfBoundsException]

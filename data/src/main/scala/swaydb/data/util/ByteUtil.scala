@@ -151,12 +151,15 @@ object ByteUtil {
       var i = 0
       var int = 0
       var read = 0
+      val beforeReadPosition = reader.getPosition
+      val readBytes = reader.read(ByteSizeOf.varInt).get.createReaderUnsafe()
       do {
-        read = reader.get().get
+        read = readBytes.get()
         int |= (read & 0x7F) << i
         i += 7
         require(i <= 35)
       } while ((read & 0x80) != 0)
+      reader.moveTo(beforeReadPosition + readBytes.getPosition)
       int
     }
 
@@ -248,13 +251,15 @@ object ByteUtil {
       var i = 0
       var long = 0L
       var read = 0L
+      val beforeReadPosition = reader.getPosition
+      val readBytes = reader.read(ByteSizeOf.varLong).get.createReaderUnsafe()
       do {
-        read = reader.get().get
+        read = readBytes.get()
         long |= (read & 0x7F) << i
         i += 7
         require(i <= 70)
       } while ((read & 0x80L) != 0)
-
+      reader.moveTo(beforeReadPosition + readBytes.getPosition)
       long
     }
 
