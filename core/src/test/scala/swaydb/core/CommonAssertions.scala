@@ -19,7 +19,7 @@
 
 package swaydb.core
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 
 import org.scalatest.Matchers._
 import org.scalatest.OptionValues._
@@ -48,7 +48,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
-import swaydb.core.util.{ConcurrentSkipList, SkipList}
+import swaydb.core.util.SkipList
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
@@ -57,6 +57,8 @@ import swaydb.data.util.StorageUnits._
 import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.util.{Random, Try}
+import swaydb.serializers.Default._
+import swaydb.serializers._
 
 object CommonAssertions {
 
@@ -331,10 +333,9 @@ object CommonAssertions {
       }
   }
 
-  implicit class PrintSkipList(skipList: ConcurrentSkipList[Slice[Byte], Memory]) {
+  implicit class PrintSkipList(skipList: SkipList.Concurrent[Slice[Byte], Memory]) {
 
-    import swaydb.serializers.Default._
-    import swaydb.serializers._
+    import KeyOrder.default._
 
     //stringify the skipList so that it's readable
     def asString(value: Value): String =
@@ -350,13 +351,13 @@ object CommonAssertions {
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue.ReadOnly.SegmentResponse],
                           oldKeyValues: Iterable[KeyValue.ReadOnly.SegmentResponse],
-                          expected: Transient): ConcurrentSkipList[Slice[Byte], Memory.SegmentResponse] =
+                          expected: Transient): SkipList.Concurrent[Slice[Byte], Memory.SegmentResponse] =
     assertSkipListMerge(newKeyValues, oldKeyValues, Slice(expected))
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue.ReadOnly.SegmentResponse],
                           oldKeyValues: Iterable[KeyValue.ReadOnly.SegmentResponse],
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): ConcurrentSkipList[Slice[Byte], Memory.SegmentResponse] = {
+                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipList.Concurrent[Slice[Byte], Memory.SegmentResponse] = {
     val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse]()(KeyOrder.default)
     (oldKeyValues ++ newKeyValues).map(_.toMemoryResponse) foreach (memory => LevelZeroSkipListMerger.insert(memory.key, memory, skipList))
     skipList.size shouldBe expected.size

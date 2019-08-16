@@ -26,7 +26,7 @@ import swaydb.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
-import swaydb.core.util.{ConcurrentSkipList, SkipList}
+import swaydb.core.util.SkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -92,7 +92,7 @@ private[core] trait Map[K, V] {
 
   def hasRange: Boolean
 
-  val skipList: ConcurrentSkipList[K, V]
+  val skipList: SkipList.Concurrent[K, V]
 
   val fileSize: Long
 

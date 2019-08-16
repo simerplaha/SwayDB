@@ -36,7 +36,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
-import swaydb.core.util.{ConcurrentSkipList, FiniteDurationUtil, IDGenerator, MinMax, SkipList}
+import swaydb.core.util.{FiniteDurationUtil, IDGenerator, MinMax, SkipList}
 import swaydb.data.MaxKey
 import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}

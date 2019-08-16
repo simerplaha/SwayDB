@@ -24,7 +24,8 @@ import java.util.concurrent.ConcurrentHashMap
 import swaydb.IO
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.{MinMaxSkipList, SkipList}
+import swaydb.core.util.SkipList
+import swaydb.core.util.SkipList.MinMaxSkipList
 import swaydb.data.order.KeyOrder
 
 import scala.beans.BeanProperty

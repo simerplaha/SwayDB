@@ -421,6 +421,7 @@ class Slice[+T: ClassTag] private(array: Array[T],
    *
    * @param fromOffset start offset
    * @param toOffset   end offset
+   *
    * @return Slice for the given offsets
    */
   override def slice(fromOffset: Int, toOffset: Int): Slice[T] =
@@ -504,7 +505,9 @@ class Slice[+T: ClassTag] private(array: Array[T],
   }
 
   override def drop(count: Int): Slice[T] =
-    if (count >= size)
+    if (count <= 0)
+      this
+    else if (count >= size)
       Slice.empty[T]
     else
       slice(count, size - 1)
@@ -513,7 +516,9 @@ class Slice[+T: ClassTag] private(array: Array[T],
     drop(1)
 
   override def dropRight(count: Int): Slice[T] =
-    if (count >= size)
+    if (count <= 0)
+      this
+    else if (count >= size)
       Slice.empty[T]
     else
       slice(0, size - count - 1)

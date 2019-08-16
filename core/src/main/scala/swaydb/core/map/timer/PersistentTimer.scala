@@ -30,7 +30,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
 import swaydb.core.queue.FileLimiter
-import swaydb.core.util.ConcurrentSkipList
+import swaydb.core.util.SkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -39,13 +39,13 @@ private[core] object PersistentTimer extends LazyLogging {
   private implicit object TimerSkipListMerger extends SkipListMerger[Slice[Byte], Slice[Byte]] {
     override def insert(insertKey: Slice[Byte],
                         insertValue: Slice[Byte],
-                        skipList: ConcurrentSkipList[Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                        skipList: SkipList.Concurrent[Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore): Unit =
       throw new IllegalAccessException("Timer does not require skipList merger.")
 
     override def insert(entry: MapEntry[Slice[Byte], Slice[Byte]],
-                        skipList: ConcurrentSkipList[Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                        skipList: SkipList.Concurrent[Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore): Unit =
       throw new IllegalAccessException("Timer does not require skipList merger.")

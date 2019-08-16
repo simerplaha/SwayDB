@@ -17,19 +17,16 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.block
+package swaydb
 
-private[core] trait BlockOffset {
-  def start: Int
-  def size: Int
-  def end: Int =
-    start + size - 1
-}
+import Tag._
 
-object BlockOffset {
-  def apply(_start: Int, _size: Int): BlockOffset =
-    new BlockOffset() {
-      override def start: Int = _start
-      override def size: Int = _size
-    }
+abstract class Monad[A, T[_]](implicit tag: Tag[T]) {
+  def point: T[A]
+
+  @inline def map[B](f: A => B): T[B] =
+    point.map(f)
+
+  @inline def flatMap[B](f: A => T[B]): T[B] =
+    point.flatMap(f)
 }

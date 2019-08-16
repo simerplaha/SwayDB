@@ -24,13 +24,13 @@ import swaydb.Error.Map.ErrorHandler
 import swaydb.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.MapEntryWriter
-import swaydb.core.util.ConcurrentSkipList
+import swaydb.core.util.SkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 import scala.reflect.ClassTag
 
-private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipList[K, V],
+private[map] class MemoryMap[K, V: ClassTag](val skipList: SkipList.Concurrent[K, V],
                                              flushOnOverflow: Boolean,
                                              val fileSize: Long)(implicit keyOrder: KeyOrder[K],
                                                                  timeOrder: TimeOrder[Slice[Byte]],

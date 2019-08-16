@@ -22,7 +22,7 @@ package swaydb.core.level
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.{MapEntry, SkipListMerger}
 import swaydb.core.segment.Segment
-import swaydb.core.util.ConcurrentSkipList
+import swaydb.core.util.SkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -33,14 +33,14 @@ import swaydb.data.slice.Slice
 object AppendixSkipListMerger extends SkipListMerger[Slice[Byte], Segment] {
   override def insert(insertKey: Slice[Byte],
                       insertValue: Segment,
-                      skipList: ConcurrentSkipList[Slice[Byte], Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                      skipList: SkipList.Concurrent[Slice[Byte], Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                                              functionStore: FunctionStore): Unit =
     throw new IllegalAccessException("Appendix does not require merger.")
 
   //Appendixes do not use Range so there will be no conflicts. Need a type-safe way of handling this.
   override def insert(entry: MapEntry[Slice[Byte], Segment],
-                      skipList: ConcurrentSkipList[Slice[Byte], Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                      skipList: SkipList.Concurrent[Slice[Byte], Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                                              functionStore: FunctionStore): Unit =
     throw new IllegalAccessException("Appendix does not require merger.")

@@ -27,7 +27,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Memory, Transient}
 import swaydb.core.function.FunctionStore
 import swaydb.core.segment.{DeadlineAndFunctionId, Segment}
-import swaydb.core.util.{Bytes, ConcurrentSkipList, MinMax}
+import swaydb.core.util.{Bytes, MinMax, SkipList}
 import swaydb.data.api.grouping.Compression
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
@@ -227,7 +227,7 @@ private[core] object SegmentBlock {
       noCompressionHeaderSize
 
   def writeIndexBlocks(keyValue: Transient,
-                       memoryMap: Option[ConcurrentSkipList[Slice[Byte], Memory]],
+                       memoryMap: Option[SkipList.Concurrent[Slice[Byte], Memory]],
                        hashIndex: Option[HashIndexBlock.State],
                        binarySearchIndex: Option[BinarySearchIndexBlock.State],
                        bloomFilter: Option[BloomFilterBlock.State],
