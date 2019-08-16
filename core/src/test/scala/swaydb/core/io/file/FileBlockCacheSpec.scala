@@ -112,28 +112,28 @@ class FileBlockCacheSpec extends TestBase {
       //0 -----------------------------------------> 1000
       //0 read 1
       FileBlockCache.getOrSeek(position = 0, size = 1, state = state).get shouldBe bytes.take(1)
-      state.map should have size 1
+      state.map.asScala should have size 1
       state.map.head shouldBe(0, bytes.take(blockSize))
       var headBytesHashCode = state.map.head._2.hashCode()
 
       //0 -----------------------------------------> 1000
       //0 read 2
       FileBlockCache.getOrSeek(position = 0, size = 2, state = state)(null).get shouldBe bytes.take(2)
-      state.map should have size 1
+      state.map.asScala should have size 1
       state.map.head shouldBe(0, bytes.take(blockSize))
       state.map.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
 
       //0 -----------------------------------------> 1000
       //0 read 9
       FileBlockCache.getOrSeek(position = 0, size = 9, state = state)(null).get shouldBe bytes.take(9)
-      state.map should have size 1
+      state.map.asScala should have size 1
       state.map.head shouldBe(0, bytes.take(blockSize))
       state.map.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
 
       //0 -----------------------------------------> 1000
       //0 read 10
       FileBlockCache.getOrSeek(position = 0, size = 10, state = state)(null).get shouldBe bytes.take(10)
-      state.map should have size 1
+      state.map.asScala should have size 1
       state.map.head shouldBe(0, bytes.take(blockSize))
       state.map.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
 
@@ -141,26 +141,26 @@ class FileBlockCacheSpec extends TestBase {
       //0 -----------------------------------------> 1000
       //0 read 11
       FileBlockCache.getOrSeek(position = 0, size = 11, state = state).get shouldBe bytes.take(11)
-      state.map should have size 2
+      state.map.asScala should have size 2
       state.map.last shouldBe(10, bytes.drop(blockSize).take(blockSize))
 
       //0 -----------------------------------------> 1000
       //0 read 15
       FileBlockCache.getOrSeek(position = 0, size = 15, state = state)(null).get shouldBe bytes.take(15)
-      state.map should have size 2
+      state.map.asScala should have size 2
       state.map.last shouldBe(10, bytes.drop(blockSize).take(blockSize))
 
       //0 -----------------------------------------> 1000
       //0 read 19
       FileBlockCache.getOrSeek(position = 0, size = 19, state = state)(null).get shouldBe bytes.take(19)
-      state.map should have size 2
+      state.map.asScala should have size 2
       state.map.last shouldBe(10, bytes.drop(blockSize).take(blockSize))
 
 
       //0 -----------------------------------------> 1000
       //0 read 20
       FileBlockCache.getOrSeek(position = 0, size = 20, state = state)(null).get shouldBe bytes.take(20)
-      state.map should have size 2
+      state.map.asScala should have size 2
       state.map.last shouldBe(10, bytes.drop(blockSize).take(blockSize))
     }
   }
@@ -193,21 +193,21 @@ class FileBlockCacheSpec extends TestBase {
       }
 
       if (blockSize <= 0)
-        state.map shouldBe empty
+        state.map.asScala shouldBe empty
       else
-        state.map should not be empty
+        state.map.asScala should not be empty
 
       val (blockSized, small) =
-      state.map.partition {
-        case (_, bytes) =>
-          bytes.size == state.blockSize
-      }
+        state.map.asScala partition {
+          case (_, bytes) =>
+            bytes.size == state.blockSize
+        }
 
       //only one offset can be smaller
       small.size should be <= 1
 
       //byte values match the index so all the head bytes should match the index.
-      state.map foreach {
+      state.map.asScala foreach {
         case (offset, bytes) =>
           offset shouldBe bytes.head
       }

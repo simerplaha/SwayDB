@@ -22,17 +22,23 @@ package swaydb.core.io.file
 import java.nio.ReadOnlyBufferException
 import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
+import java.util.concurrent.ConcurrentHashMap
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IOValues._
+import swaydb.core
 import swaydb.core.CommonAssertions.{randomBlockSize, randomIOStrategy}
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.queue.{FileLimiter, FileLimiterItem}
+import swaydb.core.util.Benchmark
 import swaydb.core.util.PipeOps._
-import swaydb.core.{TestBase, TestLimitQueues}
+import swaydb.core.{TestBase, TestLimitQueues, map}
 import swaydb.data.slice.Slice
+
+import scala.collection.concurrent.TrieMap
+import scala.collection.mutable
 
 class DBFileSpec extends TestBase with MockFactory {
 

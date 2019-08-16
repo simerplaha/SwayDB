@@ -19,12 +19,12 @@
 
 package swaydb.core.io.file
 
+import swaydb.Error.IO.ErrorHandler
+import swaydb.core.util.HashMap
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
-import scala.collection.concurrent.TrieMap
-import swaydb.Error.IO.ErrorHandler
 
 private[file] object FileBlockCache {
 
@@ -33,12 +33,12 @@ private[file] object FileBlockCache {
     new State(
       file = file,
       blockSize = blockSize,
-      map = TrieMap[Int, Slice[Byte]]()
+      map = HashMap.concurrent[Int, Slice[Byte]]()
     )
 
   class State(val file: DBFileType,
               val blockSize: Int,
-              val map: TrieMap[Int, Slice[Byte]]) {
+              val map: HashMap.Concurrent[Int, Slice[Byte]]) {
     def clear() =
       map.clear()
 
