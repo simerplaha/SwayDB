@@ -28,7 +28,7 @@ import swaydb.IO._
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect._
-import swaydb.core.io.file.{DBFile, IOEffect}
+import swaydb.core.io.file.{DBFile, FileBlockCache, IOEffect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
 import swaydb.core.util.{Extension, SkipList}
@@ -105,9 +105,9 @@ private[map] object PersistentMap extends LazyLogging {
                              memoryMapped: Boolean,
                              fileSize: Long)(implicit limiter: FileLimiter): IO[swaydb.Error.Map, DBFile] =
     if (memoryMapped)
-      DBFile.mmapInit(folder.resolve(0.toLogFileId), None, IOStrategy.SynchronisedIO(true), fileSize, autoClose = false)
+      DBFile.mmapInit(folder.resolve(0.toLogFileId), IOStrategy.SynchronisedIO(true), fileSize, autoClose = false)(limiter, None)
     else
-      DBFile.channelWrite(folder.resolve(0.toLogFileId), None, IOStrategy.SynchronisedIO(true), autoClose = false)
+      DBFile.channelWrite(folder.resolve(0.toLogFileId), IOStrategy.SynchronisedIO(true), autoClose = false)(limiter, None)
 
   private[map] def recover[K, V](folder: Path,
                                  mmap: Boolean,
@@ -125,7 +125,7 @@ private[map] object PersistentMap extends LazyLogging {
     folder.files(Extension.Log) mapIO {
       path =>
         logger.info("{}: Recovering with dropCorruptedTailEntries = {}.", path, dropCorruptedTailEntries)
-        DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), None, autoClose = false) flatMap {
+        DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false)(limiter, None) flatMap {
           file =>
             file.readAll flatMap {
               bytes =>
@@ -216,9 +216,9 @@ private[map] object PersistentMap extends LazyLogging {
         val bytes = MapCodec.write(skipList)
         val newFile =
           if (mmap)
-            DBFile.mmapInit(path = nextPath, None, IOStrategy.SynchronisedIO(true), bufferSize = bytes.size + size, autoClose = false)
+            DBFile.mmapInit(path = nextPath, IOStrategy.SynchronisedIO(true), bufferSize = bytes.size + size, autoClose = false)(limiter, None)
           else
-            DBFile.channelWrite(nextPath, None, IOStrategy.SynchronisedIO(true), autoClose = false)
+            DBFile.channelWrite(nextPath, IOStrategy.SynchronisedIO(true), autoClose = false)(limiter, None)
 
         newFile flatMap {
           newFile =>

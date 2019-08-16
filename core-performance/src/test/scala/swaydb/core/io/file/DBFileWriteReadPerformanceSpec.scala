@@ -37,11 +37,12 @@ import swaydb.data.util.StorageUnits._
 class DBFileWriteReadPerformanceSpec extends TestBase {
 
   implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
+  implicit def blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache
 
   "random access" in {
     val bytes = randomBytesSlice(20.mb)
 
-    val file = DBFile.mmapInit(randomFilePath, blockSize = randomBlockSize(), randomIOStrategy(cacheOnAccess = true), bytes.size, autoClose = true).runRandomIO.value
+    val file = DBFile.mmapInit(randomFilePath, randomIOStrategy(cacheOnAccess = true), bytes.size, autoClose = true).runRandomIO.value
     file.append(bytes).runRandomIO.value
     file.isFull.runRandomIO.value shouldBe true
 
@@ -50,7 +51,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
 
     import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
 
-    val readerFile = DBFile.mmapRead(file.path, blockSize = randomBlockSize(), randomIOStrategy(cacheOnAccess = true), true).get
+    val readerFile = DBFile.mmapRead(file.path, randomIOStrategy(cacheOnAccess = true), true).get
 
     //    val reader = BlockRefReader(BlockRefReader(BlockRefReader(readerFile).get).get).get
         val reader = BlockRefReader(readerFile).get
@@ -104,13 +105,13 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
        * Round 2: 1.328009528 seconds
        * Round 3: 1.3148811 seconds
        */
-      val channelFile = DBFile.channelWrite(randomFilePath, blockSize = randomBlockSize(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
+      val channelFile = DBFile.channelWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
       Benchmark("FileChannel write Benchmark") {
         bytes foreach channelFile.append
       }
 
       //check all the bytes were written
-      val readChannelFile = DBFile.channelRead(channelFile.path, blockSize = randomBlockSize(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
+      val readChannelFile = DBFile.channelRead(channelFile.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
       readChannelFile.fileSize.runRandomIO.value shouldBe bytes.size * chunkSize
       IOEffect.readAll(channelFile.path).get shouldBe flattenBytes
       channelFile.close.runRandomIO.value
@@ -124,7 +125,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
        * Round 3: 0.542235514 seconds
        */
 
-      val mmapFile = DBFile.mmapInit(randomFilePath, blockSize = randomBlockSize(), IOStrategy.ConcurrentIO(true), bytes.size * chunkSize, autoClose = true).runRandomIO.value
+      val mmapFile = DBFile.mmapInit(randomFilePath, IOStrategy.ConcurrentIO(true), bytes.size * chunkSize, autoClose = true).runRandomIO.value
       Benchmark("mmap write Benchmark") {
         bytes foreach mmapFile.append
       }
@@ -135,7 +136,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
 
     "Get performance" in {
       val bytes = randomBytes(chunkSize)
-      val file = DBFile.channelWrite(randomFilePath, blockSize = randomBlockSize(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
+      val file = DBFile.channelWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
       file.append(Slice(bytes))
       file.close.runRandomIO.value
 
@@ -146,7 +147,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
        * Round 3: 1.842739196 seconds
        */
 
-      val channelFile = DBFile.channelRead(file.path, blockSize = randomBlockSize(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
+      val channelFile = DBFile.channelRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
       Benchmark("FileChannel value Benchmark") {
         bytes.indices foreach {
           index =>
@@ -162,7 +163,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
        * Round 2: 0.965750206 seconds
        * Round 3: 1.044735106 seconds
        */
-      val mmapFile = DBFile.mmapRead(file.path, blockSize = randomBlockSize(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
+      val mmapFile = DBFile.mmapRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
       Benchmark("mmap value Benchmark") {
         bytes.indices foreach {
           index =>
@@ -181,7 +182,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
           allBytes addAll bytes
           bytes
       }
-      val file = DBFile.channelWrite(randomFilePath, blockSize = randomBlockSize(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
+      val file = DBFile.channelWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
       bytes foreach (file.append(_).runRandomIO.value)
       file.close.runRandomIO.value
 
@@ -192,7 +193,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
        * Round 3: 0.819253382 seconds
        */
 
-      val channelFile = DBFile.channelRead(file.path, blockSize = randomBlockSize(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
+      val channelFile = DBFile.channelRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
       Benchmark("FileChannel read Benchmark") {
         bytes.foldLeft(0) {
           case (index, byteSlice) =>
@@ -210,7 +211,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
        * Round 2: 0.54580672 seconds
        * Round 3: 0.463990916 seconds
        */
-      val mmapFile = DBFile.mmapRead(file.path, blockSize = randomBlockSize(), autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
+      val mmapFile = DBFile.mmapRead(file.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true)).runRandomIO.value
 
       Benchmark("mmap read Benchmark") {
         bytes.foldLeft(0) {

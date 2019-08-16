@@ -59,6 +59,7 @@ object Set extends LazyLogging {
                cacheCheckDelay: FiniteDuration = 10.seconds,
                segmentsOpenCheckDelay: FiniteDuration = 10.seconds,
                mightContainFalsePositiveRate: Double = 0.01,
+               blockCacheSize: Option[Int] = Some(4098),
                compressDuplicateValues: Boolean = true,
                deleteSegmentsEventually: Boolean = false,
                lastLevelGroupBy: Option[GroupBy.KeyValues] = Some(DefaultGroupBy()),
@@ -84,8 +85,9 @@ object Set extends LazyLogging {
         acceleration = acceleration
       ),
       maxOpenSegments = maxOpenSegments,
-      cacheSize = Some(cacheSize),
-      cacheCheckDelay = cacheCheckDelay,
+      keyValueCacheSize = Some(cacheSize),
+      keyValueCacheCheckDelay = cacheCheckDelay,
+      blockCacheSize = blockCacheSize,
       segmentsOpenCheckDelay = segmentsOpenCheckDelay,
       fileOpenLimiterEC = fileOpenLimiterEC,
       cacheLimiterEC = cacheLimiterEC

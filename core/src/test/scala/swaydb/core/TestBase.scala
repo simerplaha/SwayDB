@@ -34,7 +34,7 @@ import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
 import swaydb.core.actor.WiredActor
 import swaydb.core.data.{Memory, Time, Transient}
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.{BufferCleaner, DBFile, IOEffect}
+import swaydb.core.io.file.{BufferCleaner, DBFile, FileBlockCache, FileBlockCacheSpec, IOEffect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
 import swaydb.core.level.zero.LevelZero
@@ -251,6 +251,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                                                keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                                                fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                               blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache,
                                                                                segmentIO: SegmentIO = SegmentIO.random,
                                                                                groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(randomIntMax(1000))): IO[swaydb.Error.Segment, Segment] =
       if (levelStorage.memory)
@@ -313,6 +314,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+                                                      blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                       compression: Option[GroupByInternal.KeyValues] = randomGroupBy(randomNextInt(1000))): Level =
       Level(
@@ -370,22 +372,20 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   def createMMAPFileReader(bytes: Slice[Byte]): FileReader =
     createMMAPFileReader(createFile(bytes))
 
-  def createMMAPFileReader(path: Path,
-                           blockSize: Option[Int] = orNone(Some(4098))): FileReader = {
+  def createMMAPFileReader(path: Path)(implicit blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache): FileReader = {
     implicit val limiter = fileOpenLimiter
     new FileReader(
-      DBFile.mmapRead(path, blockSize, randomIOStrategy(), autoClose = true).runRandomIO.value
+      DBFile.mmapRead(path, randomIOStrategy(), autoClose = true).runRandomIO.value
     )
   }
 
   def createFileChannelFileReader(bytes: Slice[Byte]): FileReader =
     createFileChannelFileReader(createFile(bytes))
 
-  def createFileChannelFileReader(path: Path,
-                                  blockSize: Option[Int] = orNone(Some(4098))): FileReader = {
+  def createFileChannelFileReader(path: Path)(implicit blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache): FileReader = {
     implicit val limiter = fileOpenLimiter
     new FileReader(
-      DBFile.channelRead(path, randomIOStrategy(), autoClose = true, blockSize = blockSize).runRandomIO.value
+      DBFile.channelRead(path, randomIOStrategy(), autoClose = true).runRandomIO.value
     )
   }
 
@@ -402,7 +402,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
    *
    * Note: Tests for decremental time is not required because in reality upper Level cannot have lower time key-values
    * that are not merged into lower Level already. So there will never be a situation where upper Level's keys are
-   * ignored completely due to it having a lower or equal time to lower Level. If it has a lower or same time this means
+   * ignored completely due to it having a lower or equal time to lower Level. If it has a lower or same time thi®s means
    * that it has already been merged into lower Levels already making the upper Level's read always valid.
    */
   def assertLevel(level0KeyValues: (Slice[Memory], Slice[Memory], TestTimer) => Slice[Memory] = (_, _, _) => Slice.empty,

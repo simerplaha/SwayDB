@@ -19,6 +19,8 @@
 
 package swaydb.core.io.file
 
+import java.nio.file.Path
+
 import swaydb.Error.IO.ErrorHandler
 import swaydb.core.util.JavaHashMap
 import swaydb.data.slice.Slice
@@ -26,28 +28,28 @@ import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
 
-private[file] object FileBlockCache {
+private[core] object FileBlockCache {
 
-  def init(file: DBFileType,
-           blockSize: Int) =
+  def init(blockSize: Int) =
     new State(
-      file = file,
       blockSize = blockSize,
-      map = JavaHashMap.concurrent[Int, Slice[Byte]]()
+      map = JavaHashMap.concurrent[(Path, Int), Slice[Byte]]()
     )
 
-  class State(val file: DBFileType,
-              val blockSize: Int,
-              val map: JavaHashMap.Concurrent[Int, Slice[Byte]]) {
+  class State(val blockSize: Int,
+              val map: JavaHashMap.Concurrent[(Path, Int), Slice[Byte]]) {
     def clear() =
       map.clear()
 
     val blockSizeDouble: Double = blockSize
   }
 
-  def seekSize(keyPosition: Int, size: Int, state: State): IO[Error.IO, Int] =
+  def seekSize(keyPosition: Int,
+               size: Int,
+               file: DBFileType,
+               state: State): IO[Error.IO, Int] =
 
-    state.file.fileSize map {
+    file.fileSize map {
       fileSize =>
         val seekSize =
           if (state.blockSize <= 0)
@@ -64,19 +66,19 @@ private[file] object FileBlockCache {
       (state.blockSizeDouble * Math.floor(Math.abs(position / state.blockSizeDouble))).toInt
 
   sealed trait IOEffect {
-    def readAndCache(keyPosition: Int, size: Int, state: State): IO[Error.IO, Slice[Byte]]
+    def readAndCache(keyPosition: Int, size: Int, file: DBFileType, state: State): IO[Error.IO, Slice[Byte]]
   }
 
   implicit object IOEffect extends IOEffect {
-    def readAndCache(keyPosition: Int, size: Int, state: State): IO[Error.IO, Slice[Byte]] =
+    def readAndCache(keyPosition: Int, size: Int, file: DBFileType, state: State): IO[Error.IO, Slice[Byte]] =
       seekSize(
         keyPosition = keyPosition,
         size = size,
+        file = file,
         state = state
       ) flatMap {
         seekSize =>
-          state
-            .file
+          file
             .read(
               position = keyPosition,
               size = seekSize
@@ -88,7 +90,7 @@ private[file] object FileBlockCache {
                 } else if (bytes.isEmpty) {
                   Slice.emptyBytes
                 } else if (bytes.size <= state.blockSize) {
-                  state.map.put(keyPosition, bytes.unslice())
+                  state.map.put((file.path, keyPosition), bytes.unslice())
                   bytes
                 } else {
                   var index = 0
@@ -96,7 +98,7 @@ private[file] object FileBlockCache {
                   val splits = Math.ceil(bytes.size / state.blockSizeDouble)
                   while (index < splits) {
                     val bytesToPut = bytes.take(index * state.blockSize, state.blockSize)
-                    state.map.put(position, bytesToPut)
+                    state.map.put((file.path, position), bytesToPut)
                     position = position + bytesToPut.size
                     index += 1
                   }
@@ -110,10 +112,11 @@ private[file] object FileBlockCache {
   private[file] def doSeek(position: Int,
                            size: Int,
                            bytes: Slice[Byte],
+                           file: DBFileType,
                            state: State)(implicit effect: IOEffect): IO[Error.IO, Slice[Byte]] = {
     val keyPosition = seekPosition(position, state)
 
-    state.map.get(keyPosition) match {
+    state.map.get((file.path, keyPosition)) match {
       case Some(fromCache) =>
         val cachedBytes = fromCache.take(position - keyPosition, size)
         val mergedBytes =
@@ -129,6 +132,7 @@ private[file] object FileBlockCache {
             position = position + cachedBytes.size,
             size = size - cachedBytes.size,
             bytes = mergedBytes,
+            file = file,
             state = state
           )(effect)
 
@@ -136,6 +140,7 @@ private[file] object FileBlockCache {
       case None =>
         effect.readAndCache(
           keyPosition = keyPosition,
+          file = file,
           size = position - keyPosition + size,
           state = state
         ) match {
@@ -154,10 +159,12 @@ private[file] object FileBlockCache {
 
   def getOrSeek(position: Int,
                 size: Int,
+                file: DBFileType,
                 state: State)(implicit effect: IOEffect): IO[Error.IO, Slice[Byte]] =
     doSeek(
       position = position,
       size = size,
+      file = file,
       bytes = Slice.emptyBytes,
       state = state
     )(effect)

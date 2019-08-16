@@ -27,6 +27,7 @@ import swaydb.Error.Map.ErrorHandler
 import swaydb.{Error, IO}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
+import swaydb.core.io.file.FileBlockCache
 import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
@@ -40,18 +41,17 @@ import scala.concurrent.duration.Deadline
 
 object AppendixMapEntryReader {
   def apply(mmapSegmentsOnRead: Boolean,
-            mmapSegmentsOnWrite: Boolean,
-            blockSize: Option[Int])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                    timeOrder: TimeOrder[Slice[Byte]],
-                                    functionStore: FunctionStore,
-                                    keyValueLimiter: Option[KeyValueLimiter],
-                                    fileOpenLimiter: FileLimiter,
-                                    segmentIO: SegmentIO,
-                                    compression: Option[GroupByInternal.KeyValues]): AppendixMapEntryReader =
+            mmapSegmentsOnWrite: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                          timeOrder: TimeOrder[Slice[Byte]],
+                                          functionStore: FunctionStore,
+                                          keyValueLimiter: Option[KeyValueLimiter],
+                                          fileOpenLimiter: FileLimiter,
+                                          blockCache: Option[FileBlockCache.State],
+                                          segmentIO: SegmentIO,
+                                          compression: Option[GroupByInternal.KeyValues]): AppendixMapEntryReader =
     new AppendixMapEntryReader(
       mmapSegmentsOnRead = mmapSegmentsOnRead,
-      mmapSegmentsOnWrite = mmapSegmentsOnWrite,
-      blockSize = blockSize
+      mmapSegmentsOnWrite = mmapSegmentsOnWrite
     )
 }
 
@@ -65,14 +65,14 @@ case class AppendixSegment(path: Path,
                            nearestExpiryDeadline: Option[Deadline])
 
 class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
-                             mmapSegmentsOnWrite: Boolean,
-                             blockSize: Option[Int])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                     functionStore: FunctionStore,
-                                                     keyValueLimiter: Option[KeyValueLimiter],
-                                                     fileOpenLimiter: FileLimiter,
-                                                     segmentIO: SegmentIO,
-                                                     compression: Option[GroupByInternal.KeyValues]) {
+                             mmapSegmentsOnWrite: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                           timeOrder: TimeOrder[Slice[Byte]],
+                                                           functionStore: FunctionStore,
+                                                           keyValueLimiter: Option[KeyValueLimiter],
+                                                           fileOpenLimiter: FileLimiter,
+                                                           blockCache: Option[FileBlockCache.State],
+                                                           segmentIO: SegmentIO,
+                                                           compression: Option[GroupByInternal.KeyValues]) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
     override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Segment]]] =
@@ -133,7 +133,6 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
            */
           Segment(
             path = segmentPath,
-            blockSize = blockSize,
             mmapReads = mmapSegmentsOnRead,
             mmapWrites = mmapSegmentsOnWrite,
             minKey = minKey,

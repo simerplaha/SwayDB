@@ -28,7 +28,7 @@ import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Transient, Value}
-import swaydb.core.io.file.DBFile
+import swaydb.core.io.file.{DBFile, FileBlockCache}
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.level.zero.LevelZeroSkipListMerger
@@ -56,6 +56,7 @@ class MapSpec extends TestBase {
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
   implicit val skipListMerger = LevelZeroSkipListMerger
+  implicit def blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
@@ -65,7 +66,7 @@ class MapSpec extends TestBase {
 
   implicit def segmentIO = SegmentIO.random
 
-  val appendixReader = AppendixMapEntryReader(true, true, blockSize = randomBlockSize())
+  val appendixReader = AppendixMapEntryReader(true, true)
 
   "Map" should {
     "initialise a memory level0" in {
@@ -472,7 +473,7 @@ class MapSpec extends TestBase {
       val nextFile = PersistentMap.nextFile(currentFile, false, 4.mb, skipList).runRandomIO.value
 
       val nextFileSkipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse]()(keyOrder)
-      val nextFileBytes = DBFile.channelRead(nextFile.path, randomIOStrategy(), blockSize = randomBlockSize(), autoClose = false).runRandomIO.value.readAll.runRandomIO.value
+      val nextFileBytes = DBFile.channelRead(nextFile.path, randomIOStrategy(), autoClose = false).runRandomIO.value.readAll.runRandomIO.value
       val mapEntries = MapCodec.read(nextFileBytes, dropCorruptedTailEntries = false).runRandomIO.value.item.value
       mapEntries applyTo nextFileSkipList
 

@@ -31,7 +31,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.IOEffect
+import swaydb.core.io.file.{FileBlockCache, IOEffect}
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
@@ -88,6 +88,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO = SegmentIO.random
   implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.someKeyValueLimiter
+  implicit def blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache
 
   //  override def deleteFiles = false
 
@@ -574,7 +575,6 @@ sealed trait SegmentWriteSpec extends TestBase {
                     path = segment.path,
                     mmapReads = randomBoolean(),
                     mmapWrites = randomBoolean(),
-                    blockSize = randomBlockSize(),
                     checkExists = false
                   ).runRandomIO.value
 

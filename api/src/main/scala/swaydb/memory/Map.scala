@@ -53,13 +53,15 @@ object Map extends LazyLogging {
    * @param ec
    * @tparam K
    * @tparam V
+   *
    * @return
    */
 
   def apply[K, V](mapSize: Int = 4.mb,
                   segmentSize: Int = 2.mb,
-                  cacheSize: Int = 500.mb,
-                  cacheCheckDelay: FiniteDuration = 10.seconds,
+                  keyValueCacheSize: Int = 500.mb,
+                  keyValueCacheCheckDelay: FiniteDuration = 10.seconds,
+                  blockCacheSize: Option[Int] = Some(4098),
                   mightContainFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = false,
                   deleteSegmentsEventually: Boolean = false,
@@ -80,8 +82,9 @@ object Map extends LazyLogging {
         acceleration = acceleration
       ),
       maxOpenSegments = 0,
-      cacheSize = cacheSize,
-      cacheCheckDelay = cacheCheckDelay,
+      cacheSize = keyValueCacheSize,
+      cacheCheckDelay = keyValueCacheCheckDelay,
+      blockCacheSize = blockCacheSize,
       //memory Segments are never closed.
       segmentsOpenCheckDelay = Duration.Zero,
       fileOpenLimiterEC = fileOpenLimiterEC,

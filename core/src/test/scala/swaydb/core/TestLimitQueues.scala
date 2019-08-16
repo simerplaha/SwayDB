@@ -26,6 +26,7 @@ import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration._
 import CommonAssertions._
+import swaydb.core.io.file.FileBlockCache
 
 object TestLimitQueues {
 
@@ -40,6 +41,12 @@ object TestLimitQueues {
 
   val deleteQueue = new ConcurrentLinkedQueue[FileLimiterItem]()
   @volatile var deleteQueueSize = closeQueue.size()
+
+  val blockCache: Option[FileBlockCache.State] =
+    Some(FileBlockCache.init(100.mb))
+
+  def randomBlockCache: Option[FileBlockCache.State] =
+    orNone(blockCache)
 
   val fileOpenLimiter: FileLimiter =
     new FileLimiter {

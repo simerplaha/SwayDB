@@ -49,16 +49,13 @@ private[core] object SegmentBlock {
     def default =
       new Config(
         blockIO = _ => IOStrategy.ConcurrentIO(false),
-        blockSize = Some(4098),
         compressions = _ => Seq.empty
       )
 
     def apply(segmentIO: IOAction => IOStrategy,
-              blockSize: Option[Int],
               compressions: UncompressedBlockInfo => Iterable[Compression]): Config =
       new Config(
         blockIO = segmentIO,
-        blockSize = blockSize,
         compressions =
           uncompressedBlockInfo =>
             Try(compressions(uncompressedBlockInfo))
@@ -69,7 +66,6 @@ private[core] object SegmentBlock {
   }
 
   class Config(val blockIO: IOAction => IOStrategy,
-               val blockSize: Option[Int],
                val compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   object Offset {

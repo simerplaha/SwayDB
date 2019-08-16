@@ -26,6 +26,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data._
+import swaydb.core.io.file.FileBlockCache
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.SkipList
@@ -41,11 +42,12 @@ class MapCodecSpec extends TestBase {
   implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
+  implicit def blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def compression = randomGroupByOption(randomNextInt(1000))
   implicit def segmentIO: SegmentIO = SegmentIO.random
 
-  val appendixReader = AppendixMapEntryReader(true, true, blockSize = randomBlockSize())
+  val appendixReader = AppendixMapEntryReader(true, true)
 
   "MemoryMapCodec" should {
     "write and read empty bytes" in {

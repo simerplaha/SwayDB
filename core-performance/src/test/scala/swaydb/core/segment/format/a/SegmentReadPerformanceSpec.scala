@@ -36,7 +36,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.core.RunThis._
-import swaydb.core.io.file.DBFile
+import swaydb.core.io.file.{DBFile, FileBlockCache}
 import swaydb.core.io.reader.Reader
 
 import scala.concurrent.duration._
@@ -112,6 +112,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = None
+  implicit def blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache
 
   def strategy(action: IOAction): IOStrategy =
     action match {
@@ -297,7 +298,6 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
             case action: IOAction.DataAction =>
               IOStrategy.SynchronisedIO(cacheOnAccess = false)
           },
-          blockSize = Some(4098),
           _ => Seq.empty
         ),
         applyGroupingOnCopy = randomBoolean()
@@ -376,7 +376,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
     Benchmark(s"Creating segment. keyValues: ${keyValues.size}. groupedKeyValues: $testGroupedKeyValues") {
       implicit val groupBy: Option[GroupByInternal.KeyValues] = None
-      val segmentConfig = SegmentBlock.Config(strategy, blockSize = Some(4098), _ => Seq.empty)
+      val segmentConfig = SegmentBlock.Config(strategy, _ => Seq.empty)
       segment = TestSegment(keyValues, segmentConfig = segmentConfig).value
     }
 
@@ -394,7 +394,6 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       minKey = segment.minKey,
       maxKey = segment.maxKey,
       segmentSize = segment.segmentSize,
-      blockSize = Some(4098),
       nearestExpiryDeadline = segment.nearestExpiryDeadline,
       minMaxFunctionId = segment.minMaxFunctionId
     ).value

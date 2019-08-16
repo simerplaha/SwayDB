@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.io.file.DBFile
+import swaydb.core.io.file.{DBFile, FileBlockCache}
 import swaydb.core.io.reader.Reader
 import swaydb.core.queue.FileLimiter
 import swaydb.core.segment.format.a.block.reader.{BlockReader, BlockRefReader}
@@ -35,6 +35,7 @@ import swaydb.core.io.reader.FileReader
 class BlockReaderPerformanceSpec extends TestBase {
 
   implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
+  implicit def blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache
 
   "random access" in {
 
@@ -42,13 +43,13 @@ class BlockReaderPerformanceSpec extends TestBase {
 
     val ioStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true)
 
-    val file = DBFile.mmapInit(randomFilePath, blockSize = randomBlockSize(), ioStrategy, bytes.size, autoClose = true).runRandomIO.value
+    val file = DBFile.mmapInit(randomFilePath, ioStrategy, bytes.size, autoClose = true).runRandomIO.value
     file.append(bytes).runRandomIO.value
     file.isFull.runRandomIO.value shouldBe true
     file.forceSave().get
     file.close.get
 
-    val readerFile = DBFile.mmapRead(path = file.path, ioStrategy = ioStrategy, autoClose = true, blockSize = randomBlockSize()).get
+    val readerFile = DBFile.mmapRead(path = file.path, ioStrategy = ioStrategy, autoClose = true).get
 
     /**
      * @note For randomReads:

@@ -46,6 +46,7 @@ object Set extends LazyLogging {
                segmentSize: Int = 2.mb,
                cacheSize: Int = 500.mb, //cacheSize for memory database is used for evicting decompressed key-values
                cacheCheckDelay: FiniteDuration = 10.seconds,
+               blockCacheSize: Option[Int] = Some(4098),
                mightContainFalsePositiveRate: Double = 0.01,
                compressDuplicateValues: Boolean = false,
                deleteSegmentsEventually: Boolean = false,
@@ -67,6 +68,7 @@ object Set extends LazyLogging {
       maxOpenSegments = 0,
       cacheSize = cacheSize,
       cacheCheckDelay = cacheCheckDelay,
+      blockCacheSize = blockCacheSize,
       //memory Segments are never closed.
       segmentsOpenCheckDelay = Duration.Zero,
       fileOpenLimiterEC = fileOpenLimiterEC,

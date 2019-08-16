@@ -28,7 +28,7 @@ import swaydb.IO._
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.DBFile
+import swaydb.core.io.file.{DBFile, FileBlockCache}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
@@ -54,6 +54,7 @@ object PersistentSegment {
                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                      functionStore: FunctionStore,
                                                      keyValueLimiter: Option[KeyValueLimiter],
+                                                     blockCache: Option[FileBlockCache.State],
                                                      fileOpenLimiter: FileLimiter,
                                                      segmentIO: SegmentIO): IO[swaydb.Error.Segment, PersistentSegment] =
     BlockRefReader(file) map {
@@ -94,6 +95,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                                           functionStore: FunctionStore,
                                                                           keyValueLimiter: Option[KeyValueLimiter],
+                                                                          blockCache: Option[FileBlockCache.State],
                                                                           fileOpenLimiter: FileLimiter,
                                                                           segmentIO: SegmentIO) extends Segment with LazyLogging {
 

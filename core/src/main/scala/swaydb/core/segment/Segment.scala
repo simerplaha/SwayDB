@@ -28,7 +28,7 @@ import swaydb.IO._
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.{DBFile, IOEffect}
+import swaydb.core.io.file.{DBFile, FileBlockCache, IOEffect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
@@ -124,6 +124,7 @@ private[core] object Segment extends LazyLogging {
                                                  functionStore: FunctionStore,
                                                  keyValueLimiter: Option[KeyValueLimiter],
                                                  fileOpenLimiter: FileLimiter,
+                                                 blockCache: Option[FileBlockCache.State],
                                                  segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] =
     SegmentBlock.writeClosed(
       keyValues = keyValues,
@@ -141,7 +142,6 @@ private[core] object Segment extends LazyLogging {
             if (mmapWrites && mmapReads)
               DBFile.mmapWriteAndRead(
                 path = path,
-                blockSize = segmentConfig.blockSize,
                 autoClose = true,
                 ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
                 bytes = result.segmentBytes
@@ -150,7 +150,6 @@ private[core] object Segment extends LazyLogging {
             else if (mmapWrites && !mmapReads)
               DBFile.mmapWriteAndRead(
                 path = path,
-                blockSize = segmentConfig.blockSize,
                 autoClose = true,
                 ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
                 bytes = result.segmentBytes
@@ -162,7 +161,6 @@ private[core] object Segment extends LazyLogging {
                     _ =>
                       DBFile.channelRead(
                         path = file.path,
-                        blockSize = segmentConfig.blockSize,
                         ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
                         autoClose = true
                       )
@@ -173,7 +171,6 @@ private[core] object Segment extends LazyLogging {
                 path =>
                   DBFile.mmapRead(
                     path = path,
-                    blockSize = segmentConfig.blockSize,
                     ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
                     autoClose = true
                   )
@@ -183,7 +180,6 @@ private[core] object Segment extends LazyLogging {
                 path =>
                   DBFile.channelRead(
                     path = path,
-                    blockSize = segmentConfig.blockSize,
                     ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
                     autoClose = true
                   )
@@ -232,6 +228,7 @@ private[core] object Segment extends LazyLogging {
                                                                 functionStore: FunctionStore,
                                                                 keyValueLimiter: Option[KeyValueLimiter],
                                                                 fileOpenLimiter: FileLimiter,
+                                                                blockCache: Option[FileBlockCache.State],
                                                                 compression: Option[GroupByInternal.KeyValues],
                                                                 segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     segment match {
@@ -241,7 +238,6 @@ private[core] object Segment extends LazyLogging {
           _ =>
             Segment(
               path = nextPath,
-              blockSize = segmentConfig.blockSize,
               mmapReads = mmapSegmentsOnRead,
               mmapWrites = mmapSegmentsOnWrite,
               minKey = segment.minKey,
@@ -297,6 +293,7 @@ private[core] object Segment extends LazyLogging {
                                                                 functionStore: FunctionStore,
                                                                 keyValueLimiter: Option[KeyValueLimiter],
                                                                 fileOpenLimiter: FileLimiter,
+                                                                blockCache: Option[FileBlockCache.State],
                                                                 compression: Option[GroupByInternal.KeyValues],
                                                                 segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     SegmentMerger.split(
@@ -412,7 +409,6 @@ private[core] object Segment extends LazyLogging {
   def apply(path: Path,
             mmapReads: Boolean,
             mmapWrites: Boolean,
-            blockSize: Option[Int],
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
             segmentSize: Int,
@@ -423,13 +419,13 @@ private[core] object Segment extends LazyLogging {
                                          functionStore: FunctionStore,
                                          keyValueLimiter: Option[KeyValueLimiter],
                                          fileOpenLimiter: FileLimiter,
+                                         blockCache: Option[FileBlockCache.State],
                                          segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] = {
 
     val fileIO =
       if (mmapReads)
         DBFile.mmapRead(
           path = path,
-          blockSize = blockSize,
           ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
           autoClose = true,
           checkExists = checkExists
@@ -437,7 +433,6 @@ private[core] object Segment extends LazyLogging {
       else
         DBFile.channelRead(
           path = path,
-          blockSize = blockSize,
           ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
           autoClose = true,
           checkExists = checkExists
@@ -469,10 +464,10 @@ private[core] object Segment extends LazyLogging {
   def apply(path: Path,
             mmapReads: Boolean,
             mmapWrites: Boolean,
-            blockSize: Option[Int],
             checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
+                                  blockCache: Option[FileBlockCache.State],
                                   keyValueLimiter: Option[KeyValueLimiter],
                                   fileOpenLimiter: FileLimiter): IO[swaydb.Error.Segment, Segment] = {
 
@@ -482,7 +477,6 @@ private[core] object Segment extends LazyLogging {
       if (mmapReads)
         DBFile.mmapRead(
           path = path,
-          blockSize = blockSize,
           ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
           autoClose = false,
           checkExists = checkExists
@@ -490,7 +484,6 @@ private[core] object Segment extends LazyLogging {
       else
         DBFile.channelRead(
           path = path,
-          blockSize = blockSize,
           ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
           autoClose = false,
           checkExists = checkExists

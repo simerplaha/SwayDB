@@ -31,7 +31,7 @@ import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.IOEffect
+import swaydb.core.io.file.{FileBlockCache, IOEffect}
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.seek._
 import swaydb.core.map.serializer._
@@ -98,6 +98,7 @@ private[core] object Level extends LazyLogging {
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                functionStore: FunctionStore,
                                                keyValueLimiter: Option[KeyValueLimiter],
+                                               blockCache: Option[FileBlockCache.State],
                                                fileOpenLimiter: FileLimiter,
                                                groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Level, Level] = {
     //acquire lock on folder
@@ -121,8 +122,7 @@ private[core] object Level extends LazyLogging {
         val appendixReader =
           new AppendixMapEntryReader(
             mmapSegmentsOnRead = levelStorage.mmapSegmentsOnWrite,
-            mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnRead,
-            blockSize = segmentConfig.blockSize
+            mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnRead
           )
 
         import appendixReader._
@@ -233,8 +233,8 @@ private[core] object Level extends LazyLogging {
     }
 
   /**
-    * A Segment is considered small if it's size is less than 40% of the default [[Level.segmentSize]]
-    */
+   * A Segment is considered small if it's size is less than 40% of the default [[Level.segmentSize]]
+   */
   def isSmallSegment(segment: Segment, levelSegmentSize: Long): Boolean =
     segment.segmentSize < levelSegmentSize * 0.40
 
@@ -350,6 +350,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                                               addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                                               keyValueLimiter: Option[KeyValueLimiter],
                                                                               fileOpenLimiter: FileLimiter,
+                                                                              blockCache: Option[FileBlockCache.State],
                                                                               val groupBy: Option[GroupByInternal.KeyValues],
                                                                               val segmentIDGenerator: IDGenerator,
                                                                               segmentIO: SegmentIO,
@@ -664,8 +665,8 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   /**
-    * @return empty if copied into next Level else Segments copied into this Level.
-    */
+   * @return empty if copied into next Level else Segments copied into this Level.
+   */
   private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[Segment]] =
     forward(map) flatMap {
       copied =>
@@ -676,8 +677,8 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   /**
-    * Returns segments that were not forwarded.
-    */
+   * Returns segments that were not forwarded.
+   */
   private def forward(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Boolean] = {
     logger.trace(s"{}: forwarding {} Map", paths.head, map.pathOption)
     nextLevel map {
@@ -691,7 +692,7 @@ private[core] case class Level(dirs: Seq[Dir],
     } getOrElse IO.`false`
   }
 
-  private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[swaydb.Error.Level, Iterable[Segment]] = {
+  private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit blockCache: Option[FileBlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Map", paths.head, map.pathOption)
 
     def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
@@ -738,8 +739,8 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   /**
-    * Returns newly created Segments.
-    */
+   * Returns newly created Segments.
+   */
   private def copyForwardOrCopyLocal(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[Segment]] =
     forward(segments) match {
       case IO.Success(segmentsNotForwarded) =>
@@ -754,8 +755,8 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   /**
-    * Returns segments that were not forwarded.
-    */
+   * Returns segments that were not forwarded.
+   */
   private def forward(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[Segment]] = {
     logger.trace(s"{}: Copying forward {} Segments", paths.head, segments.map(_.path.toString))
     nextLevel map {
@@ -770,7 +771,7 @@ private[core] case class Level(dirs: Seq[Dir],
     } getOrElse IO.Success(segments)
   }
 
-  private[level] def copy(segments: Iterable[Segment]): IO[swaydb.Error.Level, Iterable[Segment]] = {
+  private[level] def copy(segments: Iterable[Segment])(implicit blockCache: Option[FileBlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Segments", paths.head, segments.map(_.path.toString))
     segments.flatMapIO[Segment](
       ioBlock =
@@ -991,8 +992,8 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   /**
-    * @return Newly created Segments.
-    */
+   * @return Newly created Segments.
+   */
   private[core] def putKeyValues(keyValues: Slice[KeyValue.ReadOnly],
                                  targetSegments: Iterable[Segment],
                                  appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[swaydb.Error.Level, Unit] = {
@@ -1234,9 +1235,9 @@ private[core] case class Level(dirs: Seq[Dir],
     )
 
   /**
-    * Does a quick appendix lookup.
-    * It does not check if the returned key is removed. Use [[Level.head]] instead.
-    */
+   * Does a quick appendix lookup.
+   * It does not check if the returned key is removed. Use [[Level.head]] instead.
+   */
   override def headKey: IO.Deferred[swaydb.Error.Level, Option[Slice[Byte]]] =
     nextLevel.map(_.headKey) getOrElse IO.Deferred.none map {
       nextLevelFirstKey =>
@@ -1244,9 +1245,9 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   /**
-    * Does a quick appendix lookup.
-    * It does not check if the returned key is removed. Use [[Level.last]] instead.
-    */
+   * Does a quick appendix lookup.
+   * It does not check if the returned key is removed. Use [[Level.last]] instead.
+   */
   override def lastKey: IO.Deferred[swaydb.Error.Level, Option[Slice[Byte]]] =
     nextLevel.map(_.lastKey) getOrElse IO.Deferred.none map {
       nextLevelLastKey =>

@@ -51,7 +51,7 @@ object Map extends LazyLogging {
    * @param dir                         Root directory for all Level where appendix folder & files are created
    * @param otherDirs                   Secondary directories for all Levels where Segments value distributed.
    * @param maxOpenSegments             Number of concurrent Segments opened
-   * @param cacheSize                   Size of in-memory key-values
+   * @param keyValueCacheSize                   Size of in-memory key-values
    * @param mapSize                     Size of LevelZero's maps (WAL)
    * @param mmapMaps                    Memory-maps LevelZero maps files if set to true else reverts java.nio.FileChannel
    * @param mmapAppendix                Memory-maps Levels appendix files if set to true else reverts java.nio.FileChannel
@@ -59,7 +59,7 @@ object Map extends LazyLogging {
    * @param segmentSize                 Minimum size of Segment files in each Level
    * @param appendixFlushCheckpointSize Size of the appendix file before it's flushed. Appendix files are append only log files.
    *                                    Flushing removes deleted entries in the file hence reducing the size of the file.
-   * @param cacheCheckDelay             Sets the max interval at which key-values value dropped from the cache. The delays
+   * @param keyValueCacheCheckDelay             Sets the max interval at which key-values value dropped from the cache. The delays
    *                                    are dynamically adjusted based on the current size of the cache to stay close the set
    *                                    cacheSize.
    * @param segmentsOpenCheckDelay      Sets the max interval at which Segments value closed. The delays
@@ -77,7 +77,8 @@ object Map extends LazyLogging {
 
   def apply[K, V](dir: Path,
                   maxOpenSegments: Int = 1000,
-                  cacheSize: Int = 100.mb,
+                  keyValueCacheSize: Int = 100.mb,
+                  blockCacheSize: Option[Int] = Some(4098),
                   mapSize: Int = 4.mb,
                   mmapMaps: Boolean = true,
                   recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
@@ -86,7 +87,7 @@ object Map extends LazyLogging {
                   segmentSize: Int = 2.mb,
                   appendixFlushCheckpointSize: Int = 2.mb,
                   otherDirs: Seq[Dir] = Seq.empty,
-                  cacheCheckDelay: FiniteDuration = 10.seconds,
+                  keyValueCacheCheckDelay: FiniteDuration = 10.seconds,
                   segmentsOpenCheckDelay: FiniteDuration = 10.seconds,
                   mightContainFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = true,
@@ -114,8 +115,9 @@ object Map extends LazyLogging {
         acceleration = acceleration
       ),
       maxOpenSegments = maxOpenSegments,
-      cacheSize = Some(cacheSize),
-      cacheCheckDelay = cacheCheckDelay,
+      keyValueCacheSize = Some(keyValueCacheSize),
+      keyValueCacheCheckDelay = keyValueCacheCheckDelay,
+      blockCacheSize = blockCacheSize,
       segmentsOpenCheckDelay = segmentsOpenCheckDelay,
       fileOpenLimiterEC = fileOpenLimiterEC,
       cacheLimiterEC = cacheLimiterEC

@@ -27,7 +27,7 @@ import swaydb.{IO, Tag}
 import swaydb.core.actor.WiredActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.BufferCleaner
+import swaydb.core.io.file.{BufferCleaner, FileBlockCache}
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.compaction._
 import swaydb.core.level.zero.LevelZero
@@ -133,9 +133,10 @@ private[core] object CoreInitializer extends LazyLogging {
 
   def apply(config: SwayDBConfig,
             maxSegmentsOpen: Int,
-            cacheSize: Option[Long],
+            keyValueCacheSize: Option[Long],
             keyValueQueueDelay: FiniteDuration,
             segmentCloserDelay: FiniteDuration,
+            blockCacheSize: Option[Int],
             fileOpenLimiterEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
@@ -144,10 +145,13 @@ private[core] object CoreInitializer extends LazyLogging {
       FileLimiter(maxSegmentsOpen, segmentCloserDelay)(fileOpenLimiterEC)
 
     implicit val keyValueLimiter: Option[KeyValueLimiter] =
-      cacheSize map {
+      keyValueCacheSize map {
         cacheSize =>
           KeyValueLimiter(cacheSize, keyValueQueueDelay)(cacheLimiterEC)
       }
+
+    implicit val blockCache: Option[FileBlockCache.State] =
+      blockCacheSize map FileBlockCache.init
 
     implicit val compactionStrategy: CompactionStrategy[CompactorState] =
       Compactor
@@ -188,7 +192,7 @@ private[core] object CoreInitializer extends LazyLogging {
             binarySearchIndexConfig = block.BinarySearchIndexBlock.Config(config = config.binarySearchIndex),
             sortedIndexConfig = block.SortedIndexBlock.Config(config.sortedIndex),
             valuesConfig = block.ValuesBlock.Config(config.values),
-            segmentConfig = block.SegmentBlock.Config(config.segmentIO, Some(4098), config.segmentCompressions),
+            segmentConfig = block.SegmentBlock.Config(config.segmentIO, config.segmentCompressions),
             levelStorage =
               LevelStorage.Persistent(
                 mmapSegmentsOnWrite = config.mmapSegment.mmapWrite,

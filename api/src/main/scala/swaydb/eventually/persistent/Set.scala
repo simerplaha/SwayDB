@@ -55,10 +55,11 @@ object Set extends LazyLogging {
                persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                mmapPersistentSegments: MMAP = MMAP.WriteAndRead,
                mmapPersistentAppendix: Boolean = true,
-               cacheSize: Int = 100.mb,
+               keyValueCacheSize: Int = 100.mb,
                otherDirs: Seq[Dir] = Seq.empty,
-               cacheCheckDelay: FiniteDuration = 5.seconds,
+               keyValueCacheCheckDelay: FiniteDuration = 5.seconds,
                segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
+               blockCacheSize: Option[Int] = Some(4098),
                mightContainFalsePositiveRate: Double = 0.01,
                compressDuplicateValues: Boolean = true,
                deleteSegmentsEventually: Boolean = false,
@@ -87,9 +88,10 @@ object Set extends LazyLogging {
           acceleration = acceleration
         ),
       maxOpenSegments = maxOpenSegments,
-      cacheSize = Some(cacheSize),
-      cacheCheckDelay = cacheCheckDelay,
+      keyValueCacheSize = Some(keyValueCacheSize),
+      keyValueCacheCheckDelay = keyValueCacheCheckDelay,
       segmentsOpenCheckDelay = segmentsOpenCheckDelay,
+      blockCacheSize = blockCacheSize,
       fileOpenLimiterEC = fileOpenLimiterEC,
       cacheLimiterEC = cacheLimiterEC
     ) map {

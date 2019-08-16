@@ -41,9 +41,10 @@ private[swaydb] object BlockingCore {
 
   def apply(config: SwayDBPersistentConfig,
             maxOpenSegments: Int,
-            cacheSize: Option[Int],
-            cacheCheckDelay: FiniteDuration,
+            keyValueCacheSize: Option[Int],
+            keyValueCacheCheckDelay: FiniteDuration,
             segmentsOpenCheckDelay: FiniteDuration,
+            blockCacheSize: Option[Int],
             fileOpenLimiterEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
@@ -51,8 +52,9 @@ private[swaydb] object BlockingCore {
     CoreInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
-      cacheSize = cacheSize.map(_.toLong),
-      keyValueQueueDelay = cacheCheckDelay,
+      keyValueCacheSize = keyValueCacheSize.map(_.toLong),
+      blockCacheSize = blockCacheSize,
+      keyValueQueueDelay = keyValueCacheCheckDelay,
       segmentCloserDelay = segmentsOpenCheckDelay,
       fileOpenLimiterEC = fileOpenLimiterEC,
       cacheLimiterEC = cacheLimiterEC
@@ -62,6 +64,7 @@ private[swaydb] object BlockingCore {
             maxOpenSegments: Int,
             cacheSize: Int,
             cacheCheckDelay: FiniteDuration,
+            blockCacheSize: Option[Int],
             segmentsOpenCheckDelay: FiniteDuration,
             fileOpenLimiterEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -70,7 +73,8 @@ private[swaydb] object BlockingCore {
     CoreInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
-      cacheSize = Some(cacheSize),
+      keyValueCacheSize = Some(cacheSize),
+      blockCacheSize = blockCacheSize,
       keyValueQueueDelay = cacheCheckDelay,
       segmentCloserDelay = segmentsOpenCheckDelay,
       fileOpenLimiterEC = fileOpenLimiterEC,

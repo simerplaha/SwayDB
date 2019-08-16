@@ -44,11 +44,11 @@ class Memory_WeatherDataGroupBySpec extends WeatherDataSpec {
 }
 
 class Persistent_WeatherDataSpec extends WeatherDataSpec {
-  override val db = swaydb.persistent.Map[Int, WeatherData](randomDir, cacheSize = 10.mb, acceleration = Accelerator.brake()).get
+  override val db = swaydb.persistent.Map[Int, WeatherData](randomDir, keyValueCacheSize = 10.mb, acceleration = Accelerator.brake()).get
 }
 
 class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
-  override val db = swaydb.eventually.persistent.Map[Int, WeatherData](randomDir, maxOpenSegments = 10, cacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
+  override val db = swaydb.eventually.persistent.Map[Int, WeatherData](randomDir, maxOpenSegments = 10, keyValueCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
 }
 
 sealed trait WeatherDataSpec extends TestBase with LazyLogging with BeforeAndAfterAll {

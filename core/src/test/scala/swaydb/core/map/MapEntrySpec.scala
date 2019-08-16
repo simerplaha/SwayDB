@@ -28,6 +28,7 @@ import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.group.compression.GroupByInternal
+import swaydb.core.io.file.FileBlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
@@ -53,8 +54,9 @@ class MapEntrySpec extends TestBase {
   implicit def compression: Option[GroupByInternal.KeyValues] = randomGroupByOption(randomNextInt(1000))
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO: SegmentIO = SegmentIO.random
+  implicit def blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache
 
-  val appendixReader = AppendixMapEntryReader (true, true, blockSize = randomBlockSize())
+  val appendixReader = AppendixMapEntryReader(true, true)
 
   val keyValues = randomKeyValues(count = 10)
 

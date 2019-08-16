@@ -50,9 +50,8 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     val reader =
       AppendixMapEntryReader(
         mmapSegmentsOnRead = false,
-        mmapSegmentsOnWrite = false,
-        blockSize = None
-      )(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, SegmentIO.defaultSynchronisedStoredIfCompressed, None)
+        mmapSegmentsOnWrite = false
+      )(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, None, SegmentIO.defaultSynchronisedStoredIfCompressed, None)
 
     import reader._
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
@@ -65,11 +64,10 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
             segment =>
               Segment(
                 path = segment,
-                blockSize = None,
                 mmapReads = false,
                 mmapWrites = false,
                 checkExists = true
-              )(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty)
+              )(keyOrder, timeOrder, functionStore, None, KeyValueLimiter.none, FileLimiter.empty)
           }
           .flatMap {
             segments =>

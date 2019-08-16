@@ -57,8 +57,8 @@ object Map extends LazyLogging {
    * @param persistentLevelSegmentSize Size of Level2's Segments
    * @param mmapPersistentSegments     Memory-maps Level2 Segments
    * @param mmapPersistentAppendix     Memory-maps Level2's appendix file
-   * @param cacheSize                  Size of
-   * @param cacheCheckDelay            Sets the max interval at which key-values get dropped from the cache. The delays
+   * @param keyValueCacheSize                  Size of
+   * @param keyValueCacheCheckDelay            Sets the max interval at which key-values get dropped from the cache. The delays
    *                                   are dynamically adjusted based on the current size of the cache to stay close the set
    *                                   cacheSize.
    * @param segmentsOpenCheckDelay     Sets the max interval at which Segments get closed. The delays
@@ -82,10 +82,11 @@ object Map extends LazyLogging {
                   persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                   mmapPersistentSegments: MMAP = MMAP.WriteAndRead,
                   mmapPersistentAppendix: Boolean = true,
-                  cacheSize: Int = 100.mb, //cacheSize for memory database is used for evicting decompressed key-values & persistent key-values in-memory
+                  keyValueCacheSize: Int = 100.mb, //cacheSize for memory database is used for evicting decompressed key-values & persistent key-values in-memory
                   otherDirs: Seq[Dir] = Seq.empty,
-                  cacheCheckDelay: FiniteDuration = 5.seconds,
+                  keyValueCacheCheckDelay: FiniteDuration = 5.seconds,
                   segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
+                  blockCacheSize: Option[Int] = Some(4098),
                   mightContainFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = true,
                   deleteSegmentsEventually: Boolean = false,
@@ -115,8 +116,9 @@ object Map extends LazyLogging {
           acceleration = acceleration
         ),
       maxOpenSegments = maxOpenSegments,
-      cacheSize = Some(cacheSize),
-      cacheCheckDelay = cacheCheckDelay,
+      keyValueCacheSize = Some(keyValueCacheSize),
+      keyValueCacheCheckDelay = keyValueCacheCheckDelay,
+      blockCacheSize = blockCacheSize,
       segmentsOpenCheckDelay = segmentsOpenCheckDelay,
       fileOpenLimiterEC = fileOpenLimiterEC,
       cacheLimiterEC = cacheLimiterEC
