@@ -59,7 +59,7 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
   val offset = block.offset
 
   override val state: BlockReader.State =
-    BlockReader(offset, 4028, reader)
+    BlockReader(offset, reader)
 
   override def moveTo(newPosition: Long): BlockedReader[O, B] = {
     state moveTo newPosition.toInt

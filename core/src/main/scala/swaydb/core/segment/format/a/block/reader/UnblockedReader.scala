@@ -73,7 +73,7 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
   val offset = block.offset
 
   override val state: BlockReader.State =
-    BlockReader(offset, 4028, reader)
+    BlockReader(offset, reader)
 
   def isSequentialRead =
     state.isSequentialRead

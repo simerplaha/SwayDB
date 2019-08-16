@@ -72,7 +72,7 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
                                                              private[reader] val reader: Reader[swaydb.Error.Segment]) extends BlockReaderBase with LazyLogging {
 
   override val state: BlockReader.State =
-    BlockReader(offset, 4028, reader)
+    BlockReader(offset, reader)
 
   override def moveTo(newPosition: Long): BlockRefReader[O] = {
     state moveTo newPosition.toInt
