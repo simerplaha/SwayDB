@@ -29,40 +29,74 @@ import swaydb.Error.Segment.ErrorHandler
 
 object BlockCache {
 
+  def init(file: DBFile,
+           blockSize: Int) =
+    new State(
+      file = file,
+      blockSize = blockSize,
+      map = new TrieMap[Int, Slice[Byte]]()
+    )
+
   class State(val file: DBFile,
               val blockSize: Int,
-              val map: TrieMap[Int, Slice[Byte]])
+              val map: TrieMap[Int, Slice[Byte]]) {
+    def clear() =
+      map.clear()
 
-  def seekSize(size: Int, blockSize: Int): Int = {
-    val doubleBlockSize: Double = blockSize
-    (doubleBlockSize * Math.ceil(Math.abs(size / doubleBlockSize))).toInt
+    val blockSizeDouble: Double = blockSize
   }
 
-  private def readAndCache(size: Int, position: Int, state: State): IO[Error.Segment, Slice[Byte]] =
-    state
-      .file
-      .read(position = position, size = seekSize(size, state.blockSize))
-      .map {
-        bytes =>
-          var index = 1
-          bytes.groupedSlice(state.blockSize) foreach {
-            bytes =>
-              state.map.put(position * index, bytes.unslice())
-              index += 1
-          }
-          bytes
+  def seekSize(keyPosition: Int, size: Int, state: State): IO[Error.IO, Int] =
+    state.file.fileSize map {
+      fileSize =>
+        val seekSize = (state.blockSizeDouble * Math.ceil(Math.abs(size / state.blockSizeDouble))).toInt
+        (fileSize.toInt - keyPosition) min seekSize
+    }
+
+  def seekPosition(position: Int, state: State): Int =
+    (state.blockSizeDouble * Math.ceil(Math.abs(position / state.blockSizeDouble))).toInt
+
+  sealed trait IOEffect {
+    def readAndCache(keyPosition: Int, size: Int, state: State): IO[Error.Segment, Slice[Byte]]
+  }
+
+  implicit object IOEffect extends IOEffect {
+    def readAndCache(keyPosition: Int, size: Int, state: State): IO[Error.Segment, Slice[Byte]] =
+      seekSize(
+        keyPosition = keyPosition,
+        size = size,
+        state = state
+      ) flatMap {
+        seekSize =>
+          state
+            .file
+            .read(
+              position = keyPosition,
+              size = seekSize
+            )
+            .map {
+              bytes =>
+                var index = 1
+                bytes.groupedSlice(bytes.size / state.blockSize) foreach {
+                  bytes =>
+                    state.map.put(keyPosition * index, bytes.unslice())
+                    index += 1
+                }
+                bytes.take(size)
+            }
       }
+  }
 
   @tailrec
   private[block] def doSeek(position: Int,
                             size: Int,
                             bytes: Slice[Byte],
-                            state: State): IO[Error.Segment, Slice[Byte]] = {
-    val keyPosition = position / state.blockSize
+                            state: State)(implicit effect: IOEffect): IO[Error.Segment, Slice[Byte]] = {
+    val keyPosition = seekPosition(position, state)
 
     state.map.get(keyPosition) match {
       case Some(fromCache) =>
-        val cachedBytes = fromCache.take(keyPosition + position - 1, size)
+        val cachedBytes = fromCache.take(position - keyPosition, size)
         val mergedBytes =
           if (bytes.isEmpty)
             cachedBytes
@@ -77,20 +111,20 @@ object BlockCache {
             size = size - cachedBytes.size,
             bytes = mergedBytes,
             state = state
-          )
+          )(effect)
 
 
       case None =>
-        readAndCache(
-          position = keyPosition,
+        effect.readAndCache(
+          keyPosition = keyPosition,
           size = size,
           state = state
         ) match {
           case IO.Success(seekedBytes) =>
             if (bytes.isEmpty)
-              IO.Success(seekedBytes.take(size))
+              IO.Success(seekedBytes)
             else
-              IO.Success(bytes ++ seekedBytes.take(size))
+              IO.Success(bytes ++ seekedBytes)
 
 
           case IO.Failure(error) =>
@@ -101,11 +135,11 @@ object BlockCache {
 
   def getOrSeek(position: Int,
                 size: Int,
-                state: State): IO[Error.Segment, Slice[Byte]] =
+                state: State)(implicit effect: IOEffect): IO[Error.Segment, Slice[Byte]] =
     doSeek(
       position = position,
       size = size,
       bytes = Slice.emptyBytes,
       state = state
-    )
+    )(effect)
 }
