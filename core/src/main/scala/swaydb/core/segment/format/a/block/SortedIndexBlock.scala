@@ -24,11 +24,11 @@ import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.compression.CompressionInternal
+import swaydb.core.cache.Cache
 import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.util.cache.Cache
 import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder

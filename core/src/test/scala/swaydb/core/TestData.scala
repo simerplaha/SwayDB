@@ -29,6 +29,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.TestLimitQueues.fileOpenLimiter
+import swaydb.core.cache.Cache
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.Transient.Range
 import swaydb.core.data.Value.{FromValue, RangeValue}
@@ -45,7 +46,6 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.util.UUIDUtil
-import swaydb.core.util.cache.Cache
 import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}

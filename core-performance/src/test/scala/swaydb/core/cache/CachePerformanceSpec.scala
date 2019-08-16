@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.util.cache
+package swaydb.core.cache
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.Error.Segment.ErrorHandler

@@ -20,12 +20,12 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.IO
+import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
-import swaydb.core.util.cache.Cache
 import swaydb.data.slice.ReaderBase
 
 trait EntryReader[E] {

@@ -24,8 +24,9 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ErrorHandler
 import swaydb.IO._
+import swaydb.core.cache.{Cache, NoIO}
 import swaydb.core.queue.{FileLimiter, FileLimiterItem}
-import swaydb.core.util.cache.{Cache, NoIO}
+import swaydb.core.cache.NoIO
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
 import swaydb.data.slice.Slice

@@ -17,17 +17,17 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.util.cache
+package swaydb.core.cache
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
-import swaydb.core.CommonAssertions._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._

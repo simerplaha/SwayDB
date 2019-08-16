@@ -25,10 +25,10 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.{Blocks, TestBase}
 import swaydb.core.TestData._
+import swaydb.core.cache.Cache
 import swaydb.core.data.{Persistent, Time, Transient}
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.Bytes
-import swaydb.core.util.cache.Cache
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

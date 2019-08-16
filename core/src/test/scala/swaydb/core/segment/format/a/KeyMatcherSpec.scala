@@ -22,11 +22,11 @@ package swaydb.core.segment.format.a
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
+import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent._
 import swaydb.core.data.{Persistent, Time, Value}
 import swaydb.core.segment.format.a.block.KeyMatcher.Result._
 import swaydb.core.segment.format.a.block.{KeyMatcher, ValuesBlock}
-import swaydb.core.util.cache.Cache
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice

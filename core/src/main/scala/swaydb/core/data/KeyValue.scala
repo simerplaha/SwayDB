@@ -21,6 +21,7 @@ package swaydb.core.data
 
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
+import swaydb.core.cache.{Cache, NoIO}
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
@@ -31,7 +32,7 @@ import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.{Segment, SegmentCache}
 import swaydb.core.util.CollectionUtil._
-import swaydb.core.util.cache.{Cache, NoIO}
+import swaydb.core.cache.NoIO
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
