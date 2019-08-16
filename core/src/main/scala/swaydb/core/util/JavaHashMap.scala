@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-object HashMap {
+object JavaHashMap {
 
   def concurrent[K, V](initialCapacity: Option[Int] = None) =
     new Concurrent[K, V](

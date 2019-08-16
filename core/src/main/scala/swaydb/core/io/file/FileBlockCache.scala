@@ -20,7 +20,7 @@
 package swaydb.core.io.file
 
 import swaydb.Error.IO.ErrorHandler
-import swaydb.core.util.HashMap
+import swaydb.core.util.JavaHashMap
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
@@ -33,12 +33,12 @@ private[file] object FileBlockCache {
     new State(
       file = file,
       blockSize = blockSize,
-      map = HashMap.concurrent[Int, Slice[Byte]]()
+      map = JavaHashMap.concurrent[Int, Slice[Byte]]()
     )
 
   class State(val file: DBFileType,
               val blockSize: Int,
-              val map: HashMap.Concurrent[Int, Slice[Byte]]) {
+              val map: JavaHashMap.Concurrent[Int, Slice[Byte]]) {
     def clear() =
       map.clear()
 
