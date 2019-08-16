@@ -29,9 +29,6 @@ import swaydb.Error.Segment.ErrorHandler
 
 object BlockCache {
 
-  case class Seek(key: Int,
-                  size: Int)
-
   class State(val file: DBFile,
               val blockSize: Int,
               val map: TrieMap[Int, Slice[Byte]])
@@ -41,16 +38,10 @@ object BlockCache {
     (doubleBlockSize * Math.ceil(Math.abs(size / doubleBlockSize))).toInt
   }
 
-  def seek(position: Int, size: Int, blockSize: Int): Seek =
-    Seek(
-      key = position / blockSize,
-      size = seekSize(size, blockSize)
-    )
-
   private def readAndCache(size: Int, position: Int, state: State): IO[Error.Segment, Slice[Byte]] =
     state
       .file
-      .read(position = position, size = size)
+      .read(position = position, size = seekSize(size, state.blockSize))
       .map {
         bytes =>
           var index = 1
@@ -63,20 +54,15 @@ object BlockCache {
       }
 
   @tailrec
-  def doSeek(position: Int,
-             size: Int,
-             bytes: Slice[Byte],
-             state: State): IO[Error.Segment, Slice[Byte]] = {
-    val offset =
-      seek(
-        position = position,
-        size = size,
-        blockSize = state.blockSize
-      )
+  private[block] def doSeek(position: Int,
+                            size: Int,
+                            bytes: Slice[Byte],
+                            state: State): IO[Error.Segment, Slice[Byte]] = {
+    val keyPosition = position / state.blockSize
 
-    state.map.get(offset.key) match {
+    state.map.get(keyPosition) match {
       case Some(fromCache) =>
-        val cachedBytes = fromCache.take(offset.key + position - 1, size)
+        val cachedBytes = fromCache.take(keyPosition + position - 1, size)
         val mergedBytes =
           if (bytes.isEmpty)
             cachedBytes
@@ -87,7 +73,7 @@ object BlockCache {
           IO.Success(mergedBytes)
         else
           doSeek(
-            position = offset.key + state.blockSize,
+            position = keyPosition + state.blockSize,
             size = size - cachedBytes.size,
             bytes = mergedBytes,
             state = state
@@ -96,7 +82,7 @@ object BlockCache {
 
       case None =>
         readAndCache(
-          position = offset.key,
+          position = keyPosition,
           size = size,
           state = state
         ) match {
@@ -115,7 +101,7 @@ object BlockCache {
 
   def getOrSeek(position: Int,
                 size: Int,
-                state: State) =
+                state: State): IO[Error.Segment, Slice[Byte]] =
     doSeek(
       position = position,
       size = size,
