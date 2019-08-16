@@ -28,7 +28,7 @@ import swaydb.data.slice.{Reader, ReaderBase, Slice}
 /**
  * Defers [[ReaderBase]] related operations to [[BlockReader]].
  */
-protected trait BlockReaderBase extends ReaderBase[swaydb.Error.Segment] with LazyLogging {
+private[block] trait BlockReaderBase extends ReaderBase[swaydb.Error.Segment] with LazyLogging {
 
   private[reader] val reader: Reader[swaydb.Error.Segment]
 
