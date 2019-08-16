@@ -21,8 +21,9 @@ package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
+import swaydb.core.io.file.FileBlockCache
 import swaydb.core.io.reader.FileReader
-import swaydb.core.segment.format.a.block.{BlockCache, BlockOffset}
+import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.{Error, IO}
 
@@ -47,13 +48,6 @@ private[reader] object BlockReader extends LazyLogging {
     val isFile = reader.isFile
 
     val size = offset.size
-
-    val blockCache =
-      if (reader.isFile) {
-        Option(BlockCache.init(reader.asInstanceOf[FileReader].file, 4089))
-      } else {
-        None
-      }
 
     def updatePreviousEndPosition(): Unit =
       previousReadEndPosition = position - 1
@@ -97,15 +91,6 @@ private[reader] object BlockReader extends LazyLogging {
         }
     else
       IO.Failure(swaydb.Error.Fatal(s"Has no more bytes. Position: ${state.position}"))
-
-  //  state.blockCache map {
-  //    cache =>
-  //      BlockCache.getOrSeek(state.offset.start + state.position, size, cache) map {
-  //        bytes =>
-  //          state.position += bytes.size
-  //          bytes
-  //      }
-  //  }
 
   def read(size: Int, state: State): IO[swaydb.Error.Segment, Slice[Byte]] = {
     val remaining = state.remaining

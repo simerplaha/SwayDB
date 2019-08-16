@@ -1401,6 +1401,9 @@ object CommonAssertions {
     getSegmentBlockCacheFromSegmentClosed(segment, segmentIO)
   }
 
+  def randomBlockSize(): Option[Int] =
+    orNone(Some(4098))
+
   def randomIOStrategy(cacheOnAccess: Boolean = randomBoolean(),
                        includeReserved: Boolean = true): IOStrategy =
     if (randomBoolean())

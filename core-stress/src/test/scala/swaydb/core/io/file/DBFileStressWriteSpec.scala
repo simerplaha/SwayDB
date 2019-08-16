@@ -20,6 +20,7 @@
 package swaydb.core.io.file
 
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions.randomBlockSize
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
@@ -41,7 +42,7 @@ class DBFileStressWriteSpec extends TestBase {
     "write key values to a ChannelFile" in {
       val path = randomFilePath
 
-      val file = DBFile.channelWrite(path, randomIOAccess(true), autoClose = false).runRandomIO.value
+      val file = DBFile.channelWrite(path, blockSize = randomBlockSize(), randomIOAccess(true), autoClose = false).runRandomIO.value
       Benchmark("write 1 million key values to a ChannelFile") {
         bytes foreach {
           byteChunk =>
@@ -54,7 +55,7 @@ class DBFileStressWriteSpec extends TestBase {
     "write key values to a ChannelFile concurrently" in {
       val path = randomFilePath
 
-      val file = DBFile.channelWrite(path, randomIOAccess(true), autoClose = false).runRandomIO.value
+      val file = DBFile.channelWrite(path, blockSize = randomBlockSize(), randomIOAccess(true), autoClose = false).runRandomIO.value
       Benchmark("write 1 million key values to a ChannelFile concurrently") {
         Future.sequence {
           bytes map {
@@ -69,7 +70,7 @@ class DBFileStressWriteSpec extends TestBase {
     "write key values to a MMAPlFile" in {
       val path = randomFilePath
 
-      val file = DBFile.mmapInit(path, randomIOAccess(true), bytes.size * 50, autoClose = false).runRandomIO.value
+      val file = DBFile.mmapInit(path, blockSize = randomBlockSize(), randomIOAccess(true), bytes.size * 50, autoClose = false).runRandomIO.value
       Benchmark("write 1 million key values to a MMAPlFile") {
         bytes foreach {
           chunk =>
@@ -82,7 +83,7 @@ class DBFileStressWriteSpec extends TestBase {
     "write key values to a MMAPlFile concurrently" in {
       val path = randomFilePath
 
-      val file = DBFile.mmapInit(path, randomIOAccess(true), bytes.size * 50, autoClose = false).runRandomIO.value
+      val file = DBFile.mmapInit(path, blockSize = randomBlockSize(), randomIOAccess(true), bytes.size * 50, autoClose = false).runRandomIO.value
       Benchmark("write 1 million key values to a MMAPlFile concurrently") {
         Future.sequence {
           bytes map {

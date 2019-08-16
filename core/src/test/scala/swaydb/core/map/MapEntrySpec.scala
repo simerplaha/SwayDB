@@ -54,7 +54,7 @@ class MapEntrySpec extends TestBase {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO: SegmentIO = SegmentIO.random
 
-  val appendixReader = AppendixMapEntryReader(true, true)
+  val appendixReader = AppendixMapEntryReader (true, true, blockSize = randomBlockSize())
 
   val keyValues = randomKeyValues(count = 10)
 

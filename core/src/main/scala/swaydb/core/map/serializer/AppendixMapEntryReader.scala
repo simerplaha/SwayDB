@@ -40,16 +40,18 @@ import scala.concurrent.duration.Deadline
 
 object AppendixMapEntryReader {
   def apply(mmapSegmentsOnRead: Boolean,
-            mmapSegmentsOnWrite: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                          timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore,
-                                          keyValueLimiter: Option[KeyValueLimiter],
-                                          fileOpenLimiter: FileLimiter,
-                                          segmentIO: SegmentIO,
-                                          compression: Option[GroupByInternal.KeyValues]): AppendixMapEntryReader =
+            mmapSegmentsOnWrite: Boolean,
+            blockSize: Option[Int])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                    timeOrder: TimeOrder[Slice[Byte]],
+                                    functionStore: FunctionStore,
+                                    keyValueLimiter: Option[KeyValueLimiter],
+                                    fileOpenLimiter: FileLimiter,
+                                    segmentIO: SegmentIO,
+                                    compression: Option[GroupByInternal.KeyValues]): AppendixMapEntryReader =
     new AppendixMapEntryReader(
       mmapSegmentsOnRead = mmapSegmentsOnRead,
-      mmapSegmentsOnWrite = mmapSegmentsOnWrite
+      mmapSegmentsOnWrite = mmapSegmentsOnWrite,
+      blockSize = blockSize
     )
 }
 
@@ -63,13 +65,14 @@ case class AppendixSegment(path: Path,
                            nearestExpiryDeadline: Option[Deadline])
 
 class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
-                             mmapSegmentsOnWrite: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                           timeOrder: TimeOrder[Slice[Byte]],
-                                                           functionStore: FunctionStore,
-                                                           keyValueLimiter: Option[KeyValueLimiter],
-                                                           fileOpenLimiter: FileLimiter,
-                                                           segmentIO: SegmentIO,
-                                                           compression: Option[GroupByInternal.KeyValues]) {
+                             mmapSegmentsOnWrite: Boolean,
+                             blockSize: Option[Int])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                     timeOrder: TimeOrder[Slice[Byte]],
+                                                     functionStore: FunctionStore,
+                                                     keyValueLimiter: Option[KeyValueLimiter],
+                                                     fileOpenLimiter: FileLimiter,
+                                                     segmentIO: SegmentIO,
+                                                     compression: Option[GroupByInternal.KeyValues]) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
     override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Segment]]] =
@@ -130,6 +133,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
            */
           Segment(
             path = segmentPath,
+            blockSize = blockSize,
             mmapReads = mmapSegmentsOnRead,
             mmapWrites = mmapSegmentsOnWrite,
             minKey = minKey,

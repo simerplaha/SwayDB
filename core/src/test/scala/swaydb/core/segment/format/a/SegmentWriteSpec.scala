@@ -574,6 +574,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                     path = segment.path,
                     mmapReads = randomBoolean(),
                     mmapWrites = randomBoolean(),
+                    blockSize = randomBlockSize(),
                     checkExists = false
                   ).runRandomIO.value
 

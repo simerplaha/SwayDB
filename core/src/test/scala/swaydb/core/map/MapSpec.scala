@@ -65,7 +65,7 @@ class MapSpec extends TestBase {
 
   implicit def segmentIO = SegmentIO.random
 
-  val appendixReader = AppendixMapEntryReader(true, true)
+  val appendixReader = AppendixMapEntryReader(true, true, blockSize = randomBlockSize())
 
   "Map" should {
     "initialise a memory level0" in {
@@ -472,7 +472,7 @@ class MapSpec extends TestBase {
       val nextFile = PersistentMap.nextFile(currentFile, false, 4.mb, skipList).runRandomIO.value
 
       val nextFileSkipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse]()(keyOrder)
-      val nextFileBytes = DBFile.channelRead(nextFile.path, randomIOStrategy(), autoClose = false).runRandomIO.value.readAll.runRandomIO.value
+      val nextFileBytes = DBFile.channelRead(nextFile.path, randomIOStrategy(), blockSize = randomBlockSize(), autoClose = false).runRandomIO.value.readAll.runRandomIO.value
       val mapEntries = MapCodec.read(nextFileBytes, dropCorruptedTailEntries = false).runRandomIO.value.item.value
       mapEntries applyTo nextFileSkipList
 

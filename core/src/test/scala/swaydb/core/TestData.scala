@@ -132,6 +132,7 @@ object TestData {
         mmapWrites = randomBoolean(),
         minKey = segment.minKey,
         maxKey = segment.maxKey,
+        blockSize = orNone(Some(4098)),
         segmentSize = segment.segmentSize,
         minMaxFunctionId = segment.minMaxFunctionId,
         nearestExpiryDeadline = segment.nearestExpiryDeadline
@@ -537,9 +538,11 @@ object TestData {
     def random: SegmentBlock.Config =
       random(randomBoolean())
 
-    def random(hasCompression: Boolean): SegmentBlock.Config =
+    def random(hasCompression: Boolean,
+               blockSize: Option[Int] = orNone(Some(4098))): SegmentBlock.Config =
       new SegmentBlock.Config(
         blockIO = _ => randomIOAccess(),
+        blockSize = blockSize,
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }

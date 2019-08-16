@@ -92,6 +92,7 @@ class SegmentSearcherPerformanceSpec extends TestBase with MockFactory {
         segmentConfig =
           new SegmentBlock.Config(
             blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+            blockSize = Some(4098),
             compressions = _ => Seq.empty
           ),
         createdInLevel = 0

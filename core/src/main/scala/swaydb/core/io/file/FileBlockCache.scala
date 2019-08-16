@@ -17,19 +17,18 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.block
+package swaydb.core.io.file
 
-import swaydb.Error.IO.ErrorHandler
-import swaydb.core.io.file.DBFile
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
 import scala.collection.concurrent.TrieMap
+import swaydb.Error.IO.ErrorHandler
 
-object BlockCache {
+private[file] object FileBlockCache {
 
-  def init(file: DBFile,
+  def init(file: DBFileType,
            blockSize: Int) =
     new State(
       file = file,
@@ -37,7 +36,7 @@ object BlockCache {
       map = TrieMap[Int, Slice[Byte]]()
     )
 
-  class State(val file: DBFile,
+  class State(val file: DBFileType,
               val blockSize: Int,
               val map: TrieMap[Int, Slice[Byte]]) {
     def clear() =
@@ -108,10 +107,10 @@ object BlockCache {
   }
 
   @tailrec
-  private[block] def doSeek(position: Int,
-                            size: Int,
-                            bytes: Slice[Byte],
-                            state: State)(implicit effect: IOEffect): IO[Error.IO, Slice[Byte]] = {
+  private[file] def doSeek(position: Int,
+                           size: Int,
+                           bytes: Slice[Byte],
+                           state: State)(implicit effect: IOEffect): IO[Error.IO, Slice[Byte]] = {
     val keyPosition = seekPosition(position, state)
 
     state.map.get(keyPosition) match {

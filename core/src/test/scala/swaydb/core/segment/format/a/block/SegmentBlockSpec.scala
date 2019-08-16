@@ -65,6 +65,7 @@ class SegmentBlockSpec extends TestBase {
             segmentConfig =
               new SegmentBlock.Config(
                 blockIO = _ => randomIOStrategy(),
+                blockSize = randomBlockSize(),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = randomNextInt(10)
@@ -106,6 +107,7 @@ class SegmentBlockSpec extends TestBase {
             segmentConfig =
               new SegmentBlock.Config(
                 blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+                blockSize = randomBlockSize(),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -137,6 +139,7 @@ class SegmentBlockSpec extends TestBase {
             segmentConfig =
               new SegmentBlock.Config(
                 blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+                blockSize = randomBlockSize(),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -171,6 +174,7 @@ class SegmentBlockSpec extends TestBase {
             segmentConfig =
               new SegmentBlock.Config(
                 blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+                blockSize = randomBlockSize(),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -201,6 +205,7 @@ class SegmentBlockSpec extends TestBase {
             segmentConfig =
               new SegmentBlock.Config(
                 blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+                blockSize = randomBlockSize(),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -222,6 +227,7 @@ class SegmentBlockSpec extends TestBase {
           segmentConfig =
             new SegmentBlock.Config(
               blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+              blockSize = randomBlockSize(),
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0
@@ -250,6 +256,7 @@ class SegmentBlockSpec extends TestBase {
           segmentConfig =
             new SegmentBlock.Config(
               blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+              blockSize = randomBlockSize(),
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0

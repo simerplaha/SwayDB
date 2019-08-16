@@ -43,7 +43,7 @@ class BufferCleanerSpec extends TestBase {
 
   "clear a MMAP file" in {
     implicit val limiter: FileLimiter = FileLimiter(0, 1.second)
-    val file: DBFile = DBFile.mmapWriteAndRead(randomDir, randomIOStrategy(cacheOnAccess = true), autoClose = true, Slice(randomBytesSlice())).get
+    val file: DBFile = DBFile.mmapWriteAndRead(randomDir, None, randomIOStrategy(cacheOnAccess = true), autoClose = true, Slice(randomBytesSlice())).get
 
     eventual(10.seconds) {
       file.file match {
@@ -69,7 +69,7 @@ class BufferCleanerSpec extends TestBase {
       val files =
         (1 to 20) map {
           _ =>
-            val file = DBFile.mmapWriteAndRead(randomDir, randomIOStrategy(cacheOnAccess = true), autoClose = true, Slice(randomBytesSlice())).get
+            val file = DBFile.mmapWriteAndRead(randomDir, None, randomIOStrategy(cacheOnAccess = true), autoClose = true, Slice(randomBytesSlice())).get
             file.delete().get
             file
         }

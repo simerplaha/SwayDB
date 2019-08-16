@@ -106,7 +106,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   def testGroupedKeyValues: Boolean
 
-  val keyValuesCount = 100000
+  val keyValuesCount = 1000000
 
   //    override def deleteFiles = false
 
@@ -297,6 +297,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
             case action: IOAction.DataAction =>
               IOStrategy.SynchronisedIO(cacheOnAccess = false)
           },
+          blockSize = Some(4098),
           _ => Seq.empty
         ),
         applyGroupingOnCopy = randomBoolean()
@@ -375,7 +376,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
     Benchmark(s"Creating segment. keyValues: ${keyValues.size}. groupedKeyValues: $testGroupedKeyValues") {
       implicit val groupBy: Option[GroupByInternal.KeyValues] = None
-      val segmentConfig = SegmentBlock.Config(strategy, _ => Seq.empty)
+      val segmentConfig = SegmentBlock.Config(strategy, blockSize = Some(4098), _ => Seq.empty)
       segment = TestSegment(keyValues, segmentConfig = segmentConfig).value
     }
 
@@ -393,6 +394,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       minKey = segment.minKey,
       maxKey = segment.maxKey,
       segmentSize = segment.segmentSize,
+      blockSize = Some(4098),
       nearestExpiryDeadline = segment.nearestExpiryDeadline,
       minMaxFunctionId = segment.minMaxFunctionId
     ).value

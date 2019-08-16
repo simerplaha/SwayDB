@@ -101,11 +101,13 @@ private[map] object PersistentMap extends LazyLogging {
     }
   }
 
-  private[map] def firstFile(folder: Path, memoryMapped: Boolean, fileSize: Long)(implicit limiter: FileLimiter): IO[swaydb.Error.Map, DBFile] =
+  private[map] def firstFile(folder: Path,
+                             memoryMapped: Boolean,
+                             fileSize: Long)(implicit limiter: FileLimiter): IO[swaydb.Error.Map, DBFile] =
     if (memoryMapped)
-      DBFile.mmapInit(folder.resolve(0.toLogFileId), IOStrategy.SynchronisedIO(true), fileSize, autoClose = false)
+      DBFile.mmapInit(folder.resolve(0.toLogFileId), None, IOStrategy.SynchronisedIO(true), fileSize, autoClose = false)
     else
-      DBFile.channelWrite(folder.resolve(0.toLogFileId), IOStrategy.SynchronisedIO(true), autoClose = false)
+      DBFile.channelWrite(folder.resolve(0.toLogFileId), None, IOStrategy.SynchronisedIO(true), autoClose = false)
 
   private[map] def recover[K, V](folder: Path,
                                  mmap: Boolean,
@@ -123,7 +125,7 @@ private[map] object PersistentMap extends LazyLogging {
     folder.files(Extension.Log) mapIO {
       path =>
         logger.info("{}: Recovering with dropCorruptedTailEntries = {}.", path, dropCorruptedTailEntries)
-        DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false) flatMap {
+        DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), None, autoClose = false) flatMap {
           file =>
             file.readAll flatMap {
               bytes =>
@@ -180,8 +182,8 @@ private[map] object PersistentMap extends LazyLogging {
                                   mmap: Boolean,
                                   fileSize: Long,
                                   skipList: SkipList.Concurrent[K, V])(implicit reader: MapEntryReader[MapEntry[K, V]],
-                                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                         limiter: FileLimiter): Option[IO[swaydb.Error.Map, DBFile]] =
+                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                       limiter: FileLimiter): Option[IO[swaydb.Error.Map, DBFile]] =
     oldFiles.lastOption map {
       lastFile =>
         nextFile(lastFile, mmap, fileSize, skipList) flatMap {
@@ -207,16 +209,16 @@ private[map] object PersistentMap extends LazyLogging {
                                   mmap: Boolean,
                                   size: Long,
                                   skipList: SkipList.Concurrent[K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                         mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                         limiter: FileLimiter): IO[swaydb.Error.Map, DBFile] =
+                                                                       mapReader: MapEntryReader[MapEntry[K, V]],
+                                                                       limiter: FileLimiter): IO[swaydb.Error.Map, DBFile] =
     currentFile.path.incrementFileId flatMap {
       nextPath =>
         val bytes = MapCodec.write(skipList)
         val newFile =
           if (mmap)
-            DBFile.mmapInit(path = nextPath, IOStrategy.SynchronisedIO(true), bufferSize = bytes.size + size, autoClose = false)
+            DBFile.mmapInit(path = nextPath, None, IOStrategy.SynchronisedIO(true), bufferSize = bytes.size + size, autoClose = false)
           else
-            DBFile.channelWrite(nextPath, IOStrategy.SynchronisedIO(true), autoClose = false)
+            DBFile.channelWrite(nextPath, None, IOStrategy.SynchronisedIO(true), autoClose = false)
 
         newFile flatMap {
           newFile =>
@@ -238,12 +240,12 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
                                                       initialWriteCount: Long,
                                                       private var currentFile: DBFile,
                                                       private val hasRangeInitial: Boolean)(val skipList: SkipList.Concurrent[K, V])(implicit keyOrder: KeyOrder[K],
-                                                                                                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                                       limiter: FileLimiter,
-                                                                                                                                       functionStore: FunctionStore,
-                                                                                                                                       reader: MapEntryReader[MapEntry[K, V]],
-                                                                                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                                                       skipListMerger: SkipListMerger[K, V]) extends Map[K, V] with LazyLogging {
+                                                                                                                                     timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                                     limiter: FileLimiter,
+                                                                                                                                     functionStore: FunctionStore,
+                                                                                                                                     reader: MapEntryReader[MapEntry[K, V]],
+                                                                                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                                                                                     skipListMerger: SkipListMerger[K, V]) extends Map[K, V] with LazyLogging {
 
   // actualSize of the file can be different to fileSize when the entry's size is > fileSize.
   // In this case a file is created just to fit those bytes (for that one entry).

@@ -62,7 +62,7 @@ private[swaydb] object GroupByInternal {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config(grouping.binarySearchIndex),
           sortedIndexConfig = SortedIndexBlock.Config(grouping.sortedIndex),
           valuesConfig = ValuesBlock.Config(grouping.values),
-          groupConfig = SegmentBlock.Config(grouping.groupIO, grouping.groupCompressions)
+          groupConfig = SegmentBlock.Config(grouping.groupIO, None, grouping.groupCompressions)
         )
     }
 
@@ -76,7 +76,7 @@ private[swaydb] object GroupByInternal {
       binarySearchIndexConfig = BinarySearchIndexBlock.Config(grouping.binarySearchIndex),
       sortedIndexConfig = SortedIndexBlock.Config(grouping.sortedIndex),
       valuesConfig = ValuesBlock.Config(grouping.values),
-      groupConfig = SegmentBlock.Config(grouping.groupIO, grouping.groupCompressions)
+      groupConfig = SegmentBlock.Config(grouping.groupIO, None, grouping.groupCompressions)
     )
 
   case class KeyValues(count: Int,

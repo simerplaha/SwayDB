@@ -45,7 +45,7 @@ class MapCodecSpec extends TestBase {
   implicit def compression = randomGroupByOption(randomNextInt(1000))
   implicit def segmentIO: SegmentIO = SegmentIO.random
 
-  val appendixReader = AppendixMapEntryReader(true, true)
+  val appendixReader = AppendixMapEntryReader(true, true, blockSize = randomBlockSize())
 
   "MemoryMapCodec" should {
     "write and read empty bytes" in {

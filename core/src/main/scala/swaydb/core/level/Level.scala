@@ -121,7 +121,8 @@ private[core] object Level extends LazyLogging {
         val appendixReader =
           new AppendixMapEntryReader(
             mmapSegmentsOnRead = levelStorage.mmapSegmentsOnWrite,
-            mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnRead
+            mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnRead,
+            blockSize = segmentConfig.blockSize
           )
 
         import appendixReader._

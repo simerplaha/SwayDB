@@ -25,7 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ErrorHandler
 import swaydb.IO._
 import swaydb.core.queue.{FileLimiter, FileLimiterItem}
-import swaydb.core.util.cache.Cache
+import swaydb.core.util.cache.{Cache, NoIO}
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
 import swaydb.data.slice.Slice
@@ -96,6 +96,7 @@ object DBFile extends LazyLogging {
     IOEffect.write(path, bytes)
 
   def channelWrite(path: Path,
+                   blockSize: Option[Int],
                    ioStrategy: IOStrategy,
                    autoClose: Boolean)(implicit limiter: FileLimiter): IO[swaydb.Error.IO, DBFile] =
     ChannelFile.write(path) map {
@@ -104,7 +105,8 @@ object DBFile extends LazyLogging {
           path = path,
           memoryMapped = false,
           autoClose = autoClose,
-          cache =
+          blockSize = blockSize,
+          fileCache =
             fileCache(
               filePath = path,
               memoryMapped = false,
@@ -117,6 +119,7 @@ object DBFile extends LazyLogging {
 
   def channelRead(path: Path,
                   ioStrategy: IOStrategy,
+                  blockSize: Option[Int],
                   autoClose: Boolean,
                   checkExists: Boolean = true)(implicit limiter: FileLimiter): IO[swaydb.Error.IO, DBFile] =
     if (checkExists && IOEffect.notExists(path))
@@ -127,7 +130,8 @@ object DBFile extends LazyLogging {
           path = path,
           memoryMapped = false,
           autoClose = autoClose,
-          cache =
+          blockSize = blockSize,
+          fileCache =
             fileCache(
               filePath = path,
               memoryMapped = false,
@@ -139,6 +143,7 @@ object DBFile extends LazyLogging {
       }
 
   def mmapWriteAndRead(path: Path,
+                       blockSize: Option[Int],
                        ioStrategy: IOStrategy,
                        autoClose: Boolean,
                        bytes: Iterable[Slice[Byte]])(implicit limiter: FileLimiter): IO[swaydb.Error.IO, DBFile] =
@@ -153,6 +158,7 @@ object DBFile extends LazyLogging {
       totalWritten =>
         mmapInit(
           path = path,
+          blockSize = blockSize,
           bufferSize = totalWritten,
           ioStrategy = ioStrategy,
           autoClose = autoClose
@@ -166,6 +172,7 @@ object DBFile extends LazyLogging {
     }
 
   def mmapWriteAndRead(path: Path,
+                       blockSize: Option[Int],
                        ioStrategy: IOStrategy,
                        autoClose: Boolean,
                        bytes: Slice[Byte])(implicit limiter: FileLimiter): IO[swaydb.Error.IO, DBFile] =
@@ -175,6 +182,7 @@ object DBFile extends LazyLogging {
     else
       mmapInit(
         path = path,
+        blockSize = blockSize,
         bufferSize = bytes.size,
         ioStrategy = ioStrategy,
         autoClose = autoClose
@@ -187,6 +195,7 @@ object DBFile extends LazyLogging {
       }
 
   def mmapRead(path: Path,
+               blockSize: Option[Int],
                ioStrategy: IOStrategy,
                autoClose: Boolean,
                checkExists: Boolean = true)(implicit limiter: FileLimiter): IO[swaydb.Error.IO, DBFile] =
@@ -196,9 +205,10 @@ object DBFile extends LazyLogging {
       IO(
         new DBFile(
           path = path,
+          blockSize = blockSize,
           memoryMapped = true,
           autoClose = autoClose,
-          cache =
+          fileCache =
             fileCache(
               filePath = path,
               memoryMapped = true,
@@ -210,6 +220,7 @@ object DBFile extends LazyLogging {
       )
 
   def mmapInit(path: Path,
+               blockSize: Option[Int],
                ioStrategy: IOStrategy,
                bufferSize: Long,
                autoClose: Boolean)(implicit limiter: FileLimiter): IO[swaydb.Error.IO, DBFile] =
@@ -217,9 +228,10 @@ object DBFile extends LazyLogging {
       file =>
         new DBFile(
           path = path,
+          blockSize = blockSize,
           memoryMapped = true,
           autoClose = autoClose,
-          cache =
+          fileCache =
             fileCache(
               filePath = path,
               memoryMapped = true,
@@ -238,13 +250,23 @@ object DBFile extends LazyLogging {
 class DBFile(val path: Path,
              memoryMapped: Boolean,
              autoClose: Boolean,
-             cache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit limiter: FileLimiter) extends LazyLogging {
+             blockSize: Option[Int],
+             fileCache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit limiter: FileLimiter) extends LazyLogging {
 
   def existsOnDisk =
     IOEffect.exists(path)
 
   def file: IO[Error.IO, DBFileType] =
-    cache.value()
+    fileCache.value()
+
+  val blockCache: Option[NoIO[DBFileType, FileBlockCache.State]] =
+    blockSize map {
+      blockSize =>
+        Cache.noIO(synchronised = true, stored = true, None) {
+          file =>
+            FileBlockCache.init(file, blockSize)
+        }
+    }
 
   def delete(): IO[swaydb.Error.IO, Unit] =
   //close the file
@@ -253,18 +275,18 @@ class DBFile(val path: Path,
         //try delegating the delete to the file itself.
         //If the file is already closed, then delete it from disk.
         //memory files are never closed so the first statement will always be executed for memory files.
-        (cache.get().map(_.flatMap(_.delete())) getOrElse IOEffect.deleteIfExists(path)) map {
+        (fileCache.get().map(_.flatMap(_.delete())) getOrElse IOEffect.deleteIfExists(path)) map {
           _ =>
-            cache.clear()
+            fileCache.clear()
         }
     }
 
   def close: IO[swaydb.Error.IO, Unit] =
-    cache.get() map {
+    fileCache.get() map {
       fileType =>
         fileType.flatMap(_.close()) map {
           _ =>
-            cache.clear()
+            fileCache.clear()
         }
     } getOrElse IO.unit
 
@@ -280,44 +302,55 @@ class DBFile(val path: Path,
     }
 
   def append(slice: Slice[Byte]) =
-    cache.value() flatMap (_.append(slice))
+    fileCache.value() flatMap (_.append(slice))
 
   def append(slice: Iterable[Slice[Byte]]) =
-    cache.value() flatMap (_.append(slice))
+    fileCache.value() flatMap (_.append(slice))
 
   def read(position: Int, size: Int): IO[swaydb.Error.IO, Slice[Byte]] =
     if (size == 0)
       IO.emptyBytes
     else
-      cache.value() flatMap (_.read(position, size))
+      blockCache map {
+        blockCache =>
+          blockCache.applyOrFetchApply(
+            apply = FileBlockCache.getOrSeek(position, size, _),
+            fetch = fileCache.value()
+          )
+      } getOrElse {
+        fileCache.value() flatMap (_.read(position, size))
+      }
 
-  def get(position: Int) =
-    cache.value() flatMap (_.get(position))
+  def get(position: Int): IO[Error.IO, Byte] =
+    if (blockCache.isDefined)
+      read(position, 1).map(_.head)
+    else
+      fileCache.value() flatMap (_.get(position))
 
   def readAll: IO[Error.IO, Slice[Byte]] =
-    cache.value() flatMap (_.readAll)
+    fileCache.value() flatMap (_.readAll)
 
   def fileSize: IO[Error.IO, Long] =
-    cache.value() flatMap (_.fileSize)
+    fileCache.value() flatMap (_.fileSize)
 
   //memory files are never closed, if it's memory file return true.
   def isOpen: Boolean =
-    cache.get().exists(_.exists(_.isOpen))
+    fileCache.get().exists(_.exists(_.isOpen))
 
   def isFileDefined: Boolean =
-    cache.get().isDefined
+    fileCache.get().isDefined
 
   def isMemoryMapped: IO[Error.IO, Boolean] =
-    cache.value() flatMap (_.isMemoryMapped)
+    fileCache.value() flatMap (_.isMemoryMapped)
 
   def isLoaded: IO[Error.IO, Boolean] =
-    cache.value() flatMap (_.isLoaded)
+    fileCache.value() flatMap (_.isLoaded)
 
   def isFull: IO[swaydb.Error.IO, Boolean] =
-    cache.value() flatMap (_.isFull)
+    fileCache.value() flatMap (_.isFull)
 
   def forceSave(): IO[swaydb.Error.IO, Unit] =
-    cache.value().map(_.forceSave()) getOrElse IO.unit
+    fileCache.value().map(_.forceSave()) getOrElse IO.unit
 
   override def equals(that: Any): Boolean =
     that match {

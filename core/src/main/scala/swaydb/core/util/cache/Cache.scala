@@ -301,6 +301,17 @@ private[swaydb] class NoIO[-I, +O](fetch: I => O, lazyValue: LazyValue[O]) {
   def value(input: => I): O =
     lazyValue getOrSet fetch(input)
 
+  def applyOrFetchApply[E: ErrorHandler, T](apply: O => IO[E, T], fetch: => IO[E, I]): IO[E, T] =
+    lazyValue.get() map {
+      input =>
+        apply(input)
+    } getOrElse {
+      fetch flatMap {
+        input =>
+          apply(value(input))
+      }
+    }
+
   def isCached: Boolean =
     lazyValue.isDefined
 

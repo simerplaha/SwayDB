@@ -370,20 +370,22 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   def createMMAPFileReader(bytes: Slice[Byte]): FileReader =
     createMMAPFileReader(createFile(bytes))
 
-  def createMMAPFileReader(path: Path): FileReader = {
+  def createMMAPFileReader(path: Path,
+                           blockSize: Option[Int] = orNone(Some(4098))): FileReader = {
     implicit val limiter = fileOpenLimiter
     new FileReader(
-      DBFile.mmapRead(path, randomIOStrategy(), autoClose = true).runRandomIO.value
+      DBFile.mmapRead(path, blockSize, randomIOStrategy(), autoClose = true).runRandomIO.value
     )
   }
 
   def createFileChannelFileReader(bytes: Slice[Byte]): FileReader =
     createFileChannelFileReader(createFile(bytes))
 
-  def createFileChannelFileReader(path: Path): FileReader = {
+  def createFileChannelFileReader(path: Path,
+                                  blockSize: Option[Int] = orNone(Some(4098))): FileReader = {
     implicit val limiter = fileOpenLimiter
     new FileReader(
-      DBFile.channelRead(path, randomIOStrategy(), autoClose = true).runRandomIO.value
+      DBFile.channelRead(path, randomIOStrategy(), autoClose = true, blockSize = blockSize).runRandomIO.value
     )
   }
 

@@ -188,7 +188,7 @@ private[core] object CoreInitializer extends LazyLogging {
             binarySearchIndexConfig = block.BinarySearchIndexBlock.Config(config = config.binarySearchIndex),
             sortedIndexConfig = block.SortedIndexBlock.Config(config.sortedIndex),
             valuesConfig = block.ValuesBlock.Config(config.values),
-            segmentConfig = block.SegmentBlock.Config(config.segmentIO, config.segmentCompressions),
+            segmentConfig = block.SegmentBlock.Config(config.segmentIO, Some(4098), config.segmentCompressions),
             levelStorage =
               LevelStorage.Persistent(
                 mmapSegmentsOnWrite = config.mmapSegment.mmapWrite,
