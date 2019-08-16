@@ -34,7 +34,7 @@ import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
 import swaydb.core.actor.WiredActor
 import swaydb.core.data.{Memory, Time, Transient}
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.{BufferCleaner, DBFile, FileBlockCache, FileBlockCacheSpec, IOEffect}
+import swaydb.core.io.file.{BufferCleaner, DBFile, BlockCache, FileBlockCacheSpec, IOEffect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
 import swaydb.core.level.zero.LevelZero
@@ -251,7 +251,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                                                keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                                                fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                               blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache,
+                                                                               blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
                                                                                segmentIO: SegmentIO = SegmentIO.random,
                                                                                groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(randomIntMax(1000))): IO[swaydb.Error.Segment, Segment] =
       if (levelStorage.memory)
@@ -314,7 +314,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
-                                                      blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache,
+                                                      blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                       compression: Option[GroupByInternal.KeyValues] = randomGroupBy(randomNextInt(1000))): Level =
       Level(
@@ -372,7 +372,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   def createMMAPFileReader(bytes: Slice[Byte]): FileReader =
     createMMAPFileReader(createFile(bytes))
 
-  def createMMAPFileReader(path: Path)(implicit blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache): FileReader = {
+  def createMMAPFileReader(path: Path)(implicit blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): FileReader = {
     implicit val limiter = fileOpenLimiter
     new FileReader(
       DBFile.mmapRead(path, randomIOStrategy(), autoClose = true).runRandomIO.value
@@ -382,7 +382,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   def createFileChannelFileReader(bytes: Slice[Byte]): FileReader =
     createFileChannelFileReader(createFile(bytes))
 
-  def createFileChannelFileReader(path: Path)(implicit blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache): FileReader = {
+  def createFileChannelFileReader(path: Path)(implicit blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): FileReader = {
     implicit val limiter = fileOpenLimiter
     new FileReader(
       DBFile.channelRead(path, randomIOStrategy(), autoClose = true).runRandomIO.value

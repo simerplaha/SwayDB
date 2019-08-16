@@ -36,7 +36,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.core.RunThis._
-import swaydb.core.io.file.{DBFile, FileBlockCache}
+import swaydb.core.io.file.{DBFile, BlockCache}
 import swaydb.core.io.reader.Reader
 
 import scala.concurrent.duration._
@@ -112,7 +112,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = None
-  implicit def blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache
+  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   def strategy(action: IOAction): IOStrategy =
     action match {

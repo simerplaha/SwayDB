@@ -26,7 +26,7 @@ import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, _}
-import swaydb.core.io.file.FileBlockCache
+import swaydb.core.io.file.BlockCache
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
@@ -45,7 +45,7 @@ class SegmentKeyValueLimiterSpec extends TestBase {
 
   val keyValuesCount = 100
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache
+  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   //  override def deleteFiles = false
 

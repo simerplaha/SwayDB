@@ -27,7 +27,7 @@ import swaydb.Error.Map.ErrorHandler
 import swaydb.{Error, IO}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.FileBlockCache
+import swaydb.core.io.file.BlockCache
 import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
@@ -46,7 +46,7 @@ object AppendixMapEntryReader {
                                           functionStore: FunctionStore,
                                           keyValueLimiter: Option[KeyValueLimiter],
                                           fileOpenLimiter: FileLimiter,
-                                          blockCache: Option[FileBlockCache.State],
+                                          blockCache: Option[BlockCache.State],
                                           segmentIO: SegmentIO,
                                           compression: Option[GroupByInternal.KeyValues]): AppendixMapEntryReader =
     new AppendixMapEntryReader(
@@ -70,7 +70,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                                                            functionStore: FunctionStore,
                                                            keyValueLimiter: Option[KeyValueLimiter],
                                                            fileOpenLimiter: FileLimiter,
-                                                           blockCache: Option[FileBlockCache.State],
+                                                           blockCache: Option[BlockCache.State],
                                                            segmentIO: SegmentIO,
                                                            compression: Option[GroupByInternal.KeyValues]) {
 

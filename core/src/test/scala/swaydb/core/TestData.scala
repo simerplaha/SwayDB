@@ -36,7 +36,7 @@ import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.FileBlockCache
+import swaydb.core.io.file.BlockCache
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
@@ -120,7 +120,7 @@ object TestData {
                                                  keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                  fileOpenLimiter: FileLimiter = fileOpenLimiter,
                                                  timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                 blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache,
+                                                 blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
                                                  segmentIO: SegmentIO = SegmentIO.random,
                                                  groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(randomNextInt(1000))) {
 
@@ -165,7 +165,7 @@ object TestData {
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
     def putKeyValuesTest(keyValues: Slice[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
-                                                              blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache): IO[swaydb.Error.Level, Unit] =
+                                                              blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): IO[swaydb.Error.Level, Unit] =
       if (keyValues.isEmpty)
         IO.unit
       else if (!level.isEmpty)
@@ -238,7 +238,7 @@ object TestData {
                   throttle: LevelMeter => Throttle = level.throttle,
                   nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
                                                                   fileOpenLimiter: FileLimiter = fileOpenLimiter,
-                                                                  blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache): IO[swaydb.Error.Level, Level] =
+                                                                  blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): IO[swaydb.Error.Level, Level] =
       level.releaseLocks flatMap {
         _ =>
           level.closeSegments flatMap {
@@ -541,7 +541,7 @@ object TestData {
     def random: SegmentBlock.Config =
       random(randomBoolean())
 
-    def random(hasCompression: Boolean)(implicit blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache): SegmentBlock.Config =
+    def random(hasCompression: Boolean)(implicit blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): SegmentBlock.Config =
       new SegmentBlock.Config(
         blockIO = _ => randomIOAccess(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty

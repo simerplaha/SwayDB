@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.io.file.{DBFile, FileBlockCache}
+import swaydb.core.io.file.{DBFile, BlockCache}
 import swaydb.core.io.reader.Reader
 import swaydb.core.queue.FileLimiter
 import swaydb.core.segment.format.a.block.reader.{BlockReader, BlockRefReader}
@@ -35,7 +35,7 @@ import swaydb.core.io.reader.FileReader
 class BlockReaderPerformanceSpec extends TestBase {
 
   implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit def blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache
+  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   "random access" in {
 

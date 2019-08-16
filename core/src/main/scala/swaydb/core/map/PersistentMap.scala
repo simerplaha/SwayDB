@@ -28,7 +28,7 @@ import swaydb.IO._
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect._
-import swaydb.core.io.file.{DBFile, FileBlockCache, IOEffect}
+import swaydb.core.io.file.{DBFile, IOEffect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
 import swaydb.core.util.{Extension, SkipList}

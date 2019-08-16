@@ -31,7 +31,7 @@ import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.{FileBlockCache, IOEffect}
+import swaydb.core.io.file.{BlockCache, IOEffect}
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.seek._
 import swaydb.core.map.serializer._
@@ -98,7 +98,7 @@ private[core] object Level extends LazyLogging {
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                functionStore: FunctionStore,
                                                keyValueLimiter: Option[KeyValueLimiter],
-                                               blockCache: Option[FileBlockCache.State],
+                                               blockCache: Option[BlockCache.State],
                                                fileOpenLimiter: FileLimiter,
                                                groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Level, Level] = {
     //acquire lock on folder
@@ -350,7 +350,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                                               addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                                               keyValueLimiter: Option[KeyValueLimiter],
                                                                               fileOpenLimiter: FileLimiter,
-                                                                              blockCache: Option[FileBlockCache.State],
+                                                                              blockCache: Option[BlockCache.State],
                                                                               val groupBy: Option[GroupByInternal.KeyValues],
                                                                               val segmentIDGenerator: IDGenerator,
                                                                               segmentIO: SegmentIO,
@@ -692,7 +692,7 @@ private[core] case class Level(dirs: Seq[Dir],
     } getOrElse IO.`false`
   }
 
-  private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit blockCache: Option[FileBlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
+  private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Map", paths.head, map.pathOption)
 
     def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
@@ -771,7 +771,7 @@ private[core] case class Level(dirs: Seq[Dir],
     } getOrElse IO.Success(segments)
   }
 
-  private[level] def copy(segments: Iterable[Segment])(implicit blockCache: Option[FileBlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
+  private[level] def copy(segments: Iterable[Segment])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Segments", paths.head, segments.map(_.path.toString))
     segments.flatMapIO[Segment](
       ioBlock =

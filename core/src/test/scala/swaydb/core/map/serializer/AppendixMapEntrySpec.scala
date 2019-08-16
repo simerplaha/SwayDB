@@ -24,7 +24,7 @@ import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.TestData._
-import swaydb.core.io.file.FileBlockCache
+import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
@@ -44,7 +44,7 @@ class AppendixMapEntrySpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
-  implicit def blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache
+  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def compression = randomGroupByOption(randomNextInt(1000))
   implicit def segmentIO: SegmentIO = SegmentIO.random

@@ -27,7 +27,7 @@ import swaydb.{IO, Tag}
 import swaydb.core.actor.WiredActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.{BufferCleaner, FileBlockCache}
+import swaydb.core.io.file.{BufferCleaner, BlockCache}
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.compaction._
 import swaydb.core.level.zero.LevelZero
@@ -150,8 +150,8 @@ private[core] object CoreInitializer extends LazyLogging {
           KeyValueLimiter(cacheSize, keyValueQueueDelay)(cacheLimiterEC)
       }
 
-    implicit val blockCache: Option[FileBlockCache.State] =
-      blockCacheSize map FileBlockCache.init
+    implicit val blockCache: Option[BlockCache.State] =
+      blockCacheSize map BlockCache.init
 
     implicit val compactionStrategy: CompactionStrategy[CompactorState] =
       Compactor

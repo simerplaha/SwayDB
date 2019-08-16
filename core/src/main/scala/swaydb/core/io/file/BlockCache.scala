@@ -28,7 +28,7 @@ import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
 
-private[core] object FileBlockCache {
+private[core] object BlockCache {
 
   def init(blockSize: Int) =
     new State(
@@ -48,7 +48,6 @@ private[core] object FileBlockCache {
                size: Int,
                file: DBFileType,
                state: State): IO[Error.IO, Int] =
-
     file.fileSize map {
       fileSize =>
         val seekSize =

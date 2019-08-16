@@ -34,7 +34,7 @@ class FileBlockCacheSpec extends TestBase {
     val blockSize = 10
 
     val state =
-      FileBlockCache.init(blockSize = blockSize)
+      BlockCache.init(blockSize = blockSize)
 
     "round size" when {
       "keyPosition <= (fileSize - blockSize)" when {
@@ -43,7 +43,7 @@ class FileBlockCacheSpec extends TestBase {
           (0 to file.fileSize.get.toInt - blockSize).filter(_ % blockSize == 0) foreach {
             position =>
               val size =
-                FileBlockCache.seekSize(
+                BlockCache.seekSize(
                   keyPosition = position,
                   size = blockSize,
                   file = file,
@@ -56,21 +56,21 @@ class FileBlockCacheSpec extends TestBase {
         }
 
         "size > multiples of blockSize" in {
-          FileBlockCache.seekSize(keyPosition = 0, size = 11, file = file, state = state).value shouldBe (blockSize * 2)
-          FileBlockCache.seekSize(keyPosition = 0, size = 21, file = file, state = state).value shouldBe (blockSize * 3)
-          FileBlockCache.seekSize(keyPosition = 0, size = 25, file = file, state = state).value shouldBe (blockSize * 3)
-          FileBlockCache.seekSize(keyPosition = 0, size = 29, file = file, state = state).value shouldBe (blockSize * 3)
-          FileBlockCache.seekSize(keyPosition = 0, size = 30, file = file, state = state).value shouldBe (blockSize * 3) //multiple but still included in this test
-          FileBlockCache.seekSize(keyPosition = 0, size = 31, file = file, state = state).value shouldBe (blockSize * 4)
-          FileBlockCache.seekSize(keyPosition = 0, size = 35, file = file, state = state).value shouldBe (blockSize * 4)
+          BlockCache.seekSize(keyPosition = 0, size = 11, file = file, state = state).value shouldBe (blockSize * 2)
+          BlockCache.seekSize(keyPosition = 0, size = 21, file = file, state = state).value shouldBe (blockSize * 3)
+          BlockCache.seekSize(keyPosition = 0, size = 25, file = file, state = state).value shouldBe (blockSize * 3)
+          BlockCache.seekSize(keyPosition = 0, size = 29, file = file, state = state).value shouldBe (blockSize * 3)
+          BlockCache.seekSize(keyPosition = 0, size = 30, file = file, state = state).value shouldBe (blockSize * 3) //multiple but still included in this test
+          BlockCache.seekSize(keyPosition = 0, size = 31, file = file, state = state).value shouldBe (blockSize * 4)
+          BlockCache.seekSize(keyPosition = 0, size = 35, file = file, state = state).value shouldBe (blockSize * 4)
 
-          FileBlockCache.seekSize(keyPosition = 5, size = 11, file = file, state = state).value shouldBe (blockSize * 2)
-          FileBlockCache.seekSize(keyPosition = 5, size = 21, file = file, state = state).value shouldBe (blockSize * 3)
-          FileBlockCache.seekSize(keyPosition = 5, size = 25, file = file, state = state).value shouldBe (blockSize * 3)
-          FileBlockCache.seekSize(keyPosition = 5, size = 29, file = file, state = state).value shouldBe (blockSize * 3)
-          FileBlockCache.seekSize(keyPosition = 5, size = 30, file = file, state = state).value shouldBe (blockSize * 3) //multiple but still included in this test
-          FileBlockCache.seekSize(keyPosition = 5, size = 31, file = file, state = state).value shouldBe (blockSize * 4)
-          FileBlockCache.seekSize(keyPosition = 5, size = 35, file = file, state = state).value shouldBe (blockSize * 4)
+          BlockCache.seekSize(keyPosition = 5, size = 11, file = file, state = state).value shouldBe (blockSize * 2)
+          BlockCache.seekSize(keyPosition = 5, size = 21, file = file, state = state).value shouldBe (blockSize * 3)
+          BlockCache.seekSize(keyPosition = 5, size = 25, file = file, state = state).value shouldBe (blockSize * 3)
+          BlockCache.seekSize(keyPosition = 5, size = 29, file = file, state = state).value shouldBe (blockSize * 3)
+          BlockCache.seekSize(keyPosition = 5, size = 30, file = file, state = state).value shouldBe (blockSize * 3) //multiple but still included in this test
+          BlockCache.seekSize(keyPosition = 5, size = 31, file = file, state = state).value shouldBe (blockSize * 4)
+          BlockCache.seekSize(keyPosition = 5, size = 35, file = file, state = state).value shouldBe (blockSize * 4)
         }
       }
 
@@ -82,7 +82,7 @@ class FileBlockCacheSpec extends TestBase {
           ((file.fileSize.get.toInt - blockSize + 1) to file.fileSize.get.toInt) foreach {
             position =>
               val size =
-                FileBlockCache.seekSize(
+                BlockCache.seekSize(
                   keyPosition = position,
                   size = blockSize,
                   file = file,
@@ -103,32 +103,32 @@ class FileBlockCacheSpec extends TestBase {
       val blockSize = 10
 
       val state =
-        FileBlockCache.init(blockSize = blockSize)
+        BlockCache.init(blockSize = blockSize)
 
       //0 -----------------------------------------> 1000
       //0 read 1
-      FileBlockCache.getOrSeek(position = 0, size = 1, file = file, state = state).get shouldBe bytes.take(1)
+      BlockCache.getOrSeek(position = 0, size = 1, file = file, state = state).get shouldBe bytes.take(1)
       state.map.asScala should have size 1
       state.map.head shouldBe((file.path, 0), bytes.take(blockSize))
       var headBytesHashCode = state.map.head._2.hashCode()
 
       //0 -----------------------------------------> 1000
       //0 read 2
-      FileBlockCache.getOrSeek(position = 0, size = 2, file = file, state = state)(null).get shouldBe bytes.take(2)
+      BlockCache.getOrSeek(position = 0, size = 2, file = file, state = state)(null).get shouldBe bytes.take(2)
       state.map.asScala should have size 1
       state.map.head shouldBe((file.path, 0), bytes.take(blockSize))
       state.map.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
 
       //0 -----------------------------------------> 1000
       //0 read 9
-      FileBlockCache.getOrSeek(position = 0, size = 9, file = file, state = state)(null).get shouldBe bytes.take(9)
+      BlockCache.getOrSeek(position = 0, size = 9, file = file, state = state)(null).get shouldBe bytes.take(9)
       state.map.asScala should have size 1
       state.map.head shouldBe((file.path, 0), bytes.take(blockSize))
       state.map.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
 
       //0 -----------------------------------------> 1000
       //0 read 10
-      FileBlockCache.getOrSeek(position = 0, size = 10, file = file, state = state)(null).get shouldBe bytes.take(10)
+      BlockCache.getOrSeek(position = 0, size = 10, file = file, state = state)(null).get shouldBe bytes.take(10)
       state.map.asScala should have size 1
       state.map.head shouldBe((file.path, 0), bytes.take(blockSize))
       state.map.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
@@ -136,26 +136,26 @@ class FileBlockCacheSpec extends TestBase {
 
       //0 -----------------------------------------> 1000
       //0 read 11
-      FileBlockCache.getOrSeek(position = 0, size = 11, file = file, state = state).get shouldBe bytes.take(11)
+      BlockCache.getOrSeek(position = 0, size = 11, file = file, state = state).get shouldBe bytes.take(11)
       state.map.asScala should have size 2
       state.map.last shouldBe((file.path, 10), bytes.drop(blockSize).take(blockSize))
 
       //0 -----------------------------------------> 1000
       //0 read 15
-      FileBlockCache.getOrSeek(position = 0, size = 15, file = file, state = state)(null).get shouldBe bytes.take(15)
+      BlockCache.getOrSeek(position = 0, size = 15, file = file, state = state)(null).get shouldBe bytes.take(15)
       state.map.asScala should have size 2
       state.map.last shouldBe((file.path, 10), bytes.drop(blockSize).take(blockSize))
 
       //0 -----------------------------------------> 1000
       //0 read 19
-      FileBlockCache.getOrSeek(position = 0, size = 19, file = file, state = state)(null).get shouldBe bytes.take(19)
+      BlockCache.getOrSeek(position = 0, size = 19, file = file, state = state)(null).get shouldBe bytes.take(19)
       state.map.asScala should have size 2
       state.map.last shouldBe((file.path, 10), bytes.drop(blockSize).take(blockSize))
 
 
       //0 -----------------------------------------> 1000
       //0 read 20
-      FileBlockCache.getOrSeek(position = 0, size = 20, file = file, state = state)(null).get shouldBe bytes.take(20)
+      BlockCache.getOrSeek(position = 0, size = 20, file = file, state = state)(null).get shouldBe bytes.take(20)
       state.map.asScala should have size 2
       state.map.last shouldBe((file.path, 10), bytes.drop(blockSize).take(blockSize))
     }
@@ -168,7 +168,7 @@ class FileBlockCacheSpec extends TestBase {
       val blockSize = randomIntMax(bytes.size * 2)
 
       val state =
-        FileBlockCache.init(
+        BlockCache.init(
           blockSize = blockSize
         )
 
@@ -178,7 +178,7 @@ class FileBlockCacheSpec extends TestBase {
         val readSize = randomIntMax(bytes.size * 3)
 
         val seek =
-          FileBlockCache.getOrSeek(
+          BlockCache.getOrSeek(
             position = position,
             size = readSize,
             file = file,

@@ -37,7 +37,7 @@ import swaydb.data.util.StorageUnits._
 class DBFileWriteReadPerformanceSpec extends TestBase {
 
   implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit def blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache
+  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   "random access" in {
     val bytes = randomBytesSlice(20.mb)

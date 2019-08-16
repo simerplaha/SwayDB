@@ -22,7 +22,7 @@ import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions._
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.core.TestData._
-import swaydb.core.io.file.FileBlockCache
+import swaydb.core.io.file.BlockCache
 import swaydb.core.util.Benchmark
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.KeyOrder
@@ -34,7 +34,7 @@ import scala.util.Random
 
 class SegmentSearcherPerformanceSpec extends TestBase with MockFactory {
   implicit val order = KeyOrder.default
-  implicit def blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache
+  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   "search performance" in {
     val compressions = Slice.fill(5)(randomCompressionsOrEmpty())

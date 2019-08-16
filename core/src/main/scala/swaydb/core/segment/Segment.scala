@@ -28,7 +28,7 @@ import swaydb.IO._
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.{DBFile, FileBlockCache, IOEffect}
+import swaydb.core.io.file.{DBFile, BlockCache, IOEffect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
@@ -124,7 +124,7 @@ private[core] object Segment extends LazyLogging {
                                                  functionStore: FunctionStore,
                                                  keyValueLimiter: Option[KeyValueLimiter],
                                                  fileOpenLimiter: FileLimiter,
-                                                 blockCache: Option[FileBlockCache.State],
+                                                 blockCache: Option[BlockCache.State],
                                                  segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] =
     SegmentBlock.writeClosed(
       keyValues = keyValues,
@@ -228,7 +228,7 @@ private[core] object Segment extends LazyLogging {
                                                                 functionStore: FunctionStore,
                                                                 keyValueLimiter: Option[KeyValueLimiter],
                                                                 fileOpenLimiter: FileLimiter,
-                                                                blockCache: Option[FileBlockCache.State],
+                                                                blockCache: Option[BlockCache.State],
                                                                 compression: Option[GroupByInternal.KeyValues],
                                                                 segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     segment match {
@@ -293,7 +293,7 @@ private[core] object Segment extends LazyLogging {
                                                                 functionStore: FunctionStore,
                                                                 keyValueLimiter: Option[KeyValueLimiter],
                                                                 fileOpenLimiter: FileLimiter,
-                                                                blockCache: Option[FileBlockCache.State],
+                                                                blockCache: Option[BlockCache.State],
                                                                 compression: Option[GroupByInternal.KeyValues],
                                                                 segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     SegmentMerger.split(
@@ -419,7 +419,7 @@ private[core] object Segment extends LazyLogging {
                                          functionStore: FunctionStore,
                                          keyValueLimiter: Option[KeyValueLimiter],
                                          fileOpenLimiter: FileLimiter,
-                                         blockCache: Option[FileBlockCache.State],
+                                         blockCache: Option[BlockCache.State],
                                          segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] = {
 
     val fileIO =
@@ -467,7 +467,7 @@ private[core] object Segment extends LazyLogging {
             checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
-                                  blockCache: Option[FileBlockCache.State],
+                                  blockCache: Option[BlockCache.State],
                                   keyValueLimiter: Option[KeyValueLimiter],
                                   fileOpenLimiter: FileLimiter): IO[swaydb.Error.Segment, Segment] = {
 

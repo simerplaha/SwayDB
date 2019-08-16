@@ -36,7 +36,7 @@ import scala.concurrent.duration._
 
 class BufferCleanerSpec extends TestBase {
 
-  implicit def blockCache: Option[FileBlockCache.State] = TestLimitQueues.randomBlockCache
+  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   override def beforeEach(): Unit = {
     BufferCleaner.initialiseCleaner
