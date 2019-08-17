@@ -107,7 +107,6 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
     SortedIndexBlock.normaliseSize(indexEntrySize = 10, segmentMaxIndexEntrySize = 10) shouldBe None
     //1 byte for the size of varInt 4 and 4 empty bytes so this returns 4
     SortedIndexBlock.normaliseSize(indexEntrySize = 10, segmentMaxIndexEntrySize = 15) shouldBe Some(4)
-    //
     SortedIndexBlock.normaliseSize(indexEntrySize = 10, segmentMaxIndexEntrySize = 1000) shouldBe Some(988)
   }
 

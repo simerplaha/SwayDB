@@ -151,8 +151,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
     val normalisedForBinarySearchSizeIncrement =
       if (keyValues.last.sortedIndexConfig.normaliseForBinarySearch) {
         //if binarySearch is required to be normalised then give each entry extra space for empty bytes size and the empty bytes itself.
-        val normalisedTailBytes = keyValues.last.stats.segmentMaxSortedIndexEntrySize - keyValues.last.stats.segmentMinSortedIndexEntrySize
-        (normalisedTailBytes + Bytes.sizeOf(normalisedTailBytes)) * keyValues.size
+        val normalisedBytesSize = keyValues.last.stats.segmentMaxSortedIndexEntrySize - keyValues.last.stats.segmentMinSortedIndexEntrySize
+        (normalisedBytesSize + Bytes.sizeOf(normalisedBytesSize)) * keyValues.size
       } else {
         0
       }
@@ -225,7 +225,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   def normaliseSize(indexEntrySize: Int, state: SortedIndexBlock.State): Option[Int] =
     if (state.normaliseForBinarySearch)
-      normaliseSize(indexEntrySize, state.segmentMaxIndexEntrySize)
+      normaliseSize(
+        indexEntrySize = indexEntrySize,
+        segmentMaxIndexEntrySize = state.segmentMaxIndexEntrySize
+      )
     else
       None
 
@@ -352,10 +355,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
         else
           0
 
-      if (indexReader.block.normaliseForBinarySearch) {
-        val normalisedBytes = sortedIndexReader.readIntUnsigned().get
-        sortedIndexReader skip normalisedBytes
-      }
+      if (indexReader.block.normaliseForBinarySearch)
+        sortedIndexReader skip sortedIndexReader.readIntUnsigned().get
 
       //create value cache reader given the value offset.
       //todo pass in blockIO config when read values.

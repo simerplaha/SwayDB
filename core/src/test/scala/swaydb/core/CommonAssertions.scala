@@ -1135,28 +1135,78 @@ object CommonAssertions {
       } else if (index == 0) {
         keyValues(index) match {
           case range: Transient.Range =>
-            SegmentSearcher.searchLower(range.fromKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).runRandomIO.value shouldBe empty
+            SegmentSearcher.searchLower(
+              key = range.fromKey,
+              start = None,
+              end = None,
+              keyValueCount = blocks.footer.keyValueCount,
+              binarySearchIndexReader = blocks.binarySearchIndexReader,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReader = blocks.valuesReader
+            ).runRandomIO.value shouldBe empty
+
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
               key =>
-                SegmentSearcher.searchLower(Slice.writeInt(key), None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).runRandomIO.value shouldBe range
+                SegmentSearcher.searchLower(
+                  key = Slice.writeInt(key),
+                  start = None,
+                  end = None,
+                  keyValueCount = blocks.footer.keyValueCount,
+                  binarySearchIndexReader = blocks.binarySearchIndexReader,
+                  sortedIndexReader = blocks.sortedIndexReader,
+                  valuesReader = blocks.valuesReader
+                ).runRandomIO.value shouldBe range
             }
 
           case _ =>
-            SegmentSearcher.searchLower(keyValues(index).key, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).runRandomIO.value shouldBe empty
+            SegmentSearcher.searchLower(
+              key = keyValues(index).key,
+              start = None,
+              end = None,
+              keyValueCount = blocks.footer.keyValueCount,
+              binarySearchIndexReader = blocks.binarySearchIndexReader,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReader = blocks.valuesReader
+            ).runRandomIO.value shouldBe empty
         }
         assertLowers(index + 1)
       } else {
         val expectedLowerKeyValue = keyValues(index - 1)
         keyValues(index) match {
           case range: Transient.Range =>
-            SegmentSearcher.searchLower(range.fromKey, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).runRandomIO.value.value shouldBe expectedLowerKeyValue
+            SegmentSearcher.searchLower(
+              key = range.fromKey,
+              start = None,
+              end = None,
+              keyValueCount = blocks.footer.keyValueCount,
+              binarySearchIndexReader = blocks.binarySearchIndexReader,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReader = blocks.valuesReader
+            ).runRandomIO.value.value shouldBe expectedLowerKeyValue
+
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
               key =>
-                SegmentSearcher.searchLower(Slice.writeInt(key), None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).runRandomIO.value shouldBe range
+                SegmentSearcher.searchLower(
+                  key = Slice.writeInt(key),
+                  start = None,
+                  end = None,
+                  keyValueCount = blocks.footer.keyValueCount,
+                  binarySearchIndexReader = blocks.binarySearchIndexReader,
+                  sortedIndexReader = blocks.sortedIndexReader,
+                  valuesReader = blocks.valuesReader
+                ).runRandomIO.value shouldBe range
             }
 
           case _ =>
-            SegmentSearcher.searchLower(keyValues(index).key, None, None, blocks.binarySearchIndexReader, blocks.sortedIndexReader, blocks.valuesReader).runRandomIO.value.value shouldBe expectedLowerKeyValue
+            SegmentSearcher.searchLower(
+              key = keyValues(index).key,
+              start = None,
+              end = None,
+              keyValueCount = blocks.footer.keyValueCount,
+              binarySearchIndexReader = blocks.binarySearchIndexReader,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReader = blocks.valuesReader
+            ).runRandomIO.value.value shouldBe expectedLowerKeyValue
         }
 
         assertLowers(index + 1)
@@ -1177,6 +1227,7 @@ object CommonAssertions {
             key = key,
             start = None,
             end = None,
+            keyValueCount = blocks.footer.keyValueCount,
             binarySearchIndexReader = blocks.binarySearchIndexReader,
             sortedIndexReader = blocks.sortedIndexReader,
             valuesReader = blocks.valuesReader

@@ -175,6 +175,7 @@ private[core] object SegmentSearcher extends LazyLogging {
   def searchHigher(key: Slice[Byte],
                    start: Option[Persistent],
                    end: => Option[Persistent],
+                   keyValueCount: Int,
                    binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
@@ -194,6 +195,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                 key = key,
                 start = Some(start),
                 end = end,
+                keyValueCount = keyValueCount,
                 binarySearchIndexReader = binarySearchIndexReader,
                 sortedIndexReader = sortedIndexReader,
                 valuesReader = valuesReader
@@ -204,6 +206,7 @@ private[core] object SegmentSearcher extends LazyLogging {
         key = key,
         start = start,
         end = end,
+        keyValueCount = keyValueCount,
         binarySearchIndexReader = binarySearchIndexReader,
         sortedIndexReader = sortedIndexReader,
         valuesReader = valuesReader
@@ -220,6 +223,7 @@ private[core] object SegmentSearcher extends LazyLogging {
   private def binarySearchHigher(key: Slice[Byte],
                                  start: Option[Persistent],
                                  end: => Option[Persistent],
+                                 keyValueCount: Int,
                                  binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
@@ -262,17 +266,28 @@ private[core] object SegmentSearcher extends LazyLogging {
               }
         }
     } getOrElse {
-      SortedIndexBlock.searchHigher(
-        key = key,
-        startFrom = start,
-        sortedIndexReader = sortedIndexReader,
-        valuesReader = valuesReader
-      )
+      if (sortedIndexReader.block.normaliseForBinarySearch)
+        BinarySearchIndexBlock.searchHigher(
+          key = key,
+          start = start,
+          keyValuesCount = keyValueCount,
+          end = end,
+          sortedIndexReader = sortedIndexReader,
+          valuesReader = valuesReader
+        )
+      else
+        SortedIndexBlock.searchHigher(
+          key = key,
+          startFrom = start,
+          sortedIndexReader = sortedIndexReader,
+          valuesReader = valuesReader
+        )
     }
 
   def searchLower(key: Slice[Byte],
                   start: Option[Persistent],
                   end: => Option[Persistent],
+                  keyValueCount: Int,
                   binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
@@ -311,11 +326,21 @@ private[core] object SegmentSearcher extends LazyLogging {
               )
         }
     } getOrElse {
-      SortedIndexBlock.searchLower(
-        key = key,
-        startFrom = start,
-        sortedIndexReader = sortedIndexReader,
-        valuesReader = valuesReader
-      )
+      if (sortedIndexReader.block.normaliseForBinarySearch)
+        BinarySearchIndexBlock.searchLower(
+          key = key,
+          start = start,
+          keyValuesCount = keyValueCount,
+          end = end,
+          sortedIndexReader = sortedIndexReader,
+          valuesReader = valuesReader
+        )
+      else
+        SortedIndexBlock.searchLower(
+          key = key,
+          startFrom = start,
+          sortedIndexReader = sortedIndexReader,
+          valuesReader = valuesReader
+        )
     }
 }
