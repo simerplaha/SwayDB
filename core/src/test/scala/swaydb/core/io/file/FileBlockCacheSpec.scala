@@ -23,6 +23,7 @@ import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
+import swaydb.core.io.file.BlockCache.Key
 import swaydb.data.slice.Slice
 
 class FileBlockCacheSpec extends TestBase {
@@ -109,28 +110,28 @@ class FileBlockCacheSpec extends TestBase {
       //0 read 1
       BlockCache.getOrSeek(position = 0, size = 1, file = file, state = state).get shouldBe bytes.take(1)
       state.map.asScala should have size 1
-      state.map.head shouldBe((file.path, 0), bytes.take(blockSize))
+      state.map.head shouldBe(Key(file.path, 0), bytes.take(blockSize))
       var headBytesHashCode = state.map.head._2.hashCode()
 
       //0 -----------------------------------------> 1000
       //0 read 2
       BlockCache.getOrSeek(position = 0, size = 2, file = file, state = state)(null).get shouldBe bytes.take(2)
       state.map.asScala should have size 1
-      state.map.head shouldBe((file.path, 0), bytes.take(blockSize))
+      state.map.head shouldBe(Key(file.path, 0), bytes.take(blockSize))
       state.map.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
 
       //0 -----------------------------------------> 1000
       //0 read 9
       BlockCache.getOrSeek(position = 0, size = 9, file = file, state = state)(null).get shouldBe bytes.take(9)
       state.map.asScala should have size 1
-      state.map.head shouldBe((file.path, 0), bytes.take(blockSize))
+      state.map.head shouldBe(Key(file.path, 0), bytes.take(blockSize))
       state.map.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
 
       //0 -----------------------------------------> 1000
       //0 read 10
       BlockCache.getOrSeek(position = 0, size = 10, file = file, state = state)(null).get shouldBe bytes.take(10)
       state.map.asScala should have size 1
-      state.map.head shouldBe((file.path, 0), bytes.take(blockSize))
+      state.map.head shouldBe(Key(file.path, 0), bytes.take(blockSize))
       state.map.head._2.hashCode() shouldBe headBytesHashCode //no disk seek
 
 
@@ -138,26 +139,26 @@ class FileBlockCacheSpec extends TestBase {
       //0 read 11
       BlockCache.getOrSeek(position = 0, size = 11, file = file, state = state).get shouldBe bytes.take(11)
       state.map.asScala should have size 2
-      state.map.last shouldBe((file.path, 10), bytes.drop(blockSize).take(blockSize))
+      state.map.last shouldBe(Key(file.path, 10), bytes.drop(blockSize).take(blockSize))
 
       //0 -----------------------------------------> 1000
       //0 read 15
       BlockCache.getOrSeek(position = 0, size = 15, file = file, state = state)(null).get shouldBe bytes.take(15)
       state.map.asScala should have size 2
-      state.map.last shouldBe((file.path, 10), bytes.drop(blockSize).take(blockSize))
+      state.map.last shouldBe(Key(file.path, 10), bytes.drop(blockSize).take(blockSize))
 
       //0 -----------------------------------------> 1000
       //0 read 19
       BlockCache.getOrSeek(position = 0, size = 19, file = file, state = state)(null).get shouldBe bytes.take(19)
       state.map.asScala should have size 2
-      state.map.last shouldBe((file.path, 10), bytes.drop(blockSize).take(blockSize))
+      state.map.last shouldBe(Key(file.path, 10), bytes.drop(blockSize).take(blockSize))
 
 
       //0 -----------------------------------------> 1000
       //0 read 20
       BlockCache.getOrSeek(position = 0, size = 20, file = file, state = state)(null).get shouldBe bytes.take(20)
       state.map.asScala should have size 2
-      state.map.last shouldBe((file.path, 10), bytes.drop(blockSize).take(blockSize))
+      state.map.last shouldBe(Key(file.path, 10), bytes.drop(blockSize).take(blockSize))
     }
   }
 
@@ -204,8 +205,8 @@ class FileBlockCacheSpec extends TestBase {
 
       //byte values match the index so all the head bytes should match the index.
       state.map.asScala foreach {
-        case (offset, bytes) =>
-          offset._2 shouldBe bytes.head
+        case (key, bytes) =>
+          key.position shouldBe bytes.head
       }
     }
   }

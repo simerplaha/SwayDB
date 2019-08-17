@@ -30,14 +30,16 @@ import scala.annotation.tailrec
 
 private[core] object BlockCache {
 
+  case class Key(path: Path, position: Int)
+  
   def init(blockSize: Int) =
     new State(
       blockSize = blockSize,
-      map = JavaHashMap.concurrent[(Path, Int), Slice[Byte]]()
+      map = JavaHashMap.concurrent[Key, Slice[Byte]]()
     )
 
   class State(val blockSize: Int,
-              val map: JavaHashMap.Concurrent[(Path, Int), Slice[Byte]]) {
+              val map: JavaHashMap.Concurrent[Key, Slice[Byte]]) {
     def clear() =
       map.clear()
 
@@ -89,7 +91,7 @@ private[core] object BlockCache {
                 } else if (bytes.isEmpty) {
                   Slice.emptyBytes
                 } else if (bytes.size <= state.blockSize) {
-                  state.map.put((file.path, keyPosition), bytes.unslice())
+                  state.map.put(Key(file.path, keyPosition), bytes.unslice())
                   bytes
                 } else {
                   var index = 0
@@ -97,7 +99,7 @@ private[core] object BlockCache {
                   val splits = Math.ceil(bytes.size / state.blockSizeDouble)
                   while (index < splits) {
                     val bytesToPut = bytes.take(index * state.blockSize, state.blockSize)
-                    state.map.put((file.path, position), bytesToPut)
+                    state.map.put(Key(file.path, position), bytesToPut)
                     position = position + bytesToPut.size
                     index += 1
                   }
@@ -115,7 +117,7 @@ private[core] object BlockCache {
                            state: State)(implicit effect: IOEffect): IO[Error.IO, Slice[Byte]] = {
     val keyPosition = seekPosition(position, state)
 
-    state.map.get((file.path, keyPosition)) match {
+    state.map.get(Key(file.path, keyPosition)) match {
       case Some(fromCache) =>
         val cachedBytes = fromCache.take(position - keyPosition, size)
         val mergedBytes =
