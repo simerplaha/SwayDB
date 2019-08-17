@@ -20,13 +20,14 @@
 package swaydb.data.config
 
 sealed trait PrefixCompression {
-  def toOption: Option[PrefixCompression.Enable] =
-    this match {
-      case PrefixCompression.Disable => None
-      case enable: PrefixCompression.Enable => Some(enable)
-    }
+  def resetCount: Int
+  def normaliseIndexForBinarySearch: Boolean
 }
 object PrefixCompression {
-  case object Disable extends PrefixCompression
-  case class Enable(resetCount: Option[Int]) extends PrefixCompression
+  case class Disable(normaliseIndexForBinarySearch: Boolean) extends PrefixCompression {
+    def resetCount: Int = 0
+  }
+  case class Enable(resetCount: Int) extends PrefixCompression {
+    def normaliseIndexForBinarySearch: Boolean = false
+  }
 }

@@ -491,6 +491,7 @@ object TestData {
         blockIO = _ => randomIOAccess(),
         prefixCompressionResetCount = randomIntMax(5),
         enableAccessPositionIndex = randomBoolean(),
+        normaliseForBinarySearch = randomBoolean(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }

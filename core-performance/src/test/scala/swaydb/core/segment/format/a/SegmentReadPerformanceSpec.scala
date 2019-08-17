@@ -240,6 +240,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
           prefixCompressionResetCount = 0,
           enableAccessPositionIndex = true,
+          normaliseForBinarySearch = true,
           compressions = _ => Seq.empty
         ),
       binarySearchIndexConfig =

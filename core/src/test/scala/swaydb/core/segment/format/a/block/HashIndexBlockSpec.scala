@@ -297,6 +297,7 @@ class HashIndexBlockSpec extends TestBase {
                 blockIO = _ => randomIOStrategy(),
                 prefixCompressionResetCount = 0,
                 enableAccessPositionIndex = randomBoolean(),
+                normaliseForBinarySearch = randomBoolean(),
                 compressions = _ => compressions
               )
           )

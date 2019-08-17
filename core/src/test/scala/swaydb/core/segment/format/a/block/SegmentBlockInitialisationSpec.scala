@@ -423,6 +423,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               blockIO = _ => randomIOAccess(cacheOnAccess = true),
               prefixCompressionResetCount = 0,
               enableAccessPositionIndex = true,
+              normaliseForBinarySearch = randomBoolean(),
               compressions = _ => compressions(1)
             ),
           binarySearchIndexConfig =

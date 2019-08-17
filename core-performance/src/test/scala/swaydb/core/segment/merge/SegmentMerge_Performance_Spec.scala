@@ -52,7 +52,7 @@ class SegmentMerge_Performance_Spec extends TestBase {
         forInMemory = false,
         createdInLevel = randomIntMax(),
         valuesConfig = ValuesBlock.Config.disabled,
-        sortedIndexConfig = SortedIndexBlock.Config.disabled,
+        sortedIndexConfig = SortedIndexBlock.Config.default,
         binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
         hashIndexConfig = HashIndexBlock.Config.disabled,
         bloomFilterConfig = BloomFilterBlock.Config.disabled,

@@ -172,7 +172,7 @@ private[core] object CoreInitializer extends LazyLogging {
             bloomFilterConfig = block.BloomFilterBlock.Config.disabled,
             hashIndexConfig = block.HashIndexBlock.Config.disabled,
             binarySearchIndexConfig = block.BinarySearchIndexBlock.Config.disabled,
-            sortedIndexConfig = block.SortedIndexBlock.Config.disabled,
+            sortedIndexConfig = block.SortedIndexBlock.Config.default,
             valuesConfig = block.ValuesBlock.Config.disabled,
             segmentConfig = block.SegmentBlock.Config.default,
             levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),

@@ -60,6 +60,7 @@ class SegmentSearcherPerformanceSpec extends TestBase with MockFactory {
             blockIO = _ => access,
             prefixCompressionResetCount = 0,
             enableAccessPositionIndex = true,
+            normaliseForBinarySearch = randomBoolean(),
             compressions = _ => compressions(1)
           ),
         binarySearchIndexConfig =

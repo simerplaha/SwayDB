@@ -102,7 +102,7 @@ object DefaultEventuallyPersistentConfig {
           SortedKeyIndex.Enable(
             prefixCompression =
               PrefixCompression.Enable(
-                resetCount = Some(10)
+                resetCount = 10
               ),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),

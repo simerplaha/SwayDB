@@ -53,11 +53,12 @@ private[core] object SortedIndexBlock extends LazyLogging {
   }
 
   object Config {
-    val disabled =
+    val default =
       Config(
         blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         enableAccessPositionIndex = false,
         prefixCompressionResetCount = 0,
+        normaliseForBinarySearch = false,
         compressions = _ => Seq.empty
       )
 
@@ -70,7 +71,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
     def apply(enable: swaydb.data.config.SortedKeyIndex.Enable): Config =
       Config(
         enableAccessPositionIndex = enable.enablePositionIndex,
-        prefixCompressionResetCount = enable.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0),
+        prefixCompressionResetCount = enable.prefixCompression.resetCount,
+        normaliseForBinarySearch = enable.prefixCompression.resetCount <= 0 && enable.prefixCompression.normaliseIndexForBinarySearch,
         blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
         compressions =
           FunctionUtil.safe(
@@ -78,12 +80,26 @@ private[core] object SortedIndexBlock extends LazyLogging {
             function = enable.compressions(_) map CompressionInternal.apply
           )
       )
+
+    def apply(blockIO: IOAction => IOStrategy,
+              prefixCompressionResetCount: Int,
+              enableAccessPositionIndex: Boolean,
+              normaliseForBinarySearch: Boolean,
+              compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Config =
+      new Config(
+        blockIO = blockIO,
+        prefixCompressionResetCount = prefixCompressionResetCount,
+        enableAccessPositionIndex = enableAccessPositionIndex,
+        normaliseForBinarySearch = prefixCompressionResetCount <= 0 && normaliseForBinarySearch,
+        compressions = compressions
+      )
   }
 
-  case class Config(blockIO: IOAction => IOStrategy,
-                    prefixCompressionResetCount: Int,
-                    enableAccessPositionIndex: Boolean,
-                    compressions: UncompressedBlockInfo => Seq[CompressionInternal])
+  case class Config private(blockIO: IOAction => IOStrategy,
+                            prefixCompressionResetCount: Int,
+                            enableAccessPositionIndex: Boolean,
+                            normaliseForBinarySearch: Boolean,
+                            compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
