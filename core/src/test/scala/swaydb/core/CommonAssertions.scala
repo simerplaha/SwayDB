@@ -770,6 +770,7 @@ object CommonAssertions {
           key = keyValue.key,
           start = None,
           end = None,
+          keyValueCount = blocks.footer.keyValueCount,
           hashIndexReader = blocks.hashIndexReader,
           binarySearchIndexReader = blocks.binarySearchIndexReader,
           sortedIndexReader = blocks.sortedIndexReader,

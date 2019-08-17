@@ -187,6 +187,7 @@ object SegmentFooterBlock {
           val hasPut = footerReader.readBoolean().get
           val keyValueCount = footerReader.readIntUnsigned().get
           val bloomFilterItemsCount = footerReader.readIntUnsigned().get
+
           val sortedIndexOffset =
             SortedIndexBlock.Offset(
               size = footerReader.readIntUnsigned().get,

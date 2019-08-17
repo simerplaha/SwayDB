@@ -36,7 +36,8 @@ private[core] object SegmentSearcher extends LazyLogging {
              binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-             hasRange: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
+             hasRange: Boolean,
+             keyValueCount: Int)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
     when(sortedIndexReader.isSequentialRead)(start) map {
       startFrom =>
         SortedIndexBlock.searchSeekOne(
@@ -53,6 +54,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                 key = key,
                 start = start,
                 end = end,
+                keyValueCount = keyValueCount,
                 hashIndexReader = hashIndexReader,
                 binarySearchIndexReader = binarySearchIndexReader,
                 sortedIndexReader = sortedIndexReader,
@@ -65,6 +67,7 @@ private[core] object SegmentSearcher extends LazyLogging {
         key = key,
         start = start,
         end = end,
+        keyValueCount = keyValueCount,
         hashIndexReader = hashIndexReader,
         binarySearchIndexReader = binarySearchIndexReader,
         sortedIndexReader = sortedIndexReader,
@@ -80,7 +83,8 @@ private[core] object SegmentSearcher extends LazyLogging {
                       binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                       sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                       valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                      hasRange: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
+                      hasRange: Boolean,
+                      keyValueCount: Int)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
     hashIndexReader map {
       hashIndexReader =>
         HashIndexBlock.search(
@@ -100,6 +104,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                 key = key,
                 start = start,
                 end = end,
+                keyValueCount = keyValueCount,
                 binarySearchIndexReader = binarySearchIndexReader,
                 sortedIndexReader = sortedIndexReader,
                 valuesReader = valuesReader
@@ -110,6 +115,7 @@ private[core] object SegmentSearcher extends LazyLogging {
         key = key,
         start = start,
         end = end,
+        keyValueCount = keyValueCount,
         binarySearchIndexReader = binarySearchIndexReader,
         sortedIndexReader = sortedIndexReader,
         valuesReader = valuesReader
@@ -119,6 +125,7 @@ private[core] object SegmentSearcher extends LazyLogging {
   private def binarySearch(key: Slice[Byte],
                            start: Option[Persistent],
                            end: => Option[Persistent],
+                           keyValueCount: Int,
                            binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                            sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
@@ -147,12 +154,22 @@ private[core] object SegmentSearcher extends LazyLogging {
               )
         }
     } getOrElse {
-      SortedIndexBlock.search(
-        key = key,
-        startFrom = start,
-        sortedIndexReader = sortedIndexReader,
-        valuesReader = valuesReader
-      )
+      if (sortedIndexReader.block.normaliseForBinarySearch)
+        BinarySearchIndexBlock.search(
+          key = key,
+          start = start,
+          keyValuesCount = keyValueCount,
+          end = end,
+          sortedIndex = sortedIndexReader,
+          values = valuesReader
+        )
+      else
+        SortedIndexBlock.search(
+          key = key,
+          startFrom = start,
+          sortedIndexReader = sortedIndexReader,
+          valuesReader = valuesReader
+        )
     }
 
   def searchHigher(key: Slice[Byte],

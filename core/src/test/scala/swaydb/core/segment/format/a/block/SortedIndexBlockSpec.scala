@@ -78,14 +78,15 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
           else
             keyValues(index + 1).indexEntryBytes.size
 
-        if (index < keyValues.size - 1) {
-          //if it's not the last
-          persistent.nextIndexOffset shouldBe expectedNextIndexOffset
-          persistent.nextIndexSize shouldBe expectedNextIndexSize
-        } else {
-          persistent.nextIndexOffset shouldBe -1
-          persistent.nextIndexSize shouldBe 0
-        }
+        if (!keyValues.last.sortedIndexConfig.normaliseForBinarySearch)
+          if (index < keyValues.size - 1) {
+            //if it's not the last
+            persistent.nextIndexOffset shouldBe expectedNextIndexOffset
+            persistent.nextIndexSize shouldBe expectedNextIndexSize
+          } else {
+            persistent.nextIndexOffset shouldBe -1
+            persistent.nextIndexSize shouldBe 0
+          }
 
         persistent match {
           case response: Persistent.SegmentResponse =>
@@ -99,6 +100,15 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       case ((_, other), _) =>
         fail(s"Didn't expect type: ${other.getClass.getName}")
     }
+  }
+
+  "normalise" in {
+    //no need to add empty bytes. Data is already normalised
+    SortedIndexBlock.normaliseSize(indexEntrySize = 10, segmentMaxIndexEntrySize = 10) shouldBe None
+    //1 byte for the size of varInt 4 and 4 empty bytes so this returns 4
+    SortedIndexBlock.normaliseSize(indexEntrySize = 10, segmentMaxIndexEntrySize = 15) shouldBe Some(4)
+    //
+    SortedIndexBlock.normaliseSize(indexEntrySize = 10, segmentMaxIndexEntrySize = 1000) shouldBe Some(988)
   }
 
   "init" in {
@@ -118,7 +128,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
   "write, close, readAll & get" in {
     runThis(100.times, log = true) {
-      val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(randomIntMax(1000) max 1))
+      val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(2, sortedIndexConfig = SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0, normaliseForBinarySearch = true)))
 
       val sortedIndexBlock = SortedIndexBlock.init(keyValues)
       val valuesBlock = ValuesBlock.init(keyValues)

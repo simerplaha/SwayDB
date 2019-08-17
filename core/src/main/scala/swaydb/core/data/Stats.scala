@@ -83,6 +83,12 @@ private[core] object Stats {
         thisKeyValueAccessIndexPositionByteSize +
         indexEntry.size
 
+    val segmentMaxSortedIndexEntrySize =
+      previousStats.map(_.segmentMaxSortedIndexEntrySize max thisKeyValuesSortedIndexSize) getOrElse thisKeyValuesSortedIndexSize
+
+    val segmentMinSortedIndexEntrySize =
+      previousStats.map(_.segmentMinSortedIndexEntrySize min thisKeyValuesSortedIndexSize) getOrElse thisKeyValuesSortedIndexSize
+
     val thisKeyValuesSortedIndexSizeWithoutFooter =
       SortedIndexBlock.headerSize(false) +
         thisKeyValuesSortedIndexSize
@@ -148,7 +154,7 @@ private[core] object Stats {
         )
 
     val segmentBinarySearchIndexSize =
-      if (binarySearch.enabled)
+      if (binarySearch.enabled && !sortedIndex.normaliseForBinarySearch)
         previousStats flatMap {
           previousStats =>
             if (previousStats.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessIndexOffset)
@@ -254,6 +260,8 @@ private[core] object Stats {
       thisKeyValuesAccessIndexOffset = thisKeyValuesAccessIndexOffset,
       thisKeyValueRealIndexOffset = thisKeyValuesRealIndexOffset,
       thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
+      segmentMaxSortedIndexEntrySize = segmentMaxSortedIndexEntrySize,
+      segmentMinSortedIndexEntrySize = segmentMinSortedIndexEntrySize,
       segmentHashIndexSize = segmentHashIndexSize,
       segmentBloomFilterSize = segmentBloomFilterSize,
       segmentBinarySearchIndexSize = segmentBinarySearchIndexSize,
@@ -295,6 +303,8 @@ private[core] case class Stats(valueLength: Int,
                                segmentHasRemoveRange: Boolean,
                                segmentHasRange: Boolean,
                                segmentHasPut: Boolean,
+                               segmentMaxSortedIndexEntrySize: Int,
+                               segmentMinSortedIndexEntrySize: Int,
                                hasPrefixCompression: Boolean,
                                isGroup: Boolean) {
   def segmentHasGroup: Boolean =

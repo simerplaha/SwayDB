@@ -551,7 +551,7 @@ private[core] object SegmentBlock {
     } flatMap {
       result =>
         //ensure that all the slices are full.
-        if (!sortedIndexBlock.bytes.isFull)
+        if (!sortedIndexBlock.normaliseForBinarySearch && !sortedIndexBlock.bytes.isFull)
           IO.failed(s"indexSlice is not full actual: ${sortedIndexBlock.bytes.size} - expected: ${sortedIndexBlock.bytes.allocatedSize}")
         else if (valuesBlock.exists(!_.bytes.isFull))
           IO.failed(s"valuesSlice is not full actual: ${valuesBlock.get.bytes.size} - expected: ${valuesBlock.get.bytes.allocatedSize}")

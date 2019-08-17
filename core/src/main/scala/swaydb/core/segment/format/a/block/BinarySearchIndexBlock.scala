@@ -20,7 +20,6 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.Error.Segment.ErrorHandler
-import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
@@ -29,6 +28,7 @@ import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
+import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
 
@@ -160,7 +160,7 @@ private[core] object BinarySearchIndexBlock {
   }
 
   def init(keyValues: Iterable[Transient]): Option[State] =
-    if (keyValues.last.stats.segmentBinarySearchIndexSize <= 0)
+    if (keyValues.last.stats.segmentBinarySearchIndexSize <= 0 || keyValues.last.sortedIndexConfig.normaliseForBinarySearch)
       None
     else
       BinarySearchIndexBlock.State(
@@ -274,8 +274,7 @@ private[core] object BinarySearchIndexBlock {
   def resolveResult(knownLowest: Option[Persistent],
                     knownMatch: Option[Persistent],
                     startKeyValue: Option[Persistent],
-                    isHigherSeek: Option[Boolean],
-                    block: BinarySearchIndexBlock)(implicit order: Ordering[Persistent]): IO[swaydb.Error.Segment, SearchResult[Persistent]] =
+                    isHigherSeek: Option[Boolean])(implicit order: Ordering[Persistent]): IO[swaydb.Error.Segment, SearchResult[Persistent]] =
     knownMatch flatMap {
       knownMatch =>
         isHigherSeek map {
@@ -305,33 +304,28 @@ private[core] object BinarySearchIndexBlock {
       }
     }
 
-  def search(reader: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
-             startKeyValue: Option[Persistent],
-             endKeyValue: Option[Persistent],
-             isHigherSeek: Option[Boolean],
-             matchValue: Int => IO[swaydb.Error.Segment, KeyMatcher.Result])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, SearchResult[Persistent]] = {
+  def search(context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, SearchResult[Persistent]] = {
     implicit val order: Ordering[Persistent] = Ordering.by[Persistent, Slice[Byte]](_.key)(ordering)
 
     @tailrec
     def hop(start: Int, end: Int, knownLowest: Option[Persistent], knownMatch: Option[Persistent]): IO[swaydb.Error.Segment, SearchResult[Persistent]] = {
       val mid = start + (end - start) / 2
 
-      val valueOffset = mid * reader.block.bytesPerValue
+      val valueOffset = mid * context.entrySize
 
       if (start > end)
         resolveResult(
           knownLowest = knownLowest,
           knownMatch = knownMatch,
-          startKeyValue = startKeyValue,
-          isHigherSeek = isHigherSeek,
-          block = reader.block
+          startKeyValue = context.startKeyValue,
+          isHigherSeek = context.higherOrLower
         )
       else
-        reader.moveTo(valueOffset).readInt(unsigned = reader.block.isVarInt).flatMap(matchValue) match {
+        context.seek(valueOffset) match {
           case IO.Success(value) =>
             value match {
               case matched: KeyMatcher.Result.Matched =>
-                isHigherSeek match {
+                context.higherOrLower match {
                   case None =>
                     IO.Success(SearchResult.Some(matched.previous orElse knownLowest, matched.result))
 
@@ -354,7 +348,7 @@ private[core] object BinarySearchIndexBlock {
                 //do a comparison of the highest of both (currently knownLowest and current seeked lowest)
                 //seek can also return a lower lower if its not a fullIndex so do a check again.
                 val newKnownLowest =
-                  if (!reader.block.isFullIndex || startKeyValue.exists(_.accessPosition == 0))
+                  if (!context.isFullIndex || context.startKeyValue.exists(_.accessPosition == 0))
                     MinMax.maxFavourLeft(knownLowest, behind.previous)
                   else
                     behind.previous
@@ -374,7 +368,7 @@ private[core] object BinarySearchIndexBlock {
     //A key-values accessPosition can sometimes be larger than what binarySearchIndex knows for cases where binarySearchIndex is partial
     //to handle that check that accessPosition is not over the number total binarySearchIndex entries.
     def getAccessPosition(keyValue: Persistent): Option[Int] =
-      if (keyValue.accessPosition <= 0 || (!reader.block.isFullIndex && keyValue.accessPosition > reader.block.valuesCount))
+      if (keyValue.accessPosition <= 0 || (!context.isFullIndex && keyValue.accessPosition > context.entriesCount))
         None
       else
         Some(keyValue.accessPosition - 1)
@@ -387,10 +381,10 @@ private[core] object BinarySearchIndexBlock {
     def getEndPosition(keyValue: Option[Persistent]): Int =
       keyValue
         .flatMap(getAccessPosition)
-        .getOrElse(reader.block.valuesCount - 1)
+        .getOrElse(context.entriesCount - 1)
 
-    val startPosition = getStartPosition(startKeyValue)
-    val endPosition = getEndPosition(endKeyValue)
+    val startPosition = getStartPosition(context.startKeyValue)
+    val endPosition = getEndPosition(context.endKeyValue)
 
     /**
      * Special treatment for lower seeks.
@@ -400,14 +394,14 @@ private[core] object BinarySearchIndexBlock {
      * lowest index.
      */
     def seekLower() =
-      if (endKeyValue.exists(_.accessPosition > 0))
+      if (context.endKeyValue.exists(_.accessPosition > 0))
         hop(start = (endPosition - 1) max 0, end = endPosition, None, None) flatMap {
           case some @ SearchResult.Some(_, _) =>
             IO.Success(some)
 
           case none @ SearchResult.None(lower) =>
             if (endPosition > 1)
-              hop(start = startPosition, end = endPosition - 1, startKeyValue, None)
+              hop(start = startPosition, end = endPosition - 1, context.startKeyValue, None)
             else
 
             /**
@@ -418,7 +412,7 @@ private[core] object BinarySearchIndexBlock {
              */
               lower flatMap {
                 lower =>
-                  startKeyValue map {
+                  context.startKeyValue map {
                     startKeyValue =>
                       if (lower.hashCode() != startKeyValue.hashCode())
                         IO.failed("Lower was defined.")
@@ -427,68 +421,43 @@ private[core] object BinarySearchIndexBlock {
                   }
               } getOrElse IO.Success(none)
         }
-      else if (startKeyValue.exists(_.accessPosition > 0)) //end should not be larger than the number of entries.
-        hop(start = startPosition, end = (startPosition + 1) min (reader.block.valuesCount - 1), None, None) flatMap {
+      else if (context.startKeyValue.exists(_.accessPosition > 0)) //end should not be larger than the number of entries.
+        hop(start = startPosition, end = (startPosition + 1) min (context.entriesCount - 1), None, None) flatMap {
           case some @ SearchResult.Some(_, lower) =>
-            if (startKeyValue exists (order.equiv(_, lower)))
+            if (context.startKeyValue exists (order.equiv(_, lower)))
               IO.Success(some)
             else
               hop(start = getStartPosition(Some(lower)), end = endPosition, Some(lower), None)
 
           case SearchResult.None(_) =>
-            hop(start = startPosition, end = endPosition, startKeyValue, None)
+            hop(start = startPosition, end = endPosition, context.startKeyValue, None)
         }
       else
-        hop(start = startPosition, end = endPosition, startKeyValue, None)
+        hop(start = startPosition, end = endPosition, context.startKeyValue, None)
 
-    if (isHigherSeek contains false)
+    if (context.higherOrLower contains false)
       seekLower()
     else
-      hop(start = startPosition, end = endPosition, startKeyValue, None)
+      hop(start = startPosition, end = endPosition, context.startKeyValue, None)
   }
 
-  private def search(key: Slice[Byte],
-                     higherOrLower: Option[Boolean],
-                     start: Option[Persistent],
-                     end: Option[Persistent],
-                     binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
-                     sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                     values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, SearchResult[Persistent]] = {
-    val matcher =
-      higherOrLower map {
-        higher =>
-          //if the sortedIndex has compression disabled do not fetch the next key-value. Let binary search find the next one to seek to.
-          if (higher)
-            if (sortedIndex.block.hasPrefixCompression)
-              KeyMatcher.Higher.WhilePrefixCompressed(key)
-            else
-              KeyMatcher.Higher.SeekOne(key)
-          else if (sortedIndex.block.hasPrefixCompression)
-            KeyMatcher.Lower.WhilePrefixCompressed(key)
-          else
-            KeyMatcher.Lower.SeekOne(key)
-      } getOrElse {
-        if (sortedIndex.block.hasPrefixCompression)
-          KeyMatcher.Get.WhilePrefixCompressed(key)
-        else
-          KeyMatcher.Get.SeekOne(key)
-      }
-
+  def search(key: Slice[Byte],
+             start: Option[Persistent],
+             end: Option[Persistent],
+             keyValuesCount: Int,
+             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+             values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Error.Segment, Option[Persistent]] =
     search(
-      reader = binarySearchIndex,
-      isHigherSeek = higherOrLower,
-      startKeyValue = start,
-      endKeyValue = end,
-      matchValue =
-        sortedIndexOffsetValue =>
-          SortedIndexBlock.findAndMatchOrNextMatch(
-            matcher = matcher,
-            fromOffset = sortedIndexOffsetValue,
-            sortedIndex = sortedIndex,
-            valuesReader = values
-          )
-    )
-  }
+      BinarySearchContext(
+        key = key,
+        highOrLow = None,
+        start = start,
+        end = end,
+        keyValuesCount = keyValuesCount,
+        sortedIndex = sortedIndex,
+        values = values
+      )
+    ).map(_.toOption)
 
   def search(key: Slice[Byte],
              start: Option[Persistent],
@@ -497,13 +466,15 @@ private[core] object BinarySearchIndexBlock {
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, SearchResult[Persistent]] =
     search(
-      key = key,
-      higherOrLower = None,
-      start = start,
-      end = end,
-      binarySearchIndex = binarySearchIndexReader,
-      sortedIndex = sortedIndexReader,
-      values = valuesReader
+      BinarySearchContext(
+        key = key,
+        highOrLow = None,
+        start = start,
+        end = end,
+        binarySearchIndex = binarySearchIndexReader,
+        sortedIndex = sortedIndexReader,
+        values = valuesReader
+      )
     )
 
   def searchHigher(key: Slice[Byte],
@@ -513,13 +484,33 @@ private[core] object BinarySearchIndexBlock {
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, SearchResult[Persistent]] =
     search(
-      key = key,
-      higherOrLower = Options.`true`,
-      start = start,
-      end = end,
-      binarySearchIndex = binarySearchIndexReader,
-      sortedIndex = sortedIndexReader,
-      values = valuesReader
+      BinarySearchContext(
+        key = key,
+        highOrLow = Options.`true`,
+        start = start,
+        end = end,
+        binarySearchIndex = binarySearchIndexReader,
+        sortedIndex = sortedIndexReader,
+        values = valuesReader
+      )
+    )
+
+  def searchHigher(key: Slice[Byte],
+                   start: Option[Persistent],
+                   end: Option[Persistent],
+                   keyValuesCount: Int,
+                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, SearchResult[Persistent]] =
+    search(
+      BinarySearchContext(
+        key = key,
+        highOrLow = Options.`true`,
+        start = start,
+        end = end,
+        keyValuesCount = keyValuesCount,
+        sortedIndex = sortedIndexReader,
+        values = valuesReader
+      )
     )
 
   def searchLower(key: Slice[Byte],
@@ -529,13 +520,33 @@ private[core] object BinarySearchIndexBlock {
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, SearchResult[Persistent]] =
     search(
-      key = key,
-      higherOrLower = Options.`false`,
-      start = start,
-      end = end,
-      binarySearchIndex = binarySearchIndexReader,
-      sortedIndex = sortedIndexReader,
-      values = valuesReader
+      BinarySearchContext(
+        key = key,
+        highOrLow = Options.`false`,
+        start = start,
+        end = end,
+        binarySearchIndex = binarySearchIndexReader,
+        sortedIndex = sortedIndexReader,
+        values = valuesReader
+      )
+    )
+
+  def searchLower(key: Slice[Byte],
+                  start: Option[Persistent],
+                  end: Option[Persistent],
+                  keyValuesCount: Int,
+                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, SearchResult[Persistent]] =
+    search(
+      BinarySearchContext(
+        key = key,
+        highOrLow = Options.`false`,
+        start = start,
+        end = end,
+        keyValuesCount = keyValuesCount,
+        sortedIndex = sortedIndexReader,
+        values = valuesReader
+      )
     )
 
   implicit object BinarySearchIndexBlockOps extends BlockOps[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock] {
