@@ -147,11 +147,11 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
 
             case IO.Failure(error) =>
               error match {
-                case io: Error.IO =>
-                  IO.Failure(io)
-
                 case Error.Fatal(exception) =>
                   IO.Failure(Error.Fatal(exception))
+
+                case io: Error.IO =>
+                  IO.Failure(io)
 
                 case other: swaydb.Error.Segment =>
                   //convert Segment error to fatal.
