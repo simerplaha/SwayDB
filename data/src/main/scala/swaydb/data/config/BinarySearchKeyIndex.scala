@@ -22,17 +22,10 @@ package swaydb.data.config
 import swaydb.data.api.grouping.Compression
 import swaydb.data.config.BinarySearchKeyIndex.{Disable, FullIndex, SecondaryIndex}
 
-sealed trait BinarySearchKeyIndex {
-  def toOption: Option[BinarySearchKeyIndex.Enable] =
-    this match {
-      case Disable => None
-      case index: FullIndex => Some(index)
-      case index: SecondaryIndex => Some(index)
-    }
-}
+sealed trait BinarySearchKeyIndex
 
 object BinarySearchKeyIndex {
-  case object Disable extends BinarySearchKeyIndex
+  case class Disable(searchSortedIndexDirectly: Boolean) extends BinarySearchKeyIndex
 
   sealed trait Enable extends BinarySearchKeyIndex {
     def minimumNumberOfKeys: Int
@@ -41,9 +34,11 @@ object BinarySearchKeyIndex {
   }
   case class FullIndex(minimumNumberOfKeys: Int,
                        ioStrategy: IOAction => IOStrategy,
+                       searchSortedIndexDirectly: Boolean,
                        compression: UncompressedBlockInfo => Seq[Compression]) extends Enable
 
   case class SecondaryIndex(minimumNumberOfKeys: Int,
                             ioStrategy: IOAction => IOStrategy,
+                            searchSortedIndexDirectly: Boolean,
                             compression: UncompressedBlockInfo => Seq[Compression]) extends Enable
 }

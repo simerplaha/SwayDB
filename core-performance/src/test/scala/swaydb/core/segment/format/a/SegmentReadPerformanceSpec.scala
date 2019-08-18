@@ -247,6 +247,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         BinarySearchIndexBlock.Config(
           enabled = true,
           minimumNumberOfKeys = 1,
+          searchSortedIndexDirectly = true,
           fullIndex = true,
           blockIO = strategy,
           compressions = _ => Seq.empty

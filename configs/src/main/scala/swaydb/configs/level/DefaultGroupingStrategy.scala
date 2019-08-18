@@ -68,6 +68,7 @@ object DefaultGroupBy {
       binarySearchIndex =
         BinarySearchKeyIndex.FullIndex(
           minimumNumberOfKeys = 5,
+          searchSortedIndexDirectly = true,
           ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
           compression = _ => Seq.empty
         ),

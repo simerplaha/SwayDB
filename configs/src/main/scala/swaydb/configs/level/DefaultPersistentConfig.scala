@@ -108,6 +108,7 @@ object DefaultPersistentConfig {
         binarySearchIndex =
           BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
+            searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
           ),
@@ -169,6 +170,7 @@ object DefaultPersistentConfig {
         binarySearchIndex =
           BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
+            searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
           ),
@@ -230,6 +232,7 @@ object DefaultPersistentConfig {
         binarySearchIndex =
           BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
+            searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
           ),
@@ -291,6 +294,7 @@ object DefaultPersistentConfig {
         binarySearchIndex =
           BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
+            searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
           ),
@@ -352,6 +356,7 @@ object DefaultPersistentConfig {
         binarySearchIndex =
           BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
+            searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
           ),
@@ -415,6 +420,7 @@ object DefaultPersistentConfig {
         binarySearchIndex =
           BinarySearchKeyIndex.FullIndex(
             minimumNumberOfKeys = 10,
+            searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
           ),

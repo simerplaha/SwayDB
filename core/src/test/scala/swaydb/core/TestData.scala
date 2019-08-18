@@ -504,6 +504,7 @@ object TestData {
       BinarySearchIndexBlock.Config(
         enabled = randomBoolean(),
         minimumNumberOfKeys = randomIntMax(5),
+        searchSortedIndexDirectly = randomBoolean(),
         fullIndex = randomBoolean(),
         blockIO = _ => randomIOAccess(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty

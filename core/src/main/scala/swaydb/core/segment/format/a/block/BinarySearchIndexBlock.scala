@@ -43,17 +43,19 @@ private[core] object BinarySearchIndexBlock {
         enabled = false,
         minimumNumberOfKeys = 0,
         fullIndex = false,
+        searchSortedIndexDirectly = true,
         blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         compressions = _ => Seq.empty
       )
 
     def apply(config: swaydb.data.config.BinarySearchKeyIndex): Config =
       config match {
-        case swaydb.data.config.BinarySearchKeyIndex.Disable =>
+        case swaydb.data.config.BinarySearchKeyIndex.Disable(searchSortedIndexDirectly) =>
           Config(
             enabled = false,
             minimumNumberOfKeys = Int.MaxValue,
             fullIndex = false,
+            searchSortedIndexDirectly = searchSortedIndexDirectly,
             blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
             compressions = _ => Seq.empty
           )
@@ -62,6 +64,7 @@ private[core] object BinarySearchIndexBlock {
           Config(
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
+            searchSortedIndexDirectly = enable.searchSortedIndexDirectly,
             fullIndex = true,
             blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
@@ -75,6 +78,7 @@ private[core] object BinarySearchIndexBlock {
           Config(
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
+            searchSortedIndexDirectly = enable.searchSortedIndexDirectly,
             fullIndex = false,
             blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
@@ -88,6 +92,7 @@ private[core] object BinarySearchIndexBlock {
 
   case class Config(enabled: Boolean,
                     minimumNumberOfKeys: Int,
+                    searchSortedIndexDirectly: Boolean,
                     fullIndex: Boolean,
                     blockIO: IOAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
@@ -159,17 +164,20 @@ private[core] object BinarySearchIndexBlock {
       writtenValues >= minimumNumberOfKeys
   }
 
-  def init(keyValues: Iterable[Transient]): Option[State] =
-    if (keyValues.last.stats.segmentBinarySearchIndexSize <= 0)
+  def init(normalisedKeyValues: Iterable[Transient],
+           originalKeyValues: Iterable[Transient]): Option[State] =
+    if (normalisedKeyValues.last.stats.segmentBinarySearchIndexSize <= 0 ||
+      normalisedKeyValues.last.sortedIndexConfig.normaliseForBinarySearch ||
+      (originalKeyValues.last.binarySearchIndexConfig.searchSortedIndexDirectly && originalKeyValues.last.stats.hasSameIndexSizes()))
       None
     else
       BinarySearchIndexBlock.State(
-        largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
+        largestValue = normalisedKeyValues.last.stats.thisKeyValuesAccessIndexOffset,
         //not using size from stats because it's size does not account for hashIndex's missed keys.
-        uniqueValuesCount = keyValues.last.stats.segmentUniqueKeysCount,
-        isFullIndex = keyValues.last.binarySearchIndexConfig.fullIndex,
-        minimumNumberOfKeys = keyValues.last.binarySearchIndexConfig.minimumNumberOfKeys,
-        compressions = keyValues.last.binarySearchIndexConfig.compressions
+        uniqueValuesCount = normalisedKeyValues.last.stats.segmentUniqueKeysCount,
+        isFullIndex = normalisedKeyValues.last.binarySearchIndexConfig.fullIndex,
+        minimumNumberOfKeys = normalisedKeyValues.last.binarySearchIndexConfig.minimumNumberOfKeys,
+        compressions = normalisedKeyValues.last.binarySearchIndexConfig.compressions
       )
 
   def isVarInt(varIntSizeOfLargestValue: Int) =

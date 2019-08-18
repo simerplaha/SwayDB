@@ -610,7 +610,7 @@ private[core] object SegmentBlock {
       val footerBlock = SegmentFooterBlock.init(keyValues = normalisedKeyValues, createdInLevel = createdInLevel)
       val valuesBlock = ValuesBlock.init(keyValues = normalisedKeyValues)
       val hashIndexBlock = HashIndexBlock.init(keyValues = normalisedKeyValues)
-      val binarySearchIndexBlock = BinarySearchIndexBlock.init(keyValues = normalisedKeyValues)
+      val binarySearchIndexBlock = BinarySearchIndexBlock.init(normalisedKeyValues = normalisedKeyValues, originalKeyValues = keyValues)
       val bloomFilterBlock = BloomFilterBlock.init(keyValues = keyValues)
 
       //      bloomFilterBlock foreach {
