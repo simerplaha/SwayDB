@@ -154,16 +154,16 @@ private[core] object SegmentSearcher extends LazyLogging {
               )
         }
     } getOrElse {
-//      if (sortedIndexReader.block.normaliseForBinarySearch)
-//        BinarySearchIndexBlock.search(
-//          key = key,
-//          start = start,
-//          keyValuesCount = keyValueCount,
-//          end = end,
-//          sortedIndex = sortedIndexReader,
-//          values = valuesReader
-//        )
-//      else
+      if (sortedIndexReader.block.normaliseForBinarySearch || sortedIndexReader.block.isPreNormalised)
+        BinarySearchIndexBlock.search(
+          key = key,
+          start = start,
+          end = end,
+          keyValuesCount = keyValueCount,
+          sortedIndex = sortedIndexReader,
+          values = valuesReader
+        )
+      else
         SortedIndexBlock.search(
           key = key,
           startFrom = start,
@@ -266,16 +266,16 @@ private[core] object SegmentSearcher extends LazyLogging {
               }
         }
     } getOrElse {
-//      if (sortedIndexReader.block.normaliseForBinarySearch)
-//        BinarySearchIndexBlock.searchHigher(
-//          key = key,
-//          start = start,
-//          keyValuesCount = keyValueCount,
-//          end = end,
-//          sortedIndexReader = sortedIndexReader,
-//          valuesReader = valuesReader
-//        )
-//      else
+      if (sortedIndexReader.block.normaliseForBinarySearch || sortedIndexReader.block.isPreNormalised)
+        BinarySearchIndexBlock.searchHigher(
+          key = key,
+          start = start,
+          keyValuesCount = keyValueCount,
+          end = end,
+          sortedIndexReader = sortedIndexReader,
+          valuesReader = valuesReader
+        )
+      else
         SortedIndexBlock.searchHigher(
           key = key,
           startFrom = start,
@@ -326,16 +326,16 @@ private[core] object SegmentSearcher extends LazyLogging {
               )
         }
     } getOrElse {
-//      if (sortedIndexReader.block.normaliseForBinarySearch)
-//        BinarySearchIndexBlock.searchLower(
-//          key = key,
-//          start = start,
-//          keyValuesCount = keyValueCount,
-//          end = end,
-//          sortedIndexReader = sortedIndexReader,
-//          valuesReader = valuesReader
-//        )
-//      else
+      if (sortedIndexReader.block.normaliseForBinarySearch || sortedIndexReader.block.isPreNormalised)
+        BinarySearchIndexBlock.searchLower(
+          key = key,
+          start = start,
+          keyValuesCount = keyValueCount,
+          end = end,
+          sortedIndexReader = sortedIndexReader,
+          valuesReader = valuesReader
+        )
+      else
         SortedIndexBlock.searchLower(
           key = key,
           startFrom = start,

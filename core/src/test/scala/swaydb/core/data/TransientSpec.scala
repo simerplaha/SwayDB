@@ -110,4 +110,28 @@ class TransientSpec extends TestBase {
       }
     }
   }
+
+  "normalise" should {
+    "returns indexEntry bytes of same size" in {
+      runThis(100.times) {
+
+        val keyValues =
+          Slice(
+            randomFixedKeyValue(1),
+            randomFixedKeyValue(2),
+            randomFixedKeyValue(3),
+            randomFixedKeyValue(4)
+          ).toTransient
+
+        val normalisedKeyValues = Transient.normalise(keyValues)
+
+        val expectedSize = normalisedKeyValues.head.indexEntryBytes.size
+
+        normalisedKeyValues foreach {
+          keyValue =>
+            keyValue.indexEntryBytes.size shouldBe expectedSize
+        }
+      }
+    }
+  }
 }
