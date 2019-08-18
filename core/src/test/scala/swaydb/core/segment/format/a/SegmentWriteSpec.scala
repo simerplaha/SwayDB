@@ -962,7 +962,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
         implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
-        val keyValues = randomizedKeyValues(keyValuesCount)
+        val keyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
         val segment = TestSegment(keyValues).value
         val levelPath = createNextLevelPath
 

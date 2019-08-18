@@ -53,7 +53,7 @@ object TestLimitQueues {
       override def close(file: FileLimiterItem): Unit = {
         closeQueue.add(file)
         closeQueueSize += 1
-        if (closeQueueSize > 100) {
+        if (closeQueueSize > 1000) {
           closeQueue.poll().close().get
         }
       }

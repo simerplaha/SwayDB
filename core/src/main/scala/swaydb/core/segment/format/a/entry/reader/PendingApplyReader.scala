@@ -38,6 +38,7 @@ object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
                               accessPosition: Int,
+                              isNormalisedKey: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -49,7 +50,13 @@ object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
           valueOffsetAndLength =>
             timeReader.read(indexReader, previous) flatMap {
               time =>
-                KeyReader.read(keyValueId, indexReader, previous, KeyValueId.PendingApply) flatMap {
+                KeyReader.read(
+                  keyValueIdInt = keyValueId,
+                  isNormalisedKey = isNormalisedKey,
+                  indexReader = indexReader,
+                  previous = previous,
+                  keyValueId = KeyValueId.PendingApply
+                ) flatMap {
                   case (key, isKeyPrefixCompressed) =>
                     valueCache map {
                       valueCache =>

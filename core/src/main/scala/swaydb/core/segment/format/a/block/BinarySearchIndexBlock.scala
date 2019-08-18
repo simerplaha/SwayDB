@@ -160,7 +160,7 @@ private[core] object BinarySearchIndexBlock {
   }
 
   def init(keyValues: Iterable[Transient]): Option[State] =
-    if (keyValues.last.stats.segmentBinarySearchIndexSize <= 0 || keyValues.last.sortedIndexConfig.normaliseForBinarySearch)
+    if (keyValues.last.stats.segmentBinarySearchIndexSize <= 0)
       None
     else
       BinarySearchIndexBlock.State(

@@ -35,6 +35,7 @@ import swaydb.data.slice.Slice
 import scala.annotation.tailrec
 import scala.concurrent.duration.Deadline
 import scala.util.Try
+import swaydb.core.util.Options._
 
 private[core] object SegmentBlock {
 
@@ -243,22 +244,43 @@ private[core] object SegmentBlock {
             keyValues = childGroup.keyValues
           )
 
-        case keyValue @ (_: Transient.Range | _: Transient.Fixed) =>
+        case keyValue: Transient.SegmentResponse =>
           val thisKeyValuesAccessOffset =
             rootGroup
               .map(_.stats.thisKeyValuesAccessIndexOffset)
               .getOrElse(keyValue.stats.thisKeyValuesAccessIndexOffset)
 
-          bloomFilter foreach (BloomFilterBlock.add(keyValue.key, _))
+          val writeResult =
+            keyValue match {
+              case response: Transient.Range =>
+                bloomFilter foreach (BloomFilterBlock.add(response.fromKey, _))
 
-          hashIndex map {
-            hashIndexState =>
-              HashIndexBlock.write(
-                key = keyValue.key,
-                value = thisKeyValuesAccessOffset,
-                state = hashIndexState
-              )
-          } match {
+                hashIndex map {
+                  hashIndexState =>
+                    HashIndexBlock.write(
+                      key = response.fromKey,
+                      value = thisKeyValuesAccessOffset,
+                      state = hashIndexState
+                    )
+                }
+
+              case _: Transient.Fixed =>
+                bloomFilter foreach (BloomFilterBlock.add(keyValue.deNormalisedKey, _))
+
+                hashIndex map {
+                  hashIndexState =>
+                    HashIndexBlock.write(
+                      key = keyValue.deNormalisedKey,
+                      value = thisKeyValuesAccessOffset,
+                      state = hashIndexState
+                    )
+                }
+
+              case _: Transient.Group =>
+                Some(IO.failed("Unexpected Group"))
+            }
+
+          writeResult match {
             //if it's a hit and binary search is not configured to be full OR the key-value has same offset as previous then skip writing to binary search.
             case Some(IO.Success(hit)) if (!keyValue.isRange && (hit && binarySearchIndex.forall(!_.isFullIndex))) || keyValue.previous.exists(_.stats.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessOffset) =>
               IO.unit
@@ -551,7 +573,7 @@ private[core] object SegmentBlock {
     } flatMap {
       result =>
         //ensure that all the slices are full.
-        if (!sortedIndexBlock.normaliseForBinarySearch && !sortedIndexBlock.bytes.isFull)
+        if (!sortedIndexBlock.bytes.isFull)
           IO.failed(s"indexSlice is not full actual: ${sortedIndexBlock.bytes.size} - expected: ${sortedIndexBlock.bytes.allocatedSize}")
         else if (valuesBlock.exists(!_.bytes.isFull))
           IO.failed(s"valuesSlice is not full actual: ${valuesBlock.get.bytes.size} - expected: ${valuesBlock.get.bytes.allocatedSize}")
@@ -584,11 +606,11 @@ private[core] object SegmentBlock {
     if (keyValues.isEmpty)
       Open.emptyIO
     else {
-      val footerBlock = SegmentFooterBlock.init(keyValues = keyValues, createdInLevel = createdInLevel)
-      val sortedIndexBlock = SortedIndexBlock.init(keyValues = keyValues)
-      val valuesBlock = ValuesBlock.init(keyValues = keyValues)
-      val hashIndexBlock = HashIndexBlock.init(keyValues = keyValues)
-      val binarySearchIndexBlock = BinarySearchIndexBlock.init(keyValues = keyValues)
+      val (sortedIndexBlock, normalisedKeyValues) = SortedIndexBlock.init(keyValues = keyValues)
+      val footerBlock = SegmentFooterBlock.init(keyValues = normalisedKeyValues, createdInLevel = createdInLevel)
+      val valuesBlock = ValuesBlock.init(keyValues = normalisedKeyValues)
+      val hashIndexBlock = HashIndexBlock.init(keyValues = normalisedKeyValues)
+      val binarySearchIndexBlock = BinarySearchIndexBlock.init(keyValues = normalisedKeyValues)
       val bloomFilterBlock = BloomFilterBlock.init(keyValues = keyValues)
 
       //      bloomFilterBlock foreach {
@@ -602,7 +624,7 @@ private[core] object SegmentBlock {
       //      }
 
       write(
-        keyValues = keyValues,
+        keyValues = normalisedKeyValues,
         sortedIndexBlock = sortedIndexBlock,
         valuesBlock = valuesBlock,
         hashIndexBlock = hashIndexBlock,

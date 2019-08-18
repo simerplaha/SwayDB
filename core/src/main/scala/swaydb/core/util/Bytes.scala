@@ -23,11 +23,14 @@ import swaydb.Error.IO.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
+import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteUtil
-import PipeOps._
 
 private[swaydb] object Bytes {
+
+  val zero = 0.toByte
+  val one = 1.toByte
 
   def commonPrefixBytesCount(previous: Slice[Byte],
                              next: Slice[Byte]): Int = {
@@ -210,4 +213,22 @@ private[swaydb] object Bytes {
           (left, right)
         }
     }
+
+  def normalise(bytes: Slice[Byte], toSize: Int): Slice[Byte] = {
+    assert(bytes.size < toSize, s"bytes.size(${bytes.size}) >= toSize($toSize)")
+    val finalSlice = Slice.create[Byte](toSize)
+    var zeroesToAdd = toSize - bytes.size - 1
+    while (zeroesToAdd > 0) {
+      finalSlice add Bytes.zero
+      zeroesToAdd -= 1
+    }
+    finalSlice add Bytes.one
+    finalSlice addAll bytes
+  }
+
+  def deNormalise(bytes: Slice[Byte]): Slice[Byte] =
+    bytes.dropWhile {
+      byte =>
+        byte == Bytes.zero && byte != Bytes.one
+    }.dropHead()
 }

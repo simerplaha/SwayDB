@@ -38,6 +38,7 @@ object GroupReader extends EntryReader[Persistent.Group] {
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
                               accessPosition: Int,
+                              isNormalisedKey: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -49,7 +50,13 @@ object GroupReader extends EntryReader[Persistent.Group] {
           valueOffsetAndLength =>
             valueOffsetAndLength map {
               case (valueOffset, valueLength) =>
-                KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Group) flatMap {
+                KeyReader.read(
+                  keyValueIdInt = keyValueId,
+                  isNormalisedKey = isNormalisedKey,
+                  indexReader = indexReader,
+                  previous = previous,
+                  keyValueId = KeyValueId.Group
+                ) flatMap {
                   case (key, isKeyPrefixCompressed) =>
                     valueCache map {
                       valueCache =>

@@ -136,9 +136,9 @@ private[core] object Stats {
       previousStats map {
         previous =>
           if (previous.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessIndexOffset)
-            previous.thisKeyValuesAccessIndexOffset
+            previous.thisKeyValueAccessIndexPosition
           else
-            previous.thisKeyValuesAccessIndexOffset + 1
+            previous.thisKeyValueAccessIndexPosition + 1
       } getOrElse 1
 
     val segmentHashIndexSize =
@@ -154,7 +154,7 @@ private[core] object Stats {
         )
 
     val segmentBinarySearchIndexSize =
-      if (binarySearch.enabled && !sortedIndex.normaliseForBinarySearch)
+      if (binarySearch.enabled)
         previousStats flatMap {
           previousStats =>
             if (previousStats.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessIndexOffset)
@@ -315,4 +315,7 @@ private[core] case class Stats(valueLength: Int,
 
   def thisKeyValueMemorySize =
     thisKeyValuesSortedIndexSize + valueLength
+
+  def hasSameIndexSizes(): Boolean =
+    segmentMinSortedIndexEntrySize == segmentMaxSortedIndexEntrySize
 }

@@ -268,6 +268,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 doAdd(
                   Transient.Put(
                     key = key,
+                    deNormalisedKey = key,
                     value = value,
                     deadline = deadline,
                     time = time,
@@ -289,6 +290,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     doAdd(
                       Transient.Put(
                         key = put.key,
+                        deNormalisedKey = put.key,
                         value = value,
                         deadline = put.deadline,
                         time = put.time,
@@ -309,6 +311,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 doAdd(
                   Transient.Remove(
                     key = keyValueToAdd.key,
+                    deNormalisedKey = keyValueToAdd.key,
                     deadline = remove.deadline,
                     time = remove.time,
                     valuesConfig = segmentMergeConfigs.groupValuesConfig,
@@ -327,6 +330,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 doAdd(
                   Transient.Remove(
                     key = keyValueToAdd.key,
+                    deNormalisedKey = keyValueToAdd.key,
                     deadline = remove.deadline,
                     time = remove.time,
                     valuesConfig = segmentMergeConfigs.groupValuesConfig,
@@ -345,6 +349,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 doAdd(
                   Transient.Update(
                     key = key,
+                    deNormalisedKey = key,
                     value = value,
                     deadline = deadline,
                     time = time,
@@ -366,6 +371,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     doAdd(
                       Transient.Update(
                         key = update.key,
+                        deNormalisedKey = update.key,
                         value = value,
                         deadline = update.deadline,
                         time = update.time,
@@ -386,6 +392,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 doAdd(
                   Transient.Function(
                     key = key,
+                    deNormalisedKey = key,
                     function = function,
                     time = time,
                     valuesConfig = segmentMergeConfigs.groupValuesConfig,
@@ -406,6 +413,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     doAdd(
                       Transient.Function(
                         key = function.key,
+                        deNormalisedKey = function.key,
                         function = functionId,
                         time = function.time,
                         valuesConfig = segmentMergeConfigs.groupValuesConfig,
@@ -425,6 +433,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 doAdd(
                   Transient.PendingApply(
                     key = key,
+                    deNormalisedKey = key,
                     applies = applies,
                     valuesConfig = segmentMergeConfigs.groupValuesConfig,
                     sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
@@ -444,6 +453,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     doAdd(
                       Transient.PendingApply(
                         key = pendingApply.key,
+                        deNormalisedKey = pendingApply.key,
                         applies = applies,
                         valuesConfig = segmentMergeConfigs.groupValuesConfig,
                         sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
@@ -468,6 +478,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                           doAdd(
                             Transient.Put(
                               key = range.fromKey,
+                              deNormalisedKey = range.fromKey,
                               value = fromValue,
                               deadline = deadline,
                               time = time,

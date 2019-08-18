@@ -102,18 +102,10 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
     }
   }
 
-  "normalise" in {
-    //no need to add empty bytes. Data is already normalised
-    SortedIndexBlock.normaliseSize(indexEntrySize = 10, segmentMaxIndexEntrySize = 10) shouldBe None
-    //1 byte for the size of varInt 4 and 4 empty bytes so this returns 4
-    SortedIndexBlock.normaliseSize(indexEntrySize = 10, segmentMaxIndexEntrySize = 15) shouldBe Some(4)
-    SortedIndexBlock.normaliseSize(indexEntrySize = 10, segmentMaxIndexEntrySize = 1000) shouldBe Some(988)
-  }
-
   "init" in {
     runThis(100.times, log = true) {
-      val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(randomIntMax(1000) max 1))
-      val sortedIndex = SortedIndexBlock.init(keyValues)
+      val normalKeyValues = Benchmark("Generating key-values")(randomizedKeyValues(randomIntMax(1000) max 1))
+      val (sortedIndex, keyValues) = SortedIndexBlock.init(normalKeyValues)
       val uncompressedBlockInfo = UncompressedBlockInfo(keyValues.last.stats.segmentSortedIndexSize)
       val compressions = keyValues.last.sortedIndexConfig.compressions(uncompressedBlockInfo)
       //just check for non-empty. Tests uses random so they result will always be different
@@ -129,9 +121,9 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
     runThis(100.times, log = true) {
       val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(2, sortedIndexConfig = SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0, normaliseForBinarySearch = true)))
 
-      val sortedIndexBlock = SortedIndexBlock.init(keyValues)
-      val valuesBlock = ValuesBlock.init(keyValues)
-      keyValues foreach {
+      val (sortedIndexBlock, normalisedKeyValues) = SortedIndexBlock.init(keyValues)
+      val valuesBlock = ValuesBlock.init(normalisedKeyValues)
+      normalisedKeyValues foreach {
         keyValue =>
           SortedIndexBlock.write(keyValue, sortedIndexBlock).get
           valuesBlock foreach {
@@ -152,10 +144,10 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             Block.unblock[ValuesBlock.Offset, ValuesBlock](closedState.bytes).get
         }
 
-      val expectsCompressions = keyValues.last.sortedIndexConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentSortedIndexSize)).nonEmpty
+      val expectsCompressions = normalisedKeyValues.last.sortedIndexConfig.compressions(UncompressedBlockInfo(normalisedKeyValues.last.stats.segmentSortedIndexSize)).nonEmpty
       block.compressionInfo.isDefined shouldBe expectsCompressions
-      block.enableAccessPositionIndex shouldBe keyValues.last.sortedIndexConfig.enableAccessPositionIndex
-      block.hasPrefixCompression shouldBe keyValues.last.stats.hasPrefixCompression
+      block.enableAccessPositionIndex shouldBe normalisedKeyValues.last.sortedIndexConfig.enableAccessPositionIndex
+      block.hasPrefixCompression shouldBe normalisedKeyValues.last.stats.hasPrefixCompression
       block.headerSize shouldBe SortedIndexBlock.headerSize(expectsCompressions)
       block.offset.start shouldBe header.headerSize
 
@@ -164,8 +156,8 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       /**
        * TEST - READ ALL
        */
-      val readAllKeyValues = SortedIndexBlock.readAll(keyValues.size, sortedIndexReader, valuesBlockReader).get
-      assetEqual(keyValues, readAllKeyValues)
+      val readAllKeyValues = SortedIndexBlock.readAll(normalisedKeyValues.size, sortedIndexReader, valuesBlockReader).get
+      assetEqual(normalisedKeyValues.toSlice, readAllKeyValues)
       /**
        * TEST - READ ONE BY ONE
        */
@@ -179,7 +171,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
           eitherOne(Some(searchedKeyValue), previous, None)
       }
 
-      assetEqual(keyValues, searchedKeyValues)
+      assetEqual(normalisedKeyValues.toSlice, searchedKeyValues)
 
       /**
        * SEARCH CONCURRENTLY

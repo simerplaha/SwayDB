@@ -27,8 +27,8 @@ import swaydb.{Error, IO}
 
 trait BinarySearchContext {
   val entrySize: Int
-  val isFullIndex: Boolean
   val entriesCount: Int
+  val isFullIndex: Boolean
   val higherOrLower: Option[Boolean]
   val startKeyValue: Option[Persistent]
   val endKeyValue: Option[Persistent]

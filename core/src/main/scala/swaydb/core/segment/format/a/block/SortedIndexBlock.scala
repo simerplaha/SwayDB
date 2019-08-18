@@ -29,7 +29,7 @@ import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.util.{Bytes, FunctionUtil, Options}
+import swaydb.core.util.{Bytes, FunctionUtil}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -108,6 +108,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                    hasPrefixCompression: Boolean,
                    enableAccessPositionIndex: Boolean,
                    normaliseForBinarySearch: Boolean,
+                   isPreNormalised: Boolean,
                    segmentMaxIndexEntrySize: Int,
                    compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
     def bytes = _bytes
@@ -122,6 +123,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         ByteSizeOf.boolean + //enablePositionIndex
         ByteSizeOf.boolean + //normalisedForBinarySearch
         ByteSizeOf.boolean + //hasPrefixCompression
+        ByteSizeOf.boolean + //isPreNormalised
         ByteSizeOf.varInt // segmentMaxSortedIndexEntrySize
 
     Bytes.sizeOf(size) + size
@@ -133,6 +135,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         ByteSizeOf.boolean + //enablePositionIndex
         ByteSizeOf.boolean + //normalisedForBinarySearch
         ByteSizeOf.boolean + //hasPrefixCompression
+        ByteSizeOf.boolean + //isPreNormalised
         ByteSizeOf.varInt // segmentMaxSortedIndexEntrySize
 
     Bytes.sizeOf(size) + size
@@ -144,106 +147,57 @@ private[core] object SortedIndexBlock extends LazyLogging {
     else
       noCompressionHeaderSize
 
-  def init(keyValues: Iterable[Transient]): SortedIndexBlock.State = {
-    val hasCompression = keyValues.last.sortedIndexConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentSortedIndexSize)).nonEmpty
-    val headSize = headerSize(hasCompression)
+  def init(keyValues: Iterable[Transient]): (SortedIndexBlock.State, Iterable[Transient]) = {
+    val isPreNormalised = keyValues.last.stats.hasSameIndexSizes()
 
-    val normalisedForBinarySearchSizeIncrement =
-      if (keyValues.last.sortedIndexConfig.normaliseForBinarySearch) {
-        //if binarySearch is required to be normalised then give each entry extra space for empty bytes size and the empty bytes itself.
-        val normalisedBytesSize = keyValues.last.stats.segmentMaxSortedIndexEntrySize - keyValues.last.stats.segmentMinSortedIndexEntrySize
-        (normalisedBytesSize + Bytes.sizeOf(normalisedBytesSize)) * keyValues.size
-      } else {
-        0
-      }
+    val normalisedKeyValues =
+      if (!isPreNormalised && keyValues.last.sortedIndexConfig.normaliseForBinarySearch)
+        Transient.normalise(keyValues)
+      else
+        keyValues
+
+    val hasCompression = normalisedKeyValues.last.sortedIndexConfig.compressions(UncompressedBlockInfo(normalisedKeyValues.last.stats.segmentSortedIndexSize)).nonEmpty
+    val headSize = headerSize(hasCompression)
 
     val bytes =
       if (hasCompression) //stats calculate size with no compression if there is compression add remaining bytes.
-        Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize - noCompressionHeaderSize + headSize + normalisedForBinarySearchSizeIncrement)
+        Slice.create[Byte](normalisedKeyValues.last.stats.segmentSortedIndexSize - noCompressionHeaderSize + headSize)
       else
-        Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize + normalisedForBinarySearchSizeIncrement)
+        Slice.create[Byte](normalisedKeyValues.last.stats.segmentSortedIndexSize)
 
     bytes moveWritePosition headSize
 
-    State(
-      _bytes = bytes,
-      headerSize = headSize,
-      hasPrefixCompression = keyValues.last.stats.hasPrefixCompression,
-      enableAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
-      normaliseForBinarySearch = keyValues.last.sortedIndexConfig.normaliseForBinarySearch,
-      segmentMaxIndexEntrySize = keyValues.last.stats.segmentMaxSortedIndexEntrySize,
-      compressions =
-        //cannot have no compression to begin with a then have compression because that upsets the total bytes required.
-        if (hasCompression)
-          keyValues.last.sortedIndexConfig.compressions
-        else
-          _ => Seq.empty
+    (
+      State(
+        _bytes = bytes,
+        headerSize = headSize,
+        isPreNormalised = isPreNormalised,
+        hasPrefixCompression = normalisedKeyValues.last.stats.hasPrefixCompression,
+        enableAccessPositionIndex = normalisedKeyValues.last.sortedIndexConfig.enableAccessPositionIndex,
+        normaliseForBinarySearch = normalisedKeyValues.last.sortedIndexConfig.normaliseForBinarySearch,
+        segmentMaxIndexEntrySize = normalisedKeyValues.last.stats.segmentMaxSortedIndexEntrySize,
+        compressions =
+          //cannot have no compression to begin with a then have compression because that upsets the total bytes required.
+          if (hasCompression)
+            normalisedKeyValues.last.sortedIndexConfig.compressions
+          else
+            _ => Seq.empty
+      ),
+      normalisedKeyValues
     )
   }
 
   def write(keyValue: Transient, state: SortedIndexBlock.State): IO[swaydb.Error.Segment, Unit] =
     IO {
-      var normalisedSize: Option[Int] = None
-
-      def writeNormalisedBytes() =
-        normalisedSize foreach {
-          normalisedSize =>
-            state.bytes addIntUnsigned normalisedSize
-            if (normalisedSize > 0)
-              state.bytes addAll Array.fill(normalisedSize)(0.toByte)
-        }
-
       if (state.enableAccessPositionIndex) {
-        var indexEntrySize = keyValue.indexEntryBytes.size + keyValue.stats.thisKeyValueAccessIndexPositionByteSize
-        normalisedSize = normaliseSize(indexEntrySize, state)
-        indexEntrySize = indexEntrySize + {
-          normalisedSize map {
-            normalisedSize =>
-              Bytes.sizeOf(normalisedSize) + normalisedSize
-          } getOrElse 0
-        }
-        //        println(s"indexEntrySize: $indexEntrySize")
-        state.bytes addIntUnsigned indexEntrySize
+        state.bytes addIntUnsigned (keyValue.indexEntryBytes.size + keyValue.stats.thisKeyValueAccessIndexPositionByteSize)
         state.bytes addIntUnsigned keyValue.stats.thisKeyValueAccessIndexPosition
-        writeNormalisedBytes()
         state.bytes addAll keyValue.indexEntryBytes
       } else {
-        var indexEntrySize = keyValue.indexEntryBytes.size
-        normalisedSize = normaliseSize(indexEntrySize, state)
-        indexEntrySize = indexEntrySize + {
-          normalisedSize map {
-            normalisedSize =>
-              Bytes.sizeOf(normalisedSize) + normalisedSize
-          } getOrElse 0
-        }
-        //        println(s"indexEntrySize: $indexEntrySize")
-        state.bytes addIntUnsigned indexEntrySize
-        writeNormalisedBytes()
+        state.bytes addIntUnsigned keyValue.indexEntryBytes.size
         state.bytes addAll keyValue.indexEntryBytes
       }
     }
-
-  def normaliseSize(indexEntrySize: Int, state: SortedIndexBlock.State): Option[Int] =
-    if (state.normaliseForBinarySearch)
-      normaliseSize(
-        indexEntrySize = indexEntrySize,
-        segmentMaxIndexEntrySize = state.segmentMaxIndexEntrySize
-      )
-    else
-      None
-
-  def normaliseSize(indexEntrySize: Int, segmentMaxIndexEntrySize: Int): Option[Int] = {
-    val emptyBytesToAppend = segmentMaxIndexEntrySize - indexEntrySize
-    if (emptyBytesToAppend == 0)
-      None
-    else {
-      val sizeOfEmptyBytesSizeHeader = Bytes.sizeOf(emptyBytesToAppend)
-      if (sizeOfEmptyBytesSizeHeader == emptyBytesToAppend)
-        Options.zero
-      else
-        Some(emptyBytesToAppend - sizeOfEmptyBytesSizeHeader)
-    }
-  }
 
   def close(state: State): IO[swaydb.Error.Segment, State] =
     Block.block(
@@ -257,6 +211,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         state.bytes addBoolean state.enableAccessPositionIndex
         state.bytes addBoolean state.hasPrefixCompression
         state.bytes addBoolean state.normaliseForBinarySearch
+        state.bytes addBoolean state.isPreNormalised
         state.bytes addIntUnsigned state.segmentMaxIndexEntrySize
         if (state.bytes.currentWritePosition > state.headerSize)
           IO.Failure(swaydb.Error.Fatal(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}"))
@@ -269,6 +224,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       enableAccessPositionIndex <- header.headerReader.readBoolean()
       hasPrefixCompression <- header.headerReader.readBoolean()
       normaliseForBinarySearch <- header.headerReader.readBoolean()
+      isPreNormalised <- header.headerReader.readBoolean()
       segmentMaxIndexEntrySize <- header.headerReader.readIntUnsigned()
     } yield {
       SortedIndexBlock(
@@ -277,6 +233,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         hasPrefixCompression = hasPrefixCompression,
         normaliseForBinarySearch = normaliseForBinarySearch,
         segmentMaxIndexEntrySize = segmentMaxIndexEntrySize,
+        isPreNormalised = isPreNormalised,
         headerSize = header.headerSize,
         compressionInfo = header.compressionInfo
       )
@@ -355,9 +312,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
         else
           0
 
-      if (indexReader.block.normaliseForBinarySearch)
-        sortedIndexReader skip sortedIndexReader.readIntUnsigned().get
-
       //create value cache reader given the value offset.
       //todo pass in blockIO config when read values.
       def valueCache =
@@ -375,6 +329,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       EntryReader.read(
         //take only the bytes required for this in entry and submit it for parsing/reading.
         indexReader = sortedIndexReader,
+        isNormalisedKey = !indexReader.block.isPreNormalised && indexReader.block.normaliseForBinarySearch,
         mightBeCompressed = indexReader.block.hasPrefixCompression,
         valueCache = valueCache,
         indexOffset = positionBeforeRead,
@@ -577,7 +532,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
       hasMore = hasMore(next getOrElse previous)
     ) match {
       case KeyMatcher.Result.BehindFetchNext(previousKeyValue) =>
-        //println("BehindFetchNext")
         //        assert(previous.key.readInt() <= previousKeyValue.key.readInt())
         val readFrom = next getOrElse previousKeyValue
         readNextKeyValue(
@@ -586,7 +540,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
           valuesReader = valuesReader
         ) match {
           case IO.Success(nextNextKeyValue) =>
-            //println("match pr next")
             matchOrNext(
               previous = readFrom,
               next = Some(nextNextKeyValue),
@@ -600,7 +553,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
         }
 
       case result: KeyMatcher.Result.Complete =>
-        //println("Complete")
         result.asIO
     }
 
@@ -634,6 +586,7 @@ private[core] case class SortedIndexBlock(offset: SortedIndexBlock.Offset,
                                           enableAccessPositionIndex: Boolean,
                                           hasPrefixCompression: Boolean,
                                           normaliseForBinarySearch: Boolean,
+                                          isPreNormalised: Boolean,
                                           headerSize: Int,
                                           segmentMaxIndexEntrySize: Int,
                                           compressionInfo: Option[Block.CompressionInfo]) extends Block[SortedIndexBlock.Offset]

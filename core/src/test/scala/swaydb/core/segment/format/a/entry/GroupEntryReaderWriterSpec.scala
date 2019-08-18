@@ -48,6 +48,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
           indexOffset = 0,
           nextIndexOffset = 0,
           nextIndexSize = 0,
+          isNormalisedKey = false,
           accessPosition = entry.stats.thisKeyValueAccessIndexPosition,
           previous = None
         ).runRandomIO.value
@@ -79,6 +80,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
           indexOffset = 0,
           nextIndexOffset = 0,
           nextIndexSize = 0,
+          isNormalisedKey = false,
           accessPosition = previous.stats.thisKeyValueAccessIndexPosition,
           previous = None
         ).runRandomIO.value
@@ -95,6 +97,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
           indexOffset = 0,
           nextIndexOffset = 0,
           nextIndexSize = 0,
+          isNormalisedKey = false,
           accessPosition = next.stats.thisKeyValueAccessIndexPosition,
           previous = Some(previousRead)
         ).runRandomIO.value

@@ -454,6 +454,7 @@ private[core] sealed trait Transient extends KeyValue { self =>
   val isRange: Boolean
   val isGroup: Boolean
   val previous: Option[Transient]
+  def deNormalisedKey: Slice[Byte]
   def mergedKey: Slice[Byte]
   def values: Slice[Slice[Byte]]
   def valuesConfig: ValuesBlock.Config
@@ -502,7 +503,7 @@ private[core] sealed trait Transient extends KeyValue { self =>
 
 private[core] object Transient {
 
-  implicit class TransientIterableImplicits(keyValues: Iterable[Transient]) {
+  implicit class TransientIterableImplicits(keyValues: Slice[Transient]) {
     def lastGroup(): Option[Transient.Group] =
       keyValues.foldLeftWhile(Option.empty[Transient.Group], _.isGroup) {
         case (_, group: Transient.Group) =>
@@ -620,6 +621,69 @@ private[core] object Transient {
           (previous.stats.chainPosition + 1) % keyValue.sortedIndexConfig.prefixCompressionResetCount != 0
       }
 
+  def normalise(keyValues: Iterable[Transient]): Slice[Transient] = {
+    val toSize = keyValues.last.stats.segmentMaxSortedIndexEntrySize + 1
+    val normalisedKeyValues = Slice.create[Transient](keyValues.size)
+
+    keyValues foreach {
+      case keyValue: SegmentResponse =>
+        keyValue match {
+          case keyValue: Transient.Remove =>
+            normalisedKeyValues add keyValue.copy(
+              key = Bytes.normalise(keyValue.key, toSize),
+              deNormalisedKey = keyValue.key,
+              previous = normalisedKeyValues.lastOption
+            )
+
+          case keyValue: Transient.Put =>
+            normalisedKeyValues add keyValue.copy(
+              key = Bytes.normalise(keyValue.key, toSize),
+              deNormalisedKey = keyValue.key,
+              previous = normalisedKeyValues.lastOption
+            )
+
+          case keyValue: Transient.Update =>
+            normalisedKeyValues add keyValue.copy(
+              key = Bytes.normalise(keyValue.key, toSize),
+              deNormalisedKey = keyValue.key,
+              previous = normalisedKeyValues.lastOption
+            )
+
+          case keyValue: Transient.Function =>
+            normalisedKeyValues add keyValue.copy(
+              key = Bytes.normalise(keyValue.key, toSize),
+              deNormalisedKey = keyValue.key,
+              previous = normalisedKeyValues.lastOption
+            )
+
+          case keyValue: Transient.PendingApply =>
+            normalisedKeyValues add keyValue.copy(
+              key = Bytes.normalise(keyValue.key, toSize),
+              deNormalisedKey = keyValue.key,
+              previous = normalisedKeyValues.lastOption
+            )
+
+          case keyValue: Transient.Range =>
+            normalisedKeyValues add
+              keyValue.copy(
+                mergedKey = Bytes.normalise(keyValue.mergedKey, toSize),
+                deNormalisedKey = keyValue.mergedKey,
+                previous = normalisedKeyValues.lastOption
+              )
+        }
+
+      case keyValue: Transient.Group =>
+        normalisedKeyValues add
+          keyValue.copy(
+            mergedKey = Bytes.normalise(keyValue.mergedKey, toSize),
+            deNormalisedKey = keyValue.mergedKey,
+            previous = normalisedKeyValues.lastOption
+          )
+    }
+
+    normalisedKeyValues
+  }
+
   private[core] sealed trait SegmentResponse extends Transient {
     def value: Option[Slice[Byte]]
 
@@ -682,6 +746,7 @@ private[core] object Transient {
   }
 
   case class Remove(key: Slice[Byte],
+                    deNormalisedKey: Slice[Byte],
                     deadline: Option[Deadline],
                     time: Time,
                     valuesConfig: ValuesBlock.Config,
@@ -747,6 +812,7 @@ private[core] object Transient {
   }
 
   case class Put(key: Slice[Byte],
+                 deNormalisedKey: Slice[Byte],
                  value: Option[Slice[Byte]],
                  deadline: Option[Deadline],
                  time: Time,
@@ -815,6 +881,7 @@ private[core] object Transient {
   }
 
   case class Update(key: Slice[Byte],
+                    deNormalisedKey: Slice[Byte],
                     value: Option[Slice[Byte]],
                     deadline: Option[Deadline],
                     time: Time,
@@ -881,6 +948,7 @@ private[core] object Transient {
   }
 
   case class Function(key: Slice[Byte],
+                      deNormalisedKey: Slice[Byte],
                       function: Slice[Byte],
                       time: Time,
                       valuesConfig: ValuesBlock.Config,
@@ -948,6 +1016,7 @@ private[core] object Transient {
   }
 
   case class PendingApply(key: Slice[Byte],
+                          deNormalisedKey: Slice[Byte],
                           applies: Slice[Value.Apply],
                           valuesConfig: ValuesBlock.Config,
                           sortedIndexConfig: SortedIndexBlock.Config,
@@ -1039,6 +1108,7 @@ private[core] object Transient {
         fromKey = fromKey,
         toKey = toKey,
         mergedKey = mergedKey,
+        deNormalisedKey = mergedKey,
         fromValue = None,
         rangeValue = rangeValue,
         valueSerialiser = valueSerialiser _,
@@ -1074,6 +1144,7 @@ private[core] object Transient {
         fromKey = fromKey,
         toKey = toKey,
         mergedKey = mergedKey,
+        deNormalisedKey = mergedKey,
         fromValue = fromValue,
         rangeValue = rangeValue,
         valueSerialiser = valueSerialiser _,
@@ -1090,6 +1161,7 @@ private[core] object Transient {
   case class Range(fromKey: Slice[Byte],
                    toKey: Slice[Byte],
                    mergedKey: Slice[Byte],
+                   deNormalisedKey: Slice[Byte],
                    fromValue: Option[Value.FromValue],
                    rangeValue: Value.RangeValue,
                    valueSerialiser: () => Option[Slice[Byte]],
@@ -1185,6 +1257,7 @@ private[core] object Transient {
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
                    mergedKey: Slice[Byte],
+                   deNormalisedKey: Slice[Byte],
                    blockedSegment: SegmentBlock.Closed,
                    //the deadline is the nearest deadline in the Group's key-values.
                    minMaxFunctionId: Option[MinMax[Slice[Byte]]],

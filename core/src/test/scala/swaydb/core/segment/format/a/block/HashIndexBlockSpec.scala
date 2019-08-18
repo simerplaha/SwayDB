@@ -273,14 +273,13 @@ class HashIndexBlockSpec extends TestBase {
 
   "searching a segment" should {
     "value" in {
-      runThis(10.times, log = true) {
+      runThis(100.times, log = true) {
         //create perfect hash
         val compressions = if (randomBoolean()) randomCompressions() else Seq.empty
 
         val keyValues =
           randomizedKeyValues(
             count = 100,
-            addPut = true,
             startId = Some(1)
           ).updateStats(
             hashIndexConfig =

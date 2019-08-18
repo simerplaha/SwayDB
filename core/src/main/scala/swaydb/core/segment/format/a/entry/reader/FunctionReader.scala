@@ -38,6 +38,7 @@ object FunctionReader extends EntryReader[Persistent.Function] {
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
                               accessPosition: Int,
+                              isNormalisedKey: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -47,7 +48,13 @@ object FunctionReader extends EntryReader[Persistent.Function] {
       valueOffsetAndLength =>
         timeReader.read(indexReader, previous) flatMap {
           time =>
-            KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Function) flatMap {
+            KeyReader.read(
+              keyValueIdInt = keyValueId,
+              isNormalisedKey = isNormalisedKey,
+              indexReader = indexReader,
+              previous = previous,
+              keyValueId = KeyValueId.Function
+            ) flatMap {
               case (key, isKeyPrefixCompressed) =>
                 val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                 val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)

@@ -81,6 +81,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues.head.indexEntryBytes),
         mightBeCompressed = randomBoolean(),
+        isNormalisedKey = false,
         valueCache = Some(buildSingleValueCache(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = keyValues.head.indexEntryBytes.size,
@@ -107,6 +108,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues(1).indexEntryBytes),
         mightBeCompressed = true,
+        isNormalisedKey = false,
         valueCache = Some(buildSingleValueCache(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = keyValues(1).indexEntryBytes.size,
@@ -133,6 +135,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues(2).indexEntryBytes),
         mightBeCompressed = true,
+        isNormalisedKey = false,
         valueCache = Some(buildSingleValueCache(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = 0,
@@ -180,6 +183,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues.head.indexEntryBytes),
         mightBeCompressed = randomBoolean(),
+        isNormalisedKey = false,
         valueCache = Some(buildSingleValueCache(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = keyValues.head.indexEntryBytes.size,
@@ -206,6 +210,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues(1).indexEntryBytes),
         mightBeCompressed = true,
+        isNormalisedKey = false,
         valueCache = Some(buildSingleValueCache(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = keyValues(1).indexEntryBytes.size,
@@ -232,6 +237,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues(2).indexEntryBytes),
         mightBeCompressed = true,
+        isNormalisedKey = false,
         valueCache = Some(buildSingleValueCache(keyValues.head.valueEntryBytes.head)),
         indexOffset = 0,
         nextIndexOffset = 0,
@@ -279,6 +285,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues.head.indexEntryBytes),
         mightBeCompressed = randomBoolean(),
+        isNormalisedKey = false,
         valueCache = None,
         indexOffset = 0,
         nextIndexOffset = keyValues.head.indexEntryBytes.size,
@@ -305,6 +312,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues(1).indexEntryBytes),
         mightBeCompressed = randomBoolean(),
+        isNormalisedKey = false,
         valueCache = None,
         indexOffset = 0,
         nextIndexOffset = keyValues(1).indexEntryBytes.size,
@@ -331,6 +339,7 @@ class ValueReaderWriterSpec extends TestBase {
       EntryReader.read(
         indexReader = Reader(keyValues(2).indexEntryBytes),
         mightBeCompressed = randomBoolean(),
+        isNormalisedKey = false,
         valueCache = None,
         indexOffset = 0,
         nextIndexOffset = 0,

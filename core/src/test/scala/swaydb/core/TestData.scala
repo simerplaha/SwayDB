@@ -373,25 +373,25 @@ object TestData {
       keyValue match {
         case fixed: Transient.Fixed =>
           fixed match {
-            case Transient.Remove(key, deadline, time, previous, _, _, _, _, _) =>
+            case Transient.Remove(key, _, deadline, time, _, _, _, _, _, _) =>
               Memory.Remove(key, deadline, time)
 
-            case Transient.Update(key, value, deadline, time, _, _, _, _, _, _) =>
+            case Transient.Update(key, _, value, deadline, time, _, _, _, _, _, _) =>
               Memory.Update(key, value, deadline, time)
 
-            case Transient.Put(key, value, deadline, time, _, _, _, _, _, _) =>
+            case Transient.Put(key, _, value, deadline, time, _, _, _, _, _, _) =>
               Memory.Put(key, value, deadline, time)
 
-            case Transient.Function(key, function, time, _, _, _, _, _, _) =>
+            case Transient.Function(key, _, function, time, _, _, _, _, _, _) =>
               Memory.Function(key, function, time)
 
-            case Transient.PendingApply(key, applies, _, _, _, _, _, _) =>
+            case Transient.PendingApply(key, _, applies, _, _, _, _, _, _) =>
               Memory.PendingApply(key, applies)
           }
 
         case range: Transient.Range =>
           range match {
-            case Transient.Range(fromKey, toKey, mergedKey, fromValue, rangeValue, _, _, _, _, _, _, _) =>
+            case Transient.Range(fromKey, toKey, mergedKey, _, fromValue, rangeValue, _, _, _, _, _, _, _) =>
               Memory.Range(fromKey, toKey, fromValue, rangeValue)
           }
       }
@@ -400,7 +400,7 @@ object TestData {
       keyValue match {
         case group: Transient.Group =>
           group match {
-            case Transient.Group(fromKey, toKey, mergedKey, compressedKeyValues, minMaxFunctionId, deadline, _, _, _, _, _, _, _) =>
+            case Transient.Group(fromKey, toKey, mergedKey, _, compressedKeyValues, minMaxFunctionId, deadline, _, _, _, _, _, _, _) =>
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
@@ -569,6 +569,7 @@ object TestData {
                 case Memory.Put(key, value, deadline, time) =>
                   Transient.Put(
                     key = key,
+                    deNormalisedKey = key,
                     value = value,
                     deadline = deadline,
                     time = time,
@@ -583,6 +584,7 @@ object TestData {
                 case Memory.Update(key, value, deadline, time) =>
                   Transient.Update(
                     key = key,
+                    deNormalisedKey = key,
                     value = value,
                     deadline = deadline,
                     time = time,
@@ -597,6 +599,7 @@ object TestData {
                 case Memory.Remove(key, deadline, time) =>
                   Transient.Remove(
                     key = key,
+                    deNormalisedKey = key,
                     deadline = deadline,
                     time = time,
                     valuesConfig = valuesConfig,
@@ -610,6 +613,7 @@ object TestData {
                 case Memory.Function(key, function, time) =>
                   Transient.Function(
                     key = key,
+                    deNormalisedKey = key,
                     function = function,
                     time = time,
                     valuesConfig = valuesConfig,
@@ -623,6 +627,7 @@ object TestData {
                 case Memory.PendingApply(key, applies) =>
                   Transient.PendingApply(
                     key = key,
+                    deNormalisedKey = key,
                     applies = applies,
                     valuesConfig = valuesConfig,
                     sortedIndexConfig = sortedIndexConfig,
@@ -676,6 +681,7 @@ object TestData {
                 case put @ Persistent.Put(key, deadline, valueReader, time, _, _, _, _, _, _, _) =>
                   Transient.Put(
                     key = key,
+                    deNormalisedKey = key,
                     value = put.getOrFetchValue.runRandomIO.value,
                     deadline = deadline,
                     time = time,
@@ -690,6 +696,7 @@ object TestData {
                 case put @ Persistent.Update(key, deadline, valueReader, time, _, _, _, _, _, _, _) =>
                   Transient.Update(
                     key = key,
+                    deNormalisedKey = key,
                     value = put.getOrFetchValue.runRandomIO.value,
                     deadline = deadline,
                     time = time,
@@ -704,6 +711,7 @@ object TestData {
                 case function @ Persistent.Function(key, lazyFunctionReader, time, _, _, _, _, _, _, _) =>
                   Transient.Function(
                     key = key,
+                    deNormalisedKey = key,
                     function = lazyFunctionReader.value(ValuesBlock.Offset(function.valueOffset, function.valueLength)).runRandomIO.value,
                     time = time,
                     previous = previous,
@@ -717,6 +725,7 @@ object TestData {
                 case pendingApply: Persistent.PendingApply =>
                   Transient.PendingApply(
                     key = pendingApply.key,
+                    deNormalisedKey = pendingApply.key,
                     applies = pendingApply.getOrFetchApplies.runRandomIO.value,
                     previous = previous,
                     valuesConfig = valuesConfig,
@@ -729,6 +738,7 @@ object TestData {
                 case Persistent.Remove(_key, deadline, time, _, _, _, _, _) =>
                   Transient.Remove(
                     key = _key,
+                    deNormalisedKey = _key,
                     deadline = deadline,
                     time = time,
                     previous = previous,
@@ -1306,6 +1316,7 @@ object TestData {
     if (includePuts && randomBoolean())
       Transient.Put(
         key = key,
+        deNormalisedKey = key,
         value = value,
         deadline = deadline,
         time = time,
@@ -1331,6 +1342,7 @@ object TestData {
     else if (includeFunctions && randomBoolean())
       Transient.Function(
         key = key,
+        deNormalisedKey = key,
         function = randomFunctionId(functionOutput),
         time = time,
         previous = previous,
@@ -1343,6 +1355,7 @@ object TestData {
     else if (includePendingApply && randomBoolean())
       Transient.PendingApply(
         key = key,
+        deNormalisedKey = key,
         applies =
           randomApplies(
             max = 10,
@@ -1362,6 +1375,7 @@ object TestData {
     else
       Transient.Update(
         key = key,
+        deNormalisedKey = key,
         value = value,
         deadline = deadline,
         time = time,
@@ -2026,6 +2040,7 @@ object TestData {
     def remove(key: Slice[Byte])(implicit testTimer: TestTimer): Transient.Remove =
       Transient.Remove(
         key = key,
+        deNormalisedKey = key,
         deadline = None,
         time = testTimer.next,
         valuesConfig = ValuesBlock.Config.random,
@@ -2040,6 +2055,7 @@ object TestData {
                removeAfter: FiniteDuration)(implicit testTimer: TestTimer): Transient.Remove =
       Transient.Remove(
         key = key,
+        deNormalisedKey = key,
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
         valuesConfig = ValuesBlock.Config.random,
@@ -2054,6 +2070,7 @@ object TestData {
                previous: Option[Transient])(implicit testTimer: TestTimer): Transient.Remove =
       Transient.Remove(
         key = key,
+        deNormalisedKey = key,
         deadline = None,
         time = testTimer.next,
         valuesConfig = previous.map(_.valuesConfig).getOrElse(ValuesBlock.Config.random),
@@ -2069,6 +2086,7 @@ object TestData {
                deadline: Option[Deadline])(implicit testTimer: TestTimer): Transient.Remove =
       Transient.Remove(
         key = key,
+        deNormalisedKey = key,
         deadline = deadline,
         time = testTimer.next,
         previous = previous,
@@ -2084,6 +2102,7 @@ object TestData {
             previous: Option[Transient])(implicit testTimer: TestTimer): Transient.Put =
       Transient.Put(
         key = key,
+        deNormalisedKey = key,
         value = value,
         deadline = None,
         time = testTimer.next,
@@ -2102,6 +2121,7 @@ object TestData {
             compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Put =
       Transient.Put(
         key = key,
+        deNormalisedKey = key,
         value = value,
         deadline = deadline,
         time = testTimer.next,
@@ -2116,6 +2136,7 @@ object TestData {
     def put(key: Slice[Byte])(implicit testTimer: TestTimer): Transient.Put =
       Transient.Put(
         key = key,
+        deNormalisedKey = key,
         value = None,
         deadline = None,
         time = testTimer.next,
@@ -2131,6 +2152,7 @@ object TestData {
             value: Slice[Byte])(implicit testTimer: TestTimer): Transient.Put =
       Transient.Put(
         key = key,
+        deNormalisedKey = key,
         value = Some(value),
         deadline = None,
         time = testTimer.next,
@@ -2147,6 +2169,7 @@ object TestData {
             removeAfter: FiniteDuration)(implicit testTimer: TestTimer): Transient.Put =
       Transient.Put(
         key = key,
+        deNormalisedKey = key,
         value = Some(value),
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
@@ -2163,6 +2186,7 @@ object TestData {
             deadline: Deadline)(implicit testTimer: TestTimer): Transient.Put =
       Transient.Put(
         key = key,
+        deNormalisedKey = key,
         value = Some(value),
         deadline = Some(deadline),
         time = testTimer.next,
@@ -2178,6 +2202,7 @@ object TestData {
             removeAfter: FiniteDuration)(implicit testTimer: TestTimer): Transient.Put =
       Transient.Put(
         key = key,
+        deNormalisedKey = key,
         value = None,
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
@@ -2194,6 +2219,7 @@ object TestData {
             removeAfter: Option[FiniteDuration])(implicit testTimer: TestTimer): Transient.Put =
       Transient.Put(
         key = key,
+        deNormalisedKey = key,
         value = Some(value),
         deadline = removeAfter.map(_.fromNow),
         time = testTimer.next,
@@ -2210,6 +2236,7 @@ object TestData {
                previous: Option[Transient])(implicit testTimer: TestTimer): Transient.Update =
       Transient.Update(
         key = key,
+        deNormalisedKey = key,
         value = value,
         deadline = None,
         time = testTimer.next,
@@ -2227,6 +2254,7 @@ object TestData {
                deadline: Option[Deadline])(implicit testTimer: TestTimer): Transient.Update =
       Transient.Update(
         key = key,
+        deNormalisedKey = key,
         value = value,
         deadline = deadline,
         time = testTimer.next,
@@ -2241,6 +2269,7 @@ object TestData {
     def update(key: Slice[Byte])(implicit testTimer: TestTimer): Transient.Update =
       Transient.Update(
         key = key,
+        deNormalisedKey = key,
         value = None,
         deadline = None,
         time = testTimer.next,
@@ -2256,6 +2285,7 @@ object TestData {
                value: Slice[Byte])(implicit testTimer: TestTimer): Transient.Update =
       Transient.Update(
         key = key,
+        deNormalisedKey = key,
         value = Some(value),
         deadline = None,
         previous = None,
@@ -2272,6 +2302,7 @@ object TestData {
                removeAfter: FiniteDuration)(implicit testTimer: TestTimer): Transient.Update =
       Transient.Update(
         key = key,
+        deNormalisedKey = key,
         value = Some(value),
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
@@ -2288,6 +2319,7 @@ object TestData {
                deadline: Deadline)(implicit testTimer: TestTimer): Transient.Update =
       Transient.Update(
         key = key,
+        deNormalisedKey = key,
         value = Some(value),
         deadline = Some(deadline),
         time = testTimer.next,
@@ -2303,6 +2335,7 @@ object TestData {
                removeAfter: FiniteDuration)(implicit testTimer: TestTimer): Transient.Update =
       Transient.Update(
         key = key,
+        deNormalisedKey = key,
         value = None,
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next,
@@ -2319,6 +2352,7 @@ object TestData {
                removeAfter: Option[FiniteDuration])(implicit testTimer: TestTimer): Transient.Update =
       Transient.Update(
         key = key,
+        deNormalisedKey = key,
         value = Some(value),
         deadline = removeAfter.map(_.fromNow),
         time = testTimer.next,
@@ -2334,6 +2368,7 @@ object TestData {
                  function: Slice[Byte])(implicit testTimer: TestTimer): Transient.Function =
       Transient.Function(
         key = key,
+        deNormalisedKey = key,
         function = function,
         time = testTimer.next,
         valuesConfig = ValuesBlock.Config.random,

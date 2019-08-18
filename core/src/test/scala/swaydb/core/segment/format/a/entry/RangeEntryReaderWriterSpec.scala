@@ -49,6 +49,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
       val read =
         EntryReader.read(
           indexReader = Reader(entry.indexEntryBytes),
+          isNormalisedKey = false,
           mightBeCompressed = entry.stats.hasPrefixCompression,
           valueCache = entry.valueEntryBytes.headOption.map(buildSingleValueCache),
           indexOffset = 0,
@@ -93,6 +94,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
         EntryReader.read(
           indexReader = Reader(previous.indexEntryBytes),
           mightBeCompressed = false,
+          isNormalisedKey = false,
           valueCache = Some(buildSingleValueCache(valueBytes)),
           indexOffset = 0,
           nextIndexOffset = 0,
@@ -107,6 +109,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
         EntryReader.read(
           indexReader = Reader(next.indexEntryBytes),
           mightBeCompressed = next.stats.hasPrefixCompression,
+          isNormalisedKey = false,
           valueCache = Some(buildSingleValueCache(valueBytes)),
           indexOffset = 0,
           nextIndexOffset = 0,

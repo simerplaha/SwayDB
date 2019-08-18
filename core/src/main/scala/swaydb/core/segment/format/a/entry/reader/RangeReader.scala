@@ -38,6 +38,7 @@ object RangeReader extends EntryReader[Persistent.Range] {
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
                               accessPosition: Int,
+                              isNormalisedKey: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -45,7 +46,13 @@ object RangeReader extends EntryReader[Persistent.Range] {
                                                             valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Range] =
     valueBytesReader.read(indexReader, previous) flatMap {
       valueOffsetAndLength =>
-        KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Range) flatMap {
+        KeyReader.read(
+          keyValueIdInt = keyValueId,
+          isNormalisedKey = isNormalisedKey,
+          indexReader = indexReader,
+          previous = previous,
+          keyValueId = KeyValueId.Range
+        ) flatMap {
           case (key, isKeyPrefixCompressed) =>
             valueCache map {
               valueCache =>

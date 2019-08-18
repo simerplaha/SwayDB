@@ -23,6 +23,8 @@ import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IOValues._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteUtil
 import swaydb.data.util.StorageUnits._
@@ -213,6 +215,44 @@ class BytesSpec extends WordSpec with Matchers {
         sliceReverse shouldBe Slice(slice.toList.reverse.toArray)
 
         ByteUtil.readLastUnsignedInt(sliceReverse).runRandomIO.value shouldBe ((intToWrite, slice.size))
+    }
+  }
+
+  "normalise & deNormalise" should {
+    "normalise keys" in {
+      val bytes = Slice.fill(10)(1.toByte)
+
+      var normalisedBytes: Slice[Byte] = Bytes.normalise(bytes, toSize = 11)
+      normalisedBytes should have size 11
+      Bytes.deNormalise(normalisedBytes) shouldBe bytes
+
+      normalisedBytes = Bytes.normalise(bytes, toSize = 15)
+      normalisedBytes should have size 15
+      Bytes.deNormalise(normalisedBytes) shouldBe bytes
+
+      normalisedBytes = Bytes.normalise(bytes, toSize = 100000)
+      normalisedBytes should have size 100000
+      Bytes.deNormalise(normalisedBytes) shouldBe bytes
+    }
+  }
+
+  "random" in {
+    runThis(1000.times) {
+      val bytes = randomBytesSlice(randomIntMax(100000))
+      val toSize = (bytes.size + 1) max randomIntMax(100000)
+
+      val normalisedBytes = Bytes.normalise(bytes, toSize = toSize)
+      normalisedBytes should have size toSize
+      Bytes.deNormalise(normalisedBytes) shouldBe bytes
+    }
+
+    runThis(1000.times) {
+      val bytes = randomBytesSlice(randomIntMax(Byte.MaxValue))
+      val toSize = (bytes.size + 1) max randomIntMax(Byte.MaxValue)
+
+      val normalisedBytes = Bytes.normalise(bytes, toSize = toSize)
+      normalisedBytes should have size toSize
+      Bytes.deNormalise(normalisedBytes) shouldBe bytes
     }
   }
 }
