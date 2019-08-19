@@ -167,7 +167,7 @@ private[core] object BinarySearchIndexBlock {
   def init(normalisedKeyValues: Iterable[Transient],
            originalKeyValues: Iterable[Transient]): Option[State] =
     if (normalisedKeyValues.last.stats.segmentBinarySearchIndexSize <= 0 ||
-      normalisedKeyValues.last.sortedIndexConfig.normaliseForBinarySearch ||
+      normalisedKeyValues.last.sortedIndexConfig.normaliseIndexEntries ||
       (originalKeyValues.last.binarySearchIndexConfig.searchSortedIndexDirectly && originalKeyValues.last.stats.hasSameIndexSizes()))
       None
     else

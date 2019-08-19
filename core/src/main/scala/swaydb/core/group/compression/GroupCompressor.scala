@@ -74,7 +74,7 @@ private[core] object GroupCompressor extends LazyLogging {
               maxKey = maxKey,
               minMaxFunctionId = blockedSegment.minMaxFunctionId,
               mergedKey = mergedKey,
-              deNormalisedKey = mergedKey,
+              normaliseToSize = None,
               blockedSegment = blockedSegment,
               deadline = blockedSegment.nearestDeadline,
               keyValues = keyValues,

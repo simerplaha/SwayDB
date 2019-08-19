@@ -26,6 +26,8 @@ import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.core.CommonAssertions._
+import swaydb.core.TestData._
 
 class TransientSpec extends TestBase {
 
@@ -113,19 +115,22 @@ class TransientSpec extends TestBase {
 
   "normalise" should {
     "returns indexEntry bytes of same size" in {
-      runThis(100.times) {
+      runThis(100.times, log = true) {
 
         val keyValues =
-          Slice(
-            randomFixedKeyValue(1),
-            randomFixedKeyValue(2),
-            randomFixedKeyValue(3),
-            randomFixedKeyValue(4)
-          ).toTransient
+          (1 to 100) map {
+            _ =>
+              eitherOne(
+                randomFixedKeyValue(Int.MaxValue).toTransient,
+                randomRangeKeyValue(randomIntMax(1000), 100 + randomIntMax(1000)).toTransient,
+                randomGroup(keyValues = randomizedKeyValues(startId = Some(eitherOne(randomIntMax(1000), randomIntMax(10), randomIntMax(10000)))))
+              )
+          } updateStats
 
         val normalisedKeyValues = Transient.normalise(keyValues)
 
         val expectedSize = normalisedKeyValues.head.indexEntryBytes.size
+        println(s"expectedSize: $expectedSize")
 
         normalisedKeyValues foreach {
           keyValue =>

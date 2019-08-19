@@ -455,7 +455,6 @@ private[core] sealed trait Transient extends KeyValue { self =>
   val isGroup: Boolean
   val previous: Option[Transient]
   val thisKeyValueAccessIndexPosition: Int
-  def deNormalisedKey: Slice[Byte]
   def mergedKey: Slice[Byte]
   def values: Slice[Slice[Byte]]
   def valuesConfig: ValuesBlock.Config
@@ -623,7 +622,7 @@ private[core] object Transient {
       }
 
   def normalise(keyValues: Iterable[Transient]): Slice[Transient] = {
-    val toSize = keyValues.last.stats.segmentMaxSortedIndexEntrySize + 1
+    val toSize = Some(keyValues.last.stats.segmentMaxSortedIndexEntrySize + 1)
     val normalisedKeyValues = Slice.create[Transient](keyValues.size)
 
     keyValues foreach {
@@ -631,44 +630,38 @@ private[core] object Transient {
         keyValue match {
           case keyValue: Transient.Remove =>
             normalisedKeyValues add keyValue.copy(
-              key = Bytes.normalise(keyValue.key, toSize),
-              deNormalisedKey = keyValue.key,
+              normaliseToSize = toSize,
               previous = normalisedKeyValues.lastOption
             )
 
           case keyValue: Transient.Put =>
             normalisedKeyValues add keyValue.copy(
-              key = Bytes.normalise(keyValue.key, toSize),
-              deNormalisedKey = keyValue.key,
+              normaliseToSize = toSize,
               previous = normalisedKeyValues.lastOption
             )
 
           case keyValue: Transient.Update =>
             normalisedKeyValues add keyValue.copy(
-              key = Bytes.normalise(keyValue.key, toSize),
-              deNormalisedKey = keyValue.key,
+              normaliseToSize = toSize,
               previous = normalisedKeyValues.lastOption
             )
 
           case keyValue: Transient.Function =>
             normalisedKeyValues add keyValue.copy(
-              key = Bytes.normalise(keyValue.key, toSize),
-              deNormalisedKey = keyValue.key,
+              normaliseToSize = toSize,
               previous = normalisedKeyValues.lastOption
             )
 
           case keyValue: Transient.PendingApply =>
             normalisedKeyValues add keyValue.copy(
-              key = Bytes.normalise(keyValue.key, toSize),
-              deNormalisedKey = keyValue.key,
+              normaliseToSize = toSize,
               previous = normalisedKeyValues.lastOption
             )
 
           case keyValue: Transient.Range =>
             normalisedKeyValues add
               keyValue.copy(
-                mergedKey = Bytes.normalise(keyValue.mergedKey, toSize),
-                deNormalisedKey = keyValue.mergedKey,
+                normaliseToSize = toSize,
                 previous = normalisedKeyValues.lastOption
               )
         }
@@ -676,8 +669,7 @@ private[core] object Transient {
       case keyValue: Transient.Group =>
         normalisedKeyValues add
           keyValue.copy(
-            mergedKey = Bytes.normalise(keyValue.mergedKey, toSize),
-            deNormalisedKey = keyValue.mergedKey,
+            normaliseToSize = toSize,
             previous = normalisedKeyValues.lastOption
           )
     }
@@ -747,7 +739,7 @@ private[core] object Transient {
   }
 
   case class Remove(key: Slice[Byte],
-                    deNormalisedKey: Slice[Byte],
+                    normaliseToSize: Option[Int],
                     deadline: Option[Deadline],
                     time: Time,
                     valuesConfig: ValuesBlock.Config,
@@ -767,6 +759,7 @@ private[core] object Transient {
       KeyValueWriter.write(
         current = this,
         currentTime = time,
+        normaliseToSize = normaliseToSize,
         compressDuplicateValues = false,
         enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
@@ -815,7 +808,7 @@ private[core] object Transient {
   }
 
   case class Put(key: Slice[Byte],
-                 deNormalisedKey: Slice[Byte],
+                 normaliseToSize: Option[Int],
                  value: Option[Slice[Byte]],
                  deadline: Option[Deadline],
                  time: Time,
@@ -836,6 +829,7 @@ private[core] object Transient {
       KeyValueWriter.write(
         current = this,
         currentTime = time,
+        normaliseToSize = normaliseToSize,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
         enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
@@ -886,7 +880,7 @@ private[core] object Transient {
   }
 
   case class Update(key: Slice[Byte],
-                    deNormalisedKey: Slice[Byte],
+                    normaliseToSize: Option[Int],
                     value: Option[Slice[Byte]],
                     deadline: Option[Deadline],
                     time: Time,
@@ -906,6 +900,7 @@ private[core] object Transient {
       KeyValueWriter.write(
         current = this,
         currentTime = time,
+        normaliseToSize = normaliseToSize,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
         enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
@@ -955,7 +950,7 @@ private[core] object Transient {
   }
 
   case class Function(key: Slice[Byte],
-                      deNormalisedKey: Slice[Byte],
+                      normaliseToSize: Option[Int],
                       function: Slice[Byte],
                       time: Time,
                       valuesConfig: ValuesBlock.Config,
@@ -976,6 +971,7 @@ private[core] object Transient {
       KeyValueWriter.write(
         current = this,
         currentTime = time,
+        normaliseToSize = normaliseToSize,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
         enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
@@ -1025,7 +1021,7 @@ private[core] object Transient {
   }
 
   case class PendingApply(key: Slice[Byte],
-                          deNormalisedKey: Slice[Byte],
+                          normaliseToSize: Option[Int],
                           applies: Slice[Value.Apply],
                           valuesConfig: ValuesBlock.Config,
                           sortedIndexConfig: SortedIndexBlock.Config,
@@ -1065,6 +1061,7 @@ private[core] object Transient {
       KeyValueWriter.write(
         current = this,
         currentTime = time,
+        normaliseToSize = normaliseToSize,
         compressDuplicateValues = valuesConfig.compressDuplicateValues,
         enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
@@ -1119,7 +1116,7 @@ private[core] object Transient {
         fromKey = fromKey,
         toKey = toKey,
         mergedKey = mergedKey,
-        deNormalisedKey = mergedKey,
+        normaliseToSize = None,
         fromValue = None,
         rangeValue = rangeValue,
         valueSerialiser = valueSerialiser _,
@@ -1155,7 +1152,7 @@ private[core] object Transient {
         fromKey = fromKey,
         toKey = toKey,
         mergedKey = mergedKey,
-        deNormalisedKey = mergedKey,
+        normaliseToSize = None,
         fromValue = fromValue,
         rangeValue = rangeValue,
         valueSerialiser = valueSerialiser _,
@@ -1172,7 +1169,7 @@ private[core] object Transient {
   case class Range(fromKey: Slice[Byte],
                    toKey: Slice[Byte],
                    mergedKey: Slice[Byte],
-                   deNormalisedKey: Slice[Byte],
+                   normaliseToSize: Option[Int],
                    fromValue: Option[Value.FromValue],
                    rangeValue: Value.RangeValue,
                    valueSerialiser: () => Option[Slice[Byte]],
@@ -1195,6 +1192,7 @@ private[core] object Transient {
       KeyValueWriter.write(
         current = this,
         currentTime = Time.empty,
+        normaliseToSize = normaliseToSize,
         //It's highly likely that two sequential key-values within the same range have the different value after the range split occurs so this is always set to true.
         compressDuplicateValues = valuesConfig.compressDuplicateRangeValues,
         enablePrefixCompression = Transient.enablePrefixCompression(this)
@@ -1270,7 +1268,7 @@ private[core] object Transient {
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
                    mergedKey: Slice[Byte],
-                   deNormalisedKey: Slice[Byte],
+                   normaliseToSize: Option[Int],
                    blockedSegment: SegmentBlock.Closed,
                    //the deadline is the nearest deadline in the Group's key-values.
                    minMaxFunctionId: Option[MinMax[Slice[Byte]]],
@@ -1294,6 +1292,7 @@ private[core] object Transient {
       KeyValueWriter.write(
         current = this,
         currentTime = Time.empty,
+        normaliseToSize = normaliseToSize,
         //it's highly unlikely that 2 groups after compression will have duplicate values.
         //compressDuplicateValues check is unnecessary since the value bytes of a group can be large.
         compressDuplicateValues = false,

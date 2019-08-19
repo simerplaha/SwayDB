@@ -38,7 +38,6 @@ object RangeReader extends EntryReader[Persistent.Range] {
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
                               hasAccessPositionIndex: Boolean,
-                              isNormalisedKey: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -48,7 +47,6 @@ object RangeReader extends EntryReader[Persistent.Range] {
       valueOffsetAndLength =>
         KeyReader.read(
           keyValueIdInt = keyValueId,
-          isNormalisedKey = isNormalisedKey,
           indexReader = indexReader,
           hasAccessPositionIndex = hasAccessPositionIndex,
           previous = previous,

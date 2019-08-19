@@ -38,7 +38,6 @@ object UpdateReader extends EntryReader[Persistent.Update] {
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
                               hasAccessPositionIndex: Boolean,
-                              isNormalisedKey: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -52,7 +51,6 @@ object UpdateReader extends EntryReader[Persistent.Update] {
               time =>
                 KeyReader.read(
                   keyValueIdInt = keyValueId,
-                  isNormalisedKey = isNormalisedKey,
                   hasAccessPositionIndex = hasAccessPositionIndex,
                   indexReader = indexReader,
                   previous = previous,

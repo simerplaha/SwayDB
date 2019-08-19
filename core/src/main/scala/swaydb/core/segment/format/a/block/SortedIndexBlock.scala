@@ -71,7 +71,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     def apply(enable: swaydb.data.config.SortedKeyIndex.Enable): Config =
       Config(
         enableAccessPositionIndex = enable.enablePositionIndex,
-        prefixCompressionResetCount = enable.prefixCompression.resetCount,
+        prefixCompressionResetCount = enable.prefixCompression.resetCount max 0,
         normaliseForBinarySearch = enable.prefixCompression.resetCount <= 0 && enable.prefixCompression.normaliseIndexForBinarySearch,
         blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
         compressions =
@@ -88,9 +88,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
               compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Config =
       new Config(
         blockIO = blockIO,
-        prefixCompressionResetCount = prefixCompressionResetCount,
+        prefixCompressionResetCount = prefixCompressionResetCount max 0,
         enableAccessPositionIndex = enableAccessPositionIndex,
-        normaliseForBinarySearch = prefixCompressionResetCount <= 0 && normaliseForBinarySearch,
+        normaliseIndexEntries = prefixCompressionResetCount <= 0 && normaliseForBinarySearch,
         compressions = compressions
       )
   }
@@ -98,7 +98,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   case class Config private(blockIO: IOAction => IOStrategy,
                             prefixCompressionResetCount: Int,
                             enableAccessPositionIndex: Boolean,
-                            normaliseForBinarySearch: Boolean,
+                            normaliseIndexEntries: Boolean,
                             compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
@@ -107,7 +107,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                    headerSize: Int,
                    hasPrefixCompression: Boolean,
                    enableAccessPositionIndex: Boolean,
-                   normaliseForBinarySearch: Boolean,
+                   normaliseIndexEntries: Boolean,
                    isPreNormalised: Boolean,
                    segmentMaxIndexEntrySize: Int,
                    compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
@@ -151,12 +151,18 @@ private[core] object SortedIndexBlock extends LazyLogging {
     val isPreNormalised = keyValues.last.stats.hasSameIndexSizes()
 
     val normalisedKeyValues =
-      if (!isPreNormalised && keyValues.last.sortedIndexConfig.normaliseForBinarySearch)
+      if (!isPreNormalised && keyValues.last.sortedIndexConfig.normaliseIndexEntries)
         Transient.normalise(keyValues)
       else
         keyValues
 
-    val hasCompression = normalisedKeyValues.last.sortedIndexConfig.compressions(UncompressedBlockInfo(normalisedKeyValues.last.stats.segmentSortedIndexSize)).nonEmpty
+    val hasCompression =
+      normalisedKeyValues
+        .last
+        .sortedIndexConfig
+        .compressions(UncompressedBlockInfo(normalisedKeyValues.last.stats.segmentSortedIndexSize))
+        .nonEmpty
+
     val headSize = headerSize(hasCompression)
 
     val bytes =
@@ -174,7 +180,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         isPreNormalised = isPreNormalised,
         hasPrefixCompression = normalisedKeyValues.last.stats.hasPrefixCompression,
         enableAccessPositionIndex = normalisedKeyValues.last.sortedIndexConfig.enableAccessPositionIndex,
-        normaliseForBinarySearch = normalisedKeyValues.last.sortedIndexConfig.normaliseForBinarySearch,
+        normaliseIndexEntries = normalisedKeyValues.last.sortedIndexConfig.normaliseIndexEntries,
         segmentMaxIndexEntrySize = normalisedKeyValues.last.stats.segmentMaxSortedIndexEntrySize,
         compressions =
           //cannot have no compression to begin with a then have compression because that upsets the total bytes required.
@@ -203,7 +209,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         state.bytes = compressedOrUncompressedBytes
         state.bytes addBoolean state.enableAccessPositionIndex
         state.bytes addBoolean state.hasPrefixCompression
-        state.bytes addBoolean state.normaliseForBinarySearch
+        state.bytes addBoolean state.normaliseIndexEntries
         state.bytes addBoolean state.isPreNormalised
         state.bytes addIntUnsigned state.segmentMaxIndexEntrySize
         if (state.bytes.currentWritePosition > state.headerSize)
@@ -297,7 +303,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
           }.get
       }
 
-      val sortedIndexReader = Reader[swaydb.Error.Segment](indexEntryBytesAndNextIndexEntrySize.take(indexSize))
+      //if they entries were normalised then deNormalise the indexEntry and pass it to the EntryReader for parsing.
+      val deNormalisedIndexEntryBytes =
+        if (!indexReader.block.isPreNormalised && indexReader.block.normaliseForBinarySearch)
+          Bytes.deNormalise(indexEntryBytesAndNextIndexEntrySize.take(indexSize))
+        else
+          indexEntryBytesAndNextIndexEntrySize.take(indexSize)
+
+      val sortedIndexReader = Reader[swaydb.Error.Segment](deNormalisedIndexEntryBytes)
 
       //create value cache reader given the value offset.
       //todo pass in blockIO config when read values.
@@ -316,7 +329,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
       EntryReader.read(
         //take only the bytes required for this in entry and submit it for parsing/reading.
         indexReader = sortedIndexReader,
-        isNormalisedKey = !indexReader.block.isPreNormalised && indexReader.block.normaliseForBinarySearch,
         mightBeCompressed = indexReader.block.hasPrefixCompression,
         valueCache = valueCache,
         indexOffset = positionBeforeRead,

@@ -265,12 +265,12 @@ private[core] object SegmentBlock {
                 }
 
               case _: Transient.Fixed =>
-                bloomFilter foreach (BloomFilterBlock.add(keyValue.deNormalisedKey, _))
+                bloomFilter foreach (BloomFilterBlock.add(keyValue.key, _))
 
                 hashIndex map {
                   hashIndexState =>
                     HashIndexBlock.write(
-                      key = keyValue.deNormalisedKey,
+                      key = keyValue.key,
                       value = thisKeyValuesAccessOffset,
                       state = hashIndexState
                     )

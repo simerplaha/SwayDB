@@ -25,6 +25,7 @@ import swaydb.Error.Segment.ErrorHandler
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteUtil
 import swaydb.data.util.StorageUnits._
@@ -234,25 +235,38 @@ class BytesSpec extends WordSpec with Matchers {
       normalisedBytes should have size 100000
       Bytes.deNormalise(normalisedBytes) shouldBe bytes
     }
+    "random" in {
+      runThis(1000.times) {
+        val bytes = randomBytesSlice(randomIntMax(100000))
+        val toSize = (bytes.size + 1) max randomIntMax(100000)
+
+        val normalisedBytes = Bytes.normalise(bytes, toSize = toSize)
+        normalisedBytes should have size toSize
+        Bytes.deNormalise(normalisedBytes) shouldBe bytes
+      }
+
+      runThis(1000.times) {
+        val bytes = randomBytesSlice(randomIntMax(Byte.MaxValue))
+        val toSize = (bytes.size + 1) max randomIntMax(Byte.MaxValue)
+
+        val normalisedBytes = Bytes.normalise(bytes, toSize = toSize)
+        normalisedBytes should have size toSize
+        Bytes.deNormalise(normalisedBytes) shouldBe bytes
+      }
+    }
   }
 
-  "random" in {
-    runThis(1000.times) {
-      val bytes = randomBytesSlice(randomIntMax(100000))
-      val toSize = (bytes.size + 1) max randomIntMax(100000)
+  "normalise & deNormalise" when {
+    "appendHeader" in {
+      val header = Slice.writeIntUnsigned(Int.MaxValue)
+      val bytes = Slice.fill(10)(5.toByte)
+      val normalisedBytes = Bytes.normalise(appendHeader = header, bytes = bytes, toSize = header.size + bytes.size + 1)
+      normalisedBytes should have size 16
 
-      val normalisedBytes = Bytes.normalise(bytes, toSize = toSize)
-      normalisedBytes should have size toSize
-      Bytes.deNormalise(normalisedBytes) shouldBe bytes
-    }
-
-    runThis(1000.times) {
-      val bytes = randomBytesSlice(randomIntMax(Byte.MaxValue))
-      val toSize = (bytes.size + 1) max randomIntMax(Byte.MaxValue)
-
-      val normalisedBytes = Bytes.normalise(bytes, toSize = toSize)
-      normalisedBytes should have size toSize
-      Bytes.deNormalise(normalisedBytes) shouldBe bytes
+      val reader = Reader(normalisedBytes)
+      reader.readIntUnsigned().get shouldBe Int.MaxValue
+      val deNormalisedBytes = Bytes.deNormalise(reader.readRemaining().get)
+      deNormalisedBytes shouldBe bytes
     }
   }
 }

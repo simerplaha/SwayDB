@@ -139,7 +139,7 @@ private[core] object Stats {
         )
 
     val segmentBinarySearchIndexSize =
-      if (binarySearch.enabled)
+      if (binarySearch.enabled && !sortedIndex.normaliseIndexEntries)
         previousStats flatMap {
           previousStats =>
             if (previousStats.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessIndexOffset)

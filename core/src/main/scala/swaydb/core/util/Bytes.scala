@@ -231,4 +231,19 @@ private[swaydb] object Bytes {
       byte =>
         byte == Bytes.zero && byte != Bytes.one
     }.dropHead()
+
+  def normalise(appendHeader: Slice[Byte],
+                bytes: Slice[Byte],
+                toSize: Int): Slice[Byte] = {
+    assert((appendHeader.size + bytes.size) < toSize, s"appendHeader.size(${appendHeader.size}) + bytes.size(${bytes.size}) >= toSize($toSize)")
+    val finalSlice = Slice.create[Byte](appendHeader.size + toSize)
+    finalSlice addAll appendHeader
+    var zeroesToAdd = toSize - appendHeader.size - bytes.size - 1
+    while (zeroesToAdd > 0) {
+      finalSlice add Bytes.zero
+      zeroesToAdd -= 1
+    }
+    finalSlice add Bytes.one
+    finalSlice addAll bytes
+  }
 }

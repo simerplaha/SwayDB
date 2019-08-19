@@ -41,7 +41,6 @@ private[core] trait BaseEntryReader {
               nextIndexOffset: Int,
               nextIndexSize: Int,
               hasAccessPositionIndex: Boolean,
-              isNormalisedKey: Boolean,
               previous: Option[Persistent],
               reader: EntryReader[T]): Option[IO[swaydb.Error.Segment, T]]
 }

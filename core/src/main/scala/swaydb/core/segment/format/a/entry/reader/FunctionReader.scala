@@ -38,7 +38,6 @@ object FunctionReader extends EntryReader[Persistent.Function] {
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
                               hasAccessPositionIndex: Boolean,
-                              isNormalisedKey: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -50,7 +49,6 @@ object FunctionReader extends EntryReader[Persistent.Function] {
           time =>
             KeyReader.read(
               keyValueIdInt = keyValueId,
-              isNormalisedKey = isNormalisedKey,
               indexReader = indexReader,
               previous = previous,
               hasAccessPositionIndex = hasAccessPositionIndex,

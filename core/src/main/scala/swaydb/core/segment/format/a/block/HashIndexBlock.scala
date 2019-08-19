@@ -108,11 +108,9 @@ private[core] object HashIndexBlock extends LazyLogging {
   }
 
   def init(keyValues: Iterable[Transient]): Option[HashIndexBlock.State] =
-    if (keyValues.size < keyValues.last.hashIndexConfig.minimumNumberOfKeys)
+    if (keyValues.size < keyValues.last.hashIndexConfig.minimumNumberOfKeys || keyValues.last.stats.segmentHashIndexSize <= 0) {
       None
-    else if (keyValues.last.stats.segmentHashIndexSize <= 0) //formatId, maxProbe, hit, miss, largestValue, allocatedBytes
-      None
-    else {
+    } else {
       val writeAbleLargestValueSize = Bytes.sizeOf(keyValues.last.stats.thisKeyValuesAccessIndexOffset + 1)
       val hasCompression = keyValues.last.hashIndexConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentHashIndexSize)).nonEmpty
 

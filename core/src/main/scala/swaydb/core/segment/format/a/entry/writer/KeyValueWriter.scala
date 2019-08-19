@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a.entry.writer
 import swaydb.core.data.{Time, Transient}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId.BaseEntryIdFormat
 import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, TransientToKeyValueIdBinder}
+import swaydb.core.util.Bytes
 import swaydb.core.util.Bytes._
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -59,6 +60,7 @@ private[core] object KeyValueWriter {
    */
   def write[T <: Transient](current: T,
                             currentTime: Time,
+                            normaliseToSize: Option[Int],
                             compressDuplicateValues: Boolean,
                             enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.WriteResult =
     current.previous flatMap {
@@ -67,6 +69,7 @@ private[core] object KeyValueWriter {
           writeCompressed(
             current = current,
             previous = previous,
+            normaliseToSize = normaliseToSize,
             currentTime = currentTime,
             compressDuplicateValues = compressDuplicateValues
           )
@@ -76,6 +79,7 @@ private[core] object KeyValueWriter {
       writeUncompressed(
         current = current,
         currentTime = currentTime,
+        normaliseToSize = normaliseToSize,
         compressDuplicateValues = compressDuplicateValues,
         enablePrefixCompression = enablePrefixCompression
       )
@@ -84,6 +88,7 @@ private[core] object KeyValueWriter {
   private def writeCompressed[T <: Transient](current: T,
                                               previous: Transient,
                                               currentTime: Time,
+                                              normaliseToSize: Option[Int],
                                               compressDuplicateValues: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
     compress(key = current.mergedKey, previous = previous, minimumCommonBytes = 2) map {
       case (commonBytes, remainingBytes) =>
@@ -110,14 +115,17 @@ private[core] object KeyValueWriter {
           .addIntUnsigned(commonBytes)
           .addAll(remainingBytes)
 
-        //TODO - write size header bytes without creating new byte Slice
-        writeResult setIndexBytes (Slice.writeIntUnsigned(writeResult.indexBytes.size) ++ writeResult.indexBytes)
+        normalise(
+          normaliseToSize = normaliseToSize,
+          writeResult = writeResult
+        )
 
         writeResult
     }
 
   private def writeUncompressed[T <: Transient](current: T,
                                                 currentTime: Time,
+                                                normaliseToSize: Option[Int],
                                                 compressDuplicateValues: Boolean,
                                                 enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): WriteResult = {
     //no common prefixes or no previous write without compression
@@ -142,10 +150,29 @@ private[core] object KeyValueWriter {
       .indexBytes
       .addAll(current.mergedKey)
 
-    //TODO - write size header bytes without creating new byte Slice
-    writeResult setIndexBytes (Slice.writeIntUnsigned(writeResult.indexBytes.size) ++ writeResult.indexBytes)
+    normalise(
+      normaliseToSize = normaliseToSize,
+      writeResult = writeResult
+    )
 
     writeResult
+  }
+
+  def normalise[T <: Transient](normaliseToSize: Option[Int], writeResult: WriteResult): Unit = {
+
+    val normalisedBytes =
+      normaliseToSize map {
+        toSize =>
+          Bytes.normalise(
+            appendHeader = Slice.writeIntUnsigned(toSize - Bytes.sizeOf(toSize)),
+            bytes = writeResult.indexBytes,
+            toSize = toSize
+          )
+      } getOrElse {
+        Slice.writeIntUnsigned(writeResult.indexBytes.size) ++ writeResult.indexBytes
+      }
+
+    writeResult setIndexBytes normalisedBytes
   }
 
   def writeAccessIndexPosition[T <: Transient](current: T, writeResult: WriteResult) =

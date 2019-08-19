@@ -268,7 +268,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 doAdd(
                   Transient.Put(
                     key = key,
-                    deNormalisedKey = key,
+                    normaliseToSize = None,
                     value = value,
                     deadline = deadline,
                     time = time,
@@ -290,7 +290,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     doAdd(
                       Transient.Put(
                         key = put.key,
-                        deNormalisedKey = put.key,
+                        normaliseToSize = None,
                         value = value,
                         deadline = put.deadline,
                         time = put.time,
@@ -311,7 +311,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 doAdd(
                   Transient.Remove(
                     key = keyValueToAdd.key,
-                    deNormalisedKey = keyValueToAdd.key,
+                    normaliseToSize = None,
                     deadline = remove.deadline,
                     time = remove.time,
                     valuesConfig = segmentMergeConfigs.groupValuesConfig,
@@ -330,7 +330,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 doAdd(
                   Transient.Remove(
                     key = keyValueToAdd.key,
-                    deNormalisedKey = keyValueToAdd.key,
+                    normaliseToSize = None,
                     deadline = remove.deadline,
                     time = remove.time,
                     valuesConfig = segmentMergeConfigs.groupValuesConfig,
@@ -349,7 +349,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 doAdd(
                   Transient.Update(
                     key = key,
-                    deNormalisedKey = key,
+                    normaliseToSize = None,
                     value = value,
                     deadline = deadline,
                     time = time,
@@ -371,7 +371,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     doAdd(
                       Transient.Update(
                         key = update.key,
-                        deNormalisedKey = update.key,
+                        normaliseToSize = None,
                         value = value,
                         deadline = update.deadline,
                         time = update.time,
@@ -392,7 +392,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 doAdd(
                   Transient.Function(
                     key = key,
-                    deNormalisedKey = key,
+                    normaliseToSize = None,
                     function = function,
                     time = time,
                     valuesConfig = segmentMergeConfigs.groupValuesConfig,
@@ -413,7 +413,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     doAdd(
                       Transient.Function(
                         key = function.key,
-                        deNormalisedKey = function.key,
+                        normaliseToSize = None,
                         function = functionId,
                         time = function.time,
                         valuesConfig = segmentMergeConfigs.groupValuesConfig,
@@ -433,7 +433,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 doAdd(
                   Transient.PendingApply(
                     key = key,
-                    deNormalisedKey = key,
+                    normaliseToSize = None,
                     applies = applies,
                     valuesConfig = segmentMergeConfigs.groupValuesConfig,
                     sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
@@ -453,7 +453,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     doAdd(
                       Transient.PendingApply(
                         key = pendingApply.key,
-                        deNormalisedKey = pendingApply.key,
+                        normaliseToSize = None,
                         applies = applies,
                         valuesConfig = segmentMergeConfigs.groupValuesConfig,
                         sortedIndexConfig = segmentMergeConfigs.groupSortedIndexConfig,
@@ -478,7 +478,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                           doAdd(
                             Transient.Put(
                               key = range.fromKey,
-                              deNormalisedKey = range.fromKey,
+                              normaliseToSize = None,
                               value = fromValue,
                               deadline = deadline,
                               time = time,
