@@ -491,7 +491,7 @@ object TestData {
         blockIO = _ => randomIOAccess(),
         prefixCompressionResetCount = randomIntMax(5),
         enableAccessPositionIndex = randomBoolean(),
-        normaliseForBinarySearch = randomBoolean(),
+        normaliseIndex = randomBoolean(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -504,7 +504,7 @@ object TestData {
       BinarySearchIndexBlock.Config(
         enabled = randomBoolean(),
         minimumNumberOfKeys = randomIntMax(5),
-        searchSortedIndexDirectly = randomBoolean(),
+        searchSortedIndexDirectlyIfPreNormalised = randomBoolean(),
         fullIndex = randomBoolean(),
         blockIO = _ => randomIOAccess(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty

@@ -78,7 +78,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
           else
             keyValues(index + 1).indexEntryBytes.size
 
-        if (!keyValues.last.sortedIndexConfig.normaliseIndexEntries)
+        if (!keyValues.last.sortedIndexConfig.normaliseIndex)
           if (index < keyValues.size - 1) {
             //if it's not the last
             persistent.nextIndexOffset shouldBe expectedNextIndexOffset
@@ -119,7 +119,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
   "write, close, readAll & get" in {
     runThis(100.times, log = true) {
-      val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(2, startId = Some(0), sortedIndexConfig = SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0, normaliseIndexEntries = true), addGroups = false, addRanges = false))
+      val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(2, startId = Some(0), sortedIndexConfig = SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0, normaliseIndex = true), addGroups = false, addRanges = false))
 
       val (sortedIndexBlock, normalisedKeyValues) = SortedIndexBlock.init(keyValues)
       val valuesBlock = ValuesBlock.init(normalisedKeyValues)

@@ -43,7 +43,7 @@ private[core] object BinarySearchIndexBlock {
         enabled = false,
         minimumNumberOfKeys = 0,
         fullIndex = false,
-        searchSortedIndexDirectly = true,
+        searchSortedIndexDirectlyIfPreNormalised = true,
         blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         compressions = _ => Seq.empty
       )
@@ -55,7 +55,7 @@ private[core] object BinarySearchIndexBlock {
             enabled = false,
             minimumNumberOfKeys = Int.MaxValue,
             fullIndex = false,
-            searchSortedIndexDirectly = searchSortedIndexDirectly,
+            searchSortedIndexDirectlyIfPreNormalised = searchSortedIndexDirectly,
             blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
             compressions = _ => Seq.empty
           )
@@ -64,7 +64,7 @@ private[core] object BinarySearchIndexBlock {
           Config(
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
-            searchSortedIndexDirectly = enable.searchSortedIndexDirectly,
+            searchSortedIndexDirectlyIfPreNormalised = enable.searchSortedIndexDirectly,
             fullIndex = true,
             blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
@@ -78,7 +78,7 @@ private[core] object BinarySearchIndexBlock {
           Config(
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
-            searchSortedIndexDirectly = enable.searchSortedIndexDirectly,
+            searchSortedIndexDirectlyIfPreNormalised = enable.searchSortedIndexDirectlyIfPreNormalised,
             fullIndex = false,
             blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
@@ -92,7 +92,7 @@ private[core] object BinarySearchIndexBlock {
 
   case class Config(enabled: Boolean,
                     minimumNumberOfKeys: Int,
-                    searchSortedIndexDirectly: Boolean,
+                    searchSortedIndexDirectlyIfPreNormalised: Boolean,
                     fullIndex: Boolean,
                     blockIO: IOAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
@@ -167,8 +167,8 @@ private[core] object BinarySearchIndexBlock {
   def init(normalisedKeyValues: Iterable[Transient],
            originalKeyValues: Iterable[Transient]): Option[State] =
     if (normalisedKeyValues.last.stats.segmentBinarySearchIndexSize <= 0 ||
-      normalisedKeyValues.last.sortedIndexConfig.normaliseIndexEntries ||
-      (originalKeyValues.last.binarySearchIndexConfig.searchSortedIndexDirectly && originalKeyValues.last.stats.hasSameIndexSizes()))
+      normalisedKeyValues.last.sortedIndexConfig.normaliseIndex ||
+      (originalKeyValues.last.binarySearchIndexConfig.searchSortedIndexDirectlyIfPreNormalised && originalKeyValues.last.stats.hasSameIndexSizes()))
       None
     else
       BinarySearchIndexBlock.State(

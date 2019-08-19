@@ -39,6 +39,6 @@ object BinarySearchKeyIndex {
 
   case class SecondaryIndex(minimumNumberOfKeys: Int,
                             ioStrategy: IOAction => IOStrategy,
-                            searchSortedIndexDirectly: Boolean,
+                            searchSortedIndexDirectlyIfPreNormalised: Boolean,
                             compression: UncompressedBlockInfo => Seq[Compression]) extends Enable
 }

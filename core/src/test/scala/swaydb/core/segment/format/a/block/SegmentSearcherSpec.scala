@@ -260,7 +260,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               enabled = true,
               minimumNumberOfKeys = 0,
               fullIndex = fullIndex,
-              searchSortedIndexDirectly = true,
+              searchSortedIndexDirectlyIfPreNormalised = true,
               blockIO = _ => randomIOAccess(),
               compressions = _ => binarySearchCompressions
             ),

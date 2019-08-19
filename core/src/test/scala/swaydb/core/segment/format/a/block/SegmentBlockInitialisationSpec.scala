@@ -56,7 +56,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   enabled = false,
                   minimumNumberOfKeys = 0,
                   fullIndex = randomBoolean(),
-                  searchSortedIndexDirectly = randomBoolean(),
+                  searchSortedIndexDirectlyIfPreNormalised = randomBoolean(),
                   blockIO = _ => IOStrategy.defaultBlockReadersStored,
                   compressions = _ => randomCompressionsOrEmpty()
                 )
@@ -85,7 +85,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 binarySearchIndexConfig =
                   BinarySearchIndexBlock.Config(
                     enabled = true,
-                    searchSortedIndexDirectly = randomBoolean(),
+                    searchSortedIndexDirectlyIfPreNormalised = randomBoolean(),
                     minimumNumberOfKeys = generatedKeyValues.size + 1,
                     fullIndex = randomBoolean(),
                     blockIO = _ => randomIOAccess(),
@@ -119,7 +119,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               binarySearchIndexConfig =
                 BinarySearchIndexBlock.Config(
                   enabled = true,
-                  searchSortedIndexDirectly = randomBoolean(),
+                  searchSortedIndexDirectlyIfPreNormalised = randomBoolean(),
                   minimumNumberOfKeys = 0,
                   fullIndex = false,
                   blockIO = _ => randomIOAccess(),
@@ -182,7 +182,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               binarySearchIndexConfig =
                 BinarySearchIndexBlock.Config(
                   enabled = true,
-                  searchSortedIndexDirectly = randomBoolean(),
+                  searchSortedIndexDirectlyIfPreNormalised = randomBoolean(),
                   minimumNumberOfKeys = 0,
                   fullIndex = true,
                   blockIO = _ => randomIOAccess(),
@@ -234,7 +234,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               binarySearchIndexConfig =
                 BinarySearchIndexBlock.Config(
                   enabled = true,
-                  searchSortedIndexDirectly = randomBoolean(),
+                  searchSortedIndexDirectlyIfPreNormalised = randomBoolean(),
                   minimumNumberOfKeys = 0,
                   fullIndex = false,
                   blockIO = _ => randomIOAccess(),
@@ -428,13 +428,13 @@ class SegmentBlockInitialisationSpec extends TestBase {
               blockIO = _ => randomIOAccess(cacheOnAccess = true),
               prefixCompressionResetCount = 0,
               enableAccessPositionIndex = true,
-              normaliseForBinarySearch = randomBoolean(),
+              normaliseIndex = randomBoolean(),
               compressions = _ => compressions(1)
             ),
           binarySearchIndexConfig =
             BinarySearchIndexBlock.Config(
               enabled = true,
-              searchSortedIndexDirectly = randomBoolean(),
+              searchSortedIndexDirectlyIfPreNormalised = randomBoolean(),
               minimumNumberOfKeys = 1,
               fullIndex = true,
               blockIO = _ => randomIOAccess(cacheOnAccess = true),
