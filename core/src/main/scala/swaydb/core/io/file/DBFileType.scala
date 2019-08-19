@@ -27,7 +27,23 @@ import swaydb.data.slice.Slice
 
 private[file] trait DBFileType extends FileLimiterItem {
 
-  def path: Path
+  val path: Path
+
+  val folderId: Long =
+    try
+      IOEffect.folderId(path.getParent)
+    catch {
+      case _: Exception =>
+        path.getParent.hashCode()
+    }
+
+  val fileId =
+    try
+      IOEffect.fileId(path).get._1
+    catch {
+      case _: Exception =>
+        path.hashCode()
+    }
 
   def delete(): IO[swaydb.Error.IO, Unit]
 

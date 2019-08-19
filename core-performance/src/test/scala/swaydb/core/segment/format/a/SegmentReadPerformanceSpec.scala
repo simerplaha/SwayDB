@@ -43,7 +43,7 @@ import scala.concurrent.duration._
 import scala.util.Random
 
 class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = true
+  val testGroupedKeyValues: Boolean = false
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
 }

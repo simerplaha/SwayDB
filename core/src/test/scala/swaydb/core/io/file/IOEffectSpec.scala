@@ -31,6 +31,7 @@ import swaydb.data.util.StorageUnits._
 class IOEffectSpec extends TestBase {
 
   "fileId" should {
+
     "value the file id" in {
       IOEffect.fileId(Paths.get("/one/1.log")).runRandomIO.value shouldBe(1, Extension.Log)
       IOEffect.fileId(Paths.get("/one/two/10.log")).runRandomIO.value shouldBe(10, Extension.Log)

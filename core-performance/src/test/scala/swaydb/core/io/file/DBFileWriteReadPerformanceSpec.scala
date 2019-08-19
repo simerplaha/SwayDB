@@ -42,6 +42,8 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
   "random access" in {
     val bytes = randomBytesSlice(20.mb)
 
+    implicit val blockCache: Option[BlockCache.State] = TestLimitQueues.blockCache
+
     val file = DBFile.mmapInit(randomFilePath, randomIOStrategy(cacheOnAccess = true), bytes.size, autoClose = true).runRandomIO.value
     file.append(bytes).runRandomIO.value
     file.isFull.runRandomIO.value shouldBe true
@@ -51,18 +53,17 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
 
     import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
 
-    val readerFile = DBFile.mmapRead(file.path, randomIOStrategy(cacheOnAccess = true), true).get
+    val readerFile = DBFile.channelRead(file.path, randomIOStrategy(cacheOnAccess = true), true).get
 
-    //    val reader = BlockRefReader(BlockRefReader(BlockRefReader(readerFile).get).get).get
-        val reader = BlockRefReader(readerFile).get
-//    val reader = Reader(readerFile)
+    //        val reader = BlockRefReader(readerFile).get
+    val reader = Reader(readerFile)
 
     Benchmark("") {
       (1 to 10000000) foreach {
         i =>
           val index = randomIntMax(bytes.size - 5)
           reader.moveTo(index).read(4).get
-//                  file.read(index, 4).get
+        //                  file.read(index, 4).get
 
         //          reader.moveTo(i * 4).read(4).get
       }
