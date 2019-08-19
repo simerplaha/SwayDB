@@ -125,7 +125,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         optimalBytesRequired(
           keyCounts = keyValues.last.stats.segmentUniqueKeysCount,
           minimumNumberOfKeys = keyValues.last.hashIndexConfig.minimumNumberOfKeys,
-          largestValue = writeAbleLargestValueSize,
+          largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
           allocateSpace = keyValues.last.hashIndexConfig.allocateSpace,
           hasCompression = hasCompression
         )
