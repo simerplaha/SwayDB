@@ -244,43 +244,22 @@ private[core] object SegmentBlock {
             keyValues = childGroup.keyValues
           )
 
-        case keyValue: Transient.SegmentResponse =>
+        case keyValue @ (_: Transient.Range | _: Transient.Fixed) =>
           val thisKeyValuesAccessOffset =
             rootGroup
               .map(_.stats.thisKeyValuesAccessIndexOffset)
               .getOrElse(keyValue.stats.thisKeyValuesAccessIndexOffset)
 
-          val writeResult =
-            keyValue match {
-              case response: Transient.Range =>
-                bloomFilter foreach (BloomFilterBlock.add(response.fromKey, _))
+          bloomFilter foreach (BloomFilterBlock.add(keyValue.key, _))
 
-                hashIndex map {
-                  hashIndexState =>
-                    HashIndexBlock.write(
-                      key = response.fromKey,
-                      value = thisKeyValuesAccessOffset,
-                      state = hashIndexState
-                    )
-                }
-
-              case _: Transient.Fixed =>
-                bloomFilter foreach (BloomFilterBlock.add(keyValue.key, _))
-
-                hashIndex map {
-                  hashIndexState =>
-                    HashIndexBlock.write(
-                      key = keyValue.key,
-                      value = thisKeyValuesAccessOffset,
-                      state = hashIndexState
-                    )
-                }
-
-              case _: Transient.Group =>
-                Some(IO.failed("Unexpected Group"))
-            }
-
-          writeResult match {
+          hashIndex map {
+            hashIndexState =>
+              HashIndexBlock.write(
+                key = keyValue.key,
+                value = thisKeyValuesAccessOffset,
+                state = hashIndexState
+              )
+          } match {
             //if it's a hit and binary search is not configured to be full OR the key-value has same offset as previous then skip writing to binary search.
             case Some(IO.Success(hit)) if (!keyValue.isRange && (hit && binarySearchIndex.forall(!_.isFullIndex))) || keyValue.previous.exists(_.stats.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessOffset) =>
               IO.unit
