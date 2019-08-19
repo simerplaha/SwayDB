@@ -117,22 +117,25 @@ private[core] object HashIndexBlock extends LazyLogging {
     if (keyValues.size < keyValues.last.hashIndexConfig.minimumNumberOfKeys || keyValues.last.stats.segmentHashIndexSize <= 0) {
       None
     } else {
-      val writeAbleLargestValueSize = Bytes.sizeOf(keyValues.last.stats.thisKeyValuesAccessIndexOffset + 1)
-      val hasCompression = keyValues.last.hashIndexConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentHashIndexSize)).nonEmpty
+      val last = keyValues.last
+
+      val writeAbleLargestValueSize = Bytes.sizeOf(last.stats.thisKeyValuesAccessIndexOffset + 1)
+
+      val hasCompression = last.hashIndexConfig.compressions(UncompressedBlockInfo(last.stats.segmentHashIndexSize)).nonEmpty
 
       val headSize =
         headerSize(
-          keyCounts = keyValues.last.stats.segmentUniqueKeysCount,
+          keyCounts = last.stats.segmentUniqueKeysCount,
           writeAbleLargestValueSize = writeAbleLargestValueSize,
           hasCompression = hasCompression
         )
 
       val optimalBytes =
-        optimalBytesRequired(
-          keyCounts = keyValues.last.stats.segmentUniqueKeysCount,
-          minimumNumberOfKeys = keyValues.last.hashIndexConfig.minimumNumberOfKeys,
-          largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
-          allocateSpace = keyValues.last.hashIndexConfig.allocateSpace,
+        optimalBytesRequiredForLargestValueSize(
+          keyCounts = last.stats.segmentUniqueKeysCount,
+          minimumNumberOfKeys = last.hashIndexConfig.minimumNumberOfKeys,
+          writeAbleLargestValueSize = writeAbleLargestValueSize,
+          allocateSpace = last.hashIndexConfig.allocateSpace,
           hasCompression = hasCompression
         )
 
@@ -144,17 +147,17 @@ private[core] object HashIndexBlock extends LazyLogging {
           HashIndexBlock.State(
             hit = 0,
             miss = 0,
-            copyIndex = keyValues.last.hashIndexConfig.copyIndex,
-            minimumNumberOfKeys = keyValues.last.hashIndexConfig.minimumNumberOfKeys,
-            minimumNumberOfHits = keyValues.last.hashIndexConfig.minimumNumberOfHits,
+            copyIndex = last.hashIndexConfig.copyIndex,
+            minimumNumberOfKeys = last.hashIndexConfig.minimumNumberOfKeys,
+            minimumNumberOfHits = last.hashIndexConfig.minimumNumberOfHits,
             writeAbleLargestValueSize = writeAbleLargestValueSize,
             headerSize = headSize,
-            maxProbe = keyValues.last.hashIndexConfig.maxProbe,
+            maxProbe = last.hashIndexConfig.maxProbe,
             _bytes = Slice.create[Byte](optimalBytes),
             compressions =
               //cannot have no compression to begin with a then have compression because that upsets the total bytes required.
               if (hasCompression)
-                keyValues.last.hashIndexConfig.compressions
+                last.hashIndexConfig.compressions
               else
                 _ => Seq.empty
           )
@@ -188,28 +191,42 @@ private[core] object HashIndexBlock extends LazyLogging {
     } else {
       val writeAbleLargestValueSize = Bytes.sizeOf(largestValue + 1) //largest value is +1 because 0s are reserved.
 
-      val minimumRequired =
-        headerSize(
-          keyCounts = keyCounts,
-          hasCompression = hasCompression,
-          writeAbleLargestValueSize = writeAbleLargestValueSize
-        ) + (keyCounts * (writeAbleLargestValueSize + 1)) //+1 to skip left & right 0 start-end markers.
+      optimalBytesRequiredForLargestValueSize(
+        keyCounts = keyCounts,
+        minimumNumberOfKeys = minimumNumberOfKeys,
+        writeAbleLargestValueSize = writeAbleLargestValueSize,
+        hasCompression = hasCompression,
+        allocateSpace = allocateSpace
+      )
+    }
+  }
 
-      try
-        allocateSpace(
-          RandomKeyIndex.RequiredSpace(
-            _requiredSpace = minimumRequired,
-            _numberOfKeys = keyCounts
-          )
+  private def optimalBytesRequiredForLargestValueSize(keyCounts: Int,
+                                                      minimumNumberOfKeys: Int,
+                                                      writeAbleLargestValueSize: Int,
+                                                      hasCompression: Boolean,
+                                                      allocateSpace: RandomKeyIndex.RequiredSpace => Int): Int = {
+    val minimumRequired =
+      headerSize(
+        keyCounts = keyCounts,
+        hasCompression = hasCompression,
+        writeAbleLargestValueSize = writeAbleLargestValueSize
+      ) + (keyCounts * (writeAbleLargestValueSize + 1)) //+1 to skip left & right 0 start-end markers.
+
+    try
+      allocateSpace(
+        RandomKeyIndex.RequiredSpace(
+          _requiredSpace = minimumRequired,
+          _numberOfKeys = keyCounts
         )
-      catch {
-        case exception: Exception =>
-          logger.error(
-            """Custom allocate space calculation for HashIndex returned failure.
-              |Using the default requiredSpace instead. Please check your implementation to ensure it's not throwing exception.
+      )
+    catch {
+      case exception: Exception =>
+        logger.error(
+          """Custom allocate space calculation for HashIndex returned failure.
+            |Using the default requiredSpace instead. Please check your implementation to ensure it's not throwing exception.
             """.stripMargin, exception)
-          minimumRequired
-      }
+        minimumRequired
     }
   }
 
