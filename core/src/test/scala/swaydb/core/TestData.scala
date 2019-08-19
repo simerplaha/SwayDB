@@ -520,6 +520,7 @@ object TestData {
         maxProbe = randomIntMax(10),
         minimumNumberOfKeys = randomIntMax(5),
         minimumNumberOfHits = randomIntMax(5),
+        copyIndex = randomBoolean(),
         allocateSpace = _.requiredSpace * randomIntMax(3),
         blockIO = _ => randomIOAccess(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty

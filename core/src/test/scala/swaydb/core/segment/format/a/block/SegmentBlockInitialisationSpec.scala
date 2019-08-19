@@ -129,6 +129,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 HashIndexBlock.Config(
                   maxProbe = 5,
                   allocateSpace = _.requiredSpace * 30,
+                  copyIndex = randomBoolean(),
                   minimumNumberOfKeys = 0,
                   minimumNumberOfHits = 0,
                   blockIO = _ => randomIOAccess(),
@@ -193,6 +194,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   maxProbe = 100,
                   minimumNumberOfKeys = 0,
                   minimumNumberOfHits = 0,
+                  copyIndex = randomBoolean(),
                   allocateSpace = _.requiredSpace * 20,
                   blockIO = _ => randomIOAccess(),
                   compressions = _ => compressions
@@ -245,6 +247,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   maxProbe = 5,
                   minimumNumberOfKeys = Int.MaxValue,
                   minimumNumberOfHits = 0,
+                  copyIndex = randomBoolean(),
                   allocateSpace = _.requiredSpace * 0,
                   blockIO = _ => randomIOAccess(),
                   compressions = _ => compressions
@@ -387,6 +390,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   maxProbe = 5,
                   minimumNumberOfKeys = 0, //set miminimum to be 10 for hash to be created.
                   minimumNumberOfHits = 10,
+                  copyIndex = randomBoolean(),
                   allocateSpace = _ =>
                     HashIndexBlock.optimalBytesRequired(
                       keyCounts = 1, //allocate space enough for 1
@@ -445,6 +449,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               maxProbe = 5,
               minimumNumberOfKeys = 2,
               minimumNumberOfHits = 2,
+              copyIndex = randomBoolean(),
               allocateSpace = _.requiredSpace * 10,
               blockIO = _ => randomIOAccess(cacheOnAccess = true),
               compressions = _ => compressions(3)

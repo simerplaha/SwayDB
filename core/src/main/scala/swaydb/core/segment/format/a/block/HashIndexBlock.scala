@@ -48,6 +48,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         minimumNumberOfKeys = Int.MaxValue,
         allocateSpace = _ => Int.MinValue,
         minimumNumberOfHits = Int.MaxValue,
+        copyIndex = false,
         blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         compressions = _ => Seq.empty
       )
@@ -60,14 +61,17 @@ private[core] object HashIndexBlock extends LazyLogging {
             minimumNumberOfKeys = Int.MaxValue,
             allocateSpace = _ => Int.MinValue,
             minimumNumberOfHits = Int.MaxValue,
+            copyIndex = false,
             blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
             compressions = _ => Seq.empty
           )
+
         case enable: swaydb.data.config.RandomKeyIndex.Enable =>
           Config(
             maxProbe = enable.tries,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             minimumNumberOfHits = enable.minimumNumberOfHits,
+            copyIndex = enable.copyIndex,
             allocateSpace = FunctionUtil.safe(_.requiredSpace, enable.allocateSpace),
             blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
@@ -82,6 +86,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   case class Config(maxProbe: Int,
                     minimumNumberOfKeys: Int,
                     minimumNumberOfHits: Int,
+                    copyIndex: Boolean,
                     allocateSpace: RandomKeyIndex.RequiredSpace => Int,
                     blockIO: IOAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
@@ -90,6 +95,7 @@ private[core] object HashIndexBlock extends LazyLogging {
 
   final case class State(var hit: Int,
                          var miss: Int,
+                         copyIndex: Boolean,
                          minimumNumberOfKeys: Int,
                          minimumNumberOfHits: Int,
                          writeAbleLargestValueSize: Int,
@@ -138,6 +144,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           HashIndexBlock.State(
             hit = 0,
             miss = 0,
+            copyIndex = keyValues.last.hashIndexConfig.copyIndex,
             minimumNumberOfKeys = keyValues.last.hashIndexConfig.minimumNumberOfKeys,
             minimumNumberOfHits = keyValues.last.hashIndexConfig.minimumNumberOfHits,
             writeAbleLargestValueSize = writeAbleLargestValueSize,
@@ -438,9 +445,9 @@ private[core] object HashIndexBlock extends LazyLogging {
    *
    * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
    */
-  private[block] def search[R](key: Slice[Byte],
-                               reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                               assertValue: Slice[Byte] => IO[swaydb.Error.Segment, Option[R]]): IO[swaydb.Error.Segment, Option[R]] = {
+  private[block] def searchCopied[R](key: Slice[Byte],
+                                     reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                                     assertValue: Slice[Byte] => IO[swaydb.Error.Segment, Option[R]]): IO[swaydb.Error.Segment, Option[R]] = {
 
     val hash = key.##
     val hash1 = hash >>> 32

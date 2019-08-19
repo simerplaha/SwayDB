@@ -101,6 +101,7 @@ object DefaultPersistentConfig {
             tries = 5,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
+            copyIndex = true,
             allocateSpace = _.requiredSpace * 2,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
@@ -163,6 +164,7 @@ object DefaultPersistentConfig {
             tries = 5,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
+            copyIndex = true,
             allocateSpace = _.requiredSpace * 2,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
@@ -225,6 +227,7 @@ object DefaultPersistentConfig {
             tries = 5,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
+            copyIndex = true,
             allocateSpace = _.requiredSpace * 2,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
@@ -287,6 +290,7 @@ object DefaultPersistentConfig {
             tries = 5,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
+            copyIndex = true,
             allocateSpace = _.requiredSpace * 2,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
@@ -349,6 +353,7 @@ object DefaultPersistentConfig {
             tries = 5,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
+            copyIndex = true,
             allocateSpace = _.requiredSpace * 2,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
@@ -413,6 +418,7 @@ object DefaultPersistentConfig {
             tries = 5,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
+            copyIndex = true,
             allocateSpace = _.requiredSpace * 2,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty

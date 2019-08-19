@@ -269,6 +269,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               maxProbe = 100,
               minimumNumberOfKeys = 0,
               minimumNumberOfHits = 0,
+              copyIndex = randomBoolean(),
               allocateSpace = _.requiredSpace * 10,
               blockIO = _ => randomIOAccess(),
               compressions = _ => hashIndexCompressions

@@ -33,6 +33,7 @@ object RandomKeyIndex {
   case class Enable(tries: Int,
                     minimumNumberOfKeys: Int,
                     minimumNumberOfHits: Int,
+                    copyIndex: Boolean,
                     allocateSpace: RequiredSpace => Int,
                     ioStrategy: IOAction => IOStrategy,
                     compression: UncompressedBlockInfo => Seq[Compression]) extends RandomKeyIndex

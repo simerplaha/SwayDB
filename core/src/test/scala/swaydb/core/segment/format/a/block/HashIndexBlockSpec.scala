@@ -132,6 +132,7 @@ class HashIndexBlockSpec extends TestBase {
                     HashIndexBlock.Config(
                       allocateSpace = allocateMoreSpace,
                       compressions = _ => randomCompressionsLZ4OrSnappy(),
+                      copyIndex = randomBoolean(),
                       maxProbe = maxProbe,
                       minimumNumberOfKeys = 0,
                       minimumNumberOfHits = 0,
@@ -201,6 +202,7 @@ class HashIndexBlockSpec extends TestBase {
                 allocateSpace = _.requiredSpace * 5,
                 compressions = _ => compressions,
                 maxProbe = maxProbe,
+                copyIndex = randomBoolean(),
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
                 blockIO = _ => randomIOAccess()
@@ -287,6 +289,7 @@ class HashIndexBlockSpec extends TestBase {
                 maxProbe = 1000,
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
+                copyIndex = randomBoolean(),
                 allocateSpace = _.requiredSpace * 30,
                 blockIO = _ => randomIOStrategy(),
                 compressions = _ => compressions
