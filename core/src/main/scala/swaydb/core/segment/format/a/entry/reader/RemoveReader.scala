@@ -37,7 +37,7 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              accessPosition: Int,
+                              hasAccessPositionIndex: Boolean,
                               isNormalisedKey: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
@@ -52,10 +52,11 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
               keyValueIdInt = keyValueId,
               isNormalisedKey = isNormalisedKey,
               indexReader = indexReader,
+              hasAccessPositionIndex = hasAccessPositionIndex,
               previous = previous,
               keyValueId = KeyValueId.Remove
             ) map {
-              case (key, isKeyPrefixCompressed) =>
+              case (accessPosition, key, isKeyPrefixCompressed) =>
                 Persistent.Remove(
                   _key = key,
                   indexOffset = indexOffset,

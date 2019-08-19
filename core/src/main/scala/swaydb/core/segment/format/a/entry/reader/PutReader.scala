@@ -36,7 +36,7 @@ object PutReader extends EntryReader[Persistent.Put] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              accessPosition: Int,
+                              hasAccessPositionIndex: Boolean,
                               isNormalisedKey: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
@@ -53,10 +53,11 @@ object PutReader extends EntryReader[Persistent.Put] {
                   keyValueIdInt = keyValueId,
                   isNormalisedKey = isNormalisedKey,
                   indexReader = indexReader,
+                  hasAccessPositionIndex = hasAccessPositionIndex,
                   previous = previous,
                   keyValueId = KeyValueId.Put
                 ) flatMap {
-                  case (key, isKeyPrefixCompressed) =>
+                  case (accessPosition, key, isKeyPrefixCompressed) =>
                     val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                     val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 

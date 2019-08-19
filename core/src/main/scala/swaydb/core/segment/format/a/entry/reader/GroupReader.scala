@@ -37,7 +37,7 @@ object GroupReader extends EntryReader[Persistent.Group] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              accessPosition: Int,
+                              hasAccessPositionIndex: Boolean,
                               isNormalisedKey: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
@@ -54,10 +54,11 @@ object GroupReader extends EntryReader[Persistent.Group] {
                   keyValueIdInt = keyValueId,
                   isNormalisedKey = isNormalisedKey,
                   indexReader = indexReader,
+                  hasAccessPositionIndex = hasAccessPositionIndex,
                   previous = previous,
                   keyValueId = KeyValueId.Group
                 ) flatMap {
-                  case (key, isKeyPrefixCompressed) =>
+                  case (accessPosition, key, isKeyPrefixCompressed) =>
                     valueCache map {
                       valueCache =>
                         Persistent.Group(

@@ -189,14 +189,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   def write(keyValue: Transient, state: SortedIndexBlock.State): IO[swaydb.Error.Segment, Unit] =
     IO {
-      if (state.enableAccessPositionIndex) {
-        state.bytes addIntUnsigned (keyValue.indexEntryBytes.size + keyValue.stats.thisKeyValueAccessIndexPositionByteSize)
-        state.bytes addIntUnsigned keyValue.stats.thisKeyValueAccessIndexPosition
-        state.bytes addAll keyValue.indexEntryBytes
-      } else {
-        state.bytes addIntUnsigned keyValue.indexEntryBytes.size
-        state.bytes addAll keyValue.indexEntryBytes
-      }
+      state.bytes addIntUnsigned keyValue.indexEntryBytes.size
+      state.bytes addAll keyValue.indexEntryBytes
     }
 
   def close(state: State): IO[swaydb.Error.Segment, State] =
@@ -306,12 +300,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       val sortedIndexReader = Reader[swaydb.Error.Segment](indexEntryBytesAndNextIndexEntrySize.take(indexSize))
 
-      val accessPosition =
-        if (indexReader.block.enableAccessPositionIndex)
-          sortedIndexReader.readIntUnsigned().get
-        else
-          0
-
       //create value cache reader given the value offset.
       //todo pass in blockIO config when read values.
       def valueCache =
@@ -335,7 +323,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         indexOffset = positionBeforeRead,
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
-        accessPosition = accessPosition,
+        hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
         previous = previous
       )
     } catch {

@@ -49,7 +49,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         persistent.getClass.getSimpleName shouldBe transient.getClass.getSimpleName
 //        persistent.key shouldBe transient.key
         persistent.isPrefixCompressed shouldBe transient.isPrefixCompressed
-        persistent.accessPosition shouldBe transient.stats.thisKeyValueAccessIndexPosition
+        persistent.accessPosition shouldBe transient.thisKeyValueAccessIndexPosition
 
         val thisKeyValueRealIndexOffsetFunction = PrivateMethod[Int]('thisKeyValueRealIndexOffset)
         val thisKeyValueRealIndexOffset = transient.stats invokePrivate thisKeyValueRealIndexOffsetFunction()
@@ -68,13 +68,13 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
         def expectedNextIndexOffset =
           if (keyValues.last.sortedIndexConfig.enableAccessPositionIndex)
-            thisKeyValueRealIndexOffset + Bytes.sizeOf(transient.indexEntryBytes.size) + transient.indexEntryBytes.size + Bytes.sizeOf(transient.stats.thisKeyValueAccessIndexPosition)
+            thisKeyValueRealIndexOffset + Bytes.sizeOf(transient.indexEntryBytes.size) + transient.indexEntryBytes.size + Bytes.sizeOf(transient.thisKeyValueAccessIndexPosition)
           else
             thisKeyValueRealIndexOffset + Bytes.sizeOf(transient.indexEntryBytes.size) + transient.indexEntryBytes.size
 
         def expectedNextIndexSize =
           if (keyValues.last.sortedIndexConfig.enableAccessPositionIndex)
-            keyValues(index + 1).indexEntryBytes.size + Bytes.sizeOf(keyValues(index + 1).stats.thisKeyValueAccessIndexPosition)
+            keyValues(index + 1).indexEntryBytes.size + Bytes.sizeOf(keyValues(index + 1).thisKeyValueAccessIndexPosition)
           else
             keyValues(index + 1).indexEntryBytes.size
 

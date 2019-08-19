@@ -29,27 +29,54 @@ import swaydb.data.slice.{ReaderBase, Slice}
 object KeyReader {
 
   private def uncompressed(indexReader: ReaderBase[swaydb.Error.Segment],
+                           hasAccessPositionIndex: Boolean,
                            isNormalisedKey: Boolean,
-                           previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Slice[Byte]] =
-    if (isNormalisedKey)
-      indexReader.readRemaining() map (Bytes.deNormalise)
-    else
-      indexReader.readRemaining()
+                           previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, (Int, Slice[Byte])] = {
+    val accessPosition =
+      if (hasAccessPositionIndex)
+        indexReader.readIntUnsigned()
+      else
+        IO.zero
+
+    accessPosition flatMap {
+      accessPosition =>
+        if (isNormalisedKey)
+          indexReader.readRemaining() map {
+            normalisedKey =>
+              (accessPosition, Bytes.deNormalise(normalisedKey))
+          }
+        else
+          indexReader.readRemaining() map {
+            key =>
+              (accessPosition, key)
+          }
+    }
+  }
 
   //compressed keys cannot be normalised
   private def compressed(indexReader: ReaderBase[swaydb.Error.Segment],
+                         hasAccessPositionIndex: Boolean,
                          isNormalisedKey: Boolean,
-                         previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Slice[Byte]] =
+                         previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, (Int, Slice[Byte])] =
     if (isNormalisedKey)
       IO.failed("Compressed keys cannot be normalised.")
     else
       previous map {
         previous =>
-          indexReader.readIntUnsigned() flatMap {
-            commonBytes =>
-              indexReader.readRemaining() map {
-                rightBytes =>
-                  Bytes.decompress(previous.key, rightBytes, commonBytes)
+          val accessPosition =
+            if (hasAccessPositionIndex)
+              indexReader.readIntUnsigned()
+            else
+              IO.zero
+
+          accessPosition flatMap {
+            accessPosition =>
+              indexReader.readIntUnsigned() flatMap {
+                commonBytes =>
+                  indexReader.readRemaining() map {
+                    rightBytes =>
+                      (accessPosition, Bytes.decompress(previous.key, rightBytes, commonBytes))
+                  }
               }
           }
       } getOrElse {
@@ -58,13 +85,30 @@ object KeyReader {
 
   def read(keyValueIdInt: Int,
            isNormalisedKey: Boolean,
+           hasAccessPositionIndex: Boolean,
            indexReader: ReaderBase[swaydb.Error.Segment],
            previous: Option[KeyValue.ReadOnly],
-           keyValueId: KeyValueId): IO[swaydb.Error.Segment, (Slice[Byte], Boolean)] =
+           keyValueId: KeyValueId): IO[swaydb.Error.Segment, (Int, Slice[Byte], Boolean)] =
     if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt) && !isNormalisedKey)
-      KeyReader.compressed(indexReader, isNormalisedKey, previous) map (key => (key, true))
+      KeyReader.compressed(
+        indexReader = indexReader,
+        hasAccessPositionIndex = hasAccessPositionIndex,
+        isNormalisedKey = isNormalisedKey,
+        previous = previous
+      ) map {
+        case (accessPosition, key) =>
+          (accessPosition, key, true)
+      }
     else if (keyValueId.isKeyValueId_UncompressedKey(keyValueIdInt))
-      KeyReader.uncompressed(indexReader, isNormalisedKey, previous) map (key => (key, false))
+      KeyReader.uncompressed(
+        indexReader = indexReader,
+        hasAccessPositionIndex = hasAccessPositionIndex,
+        isNormalisedKey = isNormalisedKey,
+        previous = previous
+      ) map {
+        case (accessPosition, key) =>
+          (accessPosition, key, false)
+      }
     else
       IO.Failure(swaydb.Error.Fatal(new Exception(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}. isNormalisedKey = $isNormalisedKey")))
 }

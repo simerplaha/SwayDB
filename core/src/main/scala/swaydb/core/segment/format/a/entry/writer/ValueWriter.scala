@@ -203,6 +203,7 @@ private[writer] object ValueWriter {
       valueBytes = currentValues,
       valueStartOffset = currentValueOffset,
       valueEndOffset = currentValueOffset + currentValueSize - 1,
+      thisKeyValueAccessIndexPosition = 0,
       isPrefixCompressed = isPrefixCompressed
     )
   }
@@ -230,6 +231,7 @@ private[writer] object ValueWriter {
       valueBytes = Slice.emptyEmptyBytes,
       valueStartOffset = current.previous.map(_.currentStartValueOffsetPosition).getOrElse(0),
       valueEndOffset = current.previous.map(_.currentEndValueOffsetPosition).getOrElse(0),
+      thisKeyValueAccessIndexPosition = 0,
       isPrefixCompressed = isPrefixCompressed
     )
   }
@@ -283,6 +285,7 @@ private[writer] object ValueWriter {
           valueBytes = Slice.emptyEmptyBytes,
           valueStartOffset = previous.currentStartValueOffsetPosition,
           valueEndOffset = previous.currentEndValueOffsetPosition,
+          thisKeyValueAccessIndexPosition = 0,
           isPrefixCompressed = isPrefixCompressed
         )
       )
@@ -368,6 +371,7 @@ private[writer] object ValueWriter {
           valueBytes = Slice(currentValue),
           valueStartOffset = currentValueOffset,
           valueEndOffset = currentValueOffset + currentValue.size - 1,
+          thisKeyValueAccessIndexPosition = 0,
           isPrefixCompressed = isPrefixCompressed
         )
     } getOrElse {
@@ -394,6 +398,7 @@ private[writer] object ValueWriter {
         valueBytes = Slice(currentValue),
         valueStartOffset = currentValueOffset,
         valueEndOffset = currentValueOffset + currentValue.size - 1,
+        thisKeyValueAccessIndexPosition = 0,
         isPrefixCompressed = isPrefixCompressed
       )
     }
@@ -453,6 +458,7 @@ private[writer] object ValueWriter {
               valueBytes = Slice(currentValue),
               valueStartOffset = currentValueOffset,
               valueEndOffset = currentValueOffset + currentValue.size - 1,
+              thisKeyValueAccessIndexPosition = 0,
               isPrefixCompressed = true
             )
         } getOrElse {
@@ -478,6 +484,7 @@ private[writer] object ValueWriter {
             valueBytes = Slice(currentValue),
             valueStartOffset = currentValueOffset,
             valueEndOffset = currentValueOffset + currentValue.size - 1,
+            thisKeyValueAccessIndexPosition = 0,
             isPrefixCompressed = isPrefixCompressed
           )
         }

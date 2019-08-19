@@ -2645,6 +2645,8 @@ object TestData {
       isGroup = isGroup,
       isPut = isPut,
       isPrefixCompressed = isPrefixCompressed,
+      thisKeyValueAccessIndexPosition = ???,
+      previousKeyValueAccessIndexPosition = None,
       thisKeyValuesNumberOfRanges = numberOfRanges,
       thisKeyValuesUniqueKeys = thisKeyValuesUniqueKeys,
       sortedIndex = sortedIndex,

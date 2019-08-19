@@ -37,7 +37,7 @@ object RangeReader extends EntryReader[Persistent.Range] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              accessPosition: Int,
+                              hasAccessPositionIndex: Boolean,
                               isNormalisedKey: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
@@ -50,10 +50,11 @@ object RangeReader extends EntryReader[Persistent.Range] {
           keyValueIdInt = keyValueId,
           isNormalisedKey = isNormalisedKey,
           indexReader = indexReader,
+          hasAccessPositionIndex = hasAccessPositionIndex,
           previous = previous,
           keyValueId = KeyValueId.Range
         ) flatMap {
-          case (key, isKeyPrefixCompressed) =>
+          case (accessPosition, key, isKeyPrefixCompressed) =>
             valueCache map {
               valueCache =>
                 val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)

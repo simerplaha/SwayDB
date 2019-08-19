@@ -454,6 +454,7 @@ private[core] sealed trait Transient extends KeyValue { self =>
   val isRange: Boolean
   val isGroup: Boolean
   val previous: Option[Transient]
+  val thisKeyValueAccessIndexPosition: Int
   def deNormalisedKey: Slice[Byte]
   def mergedKey: Slice[Byte]
   def values: Slice[Slice[Byte]]
@@ -762,7 +763,7 @@ private[core] object Transient {
     override def value: Option[Slice[Byte]] = None
     override def values: Slice[Slice[Byte]] = Slice.emptyEmptyBytes
 
-    override val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
+    override val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
@@ -781,6 +782,8 @@ private[core] object Transient {
         isGroup = isGroup,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
+        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
+        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
         thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
@@ -829,7 +832,7 @@ private[core] object Transient {
     override def mergedKey = key
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
@@ -850,6 +853,8 @@ private[core] object Transient {
         isGroup = isGroup,
         isPut = true,
         isPrefixCompressed = isPrefixCompressed,
+        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
+        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
         thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
@@ -897,7 +902,7 @@ private[core] object Transient {
     override def mergedKey = key
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
@@ -917,6 +922,8 @@ private[core] object Transient {
         isGroup = isGroup,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
+        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
+        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
         thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
@@ -965,7 +972,7 @@ private[core] object Transient {
     override def values: Slice[Slice[Byte]] = Slice(function)
     override def deadline: Option[Deadline] = None
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
@@ -985,6 +992,8 @@ private[core] object Transient {
         isGroup = isGroup,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
+        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
+        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
         thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
@@ -1052,7 +1061,7 @@ private[core] object Transient {
     override def hasTimeLeft(): Boolean =
       true
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
@@ -1072,6 +1081,8 @@ private[core] object Transient {
         isGroup = isGroup,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
+        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
+        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
         thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
@@ -1180,7 +1191,7 @@ private[core] object Transient {
     override def value = valueSerialiser()
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = Time.empty,
@@ -1202,6 +1213,8 @@ private[core] object Transient {
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
         thisKeyValuesNumberOfRanges = 1,
         thisKeyValuesUniqueKeys = 1,
+        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
+        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
         sortedIndex = sortedIndexConfig,
         isPrefixCompressed = isPrefixCompressed,
         bloomFilter = bloomFilterConfig,
@@ -1277,7 +1290,7 @@ private[core] object Transient {
     override val isGroup: Boolean = true
     override def values: Slice[Slice[Byte]] = blockedSegment.segmentBytes
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = Time.empty,
@@ -1299,6 +1312,8 @@ private[core] object Transient {
         isGroup = isGroup,
         isPut = keyValues.last.stats.segmentHasPut,
         isPrefixCompressed = isPrefixCompressed,
+        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
+        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
         thisKeyValuesNumberOfRanges = keyValues.last.stats.segmentTotalNumberOfRanges,
         thisKeyValuesUniqueKeys = keyValues.last.stats.segmentUniqueKeysCount,
         sortedIndex = sortedIndexConfig,

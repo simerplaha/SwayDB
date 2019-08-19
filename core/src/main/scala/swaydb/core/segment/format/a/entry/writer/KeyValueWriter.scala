@@ -22,8 +22,12 @@ package swaydb.core.segment.format.a.entry.writer
 import swaydb.core.data.{Time, Transient}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId.BaseEntryIdFormat
 import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, TransientToKeyValueIdBinder}
+import swaydb.core.util.Bytes
 import swaydb.core.util.Bytes._
 import swaydb.data.slice.Slice
+
+import scala.beans.BeanProperty
+import scala.collection.JavaConverters._
 
 private[core] object KeyValueWriter {
 
@@ -31,10 +35,11 @@ private[core] object KeyValueWriter {
                          valueBytes: Slice[Slice[Byte]],
                          valueStartOffset: Int,
                          valueEndOffset: Int,
+                         @BeanProperty var thisKeyValueAccessIndexPosition: Int,
                          isPrefixCompressed: Boolean) {
     //TODO check if companion object function unapply returning an Option[Result] is cheaper than this unapply function.
     def unapply =
-      (indexBytes, valueBytes, valueStartOffset, valueEndOffset, isPrefixCompressed)
+      (indexBytes, valueBytes, valueStartOffset, valueEndOffset, thisKeyValueAccessIndexPosition, isPrefixCompressed)
   }
 
   /**
@@ -50,6 +55,7 @@ private[core] object KeyValueWriter {
    *
    * @param binder                  [[BaseEntryIdFormat]] for this key-value's type.
    * @param compressDuplicateValues Compresses duplicate values if set to true.
+   *
    * @return indexEntry, valueBytes, valueOffsetBytes, nextValuesOffsetPosition
    */
   def write[T <: Transient](current: T,
@@ -82,6 +88,13 @@ private[core] object KeyValueWriter {
                                               compressDuplicateValues: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
     compress(key = current.mergedKey, previous = previous, minimumCommonBytes = 2) map {
       case (commonBytes, remainingBytes) =>
+
+        val accessIndexPositionByteSize =
+          if (current.sortedIndexConfig.enableAccessPositionIndex)
+            Bytes.sizeOf(previous.thisKeyValueAccessIndexPosition)
+          else
+            0
+
         val writeResult =
           TimeWriter.write(
             current = current,
@@ -91,8 +104,13 @@ private[core] object KeyValueWriter {
             enablePrefixCompression = true,
             isKeyCompressed = true,
             hasPrefixCompressed = true,
-            plusSize = sizeOf(commonBytes) + remainingBytes.size //write the size of keys compressed and also the uncompressed Bytes
+            plusSize = sizeOf(commonBytes) + remainingBytes.size + accessIndexPositionByteSize //write the size of keys compressed and also the uncompressed Bytes
           )
+
+        writeAccessIndexPosition(
+          current = current,
+          writeResult = writeResult
+        )
 
         writeResult
           .indexBytes
@@ -106,6 +124,12 @@ private[core] object KeyValueWriter {
                                                 currentTime: Time,
                                                 compressDuplicateValues: Boolean,
                                                 enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): WriteResult = {
+    val accessIndexPositionByteSize =
+      if (current.sortedIndexConfig.enableAccessPositionIndex)
+        Bytes.sizeOf(current.previous.map(_.thisKeyValueAccessIndexPosition + 1) getOrElse 1)
+      else
+        0
+
     //no common prefixes or no previous write without compression
     val writeResult =
       TimeWriter.write(
@@ -116,8 +140,13 @@ private[core] object KeyValueWriter {
         enablePrefixCompression = enablePrefixCompression,
         isKeyCompressed = false,
         hasPrefixCompressed = false,
-        plusSize = current.mergedKey.size //write key bytes.
+        plusSize = current.mergedKey.size + accessIndexPositionByteSize //write key bytes.
       )
+
+    writeAccessIndexPosition(
+      current = current,
+      writeResult = writeResult
+    )
 
     writeResult
       .indexBytes
@@ -125,4 +154,19 @@ private[core] object KeyValueWriter {
 
     writeResult
   }
+
+  def writeAccessIndexPosition[T <: Transient](current: T, writeResult: WriteResult) =
+    if (current.sortedIndexConfig.enableAccessPositionIndex) {
+      val accessPosition =
+        if (writeResult.isPrefixCompressed)
+          current.previous.map(_.thisKeyValueAccessIndexPosition) getOrElse 1
+        else
+          current.previous.map(_.thisKeyValueAccessIndexPosition + 1) getOrElse 1
+
+      writeResult setThisKeyValueAccessIndexPosition accessPosition
+
+      writeResult
+        .indexBytes
+        .addIntUnsigned(accessPosition)
+    }
 }

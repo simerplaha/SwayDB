@@ -35,6 +35,8 @@ private[core] object Stats {
             isGroup: Boolean,
             isPut: Boolean,
             isPrefixCompressed: Boolean,
+            previousKeyValueAccessIndexPosition: Option[Int],
+            thisKeyValueAccessIndexPosition: Int,
             thisKeyValuesNumberOfRanges: Int,
             thisKeyValuesUniqueKeys: Int,
             sortedIndex: SortedIndexBlock.Config,
@@ -60,27 +62,11 @@ private[core] object Stats {
       else
         previousStats.map(_.groupsCount) getOrElse 0
 
-    val thisKeyValueAccessIndexPosition =
-      if (sortedIndex.enableAccessPositionIndex)
-        if (isPrefixCompressed)
-          previousStats.map(_.thisKeyValueAccessIndexPosition) getOrElse 1
-        else
-          previousStats.map(_.thisKeyValueAccessIndexPosition + 1) getOrElse 1
-      else
-        0
-
     val hasPrefixCompressed =
       isPrefixCompressed || previousStats.exists(_.hasPrefixCompression)
 
-    val thisKeyValueAccessIndexPositionByteSize =
-      if (sortedIndex.enableAccessPositionIndex)
-        Bytes.sizeOf(thisKeyValueAccessIndexPosition)
-      else
-        0
-
     val thisKeyValuesSortedIndexSize =
-      Bytes.sizeOf(indexEntry.size + thisKeyValueAccessIndexPositionByteSize) +
-        thisKeyValueAccessIndexPositionByteSize +
+      Bytes.sizeOf(indexEntry.size) +
         indexEntry.size
 
     val segmentMaxSortedIndexEntrySize =
@@ -136,9 +122,9 @@ private[core] object Stats {
       previousStats map {
         previous =>
           if (previous.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessIndexOffset)
-            previous.thisKeyValueAccessIndexPosition
+            previousKeyValueAccessIndexPosition.get
           else
-            previous.thisKeyValueAccessIndexPosition + 1
+            previousKeyValueAccessIndexPosition.get + 1
       } getOrElse 1
 
     val segmentHashIndexSize =
@@ -245,7 +231,6 @@ private[core] object Stats {
       chainPosition = chainPosition,
       segmentValueAndSortedIndexEntrySize = segmentValueAndSortedIndexEntrySize,
       segmentSortedIndexSizeWithoutHeader = segmentSortedIndexSizeWithoutHeader,
-      thisKeyValueAccessIndexPositionByteSize = thisKeyValueAccessIndexPositionByteSize,
       groupsCount = groupsCount,
       segmentUniqueKeysCount = segmentUniqueKeysCount,
       segmentValuesSize = segmentValuesSize,
@@ -259,7 +244,6 @@ private[core] object Stats {
       thisKeyValuesSortedIndexSize = thisKeyValuesSortedIndexSize,
       thisKeyValuesAccessIndexOffset = thisKeyValuesAccessIndexOffset,
       thisKeyValueRealIndexOffset = thisKeyValuesRealIndexOffset,
-      thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
       segmentMaxSortedIndexEntrySize = segmentMaxSortedIndexEntrySize,
       segmentMinSortedIndexEntrySize = segmentMinSortedIndexEntrySize,
       segmentHashIndexSize = segmentHashIndexSize,
@@ -294,8 +278,6 @@ private[core] case class Stats(valueLength: Int,
                                thisKeyValuesAccessIndexOffset: Int,
                                //do not access this from outside, used in stats only.
                                private[Stats] val thisKeyValueRealIndexOffset: Int,
-                               thisKeyValueAccessIndexPositionByteSize: Int,
-                               thisKeyValueAccessIndexPosition: Int,
                                segmentHashIndexSize: Int,
                                segmentBloomFilterSize: Int,
                                segmentBinarySearchIndexSize: Int,

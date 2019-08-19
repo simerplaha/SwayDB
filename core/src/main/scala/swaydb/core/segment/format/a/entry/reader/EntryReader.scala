@@ -36,7 +36,7 @@ trait EntryReader[E] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              accessPosition: Int,
+                              hasAccessPositionIndex: Boolean,
                               isNormalisedKey: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
@@ -67,7 +67,7 @@ object EntryReader {
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
-              accessPosition: Int,
+              hasAccessPositionIndex: Boolean,
               previous: Option[Persistent],
               entryReader: EntryReader[T]): IO[swaydb.Error.Segment, T] =
     findReader(baseId = baseId, mightBeCompressed = mightBeCompressed) flatMap {
@@ -80,7 +80,7 @@ object EntryReader {
           indexOffset = indexOffset,
           nextIndexOffset = nextIndexOffset,
           nextIndexSize = nextIndexSize,
-          accessPosition = accessPosition,
+          hasAccessPositionIndex = hasAccessPositionIndex,
           isNormalisedKey = isNormalisedKey,
           previous = previous,
           reader = entryReader
@@ -94,7 +94,7 @@ object EntryReader {
            indexOffset: Int,
            nextIndexOffset: Int,
            nextIndexSize: Int,
-           accessPosition: Int,
+           hasAccessPositionIndex: Boolean,
            previous: Option[Persistent]): IO[swaydb.Error.Segment, Persistent] =
     indexReader.readIntUnsigned() flatMap {
       keyValueId =>
@@ -109,7 +109,7 @@ object EntryReader {
             indexOffset = indexOffset,
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
-            accessPosition = accessPosition,
+            hasAccessPositionIndex = hasAccessPositionIndex,
             previous = previous,
             entryReader = PutReader
           )
@@ -124,7 +124,7 @@ object EntryReader {
             indexOffset = indexOffset,
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
-            accessPosition = accessPosition,
+            hasAccessPositionIndex = hasAccessPositionIndex,
             previous = previous,
             entryReader = GroupReader
           )
@@ -139,7 +139,7 @@ object EntryReader {
             indexOffset = indexOffset,
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
-            accessPosition = accessPosition,
+            hasAccessPositionIndex = hasAccessPositionIndex,
             previous = previous,
             entryReader = RangeReader
           )
@@ -154,7 +154,7 @@ object EntryReader {
             indexOffset = indexOffset,
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
-            accessPosition = accessPosition,
+            hasAccessPositionIndex = hasAccessPositionIndex,
             previous = previous,
             entryReader = RemoveReader
           )
@@ -169,7 +169,7 @@ object EntryReader {
             indexOffset = indexOffset,
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
-            accessPosition = accessPosition,
+            hasAccessPositionIndex = hasAccessPositionIndex,
             previous = previous,
             entryReader = UpdateReader
           )
@@ -184,7 +184,7 @@ object EntryReader {
             indexOffset = indexOffset,
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
-            accessPosition = accessPosition,
+            hasAccessPositionIndex = hasAccessPositionIndex,
             previous = previous,
             entryReader = FunctionReader
           )
@@ -199,7 +199,7 @@ object EntryReader {
             indexOffset = indexOffset,
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
-            accessPosition = accessPosition,
+            hasAccessPositionIndex = hasAccessPositionIndex,
             previous = previous,
             entryReader = PendingApplyReader
           )

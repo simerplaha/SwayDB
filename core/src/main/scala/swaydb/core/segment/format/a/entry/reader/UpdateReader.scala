@@ -37,7 +37,7 @@ object UpdateReader extends EntryReader[Persistent.Update] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              accessPosition: Int,
+                              hasAccessPositionIndex: Boolean,
                               isNormalisedKey: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
@@ -53,11 +53,12 @@ object UpdateReader extends EntryReader[Persistent.Update] {
                 KeyReader.read(
                   keyValueIdInt = keyValueId,
                   isNormalisedKey = isNormalisedKey,
+                  hasAccessPositionIndex = hasAccessPositionIndex,
                   indexReader = indexReader,
                   previous = previous,
                   keyValueId = KeyValueId.Update
                 ) flatMap {
-                  case (key, isKeyPrefixCompressed) =>
+                  case (accessPosition, key, isKeyPrefixCompressed) =>
                     val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                     val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
