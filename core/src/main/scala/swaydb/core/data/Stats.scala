@@ -66,8 +66,7 @@ private[core] object Stats {
       isPrefixCompressed || previousStats.exists(_.hasPrefixCompression)
 
     val thisKeyValuesSortedIndexSize =
-      Bytes.sizeOf(indexEntry.size) +
-        indexEntry.size
+      indexEntry.size
 
     val segmentMaxSortedIndexEntrySize =
       previousStats.map(_.segmentMaxSortedIndexEntrySize max thisKeyValuesSortedIndexSize) getOrElse thisKeyValuesSortedIndexSize

@@ -22,16 +22,15 @@ package swaydb.core.segment.format.a.entry.writer
 import swaydb.core.data.{Time, Transient}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId.BaseEntryIdFormat
 import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, TransientToKeyValueIdBinder}
-import swaydb.core.util.Bytes
 import swaydb.core.util.Bytes._
 import swaydb.data.slice.Slice
+import swaydb.data.util.ByteSizeOf
 
 import scala.beans.BeanProperty
-import scala.collection.JavaConverters._
 
 private[core] object KeyValueWriter {
 
-  case class WriteResult(indexBytes: Slice[Byte],
+  case class WriteResult(@BeanProperty var indexBytes: Slice[Byte],
                          valueBytes: Slice[Slice[Byte]],
                          valueStartOffset: Int,
                          valueEndOffset: Int,
@@ -89,12 +88,6 @@ private[core] object KeyValueWriter {
     compress(key = current.mergedKey, previous = previous, minimumCommonBytes = 2) map {
       case (commonBytes, remainingBytes) =>
 
-        val accessIndexPositionByteSize =
-          if (current.sortedIndexConfig.enableAccessPositionIndex)
-            Bytes.sizeOf(previous.thisKeyValueAccessIndexPosition)
-          else
-            0
-
         val writeResult =
           TimeWriter.write(
             current = current,
@@ -104,7 +97,7 @@ private[core] object KeyValueWriter {
             enablePrefixCompression = true,
             isKeyCompressed = true,
             hasPrefixCompressed = true,
-            plusSize = sizeOf(commonBytes) + remainingBytes.size + accessIndexPositionByteSize //write the size of keys compressed and also the uncompressed Bytes
+            plusSize = sizeOf(commonBytes) + remainingBytes.size + (ByteSizeOf.varInt * 2) //write the size of keys compressed and also the uncompressed Bytes
           )
 
         writeAccessIndexPosition(
@@ -117,6 +110,9 @@ private[core] object KeyValueWriter {
           .addIntUnsigned(commonBytes)
           .addAll(remainingBytes)
 
+        //TODO - write size header bytes without creating new byte Slice
+        writeResult setIndexBytes (Slice.writeIntUnsigned(writeResult.indexBytes.size) ++ writeResult.indexBytes)
+
         writeResult
     }
 
@@ -124,12 +120,6 @@ private[core] object KeyValueWriter {
                                                 currentTime: Time,
                                                 compressDuplicateValues: Boolean,
                                                 enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): WriteResult = {
-    val accessIndexPositionByteSize =
-      if (current.sortedIndexConfig.enableAccessPositionIndex)
-        Bytes.sizeOf(current.previous.map(_.thisKeyValueAccessIndexPosition + 1) getOrElse 1)
-      else
-        0
-
     //no common prefixes or no previous write without compression
     val writeResult =
       TimeWriter.write(
@@ -140,7 +130,7 @@ private[core] object KeyValueWriter {
         enablePrefixCompression = enablePrefixCompression,
         isKeyCompressed = false,
         hasPrefixCompressed = false,
-        plusSize = current.mergedKey.size + accessIndexPositionByteSize //write key bytes.
+        plusSize = current.mergedKey.size + (ByteSizeOf.varInt * 2) //write key bytes.
       )
 
     writeAccessIndexPosition(
@@ -151,6 +141,9 @@ private[core] object KeyValueWriter {
     writeResult
       .indexBytes
       .addAll(current.mergedKey)
+
+    //TODO - write size header bytes without creating new byte Slice
+    writeResult setIndexBytes (Slice.writeIntUnsigned(writeResult.indexBytes.size) ++ writeResult.indexBytes)
 
     writeResult
   }

@@ -189,7 +189,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   def write(keyValue: Transient, state: SortedIndexBlock.State): IO[swaydb.Error.Segment, Unit] =
     IO {
-      state.bytes addIntUnsigned keyValue.indexEntryBytes.size
       state.bytes addAll keyValue.indexEntryBytes
     }
 
