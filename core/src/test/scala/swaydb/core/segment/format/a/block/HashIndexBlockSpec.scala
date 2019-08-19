@@ -82,10 +82,11 @@ class HashIndexBlockSpec extends TestBase {
     "allocate optimal byte" in {
       HashIndexBlock.optimalBytesRequired(
         keyCounts = 1,
-        largestValue = 1,
+        writeAbleLargestValueSize = 1,
         allocateSpace = _.requiredSpace,
         hasCompression = false,
-        minimumNumberOfKeys = 0
+        minimumNumberOfKeys = 0,
+        copyIndex = false
       ) shouldBe
         HashIndexBlock.headerSize(
           keyCounts = 1,
@@ -114,6 +115,7 @@ class HashIndexBlockSpec extends TestBase {
               HashIndexBlock.Config.random.copy(
                 allocateSpace = allocateMoreSpace,
                 compressions = _ => Seq.empty,
+                copyIndex = false,
                 maxProbe = maxProbe
               )
           )
@@ -132,7 +134,7 @@ class HashIndexBlockSpec extends TestBase {
                     HashIndexBlock.Config(
                       allocateSpace = allocateMoreSpace,
                       compressions = _ => randomCompressionsLZ4OrSnappy(),
-                      copyIndex = randomBoolean(),
+                      copyIndex = false,
                       maxProbe = maxProbe,
                       minimumNumberOfKeys = 0,
                       minimumNumberOfHits = 0,
@@ -202,7 +204,7 @@ class HashIndexBlockSpec extends TestBase {
                 allocateSpace = _.requiredSpace * 5,
                 compressions = _ => compressions,
                 maxProbe = maxProbe,
-                copyIndex = randomBoolean(),
+                copyIndex = false,
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
                 blockIO = _ => randomIOAccess()
@@ -289,7 +291,7 @@ class HashIndexBlockSpec extends TestBase {
                 maxProbe = 1000,
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
-                copyIndex = randomBoolean(),
+                copyIndex = false,
                 allocateSpace = _.requiredSpace * 30,
                 blockIO = _ => randomIOStrategy(),
                 compressions = _ => compressions

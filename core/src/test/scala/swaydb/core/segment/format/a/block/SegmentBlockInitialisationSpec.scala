@@ -395,8 +395,9 @@ class SegmentBlockInitialisationSpec extends TestBase {
                     HashIndexBlock.optimalBytesRequired(
                       keyCounts = 1, //allocate space enough for 1
                       minimumNumberOfKeys = 0,
-                      largestValue = Int.MaxValue,
+                      writeAbleLargestValueSize = Int.MaxValue,
                       hasCompression = generatedKeyValues.last.hashIndexConfig.compressions(UncompressedBlockInfo(randomIntMax(1.mb))).nonEmpty,
+                      copyIndex = randomBoolean(),
                       allocateSpace = _.requiredSpace
                     ),
                   blockIO = _ => randomIOAccess(),

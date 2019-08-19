@@ -61,7 +61,7 @@ object DefaultGroupBy {
           tries = 5,
           minimumNumberOfKeys = 2,
           minimumNumberOfHits = 2,
-          copyIndex = true,
+          copyKeys = true,
           allocateSpace = _.requiredSpace * 2,
           ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
           compression = _ => Seq.empty

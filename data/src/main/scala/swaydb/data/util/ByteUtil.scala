@@ -279,6 +279,22 @@ object ByteUtil {
       long
     }
 
+  def readUnsignedLongWithByteSize[E >: swaydb.Error.IO : ErrorHandler](slice: Slice[Byte]): IO[E, (Long, Int)] =
+    IO {
+      var index = 0
+      var i = 0
+      var long = 0L
+      var read = 0L
+      do {
+        read = slice(index)
+        long |= (read & 0x7F) << i
+        i += 7
+        index += 1
+        require(i <= 70)
+      } while ((read & 0x80L) != 0)
+      (long, index)
+    }
+
   def sizeOf(int: Int): Int = {
     var size = 0
     var x = int

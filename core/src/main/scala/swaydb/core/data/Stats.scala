@@ -130,11 +130,16 @@ private[core] object Stats {
       if (segmentUniqueKeysCount < hashIndex.minimumNumberOfKeys)
         0
       else
-        HashIndexBlock.optimalBytesRequired(
+        HashIndexBlock.optimalBytesRequired( //just a rough calculation. This does not need to be accurate but needs to be lower than the actual
           keyCounts = segmentUniqueKeysCount,
           minimumNumberOfKeys = hashIndex.minimumNumberOfKeys,
-          largestValue = thisKeyValuesAccessIndexOffset,
+          writeAbleLargestValueSize =
+            if (hashIndex.copyIndex)
+              thisKeyValuesSortedIndexSize //this does not compute the size of crc long but it's ok since it's just an estimate.
+            else
+              1, //some low number for calculating approximate hashIndexSize does not have to be accurate.
           allocateSpace = hashIndex.allocateSpace,
+          copyIndex = hashIndex.copyIndex,
           hasCompression = false
         )
 

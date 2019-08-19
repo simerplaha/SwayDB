@@ -254,11 +254,25 @@ private[core] object SegmentBlock {
 
           hashIndex map {
             hashIndexState =>
-              HashIndexBlock.write(
-                key = keyValue.key,
-                value = thisKeyValuesAccessOffset,
-                state = hashIndexState
-              )
+              //Copy HashIndex cannot be created for group's key-values because it's value's offset is
+              //embedded in the Group's offsets which can only be accessed via unblocking through the Group's BlockReader.
+              if (hashIndexState.copyIndex)
+                if (rootGroup.isEmpty && !keyValue.isPrefixCompressed) {
+                  HashIndexBlock.writeCopied(
+                    key = keyValue.key,
+                    value = keyValue.indexEntryBytes,
+                    state = hashIndexState
+                  )
+                } else {
+                  hashIndexState.miss += 1
+                  IO.`false`
+                }
+              else //else build a reference hashIndex only.
+                HashIndexBlock.write(
+                  key = keyValue.key,
+                  value = thisKeyValuesAccessOffset,
+                  state = hashIndexState
+                )
           } match {
             //if it's a hit and binary search is not configured to be full OR the key-value has same offset as previous then skip writing to binary search.
             case Some(IO.Success(hit)) if (!keyValue.isRange && (hit && binarySearchIndex.forall(!_.isFullIndex))) || keyValue.previous.exists(_.stats.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessOffset) =>

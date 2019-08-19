@@ -71,7 +71,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             maxProbe = enable.tries,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             minimumNumberOfHits = enable.minimumNumberOfHits,
-            copyIndex = enable.copyIndex,
+            copyIndex = enable.copyKeys,
             allocateSpace = FunctionUtil.safe(_.requiredSpace, enable.allocateSpace),
             blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
@@ -119,7 +119,11 @@ private[core] object HashIndexBlock extends LazyLogging {
     } else {
       val last = keyValues.last
 
-      val writeAbleLargestValueSize = Bytes.sizeOf(last.stats.thisKeyValuesAccessIndexOffset + 1)
+      val writeAbleLargestValueSize =
+        if (last.hashIndexConfig.copyIndex)
+          last.stats.segmentMaxSortedIndexEntrySize + ByteSizeOf.varLong
+        else
+          Bytes.sizeOf(last.stats.thisKeyValuesAccessIndexOffset + 1)
 
       val hasCompression = last.hashIndexConfig.compressions(UncompressedBlockInfo(last.stats.segmentHashIndexSize)).nonEmpty
 
@@ -131,11 +135,12 @@ private[core] object HashIndexBlock extends LazyLogging {
         )
 
       val optimalBytes =
-        optimalBytesRequiredForLargestValueSize(
+        optimalBytesRequired(
           keyCounts = last.stats.segmentUniqueKeysCount,
           minimumNumberOfKeys = last.hashIndexConfig.minimumNumberOfKeys,
           writeAbleLargestValueSize = writeAbleLargestValueSize,
           allocateSpace = last.hashIndexConfig.allocateSpace,
+          copyIndex = last.hashIndexConfig.copyIndex,
           hasCompression = hasCompression
         )
 
@@ -178,57 +183,44 @@ private[core] object HashIndexBlock extends LazyLogging {
       headerSize
   }
 
-  /**
-   * Number of bytes required to build a high probability index.
-   */
   def optimalBytesRequired(keyCounts: Int,
                            minimumNumberOfKeys: Int,
-                           largestValue: Int,
+                           writeAbleLargestValueSize: Int,
                            hasCompression: Boolean,
-                           allocateSpace: RandomKeyIndex.RequiredSpace => Int): Int = {
+                           copyIndex: Boolean,
+                           allocateSpace: RandomKeyIndex.RequiredSpace => Int): Int =
     if (keyCounts < minimumNumberOfKeys) {
       0
     } else {
-      val writeAbleLargestValueSize = Bytes.sizeOf(largestValue + 1) //largest value is +1 because 0s are reserved.
+      val sizePerKey =
+        if (copyIndex)
+          keyCounts * writeAbleLargestValueSize
+        else
+          keyCounts * (writeAbleLargestValueSize + 1) //+1 to skip left & right 0 start-end markers.
 
-      optimalBytesRequiredForLargestValueSize(
-        keyCounts = keyCounts,
-        minimumNumberOfKeys = minimumNumberOfKeys,
-        writeAbleLargestValueSize = writeAbleLargestValueSize,
-        hasCompression = hasCompression,
-        allocateSpace = allocateSpace
-      )
-    }
-  }
+      val minimumRequired =
+        headerSize(
+          keyCounts = keyCounts,
+          hasCompression = hasCompression,
+          writeAbleLargestValueSize = writeAbleLargestValueSize
+        ) + sizePerKey
 
-  private def optimalBytesRequiredForLargestValueSize(keyCounts: Int,
-                                                      minimumNumberOfKeys: Int,
-                                                      writeAbleLargestValueSize: Int,
-                                                      hasCompression: Boolean,
-                                                      allocateSpace: RandomKeyIndex.RequiredSpace => Int): Int = {
-    val minimumRequired =
-      headerSize(
-        keyCounts = keyCounts,
-        hasCompression = hasCompression,
-        writeAbleLargestValueSize = writeAbleLargestValueSize
-      ) + (keyCounts * (writeAbleLargestValueSize + 1)) //+1 to skip left & right 0 start-end markers.
-
-    try
-      allocateSpace(
-        RandomKeyIndex.RequiredSpace(
-          _requiredSpace = minimumRequired,
-          _numberOfKeys = keyCounts
+      try
+        allocateSpace(
+          RandomKeyIndex.RequiredSpace(
+            _requiredSpace = minimumRequired,
+            _numberOfKeys = keyCounts
+          )
         )
-      )
-    catch {
-      case exception: Exception =>
-        logger.error(
-          """Custom allocate space calculation for HashIndex returned failure.
-            |Using the default requiredSpace instead. Please check your implementation to ensure it's not throwing exception.
+      catch {
+        case exception: Exception =>
+          logger.error(
+            """Custom allocate space calculation for HashIndex returned failure.
+              |Using the default requiredSpace instead. Please check your implementation to ensure it's not throwing exception.
             """.stripMargin, exception)
-        minimumRequired
+          minimumRequired
+      }
     }
-  }
 
   def close(state: State): IO[swaydb.Error.Segment, Option[State]] =
     if (state.bytes.isEmpty || !state.hasMinimumHits)
@@ -246,6 +238,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             state.bytes = compressedOrUncompressedBytes
             state.bytes addInt allocatedBytes //allocated bytes
             state.bytes addInt state.maxProbe
+            state.bytes addBoolean state.copyIndex
             state.bytes addIntUnsigned state.hit
             state.bytes addIntUnsigned state.miss
             state.bytes addIntUnsigned state.writeAbleLargestValueSize
@@ -259,6 +252,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     for {
       allocatedBytes <- header.headerReader.readInt()
       maxProbe <- header.headerReader.readInt()
+      copyIndex <- header.headerReader.readBoolean()
       hit <- header.headerReader.readIntUnsigned()
       miss <- header.headerReader.readIntUnsigned()
       largestValueSize <- header.headerReader.readIntUnsigned()
@@ -267,6 +261,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         offset = header.offset,
         compressionInfo = header.compressionInfo,
         maxProbe = maxProbe,
+        copyIndex = copyIndex,
         hit = hit,
         miss = miss,
         writeAbleLargestValueSize = largestValueSize,
@@ -321,53 +316,6 @@ private[core] object HashIndexBlock extends LazyLogging {
         } else if (existing.head == 0 && existing.dropHead() == valuePlusOneBytes) { //check if value already exists.
           //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = existing")
           state.hit += 1
-          true
-        } else {
-          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = failure")
-          doWrite(key = key, probe = probe + 1)
-        }
-      }
-
-    if (state.bytes.allocatedSize == 0)
-      IO.`false`
-    else
-      IO(doWrite(key, 0))
-  }
-
-  /**
-   * Mutates the slice and adds writes the indexOffset to it's hash index.
-   */
-  def write(key: Slice[Byte],
-            value: Slice[Byte],
-            state: State): IO[swaydb.Error.Segment, Boolean] = {
-
-    val hash = key.##
-    val hash1 = hash >>> 32
-    val hash2 = (hash << 32) >> 32
-
-    @tailrec
-    def doWrite(key: Slice[Byte], probe: Int): Boolean =
-      if (probe >= state.maxProbe) {
-        //println(s"Key: ${key.readInt()}: write index: miss probe: $probe")
-        state.miss += 1
-        false
-      } else {
-        val hashIndex =
-          adjustHash(
-            hash = hash1 + probe * hash2,
-            totalBlockSpace = state.bytes.allocatedSize,
-            headerSize = state.headerSize,
-            writeAbleLargestValueSize = state.writeAbleLargestValueSize
-          )
-
-        val existing = state.bytes.take(hashIndex, state.writeAbleLargestValueSize)
-        if (existing.forall(_ == 0)) {
-          state.bytes moveWritePosition hashIndex
-          val crc = CRC32.forBytes(value)
-          state.bytes addLong crc
-          state.bytes addAll value
-          state.hit += 1
-          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = success")
           true
         } else {
           //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = failure")
@@ -458,6 +406,55 @@ private[core] object HashIndexBlock extends LazyLogging {
   }
 
   /**
+   * Mutates the slice and adds writes the indexOffset to it's hash index.
+   */
+  def writeCopied(key: Slice[Byte],
+                  value: Slice[Byte],
+                  state: State): IO[swaydb.Error.Segment, Boolean] = {
+
+    val hash = key.##
+    val hash1 = hash >>> 32
+    val hash2 = (hash << 32) >> 32
+
+    @tailrec
+    def doWrite(key: Slice[Byte], probe: Int): Boolean =
+      if (probe >= state.maxProbe) {
+        //println(s"Key: ${key.readInt()}: write index: miss probe: $probe")
+        state.miss += 1
+        false
+      } else {
+        val hashIndex =
+          adjustHash(
+            hash = hash1 + probe * hash2,
+            totalBlockSpace = state.bytes.allocatedSize,
+            headerSize = state.headerSize,
+            writeAbleLargestValueSize = state.writeAbleLargestValueSize
+          )
+
+        val existing = state.bytes.take(hashIndex, state.writeAbleLargestValueSize)
+
+        if (existing.forall(_ == 0)) {
+          state.bytes moveWritePosition hashIndex
+          val crc = CRC32.forBytes(value)
+          //write as unsignedLong to avoid writing any zeroes.
+          state.bytes addLongUnsigned crc
+          state.bytes addAll value
+          state.hit += 1
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, crcBytes: ${Slice.writeLongUnsigned(crc)}, value: $value, crc: $crc = success")
+          true
+        } else {
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value = failure")
+          doWrite(key = key, probe = probe + 1)
+        }
+      }
+
+    if (state.bytes.allocatedSize == 0)
+      IO.`false`
+    else
+      IO(doWrite(key, 0))
+  }
+
+  /**
    * Finds a key in the hash index.
    *
    * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
@@ -494,23 +491,40 @@ private[core] object HashIndexBlock extends LazyLogging {
               //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe = failure - invalid start offset.")
               doFind(probe + 1)
             } else {
-              val crc = possibleValueBytes.readLong()
-              val entryBytes = possibleValueBytes.drop(ByteSizeOf.long)
-              if (crc == CRC32.forBytes(entryBytes)) {
-                assertValue(entryBytes) match { //assert value removing the 1 added on write.
-                  case success @ IO.Success(Some(_)) =>
-                    //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe, sortedIndex: ${possibleValue - 1} = success")
-                    success
+              //writeAbleLargestValueSize could also read extra tail bytes here we want to fetch only the bytes that are specific to the indexEntry.
+              //So read the crc and then read the indexEntry's entrySize and fetch on the indexEntry bytes and then check CRC.
+              possibleValueBytes.readUnsignedLongWithByteSize() match {
+                case IO.Success((crc, byteSize)) =>
+                  //entryBytesWithExtraTailBytes contains entry bytes but it can also have extra tail bytes that belongs to another entry. Drop those
+                  //by read the indexEntry's size.
+                  val entryBytesWithExtraTailBytes = possibleValueBytes.drop(byteSize)
+                  entryBytesWithExtraTailBytes.readIntUnsignedWithByteSize() match {
+                    case IO.Success((entrySize, entryByteSize)) =>
+                      val entryBytes = entryBytesWithExtraTailBytes.take(entryByteSize + entrySize)
 
-                  case IO.Success(None) =>
-                    //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe: sortedIndex: ${possibleValue - 1} = not found")
-                    doFind(probe + 1)
+                      if (crc == CRC32.forBytes(entryBytes))
+                        assertValue(entryBytes) match { //assert value removing the 1 added on write.
+                          case success @ IO.Success(Some(_)) =>
+                            //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe, entryBytes: $entryBytes = success")
+                            success
 
-                  case IO.Failure(error) =>
-                    IO.Failure(error)
-                }
-              } else {
-                doFind(probe + 1)
+                          case IO.Success(None) =>
+                            //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe: entryBytes: $entryBytes = not found")
+                            doFind(probe + 1)
+
+                          case IO.Failure(error) =>
+                            IO.Failure(error)
+                        }
+                      else
+                        doFind(probe + 1)
+
+
+                    case IO.Failure(error) =>
+                      IO.Failure(error)
+                  }
+
+                case IO.Failure(error) =>
+                  IO.Failure(error)
               }
             }
 
@@ -526,24 +540,54 @@ private[core] object HashIndexBlock extends LazyLogging {
              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] = {
+    assert(hashIndexReader.block.copyIndex && !sortedIndexReader.block.hasPrefixCompression, "If copy index is true, prefix compression should be true.")
+
     val matcher =
       if (sortedIndexReader.block.hasPrefixCompression)
         KeyMatcher.Get.WhilePrefixCompressed(key)
       else
         KeyMatcher.Get.SeekOne(key)
 
-    search(
-      key = key,
-      reader = hashIndexReader,
-      assertValue =
-        (sortedIndexOffsetValue: Int) =>
-          SortedIndexBlock.findAndMatchOrNextPersistent(
-            matcher = matcher,
-            fromOffset = sortedIndexOffsetValue,
-            indexReader = sortedIndexReader,
-            valuesReader = valuesReader
-          )
-    )
+    if (hashIndexReader.block.copyIndex)
+      searchCopied(
+        key = key,
+        reader = hashIndexReader,
+        assertValue =
+          (indexEntry: Slice[Byte]) =>
+            SortedIndexBlock.findAndMatchOrNextPersistent(
+              matcher = matcher,
+              fromOffset = 0,
+              indexReader =
+                UnblockedReader(
+                  block =
+                    SortedIndexBlock(
+                      offset = SortedIndexBlock.Offset(0, indexEntry.size),
+                      enableAccessPositionIndex = sortedIndexReader.block.enableAccessPositionIndex,
+                      hasPrefixCompression = false,
+                      normaliseForBinarySearch = sortedIndexReader.block.normaliseForBinarySearch,
+                      isPreNormalised = sortedIndexReader.block.isPreNormalised,
+                      headerSize = 0,
+                      segmentMaxIndexEntrySize = sortedIndexReader.block.segmentMaxIndexEntrySize,
+                      compressionInfo = None
+                    ),
+                  bytes = indexEntry
+                ),
+              valuesReader = valuesReader
+            )
+      )
+    else
+      search(
+        key = key,
+        reader = hashIndexReader,
+        assertValue =
+          (sortedIndexOffsetValue: Int) =>
+            SortedIndexBlock.findAndMatchOrNextPersistent(
+              matcher = matcher,
+              fromOffset = sortedIndexOffsetValue,
+              indexReader = sortedIndexReader,
+              valuesReader = valuesReader
+            )
+      )
   }
 
   implicit object HashIndexBlockOps extends BlockOps[HashIndexBlock.Offset, HashIndexBlock] {
@@ -561,6 +605,7 @@ private[core] object HashIndexBlock extends LazyLogging {
 private[core] case class HashIndexBlock(offset: HashIndexBlock.Offset,
                                         compressionInfo: Option[Block.CompressionInfo],
                                         maxProbe: Int,
+                                        copyIndex: Boolean,
                                         hit: Int,
                                         miss: Int,
                                         writeAbleLargestValueSize: Int,
