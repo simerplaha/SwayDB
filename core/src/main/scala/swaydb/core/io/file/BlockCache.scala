@@ -20,6 +20,7 @@
 package swaydb.core.io.file
 
 import swaydb.Error.IO.ErrorHandler
+import swaydb.core.queue.MemorySweeper
 import swaydb.core.util.JavaHashMap
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
@@ -28,7 +29,7 @@ import scala.annotation.tailrec
 
 private[core] object BlockCache {
 
-  def key(fileType: DBFileType, position: Int): Long =
+  def buildKey(fileType: DBFileType, position: Int): Long =
     (fileType.folderId << 32) + fileType.fileId + position
 
   def init(blockSize: Int) =
@@ -69,11 +70,17 @@ private[core] object BlockCache {
       (state.blockSizeDouble * Math.floor(Math.abs(position / state.blockSizeDouble))).toInt
 
   sealed trait IOEffect {
-    def readAndCache(keyPosition: Int, size: Int, file: DBFileType, state: State): IO[Error.IO, Slice[Byte]]
+    def readAndCache(keyPosition: Int,
+                     size: Int,
+                     file: DBFileType,
+                     state: State)(implicit memorySweeper: MemorySweeper): IO[Error.IO, Slice[Byte]]
   }
 
   implicit object IOEffect extends IOEffect {
-    def readAndCache(keyPosition: Int, size: Int, file: DBFileType, state: State): IO[Error.IO, Slice[Byte]] =
+    def readAndCache(keyPosition: Int,
+                     size: Int,
+                     file: DBFileType,
+                     state: State)(implicit memorySweeper: MemorySweeper): IO[Error.IO, Slice[Byte]] =
       seekSize(
         keyPosition = keyPosition,
         size = size,
@@ -93,7 +100,10 @@ private[core] object BlockCache {
                 } else if (bytes.isEmpty) {
                   Slice.emptyBytes
                 } else if (bytes.size <= state.blockSize) {
-                  state.map.put(key(file, keyPosition), bytes.unslice())
+                  val key = buildKey(file, keyPosition)
+                  val value = bytes.unslice()
+                  state.map.put(key, value)
+                  memorySweeper.add(key, value, state.map)
                   bytes
                 } else {
                   var index = 0
@@ -101,7 +111,9 @@ private[core] object BlockCache {
                   val splits = Math.ceil(bytes.size / state.blockSizeDouble)
                   while (index < splits) {
                     val bytesToPut = bytes.take(index * state.blockSize, state.blockSize)
-                    state.map.put(key(file, position), bytesToPut)
+                    val key = buildKey(file, position)
+                    state.map.put(key, bytesToPut)
+                    memorySweeper.add(key, bytesToPut, state.map)
                     position = position + bytesToPut.size
                     index += 1
                   }
@@ -116,10 +128,11 @@ private[core] object BlockCache {
                            size: Int,
                            bytes: Slice[Byte],
                            file: DBFileType,
-                           state: State)(implicit effect: IOEffect): IO[Error.IO, Slice[Byte]] = {
+                           state: State)(implicit effect: IOEffect,
+                                         memorySweeper: MemorySweeper): IO[Error.IO, Slice[Byte]] = {
     val keyPosition = seekPosition(position, state)
 
-    state.map.get(key(file, keyPosition)) match {
+    state.map.get(buildKey(file, keyPosition)) match {
       case Some(fromCache) =>
         val cachedBytes = fromCache.take(position - keyPosition, size)
         val mergedBytes =
@@ -137,7 +150,7 @@ private[core] object BlockCache {
             bytes = mergedBytes,
             file = file,
             state = state
-          )(effect)
+          )(effect, memorySweeper)
 
 
       case None =>
@@ -163,12 +176,13 @@ private[core] object BlockCache {
   def getOrSeek(position: Int,
                 size: Int,
                 file: DBFileType,
-                state: State)(implicit effect: IOEffect): IO[Error.IO, Slice[Byte]] =
+                state: State)(implicit effect: IOEffect,
+                              memorySweeper: MemorySweeper): IO[Error.IO, Slice[Byte]] =
     doSeek(
       position = position,
       size = size,
       file = file,
       bytes = Slice.emptyBytes,
       state = state
-    )(effect)
+    )(effect, memorySweeper)
 }

@@ -22,9 +22,10 @@ package swaydb.core.queue
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.io.file.BlockCache
-import swaydb.core.queue.Command.{WeighedKeyValue, WeighKeyValue}
-import swaydb.core.util.SkipList
+import swaydb.core.queue.Command.{WeighKeyValue, WeighedKeyValue}
+import swaydb.core.util.{JavaHashMap, SkipList}
 import swaydb.data.slice.Slice
+import swaydb.data.util.ByteSizeOf
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
@@ -45,7 +46,9 @@ private object Command {
                              skipListRef: WeakReference[SkipList[Slice[Byte], _]],
                              weight: Int) extends KeyValueCommand
 
-  case class Block(key: Long, blockCache: BlockCache.State) extends Command
+  case class Block(key: Long,
+                   valueSize: Long,
+                   map: JavaHashMap.Concurrent[Long, Slice[Byte]]) extends Command
 }
 
 private[core] object MemorySweeper {
@@ -60,11 +63,11 @@ private[core] object MemorySweeper {
 
   def keyValueWeigher(entry: Command): Long =
     entry match {
-      case _: Command.Block =>
-        1
+      case command: Command.Block =>
+        ByteSizeOf.long + command.valueSize + 264L
 
-      case WeighKeyValue(keyValue, _) =>
-        keyValue.get map {
+      case command: Command.WeighKeyValue =>
+        command.keyValueRef.get map {
           keyValue =>
             MemorySweeper.weight(keyValue)
         } getOrElse 264L //264L for the weight of WeakReference itself.
@@ -81,8 +84,8 @@ private[core] object MemorySweeper {
 
   def processCommand(command: Command)(implicit limiter: MemorySweeper) =
     command match {
-      case Command.Block(key, blockCache) =>
-        blockCache remove key
+      case Command.Block(key, _, map) =>
+        map remove key
 
       case command: Command.KeyValueCommand =>
         for {
@@ -128,7 +131,8 @@ private[core] sealed trait MemorySweeper {
           skipList: SkipList[Slice[Byte], _]): Unit
 
   def add(key: Long,
-          blockCache: BlockCache.State): Unit
+          value: Slice[Byte],
+          map: JavaHashMap.Concurrent[Long, Slice[Byte]]): Unit
 
   def terminate(): Unit
 }
@@ -164,8 +168,9 @@ private class MemorySweeperImpl(cacheSize: Long,
   }
 
   def add(key: Long,
-          blockCache: BlockCache.State): Unit =
-    queue ! Command.Block(key, blockCache)
+          value: Slice[Byte],
+          map: JavaHashMap.Concurrent[Long, Slice[Byte]]): Unit =
+    queue ! Command.Block(key, value.size, map)
 
   def terminate() =
     queue.terminate()
