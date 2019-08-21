@@ -19,28 +19,25 @@
 
 package swaydb.data.config
 
-sealed trait Cache {
-  def toOption: Option[Cache.Enabled] =
-    this match {
-      case Cache.Disable =>
-        None
-      case cache: Cache.Enabled =>
-        Some(cache)
-    }
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.FiniteDuration
+
+sealed trait ActorQueue {
+  def maxMessagesToProcessAtOnce: Int
 }
-object Cache {
 
-  case object Disable extends Cache
+object ActorQueue {
 
-  sealed trait Enabled extends Cache
-  case class EnableBlockCache(blockSize: Int,
-                              capacity: Int,
-                              queue: ActorQueue) extends Enabled
+  case class Default(maxMessagesToProcessAtOnce: Int,
+                     ec: ExecutionContext) extends ActorQueue
 
-  case class EnableKeyValueCache(capacity: Int,
-                                 queue: ActorQueue) extends Enabled
+  case class Timer(maxMessagesToProcessAtOnce: Int,
+                   maxOverflow: Int,
+                   delay: FiniteDuration,
+                   ec: ExecutionContext) extends ActorQueue
 
-  case class EnableBoth(blockSize: Int,
-                        capacity: Int,
-                        queue: ActorQueue) extends Enabled
+  case class Loop(maxMessagesToProcessAtOnce: Int,
+                  maxOverflow: Int,
+                  delay: FiniteDuration,
+                  ec: ExecutionContext) extends ActorQueue
 }
