@@ -31,12 +31,12 @@ object ActorQueue {
   case class Default(maxMessagesToProcessAtOnce: Int,
                      ec: ExecutionContext) extends ActorQueue
 
-  case class Timer(maxMessagesToProcessAtOnce: Int,
+  case class Stash(maxMessagesToProcessAtOnce: Int,
                    maxOverflow: Int,
                    delay: FiniteDuration,
                    ec: ExecutionContext) extends ActorQueue
 
-  case class Loop(maxMessagesToProcessAtOnce: Int,
+  case class Poll(maxMessagesToProcessAtOnce: Int,
                   maxOverflow: Int,
                   delay: FiniteDuration,
                   ec: ExecutionContext) extends ActorQueue
