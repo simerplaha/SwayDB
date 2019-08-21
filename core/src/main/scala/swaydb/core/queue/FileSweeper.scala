@@ -27,38 +27,38 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.ref.WeakReference
 
-private[swaydb] trait FileLimiter {
-  def close(file: FileLimiterItem): Unit
-  def delete(file: FileLimiterItem): Unit
+private[swaydb] trait FileSweeper {
+  def close(file: FileSweeperItem): Unit
+  def delete(file: FileSweeperItem): Unit
   def terminate(): Unit
 }
 
-private[core] trait FileLimiterItem {
+private[core] trait FileSweeperItem {
   def path: Path
   def delete(): IO[swaydb.Error.Segment, Unit]
   def close(): IO[swaydb.Error.Segment, Unit]
   def isOpen: Boolean
 }
 
-private[core] object FileLimiter extends LazyLogging {
+private[core] object FileSweeper extends LazyLogging {
 
   val empty =
-    new FileLimiter {
-      override def close(file: FileLimiterItem): Unit = ()
-      override def delete(file: FileLimiterItem): Unit = ()
+    new FileSweeper {
+      override def close(file: FileSweeperItem): Unit = ()
+      override def delete(file: FileSweeperItem): Unit = ()
       override def terminate(): Unit = ()
     }
 
-  val none = Option.empty[FileLimiter]
+  val none = Option.empty[FileSweeper]
 
   private sealed trait Action {
     def isDelete: Boolean
   }
   private object Action {
-    case class Delete(file: FileLimiterItem) extends Action {
+    case class Delete(file: FileSweeperItem) extends Action {
       def isDelete: Boolean = true
     }
-    case class Close(file: WeakReference[FileLimiterItem]) extends Action {
+    case class Close(file: WeakReference[FileSweeperItem]) extends Action {
       def isDelete: Boolean = false
     }
   }
@@ -66,7 +66,7 @@ private[core] object FileLimiter extends LazyLogging {
   def weigher(action: Action) =
     if (action.isDelete) 10 else 1
 
-  def apply(maxSegmentsOpen: Long, delay: FiniteDuration)(implicit ex: ExecutionContext): FileLimiter = {
+  def apply(maxSegmentsOpen: Long, delay: FiniteDuration)(implicit ex: ExecutionContext): FileSweeper = {
     lazy val queue = LimitQueue[Action](maxSegmentsOpen, delay, weigher) {
       case Action.Delete(file) =>
         file.delete() onFailureSideEffect {
@@ -84,16 +84,16 @@ private[core] object FileLimiter extends LazyLogging {
         }
     }
 
-    new FileLimiter {
+    new FileSweeper {
 
-      override def close(file: FileLimiterItem): Unit =
-        queue ! Action.Close(new WeakReference[FileLimiterItem](file))
+      override def close(file: FileSweeperItem): Unit =
+        queue ! Action.Close(new WeakReference[FileSweeperItem](file))
 
       //Delete cannot be a WeakReference because Levels can
       //remove references to the file after eventualDelete is invoked.
       //If the file gets garbage collected due to it being WeakReference before
       //delete on the file is triggered, the physical file will remain on disk.
-      override def delete(file: FileLimiterItem): Unit =
+      override def delete(file: FileSweeperItem): Unit =
         queue ! Action.Delete(file)
 
       override def terminate(): Unit =

@@ -36,7 +36,7 @@ import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.seek._
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
-import swaydb.core.queue.{FileLimiter, MemorySweeper}
+import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.{Segment, SegmentAssigner}
 import swaydb.core.util.CollectionUtil._
@@ -99,7 +99,7 @@ private[core] object Level extends LazyLogging {
                                                functionStore: FunctionStore,
                                                memorySweeper: Option[MemorySweeper],
                                                blockCache: Option[BlockCache.State],
-                                               fileOpenLimiter: FileLimiter,
+                                               fileSweeper: FileSweeper,
                                                groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Level, Level] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
@@ -349,7 +349,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                                               removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
                                                                               addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                                               memorySweeper: Option[MemorySweeper],
-                                                                              fileOpenLimiter: FileLimiter,
+                                                                              fileSweeper: FileSweeper,
                                                                               blockCache: Option[BlockCache.State],
                                                                               val groupBy: Option[GroupByInternal.KeyValues],
                                                                               val segmentIDGenerator: IDGenerator,

@@ -27,7 +27,7 @@ import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.io.file.BlockCache
-import swaydb.core.queue.{FileLimiter, MemorySweeper}
+import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.SkipList
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
@@ -40,8 +40,8 @@ class MapCodecSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
-  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: Option[MemorySweeper] = TestLimitQueues.memorySweeper
+  implicit val maxSegmentsOpenCacheImplicitLimiter: FileSweeper = TestLimitQueues.fileSweeper
+  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def compression = randomGroupByOption(randomNextInt(1000))

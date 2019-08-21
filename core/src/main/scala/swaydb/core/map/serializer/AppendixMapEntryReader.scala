@@ -29,7 +29,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.BlockCache
 import swaydb.core.map.MapEntry
-import swaydb.core.queue.{FileLimiter, MemorySweeper}
+import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{Bytes, MinMax}
@@ -45,7 +45,7 @@ object AppendixMapEntryReader {
                                           timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore,
                                           memorySweeper: Option[MemorySweeper],
-                                          fileOpenLimiter: FileLimiter,
+                                          fileSweeper: FileSweeper,
                                           blockCache: Option[BlockCache.State],
                                           segmentIO: SegmentIO,
                                           compression: Option[GroupByInternal.KeyValues]): AppendixMapEntryReader =
@@ -69,7 +69,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                            functionStore: FunctionStore,
                                                            memorySweeper: Option[MemorySweeper],
-                                                           fileOpenLimiter: FileLimiter,
+                                                           fileSweeper: FileSweeper,
                                                            blockCache: Option[BlockCache.State],
                                                            segmentIO: SegmentIO,
                                                            compression: Option[GroupByInternal.KeyValues]) {

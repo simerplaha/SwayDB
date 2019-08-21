@@ -24,7 +24,7 @@
 //import swaydb.IO
 //import swaydb.core.RunThis._
 //import swaydb.core.actor.WiredActor
-//import swaydb.core.queue.{FileLimiter, MemorySweeper}
+//import swaydb.core.queue.{FileSweeper, MemorySweeper}
 //import swaydb.core.util.Delay
 //import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
 //import swaydb.data.Reserve
@@ -65,8 +65,8 @@
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 //  implicit val timer = TestTimer.Empty
 //
-//  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-//  implicit val keyValuesLimitImplicitLimiter: Option[MemorySweeper] = TestLimitQueues.memorySweeper
+//  implicit val maxSegmentsOpenCacheImplicitLimiter: FileSweeper = TestLimitQueues.fileSweeper
+//  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
 //
 //  implicit val compactionOrdering = DefaultCompactionOrdering
 //

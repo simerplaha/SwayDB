@@ -28,7 +28,7 @@ import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.RunThis._
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.core.TestData._
-import swaydb.core.queue.FileLimiter
+import swaydb.core.queue.FileSweeper
 import swaydb.data.slice.Slice
 
 import scala.concurrent.Future
@@ -44,7 +44,7 @@ class BufferCleanerSpec extends TestBase {
   }
 
   "clear a MMAP file" in {
-    implicit val limiter: FileLimiter = FileLimiter(0, 1.second)
+    implicit val limiter: FileSweeper = FileSweeper(0, 1.second)
     val file: DBFile = DBFile.mmapWriteAndRead(randomDir, randomIOStrategy(cacheOnAccess = true), autoClose = true, Slice(randomBytesSlice())).get
 
     eventual(10.seconds) {
@@ -66,7 +66,7 @@ class BufferCleanerSpec extends TestBase {
   "it should not fatal terminate" when {
     "concurrently reading a deleted MMAP file" in {
 
-      implicit val limiter: FileLimiter = FileLimiter(0, 1.seconds)
+      implicit val limiter: FileSweeper = FileSweeper(0, 1.seconds)
 
       val files =
         (1 to 20) map {

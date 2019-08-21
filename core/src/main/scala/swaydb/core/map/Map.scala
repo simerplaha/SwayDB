@@ -25,7 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
-import swaydb.core.queue.FileLimiter
+import swaydb.core.queue.FileSweeper
 import swaydb.core.util.SkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -43,7 +43,7 @@ private[core] object Map extends LazyLogging {
                                  dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
                                                                     timeOrder: TimeOrder[Slice[Byte]],
                                                                     functionStore: FunctionStore,
-                                                                    limiter: FileLimiter,
+                                                                    limiter: FileSweeper,
                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                     reader: MapEntryReader[MapEntry[K, V]],
                                                                     skipListMerge: SkipListMerger[K, V]): IO[swaydb.Error.Map, RecoveryResult[PersistentMap[K, V]]] =
@@ -63,7 +63,7 @@ private[core] object Map extends LazyLogging {
                                  fileSize: Long)(implicit keyOrder: KeyOrder[K],
                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                  functionStore: FunctionStore,
-                                                 limiter: FileLimiter,
+                                                 limiter: FileSweeper,
                                                  reader: MapEntryReader[MapEntry[K, V]],
                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                  skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, PersistentMap[K, V]] =

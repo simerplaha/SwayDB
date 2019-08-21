@@ -29,14 +29,14 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions.{randomBlockSize, randomIOStrategy}
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.queue.{FileLimiter, FileLimiterItem}
+import swaydb.core.queue.{FileSweeper, FileSweeperItem}
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.slice.Slice
 
 class DBFileSpec extends TestBase with MockFactory {
 
-  implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
+  implicit val fileSweeper: FileSweeper = TestLimitQueues.fileSweeper
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   "DBFile.write" should {
@@ -119,10 +119,10 @@ class DBFileSpec extends TestBase with MockFactory {
       val bytes = randomBytesSlice()
 
       //opening a file should trigger the onOpen function
-      implicit val fileOpenLimiter = mock[FileLimiter]
+      implicit val fileSweeper = mock[FileSweeper]
 
-      fileOpenLimiter.close _ expects * onCall {
-        dbFile: FileLimiterItem =>
+      fileSweeper.close _ expects * onCall {
+        dbFile: FileSweeperItem =>
           dbFile.path shouldBe testFile
           dbFile.isOpen shouldBe true
           ()
@@ -226,9 +226,9 @@ class DBFileSpec extends TestBase with MockFactory {
       val bytes = randomBytesSlice()
 
       //opening a file should trigger the onOpen function
-      implicit val fileOpenLimiter = mock[FileLimiter]
-      fileOpenLimiter.close _ expects * onCall {
-        dbFile: FileLimiterItem =>
+      implicit val fileSweeper = mock[FileSweeper]
+      fileSweeper.close _ expects * onCall {
+        dbFile: FileSweeperItem =>
           dbFile.path shouldBe testFile
           dbFile.isOpen shouldBe true
           ()
@@ -288,9 +288,9 @@ class DBFileSpec extends TestBase with MockFactory {
       val bytes = Slice("bytes one".getBytes())
 
       //opening a file should trigger the onOpen function
-      implicit val fileOpenLimiter = mock[FileLimiter]
-      fileOpenLimiter.close _ expects * onCall {
-        dbFile: FileLimiterItem =>
+      implicit val fileSweeper = mock[FileSweeper]
+      fileSweeper.close _ expects * onCall {
+        dbFile: FileSweeperItem =>
           dbFile.path shouldBe testFile
           dbFile.isOpen shouldBe true
           ()
@@ -483,9 +483,9 @@ class DBFileSpec extends TestBase with MockFactory {
       val bytes = randomBytesSlice()
 
       //opening a file should trigger the onOpen function
-      implicit val fileOpenLimiter = mock[FileLimiter]
-      fileOpenLimiter.close _ expects * onCall {
-        (dbFile: FileLimiterItem) =>
+      implicit val fileSweeper = mock[FileSweeper]
+      fileSweeper.close _ expects * onCall {
+        (dbFile: FileSweeperItem) =>
           dbFile.path shouldBe testFile
           dbFile.isOpen shouldBe true
           ()

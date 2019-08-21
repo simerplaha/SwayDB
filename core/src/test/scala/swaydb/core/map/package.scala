@@ -23,7 +23,7 @@ import swaydb.IOValues._
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
-import swaydb.core.queue.FileLimiter
+import swaydb.core.queue.FileSweeper
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -38,7 +38,7 @@ package object map {
     def reopen(implicit keyOrder: KeyOrder[Slice[Byte]],
                timeOrder: TimeOrder[Slice[Byte]],
                functionStore: FunctionStore,
-               fileLimiter: FileLimiter,
+               fileSweeper: FileSweeper,
                ec: ExecutionContext,
                writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]],
                reader: MapEntryReader[MapEntry[Slice[Byte], Memory.SegmentResponse]],

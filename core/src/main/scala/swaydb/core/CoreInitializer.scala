@@ -32,7 +32,7 @@ import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.compaction._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
-import swaydb.core.queue.{FileLimiter, MemorySweeper}
+import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.format.a.block
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
@@ -74,7 +74,7 @@ private[core] object CoreInitializer extends LazyLogging {
             bufferCleanerEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] = {
-    implicit val fileLimiter = FileLimiter.empty
+    implicit val fileSweeper = FileSweeper.empty
     implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
     if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(bufferCleanerEC)
 
@@ -137,12 +137,12 @@ private[core] object CoreInitializer extends LazyLogging {
             keyValueQueueDelay: FiniteDuration,
             segmentCloserDelay: FiniteDuration,
             blockCacheSize: Option[Int],
-            fileOpenLimiterEC: ExecutionContext,
+            fileSweeperEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] = {
-    implicit val fileOpenLimiter: FileLimiter =
-      FileLimiter(maxSegmentsOpen, segmentCloserDelay)(fileOpenLimiterEC)
+    implicit val fileSweeper: FileSweeper =
+      FileSweeper(maxSegmentsOpen, segmentCloserDelay)(fileSweeperEC)
 
     implicit val memorySweeper: Option[MemorySweeper] =
       keyValueCacheSize map {
@@ -159,7 +159,7 @@ private[core] object CoreInitializer extends LazyLogging {
     implicit val compactionOrdering: CompactionOrdering =
       DefaultCompactionOrdering
 
-    BufferCleaner.initialiseCleaner(fileOpenLimiterEC)
+    BufferCleaner.initialiseCleaner(fileSweeperEC)
 
     def createLevel(id: Long,
                     nextLevel: Option[NextLevel],

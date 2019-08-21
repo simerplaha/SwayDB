@@ -34,7 +34,7 @@ import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.{BlockCache, IOEffect}
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.{FileLimiter, MemorySweeper}
+import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.segment.{PersistentSegment, Segment}
@@ -92,7 +92,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
   //  override def deleteFiles = false
 
-  implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
+  implicit val fileSweeper: FileSweeper = TestLimitQueues.fileSweeper
 
   "Segment" should {
 
@@ -624,7 +624,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   "Segment" should {
     "open a closed Segment on read and clear footer" in {
       runThis(10.times) {
-        implicit val fileOpenLimiter: FileLimiter = FileLimiter.empty
+        implicit val fileSweeper: FileSweeper = FileSweeper.empty
 
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues).value
@@ -702,7 +702,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       //memory Segments do not value closed via
     } else {
       implicit val memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
-      implicit val segmentOpenLimit = FileLimiter(1, 100.millisecond)
+      implicit val segmentOpenLimit = FileSweeper(1, 100.millisecond)
       val keyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
       val segment1 = TestSegment(keyValues)(keyOrder, memorySweeper, segmentOpenLimit).value
 

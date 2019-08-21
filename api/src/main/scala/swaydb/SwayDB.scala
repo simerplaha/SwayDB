@@ -26,7 +26,7 @@ import swaydb.core.BlockingCore
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.tool.AppendixRepairer
-import swaydb.core.queue.FileLimiter
+import swaydb.core.queue.FileSweeper
 import swaydb.data.MaxKey
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -92,7 +92,7 @@ object SwayDB extends LazyLogging {
                   blockCacheSize: Option[Int])(implicit keySerializer: Serializer[K],
                                                valueSerializer: Serializer[V],
                                                keyOrder: KeyOrder[Slice[Byte]],
-                                               fileOpenLimiterEC: ExecutionContext,
+                                               fileSweeperEC: ExecutionContext,
                                                cacheLimiterEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
     BlockingCore(
       config = config,
@@ -101,7 +101,7 @@ object SwayDB extends LazyLogging {
       blockCacheSize = blockCacheSize,
       keyValueCacheCheckDelay = keyValueCacheCheckDelay,
       segmentsOpenCheckDelay = segmentsOpenCheckDelay,
-      fileOpenLimiterEC = fileOpenLimiterEC,
+      fileSweeperEC = fileSweeperEC,
       cacheLimiterEC = cacheLimiterEC
     ) map {
       db =>
@@ -115,7 +115,7 @@ object SwayDB extends LazyLogging {
                segmentsOpenCheckDelay: FiniteDuration,
                blockCacheSize: Option[Int])(implicit serializer: Serializer[T],
                                             keyOrder: KeyOrder[Slice[Byte]],
-                                            fileOpenLimiterEC: ExecutionContext,
+                                            fileSweeperEC: ExecutionContext,
                                             cacheLimiterEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     BlockingCore(
       config = config,
@@ -124,7 +124,7 @@ object SwayDB extends LazyLogging {
       keyValueCacheCheckDelay = cacheCheckDelay,
       blockCacheSize = blockCacheSize,
       segmentsOpenCheckDelay = segmentsOpenCheckDelay,
-      fileOpenLimiterEC = fileOpenLimiterEC,
+      fileSweeperEC = fileSweeperEC,
       cacheLimiterEC = cacheLimiterEC
     ) map {
       db =>
@@ -137,7 +137,7 @@ object SwayDB extends LazyLogging {
                   blockCacheSize: Option[Int])(implicit keySerializer: Serializer[K],
                                                valueSerializer: Serializer[V],
                                                keyOrder: KeyOrder[Slice[Byte]],
-                                               fileOpenLimiterEC: ExecutionContext,
+                                               fileSweeperEC: ExecutionContext,
                                                cacheLimiterEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
     BlockingCore(
       config = config,
@@ -146,7 +146,7 @@ object SwayDB extends LazyLogging {
       cacheCheckDelay = cacheCheckDelay,
       segmentsOpenCheckDelay = Duration.Zero,
       blockCacheSize = blockCacheSize,
-      fileOpenLimiterEC = fileOpenLimiterEC,
+      fileSweeperEC = fileSweeperEC,
       cacheLimiterEC = cacheLimiterEC
     ) map {
       db =>
@@ -158,7 +158,7 @@ object SwayDB extends LazyLogging {
                cacheCheckDelay: FiniteDuration,
                blockCacheSize: Option[Int])(implicit serializer: Serializer[T],
                                             keyOrder: KeyOrder[Slice[Byte]],
-                                            fileOpenLimiterEC: ExecutionContext,
+                                            fileSweeperEC: ExecutionContext,
                                             cacheLimiterEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     BlockingCore(
       config = config,
@@ -167,7 +167,7 @@ object SwayDB extends LazyLogging {
       cacheCheckDelay = cacheCheckDelay,
       segmentsOpenCheckDelay = Duration.Zero,
       blockCacheSize = blockCacheSize,
-      fileOpenLimiterEC = fileOpenLimiterEC,
+      fileSweeperEC = fileSweeperEC,
       cacheLimiterEC = cacheLimiterEC
     ) map {
       db =>
@@ -234,7 +234,7 @@ object SwayDB extends LazyLogging {
    */
   def repairAppendix[K](levelPath: Path,
                         repairStrategy: AppendixRepairStrategy)(implicit serializer: Serializer[K],
-                                                                fileLimiter: FileLimiter,
+                                                                fileSweeper: FileSweeper,
                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                 ec: ExecutionContext = defaultExecutionContext): IO[swaydb.Error.Level, RepairResult[K]] =
   //convert to typed result.

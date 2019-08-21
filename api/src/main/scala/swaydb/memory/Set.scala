@@ -53,7 +53,7 @@ object Set extends LazyLogging {
                groupBy: Option[GroupBy.KeyValues] = None,
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                     fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
+                                                                                     fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
                                                                                      cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     BlockingCore(
       config = DefaultMemoryConfig(
@@ -71,7 +71,7 @@ object Set extends LazyLogging {
       blockCacheSize = blockCacheSize,
       //memory Segments are never closed.
       segmentsOpenCheckDelay = Duration.Zero,
-      fileOpenLimiterEC = fileOpenLimiterEC,
+      fileSweeperEC = fileSweeperEC,
       cacheLimiterEC = cacheLimiterEC
     ) map {
       db =>

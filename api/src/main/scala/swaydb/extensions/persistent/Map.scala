@@ -96,7 +96,7 @@
 //                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
 //                                                                                        valueSerializer: Serializer[V],
 //                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-//                                                                                        fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
+//                                                                                        fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
 //                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.extensions.Map[K, V]] =
 //    BlockingCore(
 //      config = DefaultPersistentConfig(
@@ -118,7 +118,7 @@
 //      cacheSize = cacheSize,
 //      cacheCheckDelay = cacheCheckDelay,
 //      segmentsOpenCheckDelay = segmentsOpenCheckDelay,
-//      fileOpenLimiterEC = fileOpenLimiterEC,
+//      fileSweeperEC = fileSweeperEC,
 //      cacheLimiterEC = cacheLimiterEC
 //    ) flatMap {
 //      db =>

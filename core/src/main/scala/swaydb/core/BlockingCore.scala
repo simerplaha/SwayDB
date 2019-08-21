@@ -45,7 +45,7 @@ private[swaydb] object BlockingCore {
             keyValueCacheCheckDelay: FiniteDuration,
             segmentsOpenCheckDelay: FiniteDuration,
             blockCacheSize: Option[Int],
-            fileOpenLimiterEC: ExecutionContext,
+            fileSweeperEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
@@ -56,7 +56,7 @@ private[swaydb] object BlockingCore {
       blockCacheSize = blockCacheSize,
       keyValueQueueDelay = keyValueCacheCheckDelay,
       segmentCloserDelay = segmentsOpenCheckDelay,
-      fileOpenLimiterEC = fileOpenLimiterEC,
+      fileSweeperEC = fileSweeperEC,
       cacheLimiterEC = cacheLimiterEC
     )
 
@@ -66,7 +66,7 @@ private[swaydb] object BlockingCore {
             cacheCheckDelay: FiniteDuration,
             blockCacheSize: Option[Int],
             segmentsOpenCheckDelay: FiniteDuration,
-            fileOpenLimiterEC: ExecutionContext,
+            fileSweeperEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
@@ -77,7 +77,7 @@ private[swaydb] object BlockingCore {
       blockCacheSize = blockCacheSize,
       keyValueQueueDelay = cacheCheckDelay,
       segmentCloserDelay = segmentsOpenCheckDelay,
-      fileOpenLimiterEC = fileOpenLimiterEC,
+      fileSweeperEC = fileSweeperEC,
       cacheLimiterEC = cacheLimiterEC
     )
 

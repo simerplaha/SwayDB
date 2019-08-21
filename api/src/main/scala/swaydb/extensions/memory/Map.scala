@@ -50,7 +50,7 @@
 //    * @param keySerializer     Converts keys to Bytes
 //    * @param valueSerializer   Converts values to Bytes
 //    * @param keyOrder          Sort order for keys
-//    * @param fileOpenLimiterEC Execution context used to close opened files when the maxOpenFiles limit is reached.
+//    * @param fileSweeperEC Execution context used to close opened files when the maxOpenFiles limit is reached.
 //    * @param cacheLimiterEC    Execution context used to drop cached key-values when cacheSize is reached.
 //    * @tparam K
 //    * @tparam V
@@ -69,7 +69,7 @@
 //                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
 //                                                                                        valueSerializer: Serializer[V],
 //                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-//                                                                                        fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
+//                                                                                        fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
 //                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.extensions.Map[K, V]] =
 //    BlockingCore(
 //      config = DefaultMemoryConfig(
@@ -86,7 +86,7 @@
 //      cacheCheckDelay = cacheCheckDelay,
 //      //memory Segments are never closed.
 //      segmentsOpenCheckDelay = Duration.Zero,
-//      fileOpenLimiterEC = fileOpenLimiterEC,
+//      fileSweeperEC = fileSweeperEC,
 //      cacheLimiterEC = cacheLimiterEC
 //    ) flatMap {
 //      db =>

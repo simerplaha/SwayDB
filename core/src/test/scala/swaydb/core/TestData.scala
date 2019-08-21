@@ -28,7 +28,7 @@ import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
-import swaydb.core.TestLimitQueues.fileOpenLimiter
+import swaydb.core.TestLimitQueues.fileSweeper
 import swaydb.core.cache.Cache
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.Transient.Range
@@ -41,7 +41,7 @@ import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
 import swaydb.core.map.serializer.RangeValueSerializer
-import swaydb.core.queue.{FileLimiter, MemorySweeper}
+import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
@@ -118,7 +118,7 @@ object TestData {
   implicit class ReopenSegment(segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                  ec: ExecutionContext,
                                                  memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper,
-                                                 fileOpenLimiter: FileLimiter = fileOpenLimiter,
+                                                 fileSweeper: FileSweeper = fileSweeper,
                                                  timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                  blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
                                                  segmentIO: SegmentIO = SegmentIO.random,
@@ -164,7 +164,7 @@ object TestData {
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
-    def putKeyValuesTest(keyValues: Slice[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+    def putKeyValuesTest(keyValues: Slice[KeyValue.ReadOnly])(implicit fileSweeper: FileSweeper = TestLimitQueues.fileSweeper,
                                                               blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): IO[swaydb.Error.Level, Unit] =
       if (keyValues.isEmpty)
         IO.unit
@@ -227,7 +227,7 @@ object TestData {
     def reopen(segmentSize: Long = level.segmentSize,
                throttle: LevelMeter => Throttle = level.throttle,
                nextLevel: Option[NextLevel] = level.nextLevel)(implicit memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper,
-                                                               fileOpenLimiter: FileLimiter = fileOpenLimiter): Level =
+                                                               fileSweeper: FileSweeper = fileSweeper): Level =
       tryReopen(
         segmentSize = segmentSize,
         throttle = throttle,
@@ -237,7 +237,7 @@ object TestData {
     def tryReopen(segmentSize: Long = level.segmentSize,
                   throttle: LevelMeter => Throttle = level.throttle,
                   nextLevel: Option[NextLevel] = level.nextLevel)(implicit memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper,
-                                                                  fileOpenLimiter: FileLimiter = fileOpenLimiter,
+                                                                  fileSweeper: FileSweeper = fileSweeper,
                                                                   blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): IO[swaydb.Error.Level, Level] =
       level.releaseLocks flatMap {
         _ =>
@@ -277,7 +277,7 @@ object TestData {
 
     def reopen(mapSize: Long = level.maps.map.size)(implicit memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper,
                                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                    fileOpenLimiter: FileLimiter = fileOpenLimiter): LevelZero = {
+                                                    fileSweeper: FileSweeper = fileSweeper): LevelZero = {
       val reopened =
         level.releaseLocks flatMap {
           _ =>

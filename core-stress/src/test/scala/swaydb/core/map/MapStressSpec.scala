@@ -26,7 +26,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0PutWriter
-import swaydb.core.queue.FileLimiter
+import swaydb.core.queue.FileSweeper
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -37,7 +37,7 @@ class MapStressSpec extends TestBase {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
   implicit val skipListMerger = LevelZeroSkipListMerger
-  implicit val fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
+  implicit val fileSweeper: FileSweeper = TestLimitQueues.fileSweeper
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   implicit def testTimer: TestTimer = TestTimer.Empty

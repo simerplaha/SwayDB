@@ -29,7 +29,7 @@ import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
-import swaydb.core.queue.FileLimiter
+import swaydb.core.queue.FileSweeper
 import swaydb.core.util.SkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -59,7 +59,7 @@ private[core] object PersistentTimer extends LazyLogging {
                                        functionStore: FunctionStore,
                                        writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                                        reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentTimer] = {
-    implicit val limiter = FileLimiter.empty
+    implicit val limiter = FileSweeper.empty
 
     Map.persistent[Slice[Byte], Slice[Byte]](
       folder = path,

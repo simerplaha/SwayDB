@@ -22,7 +22,7 @@ package swaydb.core.io.file
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TestLimitQueues.fileOpenLimiter
+import swaydb.core.TestLimitQueues.fileSweeper
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.util.StorageUnits._
@@ -32,7 +32,7 @@ import scala.concurrent.duration._
 
 class DBFileStressWriteSpec extends TestBase {
 
-  implicit val limiter = fileOpenLimiter
+  implicit val limiter = fileSweeper
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   "DBFile" should {

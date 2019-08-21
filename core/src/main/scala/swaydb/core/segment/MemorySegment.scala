@@ -31,7 +31,7 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.{FileLimiter, MemorySweeper}
+import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.merge.SegmentMerger
@@ -61,7 +61,7 @@ private[segment] case class MemorySegment(path: Path,
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore,
                                                                                    memorySweeper: Option[MemorySweeper],
-                                                                                   fileLimiter: FileLimiter,
+                                                                                   fileSweeper: FileSweeper,
                                                                                    segmentIO: SegmentIO) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
@@ -436,7 +436,7 @@ private[segment] case class MemorySegment(path: Path,
     !deleted
 
   override def deleteSegmentsEventually: Unit =
-    fileLimiter.delete(this)
+    fileSweeper.delete(this)
 
   override def createdInLevel: IO[swaydb.Error.Segment, Int] =
     IO(_createdInLevel)

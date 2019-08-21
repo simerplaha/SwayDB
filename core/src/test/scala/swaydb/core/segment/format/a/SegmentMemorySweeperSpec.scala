@@ -27,7 +27,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, _}
 import swaydb.core.io.file.BlockCache
-import swaydb.core.queue.{FileLimiter, MemorySweeper}
+import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
 import swaydb.core.util._
@@ -84,7 +84,7 @@ class SegmentMemorySweeperSpec extends TestBase {
             path = Paths.get("/test"),
             createdInLevel = 0,
             keyValues = mergedKeyValues
-          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileOpenLimiter, None, Some(memorySweeper), SegmentIO.random).runRandomIO.value
+          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileSweeper, None, Some(memorySweeper), SegmentIO.random).runRandomIO.value
 
         //perform reads multiple times and assert that while the key-values are getting drop, the group key-value does
         //not value dropped
@@ -151,7 +151,7 @@ class SegmentMemorySweeperSpec extends TestBase {
       try {
 
         //create persistent Segment
-        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, Some(memorySweeper), FileLimiter.empty, timeOrder, blockCache, SegmentIO.random).runRandomIO.value
+        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, Some(memorySweeper), FileSweeper.empty, timeOrder, blockCache, SegmentIO.random).runRandomIO.value
 
         //initially Segment's cache is empty
         segment.areAllCachesEmpty shouldBe true

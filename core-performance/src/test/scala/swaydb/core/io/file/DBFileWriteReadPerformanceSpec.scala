@@ -26,7 +26,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions.{randomBlockSize, randomIOStrategy}
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
-import swaydb.core.queue.FileLimiter
+import swaydb.core.queue.FileSweeper
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues}
@@ -36,7 +36,7 @@ import swaydb.data.util.StorageUnits._
 
 class DBFileWriteReadPerformanceSpec extends TestBase {
 
-  implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
+  implicit val fileSweeper: FileSweeper = TestLimitQueues.fileSweeper
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   "random access" in {

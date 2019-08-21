@@ -65,7 +65,7 @@ object Set extends LazyLogging {
                lastLevelGroupBy: Option[GroupBy.KeyValues] = Some(DefaultGroupBy()),
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                     fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
+                                                                                     fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
                                                                                      cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     BlockingCore(
       config = DefaultPersistentConfig(
@@ -89,7 +89,7 @@ object Set extends LazyLogging {
       keyValueCacheCheckDelay = cacheCheckDelay,
       blockCacheSize = blockCacheSize,
       segmentsOpenCheckDelay = segmentsOpenCheckDelay,
-      fileOpenLimiterEC = fileOpenLimiterEC,
+      fileSweeperEC = fileSweeperEC,
       cacheLimiterEC = cacheLimiterEC
     ) map {
       db =>

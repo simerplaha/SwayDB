@@ -30,7 +30,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.{DBFile, BlockCache}
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.{FileLimiter, MemorySweeper}
+import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.merge.SegmentMerger
@@ -55,7 +55,7 @@ object PersistentSegment {
                                                      functionStore: FunctionStore,
                                                      memorySweeper: Option[MemorySweeper],
                                                      blockCache: Option[BlockCache.State],
-                                                     fileOpenLimiter: FileLimiter,
+                                                     fileSweeper: FileSweeper,
                                                      segmentIO: SegmentIO): IO[swaydb.Error.Segment, PersistentSegment] =
     BlockRefReader(file) map {
       blockRef =>
@@ -96,7 +96,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                                                                           functionStore: FunctionStore,
                                                                           memorySweeper: Option[MemorySweeper],
                                                                           blockCache: Option[BlockCache.State],
-                                                                          fileOpenLimiter: FileLimiter,
+                                                                          fileSweeper: FileSweeper,
                                                                           segmentIO: SegmentIO) extends Segment with LazyLogging {
 
   def path = file.path
@@ -117,7 +117,7 @@ private[segment] case class PersistentSegment(file: DBFile,
     file.isFileDefined
 
   def deleteSegmentsEventually =
-    fileOpenLimiter.delete(this)
+    fileSweeper.delete(this)
 
   def delete: IO[swaydb.Error.Segment, Unit] = {
     logger.trace(s"{}: DELETING FILE", path)

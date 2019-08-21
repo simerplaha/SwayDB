@@ -27,7 +27,7 @@ import swaydb.core.TestData._
 import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
-import swaydb.core.queue.{FileLimiter, MemorySweeper}
+import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.SkipList
@@ -42,8 +42,8 @@ import scala.collection.JavaConverters._
 class AppendixMapEntrySpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: Option[MemorySweeper] = TestLimitQueues.memorySweeper
+  implicit val maxSegmentsOpenCacheImplicitLimiter: FileSweeper = TestLimitQueues.fileSweeper
+  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def compression = randomGroupByOption(randomNextInt(1000))

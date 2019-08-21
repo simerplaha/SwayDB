@@ -21,7 +21,7 @@ package swaydb.core
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import swaydb.core.queue.{FileLimiter, FileLimiterItem, MemorySweeper}
+import swaydb.core.queue.{FileSweeper, FileSweeperItem, MemorySweeper}
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration._
@@ -36,10 +36,10 @@ object TestLimitQueues {
 
   def memorySweeper = eitherOne(None, someMemorySweeper)
 
-  val closeQueue = new ConcurrentLinkedQueue[FileLimiterItem]()
+  val closeQueue = new ConcurrentLinkedQueue[FileSweeperItem]()
   @volatile var closeQueueSize = closeQueue.size()
 
-  val deleteQueue = new ConcurrentLinkedQueue[FileLimiterItem]()
+  val deleteQueue = new ConcurrentLinkedQueue[FileSweeperItem]()
   @volatile var deleteQueueSize = closeQueue.size()
 
   val blockCache: Option[BlockCache.State] =
@@ -48,9 +48,9 @@ object TestLimitQueues {
   def randomBlockCache: Option[BlockCache.State] =
     orNone(blockCache)
 
-  val fileOpenLimiter: FileLimiter =
-    new FileLimiter {
-      override def close(file: FileLimiterItem): Unit = {
+  val fileSweeper: FileSweeper =
+    new FileSweeper {
+      override def close(file: FileSweeperItem): Unit = {
         closeQueue.add(file)
         closeQueueSize += 1
         if (closeQueueSize > 1000) {
@@ -58,7 +58,7 @@ object TestLimitQueues {
         }
       }
 
-      override def delete(file: FileLimiterItem): Unit = {
+      override def delete(file: FileSweeperItem): Unit = {
         deleteQueue.add(file)
         deleteQueueSize += 1
         if (deleteQueueSize > 100) {
