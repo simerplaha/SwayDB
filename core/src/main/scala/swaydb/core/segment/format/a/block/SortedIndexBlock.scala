@@ -55,11 +55,11 @@ private[core] object SortedIndexBlock extends LazyLogging {
   object Config {
     val disabled =
       Config(
-        blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+        blockIO = (dataType: IOAction) => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         enableAccessPositionIndex = false,
         prefixCompressionResetCount = 0,
         normaliseIndex = false,
-        compressions = _ => Seq.empty
+        compressions = (_: UncompressedBlockInfo) => Seq.empty
       )
 
     def apply(config: swaydb.data.config.SortedKeyIndex): Config =
@@ -76,8 +76,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
         blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
         compressions =
           FunctionUtil.safe(
-            default = _ => Seq.empty[CompressionInternal],
-            function = enable.compressions(_) map CompressionInternal.apply
+            default = (_: UncompressedBlockInfo) => Seq.empty[CompressionInternal],
+            function = enable.compressions(_: UncompressedBlockInfo) map CompressionInternal.apply
           )
       )
 
@@ -95,11 +95,11 @@ private[core] object SortedIndexBlock extends LazyLogging {
       )
   }
 
-  case class Config private(blockIO: IOAction => IOStrategy,
-                            prefixCompressionResetCount: Int,
-                            enableAccessPositionIndex: Boolean,
-                            normaliseIndex: Boolean,
-                            compressions: UncompressedBlockInfo => Seq[CompressionInternal])
+  class Config private(val blockIO: IOAction => IOStrategy,
+                       val prefixCompressionResetCount: Int,
+                       val enableAccessPositionIndex: Boolean,
+                       val normaliseIndex: Boolean,
+                       val compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
