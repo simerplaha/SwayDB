@@ -70,7 +70,7 @@
 //  implicit val timer = TestTimer.Empty
 //
 //  implicit val maxSegmentsOpenCacheImplicitLimiter: FileSweeper = TestLimitQueues.fileSweeper
-//  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
+//  implicit val memorySweeperImplicitSweeper: MemorySweeper = TestLimitQueues.memorySweeper
 //
 //  "putForward" should {
 //    "return zero" when {

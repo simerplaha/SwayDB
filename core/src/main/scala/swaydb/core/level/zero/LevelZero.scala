@@ -36,7 +36,7 @@ import swaydb.core.map
 import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
-import swaydb.core.queue.FileSweeper
+import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.Segment
 import swaydb.core.util.MinMax
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -59,6 +59,7 @@ private[core] object LevelZero extends LazyLogging {
             throttle: LevelZeroMeter => FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         limiter: FileSweeper,
+                                                        memorySweeper: MemorySweeper,
                                                         functionStore: FunctionStore): IO[swaydb.Error.Level, LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._

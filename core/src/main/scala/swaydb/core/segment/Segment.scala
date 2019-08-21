@@ -58,7 +58,7 @@ private[core] object Segment extends LazyLogging {
                                              functionStore: FunctionStore,
                                              fileSweeper: FileSweeper,
                                              groupBy: Option[GroupByInternal.KeyValues],
-                                             memorySweeper: Option[MemorySweeper],
+                                             memorySweeper: MemorySweeper,
                                              segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] =
     if (keyValues.isEmpty) {
       IO.failed("Empty key-values submitted to memory Segment.")
@@ -122,7 +122,7 @@ private[core] object Segment extends LazyLogging {
                  keyValues: Iterable[Transient])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                  functionStore: FunctionStore,
-                                                 memorySweeper: Option[MemorySweeper],
+                                                 memorySweeper: MemorySweeper,
                                                  fileSweeper: FileSweeper,
                                                  blockCache: Option[BlockCache.State],
                                                  segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] =
@@ -226,7 +226,7 @@ private[core] object Segment extends LazyLogging {
                     bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                                 functionStore: FunctionStore,
-                                                                memorySweeper: Option[MemorySweeper],
+                                                                memorySweeper: MemorySweeper,
                                                                 fileSweeper: FileSweeper,
                                                                 blockCache: Option[BlockCache.State],
                                                                 compression: Option[GroupByInternal.KeyValues],
@@ -291,7 +291,7 @@ private[core] object Segment extends LazyLogging {
                     bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                                 functionStore: FunctionStore,
-                                                                memorySweeper: Option[MemorySweeper],
+                                                                memorySweeper: MemorySweeper,
                                                                 fileSweeper: FileSweeper,
                                                                 blockCache: Option[BlockCache.State],
                                                                 compression: Option[GroupByInternal.KeyValues],
@@ -348,7 +348,7 @@ private[core] object Segment extends LazyLogging {
                                                                functionStore: FunctionStore,
                                                                fileSweeper: FileSweeper,
                                                                groupBy: Option[GroupByInternal.KeyValues],
-                                                               memorySweeper: Option[MemorySweeper],
+                                                               memorySweeper: MemorySweeper,
                                                                segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     segment.getAll() flatMap {
       keyValues =>
@@ -380,7 +380,7 @@ private[core] object Segment extends LazyLogging {
                                                                functionStore: FunctionStore,
                                                                fileSweeper: FileSweeper,
                                                                groupBy: Option[GroupByInternal.KeyValues],
-                                                               memorySweeper: Option[MemorySweeper],
+                                                               memorySweeper: MemorySweeper,
                                                                segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
@@ -417,7 +417,7 @@ private[core] object Segment extends LazyLogging {
             checkExists: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                          timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: FunctionStore,
-                                         memorySweeper: Option[MemorySweeper],
+                                         memorySweeper: MemorySweeper,
                                          fileSweeper: FileSweeper,
                                          blockCache: Option[BlockCache.State],
                                          segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] = {
@@ -468,7 +468,7 @@ private[core] object Segment extends LazyLogging {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
                                   blockCache: Option[BlockCache.State],
-                                  memorySweeper: Option[MemorySweeper],
+                                  memorySweeper: MemorySweeper,
                                   fileSweeper: FileSweeper): IO[swaydb.Error.Segment, Segment] = {
 
     implicit val segmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed

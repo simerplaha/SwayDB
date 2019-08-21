@@ -41,6 +41,7 @@ class MapsStressSpec extends TestBase {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val fileSweeper: FileSweeper = TestLimitQueues.fileSweeper
+  implicit val memorySweeper = TestLimitQueues.memorySweeper
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._

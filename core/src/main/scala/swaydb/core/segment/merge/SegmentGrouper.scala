@@ -39,7 +39,7 @@ import scala.collection.mutable.ListBuffer
 private[merge] object SegmentGrouper extends LazyLogging {
   //Read key-values during merge are always cleared by GC after the merge therefore in-memory key-value
   //management of these key-values is not required.
-  implicit val memorySweeper = MemorySweeper.none
+  implicit val memorySweeper = MemorySweeper.disabled
 
   /**
    * Mutates the input key-values by grouping them. Should not be accessed outside this class.

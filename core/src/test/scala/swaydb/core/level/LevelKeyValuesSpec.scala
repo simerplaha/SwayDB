@@ -72,7 +72,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
   //    false
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileSweeper = TestLimitQueues.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
+  implicit val memorySweeperImplicitSweeper: MemorySweeper = TestLimitQueues.memorySweeper
   implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
   implicit val skipListMerger = LevelZeroSkipListMerger
 

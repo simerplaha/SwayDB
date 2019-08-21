@@ -54,7 +54,7 @@ class MapSpec extends TestBase {
   implicit def testTimer: TestTimer = TestTimer.Empty
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileSweeper = TestLimitQueues.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
+  implicit val memorySweeperImplicitSweeper: MemorySweeper = TestLimitQueues.memorySweeper
   implicit val skipListMerger = LevelZeroSkipListMerger
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 

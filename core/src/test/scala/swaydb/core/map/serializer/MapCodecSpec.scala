@@ -41,7 +41,7 @@ class MapCodecSpec extends TestBase {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileSweeper = TestLimitQueues.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
+  implicit val memorySweeperImplicitSweeper: MemorySweeper = TestLimitQueues.memorySweeper
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def compression = randomGroupByOption(randomNextInt(1000))

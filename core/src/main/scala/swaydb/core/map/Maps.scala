@@ -32,7 +32,7 @@ import swaydb.core.io.file.IOEffect
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
-import swaydb.core.queue.FileSweeper
+import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.RecoveryMode
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -49,6 +49,7 @@ private[core] object Maps extends LazyLogging {
                              acceleration: LevelZeroMeter => Accelerator)(implicit keyOrder: KeyOrder[K],
                                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                                           limiter: FileSweeper,
+                                                                          memorySweeper: MemorySweeper,
                                                                           functionStore: FunctionStore,
                                                                           mapReader: MapEntryReader[MapEntry[K, V]],
                                                                           writer: MapEntryWriter[MapEntry.Put[K, V]],
@@ -68,6 +69,7 @@ private[core] object Maps extends LazyLogging {
                                  recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
                                                          timeOrder: TimeOrder[Slice[Byte]],
                                                          limiter: FileSweeper,
+                                                         memorySweeper: MemorySweeper,
                                                          functionStore: FunctionStore,
                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                          reader: MapEntryReader[MapEntry[K, V]],
@@ -123,6 +125,7 @@ private[core] object Maps extends LazyLogging {
                                       recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
                                                               timeOrder: TimeOrder[Slice[Byte]],
                                                               fileSweeper: FileSweeper,
+                                                              memorySweeper: MemorySweeper,
                                                               functionStore: FunctionStore,
                                                               writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                               mapReader: MapEntryReader[MapEntry[K, V]],
@@ -242,6 +245,7 @@ private[core] object Maps extends LazyLogging {
                               currentMap: Map[K, V])(implicit keyOrder: KeyOrder[K],
                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                      limiter: FileSweeper,
+                                                     memorySweeper: MemorySweeper,
                                                      functionStore: FunctionStore,
                                                      mapReader: MapEntryReader[MapEntry[K, V]],
                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
@@ -275,6 +279,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                                          @volatile private var currentMap: Map[K, V])(implicit keyOrder: KeyOrder[K],
                                                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                                                       limiter: FileSweeper,
+                                                                                      memorySweeper: MemorySweeper,
                                                                                       functionStore: FunctionStore,
                                                                                       mapReader: MapEntryReader[MapEntry[K, V]],
                                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],

@@ -45,6 +45,7 @@ class SegmentMemorySweeperSpec extends TestBase {
 
   val keyValuesCount = 100
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val memorySweeper = TestLimitQueues.memorySweeper
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   //  override def deleteFiles = false
@@ -84,7 +85,7 @@ class SegmentMemorySweeperSpec extends TestBase {
             path = Paths.get("/test"),
             createdInLevel = 0,
             keyValues = mergedKeyValues
-          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileSweeper, None, Some(memorySweeper), SegmentIO.random).runRandomIO.value
+          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileSweeper, None, memorySweeper, SegmentIO.random).runRandomIO.value
 
         //perform reads multiple times and assert that while the key-values are getting drop, the group key-value does
         //not value dropped
@@ -151,7 +152,7 @@ class SegmentMemorySweeperSpec extends TestBase {
       try {
 
         //create persistent Segment
-        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, Some(memorySweeper), FileSweeper.empty, timeOrder, blockCache, SegmentIO.random).runRandomIO.value
+        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, memorySweeper, FileSweeper.disabled, timeOrder, blockCache, SegmentIO.random).runRandomIO.value
 
         //initially Segment's cache is empty
         segment.areAllCachesEmpty shouldBe true

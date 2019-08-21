@@ -39,6 +39,7 @@ class MapsPerformanceSpec extends TestBase {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.random
   implicit val fileSweeper: FileSweeper = TestLimitQueues.fileSweeper
+  implicit val memorySweeper = TestLimitQueues.memorySweeper
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._

@@ -37,7 +37,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 private[core] object SegmentMerger extends LazyLogging {
-  implicit val memorySweeper = MemorySweeper.none
+  implicit val memorySweeper = MemorySweeper.disabled
 
   def transferSmall(buffers: ListBuffer[SegmentBuffer],
                     minSegmentSize: Long,

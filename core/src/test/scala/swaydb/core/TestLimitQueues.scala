@@ -32,9 +32,7 @@ object TestLimitQueues {
 
   implicit val level0PushDownPool = TestExecutionContext.executionContext
 
-  val someMemorySweeper = Some(MemorySweeper(10.mb, 5.seconds))
-
-  def memorySweeper = eitherOne(None, someMemorySweeper)
+  val memorySweeper = MemorySweeper(10.mb, 5.seconds)
 
   val closeQueue = new ConcurrentLinkedQueue[FileSweeperItem]()
   @volatile var closeQueueSize = closeQueue.size()

@@ -20,9 +20,9 @@
 package swaydb.core.queue
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Memory, Persistent}
-import swaydb.core.io.file.BlockCache
-import swaydb.core.queue.Command.{WeighKeyValue, WeighedKeyValue}
+import swaydb.core.queue.Command.WeighedKeyValue
 import swaydb.core.util.{JavaHashMap, SkipList}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -53,13 +53,19 @@ private object Command {
 
 private[core] object MemorySweeper {
 
+  val disabled: MemorySweeper =
+    new MemorySweeper {
+      override def add(keyValue: Persistent.SegmentResponse, skipList: SkipList[Slice[Byte], _]): Unit = ()
+      override def add(keyValue: ReadOnly.Group, skipList: SkipList[Slice[Byte], _]): Unit = ()
+      override def add(key: Long, value: Slice[Byte], map: JavaHashMap.Concurrent[Long, Slice[Byte]]): Unit = ()
+      override def terminate(): Unit = ()
+    }
+
   def apply(cacheSize: Long, delay: FiniteDuration)(implicit ex: ExecutionContext): MemorySweeper =
     new MemorySweeperImpl(
       cacheSize = cacheSize,
       delay = delay
     )
-
-  val none: Option[MemorySweeper] = None
 
   def keyValueWeigher(entry: Command): Long =
     entry match {

@@ -38,6 +38,7 @@ class MapStressSpec extends TestBase {
 
   implicit val skipListMerger = LevelZeroSkipListMerger
   implicit val fileSweeper: FileSweeper = TestLimitQueues.fileSweeper
+  implicit val memorySweeper = TestLimitQueues.memorySweeper
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   implicit def testTimer: TestTimer = TestTimer.Empty

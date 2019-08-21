@@ -214,7 +214,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               path: Path = testMapFile,
               flushOnOverflow: Boolean = false,
               mmap: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                    memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper,
+                                    memorySweeper: MemorySweeper = TestLimitQueues.memorySweeper,
                                     fileSweeper: FileSweeper = TestLimitQueues.fileSweeper,
                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[Slice[Byte], Memory.SegmentResponse] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
@@ -248,7 +248,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     def apply(keyValues: Slice[Transient] = randomizedKeyValues(addPut = true)(TestTimer.Incremental(), KeyOrder.default, memorySweeper),
               path: Path = testSegmentFile,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                               memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper,
+                                                                               memorySweeper: MemorySweeper = TestLimitQueues.memorySweeper,
                                                                                fileSweeper: FileSweeper = TestLimitQueues.fileSweeper,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
@@ -312,7 +312,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random,
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                      memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper,
+                                                      memorySweeper: MemorySweeper = TestLimitQueues.memorySweeper,
                                                       fileSweeper: FileSweeper = TestLimitQueues.fileSweeper,
                                                       blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
@@ -346,7 +346,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               mapSize: Long = mapSize,
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
               throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                               memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper,
+                                                                               memorySweeper: MemorySweeper = TestLimitQueues.memorySweeper,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                fileSweeper: FileSweeper = TestLimitQueues.fileSweeper): LevelZero =
       LevelZero(
@@ -374,6 +374,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
   def createMMAPFileReader(path: Path)(implicit blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): FileReader = {
     implicit val limiter = fileSweeper
+    implicit val memorySweeper = TestLimitQueues.memorySweeper
     new FileReader(
       DBFile.mmapRead(path, randomIOStrategy(), autoClose = true).runRandomIO.value
     )
@@ -384,6 +385,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
   def createFileChannelFileReader(path: Path)(implicit blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): FileReader = {
     implicit val limiter = fileSweeper
+    implicit val memorySweeper = TestLimitQueues.memorySweeper
     new FileReader(
       DBFile.channelRead(path, randomIOStrategy(), autoClose = true).runRandomIO.value
     )
@@ -649,7 +651,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                        assert: (Slice[Transient], Segment) => T,
                        testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                          memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper,
+                                                          memorySweeper: MemorySweeper = TestLimitQueues.memorySweeper,
                                                           segmentIO: SegmentIO = SegmentIO.random,
                                                           groupBy: Option[GroupByInternal.KeyValues]) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")

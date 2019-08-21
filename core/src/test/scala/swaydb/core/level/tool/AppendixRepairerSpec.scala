@@ -46,7 +46,7 @@ class AppendixRepairerSpec extends TestBase {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileSweeper = TestLimitQueues.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
+  implicit val memorySweeperImplicitSweeper: MemorySweeper = TestLimitQueues.memorySweeper
 
   "AppendixRepair" should {
     "fail if the input path does not exist" in {

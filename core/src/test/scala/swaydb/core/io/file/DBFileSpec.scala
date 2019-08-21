@@ -37,6 +37,7 @@ import swaydb.data.slice.Slice
 class DBFileSpec extends TestBase with MockFactory {
 
   implicit val fileSweeper: FileSweeper = TestLimitQueues.fileSweeper
+  implicit val memorySweeper = TestLimitQueues.memorySweeper
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   "DBFile.write" should {

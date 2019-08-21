@@ -42,14 +42,12 @@ private[core] trait FileSweeperItem {
 
 private[core] object FileSweeper extends LazyLogging {
 
-  val empty =
+  val disabled: FileSweeper =
     new FileSweeper {
       override def close(file: FileSweeperItem): Unit = ()
       override def delete(file: FileSweeperItem): Unit = ()
       override def terminate(): Unit = ()
     }
-
-  val none = Option.empty[FileSweeper]
 
   private sealed trait Action {
     def isDelete: Boolean

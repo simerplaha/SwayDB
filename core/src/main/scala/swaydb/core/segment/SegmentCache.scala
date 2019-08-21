@@ -39,12 +39,13 @@ private[core] object SegmentCache {
             unsliceKey: Boolean,
             blockRef: BlockRefReader[SegmentBlock.Offset],
             segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  memorySweeper: Option[MemorySweeper]): SegmentCache =
+                                  memorySweeper: MemorySweeper): SegmentCache =
     new SegmentCache(
       id = id,
       maxKey = maxKey,
       minKey = minKey,
-      _skipList = if (memorySweeper.isDefined) Some(SkipList.concurrent()) else None,
+      //      if (memorySweeper.isDefined) Some(SkipList.concurrent()) else None
+      _skipList = ???,
       unsliceKey = unsliceKey,
       blockCache =
         SegmentBlockCache(
@@ -60,7 +61,7 @@ private[core] class SegmentCache(id: String,
                                  _skipList: Option[SkipList[Slice[Byte], Persistent]],
                                  unsliceKey: Boolean,
                                  val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    memorySweeper: Option[MemorySweeper],
+                                                                    memorySweeper: MemorySweeper,
                                                                     groupIO: SegmentIO) extends LazyLogging {
 
 
@@ -84,7 +85,7 @@ private[core] class SegmentCache(id: String,
     if (!skipList.isConcurrent)
       skipList.put(keyValue.key, keyValue)
     else if (skipList.putIfAbsent(keyValue.key, keyValue))
-      memorySweeper.foreach(_.add(keyValue, skipList))
+      memorySweeper.add(keyValue, skipList)
   }
 
   private def addToCache(group: Persistent.Group): Unit = {
@@ -92,7 +93,7 @@ private[core] class SegmentCache(id: String,
     if (!skipList.isConcurrent)
       skipList.put(group.key, group)
     else if (skipList.putIfAbsent(group.key, group))
-      memorySweeper.foreach(_.add(group, skipList))
+      memorySweeper.add(group, skipList)
   }
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
