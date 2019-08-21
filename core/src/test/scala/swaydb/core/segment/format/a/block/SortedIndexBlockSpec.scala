@@ -39,7 +39,7 @@ import scala.collection.mutable.ListBuffer
 class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
   implicit val order = KeyOrder.default
-  implicit def keyValueLimiter = TestLimitQueues.keyValueLimiter
+  implicit def memorySweeper = TestLimitQueues.memorySweeper
   implicit def segmentIO = SegmentIO.random
 
   private def assetEqual(keyValues: Slice[Transient], readKeyValues: Iterable[KeyValue.ReadOnly]) = {

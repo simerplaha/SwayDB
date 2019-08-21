@@ -36,7 +36,7 @@ class LimitQueueStressSpec extends TestBase {
 
       @volatile var evictedItems = 0
       val limitQueue =
-        LimitQueue[Int](limit = 10, 2.second, _ => 1) {
+        LimitQueue[Int](maxWeight = 10, 2.second, _ => 1) {
           _ =>
             evictedItems += 1
         }
@@ -58,7 +58,7 @@ class LimitQueueStressSpec extends TestBase {
     //      //increase this val to test the queue on a larger number of items
     //      val itemCount = 10000000
     //
-    //      val limitQueue = KeyValueLimiter(100.mb, 5.seconds)
+    //      val limitQueue = MemorySweeper(100.mb, 5.seconds)
     //      val segment = TestSegment().get
     //
     //      val skipList = SkipList.concurrent[Slice[Byte], Int](KeyOrder.default)

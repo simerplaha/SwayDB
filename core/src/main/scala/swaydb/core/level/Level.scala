@@ -36,7 +36,7 @@ import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.seek._
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.queue.{FileLimiter, MemorySweeper}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.{Segment, SegmentAssigner}
 import swaydb.core.util.CollectionUtil._
@@ -97,7 +97,7 @@ private[core] object Level extends LazyLogging {
             deleteSegmentsEventually: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                functionStore: FunctionStore,
-                                               keyValueLimiter: Option[KeyValueLimiter],
+                                               memorySweeper: Option[MemorySweeper],
                                                blockCache: Option[BlockCache.State],
                                                fileOpenLimiter: FileLimiter,
                                                groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Level, Level] = {
@@ -348,7 +348,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                                               functionStore: FunctionStore,
                                                                               removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
                                                                               addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
-                                                                              keyValueLimiter: Option[KeyValueLimiter],
+                                                                              memorySweeper: Option[MemorySweeper],
                                                                               fileOpenLimiter: FileLimiter,
                                                                               blockCache: Option[BlockCache.State],
                                                                               val groupBy: Option[GroupByInternal.KeyValues],

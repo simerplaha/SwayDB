@@ -32,7 +32,7 @@ import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.compaction._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.queue.{FileLimiter, MemorySweeper}
 import swaydb.core.segment.format.a.block
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
@@ -144,10 +144,10 @@ private[core] object CoreInitializer extends LazyLogging {
     implicit val fileOpenLimiter: FileLimiter =
       FileLimiter(maxSegmentsOpen, segmentCloserDelay)(fileOpenLimiterEC)
 
-    implicit val keyValueLimiter: Option[KeyValueLimiter] =
+    implicit val memorySweeper: Option[MemorySweeper] =
       keyValueCacheSize map {
         cacheSize =>
-          KeyValueLimiter(cacheSize, keyValueQueueDelay)(cacheLimiterEC)
+          MemorySweeper(cacheSize, keyValueQueueDelay)(cacheLimiterEC)
       }
 
     implicit val blockCache: Option[BlockCache.State] =

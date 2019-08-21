@@ -27,7 +27,7 @@
 //import swaydb.core.IOAssert._
 //import swaydb.core.data._
 //import swaydb.core.io.reader.Reader
-//import swaydb.core.queue.KeyValueLimiter
+//import swaydb.core.queue.MemorySweeper
 //import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
 //import swaydb.IO._
 //import swaydb.core.{TestBase, TestData}
@@ -50,7 +50,7 @@
 //  "GroupDecompressor" should {
 //    "Concurrently read multiple key-values" in {
 //      //only 100.bytes (very small) for key-values bytes so that all key-values value dropped from the cache eventually.
-//      implicit val keyValueLimiter = KeyValueLimiter(1.byte, 1.second)
+//      implicit val memorySweeper = MemorySweeper(1.byte, 1.second)
 //      runThis(10.times) {
 //        //randomly generate key-values
 //        val keyValues =
@@ -121,7 +121,7 @@
 //        ???
 //      }
 //
-//      keyValueLimiter.terminate()
+//      memorySweeper.terminate()
 //    }
 //  }
 //}

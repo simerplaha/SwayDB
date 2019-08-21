@@ -30,7 +30,7 @@ import swaydb.core.io.file.IOEffect
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.queue.{FileLimiter, MemorySweeper}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.Extension
@@ -51,7 +51,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
       AppendixMapEntryReader(
         mmapSegmentsOnRead = false,
         mmapSegmentsOnWrite = false
-      )(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, None, SegmentIO.defaultSynchronisedStoredIfCompressed, None)
+      )(keyOrder, timeOrder, functionStore, MemorySweeper.none, FileLimiter.empty, None, SegmentIO.defaultSynchronisedStoredIfCompressed, None)
 
     import reader._
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
@@ -67,7 +67,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                 mmapReads = false,
                 mmapWrites = false,
                 checkExists = true
-              )(keyOrder, timeOrder, functionStore, None, KeyValueLimiter.none, FileLimiter.empty)
+              )(keyOrder, timeOrder, functionStore, None, MemorySweeper.none, FileLimiter.empty)
           }
           .flatMap {
             segments =>

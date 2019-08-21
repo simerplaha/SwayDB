@@ -31,7 +31,7 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.queue.{FileLimiter, MemorySweeper}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.merge.SegmentMerger
@@ -60,7 +60,7 @@ private[segment] case class MemorySegment(path: Path,
                                           nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore,
-                                                                                   keyValueLimiter: Option[KeyValueLimiter],
+                                                                                   memorySweeper: Option[MemorySweeper],
                                                                                    fileLimiter: FileLimiter,
                                                                                    segmentIO: SegmentIO) extends Segment with LazyLogging {
 
@@ -72,16 +72,16 @@ private[segment] case class MemorySegment(path: Path,
    * Adds the new Group to the queue only if it is not already in the Queue.
    *
    * This function is always invoked before reading the Group itself therefore if the header is not already
-   * populated, it means that this is a newly fetched/decompressed Group and should be added to the [[keyValueLimiter]].
+   * populated, it means that this is a newly fetched/decompressed Group and should be added to the [[memorySweeper]].
    *
-   * [[keyValueLimiter]] never removes [[Memory.Group]] key-value but instead uncompressed and re-adds them to the skipList.
+   * [[memorySweeper]] never removes [[Memory.Group]] key-value but instead uncompressed and re-adds them to the skipList.
    *
    */
   private def addToQueueMayBe(group: Memory.Group): Unit = {
     val groupSegment = group.segment
     //If the group is already initialised then this Group is already in the Limit queue as the queue always pre-reads the header
     if (!groupSegment.blockCache.isCached && groupSegment.isKeyValueCacheEmpty)
-      keyValueLimiter.foreach(_.add(group, skipList)) //this is a new decompression, add to queue.
+      memorySweeper.foreach(_.add(group, skipList)) //this is a new decompression, add to queue.
   }
 
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],

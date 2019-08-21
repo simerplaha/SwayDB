@@ -24,7 +24,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.queue.{FileLimiter, MemorySweeper}
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
@@ -111,7 +111,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   //    override def deleteFiles = false
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = None
+  implicit val keyValuesLimitImplicitLimiter: Option[MemorySweeper] = None
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   def strategy(action: IOAction): IOStrategy =

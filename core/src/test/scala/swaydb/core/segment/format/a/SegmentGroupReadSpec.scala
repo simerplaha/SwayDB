@@ -126,7 +126,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
   //    "eventually value uncompressed and update cache" in {
   //      val keyValues = randomizedKeyValues(100, addGroups = false)
   //
-  //      implicit val keyValueLimiter = KeyValueLimiter(100.bytes, 5.second)
+  //      implicit val memorySweeper = MemorySweeper(100.bytes, 5.second)
   //
   //      val group: Transient.Group = randomGroup(keyValues)
   //      val segment = TestSegment(Slice(group)).runIO
@@ -189,7 +189,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
   //        }
   //      }
   //
-  //      keyValueLimiter.terminate()
+  //      memorySweeper.terminate()
   //    }
   //  }
 }

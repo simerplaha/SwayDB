@@ -38,7 +38,7 @@
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 //  implicit def testTimer: TestTimer = TestTimer.random
 //  implicit val fileLimiter = TestLimitQueues.fileOpenLimiter
-//  implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
+//  implicit val memorySweeper = TestLimitQueues.memorySweeper
 //
 //  "lastGroup on a list of Transient key-values" should {
 //    "return empty if there are no groups" in {

@@ -23,7 +23,7 @@ import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.map.Map
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.MemorySweeper
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.segment.merge.MergeList
 import swaydb.data.order.KeyOrder
@@ -34,8 +34,8 @@ import scala.collection.mutable
 
 private[core] object SegmentAssigner {
 
-  //keyValueLimiter for when reading a Group's inner key-values.
-  implicit val keyValueLimiter = KeyValueLimiter.none
+  //memorySweeper for when reading a Group's inner key-values.
+  implicit val memorySweeper = MemorySweeper.none
 
   def assignMinMaxOnly(inputSegments: Iterable[Segment],
                        targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],

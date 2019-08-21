@@ -34,7 +34,7 @@ import scala.util.Try
 
 class SegmentSearcherSpec extends TestBase with MockFactory {
   implicit val order = KeyOrder.default
-  implicit val limiter = TestLimitQueues.keyValueLimiter
+  implicit val limiter = TestLimitQueues.memorySweeper
   implicit def segmentIO = SegmentIO.random
 
   def randomlySelectHigher(index: Int, keyValues: Slice[Persistent]) =

@@ -41,7 +41,7 @@ class GroupCompressorSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.random
-  implicit val limiter = TestLimitQueues.keyValueLimiter
+  implicit val limiter = TestLimitQueues.memorySweeper
 
   val keyValueCount = 100
 

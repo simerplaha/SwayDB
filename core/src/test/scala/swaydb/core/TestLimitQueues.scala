@@ -21,7 +21,7 @@ package swaydb.core
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
+import swaydb.core.queue.{FileLimiter, FileLimiterItem, MemorySweeper}
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration._
@@ -32,9 +32,9 @@ object TestLimitQueues {
 
   implicit val level0PushDownPool = TestExecutionContext.executionContext
 
-  val someKeyValueLimiter = Some(KeyValueLimiter(10.mb, 5.seconds))
+  val someMemorySweeper = Some(MemorySweeper(10.mb, 5.seconds))
 
-  def keyValueLimiter = eitherOne(None, someKeyValueLimiter)
+  def memorySweeper = eitherOne(None, someMemorySweeper)
 
   val closeQueue = new ConcurrentLinkedQueue[FileLimiterItem]()
   @volatile var closeQueueSize = closeQueue.size()

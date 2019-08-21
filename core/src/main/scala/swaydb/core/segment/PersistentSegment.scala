@@ -30,7 +30,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.{DBFile, BlockCache}
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.queue.{FileLimiter, MemorySweeper}
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.merge.SegmentMerger
@@ -53,7 +53,7 @@ object PersistentSegment {
             nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                      functionStore: FunctionStore,
-                                                     keyValueLimiter: Option[KeyValueLimiter],
+                                                     memorySweeper: Option[MemorySweeper],
                                                      blockCache: Option[BlockCache.State],
                                                      fileOpenLimiter: FileLimiter,
                                                      segmentIO: SegmentIO): IO[swaydb.Error.Segment, PersistentSegment] =
@@ -94,7 +94,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                                               segmentCache: SegmentCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                                           functionStore: FunctionStore,
-                                                                          keyValueLimiter: Option[KeyValueLimiter],
+                                                                          memorySweeper: Option[MemorySweeper],
                                                                           blockCache: Option[BlockCache.State],
                                                                           fileOpenLimiter: FileLimiter,
                                                                           segmentIO: SegmentIO) extends Segment with LazyLogging {

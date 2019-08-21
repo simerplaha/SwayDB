@@ -34,7 +34,7 @@ import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.{BlockCache, IOEffect}
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.queue.{FileLimiter, MemorySweeper}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.segment.{PersistentSegment, Segment}
@@ -87,7 +87,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO = SegmentIO.random
-  implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.someKeyValueLimiter
+  implicit val memorySweeper: Option[MemorySweeper] = TestLimitQueues.someMemorySweeper
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   //  override def deleteFiles = false
@@ -569,7 +569,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             keyValues = randomizedKeyValues(keyValuesCount),
             assert =
               (keyValues, segment) => {
-                implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
+                implicit val memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
                 val readSegment =
                   Segment(
                     path = segment.path,
@@ -701,16 +701,16 @@ sealed trait SegmentWriteSpec extends TestBase {
     if (memory) {
       //memory Segments do not value closed via
     } else {
-      implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
+      implicit val memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
       implicit val segmentOpenLimit = FileLimiter(1, 100.millisecond)
       val keyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
-      val segment1 = TestSegment(keyValues)(keyOrder, keyValueLimiter, segmentOpenLimit).value
+      val segment1 = TestSegment(keyValues)(keyOrder, memorySweeper, segmentOpenLimit).value
 
       segment1.getHeadKeyValueCount().value shouldBe keyValues.size
       segment1.isOpen shouldBe true
 
       //create another segment should close segment 1
-      val segment2 = TestSegment(keyValues)(keyOrder, keyValueLimiter, segmentOpenLimit).value
+      val segment2 = TestSegment(keyValues)(keyOrder, memorySweeper, segmentOpenLimit).value
       segment2.getHeadKeyValueCount().value shouldBe keyValues.size
 
       eventual(5.seconds) {
@@ -776,7 +776,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   "copyToPersist" should {
     "copy the segment and persist it to disk" in {
       implicit val groupBy: Option[GroupByInternal.KeyValues] = None
-      implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
+      implicit val memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
 
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).value
@@ -809,7 +809,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
     "copy the segment and persist it to disk when remove deletes is true" in {
       runThis(10.times) {
-        implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
+        implicit val memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues).value
         val levelPath = createNextLevelPath
@@ -850,7 +850,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     "revert copy if Segment initialisation fails after copy" in {
-      implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
+      implicit val memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).value
       val levelPath = createNextLevelPath
@@ -884,7 +884,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     "revert copy of Key-values if creating at least one Segment fails" in {
-      implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
+      implicit val memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
       val keyValues = randomizedKeyValues(keyValuesCount)
       val levelPath = createNextLevelPath
       val nextSegmentId = nextId
@@ -927,7 +927,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   "copyToMemory" should {
     "copy persistent segment and store it in Memory" in {
       runThis(100.times) {
-        implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
+        implicit val memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
         implicit val groupBy: Option[GroupByInternal.KeyValues] = None
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues).value
@@ -959,7 +959,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
     "copy the segment and persist it to disk when removeDeletes is true" in {
       runThis(10.times) {
-        implicit val keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
+        implicit val memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper
         implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
         val keyValues = randomizedKeyValues(keyValuesCount, addGroups = false)

@@ -33,7 +33,7 @@
 //import swaydb.core.io.file.IOEffect._
 //import swaydb.core.level.zero.LevelZeroSkipListMerger
 //import swaydb.core.map.MapEntry
-//import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+//import swaydb.core.queue.{FileLimiter, MemorySweeper}
 //import swaydb.core.segment.Segment
 //import swaydb.core.util.{Extension, ReserveRange}
 //import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
@@ -78,7 +78,7 @@
 //  //      false
 //
 //  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-//  implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
+//  implicit val keyValuesLimitImplicitLimiter: Option[MemorySweeper] = TestLimitQueues.memorySweeper
 //  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
 //  implicit val skipListMerger = LevelZeroSkipListMerger
 //

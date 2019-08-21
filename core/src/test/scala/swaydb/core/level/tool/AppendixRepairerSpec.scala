@@ -28,7 +28,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.io.file.IOEffect
 import swaydb.core.io.file.IOEffect._
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.queue.{FileLimiter, MemorySweeper}
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.compaction.Throttle
@@ -46,7 +46,7 @@ class AppendixRepairerSpec extends TestBase {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: Option[MemorySweeper] = TestLimitQueues.memorySweeper
 
   "AppendixRepair" should {
     "fail if the input path does not exist" in {

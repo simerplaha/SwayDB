@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.{Persistent, _}
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.SkipList
@@ -39,12 +39,12 @@ private[core] object SegmentCache {
             unsliceKey: Boolean,
             blockRef: BlockRefReader[SegmentBlock.Offset],
             segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  keyValueLimiter: Option[KeyValueLimiter]): SegmentCache =
+                                  memorySweeper: Option[MemorySweeper]): SegmentCache =
     new SegmentCache(
       id = id,
       maxKey = maxKey,
       minKey = minKey,
-      _skipList = if (keyValueLimiter.isDefined) Some(SkipList.concurrent()) else None,
+      _skipList = if (memorySweeper.isDefined) Some(SkipList.concurrent()) else None,
       unsliceKey = unsliceKey,
       blockCache =
         SegmentBlockCache(
@@ -52,7 +52,7 @@ private[core] object SegmentCache {
           blockRef = blockRef,
           segmentIO = segmentIO
         )
-    )(keyOrder = keyOrder, keyValueLimiter = keyValueLimiter, groupIO = segmentIO)
+    )(keyOrder = keyOrder, memorySweeper = memorySweeper, groupIO = segmentIO)
 }
 private[core] class SegmentCache(id: String,
                                  maxKey: MaxKey[Slice[Byte]],
@@ -60,7 +60,7 @@ private[core] class SegmentCache(id: String,
                                  _skipList: Option[SkipList[Slice[Byte], Persistent]],
                                  unsliceKey: Boolean,
                                  val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    keyValueLimiter: Option[KeyValueLimiter],
+                                                                    memorySweeper: Option[MemorySweeper],
                                                                     groupIO: SegmentIO) extends LazyLogging {
 
 
@@ -84,7 +84,7 @@ private[core] class SegmentCache(id: String,
     if (!skipList.isConcurrent)
       skipList.put(keyValue.key, keyValue)
     else if (skipList.putIfAbsent(keyValue.key, keyValue))
-      keyValueLimiter.foreach(_.add(keyValue, skipList))
+      memorySweeper.foreach(_.add(keyValue, skipList))
   }
 
   private def addToCache(group: Persistent.Group): Unit = {
@@ -92,7 +92,7 @@ private[core] class SegmentCache(id: String,
     if (!skipList.isConcurrent)
       skipList.put(group.key, group)
     else if (skipList.putIfAbsent(group.key, group))
-      keyValueLimiter.foreach(_.add(group, skipList))
+      memorySweeper.foreach(_.add(group, skipList))
   }
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =

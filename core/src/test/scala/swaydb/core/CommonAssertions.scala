@@ -41,7 +41,7 @@ import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSerializer}
 import swaydb.core.merge._
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
 import swaydb.core.segment.format.a.block._
@@ -105,7 +105,7 @@ object CommonAssertions {
       }
 
     def shouldBe(expected: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                     keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
+                                     memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper,
                                      segmentIO: SegmentIO = SegmentIO.random): Unit = {
       val actualMemory = actual.toMemory
       val expectedMemory = expected.toMemory
@@ -1271,7 +1271,7 @@ object CommonAssertions {
   }
 
   def unzipGroups[T <: KeyValue](keyValues: Iterable[T])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                         keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
+                                                         memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper,
                                                          segmentIO: SegmentIO = SegmentIO.random): Slice[Transient] =
     keyValues.flatMap {
       case keyValue: Transient.Group =>
@@ -1508,7 +1508,7 @@ object CommonAssertions {
     }
 
   def printGroupHierarchy(keyValues: Slice[KeyValue.ReadOnly], spaces: Int)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                            keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
+                                                                            memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper,
                                                                             segmentIO: SegmentIO = SegmentIO.random): Unit =
     keyValues foreachBreak {
       case group: Persistent.Group =>
@@ -1540,7 +1540,7 @@ object CommonAssertions {
     }
 
   def openGroup(group: KeyValue.ReadOnly.Group)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                keyValueLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
+                                                memorySweeper: Option[MemorySweeper] = TestLimitQueues.memorySweeper,
                                                 segmentIO: SegmentIO = SegmentIO.random): Slice[KeyValue.ReadOnly] = {
     val allKeyValues = group.segment.getAll().runRandomIO.value
     allKeyValues flatMap {
@@ -1706,7 +1706,7 @@ object CommonAssertions {
   }
 
   def assertGroup(group: Transient.Group)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                          limiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter,
+                                          limiter: Option[MemorySweeper] = TestLimitQueues.memorySweeper,
                                           segmentIO: SegmentIO = SegmentIO.random): Persistent.Group = {
     val readKeyValues = readAll(group).get
     readKeyValues should have size 1

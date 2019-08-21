@@ -33,7 +33,7 @@ import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.serializer._
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.queue.{FileLimiter, MemorySweeper}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{Extension, SkipList}
@@ -54,7 +54,7 @@ class MapSpec extends TestBase {
   implicit def testTimer: TestTimer = TestTimer.Empty
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: Option[KeyValueLimiter] = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: Option[MemorySweeper] = TestLimitQueues.memorySweeper
   implicit val skipListMerger = LevelZeroSkipListMerger
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 

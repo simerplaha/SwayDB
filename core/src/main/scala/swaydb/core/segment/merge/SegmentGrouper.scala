@@ -24,7 +24,7 @@ import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -39,7 +39,7 @@ import scala.collection.mutable.ListBuffer
 private[merge] object SegmentGrouper extends LazyLogging {
   //Read key-values during merge are always cleared by GC after the merge therefore in-memory key-value
   //management of these key-values is not required.
-  implicit val keyValueLimiter = KeyValueLimiter.none
+  implicit val memorySweeper = MemorySweeper.none
 
   /**
    * Mutates the input key-values by grouping them. Should not be accessed outside this class.

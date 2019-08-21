@@ -27,7 +27,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, _}
 import swaydb.core.io.file.BlockCache
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.queue.{FileLimiter, MemorySweeper}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
 import swaydb.core.util._
@@ -39,9 +39,9 @@ import swaydb.data.util.StorageUnits._
 import scala.concurrent.duration._
 
 /**
- * These class has tests to assert the behavior of [[KeyValueLimiter]] on [[swaydb.core.segment.Segment]]s.
+ * These class has tests to assert the behavior of [[MemorySweeper]] on [[swaydb.core.segment.Segment]]s.
  */
-class SegmentKeyValueLimiterSpec extends TestBase {
+class SegmentMemorySweeperSpec extends TestBase {
 
   val keyValuesCount = 100
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
@@ -77,14 +77,14 @@ class SegmentKeyValueLimiterSpec extends TestBase {
       val mergedKeyValues = (Seq(group) ++ nonGroupKeyValues).updateStats
 
       //set the limiter to drop key-values fast
-      implicit val keyValueLimiter = KeyValueLimiter(1.byte, 100.millisecond)
+      implicit val memorySweeper = MemorySweeper(1.byte, 100.millisecond)
       try {
         val segment =
           Segment.memory(
             path = Paths.get("/test"),
             createdInLevel = 0,
             keyValues = mergedKeyValues
-          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileOpenLimiter, None, Some(keyValueLimiter), SegmentIO.random).runRandomIO.value
+          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileOpenLimiter, None, Some(memorySweeper), SegmentIO.random).runRandomIO.value
 
         //perform reads multiple times and assert that while the key-values are getting drop, the group key-value does
         //not value dropped
@@ -118,7 +118,7 @@ class SegmentKeyValueLimiterSpec extends TestBase {
           }
         }
       } finally {
-        keyValueLimiter.terminate()
+        memorySweeper.terminate()
       }
     }
   }
@@ -147,11 +147,11 @@ class SegmentKeyValueLimiterSpec extends TestBase {
       val mergedKeyValues = (Seq(group) ++ nonGroupKeyValues).updateStats
 
       //set the limiter to drop key-values fast
-      implicit val keyValueLimiter = KeyValueLimiter(group.stats.valueLength, 2.second)
+      implicit val memorySweeper = MemorySweeper(group.stats.valueLength, 2.second)
       try {
 
         //create persistent Segment
-        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, Some(keyValueLimiter), FileLimiter.empty, timeOrder, blockCache, SegmentIO.random).runRandomIO.value
+        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, Some(memorySweeper), FileLimiter.empty, timeOrder, blockCache, SegmentIO.random).runRandomIO.value
 
         //initially Segment's cache is empty
         segment.areAllCachesEmpty shouldBe true
@@ -180,7 +180,7 @@ class SegmentKeyValueLimiterSpec extends TestBase {
 
         segment.close.value
       } finally {
-        keyValueLimiter.terminate()
+        memorySweeper.terminate()
       }
     }
   }

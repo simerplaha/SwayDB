@@ -38,11 +38,14 @@ private[core] object BlockCache {
     )
 
   class State(val blockSize: Int,
-              val map: JavaHashMap.Concurrent[Long, Slice[Byte]]) {
+              private[BlockCache] val map: JavaHashMap.Concurrent[Long, Slice[Byte]]) {
+    val blockSizeDouble: Double = blockSize
+
     def clear() =
       map.clear()
 
-    val blockSizeDouble: Double = blockSize
+    def remove(key: Long) =
+      map remove key
   }
 
   def seekSize(keyPosition: Int,

@@ -33,10 +33,10 @@ private class State[T](var size: Long,
 
 private[core] object LimitQueue {
 
-  def apply[T](limit: Long,
+  def apply[T](maxWeight: Long,
                delay: FiniteDuration,
                weigher: T => Long)(onEvict: T => Unit)(implicit ec: ExecutionContext): LimitQueue[T] =
-    new LimitQueue(limit, onEvict, delay, weigher)
+    new LimitQueue(maxWeight, onEvict, delay, weigher)
 }
 
 /**

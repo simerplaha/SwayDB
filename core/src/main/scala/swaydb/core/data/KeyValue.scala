@@ -25,14 +25,13 @@ import swaydb.core.cache.{Cache, NoIO}
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.MemorySweeper
 import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.{Segment, SegmentCache}
 import swaydb.core.util.CollectionUtil._
-import swaydb.core.cache.NoIO
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
@@ -58,7 +57,7 @@ private[core] object KeyValue {
   }
 
   /**
-   * Key-values that can be added to [[KeyValueLimiter]].
+   * Key-values that can be added to [[MemorySweeper]].
    *
    * These key-values can remain in memory depending on the cacheSize and are dropped or uncompressed on overflow.
    *
@@ -189,7 +188,7 @@ private[core] object KeyValue {
       def minKey: Slice[Byte]
       def maxKey: MaxKey[Slice[Byte]]
       def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                  keyValueLimiter: Option[KeyValueLimiter],
+                  memorySweeper: Option[MemorySweeper],
                   groupIO: SegmentIO): SegmentCache
       def deadline: Option[Deadline]
       def areAllCachesEmpty: Boolean
@@ -401,9 +400,9 @@ private[swaydb] object Memory {
                    segmentBytes: Slice[Byte],
                    deadline: Option[Deadline]) extends Memory with KeyValue.ReadOnly.Group {
 
-    private val segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[KeyValueLimiter], SegmentIO), SegmentCache] =
+    private val segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[MemorySweeper], SegmentIO), SegmentCache] =
       Cache.noIO(synchronised = true, stored = true, initial = None) {
-        case (keyOrder: KeyOrder[Slice[Byte]], limiter: Option[KeyValueLimiter], groupIO: SegmentIO) =>
+        case (keyOrder: KeyOrder[Slice[Byte]], limiter: Option[MemorySweeper], groupIO: SegmentIO) =>
           SegmentCache(
             id = "Memory.Group - BinarySegment",
             maxKey = maxKey,
@@ -436,10 +435,10 @@ private[swaydb] object Memory {
       segmentCache.get() foreach (_.clearLocalAndBlockCache())
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                keyValueLimiter: Option[KeyValueLimiter],
+                memorySweeper: Option[MemorySweeper],
                 config: SegmentIO): SegmentCache =
       segmentCache getOrElse {
-        segmentCache.value(keyOrder, keyValueLimiter, config)
+        segmentCache.value(keyOrder, memorySweeper, config)
       }
 
     def uncompress(): Memory.Group = {
@@ -1926,9 +1925,9 @@ private[core] object Persistent {
         case (minKey, maxKey) =>
           valueCache.value(ValuesBlock.Offset(valueOffset, valueLength)) map {
             reader =>
-              val segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[KeyValueLimiter], SegmentIO), SegmentCache] =
+              val segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[MemorySweeper], SegmentIO), SegmentCache] =
                 Cache.noIO(synchronised = true, stored = true, initial = None) {
-                  case (keyOrder: KeyOrder[Slice[Byte]], limiter: Option[KeyValueLimiter], groupIO: SegmentIO) =>
+                  case (keyOrder: KeyOrder[Slice[Byte]], limiter: Option[MemorySweeper], groupIO: SegmentIO) =>
                     val blockRef: BlockRefReader[SegmentBlock.Offset] =
                       BlockRefReader.moveTo(
                         //cache will return a reader with the offset pointing to this Group's offset, here simply reset to return as an BlockRef within the parent Segment's values block.
@@ -1969,7 +1968,7 @@ private[core] object Persistent {
 
   case class Group(private var _minKey: Slice[Byte],
                    private var _maxKey: MaxKey[Slice[Byte]],
-                   segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[KeyValueLimiter], SegmentIO), SegmentCache],
+                   segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[MemorySweeper], SegmentIO), SegmentCache],
                    nextIndexOffset: Int,
                    nextIndexSize: Int,
                    indexOffset: Int,
@@ -2011,10 +2010,10 @@ private[core] object Persistent {
     }
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                keyValueLimiter: Option[KeyValueLimiter],
+                memorySweeper: Option[MemorySweeper],
                 config: SegmentIO): SegmentCache =
       segmentCache getOrElse {
-        segmentCache.value(keyOrder, keyValueLimiter, config)
+        segmentCache.value(keyOrder, memorySweeper, config)
       }
   }
 }

@@ -46,6 +46,9 @@ object JavaHashMap {
     def contains(key: K): Boolean =
       map.containsKey(key)
 
+    def remove(key: K): Unit =
+      map.remove(key)
+
     def head =
       asScala.head
 

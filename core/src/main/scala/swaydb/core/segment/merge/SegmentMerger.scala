@@ -28,7 +28,7 @@ import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.merge.{FixedMerger, ValueMerger}
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -37,7 +37,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 private[core] object SegmentMerger extends LazyLogging {
-  implicit val keyValueLimiter = KeyValueLimiter.none
+  implicit val memorySweeper = MemorySweeper.none
 
   def transferSmall(buffers: ListBuffer[SegmentBuffer],
                     minSegmentSize: Long,
