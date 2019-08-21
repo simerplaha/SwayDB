@@ -51,6 +51,20 @@ private object Command {
                    map: JavaHashMap.Concurrent[Long, Slice[Byte]]) extends Command
 }
 
+private[core] sealed trait MemorySweeper {
+  def add(keyValue: Persistent.SegmentResponse,
+          skipList: SkipList[Slice[Byte], _]): Unit
+
+  def add(keyValue: KeyValue.ReadOnly.Group,
+          skipList: SkipList[Slice[Byte], _]): Unit
+
+  def add(key: Long,
+          value: Slice[Byte],
+          map: JavaHashMap.Concurrent[Long, Slice[Byte]]): Unit
+
+  def terminate(): Unit
+}
+
 private[core] object MemorySweeper {
 
   val disabled: MemorySweeper =
@@ -127,20 +141,6 @@ private[core] object MemorySweeper {
           }
         }
     }
-}
-
-private[core] sealed trait MemorySweeper {
-  def add(keyValue: Persistent.SegmentResponse,
-          skipList: SkipList[Slice[Byte], _]): Unit
-
-  def add(keyValue: KeyValue.ReadOnly.Group,
-          skipList: SkipList[Slice[Byte], _]): Unit
-
-  def add(key: Long,
-          value: Slice[Byte],
-          map: JavaHashMap.Concurrent[Long, Slice[Byte]]): Unit
-
-  def terminate(): Unit
 }
 
 private class MemorySweeperImpl(cacheSize: Long,

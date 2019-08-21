@@ -46,18 +46,18 @@ private[swaydb] object BlockingCore {
             segmentsOpenCheckDelay: FiniteDuration,
             blockCacheSize: Option[Int],
             fileSweeperEC: ExecutionContext,
-            cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            memorySweeperEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
     CoreInitializer(
       config = config,
-      maxSegmentsOpen = maxOpenSegments,
+      maxOpenSegments = maxOpenSegments,
       keyValueCacheSize = keyValueCacheSize.map(_.toLong),
       blockCacheSize = blockCacheSize,
       keyValueQueueDelay = keyValueCacheCheckDelay,
       segmentCloserDelay = segmentsOpenCheckDelay,
       fileSweeperEC = fileSweeperEC,
-      cacheLimiterEC = cacheLimiterEC
+      memorySweeperEC = memorySweeperEC
     )
 
   def apply(config: SwayDBMemoryConfig,
@@ -67,18 +67,18 @@ private[swaydb] object BlockingCore {
             blockCacheSize: Option[Int],
             segmentsOpenCheckDelay: FiniteDuration,
             fileSweeperEC: ExecutionContext,
-            cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            memorySweeperEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
     CoreInitializer(
       config = config,
-      maxSegmentsOpen = maxOpenSegments,
+      maxOpenSegments = maxOpenSegments,
       keyValueCacheSize = Some(cacheSize),
       blockCacheSize = blockCacheSize,
       keyValueQueueDelay = cacheCheckDelay,
       segmentCloserDelay = segmentsOpenCheckDelay,
       fileSweeperEC = fileSweeperEC,
-      cacheLimiterEC = cacheLimiterEC
+      memorySweeperEC = memorySweeperEC
     )
 
   def apply(config: LevelZeroConfig)(implicit mmapCleanerEC: ExecutionContext,

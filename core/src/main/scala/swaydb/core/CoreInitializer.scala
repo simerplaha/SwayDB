@@ -134,22 +134,22 @@ private[core] object CoreInitializer extends LazyLogging {
     }
 
   def apply(config: SwayDBConfig,
-            maxSegmentsOpen: Int,
+            maxOpenSegments: Int,
             keyValueCacheSize: Option[Long],
             keyValueQueueDelay: FiniteDuration,
             segmentCloserDelay: FiniteDuration,
             blockCacheSize: Option[Int],
             fileSweeperEC: ExecutionContext,
-            cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            memorySweeperEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] = {
     implicit val fileSweeper: FileSweeper =
-      FileSweeper(maxSegmentsOpen, segmentCloserDelay)(fileSweeperEC)
+      FileSweeper(maxOpenSegments, segmentCloserDelay)(fileSweeperEC)
 
     implicit val memorySweeper: MemorySweeper =
     //      keyValueCacheSize map {
     //        cacheSize =>
-    //          MemorySweeper(cacheSize, keyValueQueueDelay)(cacheLimiterEC)
+    //          MemorySweeper(cacheSize, keyValueQueueDelay)(memorySweeperEC)
     //      }
       ???
 

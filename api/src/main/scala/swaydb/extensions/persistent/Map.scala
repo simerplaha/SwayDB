@@ -97,7 +97,7 @@
 //                                                                                        valueSerializer: Serializer[V],
 //                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
 //                                                                                        fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
-//                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.extensions.Map[K, V]] =
+//                                                                                        memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.extensions.Map[K, V]] =
 //    BlockingCore(
 //      config = DefaultPersistentConfig(
 //        dir = dir,
@@ -119,7 +119,7 @@
 //      cacheCheckDelay = cacheCheckDelay,
 //      segmentsOpenCheckDelay = segmentsOpenCheckDelay,
 //      fileSweeperEC = fileSweeperEC,
-//      cacheLimiterEC = cacheLimiterEC
+//      memorySweeperEC = memorySweeperEC
 //    ) flatMap {
 //      db =>
 //        implicit val optionValueSerializer: Serializer[Option[V]] =

@@ -66,7 +66,7 @@ object Set extends LazyLogging {
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                      fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                     cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+                                                                                     memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     BlockingCore(
       config = DefaultPersistentConfig(
         dir = dir,
@@ -90,7 +90,7 @@ object Set extends LazyLogging {
       blockCacheSize = blockCacheSize,
       segmentsOpenCheckDelay = segmentsOpenCheckDelay,
       fileSweeperEC = fileSweeperEC,
-      cacheLimiterEC = cacheLimiterEC
+      memorySweeperEC = memorySweeperEC
     ) map {
       db =>
         swaydb.Set[T](db)
