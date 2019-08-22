@@ -50,6 +50,12 @@ object Tag {
       override def apply[A](a: => A): Option[A] =
         Some(a)
 
+      def isSuccess[A](a: Option[A]): Boolean =
+        a.isDefined
+
+      def isFailure[A](a: Option[A]): Boolean =
+        a.isEmpty
+
       override def foreach[A, B](a: A)(f: A => B): Unit =
         f(a)
 
@@ -98,6 +104,12 @@ object Tag {
       override def flatMap[A, B](fa: Try[A])(f: A => Try[B]): Try[B] =
         fa.flatMap(f)
 
+      def isSuccess[A](a: Try[A]): Boolean =
+        a.isSuccess
+
+      def isFailure[A](a: Try[A]): Boolean =
+        a.isFailure
+
       override def success[A](value: A): Try[A] =
         scala.util.Success(value)
 
@@ -143,6 +155,12 @@ object Tag {
 
       override def apply[A](a: => A): IO.ApiIO[A] =
         IO(a)
+
+      def isSuccess[A](a: IO.ApiIO[A]): Boolean =
+        a.isSuccess
+
+      def isFailure[A](a: IO.ApiIO[A]): Boolean =
+        a.isFailure
 
       override def map[A, B](a: A)(f: A => B): IO.ApiIO[B] =
         IO(f(a))

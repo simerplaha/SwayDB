@@ -25,7 +25,7 @@ import java.util.function.BiConsumer
 
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.{IO, Monad}
+import swaydb.{IO, Tagged}
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -86,18 +86,18 @@ private[core] object SkipList {
     }
   }
 
-  sealed trait KeyValue[K, V] extends Monad[(K, V), Option]
+  sealed trait KeyValue[K, V] extends Tagged[(K, V), Option]
   object KeyValue {
     case class Some[K, V](key: K, value: V) extends KeyValue[K, V] {
       def tuple: (K, V) =
         (key, value)
 
-      override def point: Option[(K, V)] =
+      override def get: Option[(K, V)] =
         Option(tuple)
     }
 
     case object None extends KeyValue[Nothing, Nothing] {
-      override def point = Option.empty
+      override def get = Option.empty
     }
   }
 

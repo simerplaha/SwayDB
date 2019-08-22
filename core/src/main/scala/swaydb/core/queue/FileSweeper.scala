@@ -65,7 +65,7 @@ private[core] object FileSweeper extends LazyLogging {
     if (action.isDelete) 10 else 1
 
   def apply(maxOpenSegments: Long, delay: FiniteDuration)(implicit ex: ExecutionContext): FileSweeper = {
-    lazy val queue = LimitQueue[Action](maxOpenSegments, delay, weigher) {
+    lazy val queue = CacheActor[Action](maxOpenSegments, delay, weigher) {
       case Action.Delete(file) =>
         file.delete() onFailureSideEffect {
           error =>

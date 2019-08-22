@@ -19,14 +19,17 @@
 
 package swaydb
 
-import Tag._
+import swaydb.Tag._
 
-abstract class Monad[A, T[_]](implicit tag: Tag[T]) {
-  def point: T[A]
+abstract class Tagged[A, T[_]](implicit tag: Tag[T]) {
+  def get: T[A]
 
   @inline def map[B](f: A => B): T[B] =
-    point.map(f)
+    get map f
 
   @inline def flatMap[B](f: A => T[B]): T[B] =
-    point.flatMap(f)
+    get flatMap f
+
+  @inline def foreach[B](f: A => B): Unit =
+    get map f
 }

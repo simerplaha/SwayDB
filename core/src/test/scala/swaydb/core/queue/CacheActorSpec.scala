@@ -30,7 +30,7 @@ import scala.concurrent.duration._
 import scala.ref.WeakReference
 
 case class Item(i: Int)
-class LimitQueueSpec extends TestBase {
+class CacheActorSpec extends TestBase {
 
   //  "Limiter.nextDelay" in {
   //    //if the limiter is overflown, next delay is halved
@@ -52,7 +52,7 @@ class LimitQueueSpec extends TestBase {
     "evicted overflown items on concurrent writes" in {
       val evictedItems = new ConcurrentSkipListSet[String]()
       val limitQueue =
-        LimitQueue[String](maxWeight = 10, 2.second, _ => 1) {
+        CacheActor[String](maxWeight = 10, 2.second, _ => 1) {
           evictedItem =>
             evictedItems.add(evictedItem)
             println(s"Evicted: $evictedItem")
@@ -70,7 +70,7 @@ class LimitQueueSpec extends TestBase {
     "evicted WeaklyReferenced items in FIFO manner" in {
 
       val evictedItems = ListBuffer.empty[WeakReference[Item]]
-      val limitQueue = LimitQueue[WeakReference[Item]](maxWeight = 5, 1.second, _ => 1) {
+      val limitQueue = CacheActor[WeakReference[Item]](maxWeight = 5, 1.second, _ => 1) {
         evictedItem =>
           evictedItems += evictedItem
           println(s"Evicted: ${evictedItem.get}")
@@ -121,7 +121,7 @@ class LimitQueueSpec extends TestBase {
     "stop loop if terminated" in {
       val evictedItems = new ConcurrentSkipListSet[String]()
       val limitQueue =
-        LimitQueue[String](maxWeight = 1, 2.second, _ => 1) {
+        CacheActor[String](maxWeight = 1, 2.second, _ => 1) {
           evictedItem =>
             evictedItems.add(evictedItem)
             println(s"Evicted: $evictedItem")

@@ -24,14 +24,15 @@ import scala.concurrent.duration.FiniteDuration
 
 sealed trait ActorQueue {
   def maxMessagesToProcessAtOnce: Int
+  def ec: ExecutionContext
 }
 
 object ActorQueue {
 
-  case class Default(maxMessagesToProcessAtOnce: Int,
-                     ec: ExecutionContext) extends ActorQueue
+  case class Basic(maxMessagesToProcessAtOnce: Int,
+                   ec: ExecutionContext) extends ActorQueue
 
-  case class Stash(maxMessagesToProcessAtOnce: Int,
+  case class Delay(maxMessagesToProcessAtOnce: Int,
                    maxOverflow: Int,
                    delay: FiniteDuration,
                    ec: ExecutionContext) extends ActorQueue

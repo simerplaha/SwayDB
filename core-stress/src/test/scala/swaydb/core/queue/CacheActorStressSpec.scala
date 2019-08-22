@@ -25,7 +25,7 @@ import swaydb.core.TestBase
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class LimitQueueStressSpec extends TestBase {
+class CacheActorStressSpec extends TestBase {
 
   override def inMemoryStorage: Boolean = true
 
@@ -36,7 +36,7 @@ class LimitQueueStressSpec extends TestBase {
 
       @volatile var evictedItems = 0
       val limitQueue =
-        LimitQueue[Int](maxWeight = 10, 2.second, _ => 1) {
+        CacheActor[Int](maxWeight = 10, 2.second, _ => 1) {
           _ =>
             evictedItems += 1
         }

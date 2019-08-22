@@ -19,28 +19,17 @@
 
 package swaydb.data.config
 
-sealed trait Cache {
-  def toOption: Option[Cache.Enabled] =
-    this match {
-      case Cache.Disable =>
-        None
-      case cache: Cache.Enabled =>
-        Some(cache)
-    }
-}
-object Cache {
+import swaydb.Tagged
 
-  case object Disable extends Cache
+sealed trait FileCache extends Tagged[FileCache.Enable, Option]
 
-  sealed trait Enabled extends Cache
-  case class EnableBlockCache(blockSize: Int,
-                              capacity: Int,
-                              queue: ActorQueue) extends Enabled
+object FileCache {
+  case object Disable extends FileCache {
+    override def get: Option[Enable] = None
+  }
 
-  case class EnableKeyValueCache(capacity: Int,
-                                 queue: ActorQueue) extends Enabled
-
-  case class EnableBoth(blockSize: Int,
-                        capacity: Int,
-                        queue: ActorQueue) extends Enabled
+  case class Enable(maxOpen: Int,
+                    actorQueue: ActorQueue) extends FileCache {
+    override def get: Option[Enable] = Some(this)
+  }
 }

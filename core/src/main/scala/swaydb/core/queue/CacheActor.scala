@@ -31,12 +31,12 @@ import scala.concurrent.duration._
 private class State[T](var size: Long,
                        val queue: mutable.Queue[(T, Long)])
 
-private[core] object LimitQueue {
+private[core] object CacheActor {
 
   def apply[T](maxWeight: Long,
                delay: FiniteDuration,
-               weigher: T => Long)(onEvict: T => Unit)(implicit ec: ExecutionContext): LimitQueue[T] =
-    new LimitQueue(maxWeight, onEvict, delay, weigher)
+               weigher: T => Long)(onEvict: T => Unit)(implicit ec: ExecutionContext): CacheActor[T] =
+    new CacheActor(maxWeight, onEvict, delay, weigher)
 }
 
 /**
@@ -50,7 +50,7 @@ private[core] object LimitQueue {
  * @param defaultDelay interval delays to run overflow checks which is adjust
  *                     during runtime based on the frequency of items being added and the size of overflow.
  */
-private[core] class LimitQueue[T](limit: Long,
+private[core] class CacheActor[T](limit: Long,
                                   onEvict: T => Unit,
                                   defaultDelay: FiniteDuration,
                                   weigher: T => Long)(implicit ec: ExecutionContext) extends LazyLogging {

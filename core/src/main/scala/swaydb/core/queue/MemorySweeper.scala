@@ -152,7 +152,7 @@ private class MemorySweeperImpl(cacheSize: Long,
    * Lazy initialisation because this queue is not require for Memory database that do not use compression.
    */
   private lazy val queue =
-    LimitQueue[Command](
+    CacheActor[Command](
       maxWeight = cacheSize,
       delay = delay,
       weigher = MemorySweeper.keyValueWeigher

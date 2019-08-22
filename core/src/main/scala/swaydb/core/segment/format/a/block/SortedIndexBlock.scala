@@ -95,11 +95,11 @@ private[core] object SortedIndexBlock extends LazyLogging {
       )
   }
 
-  class Config private(val blockIO: IOAction => IOStrategy,
-                       val prefixCompressionResetCount: Int,
-                       val enableAccessPositionIndex: Boolean,
-                       val normaliseIndex: Boolean,
-                       val compressions: UncompressedBlockInfo => Seq[CompressionInternal])
+  case class Config private(blockIO: IOAction => IOStrategy,
+                            prefixCompressionResetCount: Int,
+                            enableAccessPositionIndex: Boolean,
+                            normaliseIndex: Boolean,
+                            compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
