@@ -59,8 +59,8 @@ private[core] object PersistentTimer extends LazyLogging {
                                        functionStore: FunctionStore,
                                        writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                                        reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentTimer] = {
-    implicit val limiter = FileSweeper.disabled
-    implicit val memorySweeper = MemorySweeper.disabled
+    implicit val limiter = FileSweeper.Disabled
+    implicit val memorySweeper = MemorySweeper.Disabled
 
     Map.persistent[Slice[Byte], Slice[Byte]](
       folder = path,

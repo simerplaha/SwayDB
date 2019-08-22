@@ -30,7 +30,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.io.file.{DBFile, IOEffect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
-import swaydb.core.queue.{FileSweeper, MemorySweeper}
+import swaydb.core.queue.FileSweeper
 import swaydb.core.util.{Extension, SkipList}
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -50,7 +50,6 @@ private[map] object PersistentMap extends LazyLogging {
                                                                             timeOrder: TimeOrder[Slice[Byte]],
                                                                             functionStore: FunctionStore,
                                                                             fileSweeper: FileSweeper,
-                                                                            memorySweeper: MemorySweeper,
                                                                             reader: MapEntryReader[MapEntry[K, V]],
                                                                             writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                             skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, RecoveryResult[PersistentMap[K, V]]] = {
@@ -81,7 +80,6 @@ private[map] object PersistentMap extends LazyLogging {
                                          initialWriteCount: Long)(implicit keyOrder: KeyOrder[K],
                                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                                   fileSweeper: FileSweeper,
-                                                                  memorySweeper: MemorySweeper,
                                                                   functionStore: FunctionStore,
                                                                   reader: MapEntryReader[MapEntry[K, V]],
                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
@@ -105,12 +103,11 @@ private[map] object PersistentMap extends LazyLogging {
 
   private[map] def firstFile(folder: Path,
                              memoryMapped: Boolean,
-                             fileSize: Long)(implicit fileSweeper: FileSweeper,
-                                             memorySweeper: MemorySweeper): IO[swaydb.Error.Map, DBFile] =
+                             fileSize: Long)(implicit fileSweeper: FileSweeper): IO[swaydb.Error.Map, DBFile] =
     if (memoryMapped)
-      DBFile.mmapInit(folder.resolve(0.toLogFileId), IOStrategy.SynchronisedIO(true), fileSize, autoClose = false)(fileSweeper, memorySweeper, None)
+      DBFile.mmapInit(folder.resolve(0.toLogFileId), IOStrategy.SynchronisedIO(true), fileSize, autoClose = false)(fileSweeper, None)
     else
-      DBFile.channelWrite(folder.resolve(0.toLogFileId), IOStrategy.SynchronisedIO(true), autoClose = false)(fileSweeper, memorySweeper, None)
+      DBFile.channelWrite(folder.resolve(0.toLogFileId), IOStrategy.SynchronisedIO(true), autoClose = false)(fileSweeper, None)
 
   private[map] def recover[K, V](folder: Path,
                                  mmap: Boolean,
@@ -121,7 +118,6 @@ private[map] object PersistentMap extends LazyLogging {
                                                                     skipListMerger: SkipListMerger[K, V],
                                                                     keyOrder: KeyOrder[K],
                                                                     fileSweeper: FileSweeper,
-                                                                    memorySweeper: MemorySweeper,
                                                                     timeOrder: TimeOrder[Slice[Byte]],
                                                                     functionStore: FunctionStore): IO[swaydb.Error.Map, (RecoveryResult[DBFile], Boolean)] = {
     //read all existing logs and populate skipList
@@ -129,7 +125,7 @@ private[map] object PersistentMap extends LazyLogging {
     folder.files(Extension.Log) mapIO {
       path =>
         logger.info("{}: Recovering with dropCorruptedTailEntries = {}.", path, dropCorruptedTailEntries)
-        DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false)(fileSweeper, memorySweeper, None) flatMap {
+        DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false)(fileSweeper, None) flatMap {
           file =>
             file.readAll flatMap {
               bytes =>
@@ -198,8 +194,7 @@ private[map] object PersistentMap extends LazyLogging {
                                   fileSize: Long,
                                   skipList: SkipList.Concurrent[K, V])(implicit reader: MapEntryReader[MapEntry[K, V]],
                                                                        writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                       fileSweeper: FileSweeper,
-                                                                       memorySweeper: MemorySweeper): Option[IO[swaydb.Error.Map, DBFile]] =
+                                                                       fileSweeper: FileSweeper): Option[IO[swaydb.Error.Map, DBFile]] =
     oldFiles.lastOption map {
       lastFile =>
         nextFile(lastFile, mmap, fileSize, skipList) flatMap {
@@ -226,16 +221,15 @@ private[map] object PersistentMap extends LazyLogging {
                                   size: Long,
                                   skipList: SkipList.Concurrent[K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                        mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                       fileSweeper: FileSweeper,
-                                                                       memorySweeper: MemorySweeper): IO[swaydb.Error.Map, DBFile] =
+                                                                       fileSweeper: FileSweeper): IO[swaydb.Error.Map, DBFile] =
     currentFile.path.incrementFileId flatMap {
       nextPath =>
         val bytes = MapCodec.write(skipList)
         val newFile =
           if (mmap)
-            DBFile.mmapInit(path = nextPath, IOStrategy.SynchronisedIO(true), bufferSize = bytes.size + size, autoClose = false)(fileSweeper, memorySweeper, None)
+            DBFile.mmapInit(path = nextPath, IOStrategy.SynchronisedIO(true), bufferSize = bytes.size + size, autoClose = false)(fileSweeper, None)
           else
-            DBFile.channelWrite(nextPath, IOStrategy.SynchronisedIO(true), autoClose = false)(fileSweeper, memorySweeper, None)
+            DBFile.channelWrite(nextPath, IOStrategy.SynchronisedIO(true), autoClose = false)(fileSweeper, None)
 
         newFile flatMap {
           newFile =>
@@ -259,7 +253,6 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
                                                       private val hasRangeInitial: Boolean)(val skipList: SkipList.Concurrent[K, V])(implicit keyOrder: KeyOrder[K],
                                                                                                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                                      fileSweeper: FileSweeper,
-                                                                                                                                     memorySweeper: MemorySweeper,
                                                                                                                                      functionStore: FunctionStore,
                                                                                                                                      reader: MapEntryReader[MapEntry[K, V]],
                                                                                                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],

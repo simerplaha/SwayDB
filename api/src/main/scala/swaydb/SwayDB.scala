@@ -234,7 +234,7 @@ object SwayDB extends LazyLogging {
    */
   def repairAppendix[K](levelPath: Path,
                         repairStrategy: AppendixRepairStrategy)(implicit serializer: Serializer[K],
-                                                                fileSweeper: FileSweeper,
+                                                                fileSweeper: FileSweeper.Enabled,
                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                 ec: ExecutionContext = defaultExecutionContext): IO[swaydb.Error.Level, RepairResult[K]] =
   //convert to typed result.

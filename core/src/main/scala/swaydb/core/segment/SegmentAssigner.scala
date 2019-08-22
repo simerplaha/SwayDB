@@ -35,7 +35,7 @@ import scala.collection.mutable
 private[core] object SegmentAssigner {
 
   //memorySweeper for when reading a Group's inner key-values.
-  implicit val memorySweeper = MemorySweeper.disabled
+  implicit val memorySweeper = Option.empty[MemorySweeper.KeyValue]
 
   def assignMinMaxOnly(inputSegments: Iterable[Segment],
                        targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],

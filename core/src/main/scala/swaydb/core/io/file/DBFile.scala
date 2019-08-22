@@ -25,7 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ErrorHandler
 import swaydb.IO._
 import swaydb.core.cache.Cache
-import swaydb.core.queue.{FileSweeper, FileSweeperItem, MemorySweeper}
+import swaydb.core.queue.{FileSweeper, FileSweeperItem}
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
 import swaydb.data.slice.Slice
@@ -44,7 +44,7 @@ object DBFile extends LazyLogging {
     //FIX-ME: need a better solution.
     var self: Cache[Error.IO, Unit, DBFileType] = null
 
-    val closer =
+    val closer: FileSweeperItem =
       new FileSweeperItem {
         override def path: Path = filePath
         override def delete(): IO[Error.Segment, Unit] = IO.failed("only closable")
@@ -77,13 +77,13 @@ object DBFile extends LazyLogging {
             else
               ChannelFile.read(filePath)
 
-          if (autoClose) fileSweeper.close(closer)
+          if (autoClose) fileSweeper.foreach(_.close(closer))
           openResult
       }
 
     self = cache
 
-    if (autoClose && file.isDefined) fileSweeper.close(closer)
+    if (autoClose && file.isDefined) fileSweeper.foreach(_.close(closer))
     cache
   }
 
@@ -98,7 +98,6 @@ object DBFile extends LazyLogging {
   def channelWrite(path: Path,
                    ioStrategy: IOStrategy,
                    autoClose: Boolean)(implicit fileSweeper: FileSweeper,
-                                       memorySweeper: MemorySweeper,
                                        blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
     ChannelFile.write(path) map {
       file =>
@@ -121,7 +120,6 @@ object DBFile extends LazyLogging {
                   ioStrategy: IOStrategy,
                   autoClose: Boolean,
                   checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
-                                               memorySweeper: MemorySweeper,
                                                blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
     if (checkExists && IOEffect.notExists(path))
       IO.Failure(swaydb.Error.NoSuchFile(path))
@@ -146,7 +144,6 @@ object DBFile extends LazyLogging {
                        ioStrategy: IOStrategy,
                        autoClose: Boolean,
                        bytes: Iterable[Slice[Byte]])(implicit fileSweeper: FileSweeper,
-                                                     memorySweeper: MemorySweeper,
                                                      blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
   //do not write bytes if the Slice has empty bytes.
     bytes.foldLeftIO(0) {
@@ -175,7 +172,6 @@ object DBFile extends LazyLogging {
                        ioStrategy: IOStrategy,
                        autoClose: Boolean,
                        bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
-                                           memorySweeper: MemorySweeper,
                                            blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull)
@@ -198,7 +194,6 @@ object DBFile extends LazyLogging {
                ioStrategy: IOStrategy,
                autoClose: Boolean,
                checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
-                                            memorySweeper: MemorySweeper,
                                             blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
     if (checkExists && IOEffect.notExists(path))
       IO.Failure(swaydb.Error.NoSuchFile(path))
@@ -223,7 +218,6 @@ object DBFile extends LazyLogging {
                ioStrategy: IOStrategy,
                bufferSize: Long,
                autoClose: Boolean)(implicit fileSweeper: FileSweeper,
-                                   memorySweeper: MemorySweeper,
                                    blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
     MMAPFile.write(path, bufferSize) map {
       file =>
@@ -251,7 +245,6 @@ class DBFile(val path: Path,
              memoryMapped: Boolean,
              autoClose: Boolean,
              fileCache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit fileSweeper: FileSweeper,
-                                                                  memorySweeper: MemorySweeper,
                                                                   blockCache: Option[BlockCache.State]) extends LazyLogging {
 
   def existsOnDisk =

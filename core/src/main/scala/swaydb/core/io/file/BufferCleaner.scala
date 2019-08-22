@@ -135,7 +135,12 @@ private[core] class BufferCleaner(implicit ec: ExecutionContext) extends LazyLog
   logger.debug("Starting buffer cleaner.")
 
   private val actor: ActorRef[(MappedByteBuffer, Path, Boolean)] =
-    Actor.timer[(MappedByteBuffer, Path, Boolean), State](State(None), 5.seconds) {
+    Actor.timer[(MappedByteBuffer, Path, Boolean), State](
+      state = State(None),
+      maxMessagesToProcessAtOnce = 100,
+      overflowAllowed = 100,
+      fixedDelay = 5.seconds
+    ) {
       case (message @ (buffer, path, isOverdue), self) =>
         if (isOverdue)
           BufferCleaner.clean(self.state, buffer, path)

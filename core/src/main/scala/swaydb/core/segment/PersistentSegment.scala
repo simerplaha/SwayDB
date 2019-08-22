@@ -28,7 +28,7 @@ import swaydb.IO._
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.{DBFile, BlockCache}
+import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
@@ -53,9 +53,9 @@ object PersistentSegment {
             nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                      functionStore: FunctionStore,
-                                                     memorySweeper: MemorySweeper,
+                                                     memorySweeper: Option[MemorySweeper.KeyValue],
                                                      blockCache: Option[BlockCache.State],
-                                                     fileSweeper: FileSweeper,
+                                                     fileSweeper: FileSweeper.Enabled,
                                                      segmentIO: SegmentIO): IO[swaydb.Error.Segment, PersistentSegment] =
     BlockRefReader(file) map {
       blockRef =>
@@ -94,9 +94,9 @@ private[segment] case class PersistentSegment(file: DBFile,
                                               segmentCache: SegmentCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                           timeOrder: TimeOrder[Slice[Byte]],
                                                                           functionStore: FunctionStore,
-                                                                          memorySweeper: MemorySweeper,
                                                                           blockCache: Option[BlockCache.State],
-                                                                          fileSweeper: FileSweeper,
+                                                                          fileSweeper: FileSweeper.Enabled,
+                                                                          memorySweeper: Option[MemorySweeper.KeyValue],
                                                                           segmentIO: SegmentIO) extends Segment with LazyLogging {
 
   def path = file.path

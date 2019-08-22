@@ -97,9 +97,9 @@ private[core] object Level extends LazyLogging {
             deleteSegmentsEventually: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                functionStore: FunctionStore,
-                                               memorySweeper: MemorySweeper,
+                                               memorySweeper: Option[MemorySweeper.KeyValue],
                                                blockCache: Option[BlockCache.State],
-                                               fileSweeper: FileSweeper,
+                                               fileSweeper: FileSweeper.Enabled,
                                                groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Level, Level] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
@@ -348,8 +348,8 @@ private[core] case class Level(dirs: Seq[Dir],
                                                                               functionStore: FunctionStore,
                                                                               removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
                                                                               addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
-                                                                              memorySweeper: MemorySweeper,
-                                                                              fileSweeper: FileSweeper,
+                                                                              memorySweeper: Option[MemorySweeper.KeyValue],
+                                                                              fileSweeper: FileSweeper.Enabled,
                                                                               blockCache: Option[BlockCache.State],
                                                                               val groupBy: Option[GroupByInternal.KeyValues],
                                                                               val segmentIDGenerator: IDGenerator,

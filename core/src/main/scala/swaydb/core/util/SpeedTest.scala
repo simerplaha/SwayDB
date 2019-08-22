@@ -34,9 +34,9 @@ object SpeedTest extends App {
   val map = new ConcurrentHashMap[Int, Int](size)
   val queue = new ConcurrentLinkedDeque[Int]()
 
-  val blockCache = BlockCache.init(size)
-
-  val limiter = MemorySweeper(size, 10.seconds)
+//  val blockCache = BlockCache.init(size)
+//
+//  val limiter = MemorySweeper(size, 10.seconds)
 
   Benchmark("") {
     (1 to size) foreach {

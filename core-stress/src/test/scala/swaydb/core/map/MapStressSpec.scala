@@ -37,7 +37,7 @@ class MapStressSpec extends TestBase {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
   implicit val skipListMerger = LevelZeroSkipListMerger
-  implicit val fileSweeper: FileSweeper = TestLimitQueues.fileSweeper
+  implicit val fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper
   implicit val memorySweeper = TestLimitQueues.memorySweeper
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 

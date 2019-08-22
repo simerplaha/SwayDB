@@ -69,8 +69,8 @@
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 //  implicit val timer = TestTimer.Empty
 //
-//  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper = TestLimitQueues.fileSweeper
-//  implicit val memorySweeperImplicitSweeper: MemorySweeper = TestLimitQueues.memorySweeper
+//  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
+//  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeper
 //
 //  "putForward" should {
 //    "return zero" when {

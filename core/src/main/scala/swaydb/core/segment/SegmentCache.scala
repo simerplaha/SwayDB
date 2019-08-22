@@ -30,6 +30,7 @@ import swaydb.core.util.SkipList
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.core.util.Options._
 
 private[core] object SegmentCache {
 
@@ -39,13 +40,12 @@ private[core] object SegmentCache {
             unsliceKey: Boolean,
             blockRef: BlockRefReader[SegmentBlock.Offset],
             segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  memorySweeper: MemorySweeper): SegmentCache =
+                                  memorySweeper: Option[MemorySweeper.KeyValue]): SegmentCache =
     new SegmentCache(
       id = id,
       maxKey = maxKey,
       minKey = minKey,
-      //      if (memorySweeper.isDefined) Some(SkipList.concurrent()) else None
-      _skipList = ???,
+      _skipList = when(memorySweeper.isDefined)(Some(SkipList.concurrent())),
       unsliceKey = unsliceKey,
       blockCache =
         SegmentBlockCache(
@@ -61,7 +61,7 @@ private[core] class SegmentCache(id: String,
                                  _skipList: Option[SkipList[Slice[Byte], Persistent]],
                                  unsliceKey: Boolean,
                                  val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    memorySweeper: MemorySweeper,
+                                                                    memorySweeper: Option[MemorySweeper.KeyValue],
                                                                     groupIO: SegmentIO) extends LazyLogging {
 
 
@@ -85,7 +85,7 @@ private[core] class SegmentCache(id: String,
     if (!skipList.isConcurrent)
       skipList.put(keyValue.key, keyValue)
     else if (skipList.putIfAbsent(keyValue.key, keyValue))
-      memorySweeper.add(keyValue, skipList)
+      memorySweeper.foreach(_.add(keyValue, skipList))
   }
 
   private def addToCache(group: Persistent.Group): Unit = {
@@ -93,7 +93,7 @@ private[core] class SegmentCache(id: String,
     if (!skipList.isConcurrent)
       skipList.put(group.key, group)
     else if (skipList.putIfAbsent(group.key, group))
-      memorySweeper.add(group, skipList)
+      memorySweeper.foreach(_.add(group, skipList))
   }
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =

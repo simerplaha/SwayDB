@@ -47,18 +47,19 @@ private[swaydb] object BlockingCore {
             blockCacheSize: Option[Int],
             fileSweeperEC: ExecutionContext,
             memorySweeperEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                              timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
-    CoreInitializer(
-      config = config,
-      maxOpenSegments = maxOpenSegments,
-      keyValueCacheSize = keyValueCacheSize.map(_.toLong),
-      blockCacheSize = blockCacheSize,
-      keyValueQueueDelay = keyValueCacheCheckDelay,
-      segmentCloserDelay = segmentsOpenCheckDelay,
-      fileSweeperEC = fileSweeperEC,
-      memorySweeperEC = memorySweeperEC
-    )
+                                               timeOrder: TimeOrder[Slice[Byte]],
+                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
+  //    CoreInitializer(
+  //      config = config,
+  //      maxOpenSegments = maxOpenSegments,
+  //      keyValueCacheSize = keyValueCacheSize.map(_.toLong),
+  //      blockCacheSize = blockCacheSize,
+  //      keyValueQueueDelay = keyValueCacheCheckDelay,
+  //      segmentCloserDelay = segmentsOpenCheckDelay,
+  //      fileSweeperEC = fileSweeperEC,
+  //      memorySweeperEC = memorySweeperEC
+  //    )
+    ???
 
   def apply(config: SwayDBMemoryConfig,
             maxOpenSegments: Int,
@@ -68,27 +69,29 @@ private[swaydb] object BlockingCore {
             segmentsOpenCheckDelay: FiniteDuration,
             fileSweeperEC: ExecutionContext,
             memorySweeperEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                              timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
-    CoreInitializer(
-      config = config,
-      maxOpenSegments = maxOpenSegments,
-      keyValueCacheSize = Some(cacheSize),
-      blockCacheSize = blockCacheSize,
-      keyValueQueueDelay = cacheCheckDelay,
-      segmentCloserDelay = segmentsOpenCheckDelay,
-      fileSweeperEC = fileSweeperEC,
-      memorySweeperEC = memorySweeperEC
-    )
+                                               timeOrder: TimeOrder[Slice[Byte]],
+                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
+  //    CoreInitializer(
+  //      config = config,
+  //      maxOpenSegments = maxOpenSegments,
+  //      keyValueCacheSize = Some(cacheSize),
+  //      blockCacheSize = blockCacheSize,
+  //      keyValueQueueDelay = cacheCheckDelay,
+  //      segmentCloserDelay = segmentsOpenCheckDelay,
+  //      fileSweeperEC = fileSweeperEC,
+  //      memorySweeperEC = memorySweeperEC
+  //    )
+    ???
 
   def apply(config: LevelZeroConfig)(implicit mmapCleanerEC: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
-    CoreInitializer(
-      config = config,
-      bufferCleanerEC = mmapCleanerEC
-    )
+  //    CoreInitializer(
+  //      config = config,
+  //      bufferCleanerEC = mmapCleanerEC
+  //    )
+    ???
 
   private def prepareToMapEntry(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory.SegmentResponse]] =
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {

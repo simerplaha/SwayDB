@@ -21,17 +21,12 @@ package swaydb.core.queue
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
+import swaydb.data.config.{ActorQueue, FileCache}
+import swaydb.{IO, Tagged}
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 import scala.ref.WeakReference
 
-private[swaydb] trait FileSweeper {
-  def close(file: FileSweeperItem): Unit
-  def delete(file: FileSweeperItem): Unit
-  def terminate(): Unit
-}
 
 private[core] trait FileSweeperItem {
   def path: Path
@@ -40,14 +35,19 @@ private[core] trait FileSweeperItem {
   def isOpen: Boolean
 }
 
-private[core] object FileSweeper extends LazyLogging {
+private[swaydb] trait FileSweeper extends Tagged[FileSweeper.Enabled, Option]
+private[swaydb] object FileSweeper extends LazyLogging {
 
-  val disabled: FileSweeper =
-    new FileSweeper {
-      override def close(file: FileSweeperItem): Unit = ()
-      override def delete(file: FileSweeperItem): Unit = ()
-      override def terminate(): Unit = ()
-    }
+  case object Disabled extends FileSweeper {
+    override def get: Option[Enabled] = None
+  }
+  sealed trait Enabled extends FileSweeper {
+    override def get: Option[Enabled] = Some(this)
+    def ec: ExecutionContext
+    def close(file: FileSweeperItem): Unit
+    def delete(file: FileSweeperItem): Unit
+    def terminate(): Unit
+  }
 
   private sealed trait Action {
     def isDelete: Boolean
@@ -64,8 +64,17 @@ private[core] object FileSweeper extends LazyLogging {
   def weigher(action: Action) =
     if (action.isDelete) 10 else 1
 
-  def apply(maxOpenSegments: Long, delay: FiniteDuration)(implicit ex: ExecutionContext): FileSweeper = {
-    lazy val queue = CacheActor[Action](maxOpenSegments, delay, weigher) {
+  def apply(fileCache: FileCache): Option[FileSweeper.Enabled] =
+    fileCache map apply
+
+  def apply(fileCache: FileCache.Enable): FileSweeper.Enabled =
+    apply(
+      maxOpenSegments = fileCache.maxOpen,
+      actorQueue = fileCache.actorQueue
+    )
+
+  def apply(maxOpenSegments: Long, actorQueue: ActorQueue): FileSweeper.Enabled = {
+    lazy val queue = CacheActor[Action](maxOpenSegments, actorQueue, weigher) {
       case Action.Delete(file) =>
         file.delete() onFailureSideEffect {
           error =>
@@ -82,7 +91,9 @@ private[core] object FileSweeper extends LazyLogging {
         }
     }
 
-    new FileSweeper {
+    new FileSweeper.Enabled {
+
+      def ec = actorQueue.ec
 
       override def close(file: FileSweeperItem): Unit =
         queue ! Action.Close(new WeakReference[FileSweeperItem](file))

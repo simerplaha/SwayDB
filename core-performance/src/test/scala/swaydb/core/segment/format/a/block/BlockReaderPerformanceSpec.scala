@@ -34,7 +34,7 @@ import swaydb.core.io.reader.FileReader
 
 class BlockReaderPerformanceSpec extends TestBase {
 
-  implicit val fileSweeper: FileSweeper = TestLimitQueues.fileSweeper
+  implicit val fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper
   implicit val memorySweeper = TestLimitQueues.memorySweeper
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 

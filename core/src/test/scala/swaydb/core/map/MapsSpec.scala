@@ -47,7 +47,7 @@ class MapsSpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val fileSweeper: FileSweeper = TestLimitQueues.fileSweeper
+  implicit val fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper
   implicit val memorySweeper = TestLimitQueues.memorySweeper
   implicit def testTimer: TestTimer = TestTimer.Empty
 

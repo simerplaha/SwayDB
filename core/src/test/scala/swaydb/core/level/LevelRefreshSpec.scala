@@ -71,8 +71,8 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper = TestLimitQueues.fileSweeper
-  implicit val memorySweeperImplicitSweeper: MemorySweeper = TestLimitQueues.memorySweeper
+  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
+  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeper
   implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
   implicit val skipListMerger = LevelZeroSkipListMerger
 

@@ -20,19 +20,18 @@
 package swaydb.core.queue
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.KeyValue.ReadOnly
+import swaydb.Tagged
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.queue.Command.WeighedKeyValue
 import swaydb.core.util.{JavaHashMap, SkipList}
+import swaydb.data.config.{ActorQueue, MemoryCache}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
 import scala.ref.WeakReference
 
-private sealed trait Command
-private object Command {
+private[core] sealed trait Command
+private[core] object Command {
 
   sealed trait KeyValueCommand extends Command {
     val keyValueRef: WeakReference[KeyValue.CacheAble]
@@ -51,35 +50,94 @@ private object Command {
                    map: JavaHashMap.Concurrent[Long, Slice[Byte]]) extends Command
 }
 
-private[core] sealed trait MemorySweeper {
-  def add(keyValue: Persistent.SegmentResponse,
-          skipList: SkipList[Slice[Byte], _]): Unit
+private[core] sealed trait MemorySweeper extends Tagged[MemorySweeper.Enabled, Option]
 
-  def add(keyValue: KeyValue.ReadOnly.Group,
-          skipList: SkipList[Slice[Byte], _]): Unit
-
-  def add(key: Long,
-          value: Slice[Byte],
-          map: JavaHashMap.Concurrent[Long, Slice[Byte]]): Unit
-
-  def terminate(): Unit
-}
-
+/**
+ * Cleared all cached data. [[MemorySweeper]] is not required for Memory only databases
+ * and zero databases.
+ */
 private[core] object MemorySweeper {
 
-  val disabled: MemorySweeper =
-    new MemorySweeper {
-      override def add(keyValue: Persistent.SegmentResponse, skipList: SkipList[Slice[Byte], _]): Unit = ()
-      override def add(keyValue: ReadOnly.Group, skipList: SkipList[Slice[Byte], _]): Unit = ()
-      override def add(key: Long, value: Slice[Byte], map: JavaHashMap.Concurrent[Long, Slice[Byte]]): Unit = ()
-      override def terminate(): Unit = ()
-    }
+  case object Disabled extends MemorySweeper {
+    override def get: Option[MemorySweeper.Enabled] = None
+  }
 
-  def apply(cacheSize: Long, delay: FiniteDuration)(implicit ex: ExecutionContext): MemorySweeper =
-    new MemorySweeperImpl(
-      cacheSize = cacheSize,
-      delay = delay
-    )
+  sealed trait Enabled extends MemorySweeper {
+    override def get: Option[MemorySweeper.Enabled] = Some(this)
+    def terminate(): Unit
+  }
+
+  sealed trait Block extends Enabled {
+    def queue: CacheActor[Command]
+
+    def add(key: Long,
+            value: Slice[Byte],
+            map: JavaHashMap.Concurrent[Long, Slice[Byte]]): Unit =
+      queue ! Command.Block(key, value.size, map)
+  }
+
+  case class BlockSweeper(blockSize: Int,
+                          cacheSize: Long,
+                          actorQueue: ActorQueue) extends MemorySweeperImpl with Block
+
+  sealed trait KeyValue extends Enabled {
+    def queue: CacheActor[Command]
+
+    def add(keyValue: Persistent.SegmentResponse,
+            skipList: SkipList[Slice[Byte], _]): Unit =
+      queue ! Command.WeighKeyValue(new WeakReference(keyValue), new WeakReference[SkipList[Slice[Byte], _]](skipList))
+
+    /**
+     * If there was failure reading the Group's header guess it's weight. Successful reads are priority over 100% cache's accuracy.
+     * The cache's will eventually adjust to be accurate but until then guessed weights should be used. The accuracy of guessed
+     * weights can also be used.
+     */
+    def add(keyValue: swaydb.core.data.KeyValue.ReadOnly.Group,
+            skipList: SkipList[Slice[Byte], _]): Unit = {
+      val weight = keyValue.valueLength
+      queue ! Command.WeighedKeyValue(new WeakReference(keyValue), new WeakReference[SkipList[Slice[Byte], _]](skipList), weight)
+    }
+  }
+
+  case class KeyValueSweeper(cacheSize: Long,
+                             actorQueue: ActorQueue) extends MemorySweeperImpl with KeyValue
+
+  case class Both(blockSize: Int,
+                  cacheSize: Long,
+                  actorQueue: ActorQueue) extends MemorySweeperImpl with Block with KeyValue
+
+  def apply(memoryCache: MemoryCache): Option[MemorySweeper.Enabled] =
+    memoryCache match {
+      case MemoryCache.Disable =>
+        None
+      case enabled: MemoryCache.Enabled =>
+        enabled match {
+          case block: MemoryCache.Block =>
+            Some(
+              MemorySweeper.BlockSweeper(
+                blockSize = block.blockSize,
+                cacheSize = block.capacity,
+                actorQueue = block.actorQueue
+              )
+            )
+          case MemoryCache.EnableKeyValueCache(capacity, actorQueue) =>
+            Some(
+              MemorySweeper.KeyValueSweeper(
+                cacheSize = capacity,
+                actorQueue = actorQueue
+              )
+            )
+
+          case MemoryCache.EnableBoth(blockSize, capacity, actorQueue) =>
+            Some(
+              MemorySweeper.Both(
+                blockSize = blockSize,
+                cacheSize = capacity,
+                actorQueue = actorQueue
+              )
+            )
+        }
+    }
 
   def keyValueWeigher(entry: Command): Long =
     entry match {
@@ -101,9 +159,22 @@ private[core] object MemorySweeper {
     //        if (keyValue.hasRemoveMayBe) (168 + otherBytes).toLong else (264 + otherBytes).toLong
     ((264 * 2) + otherBytes).toLong
   }
+}
 
-  def processCommand(command: Command)(implicit limiter: MemorySweeper) =
-    command match {
+trait MemorySweeperImpl extends LazyLogging {
+  def cacheSize: Long
+
+  def actorQueue: ActorQueue
+
+  /**
+   * Lazy initialisation because this queue is not require for Memory database that do not use compression.
+   */
+  lazy val queue: CacheActor[Command] =
+    CacheActor[Command](
+      maxWeight = cacheSize,
+      actorQueue = actorQueue,
+      weigher = MemorySweeper.keyValueWeigher
+    ) {
       case Command.Block(key, _, map) =>
         map remove key
 
@@ -113,7 +184,7 @@ private[core] object MemorySweeper {
           keyValue <- command.keyValueRef.get
         } yield {
           keyValue match {
-            case group: KeyValue.ReadOnly.Group =>
+            case group: swaydb.core.data.KeyValue.ReadOnly.Group =>
 
               /**
                * Before removing Group, check if removes cache key-values it is enough,
@@ -121,10 +192,10 @@ private[core] object MemorySweeper {
                */
               if (!group.isBlockCacheEmpty) {
                 group.clearBlockCache()
-                limiter.add(group, skipList)
+                queue ! Command.WeighedKeyValue(new WeakReference(group), new WeakReference[SkipList[Slice[Byte], _]](skipList), keyValue.valueLength)
               } else if (!group.isKeyValuesCacheEmpty) {
                 group.clearCachedKeyValues()
-                limiter.add(group, skipList)
+                queue ! Command.WeighedKeyValue(new WeakReference(group), new WeakReference[SkipList[Slice[Byte], _]](skipList), keyValue.valueLength)
               } else {
                 group match {
                   case group: Memory.Group =>
@@ -141,42 +212,6 @@ private[core] object MemorySweeper {
           }
         }
     }
-}
-
-private class MemorySweeperImpl(cacheSize: Long,
-                                delay: FiniteDuration)(implicit ex: ExecutionContext) extends LazyLogging with MemorySweeper {
-
-  implicit val self: MemorySweeperImpl = this
-
-  /**
-   * Lazy initialisation because this queue is not require for Memory database that do not use compression.
-   */
-  private lazy val queue =
-    CacheActor[Command](
-      maxWeight = cacheSize,
-      delay = delay,
-      weigher = MemorySweeper.keyValueWeigher
-    )(MemorySweeper.processCommand)
-
-  def add(keyValue: Persistent.SegmentResponse,
-          skipList: SkipList[Slice[Byte], _]): Unit =
-    queue ! Command.WeighKeyValue(new WeakReference(keyValue), new WeakReference[SkipList[Slice[Byte], _]](skipList))
-
-  /**
-   * If there was failure reading the Group's header guess it's weight. Successful reads are priority over 100% cache's accuracy.
-   * The cache's will eventually adjust to be accurate but until then guessed weights should be used. The accuracy of guessed
-   * weights can also be used.
-   */
-  def add(keyValue: KeyValue.ReadOnly.Group,
-          skipList: SkipList[Slice[Byte], _]): Unit = {
-    val weight = keyValue.valueLength
-    queue ! Command.WeighedKeyValue(new WeakReference(keyValue), new WeakReference[SkipList[Slice[Byte], _]](skipList), weight)
-  }
-
-  def add(key: Long,
-          value: Slice[Byte],
-          map: JavaHashMap.Concurrent[Long, Slice[Byte]]): Unit =
-    queue ! Command.Block(key, value.size, map)
 
   def terminate() =
     queue.terminate()

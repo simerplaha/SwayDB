@@ -19,23 +19,20 @@
 
 package swaydb.data.config
 
-sealed trait MemoryCache {
-  def toOption: Option[MemoryCache.Enabled] =
-    this match {
-      case MemoryCache.Disable =>
-        None
-      case cache: MemoryCache.Enabled =>
-        Some(cache)
-    }
-}
+import swaydb.Tagged
+
+sealed trait MemoryCache extends Tagged[MemoryCache.Enabled, Option]
 
 object MemoryCache {
 
-  case object Disable extends MemoryCache
+  case object Disable extends MemoryCache {
+    override def get: Option[MemoryCache.Enabled] = None
+  }
 
   sealed trait Enabled extends MemoryCache {
     def capacity: Int
     def actorQueue: ActorQueue
+    override def get: Option[MemoryCache.Enabled] = Some(this)
   }
 
   sealed trait Block extends Enabled {
@@ -53,5 +50,5 @@ object MemoryCache {
 
   case class EnableBoth(blockSize: Int,
                         capacity: Int,
-                        actorQueue: ActorQueue) extends Block
+                        actorQueue: ActorQueue) extends Enabled with Block
 }

@@ -49,8 +49,8 @@ class MapEntrySpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper = TestLimitQueues.fileSweeper
-  implicit val memorySweeperImplicitSweeper: MemorySweeper = TestLimitQueues.memorySweeper
+  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
+  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeper
   implicit def compression: Option[GroupByInternal.KeyValues] = randomGroupByOption(randomNextInt(1000))
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO: SegmentIO = SegmentIO.random

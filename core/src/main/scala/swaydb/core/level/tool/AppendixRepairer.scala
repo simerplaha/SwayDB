@@ -44,19 +44,19 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
 
   def apply(levelPath: Path,
             strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                              fileSweeper: FileSweeper.Enabled,
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               functionStore: FunctionStore): IO[swaydb.Error.Level, Unit] = {
     val reader =
       AppendixMapEntryReader(
         mmapSegmentsOnRead = false,
         mmapSegmentsOnWrite = false
-      )(keyOrder, timeOrder, functionStore, MemorySweeper.disabled, FileSweeper.disabled, None, SegmentIO.defaultSynchronisedStoredIfCompressed, None)
+      )(keyOrder, timeOrder, functionStore, None, fileSweeper, None, SegmentIO.defaultSynchronisedStoredIfCompressed, None)
 
     import reader._
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
     implicit val merger = AppendixSkipListMerger
-    implicit val fileSweeper = FileSweeper.disabled
-    implicit val memorySweeper = MemorySweeper.disabled
+    implicit val memorySweeper = Option.empty[MemorySweeper.KeyValue]
 
     IO(IOEffect.files(levelPath, Extension.Seg)) flatMap {
       files =>
@@ -68,7 +68,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                 mmapReads = false,
                 mmapWrites = false,
                 checkExists = true
-              )(keyOrder, timeOrder, functionStore, None, MemorySweeper.disabled, FileSweeper.disabled)
+              )(keyOrder, timeOrder, functionStore, None, memorySweeper, fileSweeper)
           }
           .flatMap {
             segments =>
@@ -160,8 +160,8 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
   def buildAppendixMap(appendixDir: Path,
                        segments: Slice[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                 fileSweeper: FileSweeper,
-                                                 memorySweeper: MemorySweeper,
+                                                 fileSweeper: FileSweeper.Enabled,
+                                                 memorySweeper: Option[MemorySweeper.KeyValue],
                                                  functionStore: FunctionStore,
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                  mapReader: MapEntryReader[MapEntry[Slice[Byte], Segment]],

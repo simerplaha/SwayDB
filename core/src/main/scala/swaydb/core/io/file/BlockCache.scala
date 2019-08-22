@@ -32,13 +32,39 @@ private[core] object BlockCache {
   def buildKey(fileType: DBFileType, position: Int): Long =
     (fileType.folderId << 32) + fileType.fileId + position
 
-  def init(blockSize: Int) =
+  def init(memorySweeper: MemorySweeper): Option[BlockCache.State] =
+    memorySweeper match {
+      case MemorySweeper.Disabled =>
+        None
+      case enabled: MemorySweeper.Enabled =>
+        enabled match {
+          case block: MemorySweeper.BlockSweeper =>
+            Some(BlockCache.init(block))
+
+          case _: MemorySweeper.KeyValueSweeper =>
+            None
+
+          case both: MemorySweeper.Both =>
+            Some(BlockCache.init(both))
+        }
+    }
+
+  def init(memorySweeper: MemorySweeper.BlockSweeper) =
     new State(
-      blockSize = blockSize,
+      blockSize = memorySweeper.blockSize,
+      sweeper = memorySweeper,
+      map = JavaHashMap.concurrent[Long, Slice[Byte]]()
+    )
+
+  def init(memorySweeper: MemorySweeper.Both) =
+    new State(
+      blockSize = memorySweeper.blockSize,
+      sweeper = memorySweeper,
       map = JavaHashMap.concurrent[Long, Slice[Byte]]()
     )
 
   class State(val blockSize: Int,
+              val sweeper: MemorySweeper.Block,
               private[BlockCache] val map: JavaHashMap.Concurrent[Long, Slice[Byte]]) {
     val blockSizeDouble: Double = blockSize
 
@@ -73,14 +99,14 @@ private[core] object BlockCache {
     def readAndCache(keyPosition: Int,
                      size: Int,
                      file: DBFileType,
-                     state: State)(implicit memorySweeper: MemorySweeper): IO[Error.IO, Slice[Byte]]
+                     state: State): IO[Error.IO, Slice[Byte]]
   }
 
   implicit object IOEffect extends IOEffect {
     def readAndCache(keyPosition: Int,
                      size: Int,
                      file: DBFileType,
-                     state: State)(implicit memorySweeper: MemorySweeper): IO[Error.IO, Slice[Byte]] =
+                     state: State): IO[Error.IO, Slice[Byte]] =
       seekSize(
         keyPosition = keyPosition,
         size = size,
@@ -103,7 +129,7 @@ private[core] object BlockCache {
                   val key = buildKey(file, keyPosition)
                   val value = bytes.unslice()
                   state.map.put(key, value)
-                  memorySweeper.add(key, value, state.map)
+                  state.sweeper.add(key, value, state.map)
                   bytes
                 } else {
                   var index = 0
@@ -113,7 +139,7 @@ private[core] object BlockCache {
                     val bytesToPut = bytes.take(index * state.blockSize, state.blockSize)
                     val key = buildKey(file, position)
                     state.map.put(key, bytesToPut)
-                    memorySweeper.add(key, bytesToPut, state.map)
+                    state.sweeper.add(key, bytesToPut, state.map)
                     position = position + bytesToPut.size
                     index += 1
                   }
@@ -128,8 +154,7 @@ private[core] object BlockCache {
                            size: Int,
                            bytes: Slice[Byte],
                            file: DBFileType,
-                           state: State)(implicit effect: IOEffect,
-                                         memorySweeper: MemorySweeper): IO[Error.IO, Slice[Byte]] = {
+                           state: State)(implicit effect: IOEffect): IO[Error.IO, Slice[Byte]] = {
     val keyPosition = seekPosition(position, state)
 
     state.map.get(buildKey(file, keyPosition)) match {
@@ -150,7 +175,7 @@ private[core] object BlockCache {
             bytes = mergedBytes,
             file = file,
             state = state
-          )(effect, memorySweeper)
+          )(effect)
 
 
       case None =>
@@ -176,13 +201,12 @@ private[core] object BlockCache {
   def getOrSeek(position: Int,
                 size: Int,
                 file: DBFileType,
-                state: State)(implicit effect: IOEffect,
-                              memorySweeper: MemorySweeper): IO[Error.IO, Slice[Byte]] =
+                state: State)(implicit effect: IOEffect): IO[Error.IO, Slice[Byte]] =
     doSeek(
       position = position,
       size = size,
       file = file,
       bytes = Slice.emptyBytes,
       state = state
-    )(effect, memorySweeper)
+    )(effect)
 }

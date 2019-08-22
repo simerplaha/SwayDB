@@ -24,13 +24,14 @@ import scala.concurrent.forkjoin.ForkJoinPool
 
 object TestExecutionContext {
 
-  val executionContext = new ExecutionContext {
-    val threadPool = new ForkJoinPool(Runtime.getRuntime.availableProcessors())
+  val executionContext: ExecutionContext =
+    new ExecutionContext {
+      val threadPool = new ForkJoinPool(Runtime.getRuntime.availableProcessors())
 
-    def execute(runnable: Runnable) =
-      threadPool execute runnable
+      def execute(runnable: Runnable) =
+        threadPool execute runnable
 
-    def reportFailure(t: Throwable): Unit =
-      t.printStackTrace(System.err)
-  }
+      def reportFailure(t: Throwable): Unit =
+        t.printStackTrace(System.err)
+    }
 }

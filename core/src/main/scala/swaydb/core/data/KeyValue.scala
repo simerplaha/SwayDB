@@ -188,7 +188,7 @@ private[core] object KeyValue {
       def minKey: Slice[Byte]
       def maxKey: MaxKey[Slice[Byte]]
       def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                  memorySweeper: MemorySweeper,
+                  memorySweeper: Option[MemorySweeper.KeyValue],
                   groupIO: SegmentIO): SegmentCache
       def deadline: Option[Deadline]
       def areAllCachesEmpty: Boolean
@@ -400,9 +400,9 @@ private[swaydb] object Memory {
                    segmentBytes: Slice[Byte],
                    deadline: Option[Deadline]) extends Memory with KeyValue.ReadOnly.Group {
 
-    private val segmentCache: NoIO[(KeyOrder[Slice[Byte]], MemorySweeper, SegmentIO), SegmentCache] =
+    private val segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[MemorySweeper.KeyValue], SegmentIO), SegmentCache] =
       Cache.noIO(synchronised = true, stored = true, initial = None) {
-        case (keyOrder: KeyOrder[Slice[Byte]], memorySweeper: MemorySweeper, groupIO: SegmentIO) =>
+        case (keyOrder: KeyOrder[Slice[Byte]], memorySweeper: Option[MemorySweeper.KeyValue], groupIO: SegmentIO) =>
           SegmentCache(
             id = "Memory.Group - BinarySegment",
             maxKey = maxKey,
@@ -435,7 +435,7 @@ private[swaydb] object Memory {
       segmentCache.get() foreach (_.clearLocalAndBlockCache())
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                memorySweeper: MemorySweeper,
+                memorySweeper: Option[MemorySweeper.KeyValue],
                 config: SegmentIO): SegmentCache =
       segmentCache getOrElse {
         segmentCache.value(keyOrder, memorySweeper, config)
@@ -1925,9 +1925,9 @@ private[core] object Persistent {
         case (minKey, maxKey) =>
           valueCache.value(ValuesBlock.Offset(valueOffset, valueLength)) map {
             reader =>
-              val segmentCache: NoIO[(KeyOrder[Slice[Byte]], MemorySweeper, SegmentIO), SegmentCache] =
+              val segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[MemorySweeper.KeyValue], SegmentIO), SegmentCache] =
                 Cache.noIO(synchronised = true, stored = true, initial = None) {
-                  case (keyOrder: KeyOrder[Slice[Byte]], memorySweeper: MemorySweeper, groupIO: SegmentIO) =>
+                  case (keyOrder: KeyOrder[Slice[Byte]], memorySweeper: Option[MemorySweeper.KeyValue], groupIO: SegmentIO) =>
                     val blockRef: BlockRefReader[SegmentBlock.Offset] =
                       BlockRefReader.moveTo(
                         //cache will return a reader with the offset pointing to this Group's offset, here simply reset to return as an BlockRef within the parent Segment's values block.
@@ -1968,7 +1968,7 @@ private[core] object Persistent {
 
   case class Group(private var _minKey: Slice[Byte],
                    private var _maxKey: MaxKey[Slice[Byte]],
-                   segmentCache: NoIO[(KeyOrder[Slice[Byte]], MemorySweeper, SegmentIO), SegmentCache],
+                   segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[MemorySweeper.KeyValue], SegmentIO), SegmentCache],
                    nextIndexOffset: Int,
                    nextIndexSize: Int,
                    indexOffset: Int,
@@ -2010,7 +2010,7 @@ private[core] object Persistent {
     }
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                memorySweeper: MemorySweeper,
+                memorySweeper: Option[MemorySweeper.KeyValue],
                 config: SegmentIO): SegmentCache =
       segmentCache getOrElse {
         segmentCache.value(keyOrder, memorySweeper, config)

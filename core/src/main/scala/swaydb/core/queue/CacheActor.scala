@@ -23,10 +23,10 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.actor.{Actor, ActorRef}
+import swaydb.data.config.ActorQueue
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 
 private class State[T](var size: Long,
                        val queue: mutable.Queue[(T, Long)])
@@ -34,9 +34,14 @@ private class State[T](var size: Long,
 private[core] object CacheActor {
 
   def apply[T](maxWeight: Long,
-               delay: FiniteDuration,
-               weigher: T => Long)(onEvict: T => Unit)(implicit ec: ExecutionContext): CacheActor[T] =
-    new CacheActor(maxWeight, onEvict, delay, weigher)
+               actorQueue: ActorQueue,
+               weigher: T => Long)(onEvict: T => Unit): CacheActor[T] =
+    new CacheActor(
+      maxWeight = maxWeight,
+      onEvict = onEvict,
+      actorQueue = actorQueue,
+      weigher = weigher
+    )
 }
 
 /**
@@ -44,21 +49,16 @@ private[core] object CacheActor {
  *
  * Next delay is adjusted based on the current overflow. If elements value added to the queue more
  * frequently than the eviction occurs then the next eviction delay is adjusted to run more often.
- *
- * @param limit        max size of the queue
- * @param onEvict      function on trigger on evicted item
- * @param defaultDelay interval delays to run overflow checks which is adjust
- *                     during runtime based on the frequency of items being added and the size of overflow.
  */
-private[core] class CacheActor[T](limit: Long,
+private[core] class CacheActor[T](maxWeight: Long,
                                   onEvict: T => Unit,
-                                  defaultDelay: FiniteDuration,
-                                  weigher: T => Long)(implicit ec: ExecutionContext) extends LazyLogging {
+                                  actorQueue: ActorQueue,
+                                  weigher: T => Long) extends LazyLogging {
 
   //  logger.info(s"${this.getClass.getSimpleName} started with limit: {}, defaultDelay: {}", limit, defaultDelay)
 
   private val actor: ActorRef[T] =
-    Actor.timerLoop[T, State[T]](new State(0, mutable.Queue()), defaultDelay) {
+    Actor.fromQueue[T, State[T]](actorQueue, new State(0, mutable.Queue())) {
       case (item, self) =>
         //        println("Item: " + item)
         val weight = weigher(item)
@@ -67,7 +67,7 @@ private[core] class CacheActor[T](limit: Long,
           self.state.size += weight
 
           //        println("---------------- Total size: " + self.state.size)
-          while (self.state.size > limit) {
+          while (self.state.size > maxWeight) {
             //          println("Running eviction. Limit: {}, currentSize: {}", limit, self.state.size)
             IO(self.state.queue.dequeue) foreach {
               case (evictedItem, evictedItemSize) =>

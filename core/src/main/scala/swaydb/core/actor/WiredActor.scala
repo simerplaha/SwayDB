@@ -38,9 +38,14 @@ class WiredActor[+T, +S](impl: T, delays: Option[FiniteDuration], state: S)(impl
   private val actor: Actor[() => Unit, S] =
     delays map {
       delays =>
-        Actor.timer[() => Unit, S](state, delays)((function, _) => function()).asInstanceOf[Actor[() => Unit, S]]
+        Actor.timer[() => Unit, S](
+          maxMessagesToProcessAtOnce = 1000,
+          overflowAllowed = 1000,
+          state = state,
+          fixedDelay = delays
+        )((function, _) => function()).asInstanceOf[Actor[() => Unit, S]]
     } getOrElse {
-      Actor[() => Unit, S](state)((function, _) => function()).asInstanceOf[Actor[() => Unit, S]]
+      Actor[() => Unit, S](state, 10000)((function, _) => function()).asInstanceOf[Actor[() => Unit, S]]
     }
 
   def unsafeGetState: S =

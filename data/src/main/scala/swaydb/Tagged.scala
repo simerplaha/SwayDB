@@ -21,15 +21,15 @@ package swaydb
 
 import swaydb.Tag._
 
-abstract class Tagged[A, T[_]](implicit tag: Tag[T]) {
+trait Tagged[A, T[_]] {
   def get: T[A]
 
-  @inline def map[B](f: A => B): T[B] =
+  @inline def map[B](f: A => B)(implicit tag: Tag[T]): T[B] =
     get map f
 
-  @inline def flatMap[B](f: A => T[B]): T[B] =
+  @inline def flatMap[B](f: A => T[B])(implicit tag: Tag[T]): T[B] =
     get flatMap f
 
-  @inline def foreach[B](f: A => B): Unit =
+  @inline def foreach[B](f: A => B)(implicit tag: Tag[T]): Unit =
     get map f
 }

@@ -71,11 +71,14 @@ private[core] object CoreInitializer extends LazyLogging {
     }
 
   def apply(config: LevelZeroConfig,
+            fileCache: FileCache.Enable,
             bufferCleanerEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] = {
-    implicit val fileSweeper = FileSweeper.disabled
-    implicit val memorySweeper = MemorySweeper.disabled
+    implicit val fileSweeper: FileSweeper.Enabled =
+      FileSweeper(fileCache)
+
+    implicit val memorySweeper = MemorySweeper.Disabled
 
     implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
     if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(bufferCleanerEC)
@@ -134,27 +137,34 @@ private[core] object CoreInitializer extends LazyLogging {
     }
 
   def apply(config: SwayDBConfig,
-            maxOpenSegments: Int,
-            keyValueCacheSize: Option[Long],
-            keyValueQueueDelay: FiniteDuration,
-            segmentCloserDelay: FiniteDuration,
-            blockCacheSize: Option[Int],
-            fileSweeperEC: ExecutionContext,
-            memorySweeperEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                              timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] = {
-    implicit val fileSweeper: FileSweeper =
-      FileSweeper(maxOpenSegments, segmentCloserDelay)(fileSweeperEC)
+            fileCache: FileCache.Enable,
+            memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                      timeOrder: TimeOrder[Slice[Byte]],
+                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] = {
 
-    implicit val memorySweeper: MemorySweeper =
-    //      keyValueCacheSize map {
-    //        cacheSize =>
-    //          MemorySweeper(cacheSize, keyValueQueueDelay)(memorySweeperEC)
-    //      }
-      ???
+    implicit val fileSweeper: FileSweeper.Enabled =
+      FileSweeper(fileCache)
+
+    implicit val memorySweeper: Option[MemorySweeper.Enabled] =
+      MemorySweeper(memoryCache)
 
     implicit val blockCache: Option[BlockCache.State] =
-      blockCacheSize map BlockCache.init
+      memorySweeper flatMap BlockCache.init
+
+    implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] =
+      memorySweeper flatMap {
+        enabled: MemorySweeper.Enabled =>
+          enabled match {
+            case both: MemorySweeper.Both =>
+              Some(both)
+
+            case value: MemorySweeper.KeyValueSweeper =>
+              Some(value)
+
+            case _: MemorySweeper.BlockSweeper =>
+              None
+          }
+      }
 
     implicit val compactionStrategy: CompactionStrategy[CompactorState] =
       Compactor
@@ -162,7 +172,9 @@ private[core] object CoreInitializer extends LazyLogging {
     implicit val compactionOrdering: CompactionOrdering =
       DefaultCompactionOrdering
 
-    BufferCleaner.initialiseCleaner(fileSweeperEC)
+    //TODO - only initialise if MMAP
+    BufferCleaner.initialiseCleaner(fileSweeper.ec)
+    //    if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(bufferCleanerEC)
 
     def createLevel(id: Long,
                     nextLevel: Option[NextLevel],
