@@ -810,7 +810,7 @@ class SliceSpec extends WordSpec with Matchers {
     }
   }
 
-  "droTo" when {
+  "dropTo" when {
     "empty" in {
       Slice.emptyBytes.dropTo(1) shouldBe empty
       Slice.emptyBytes.dropTo(Byte.MaxValue) shouldBe empty
@@ -834,6 +834,33 @@ class SliceSpec extends WordSpec with Matchers {
       bytes.dropTo(4).value shouldBe Slice(5)
       bytes.dropTo(5).value shouldBe empty
       bytes.dropTo(6) shouldBe empty
+    }
+  }
+
+  "dropUntil" when {
+    "empty" in {
+      Slice.emptyBytes.dropUntil(1) shouldBe empty
+      Slice.emptyBytes.dropUntil(Byte.MaxValue) shouldBe empty
+      Slice.emptyBytes.dropUntil(Byte.MinValue) shouldBe empty
+    }
+
+    "single" in {
+      val bytes = Slice(1)
+
+      bytes.dropUntil(1).value shouldBe bytes
+      bytes.dropUntil(2) shouldBe empty
+    }
+
+    "many" in {
+      val bytes = Slice(1, 2, 3, 4, 5)
+
+      bytes.dropUntil(0) shouldBe empty
+      bytes.dropUntil(1).value shouldBe Slice(1, 2, 3, 4, 5)
+      bytes.dropUntil(2).value shouldBe Slice(2, 3, 4, 5)
+      bytes.dropUntil(3).value shouldBe Slice(3, 4, 5)
+      bytes.dropUntil(4).value shouldBe Slice(4, 5)
+      bytes.dropUntil(5).value shouldBe Slice(5)
+      bytes.dropUntil(6) shouldBe empty
     }
   }
 }

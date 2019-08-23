@@ -531,6 +531,16 @@ class Slice[+T: ClassTag] private(array: Array[T],
         drop(index + 1)
     }
 
+  /**
+   * @return input Element and elements after the input element.
+   *         Returns None if input element is not found.
+   */
+  def dropUntil[B >: T](elem: B): Option[Slice[T]] =
+    indexOf(elem) map {
+      index =>
+        drop(index)
+    }
+
   override def dropRight(count: Int): Slice[T] =
     if (count <= 0)
       this
