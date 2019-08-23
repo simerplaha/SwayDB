@@ -489,7 +489,7 @@ object TestData {
     def random(hasCompression: Boolean): SortedIndexBlock.Config =
       SortedIndexBlock.Config(
         ioStrategy = _ => randomIOAccess(),
-        prefixCompressionResetCount = randomIntMax(5),
+        prefixCompressionResetCount = randomIntMax(10),
         enableAccessPositionIndex = randomBoolean(),
         normaliseIndex = randomBoolean(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
@@ -544,7 +544,7 @@ object TestData {
     def random: SegmentBlock.Config =
       random(randomBoolean())
 
-    def random(hasCompression: Boolean)(implicit blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): SegmentBlock.Config =
+    def random(hasCompression: Boolean): SegmentBlock.Config =
       new SegmentBlock.Config(
         blockIO = _ => randomIOAccess(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty

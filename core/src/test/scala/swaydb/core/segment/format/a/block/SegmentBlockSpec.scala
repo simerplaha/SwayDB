@@ -67,7 +67,7 @@ class SegmentBlockSpec extends TestBase {
                 blockIO = _ => randomIOStrategy(),
                 compressions = _ => Seq.empty
               ),
-            createdInLevel = randomNextInt(10)
+            createdInLevel = randomNextInt(Int.MaxValue)
           ).runRandomIO.value
 
         val reader = Reader[swaydb.Error.Segment](closedSegment.flattenSegmentBytes)
@@ -78,7 +78,7 @@ class SegmentBlockSpec extends TestBase {
 
       runThis(100.times, log = true) {
         val count = eitherOne(randomIntMax(20) max 1, 50, 100)
-        val keyValues = randomizedKeyValues(count, addPut = true, startId = Some(1))
+        val keyValues = randomizedKeyValues(count, startId = Some(1))
         if (keyValues.nonEmpty) test(keyValues)
       }
     }
@@ -86,7 +86,7 @@ class SegmentBlockSpec extends TestBase {
     "write and read a group" in {
       runThis(100.times) {
         val count = eitherOne(randomIntMax(5) max 1, 100, 500, 700, 1000)
-        val keyValues = randomizedKeyValues(count, addPut = true, startId = Some(1))
+        val keyValues = randomizedKeyValues(count, startId = Some(1))
         val group =
           Transient.Group(
             keyValues = keyValues,
@@ -124,10 +124,10 @@ class SegmentBlockSpec extends TestBase {
 
     "write two sibling groups" in {
       runThis(100.times) {
-        val group1KeyValues = randomizedKeyValues(keyValueCount, addPut = true)
+        val group1KeyValues = randomizedKeyValues(keyValueCount)
         val group1 = randomGroup(group1KeyValues)
 
-        val group2KeyValues = randomizedKeyValues(keyValueCount, addPut = true, startId = Some(group1.maxKey.maxKey.readInt() + 1))
+        val group2KeyValues = randomizedKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1))
 
         val group2 = randomGroup(group2KeyValues)
 
@@ -152,13 +152,13 @@ class SegmentBlockSpec extends TestBase {
 
     "write child groups to a root group" in {
       runThis(100.times) {
-        val group1KeyValues = randomizedKeyValues(keyValueCount, addPut = true)
+        val group1KeyValues = randomizedKeyValues(keyValueCount)
         val group1 = randomGroup(group1KeyValues)
 
-        val group2KeyValues = randomizedKeyValues(keyValueCount, addPut = true, startId = Some(group1.maxKey.maxKey.readInt() + 1))
+        val group2KeyValues = randomizedKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1))
         val group2 = randomGroup(group2KeyValues, previous = Some(group1))
 
-        val group3KeyValues = randomizedKeyValues(keyValueCount, addPut = true, startId = Some(group2.maxKey.maxKey.readInt() + 1))
+        val group3KeyValues = randomizedKeyValues(keyValueCount, startId = Some(group2.maxKey.maxKey.readInt() + 1))
         val group3 = randomGroup(group3KeyValues, previous = Some(group2))
 
         //root group
@@ -298,7 +298,7 @@ class SegmentBlockSpec extends TestBase {
   "SegmentFooter.read" should {
     "set hasRange to false when Segment contains no Range key-value" in {
       runThis(100.times) {
-        val keyValues = randomizedKeyValues(keyValueCount, addPut = true, addRanges = false)
+        val keyValues = randomizedKeyValues(keyValueCount, addRanges = false)
         if (keyValues.nonEmpty) {
 
           val blocks = getBlocks(keyValues).get
@@ -366,7 +366,7 @@ class SegmentBlockSpec extends TestBase {
 
       runThis(100.times) {
         val keyValues =
-          randomizedKeyValues(keyValueCount, addPut = true, startId = Some(1)) ++
+          randomizedKeyValues(keyValueCount, startId = Some(1)) ++
             Seq(
               eitherOne(
                 left =
@@ -452,7 +452,7 @@ class SegmentBlockSpec extends TestBase {
       }
 
       runThis(100.times) {
-        val keyValues = randomizedKeyValues(keyValueCount, addPut = true, addRanges = false, addRangeRemoves = false)
+        val keyValues = randomizedKeyValues(keyValueCount, addRanges = false, addRangeRemoves = false)
         if (keyValues.nonEmpty) doAssert(keyValues)
       }
     }

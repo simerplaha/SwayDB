@@ -567,7 +567,6 @@ private[core] object HashIndexBlock extends LazyLogging {
                       else
                         (false, remainingBytesWithoutCRC)
 
-
                     indexEntryBytesWithExtraTailBytes.readIntUnsignedWithByteSize() map {
                       case (entrySize, entryByteSize) =>
                         if (isReference) //if it's a read read the unsigned integer bytes required to read from SortedIndex offset.
@@ -593,7 +592,14 @@ private[core] object HashIndexBlock extends LazyLogging {
                           doFind(probe + 1)
 
                       case IO.Failure(error) =>
-                        IO.Failure(error)
+                        error.exception match {
+                          //readIntUnsignedWithByteSize could return failure read unsignedInt. TO-DO need to be type-safe.
+                          case exception: IllegalArgumentException if exception.getMessage.contains("requirement failed") =>
+                            doFind(probe + 1)
+
+                          case _ =>
+                            IO.Failure(error)
+                        }
                     }
                   }
 
