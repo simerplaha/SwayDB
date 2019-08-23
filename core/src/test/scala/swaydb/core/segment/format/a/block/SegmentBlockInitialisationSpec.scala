@@ -101,7 +101,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
 
     "partially created for ranges" when {
       "perfect hashIndex" in {
-        runThis(10.times) {
+        runThis(100.times) {
           val compressions = randomCompressionsOrEmpty()
 
           val keyValues: Slice[Transient] =
@@ -144,7 +144,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
           blocks.hashIndexReader.get.block.hit shouldBe keyValues.size
           blocks.hashIndexReader.get.block.miss shouldBe 0
 
-          if (keyValues.last.stats.segmentTotalNumberOfRanges > 0) {
+          if (keyValues.last.stats.segmentTotalNumberOfRanges > 0 && !blocks.sortedIndexReader.block.isBinarySearchable) {
             blocks.binarySearchIndexReader shouldBe defined
 
             val expectedBinarySearchValues =
@@ -257,14 +257,16 @@ class SegmentBlockInitialisationSpec extends TestBase {
           val blocks = getBlocks(keyValues).get
           blocks.hashIndexReader shouldBe empty
 
-          blocks.binarySearchIndexReader shouldBe defined
-          val expectedBinarySearchValuesCount =
-            keyValues
-              .count {
-                range =>
-                  range.previous.forall(_.stats.thisKeyValuesAccessIndexOffset != range.stats.thisKeyValuesAccessIndexOffset)
-              }
-          blocks.binarySearchIndexReader.get.block.valuesCount shouldBe expectedBinarySearchValuesCount
+          if(!blocks.sortedIndexReader.block.isBinarySearchable) {
+            blocks.binarySearchIndexReader shouldBe defined
+            val expectedBinarySearchValuesCount =
+              keyValues
+                .count {
+                  range =>
+                    range.previous.forall(_.stats.thisKeyValuesAccessIndexOffset != range.stats.thisKeyValuesAccessIndexOffset)
+                }
+            blocks.binarySearchIndexReader.get.block.valuesCount shouldBe expectedBinarySearchValuesCount
+          }
         }
       }
     }

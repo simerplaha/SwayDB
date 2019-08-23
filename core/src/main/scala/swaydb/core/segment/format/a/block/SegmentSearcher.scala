@@ -142,7 +142,7 @@ private[core] object SegmentSearcher extends LazyLogging {
         IO.Success(Some(value))
 
       case SearchResult.None(lower) =>
-        if (binarySearchIndexReader.exists(_.block.isFullIndex) || sortedIndexReader.block.isBinarySearchable)
+        if (sortedIndexReader.block.isBinarySearchable || binarySearchIndexReader.exists(_.block.isFullIndex))
           IO.none
         else
           SortedIndexBlock.search(
@@ -195,7 +195,7 @@ private[core] object SegmentSearcher extends LazyLogging {
     }
 
   def assertLowerAndStart(start: Option[Persistent], lower: Option[Persistent])(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit =
-    if (start.isDefined)
+    if (start.isDefined && lower.nonEmpty)
       if (lower.isEmpty || keyOrder.lt(lower.get.key, start.get.key))
         throw new Exception(s"Lower ${lower.map(_.key.readInt())} is not greater than or equal to start ${start.map(_.key.readInt())}")
       else
@@ -208,7 +208,6 @@ private[core] object SegmentSearcher extends LazyLogging {
                                  binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
-
     BinarySearchIndexBlock.searchHigher(
       key = key,
       start = start,
@@ -219,7 +218,7 @@ private[core] object SegmentSearcher extends LazyLogging {
       valuesReader = valuesReader
     ) flatMap {
       result =>
-        if (binarySearchIndexReader.exists(_.block.isFullIndex) || sortedIndexReader.block.isBinarySearchable)
+        if (sortedIndexReader.block.isBinarySearchable || binarySearchIndexReader.exists(_.block.isFullIndex))
           IO.Success(result.toOption)
         else
           result match {
@@ -265,7 +264,7 @@ private[core] object SegmentSearcher extends LazyLogging {
     ) flatMap {
       case SearchResult.Some(lowerLower, lower) =>
         assert(lowerLower.isEmpty, "lowerLower is not empty")
-        if (binarySearchIndexReader.exists(_.block.isFullIndex) || sortedIndexReader.block.isBinarySearchable || end.exists(end => lower.nextIndexOffset == end.indexOffset))
+        if (sortedIndexReader.block.isBinarySearchable || binarySearchIndexReader.exists(_.block.isFullIndex) || end.exists(end => lower.nextIndexOffset == end.indexOffset))
           IO.Success(Some(lower))
         else
           SortedIndexBlock.searchLower(
@@ -277,7 +276,7 @@ private[core] object SegmentSearcher extends LazyLogging {
 
       case SearchResult.None(lower) =>
         assert(lower.isEmpty, "Lower is non-empty")
-        if (binarySearchIndexReader.exists(_.block.isFullIndex) || sortedIndexReader.block.isBinarySearchable)
+        if (sortedIndexReader.block.isBinarySearchable || binarySearchIndexReader.exists(_.block.isFullIndex))
           IO.none
         else
           SortedIndexBlock.searchLower(

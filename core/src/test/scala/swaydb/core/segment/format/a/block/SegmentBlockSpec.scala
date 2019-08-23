@@ -20,8 +20,8 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.Error.Segment.ErrorHandler
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
@@ -84,7 +84,7 @@ class SegmentBlockSpec extends TestBase {
     }
 
     "write and read a group" in {
-      runThis(100.times) {
+      runThis(100.times, log = true) {
         val count = eitherOne(randomIntMax(5) max 1, 100, 500, 700, 1000)
         val keyValues = randomizedKeyValues(count, startId = Some(1))
         val group =
@@ -105,7 +105,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = Seq(group),
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+                blockIO = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -123,7 +123,7 @@ class SegmentBlockSpec extends TestBase {
     }
 
     "write two sibling groups" in {
-      runThis(100.times) {
+      runThis(100.times, log = true) {
         val group1KeyValues = randomizedKeyValues(keyValueCount)
         val group1 = randomGroup(group1KeyValues)
 
@@ -136,7 +136,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = Seq(group1, group2).updateStats,
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+                blockIO = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -151,7 +151,7 @@ class SegmentBlockSpec extends TestBase {
     }
 
     "write child groups to a root group" in {
-      runThis(100.times) {
+      runThis(100.times, log = true) {
         val group1KeyValues = randomizedKeyValues(keyValueCount)
         val group1 = randomGroup(group1KeyValues)
 
@@ -170,7 +170,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = Seq(group4),
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+                blockIO = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -193,14 +193,15 @@ class SegmentBlockSpec extends TestBase {
     "converting large KeyValues to bytes" in {
       runThis(10.times, log = true) {
         //increase the size of value to test it on larger values.
-        val keyValues = randomPutKeyValues(count = 100, valueSize = 100000, startId = Some(0)).toTransient
+        val keyValues =
+          randomPutKeyValues(count = 100, valueSize = 10000, startId = Some(0)).toTransient
 
         val bytes =
           SegmentBlock.writeClosed(
             keyValues = keyValues,
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+                blockIO = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -221,7 +222,7 @@ class SegmentBlockSpec extends TestBase {
           keyValues = keyValues,
           segmentConfig =
             new SegmentBlock.Config(
-              blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+              blockIO = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0
@@ -237,7 +238,7 @@ class SegmentBlockSpec extends TestBase {
 
     "write and read Keys with None value to a Slice[Byte]" in {
       val setDeadlines = false
-      val keyValues = randomFixedNoneValue(count = 2, startId = Some(1), addPutDeadlines = setDeadlines, addUpdateDeadlines = setDeadlines, addRemoveDeadlines = setDeadlines)
+      val keyValues = randomFixedNoneValue(count = randomIntMax(1000) max 1, startId = Some(1), addPutDeadlines = setDeadlines, addUpdateDeadlines = setDeadlines, addRemoveDeadlines = setDeadlines)
 
       keyValues foreach {
         keyValue =>
@@ -249,7 +250,7 @@ class SegmentBlockSpec extends TestBase {
           keyValues = keyValues,
           segmentConfig =
             new SegmentBlock.Config(
-              blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+              blockIO = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0

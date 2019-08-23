@@ -432,21 +432,21 @@ private[core] object HashIndexBlock extends LazyLogging {
   }
 
   def writeCopied(key: Slice[Byte],
-                  value: Slice[Byte],
+                  indexEntry: Slice[Byte],
                   state: State): IO[swaydb.Error.Segment, Boolean] =
     writeCopied(
       key = key,
-      value = value,
+      value = indexEntry,
       isReference = false,
       state = state
     )
 
   def writeCopied(key: Slice[Byte],
-                  value: Int,
+                  indexOffset: Int,
                   state: State): IO[swaydb.Error.Segment, Boolean] =
     writeCopied(
       key = key,
-      value = Slice.writeIntUnsigned(value),
+      value = Slice.writeIntUnsigned(indexOffset),
       isReference = true,
       state = state
     )
@@ -485,9 +485,12 @@ private[core] object HashIndexBlock extends LazyLogging {
           val crc = CRC32.forBytes(value)
           //write as unsignedLong to avoid writing any zeroes.
           state.bytes addLongUnsigned crc
+
           if (state.copyIndexWithReferences)
             state.bytes addBoolean isReference
+
           state.bytes addAll value
+
           if (value.last == 0) //if the last byte is 0 add one to avoid next write overwriting this entry's last byte.
             state.bytes addByte Bytes.one
 

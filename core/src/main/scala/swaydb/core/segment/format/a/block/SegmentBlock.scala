@@ -261,13 +261,13 @@ private[core] object SegmentBlock {
                 if (rootGroup.isEmpty && !keyValue.isPrefixCompressed)
                   HashIndexBlock.writeCopied(
                     key = keyValue.key,
-                    value = keyValue.indexEntryBytes,
+                    indexEntry = keyValue.indexEntryBytes,
                     state = hashIndexState
                   )
                 else
                   HashIndexBlock.writeCopied(
                     key = keyValue.key,
-                    value = thisKeyValuesAccessOffset,
+                    indexOffset = thisKeyValuesAccessOffset,
                     state = hashIndexState
                   )
               else //else build a reference hashIndex only.
@@ -277,8 +277,9 @@ private[core] object SegmentBlock {
                   state = hashIndexState
                 )
           } match {
-            //if it's a hit and binary search is not configured to be full OR the key-value has same offset as previous then skip writing to binary search.
-            case Some(IO.Success(hit)) if (!keyValue.isRange && (hit && binarySearchIndex.forall(!_.isFullIndex))) || keyValue.previous.exists(_.stats.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessOffset) =>
+            //if it's a hit and binary search is not configured to be full.
+            //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
+            case Some(IO.Success(hit)) if !keyValue.isRange && (hit && binarySearchIndex.forall(!_.isFullIndex)) =>
               IO.unit
 
             case None | Some(IO.Success(_)) =>
