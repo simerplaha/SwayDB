@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a.block
 
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
+import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
@@ -28,6 +29,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.HashIndexBlock.HashIndexBlockOps
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.util.CRC32
 import swaydb.data.config.RandomKeyIndex.RequiredSpace
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -93,15 +95,31 @@ class HashIndexBlockSpec extends TestBase {
           hasCompression = false,
           writeAbleLargestValueSize = 1
         ) + 1 + 1
+
+      HashIndexBlock.optimalBytesRequired(
+        keyCounts = 1,
+        writeAbleLargestValueSize = 1,
+        allocateSpace = _.requiredSpace,
+        hasCompression = false,
+        minimumNumberOfKeys = 0,
+        copyIndex = true
+      ) shouldBe
+        HashIndexBlock.headerSize(
+          keyCounts = 1,
+          hasCompression = false,
+          writeAbleLargestValueSize = 1
+        ) + 1 //+1 for header 0 byte is not required.
     }
   }
 
   "it" should {
     "write compressed HashIndex and result in the same as uncompressed HashIndex" in {
-      runThis(10.times) {
+      runThis(20.times) {
         val maxProbe = 10
 
         def allocateMoreSpace(requiredSpace: RequiredSpace) = requiredSpace.requiredSpace * 10
+
+        val copyIndex = randomBoolean()
 
         val uncompressedKeyValues =
           randomKeyValues(
@@ -115,7 +133,7 @@ class HashIndexBlockSpec extends TestBase {
               HashIndexBlock.Config.random.copy(
                 allocateSpace = allocateMoreSpace,
                 compressions = _ => Seq.empty,
-                copyIndex = false,
+                copyIndex = copyIndex,
                 maxProbe = maxProbe
               )
           )
@@ -134,7 +152,7 @@ class HashIndexBlockSpec extends TestBase {
                     HashIndexBlock.Config(
                       allocateSpace = allocateMoreSpace,
                       compressions = _ => randomCompressionsLZ4OrSnappy(),
-                      copyIndex = false,
+                      copyIndex = copyIndex,
                       maxProbe = maxProbe,
                       minimumNumberOfKeys = 0,
                       minimumNumberOfHits = 0,
@@ -275,6 +293,11 @@ class HashIndexBlockSpec extends TestBase {
     }
   }
 
+  "dssad" in {
+    val bytes = Slice.create[Byte](1).add(0)
+    println(CRC32.forBytes(bytes))
+  }
+
   "searching a segment" should {
     "value" in {
       runThis(100.times, log = true) {
@@ -283,23 +306,23 @@ class HashIndexBlockSpec extends TestBase {
 
         val keyValues =
           randomizedKeyValues(
-            count = 100,
-            startId = Some(1)
+            count = 1000,
+            startId = Some(1),
           ).updateStats(
             hashIndexConfig =
               HashIndexBlock.Config(
                 maxProbe = 1000,
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
-                copyIndex = false,
-                allocateSpace = _.requiredSpace * 30,
+                copyIndex = randomBoolean(),
+                allocateSpace = _.requiredSpace * 2,
                 blockIO = _ => randomIOStrategy(),
                 compressions = _ => compressions
               ),
             sortedIndexConfig =
               SortedIndexBlock.Config(
                 ioStrategy = _ => randomIOStrategy(),
-                prefixCompressionResetCount = 0,
+                prefixCompressionResetCount = randomIntMax(10),
                 enableAccessPositionIndex = randomBoolean(),
                 normaliseIndex = randomBoolean(),
                 compressions = _ => compressions
@@ -311,7 +334,7 @@ class HashIndexBlockSpec extends TestBase {
         blocks.hashIndexReader.get.block.hit shouldBe keyValues.last.stats.segmentUniqueKeysCount
         blocks.hashIndexReader.get.block.miss shouldBe 0
 
-        Random.shuffle(keyValues.toList) foreach {
+        keyValues foreach {
           keyValue =>
             HashIndexBlock.search(
               key = keyValue.key,

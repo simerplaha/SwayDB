@@ -23,6 +23,8 @@ import swaydb.data.slice.Slice
 
 private[core] object CRC32 {
 
+  val disabledCRC = -1L
+
   def forBytes(bytes: Slice[Byte]): Long = {
     val checksum = new java.util.zip.CRC32
     checksum.update(bytes.toByteBufferWrap)
