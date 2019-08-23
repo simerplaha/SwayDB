@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import swaydb.core.CommonAssertions._
 import swaydb.core.io.file.BlockCache
 import swaydb.core.queue.{FileSweeper, FileSweeperItem, MemorySweeper}
-import swaydb.data.config.{ActorQueue, MemoryCache}
+import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.util.StorageUnits._
 
 object TestLimitQueues {
@@ -32,7 +32,7 @@ object TestLimitQueues {
   implicit val level0PushDownPool = TestExecutionContext.executionContext
 
   val memorySweeper: Option[MemorySweeper.Both] =
-    MemorySweeper(MemoryCache.EnableBoth(4098, 10.mb, ActorQueue.Basic(10000, level0PushDownPool)))
+    MemorySweeper(MemoryCache.EnableBoth(4098, 10.mb, ActorConfig.Basic(10000, level0PushDownPool)))
       .map(_.asInstanceOf[MemorySweeper.Both])
 
   val someMemorySweeper = memorySweeper
@@ -50,5 +50,5 @@ object TestLimitQueues {
     orNone(blockCache)
 
   val fileSweeper: FileSweeper.Enabled =
-    FileSweeper(1000, ActorQueue.Basic(1000, level0PushDownPool))
+    FileSweeper(1000, ActorConfig.Basic(1000, level0PushDownPool))
 }

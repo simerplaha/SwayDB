@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.actor.{Actor, ActorRef}
-import swaydb.data.config.ActorQueue
+import swaydb.data.config.ActorConfig
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
@@ -34,7 +34,7 @@ private class State[T](var size: Long,
 private[core] object CacheActor {
 
   def apply[T](maxWeight: Long,
-               actorQueue: ActorQueue,
+               actorQueue: ActorConfig,
                weigher: T => Long)(onEvict: T => Unit): CacheActor[T] =
     new CacheActor(
       maxWeight = maxWeight,
@@ -52,13 +52,13 @@ private[core] object CacheActor {
  */
 private[core] class CacheActor[T](maxWeight: Long,
                                   onEvict: T => Unit,
-                                  actorQueue: ActorQueue,
+                                  actorQueue: ActorConfig,
                                   weigher: T => Long) extends LazyLogging {
 
   //  logger.info(s"${this.getClass.getSimpleName} started with limit: {}, defaultDelay: {}", limit, defaultDelay)
 
   private val actor: ActorRef[T] =
-    Actor.fromQueue[T, State[T]](actorQueue, new State(0, mutable.Queue())) {
+    Actor.fromConfig[T, State[T]](actorQueue, new State(0, mutable.Queue())) {
       case (item, self) =>
         //        println("Item: " + item)
         val weight = weigher(item)

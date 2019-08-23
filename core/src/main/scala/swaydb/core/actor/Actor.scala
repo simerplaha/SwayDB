@@ -26,7 +26,7 @@ import java.util.function.IntUnaryOperator
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Delay
-import swaydb.data.config.ActorQueue
+import swaydb.data.config.ActorConfig
 
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future}
@@ -58,26 +58,26 @@ private[swaydb] sealed trait ActorRef[-T] {
 }
 
 private[swaydb] object Actor {
-  val defaultMaxMessagesToProcessAtOnce = 10000
-  val defaultMaxOverflowAllowed = defaultMaxMessagesToProcessAtOnce * 10
 
+  private[actor] val defaultMaxMessagesToProcessAtOnce = 10000
+  private[actor] val defaultMaxOverflowAllowed = defaultMaxMessagesToProcessAtOnce * 10
   private[actor] val incrementDelayBy = 100.millisecond
 
-  def fromQueue[T](actorQueue: ActorQueue)(execution: (T, Actor[T, Unit]) => Unit): ActorRef[T] =
-    actorQueue match {
-      case actorQueue: ActorQueue.Basic =>
+  def fromConfig[T](config: ActorConfig)(execution: (T, Actor[T, Unit]) => Unit): ActorRef[T] =
+    config match {
+      case actorQueue: ActorConfig.Basic =>
         apply[T](
           maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce
         )(execution)(actorQueue.ec)
 
-      case actorQueue: ActorQueue.Delay =>
+      case actorQueue: ActorConfig.Timer =>
         timer(
           maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce,
           overflowAllowed = actorQueue.maxOverflow,
           fixedDelay = actorQueue.delay
         )(execution)(actorQueue.ec)
 
-      case actorQueue: ActorQueue.Poll =>
+      case actorQueue: ActorConfig.TimeLoop =>
         timerLoop(
           initialDelay = actorQueue.delay,
           maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce,
@@ -85,16 +85,16 @@ private[swaydb] object Actor {
         )(execution)(actorQueue.ec)
     }
 
-  def fromQueue[T, S](actorQueue: ActorQueue,
-                      state: S)(execution: (T, Actor[T, S]) => Unit): ActorRef[T] =
-    actorQueue match {
-      case actorQueue: ActorQueue.Basic =>
+  def fromConfig[T, S](config: ActorConfig,
+                       state: S)(execution: (T, Actor[T, S]) => Unit): ActorRef[T] =
+    config match {
+      case actorQueue: ActorConfig.Basic =>
         apply[T, S](
           state = state,
           maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce
         )(execution)(actorQueue.ec)
 
-      case actorQueue: ActorQueue.Delay =>
+      case actorQueue: ActorConfig.Timer =>
         timer[T, S](
           state = state,
           maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce,
@@ -102,13 +102,13 @@ private[swaydb] object Actor {
           fixedDelay = actorQueue.delay
         )(execution)(actorQueue.ec)
 
-      case poll: ActorQueue.Poll =>
+      case actorQueue: ActorConfig.TimeLoop =>
         timerLoop[T, S](
           state = state,
-          maxMessagesToProcessAtOnce = poll.maxMessagesToProcessAtOnce,
-          overflowAllowed = poll.maxOverflow,
-          initialDelay = poll.delay
-        )(execution)(poll.ec)
+          maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce,
+          overflowAllowed = actorQueue.maxOverflow,
+          initialDelay = actorQueue.delay
+        )(execution)(actorQueue.ec)
     }
 
   /**
@@ -141,11 +141,7 @@ private[swaydb] object Actor {
       state = state,
       maxMessagesToProcessAtOnce = maxMessagesToProcessAtOnce,
       overflow = maxMessagesToProcessAtOnce,
-      execution =
-        (message, actor) => {
-          execution(message, actor)
-          None
-        },
+      execution = execution,
       defaultDelay = None
     )
 
@@ -230,6 +226,22 @@ private[swaydb] object Actor {
       maxMessagesToProcessAtOnce = maxMessagesToProcessAtOnce,
       initialDelay = initialDelay
     )(execution)
+
+  /**
+   * Checks the message queue for new messages at regular intervals
+   * indefinitely and processes them if the queue is non-empty.
+   *
+   * Use .submit instead of !. There should be a type-safe way of handling this but.
+   */
+  def timerLoop[T, S](state: S,
+                      initialDelay: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
+    new Actor[T, S](
+      state = state,
+      execution = execution,
+      overflow = defaultMaxOverflowAllowed,
+      maxMessagesToProcessAtOnce = defaultMaxMessagesToProcessAtOnce,
+      defaultDelay = Some(initialDelay, true)
+    )
 
   /**
    * Checks the message queue for new messages at regular intervals

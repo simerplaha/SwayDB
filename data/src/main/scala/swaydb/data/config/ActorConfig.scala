@@ -22,23 +22,23 @@ package swaydb.data.config
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
-sealed trait ActorQueue {
+sealed trait ActorConfig {
   def maxMessagesToProcessAtOnce: Int
   def ec: ExecutionContext
 }
 
-object ActorQueue {
+object ActorConfig {
 
   case class Basic(maxMessagesToProcessAtOnce: Int,
-                   ec: ExecutionContext) extends ActorQueue
+                   ec: ExecutionContext) extends ActorConfig
 
-  case class Delay(maxMessagesToProcessAtOnce: Int,
+  case class Timer(maxMessagesToProcessAtOnce: Int,
                    maxOverflow: Int,
                    delay: FiniteDuration,
-                   ec: ExecutionContext) extends ActorQueue
+                   ec: ExecutionContext) extends ActorConfig
 
-  case class Poll(maxMessagesToProcessAtOnce: Int,
-                  maxOverflow: Int,
-                  delay: FiniteDuration,
-                  ec: ExecutionContext) extends ActorQueue
+  case class TimeLoop(maxMessagesToProcessAtOnce: Int,
+                      maxOverflow: Int,
+                      delay: FiniteDuration,
+                      ec: ExecutionContext) extends ActorConfig
 }

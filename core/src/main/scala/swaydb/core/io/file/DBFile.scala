@@ -244,8 +244,7 @@ object DBFile extends LazyLogging {
 class DBFile(val path: Path,
              memoryMapped: Boolean,
              autoClose: Boolean,
-             fileCache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit fileSweeper: FileSweeper,
-                                                                  blockCache: Option[BlockCache.State]) extends LazyLogging {
+             fileCache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit blockCache: Option[BlockCache.State]) extends LazyLogging {
 
   def existsOnDisk =
     IOEffect.exists(path)

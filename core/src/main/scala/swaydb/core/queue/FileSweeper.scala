@@ -21,7 +21,7 @@ package swaydb.core.queue
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.config.{ActorQueue, FileCache}
+import swaydb.data.config.{ActorConfig, FileCache}
 import swaydb.{IO, Tagged}
 
 import scala.concurrent.ExecutionContext
@@ -73,7 +73,7 @@ private[swaydb] object FileSweeper extends LazyLogging {
       actorQueue = fileCache.actorQueue
     )
 
-  def apply(maxOpenSegments: Long, actorQueue: ActorQueue): FileSweeper.Enabled = {
+  def apply(maxOpenSegments: Long, actorQueue: ActorConfig): FileSweeper.Enabled = {
     lazy val queue = CacheActor[Action](maxOpenSegments, actorQueue, weigher) {
       case Action.Delete(file) =>
         file.delete() onFailureSideEffect {

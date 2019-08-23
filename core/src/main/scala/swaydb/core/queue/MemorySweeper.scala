@@ -24,7 +24,7 @@ import swaydb.Tagged
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.queue.Command.WeighedKeyValue
 import swaydb.core.util.{JavaHashMap, SkipList}
-import swaydb.data.config.{ActorQueue, MemoryCache}
+import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -78,7 +78,7 @@ private[core] object MemorySweeper {
 
   case class BlockSweeper(blockSize: Int,
                           cacheSize: Long,
-                          actorQueue: ActorQueue) extends MemorySweeperImpl with Block
+                          actorQueue: ActorConfig) extends MemorySweeperImpl with Block
 
   sealed trait KeyValue extends Enabled {
     def queue: CacheActor[Command]
@@ -100,43 +100,41 @@ private[core] object MemorySweeper {
   }
 
   case class KeyValueSweeper(cacheSize: Long,
-                             actorQueue: ActorQueue) extends MemorySweeperImpl with KeyValue
+                             actorQueue: ActorConfig) extends MemorySweeperImpl with KeyValue
 
   case class Both(blockSize: Int,
                   cacheSize: Long,
-                  actorQueue: ActorQueue) extends MemorySweeperImpl with Block with KeyValue
+                  actorQueue: ActorConfig) extends MemorySweeperImpl with Block with KeyValue
 
   def apply(memoryCache: MemoryCache): Option[MemorySweeper.Enabled] =
     memoryCache match {
       case MemoryCache.Disable =>
         None
-      case enabled: MemoryCache.Enabled =>
-        enabled match {
-          case block: MemoryCache.Block =>
-            Some(
-              MemorySweeper.BlockSweeper(
-                blockSize = block.blockSize,
-                cacheSize = block.capacity,
-                actorQueue = block.actorQueue
-              )
-            )
-          case MemoryCache.EnableKeyValueCache(capacity, actorQueue) =>
-            Some(
-              MemorySweeper.KeyValueSweeper(
-                cacheSize = capacity,
-                actorQueue = actorQueue
-              )
-            )
 
-          case MemoryCache.EnableBoth(blockSize, capacity, actorQueue) =>
-            Some(
-              MemorySweeper.Both(
-                blockSize = blockSize,
-                cacheSize = capacity,
-                actorQueue = actorQueue
-              )
-            )
-        }
+      case block: MemoryCache.EnableBlockCache =>
+        Some(
+          MemorySweeper.BlockSweeper(
+            blockSize = block.blockSize,
+            cacheSize = block.capacity,
+            actorQueue = block.actorQueue
+          )
+        )
+      case MemoryCache.EnableKeyValueCache(capacity, actorQueue) =>
+        Some(
+          MemorySweeper.KeyValueSweeper(
+            cacheSize = capacity,
+            actorQueue = actorQueue
+          )
+        )
+
+      case MemoryCache.EnableBoth(blockSize, capacity, actorQueue) =>
+        Some(
+          MemorySweeper.Both(
+            blockSize = blockSize,
+            cacheSize = capacity,
+            actorQueue = actorQueue
+          )
+        )
     }
 
   def keyValueWeigher(entry: Command): Long =
@@ -164,7 +162,7 @@ private[core] object MemorySweeper {
 trait MemorySweeperImpl extends LazyLogging {
   def cacheSize: Long
 
-  def actorQueue: ActorQueue
+  def actorQueue: ActorConfig
 
   /**
    * Lazy initialisation because this queue is not require for Memory database that do not use compression.
