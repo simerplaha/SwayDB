@@ -26,7 +26,7 @@ import swaydb.IO
 import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
 
-object Delay {
+private[core] object Delay {
 
   val futureNone = Future.successful(None)
 

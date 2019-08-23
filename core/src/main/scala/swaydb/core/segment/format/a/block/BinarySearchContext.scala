@@ -26,8 +26,8 @@ import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
 trait BinarySearchContext {
-  val entrySize: Int
-  val entriesCount: Int
+  val bytesPerValue: Int
+  val valuesCount: Int
   val isFullIndex: Boolean
   val higherOrLower: Option[Boolean]
   val startKeyValue: Option[Persistent]
@@ -64,11 +64,11 @@ object BinarySearchContext {
             KeyMatcher.Get.SeekOne(key)
         }
 
-      override val entrySize: Int = binarySearchIndex.block.bytesPerValue
+      override val bytesPerValue: Int = binarySearchIndex.block.bytesPerValue
 
       override val isFullIndex: Boolean = binarySearchIndex.block.isFullIndex
 
-      override val entriesCount: Int = binarySearchIndex.block.valuesCount
+      override val valuesCount: Int = binarySearchIndex.block.valuesCount
 
       override val higherOrLower: Option[Boolean] = highOrLow
 
@@ -111,11 +111,11 @@ object BinarySearchContext {
           KeyMatcher.Get.SeekOne(key)
         }
 
-      override val entrySize: Int = sortedIndex.block.segmentMaxIndexEntrySize
+      override val bytesPerValue: Int = sortedIndex.block.segmentMaxIndexEntrySize
 
       override val isFullIndex: Boolean = true
 
-      override val entriesCount: Int = keyValuesCount
+      override val valuesCount: Int = keyValuesCount
 
       override val higherOrLower: Option[Boolean] = highOrLow
 

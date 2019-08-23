@@ -488,7 +488,7 @@ object TestData {
 
     def random(hasCompression: Boolean): SortedIndexBlock.Config =
       SortedIndexBlock.Config(
-        blockIO = _ => randomIOAccess(),
+        ioStrategy = _ => randomIOAccess(),
         prefixCompressionResetCount = randomIntMax(5),
         enableAccessPositionIndex = randomBoolean(),
         normaliseIndex = randomBoolean(),
@@ -504,7 +504,7 @@ object TestData {
       BinarySearchIndexBlock.Config(
         enabled = randomBoolean(),
         minimumNumberOfKeys = randomIntMax(5),
-        searchSortedIndexDirectlyIfPreNormalised = randomBoolean(),
+        searchSortedIndexDirectlyIfPossible = randomBoolean(),
         fullIndex = randomBoolean(),
         blockIO = _ => randomIOAccess(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
@@ -1582,7 +1582,13 @@ object TestData {
   def randomBytesSlice(size: Int = 10) = Slice(randomBytes(size))
 
   def randomBytesSliceOption(size: Int = 10): Option[Slice[Byte]] =
-    if (randomBoolean())
+    if (randomBoolean() || size == 0)
+      None
+    else
+      Some(randomBytesSlice(size))
+
+  def someByteSlice(size: Int = 10): Option[Slice[Byte]] =
+    if (size == 0)
       None
     else
       Some(randomBytesSlice(size))

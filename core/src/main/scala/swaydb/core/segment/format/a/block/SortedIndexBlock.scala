@@ -55,7 +55,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   object Config {
     val disabled =
       Config(
-        blockIO = (dataType: IOAction) => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+        ioStrategy = (dataType: IOAction) => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         enableAccessPositionIndex = false,
         prefixCompressionResetCount = 0,
         normaliseIndex = false,
@@ -72,8 +72,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
       Config(
         enableAccessPositionIndex = enable.enablePositionIndex,
         prefixCompressionResetCount = enable.prefixCompression.resetCount max 0,
+        //cannot normalise if prefix compression is enabled.
         normaliseIndex = enable.prefixCompression.resetCount <= 0 && enable.prefixCompression.normaliseIndexForBinarySearch,
-        blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
+        ioStrategy = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
         compressions =
           FunctionUtil.safe(
             default = (_: UncompressedBlockInfo) => Seq.empty[CompressionInternal],
@@ -81,25 +82,44 @@ private[core] object SortedIndexBlock extends LazyLogging {
           )
       )
 
-    def apply(blockIO: IOAction => IOStrategy,
+    def apply(ioStrategy: IOAction => IOStrategy,
               prefixCompressionResetCount: Int,
               enableAccessPositionIndex: Boolean,
               normaliseIndex: Boolean,
               compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Config =
       new Config(
-        blockIO = blockIO,
+        ioStrategy = ioStrategy,
         prefixCompressionResetCount = prefixCompressionResetCount max 0,
         enableAccessPositionIndex = enableAccessPositionIndex,
+        //cannot normalise if prefix compression is enabled.
         normaliseIndex = prefixCompressionResetCount <= 0 && normaliseIndex,
         compressions = compressions
       )
   }
 
-  case class Config private(blockIO: IOAction => IOStrategy,
-                            prefixCompressionResetCount: Int,
-                            enableAccessPositionIndex: Boolean,
-                            normaliseIndex: Boolean,
-                            compressions: UncompressedBlockInfo => Seq[CompressionInternal])
+  /**
+   * Do not create [[Config]] directly. Use one of the apply functions.
+   */
+  class Config private(val ioStrategy: IOAction => IOStrategy,
+                       val prefixCompressionResetCount: Int,
+                       val enableAccessPositionIndex: Boolean,
+                       val normaliseIndex: Boolean,
+                       val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
+
+    def copy(ioStrategy: IOAction => IOStrategy = ioStrategy,
+             prefixCompressionResetCount: Int = prefixCompressionResetCount,
+             enableAccessPositionIndex: Boolean = enableAccessPositionIndex,
+             normaliseIndex: Boolean = normaliseIndex,
+             compressions: UncompressedBlockInfo => Seq[CompressionInternal] = compressions) =
+    //do not use new here. Submit this to the apply function to that rules for creating the config gets applied.
+      Config(
+        ioStrategy = ioStrategy,
+        prefixCompressionResetCount = prefixCompressionResetCount,
+        enableAccessPositionIndex = enableAccessPositionIndex,
+        normaliseIndex = normaliseIndex,
+        compressions = compressions
+      )
+  }
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
@@ -108,7 +128,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                    hasPrefixCompression: Boolean,
                    enableAccessPositionIndex: Boolean,
                    normaliseIndex: Boolean,
-                   isPreNormalised: Boolean,
+                   isPreNormalised: Boolean, //indicates all entries already normalised without making any adjustments.
                    segmentMaxIndexEntrySize: Int,
                    compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
     def bytes = _bytes
@@ -267,6 +287,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       //println("readNextKeyValue")
       val positionBeforeRead = indexReader.getPosition
       //size of the index entry to read
+      //todo read indexReader.block.segmentMaxIndexEntrySize in one seek.
       val indexSize =
         indexEntrySizeMayBe match {
           case Some(indexEntrySize) =>

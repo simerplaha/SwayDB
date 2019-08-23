@@ -21,9 +21,6 @@ package swaydb.core.segment
 
 import java.util.concurrent.ConcurrentHashMap
 
-import swaydb.IO
-import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.SkipList
 import swaydb.core.util.SkipList.MinMaxSkipList
 import swaydb.data.order.KeyOrder
@@ -41,6 +38,7 @@ class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[Long, Segmen
     val threadId = Thread.currentThread().getId
     val existingState = states.get(threadId)
     if (existingState == null) {
+      //todo - could possible copy the state of another thread instead of creating an empty one?
       val newState = new SegmentThreadState[K, V](skipList = SkipList.minMax[K, V]())
       states.put(threadId, newState)
       newState

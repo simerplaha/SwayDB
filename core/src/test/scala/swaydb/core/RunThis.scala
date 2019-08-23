@@ -28,7 +28,7 @@ import scala.util.Random
 
 object RunThis extends Eventually {
 
-  implicit val level0PushDownPool = TestExecutionContext.executionContext
+  implicit val ec = TestExecutionContext.executionContext
 
   implicit class RunThisImplicits[R](f: => R) {
     def runThis(times: Int): Unit =

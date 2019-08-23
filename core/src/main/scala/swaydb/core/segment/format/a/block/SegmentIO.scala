@@ -78,7 +78,7 @@ object SegmentIO {
       hashIndexBlockIO = hashIndexConfig.blockIO,
       bloomFilterBlockIO = bloomFilterConfig.blockIO,
       binarySearchIndexBlockIO = binarySearchIndexConfig.blockIO,
-      sortedIndexBlockIO = sortedIndexConfig.blockIO,
+      sortedIndexBlockIO = sortedIndexConfig.ioStrategy,
       valuesBlockIO = valuesConfig.blockIO,
       segmentFooterBlockIO = segmentConfig.blockIO
     )

@@ -43,7 +43,7 @@ private[core] object BinarySearchIndexBlock {
         enabled = false,
         minimumNumberOfKeys = 0,
         fullIndex = false,
-        searchSortedIndexDirectlyIfPreNormalised = true,
+        searchSortedIndexDirectlyIfPossible = true,
         blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         compressions = _ => Seq.empty
       )
@@ -55,7 +55,7 @@ private[core] object BinarySearchIndexBlock {
             enabled = false,
             minimumNumberOfKeys = Int.MaxValue,
             fullIndex = false,
-            searchSortedIndexDirectlyIfPreNormalised = searchSortedIndexDirectly,
+            searchSortedIndexDirectlyIfPossible = searchSortedIndexDirectly,
             blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
             compressions = _ => Seq.empty
           )
@@ -64,7 +64,7 @@ private[core] object BinarySearchIndexBlock {
           Config(
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
-            searchSortedIndexDirectlyIfPreNormalised = enable.searchSortedIndexDirectly,
+            searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectly,
             fullIndex = true,
             blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
@@ -78,7 +78,7 @@ private[core] object BinarySearchIndexBlock {
           Config(
             enabled = true,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
-            searchSortedIndexDirectlyIfPreNormalised = enable.searchSortedIndexDirectlyIfPreNormalised,
+            searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectlyIfPreNormalised,
             fullIndex = false,
             blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
@@ -92,7 +92,7 @@ private[core] object BinarySearchIndexBlock {
 
   case class Config(enabled: Boolean,
                     minimumNumberOfKeys: Int,
-                    searchSortedIndexDirectlyIfPreNormalised: Boolean,
+                    searchSortedIndexDirectlyIfPossible: Boolean,
                     fullIndex: Boolean,
                     blockIO: IOAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
@@ -165,20 +165,23 @@ private[core] object BinarySearchIndexBlock {
   }
 
   def init(normalisedKeyValues: Iterable[Transient],
-           originalKeyValues: Iterable[Transient]): Option[State] =
-    if (normalisedKeyValues.last.stats.segmentBinarySearchIndexSize <= 0 ||
-      normalisedKeyValues.last.sortedIndexConfig.normaliseIndex ||
-      (originalKeyValues.last.binarySearchIndexConfig.searchSortedIndexDirectlyIfPreNormalised && originalKeyValues.last.stats.hasSameIndexSizes()))
+           originalKeyValues: Iterable[Transient]): Option[State] = {
+    val normalisedLast = normalisedKeyValues.last
+
+    if (normalisedLast.stats.segmentBinarySearchIndexSize <= 0 ||
+      normalisedLast.sortedIndexConfig.normaliseIndex ||
+      (originalKeyValues.last.binarySearchIndexConfig.searchSortedIndexDirectlyIfPossible && !originalKeyValues.last.stats.hasPrefixCompression && originalKeyValues.last.stats.hasSameIndexSizes()))
       None
     else
       BinarySearchIndexBlock.State(
-        largestValue = normalisedKeyValues.last.stats.thisKeyValuesAccessIndexOffset,
+        largestValue = normalisedLast.stats.thisKeyValuesAccessIndexOffset,
         //not using size from stats because it's size does not account for hashIndex's missed keys.
-        uniqueValuesCount = normalisedKeyValues.last.stats.segmentUniqueKeysCount,
-        isFullIndex = normalisedKeyValues.last.binarySearchIndexConfig.fullIndex,
-        minimumNumberOfKeys = normalisedKeyValues.last.binarySearchIndexConfig.minimumNumberOfKeys,
-        compressions = normalisedKeyValues.last.binarySearchIndexConfig.compressions
+        uniqueValuesCount = normalisedLast.stats.segmentUniqueKeysCount,
+        isFullIndex = normalisedLast.binarySearchIndexConfig.fullIndex,
+        minimumNumberOfKeys = normalisedLast.binarySearchIndexConfig.minimumNumberOfKeys,
+        compressions = normalisedLast.binarySearchIndexConfig.compressions
       )
+  }
 
   def isVarInt(varIntSizeOfLargestValue: Int) =
     varIntSizeOfLargestValue < ByteSizeOf.int
@@ -319,7 +322,9 @@ private[core] object BinarySearchIndexBlock {
     def hop(start: Int, end: Int, knownLowest: Option[Persistent], knownMatch: Option[Persistent]): IO[swaydb.Error.Segment, SearchResult[Persistent]] = {
       val mid = start + (end - start) / 2
 
-      val entryOffset = mid * context.entrySize
+      //      println(s"mid: $mid")
+
+      val entryOffset = mid * context.bytesPerValue
 
       if (start > end)
         resolveResult(
@@ -376,7 +381,7 @@ private[core] object BinarySearchIndexBlock {
     //A key-values accessPosition can sometimes be larger than what binarySearchIndex knows for cases where binarySearchIndex is partial
     //to handle that check that accessPosition is not over the number total binarySearchIndex entries.
     def getAccessPosition(keyValue: Persistent): Option[Int] =
-      if (keyValue.accessPosition <= 0 || (!context.isFullIndex && keyValue.accessPosition > context.entriesCount))
+      if (keyValue.accessPosition <= 0 || (!context.isFullIndex && keyValue.accessPosition > context.valuesCount))
         None
       else
         Some(keyValue.accessPosition - 1)
@@ -389,7 +394,7 @@ private[core] object BinarySearchIndexBlock {
     def getEndPosition(keyValue: Option[Persistent]): Int =
       keyValue
         .flatMap(getAccessPosition)
-        .getOrElse(context.entriesCount - 1)
+        .getOrElse(context.valuesCount - 1)
 
     val startPosition = getStartPosition(context.startKeyValue)
     val endPosition = getEndPosition(context.endKeyValue)
@@ -430,7 +435,7 @@ private[core] object BinarySearchIndexBlock {
               } getOrElse IO.Success(none)
         }
       else if (context.startKeyValue.exists(_.accessPosition > 0)) //end should not be larger than the number of entries.
-        hop(start = startPosition, end = (startPosition + 1) min (context.entriesCount - 1), None, None) flatMap {
+        hop(start = startPosition, end = (startPosition + 1) min (context.valuesCount - 1), None, None) flatMap {
           case some @ SearchResult.Some(_, lower) =>
             if (context.startKeyValue exists (order.equiv(_, lower)))
               IO.Success(some)

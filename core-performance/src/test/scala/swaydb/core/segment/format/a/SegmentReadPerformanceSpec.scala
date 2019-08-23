@@ -198,7 +198,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   //            compressions = _ => Seq.empty
   //          ),
   //        sortedIndexConfig =
-  //          SortedIndexBlock.Config(
+  //          SortedIndexBlock.Config.create(
   //            blockIO = strategy,
   //            prefixCompressionResetCount = 0,
   //            enableAccessPositionIndex = true,
@@ -237,7 +237,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       startId = Some(1),
       sortedIndexConfig =
         SortedIndexBlock.Config(
-          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+          ioStrategy = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
           prefixCompressionResetCount = 0,
           enableAccessPositionIndex = true,
           normaliseIndex = true,
@@ -247,7 +247,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         BinarySearchIndexBlock.Config(
           enabled = true,
           minimumNumberOfKeys = 1,
-          searchSortedIndexDirectlyIfPreNormalised = true,
+          searchSortedIndexDirectlyIfPossible = true,
           fullIndex = true,
           blockIO = strategy,
           compressions = _ => Seq.empty

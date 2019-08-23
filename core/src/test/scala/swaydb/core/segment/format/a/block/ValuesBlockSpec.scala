@@ -56,7 +56,7 @@ class ValuesBlockSpec extends TestBase {
   "close" should {
     "prepare for persisting & concurrent read values" in {
       runThis(100.times, log = true) {
-        val keyValues = randomizedKeyValues(count = 1000)
+        val keyValues = randomizedKeyValues(count = randomIntMax(10000) max 1)
         val state = ValuesBlock.init(keyValues).get
 
         keyValues foreach {
