@@ -521,6 +521,16 @@ class Slice[+T: ClassTag] private(array: Array[T],
   def dropHead(): Slice[T] =
     drop(1)
 
+  /**
+   * @return Elements after the input element
+   *         Returns None if input element is not found.
+   */
+  def dropTo[B >: T](elem: B): Option[Slice[T]] =
+    indexOf(elem) map {
+      index =>
+        drop(index + 1)
+    }
+
   override def dropRight(count: Int): Slice[T] =
     if (count <= 0)
       this
@@ -637,6 +647,20 @@ class Slice[+T: ClassTag] private(array: Array[T],
       array.asInstanceOf[Array[B]]
     else
       toArrayCopy
+
+  def indexOf[B >: T](elem: B): Option[Int] = {
+    var index = 0
+    var found = Option.empty[Int]
+    while (found.isEmpty && index < size) {
+      val next = get(index)
+      if (elem == next)
+        found = Some(index)
+      else
+        None
+      index += 1
+    }
+    found
+  }
 
   def toArrayCopy[B >: T](implicit evidence$1: ClassTag[B]): Array[B] = {
     val newArray = new Array[B](size)

@@ -23,6 +23,7 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.ByteSizeOf
+import org.scalatest.OptionValues._
 
 import scala.util.Random
 
@@ -780,5 +781,59 @@ class SliceSpec extends WordSpec with Matchers {
     slice1 should have size 1
     slice1 shouldBe Slice(1)
     slice1.underlyingArraySize shouldBe 3
+  }
+
+  "indexOf" when {
+
+    "empty" in {
+      Slice.emptyBytes.indexOf(0) shouldBe empty
+      Slice.emptyBytes.indexOf(1) shouldBe empty
+    }
+
+    "single" in {
+      val bytes = Slice(1)
+
+      bytes.indexOf(0) shouldBe empty
+      bytes.indexOf(1) shouldBe Some(0)
+    }
+
+    "many" in {
+      val bytes = Slice(1, 2, 3, 4, 5)
+
+      bytes.indexOf(0) shouldBe empty
+      bytes.indexOf(1) shouldBe Some(0)
+      bytes.indexOf(2) shouldBe Some(1)
+      bytes.indexOf(3) shouldBe Some(2)
+      bytes.indexOf(4) shouldBe Some(3)
+      bytes.indexOf(5) shouldBe Some(4)
+      bytes.indexOf(6) shouldBe empty
+    }
+  }
+
+  "droTo" when {
+    "empty" in {
+      Slice.emptyBytes.dropTo(1) shouldBe empty
+      Slice.emptyBytes.dropTo(Byte.MaxValue) shouldBe empty
+      Slice.emptyBytes.dropTo(Byte.MinValue) shouldBe empty
+    }
+
+    "single" in {
+      val bytes = Slice(1)
+
+      bytes.dropTo(1).value shouldBe empty
+      bytes.dropTo(2) shouldBe empty
+    }
+
+    "many" in {
+      val bytes = Slice(1, 2, 3, 4, 5)
+
+      bytes.dropTo(0) shouldBe empty
+      bytes.dropTo(1).value shouldBe Slice(2, 3, 4, 5)
+      bytes.dropTo(2).value shouldBe Slice(3, 4, 5)
+      bytes.dropTo(3).value shouldBe Slice(4, 5)
+      bytes.dropTo(4).value shouldBe Slice(5)
+      bytes.dropTo(5).value shouldBe empty
+      bytes.dropTo(6) shouldBe empty
+    }
   }
 }

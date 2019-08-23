@@ -226,12 +226,6 @@ private[swaydb] object Bytes {
     finalSlice addAll bytes
   }
 
-  def deNormalise(bytes: Slice[Byte]): Slice[Byte] =
-    bytes.dropWhile {
-      byte =>
-        byte == Bytes.zero && byte != Bytes.one
-    }.dropHead()
-
   def normalise(appendHeader: Slice[Byte],
                 bytes: Slice[Byte],
                 toSize: Int): Slice[Byte] = {
@@ -246,4 +240,14 @@ private[swaydb] object Bytes {
     finalSlice add Bytes.one
     finalSlice addAll bytes
   }
+
+  /**
+   * Does not validate if the input bytes are normalised bytes.
+   * It simply drops upto the first 1.byte.
+   *
+   * Similar function [[Slice.dropTo]] which is not directly to avoid
+   * creation of [[Some]] object.
+   */
+  def deNormalise(bytes: Slice[Byte]): Slice[Byte] =
+    bytes drop (bytes.indexOf(Bytes.one).get + 1)
 }

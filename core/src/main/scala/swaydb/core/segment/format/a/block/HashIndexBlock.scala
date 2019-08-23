@@ -121,7 +121,7 @@ private[core] object HashIndexBlock extends LazyLogging {
 
       val writeAbleLargestValueSize =
         if (last.hashIndexConfig.copyIndex)
-          last.stats.segmentMaxSortedIndexEntrySize + ByteSizeOf.varLong
+          last.stats.segmentMaxSortedIndexEntrySize + ByteSizeOf.varLong //varLong == CRC bytes
         else
           Bytes.sizeOf(last.stats.thisKeyValuesAccessIndexOffset + 1)
 
