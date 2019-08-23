@@ -261,6 +261,7 @@ private[core] object SegmentBlock {
                 if (rootGroup.isEmpty && !keyValue.isPrefixCompressed)
                   HashIndexBlock.writeCopied(
                     key = keyValue.key,
+                    thisKeyValuesAccessOffset = thisKeyValuesAccessOffset,
                     indexEntry = keyValue.indexEntryBytes,
                     state = hashIndexState
                   )

@@ -21,9 +21,10 @@ package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
-import swaydb.IO
+import swaydb.{Error, IO}
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
+import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, CRC32, FunctionUtil}
 import swaydb.data.config.{IOAction, IOStrategy, RandomKeyIndex, UncompressedBlockInfo}
@@ -129,7 +130,8 @@ private[core] object HashIndexBlock extends LazyLogging {
       val writeAbleLargestValueSize =
         if (last.hashIndexConfig.copyIndex)
           last.stats.segmentMaxSortedIndexEntrySize +
-            ByteSizeOf.varLong + //varLong == CRC bytes
+            ByteSizeOf.long + //varLong == CRC bytes
+            ByteSizeOf.int + //accessIndexOffset
             whenOrZero(copyWithReferences)(ByteSizeOf.boolean) //boolean for isReference.
         else
           Bytes.sizeOf(last.stats.thisKeyValuesAccessIndexOffset + 1)
@@ -186,7 +188,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     val headerSize =
       Block.headerSize(hasCompression) +
         ByteSizeOf.int + //allocated bytes
-        ByteSizeOf.int + //max probe
+        ByteSizeOf.varInt + //max probe
         ByteSizeOf.boolean + //copyIndex
         ByteSizeOf.boolean + //copyIndexWithReferences
         (Bytes.sizeOf(keyCounts) * 2) + //hit & miss rate
@@ -332,7 +334,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             writeAbleLargestValueSize = state.writeAbleLargestValueSize
           )
 
-        val existing = state.bytes.take(hashIndex, valuePlusOneBytes.size + 2) ////+1 to reserve left 0 byte another +1 not overwrite next 0.
+        val existing = state.bytes.take(hashIndex, valuePlusOneBytes.size + 2) //+1 to reserve left 0 byte another +1 not overwrite next 0.
         if (existing.forall(_ == 0)) {
           state.bytes moveWritePosition (hashIndex + 1)
           state.bytes addAll valuePlusOneBytes
@@ -433,10 +435,12 @@ private[core] object HashIndexBlock extends LazyLogging {
 
   def writeCopied(key: Slice[Byte],
                   indexEntry: Slice[Byte],
+                  thisKeyValuesAccessOffset: Int,
                   state: State): IO[swaydb.Error.Segment, Boolean] =
     writeCopied(
       key = key,
       value = indexEntry,
+      thisKeyValuesAccessOffset = thisKeyValuesAccessOffset,
       isReference = false,
       state = state
     )
@@ -447,15 +451,17 @@ private[core] object HashIndexBlock extends LazyLogging {
     writeCopied(
       key = key,
       value = Slice.writeIntUnsigned(indexOffset),
+      thisKeyValuesAccessOffset = -1,
       isReference = true,
       state = state
     )
 
   /**
-   * Mutates the slice and adds writes the indexOffset to it's hash index.
+   * Writes full copy of the index entry within HashIndex.
    */
   private def writeCopied(key: Slice[Byte],
                           value: Slice[Byte],
+                          thisKeyValuesAccessOffset: Int,
                           isReference: Boolean,
                           state: State): IO[swaydb.Error.Segment, Boolean] = {
 
@@ -463,6 +469,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
 
+    //[CRC|Option[isRef]|Option[accessOffset]|valuesBytes]
     @tailrec
     def doWrite(key: Slice[Byte], probe: Int): Boolean =
       if (probe >= state.maxProbe) {
@@ -489,6 +496,9 @@ private[core] object HashIndexBlock extends LazyLogging {
           if (state.copyIndexWithReferences)
             state.bytes addBoolean isReference
 
+          if (!isReference)
+            state.bytes addIntUnsigned thisKeyValuesAccessOffset
+
           state.bytes addAll value
 
           if (value.last == 0) //if the last byte is 0 add one to avoid next write overwriting this entry's last byte.
@@ -500,10 +510,10 @@ private[core] object HashIndexBlock extends LazyLogging {
             state setMinimumCRC (crc min state.minimumCRC)
 
           state.hit += 1
-          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, crcBytes: ${Slice.writeLongUnsigned(crc)}, value: $value, crc: $crc = success")
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, crcBytes: ${Slice.writeLongUnsigned(crc)}, value: $value, crc: $crc, isReference: $isReference = success")
           true
         } else {
-          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value = failure")
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, isReference: $isReference = failure")
           doWrite(key = key, probe = probe + 1)
         }
       }
@@ -517,13 +527,48 @@ private[core] object HashIndexBlock extends LazyLogging {
   }
 
   /**
+   * Parses bytes written by [[writeCopied]] without CRC bytes.
+   *
+   * @return valueBytes, isReference and accessIndexOffset.
+   */
+  private def parseCopiedValuesBytes(valueBytesWithoutCRC: Slice[Byte],
+                                     copyIndexWithReferences: Boolean): IO[Error.Segment, (Slice[Byte], Boolean, Int)] = {
+    //if references were also being written then check if the current is reference or fullCopy.
+    val (isReference, remainingWithoutCRCAndIsReference) =
+      if (copyIndexWithReferences) //if references is enabled then it should also contain a boolean value which indicates if this entry is reference or copy.
+        (valueBytesWithoutCRC.readBoolean(), valueBytesWithoutCRC.drop(ByteSizeOf.boolean))
+      else
+        (false, valueBytesWithoutCRC)
+
+    //[CRC|Option[isRef]|Option[accessOffset]|valuesBytes]
+    remainingWithoutCRCAndIsReference.readIntUnsignedWithByteSize() flatMap {
+      case (entrySizeOrAccessIndexOffsetEntry, entrySizeOrAccessIndexOffsetEntryByteSize) => //this will be entrySize/sortedIndexOffset if it's a reference else it will be thisKeyValuesAccessIndexOffset.
+        //it's a reference so there is no accessIndexOffset therefore this value is reference offset.
+        if (isReference) {
+          val valueBytes = remainingWithoutCRCAndIsReference.take(entrySizeOrAccessIndexOffsetEntryByteSize)
+          IO.Success((valueBytes, isReference, -1)) //it's a reference there will be no accessIndexOffset.
+        } else { //else this is accessIndexOffset and remaining is indexEntry bytes.
+          remainingWithoutCRCAndIsReference.drop(entrySizeOrAccessIndexOffsetEntryByteSize).readIntUnsignedWithByteSize() map {
+            case (entrySize, entryByteSize) =>
+              val valueBytes =
+                remainingWithoutCRCAndIsReference
+                  .drop(entrySizeOrAccessIndexOffsetEntryByteSize)
+                  .take(entrySize + entryByteSize)
+
+              (valueBytes, isReference, entrySizeOrAccessIndexOffsetEntry)
+          }
+        }
+    }
+  }
+
+  /**
    * Finds a key in the hash index.
    *
    * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
    */
   private[block] def searchCopied[R](key: Slice[Byte],
                                      reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                                     assertValue: (Slice[Byte], Boolean) => IO[swaydb.Error.Segment, Option[R]]): IO[swaydb.Error.Segment, Option[R]] = {
+                                     assertValue: (Slice[Byte], Int, Boolean) => IO[swaydb.Error.Segment, Option[R]]): IO[swaydb.Error.Segment, Option[R]] = {
 
     val hash = key.##
     val hash1 = hash >>> 32
@@ -544,48 +589,37 @@ private[core] object HashIndexBlock extends LazyLogging {
             writeAbleLargestValueSize = block.writeAbleLargestValueSize
           ) - block.headerSize //remove headerSize since the blockReader points to the hashIndex's start offset.
 
+        //[CRC|Option[isRef]|Option[accessOffset]|valuesBytes]
+
         reader
           .moveTo(hashIndex)
           .read(block.writeAbleLargestValueSize) match {
-          case IO.Success(possibleValueBytes) =>
-            //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe. sortedIndex bytes: $possibleValueBytes")
+          case IO.Success(possibleValueBytes: Slice[Byte]) =>
+            //println(s"Key: ${key.readInt()}: read hashIndex: ${hashIndex + block.headerSize} probe: $probe. sortedIndex bytes: $possibleValueBytes")
             if (possibleValueBytes.isEmpty || possibleValueBytes.size == 1) {
-              //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe = failure - invalid start offset.")
+              //println(s"Key: ${key.readInt()}: read hashIndex: ${hashIndex + block.headerSize} probe: $probe = failure - invalid start offset.")
               doFind(probe + 1)
             } else {
               //writeAbleLargestValueSize could also read extra tail bytes so fetch only the bytes that are specific to the indexEntry.
               //Read the crc and then read the indexEntry's entrySize and fetch on the indexEntry bytes and then check CRC.
               possibleValueBytes.readUnsignedLongWithByteSize() match {
                 case IO.Success((crc, crcByteSize)) =>
-                  if (crc < reader.block.minimumCRC) {
+                  if (crc < reader.block.minimumCRC)
                     doFind(probe + 1)
-                  } else {
-                    //entry bytes without CRC.
-                    val remainingBytesWithoutCRC = possibleValueBytes drop crcByteSize
-
-                    //if references were also being written then check if the current is reference or fullCopy.
-                    val (isReference, indexEntryBytesWithExtraTailBytes) =
-                      if (reader.block.copyIndexWithReferences)
-                        (remainingBytesWithoutCRC.readBoolean(), remainingBytesWithoutCRC.dropHead())
-                      else
-                        (false, remainingBytesWithoutCRC)
-
-                    indexEntryBytesWithExtraTailBytes.readIntUnsignedWithByteSize() map {
-                      case (entrySize, entryByteSize) =>
-                        if (isReference) //if it's a read read the unsigned integer bytes required to read from SortedIndex offset.
-                          indexEntryBytesWithExtraTailBytes.take(entryByteSize)
-                        else //else read the Key-value's indexEntry bytes.
-                          indexEntryBytesWithExtraTailBytes.take(entryByteSize + entrySize)
-                    } match {
-                      case IO.Success(valueBytes) => //valueBytes can either be offset or the indexEntry itself.
+                  else
+                    parseCopiedValuesBytes(
+                      valueBytesWithoutCRC = possibleValueBytes drop crcByteSize,
+                      copyIndexWithReferences = reader.block.copyIndexWithReferences
+                    ) match {
+                      case IO.Success((valueBytes, isReference, accessIndexOffset)) => //valueBytes can either be offset or the indexEntry itself.
                         if (crc == CRC32.forBytes(valueBytes))
-                          assertValue(valueBytes, isReference) match { //assert value.
+                          assertValue(valueBytes, accessIndexOffset, isReference) match { //assert value.
                             case success @ IO.Success(Some(_)) =>
-                              //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe, entryBytes: $entryBytes = success")
+                              //println(s"Key: ${key.readInt()}: read hashIndex: ${hashIndex + block.headerSize} probe: $probe, entryBytes: $valueBytes = success")
                               success
 
                             case IO.Success(None) =>
-                              //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe: entryBytes: $entryBytes = not found")
+                              //println(s"Key: ${key.readInt()}: read hashIndex: ${hashIndex + block.headerSize} probe: $probe: entryBytes: $valueBytes = not found")
                               doFind(probe + 1)
 
                             case IO.Failure(error) =>
@@ -595,16 +629,8 @@ private[core] object HashIndexBlock extends LazyLogging {
                           doFind(probe + 1)
 
                       case IO.Failure(error) =>
-                        error.exception match {
-                          //readIntUnsignedWithByteSize could return failure read unsignedInt. TO-DO need to be type-safe.
-                          case exception: IllegalArgumentException if exception.getMessage.contains("requirement failed") =>
-                            doFind(probe + 1)
-
-                          case _ =>
-                            IO.Failure(error)
-                        }
+                        IO.Failure(error)
                     }
-                  }
 
                 case IO.Failure(error) =>
                   IO.Failure(error)
@@ -634,7 +660,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         key = key,
         reader = hashIndexReader,
         assertValue =
-          (referenceOrIndexEntry: Slice[Byte], isReference: Boolean) =>
+          (referenceOrIndexEntry: Slice[Byte], accessIndexOffset: Int, isReference: Boolean) =>
             if (isReference)
               referenceOrIndexEntry.readIntUnsigned() flatMap {
                 index =>
@@ -646,9 +672,10 @@ private[core] object HashIndexBlock extends LazyLogging {
                   )
               }
             else
-              SortedIndexBlock.findAndMatchOrNextPersistent(
+              SortedIndexBlock.parseAndMatch( //do no perform read for next key-value since this indexReader only contains bytes for the current read indexEntry.
                 matcher = matcher,
                 fromOffset = 0,
+                overwriteNextIndexOffset = Some(accessIndexOffset + referenceOrIndexEntry.size),
                 indexReader =
                   UnblockedReader(
                     block =

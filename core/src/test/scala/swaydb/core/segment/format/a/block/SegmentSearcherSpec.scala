@@ -74,7 +74,6 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
 
     val zippedPersistentKeyValues = persistentKeyValues.zipWithIndex
 
-    //TEST - hashIndexSearchOnly does not exist and hashIndexSearchOnly = false then sorted index is used.
     Benchmark("Benchmarking slow test", inlinePrint = true) {
       zippedPersistentKeyValues.foldLeft(Option.empty[Persistent]) {
         case (previous, (keyValue, index)) =>
@@ -102,7 +101,6 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
       }
     }
 
-    //TEST - hashIndexSearchOnly == false
     //check keys that do not exist return none.
     val maxKey = keyValues.maxKey().maxKey.readInt()
     ((1 until 100) ++ (maxKey + 1 to maxKey + 100)) foreach {
@@ -113,7 +111,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           end = None,
           hashIndexReader = blocks.hashIndexReader,
           binarySearchIndexReader =
-            if (keyValues.last.stats.segmentHasRange) {
+            if (keyValues.last.stats.segmentHasRange && !blocks.sortedIndexReader.block.isBinarySearchable) {
               blocks.binarySearchIndexReader shouldBe defined
               //if it has range then binary search index will be used.
               blocks.binarySearchIndexReader
@@ -151,6 +149,21 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           valuesReader = blocks.valuesReader,
           keyValueCount = keyValues.size
         ).get
+
+      if (expectedHigher.nonEmpty && got.isEmpty) {
+        SegmentSearcher.searchHigher(
+          key = key,
+          //randomly give it start and end indexes.
+          start = randomStart,
+          end = randomEnd,
+          binarySearchIndexReader = randomBinarySearchIndex, //set it to null. BinarySearchIndex is not accessed.
+          sortedIndexReader = blocks.sortedIndexReader,
+          valuesReader = blocks.valuesReader,
+          keyValueCount = keyValues.size
+        ).get
+
+        println("debug")
+      }
 
       got shouldBe expectedHigher
     }
@@ -247,7 +260,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
 
   "all searches" in {
     runThis(100.times, log = true) {
-      val _keyValues = Benchmark("Generating key-values", true)(randomizedKeyValues(startId = Some(100), count = randomIntMax(100) max 1))
+      val _keyValues = Benchmark("Generating key-values", true)(randomizedKeyValues(startId = Some(100), count = randomIntMax(200) max 1))
       val fullIndex = randomBoolean()
 
       val binarySearchCompressions = randomCompressionsOrEmpty()
@@ -260,7 +273,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               enabled = true,
               minimumNumberOfKeys = 0,
               fullIndex = fullIndex,
-              searchSortedIndexDirectlyIfPossible = true,
+              searchSortedIndexDirectlyIfPossible = randomBoolean(),
               blockIO = _ => randomIOAccess(),
               compressions = _ => binarySearchCompressions
             ),
@@ -283,7 +296,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
       if (binarySearchCompressions.isEmpty) blocks.binarySearchIndexReader.foreach(_.block.compressionInfo shouldBe empty)
       if (hashIndexCompressions.isEmpty) blocks.hashIndexReader.get.block.compressionInfo shouldBe empty
 
-      if (fullIndex)
+      if (fullIndex && !blocks.sortedIndexReader.block.isBinarySearchable)
         blocks.binarySearchIndexReader shouldBe defined
 
       val persistentKeyValues = Benchmark("Searching key-values")(runSearchTest(keyValues, blocks))

@@ -88,27 +88,13 @@ class HashIndexBlockSpec extends TestBase {
         allocateSpace = _.requiredSpace,
         hasCompression = false,
         minimumNumberOfKeys = 0,
-        copyIndex = false
+        copyIndex = randomBoolean()
       ) shouldBe
         HashIndexBlock.headerSize(
           keyCounts = 1,
           hasCompression = false,
           writeAbleLargestValueSize = 1
         ) + 1 + 1
-
-      HashIndexBlock.optimalBytesRequired(
-        keyCounts = 1,
-        writeAbleLargestValueSize = 1,
-        allocateSpace = _.requiredSpace,
-        hasCompression = false,
-        minimumNumberOfKeys = 0,
-        copyIndex = true
-      ) shouldBe
-        HashIndexBlock.headerSize(
-          keyCounts = 1,
-          hasCompression = false,
-          writeAbleLargestValueSize = 1
-        ) + 1 //+1 for header 0 byte is not required.
     }
   }
 
