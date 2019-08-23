@@ -254,19 +254,22 @@ private[core] object SegmentBlock {
 
           hashIndex map {
             hashIndexState =>
-              //Copy HashIndex cannot be created for group's key-values because it's value's offset is
-              //embedded in the Group's offsets which can only be accessed via unblocking through the Group's BlockReader.
               if (hashIndexState.copyIndex)
-                if (rootGroup.isEmpty && !keyValue.isPrefixCompressed) {
+              //Cannot copy HashIndex from a child Group key-values or prefixCompressed key-values because a Group's valueOffset
+              //is embedded within that's Group's values block and the block might be compressed or prefix-compressed key-values.
+              //Instead a reference entry is inserted into the HashIndex.
+                if (rootGroup.isEmpty && !keyValue.isPrefixCompressed)
                   HashIndexBlock.writeCopied(
                     key = keyValue.key,
                     value = keyValue.indexEntryBytes,
                     state = hashIndexState
                   )
-                } else {
-                  hashIndexState.miss += 1
-                  IO.`false`
-                }
+                else
+                  HashIndexBlock.writeCopied(
+                    key = keyValue.key,
+                    value = thisKeyValuesAccessOffset,
+                    state = hashIndexState
+                  )
               else //else build a reference hashIndex only.
                 HashIndexBlock.write(
                   key = keyValue.key,
