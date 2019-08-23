@@ -289,14 +289,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
       //size of the index entry to read
       //todo read indexReader.block.segmentMaxIndexEntrySize in one seek.
       val indexSize =
-        indexEntrySizeMayBe match {
-          case Some(indexEntrySize) =>
-            indexReader skip Bytes.sizeOf(indexEntrySize)
-            indexEntrySize
+      indexEntrySizeMayBe match {
+        case Some(indexEntrySize) =>
+          indexReader skip Bytes.sizeOf(indexEntrySize)
+          indexEntrySize
 
-          case None =>
-            indexReader.readIntUnsigned().get
-        }
+        case None =>
+          indexReader.readIntUnsigned().get
+      }
 
       //5 extra bytes are read for each entry to fetch the next index's size.
       val bytesToRead = indexSize + ByteSizeOf.varInt
@@ -609,4 +609,7 @@ private[core] case class SortedIndexBlock(offset: SortedIndexBlock.Offset,
                                           isPreNormalised: Boolean,
                                           headerSize: Int,
                                           segmentMaxIndexEntrySize: Int,
-                                          compressionInfo: Option[Block.CompressionInfo]) extends Block[SortedIndexBlock.Offset]
+                                          compressionInfo: Option[Block.CompressionInfo]) extends Block[SortedIndexBlock.Offset] {
+  val isBinarySearchable =
+    !hasPrefixCompression && (normaliseForBinarySearch || isPreNormalised)
+}

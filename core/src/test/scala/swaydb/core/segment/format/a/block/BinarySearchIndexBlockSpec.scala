@@ -42,7 +42,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
 
   "write full index" when {
     def assertSearch(bytes: Slice[Byte],
-                     bytesPerValue: Int,
+                     byteSizePerValue: Int,
                      values: Seq[Int]) =
       runThis(10.times) {
         val largestValue = values.last
@@ -60,7 +60,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
 
         def context(valueToFind: Int) =
           new BinarySearchContext {
-            val bytesPerValue: Int = bytesPerValue
+            val bytesPerValue: Int = byteSizePerValue
             val valuesCount: Int = values.size
             val isFullIndex: Boolean = true
             val higherOrLower: Option[Boolean] = None
@@ -302,25 +302,28 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
           startId = Some(startId)
         ).updateStats(
           sortedIndexConfig =
-            SortedIndexBlock.Config.random.copy( //disable normalising so that BinarySearchIndex gets created
-              normaliseIndex = false
+            SortedIndexBlock.Config.random.copy(
+              normaliseIndex = randomBoolean()
             ),
           binarySearchIndexConfig =
             BinarySearchIndexBlock.Config.random.copy(
               enabled = true,
               minimumNumberOfKeys = 0,
               fullIndex = true,
-              searchSortedIndexDirectlyIfPossible = false //disable direct search so that BinarySearchIndex gets created.
+              searchSortedIndexDirectlyIfPossible = randomBoolean()
             )
         )
 
       val blocks = getBlocks(keyValues).get
 
-      blocks.binarySearchIndexReader shouldBe defined
-      blocks.binarySearchIndexReader.get.block.isFullIndex shouldBe true
+      blocks.binarySearchIndexReader match {
+        case Some(binarySearchIndexReader) =>
+          binarySearchIndexReader.block.isFullIndex shouldBe true
 
-      if (!blocks.sortedIndexReader.block.hasPrefixCompression)
-        blocks.binarySearchIndexReader.get.block.valuesCount shouldBe keyValues.size
+        case None =>
+          blocks.sortedIndexReader.block.isBinarySearchable shouldBe true
+          blocks.sortedIndexReader.block.hasPrefixCompression shouldBe false
+      }
 
       (keyValues, blocks)
     }
@@ -346,7 +349,8 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                         key = keyValue.key,
                         start = eitherOne(None, start),
                         end = None,
-                        binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+                        keyValuesCount = IO(keyValues.size),
+                        binarySearchIndexReader = blocks.binarySearchIndexReader,
                         sortedIndexReader = blocks.sortedIndexReader,
                         valuesReader = blocks.valuesReader
                       ).get.toOption
@@ -360,7 +364,8 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                 key = keyValue.key,
                 start = start,
                 end = end,
-                binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+                keyValuesCount = IO.Success(blocks.footer.keyValueCount),
+                binarySearchIndexReader = blocks.binarySearchIndexReader,
                 sortedIndexReader = blocks.sortedIndexReader,
                 valuesReader = blocks.valuesReader
               ).get match {
@@ -396,7 +401,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
     }
 
     "search non existent key-values" in {
-      runThis(100.times) {
+      runThis(100.times, log = true) {
         val (keyValues, blocks) = genKeyValuesAndBlocks()
         val higherStartFrom = keyValues.last.key.readInt() + 1000000
         (higherStartFrom to higherStartFrom + 100) foreach {
@@ -406,7 +411,8 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
               key = key,
               start = None,
               end = None,
-              binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+              keyValuesCount = IO.Success(blocks.footer.keyValueCount),
+              binarySearchIndexReader = blocks.binarySearchIndexReader,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).get match {
@@ -430,7 +436,8 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
               key = key,
               start = None,
               end = None,
-              binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+              keyValuesCount = IO.Success(blocks.footer.keyValueCount),
+              binarySearchIndexReader = blocks.binarySearchIndexReader,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).get match {
@@ -463,7 +470,8 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                         key = keyValue.key,
                         start = None,
                         end = None,
-                        binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+                        keyValuesCount = IO.Success(blocks.footer.keyValueCount),
+                        binarySearchIndexReader = blocks.binarySearchIndexReader,
                         sortedIndexReader = blocks.sortedIndexReader,
                         valuesReader = blocks.valuesReader
                       ).get.toOption
@@ -482,7 +490,8 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                         key = keyValue.key,
                         start = eitherOne(None, start),
                         end = None,
-                        binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+                        keyValuesCount = IO.Success(blocks.footer.keyValueCount),
+                        binarySearchIndexReader = blocks.binarySearchIndexReader,
                         sortedIndexReader = blocks.sortedIndexReader,
                         valuesReader = blocks.valuesReader
                       ).get.toOption
@@ -494,7 +503,8 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                 key = key,
                 start = start,
                 end = end,
-                binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+                keyValuesCount = IO.Success(blocks.footer.keyValueCount),
+                binarySearchIndexReader = blocks.binarySearchIndexReader,
                 sortedIndexReader = blocks.sortedIndexReader,
                 valuesReader = blocks.valuesReader
               ).get
@@ -570,7 +580,8 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                         key = keyValue.key,
                         start = orNone(expectedLower),
                         end = None,
-                        binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+                        keyValuesCount = IO.Success(blocks.footer.keyValueCount),
+                        binarySearchIndexReader = blocks.binarySearchIndexReader,
                         sortedIndexReader = blocks.sortedIndexReader,
                         valuesReader = blocks.valuesReader
                       ).get.toOption
@@ -589,7 +600,8 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                         key = keyValue.key,
                         start = orNone(start),
                         end = None,
-                        binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+                        keyValuesCount = IO.Success(blocks.footer.keyValueCount),
+                        binarySearchIndexReader = blocks.binarySearchIndexReader,
                         sortedIndexReader = blocks.sortedIndexReader,
                         valuesReader = blocks.valuesReader
                       ).get.toOption
@@ -601,7 +613,8 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                 key = key,
                 start = start,
                 end = end,
-                binarySearchIndexReader = blocks.binarySearchIndexReader.get,
+                keyValuesCount = IO.Success(blocks.footer.keyValueCount),
+                binarySearchIndexReader = blocks.binarySearchIndexReader,
                 sortedIndexReader = blocks.sortedIndexReader,
                 valuesReader = blocks.valuesReader
               ).get
