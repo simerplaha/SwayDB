@@ -39,8 +39,6 @@ class WiredActor[+T, +S](impl: T, delays: Option[FiniteDuration], state: S)(impl
     delays map {
       delays =>
         Actor.timer[() => Unit, S](
-          maxMessagesToProcessAtOnce = 1000,
-          overflowAllowed = 1000,
           state = state,
           fixedDelay = delays
         )((function, _) => function()).asInstanceOf[Actor[() => Unit, S]]
