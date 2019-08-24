@@ -21,17 +21,16 @@ package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
-import swaydb.{Error, IO}
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
-import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.util.NumberUtil._
 import swaydb.core.util.{Bytes, CRC32, FunctionUtil}
 import swaydb.data.config.{IOAction, IOStrategy, RandomKeyIndex, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.core.util.NumberUtil._
+import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
 import scala.beans.BeanProperty
@@ -629,7 +628,14 @@ private[core] object HashIndexBlock extends LazyLogging {
                           doFind(probe + 1)
 
                       case IO.Failure(error) =>
-                        IO.Failure(error)
+                        error.exception match {
+                          //readIntUnsignedWithByteSize could return failure read unsignedInt. TO-DO need to be type-safe.
+                          case exception: IllegalArgumentException if exception.getMessage.contains("requirement failed") =>
+                            doFind(probe + 1)
+
+                          case _ =>
+                            IO.Failure(error)
+                        }
                     }
 
                 case IO.Failure(error) =>

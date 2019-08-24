@@ -21,8 +21,8 @@
 //
 //import org.scalatest.Matchers._
 //import org.scalatest.WordSpec
-//import swaydb.core.CommonAssertions._
 //import swaydb.IOValues._
+//import swaydb.core.CommonAssertions._
 //import swaydb.core.RunThis._
 //import swaydb.core.TestData._
 //import swaydb.core.TestTimer
@@ -40,10 +40,10 @@
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //
 //  "write and read single Fixed entry" in {
-//    runThisParallel(1000.times) {
+//    runThis(1000.times) {
 //      implicit val testTimer = TestTimer.random
-//      val entry = randomFixedKeyValue(key = randomIntMax(), value = randomStringOption).toTransient
-//      //      println("write: " + entry)
+//      val entry = randomPutKeyValue(key = randomIntMax(), value = None).toTransient
+//            println("write: " + entry)
 //
 //      entry.valueEntryBytes.size should be <= 1
 //
@@ -55,8 +55,7 @@
 //          indexOffset = 0,
 //          nextIndexOffset = 0,
 //          nextIndexSize = 0,
-//          isNormalisedKey = false,
-//          hasAccessPositionIndex = entry.thisKeyValueAccessIndexPosition,
+//          hasAccessPositionIndex = entry.sortedIndexConfig.enableAccessPositionIndex,
 //          previous = None
 //        ).runRandomIO.value
 //      //      println("read:  " + read)
@@ -90,8 +89,7 @@
 //          indexOffset = 0,
 //          nextIndexOffset = 0,
 //          nextIndexSize = 0,
-//          isNormalisedKey = false,
-//          hasAccessPositionIndex = previous.thisKeyValueAccessIndexPosition,
+//          hasAccessPositionIndex = previous.sortedIndexConfig.enableAccessPositionIndex,
 //          previous = None
 //        ).runRandomIO.value
 //
@@ -105,8 +103,7 @@
 //          indexOffset = 0,
 //          nextIndexOffset = 0,
 //          nextIndexSize = 0,
-//          isNormalisedKey = false,
-//          hasAccessPositionIndex = next.thisKeyValueAccessIndexPosition,
+//          hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
 //          previous = Some(previousRead)
 //        ).runRandomIO.value
 //

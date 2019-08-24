@@ -43,7 +43,7 @@ import scala.concurrent.duration._
 import scala.util.Random
 
 class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = false
+  val testGroupedKeyValues: Boolean = true
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
 }
@@ -111,8 +111,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   //    override def deleteFiles = false
 
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-  implicit val memorySweeper = TestLimitQueues.memorySweeper
-  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
+  implicit val memorySweeper: Option[MemorySweeper.KeyValue] = None
+  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.blockCache
 
   def strategy(action: IOAction): IOStrategy =
     action match {
@@ -259,16 +259,17 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           blockIO = strategy,
           compressions = _ => Seq.empty
         ),
-      //      hashIndexConfig =
-      //        HashIndexBlock.Config(
-      //          maxProbe = 2,
-      //          minimumNumberOfKeys = 5,
-      //          minimumNumberOfHits = 5,
-      //          allocateSpace = _.requiredSpace * 10,
-      //          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-      //          compressions = _ => Seq.empty
-      //        ),
-      hashIndexConfig = HashIndexBlock.Config.disabled,
+      hashIndexConfig =
+        HashIndexBlock.Config(
+          maxProbe = 2,
+          copyIndex = true,
+          minimumNumberOfKeys = 5,
+          minimumNumberOfHits = 5,
+          allocateSpace = _.requiredSpace * 10,
+          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+          compressions = _ => Seq.empty
+        ),
+      //      hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig =
         BloomFilterBlock.Config.disabled
       //      bloomFilterConfig =
@@ -338,8 +339,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         //          println(key)
         //        val found = segment.get(keyValue.key).get.get
         //        found.getOrFetchValue
-        //                segment.get(keyValue.key).get.get.key shouldBe keyValue.key
-        segment.get(keyValue.key).get
+        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
+      //        segment.get(keyValue.key).get
     }
   }
 
@@ -434,9 +435,9 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       assertGet(segment)
     }
 
-    //    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
-    //      assertGet(segment)
-    //    }
+    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+      assertGet(segment)
+    }
 
     //
     //    //    segment.clearCachedKeyValues()

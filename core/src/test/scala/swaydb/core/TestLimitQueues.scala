@@ -26,14 +26,23 @@ import swaydb.core.io.file.BlockCache
 import swaydb.core.queue.{FileSweeper, FileSweeperItem, MemorySweeper}
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.util.StorageUnits._
+import scala.concurrent.duration._
 
 object TestLimitQueues {
 
   implicit val level0PushDownPool = TestExecutionContext.executionContext
 
   val memorySweeper: Option[MemorySweeper.Both] =
-    MemorySweeper(MemoryCache.EnableBoth(4098, 10.mb, ActorConfig.Basic(10000, level0PushDownPool)))
+    MemorySweeper(MemoryCache.EnableBoth(4098, 200.mb, ActorConfig.TimeLoop(10000, 100000, 10.seconds, level0PushDownPool)))
       .map(_.asInstanceOf[MemorySweeper.Both])
+
+  val memorySweeperBlock: Option[MemorySweeper.BlockSweeper] =
+    MemorySweeper(MemoryCache.EnableBlockCache(4098, 10.mb, ActorConfig.Basic(10000, level0PushDownPool)))
+      .map(_.asInstanceOf[MemorySweeper.BlockSweeper])
+
+  val keyValueSweeperBlock: Option[MemorySweeper.KeyValueSweeper] =
+    MemorySweeper(MemoryCache.EnableKeyValueCache(10.mb, ActorConfig.Basic(10000, level0PushDownPool)))
+      .map(_.asInstanceOf[MemorySweeper.KeyValueSweeper])
 
   val someMemorySweeper = memorySweeper
 
