@@ -117,7 +117,7 @@ private[core] class SegmentCache(id: String,
                   start: Option[Persistent],
                   end: => Option[Persistent],
                   hasRange: Boolean,
-                  keyValueCount: Int,
+                  keyValueCount: => IO[swaydb.Error.Segment, Int],
                   threadState: SegmentReadThreadState): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
     blockCache.createHashIndexReader() flatMap {
       hashIndexReader =>
@@ -214,7 +214,7 @@ private[core] class SegmentCache(id: String,
                     get(
                       key = key,
                       start = floorValue,
-                      keyValueCount = footer.keyValueCount,
+                      keyValueCount = IO.Success(footer.keyValueCount),
                       end = skipList.higher(key),
                       threadState = thisThreadState,
                       hasRange = footer.hasRange
@@ -226,7 +226,7 @@ private[core] class SegmentCache(id: String,
                           get(
                             key = key,
                             start = floorValue,
-                            keyValueCount = footer.keyValueCount,
+                            keyValueCount = IO.Success(footer.keyValueCount),
                             threadState = thisThreadState,
                             end = skipList.higher(key),
                             hasRange = footer.hasRange
@@ -241,7 +241,7 @@ private[core] class SegmentCache(id: String,
   private def lower(key: Slice[Byte],
                     start: Option[Persistent],
                     end: => Option[Persistent],
-                    keyValueCount: Int): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+                    keyValueCount: => IO[swaydb.Error.Segment, Int]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
     blockCache.createBinarySearchIndexReader() flatMap {
       binarySearchIndexReader =>
         blockCache.createSortedIndexReader() flatMap {
@@ -333,64 +333,49 @@ private[core] class SegmentCache(id: String,
                         if (ceilingRange containsLower key)
                           IO.Success(Some(ceilingRange))
                         else
-                          getFooter() flatMap {
-                            footer =>
-                              lower(
-                                key = key,
-                                start = someLower,
-                                end = someCeiling,
-                                keyValueCount = footer.keyValueCount
-                              )
-                          }
+                          lower(
+                            key = key,
+                            start = someLower,
+                            end = someCeiling,
+                            keyValueCount = getFooter().map(_.keyValueCount)
+                          )
 
                       case someCeiling @ Some(ceilingGroup: Persistent.Group) =>
                         if (ceilingGroup containsLower key)
                           ceilingGroup.segment.lower(key)
                         else
-                          getFooter() flatMap {
-                            footer =>
-                              lower(
-                                key = key,
-                                start = someLower,
-                                end = someCeiling,
-                                keyValueCount = footer.keyValueCount
-                              )
-                          }
+                          lower(
+                            key = key,
+                            start = someLower,
+                            end = someCeiling,
+                            keyValueCount = getFooter().map(_.keyValueCount)
+                          )
 
                       case someCeiling @ Some(_: Persistent.Fixed) =>
-                        getFooter() flatMap {
-                          footer =>
-                            lower(
-                              key = key,
-                              start = someLower,
-                              end = someCeiling,
-                              keyValueCount = footer.keyValueCount
-                            )
-                        }
+                        lower(
+                          key = key,
+                          start = someLower,
+                          end = someCeiling,
+                          keyValueCount = getFooter().map(_.keyValueCount)
+                        )
 
                       case None =>
-                        getFooter() flatMap {
-                          footer =>
-                            lower(
-                              key = key,
-                              start = someLower,
-                              end = None,
-                              keyValueCount = footer.keyValueCount
-                            )
-                        }
+                        lower(
+                          key = key,
+                          start = someLower,
+                          end = None,
+                          keyValueCount = getFooter().map(_.keyValueCount)
+                        )
                     }
                 }
 
             case None =>
-              getFooter() flatMap {
-                footer =>
-                  lower(
-                    key = key,
-                    start = None,
-                    end = getForLower(key).toOption.flatten,
-                    keyValueCount = footer.keyValueCount
-                  )
-              }
+              lower(
+                key = key,
+                start = None,
+                end = getForLower(key).toOption.flatten,
+                keyValueCount = getFooter().map(_.keyValueCount)
+              )
           }
       }
 
@@ -411,7 +396,7 @@ private[core] class SegmentCache(id: String,
   private def higher(key: Slice[Byte],
                      start: Option[Persistent],
                      end: => Option[Persistent],
-                     keyValueCount: Int): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+                     keyValueCount: => IO[swaydb.Error.Segment, Int]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
     blockCache.getFooter() flatMap {
       footer =>
         blockCache.createBinarySearchIndexReader() flatMap {
@@ -490,39 +475,30 @@ private[core] class SegmentCache(id: String,
                           group.segment.higher(key)
                       }
                     else
-                      getFooter() flatMap {
-                        footer =>
-                          higher(
-                            key = key,
-                            start = someFloor,
-                            end = someHigher,
-                            keyValueCount = footer.keyValueCount
-                          )
-                      }
+                      higher(
+                        key = key,
+                        start = someFloor,
+                        end = someHigher,
+                        keyValueCount = getFooter().map(_.keyValueCount)
+                      )
 
                   case None =>
-                    getFooter() flatMap {
-                      footer =>
-                        higher(
-                          key = key,
-                          start = someFloor,
-                          end = None,
-                          keyValueCount = footer.keyValueCount
-                        )
-                    }
+                    higher(
+                      key = key,
+                      start = someFloor,
+                      end = None,
+                      keyValueCount = getFooter().map(_.keyValueCount)
+                    )
                 }
             }
 
           case None =>
-            getFooter() flatMap {
-              footer =>
-                higher(
-                  key = key,
-                  start = None,
-                  end = skipList.higher(key),
-                  keyValueCount = footer.keyValueCount
-                )
-            }
+            higher(
+              key = key,
+              start = None,
+              end = skipList.higher(key),
+              keyValueCount = getFooter().map(_.keyValueCount)
+            )
         }
     }
 

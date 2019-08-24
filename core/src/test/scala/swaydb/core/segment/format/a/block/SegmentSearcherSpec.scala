@@ -19,6 +19,7 @@
 package swaydb.core.segment.format.a.block
 
 import org.scalamock.scalatest.MockFactory
+import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
@@ -59,7 +60,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
             sortedIndexReader = blocks.sortedIndexReader,
             valuesReader = blocks.valuesReader,
             hasRange = keyValues.last.stats.segmentHasRange,
-            keyValueCount = keyValues.size,
+            keyValueCount = IO.Success(keyValues.size),
             threadState = None
           ).get
 
@@ -94,7 +95,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader,
               hasRange = keyValues.last.stats.segmentHasRange,
-              keyValueCount = keyValues.size,
+              keyValueCount = IO.Success[swaydb.Error.Segment, Int](keyValues.size),
               threadState = None
             ).get
 
@@ -114,7 +115,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           hashIndexReader = blocks.hashIndexReader,
           binarySearchIndexReader =
             if (keyValues.last.stats.segmentHasRange && !blocks.sortedIndexReader.block.isBinarySearchable) {
-//              blocks.binarySearchIndexReader shouldBe defined
+              //              blocks.binarySearchIndexReader shouldBe defined
               //if it has range then binary search index will be used unless all the ranges were prefix compressed.
               blocks.binarySearchIndexReader
             } else {
@@ -123,7 +124,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = Some(ValuesBlock.emptyUnblocked), //give it empty blocks since values are not read.
           hasRange = keyValues.last.stats.segmentHasRange,
-          keyValueCount = keyValues.size,
+          keyValueCount = IO.Success[swaydb.Error.Segment, Int](keyValues.size),
           threadState = None
         ).get shouldBe empty
     }
@@ -150,7 +151,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           binarySearchIndexReader = randomBinarySearchIndex, //set it to null. BinarySearchIndex is not accessed.
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
-          keyValueCount = keyValues.size
+          keyValueCount = IO.Success[swaydb.Error.Segment, Int](keyValues.size)
         ).get
 
       if (expectedHigher.nonEmpty && got.isEmpty) {
@@ -162,7 +163,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           binarySearchIndexReader = randomBinarySearchIndex, //set it to null. BinarySearchIndex is not accessed.
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
-          keyValueCount = keyValues.size
+          keyValueCount = IO.Success[swaydb.Error.Segment, Int](keyValues.size)
         ).get
 
         println("debug")
@@ -227,7 +228,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           binarySearchIndexReader = randomBinarySearchIndex, //set it to null. BinarySearchIndex is not accessed.
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
-          keyValueCount = keyValues.size
+          keyValueCount = IO.Success[swaydb.Error.Segment, Int](keyValues.size)
         ).get
       lower shouldBe expectedLower
     }
