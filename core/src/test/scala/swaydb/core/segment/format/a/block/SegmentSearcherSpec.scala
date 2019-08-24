@@ -112,8 +112,8 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           hashIndexReader = blocks.hashIndexReader,
           binarySearchIndexReader =
             if (keyValues.last.stats.segmentHasRange && !blocks.sortedIndexReader.block.isBinarySearchable) {
-              blocks.binarySearchIndexReader shouldBe defined
-              //if it has range then binary search index will be used.
+//              blocks.binarySearchIndexReader shouldBe defined
+              //if it has range then binary search index will be used unless all the ranges were prefix compressed.
               blocks.binarySearchIndexReader
             } else {
               null

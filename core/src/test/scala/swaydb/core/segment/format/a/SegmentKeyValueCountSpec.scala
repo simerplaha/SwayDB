@@ -71,7 +71,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
     "return 1 when the Segment contains only 1 key-value" in {
       runThis(10.times) {
         assertSegment(
-          keyValues = randomizedKeyValues(1, addPut = true),
+          keyValues = randomizedKeyValues(1),
           assert =
             (keyValues, segment) => {
               keyValues should have size 1
@@ -85,7 +85,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
     "return the number of randomly generated key-values where there are no Groups" in {
       runThis(10.times) {
         assertSegment(
-          keyValues = randomizedKeyValues(keyValuesCount, addPut = true),
+          keyValues = randomizedKeyValues(keyValuesCount),
           assert =
             (keyValues, segment) => {
               segment.getHeadKeyValueCount().runRandomIO.value shouldBe keyValues.size
@@ -97,7 +97,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
 
     "return the number key-values in a single Group" in {
       runThis(10.times) {
-        val groupsKeyValues = randomizedKeyValues(keyValuesCount, addPut = true)
+        val groupsKeyValues = randomizedKeyValues(keyValuesCount)
         assertSegment(
           keyValues = Slice(randomGroup(groupsKeyValues)),
           assert =
@@ -115,16 +115,16 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
         val group1KeyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
         val group1 = randomGroup(group1KeyValues)
 
-        val group2KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group1.maxKey.maxKey.readInt() + 1), addGroups = false, addPut = true)
+        val group2KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group1.maxKey.maxKey.readInt() + 1), addGroups = false)
         val group2 = randomGroup((Slice(group1) ++ group2KeyValues).updateStats)
         group2.stats.segmentUniqueKeysCount shouldBe (group1KeyValues.size + group2KeyValues.size)
 
         //group3 contains group2 as a child and group2 contains group1 as a child.
-        val group3KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group2.maxKey.maxKey.readInt() + 1), addGroups = false, addPut = true)
+        val group3KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group2.maxKey.maxKey.readInt() + 1), addGroups = false)
         val group3 = randomGroup((Slice(group2) ++ group3KeyValues).updateStats)
         group3.stats.segmentUniqueKeysCount shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
 
-        val group4KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group3.maxKey.maxKey.readInt() + 1), addGroups = false, addPut = true)
+        val group4KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group3.maxKey.maxKey.readInt() + 1), addGroups = false)
         val group4 = randomGroup(group4KeyValues)
         group4.stats.segmentUniqueKeysCount shouldBe group4KeyValues.size
 

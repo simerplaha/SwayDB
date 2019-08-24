@@ -201,7 +201,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
 
     "random" in {
       assertSegment(
-        keyValues = randomizedKeyValues(keyValuesCount, addPut = true),
+        keyValues = randomizedKeyValues(keyValuesCount),
         assert = assertHigher(_, _)
       )
     }

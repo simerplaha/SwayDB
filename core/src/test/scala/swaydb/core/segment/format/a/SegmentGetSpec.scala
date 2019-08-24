@@ -155,7 +155,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
       //run this test randomly to possibly test all range key-value combinations
       runThis(5.times, log = true) {
         val nestedGroupsKeyValueCount = 5
-        val groupKeyValues = randomizedKeyValues(keyValuesCount, addPut = true, nestedGroupsKeyValueCount = nestedGroupsKeyValueCount)
+        val groupKeyValues = randomizedKeyValues(keyValuesCount, nestedGroupsKeyValueCount = nestedGroupsKeyValueCount)
         val group = randomGroup(groupKeyValues)
         val keyValues = Slice(group).updateStats
         assertSegment(
@@ -175,7 +175,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
     "add unsliced key-values to Segment's caches" in {
       assertSegment(
-        keyValues = randomizedKeyValues(keyValuesCount, addGroups = false, addPut = true),
+        keyValues = randomizedKeyValues(keyValuesCount, addGroups = false),
         testAgainAfterAssert = false,
         assert =
           (keyValues, segment) =>

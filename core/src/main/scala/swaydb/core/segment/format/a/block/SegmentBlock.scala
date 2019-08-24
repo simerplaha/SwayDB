@@ -245,6 +245,7 @@ private[core] object SegmentBlock {
           )
 
         case keyValue @ (_: Transient.Range | _: Transient.Fixed) =>
+          //always write to the rootGroup's accessIndexOffset. Nested group's key-values are just opened and indexed againsts the rootGroup's key-values.
           val thisKeyValuesAccessOffset =
             rootGroup
               .map(_.stats.thisKeyValuesAccessIndexOffset)
@@ -280,7 +281,7 @@ private[core] object SegmentBlock {
           } match {
             //if it's a hit and binary search is not configured to be full.
             //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
-            case Some(IO.Success(hit)) if !keyValue.isRange && (hit && binarySearchIndex.forall(!_.isFullIndex)) =>
+            case Some(IO.Success(hit)) if keyValue.isPrefixCompressed || binarySearchIndex.forall(!_.isFullIndex) && !keyValue.isRange && hit =>
               IO.unit
 
             case None | Some(IO.Success(_)) =>

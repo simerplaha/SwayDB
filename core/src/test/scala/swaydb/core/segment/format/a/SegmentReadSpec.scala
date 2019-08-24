@@ -92,7 +92,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         //inner
         (1 to 5) foreach {
           i =>
-            randomizedKeyValues(10, startId = Some(i), addPut = true) foreach {
+            randomizedKeyValues(10, startId = Some(i)) foreach {
               keyValue =>
                 if (keyValue.key.readInt() <= 5)
                   Segment.belongsTo(keyValue, segment) shouldBe true
@@ -102,7 +102,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         //outer
         (6 to 20) foreach {
           i =>
-            randomizedKeyValues(10, startId = Some(i), addPut = true) foreach {
+            randomizedKeyValues(10, startId = Some(i)) foreach {
               keyValue =>
                 Segment.belongsTo(keyValue, segment) shouldBe false
             }
@@ -120,7 +120,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         //inner
         (1 to 9) foreach {
           i =>
-            randomizedKeyValues(10, startId = Some(i), addPut = true) foreach {
+            randomizedKeyValues(10, startId = Some(i)) foreach {
               keyValue =>
                 if (keyValue.key.readInt() < 10)
                   Segment.belongsTo(keyValue, segment) shouldBe true
@@ -130,7 +130,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         //outer
         (10 to 20) foreach {
           i =>
-            randomizedKeyValues(10, startId = Some(i), addPut = true) foreach {
+            randomizedKeyValues(10, startId = Some(i)) foreach {
               keyValue =>
                 Segment.belongsTo(keyValue, segment) shouldBe false
             }
@@ -148,7 +148,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         //inner
         (1 to 11) foreach {
           i =>
-            randomizedKeyValues(10, startId = Some(i), addPut = true) foreach {
+            randomizedKeyValues(10, startId = Some(i)) foreach {
               keyValue =>
                 if (keyValue.key.readInt() < 10)
                   Segment.belongsTo(keyValue, segment) shouldBe true
@@ -158,7 +158,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         //outer
         (12 to 20) foreach {
           i =>
-            randomizedKeyValues(10, startId = Some(i), addPut = true) foreach {
+            randomizedKeyValues(10, startId = Some(i)) foreach {
               keyValue =>
                 Segment.belongsTo(keyValue, segment) shouldBe false
             }
@@ -169,7 +169,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
     }
 
     "for randomizedKeyValues" in {
-      val keyValues = randomizedKeyValues(keyValuesCount, addPut = true)
+      val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).runRandomIO.value
 
       val minKeyInt = keyValues.head.key.readInt()
@@ -189,7 +189,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         //inner
         innerKeyRange foreach {
           i =>
-            val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(i), addPut = true)
+            val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(i))
             keyValues foreach {
               keyValue =>
                 if (keyValue.key.readInt() <= innerKeyRange.last)
@@ -200,7 +200,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         //outer
         rightOutKeyRange foreach {
           i =>
-            val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(i), addPut = true)
+            val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(i))
             keyValues foreach {
               keyValue =>
                 Segment.belongsTo(keyValue, segment) shouldBe false
@@ -805,9 +805,9 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
   "getAllKeyValues" should {
     "value KeyValues from multiple Segments" in {
       runThis(10.times) {
-        val keyValues1 = randomizedKeyValues(keyValuesCount, addPut = true)
-        val keyValues2 = randomizedKeyValues(keyValuesCount, addPut = true)
-        val keyValues3 = randomizedKeyValues(keyValuesCount, addPut = true)
+        val keyValues1 = randomizedKeyValues(keyValuesCount)
+        val keyValues2 = randomizedKeyValues(keyValuesCount)
+        val keyValues3 = randomizedKeyValues(keyValuesCount)
 
         val segment1 = TestSegment(keyValues1).runRandomIO.value
         val segment2 = TestSegment(keyValues2).runRandomIO.value
@@ -841,9 +841,9 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
     "fail read if reading any one Segment file is corrupted" in {
       if (persistent) {
         runThis(100.times, log = true) {
-          val keyValues1 = randomizedKeyValues(keyValuesCount, addPut = true)
-          val keyValues2 = randomizedKeyValues(keyValuesCount, addPut = true)
-          val keyValues3 = randomizedKeyValues(keyValuesCount, addPut = true)
+          val keyValues1 = randomizedKeyValues(keyValuesCount)
+          val keyValues2 = randomizedKeyValues(keyValuesCount)
+          val keyValues3 = randomizedKeyValues(keyValuesCount)
 
           val segment1 = TestSegment(keyValues1).runRandomIO.value
           val segment2 = TestSegment(keyValues2).runRandomIO.value
@@ -957,8 +957,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
     "return None deadline if non of the key-values in the Segments contains deadline" in {
 
       runThis(100.times) {
-        val segment1 = TestSegment(randomizedKeyValues(keyValuesCount, addPut = true, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)).runRandomIO.value
-        val segment2 = TestSegment(randomizedKeyValues(keyValuesCount, addPut = true, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)).runRandomIO.value
+        val segment1 = TestSegment(randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)).runRandomIO.value
+        val segment2 = TestSegment(randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)).runRandomIO.value
 
         Segment.getNearestDeadlineSegment(segment1, segment2) shouldBe empty
 
@@ -969,7 +969,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
     "return deadline if one of the Segments contains deadline" in {
       runThisParallel(10.times) {
-        val keyValues = randomizedKeyValues(keyValuesCount, addPut = true, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false).toMemory
+        val keyValues = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false).toMemory
 
         //only a single key-value with a deadline.
         val deadline = 100.seconds.fromNow
@@ -989,7 +989,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           )
 
         val keyValuesWithDeadline = (keyValues ++ Seq(keyValueWithDeadline)).toTransient
-        val keyValuesNoDeadline = randomizedKeyValues(keyValuesCount, addPut = true, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
+        val keyValuesNoDeadline = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
 
         val segment1 = TestSegment(keyValuesWithDeadline).runRandomIO.value
         val segment2 = TestSegment(keyValuesNoDeadline).runRandomIO.value
