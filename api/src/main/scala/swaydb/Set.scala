@@ -271,14 +271,11 @@ case class Set[A, T[_]](private val core: Core[T],
   def reverse: Set[A, T] =
     copy(reverseIteration = true)
 
-  def tagAsync[O[_]](implicit tag: Tag.Async[O]): Set[A, O] =
-    copy(core = core.tagAsync[O])
-
-  def tagBlocking[O[_]](implicit tag: Tag.Sync[O]): Set[A, O] =
-    copy(core = core.tagBlocking[O])
+  def to[X[_]](implicit tag: Tag[X]): Set[A, X] =
+    copy(core = core.to[X])
 
   def asScala: scala.collection.mutable.Set[A] =
-    ScalaSet[A](tagBlocking[IO.ApiIO])
+    ScalaSet[A](to[IO.ApiIO])
 
   def close(): T[Unit] =
     tag.defer(core.close())

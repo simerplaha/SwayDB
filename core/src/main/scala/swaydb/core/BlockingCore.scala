@@ -399,9 +399,11 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def delete(): T[Unit] =
     tag.fromIO(onClose().flatMap(_ => zero.delete))
 
-  override def tagAsync[T[_]](implicit tag: Tag.Async[T]): AsyncCore[T] =
-    AsyncCore(zero, onClose)
-
-  override def tagBlocking[T[_]](implicit tag: Tag.Sync[T]): BlockingCore[T] =
-    BlockingCore(zero, onClose)
+  override def to[T[_]](implicit tag: Tag[T]): Core[T] =
+    tag match {
+      case async: Tag.Async[T] =>
+        AsyncCore(zero, onClose)(async)
+      case sync: Tag.Sync[T] =>
+        BlockingCore(zero, onClose)(sync)
+    }
 }
