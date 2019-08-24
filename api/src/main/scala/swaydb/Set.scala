@@ -20,14 +20,13 @@
 package swaydb
 
 import swaydb.PrepareImplicits._
+import swaydb.Tag.Implicits._
 import swaydb.core.Core
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.Tag.Implicits._
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object Set {
@@ -272,8 +271,7 @@ case class Set[A, T[_]](private val core: Core[T],
   def reverse: Set[A, T] =
     copy(reverseIteration = true)
 
-  def tagAsync[O[_]](implicit ec: ExecutionContext,
-                     tag: Tag.Async[O]): Set[A, O] =
+  def tagAsync[O[_]](implicit tag: Tag.Async[O]): Set[A, O] =
     copy(core = core.tagAsync[O])
 
   def tagBlocking[O[_]](implicit tag: Tag.Sync[O]): Set[A, O] =
