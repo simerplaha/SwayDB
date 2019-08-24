@@ -19,6 +19,8 @@
 
 package swaydb
 
+import swaydb.IO.ApiIO
+
 import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
@@ -45,7 +47,12 @@ trait Tag[T[_]] {
 
 object Tag {
 
-  trait Sync[T[_]] extends Tag[T]
+  trait Sync[T[_]] extends Tag[T] {
+    def isSuccess[A](a: T[A]): Boolean
+    def isFailure[A](a: T[A]): Boolean
+    def getOrElse[A, B >: A](a: T[A])(b: => B): B
+    def orElse[A, B >: A](a: T[A])(b: T[B]): T[B]
+  }
 
   trait Async[T[_]] extends Tag[T] {
     def fromFuture[A](a: Future[A]): T[A]
@@ -78,6 +85,12 @@ object Tag {
 
       def isFailure[A](a: Option[A]): Boolean =
         a.isEmpty
+
+      override def getOrElse[A, B >: A](a: Option[A])(b: => B): B =
+        a.getOrElse(b)
+
+      override def orElse[A, B >: A](a: Option[A])(b: Option[B]): Option[B] =
+        a.orElse(b)
 
       override def foreach[A, B](a: A)(f: A => B): Unit =
         f(a)
@@ -127,6 +140,12 @@ object Tag {
       override def flatMap[A, B](fa: Try[A])(f: A => Try[B]): Try[B] =
         fa.flatMap(f)
 
+      override def getOrElse[A, B >: A](a: Try[A])(b: => B): B =
+        a.getOrElse(b)
+
+      override def orElse[A, B >: A](a: Try[A])(b: Try[B]): Try[B] =
+        a.orElse(b)
+
       def isSuccess[A](a: Try[A]): Boolean =
         a.isSuccess
 
@@ -152,7 +171,7 @@ object Tag {
         scala.util.Failure(exception)
 
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Try], drop: Int, take: Option[Int])(operation: (U, A) => U): Try[U] =
-        sio.foldLeft(initial, after, stream.toIO[swaydb.Error.API](10.seconds), drop, take)(operation).toTry //use ioWrap and convert that result to try.
+        dbIO.foldLeft(initial, after, stream.toIO[swaydb.Error.API](10.seconds), drop, take)(operation).toTry //use ioWrap and convert that result to try.
 
       @tailrec
       override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Try])(condition: A => Boolean): Try[Option[A]] =
@@ -171,7 +190,7 @@ object Tag {
         }
     }
 
-  implicit val sio: Tag.Sync[IO.ApiIO] =
+  implicit val dbIO: Tag.Sync[IO.ApiIO] =
     new Tag.Sync[IO.ApiIO] {
 
       import swaydb.Error.API.ErrorHandler
@@ -199,6 +218,12 @@ object Tag {
 
       override def failure[A](exception: Throwable): IO.ApiIO[A] =
         IO.failed(exception)
+
+      override def getOrElse[A, B >: A](a: ApiIO[A])(b: => B): B =
+        a.getOrElse(b)
+
+      override def orElse[A, B >: A](a: ApiIO[A])(b: ApiIO[B]): ApiIO[B] =
+        a.orElse(b)
 
       override def none[A]: IO.ApiIO[Option[A]] =
         IO.none

@@ -558,6 +558,7 @@ object IO {
                       tag.fromIO(success)
 
                     case IO.Failure(error) =>
+                      //.get because tailrec is failing to compile on pattern match.
                       runNow(recovery.get.asInstanceOf[(E) => IO.Deferred[E, B]](error), 0)
                   }
                 else
