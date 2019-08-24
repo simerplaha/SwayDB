@@ -115,7 +115,7 @@ private[core] object KeyValueWriter {
           .addIntUnsigned(commonBytes)
           .addAll(remainingBytes)
 
-        normalise(
+        normaliseAndClose(
           normaliseToSize = normaliseToSize,
           writeResult = writeResult
         )
@@ -150,7 +150,7 @@ private[core] object KeyValueWriter {
       .indexBytes
       .addAll(current.mergedKey)
 
-    normalise(
+    normaliseAndClose(
       normaliseToSize = normaliseToSize,
       writeResult = writeResult
     )
@@ -158,7 +158,7 @@ private[core] object KeyValueWriter {
     writeResult
   }
 
-  def normalise[T <: Transient](normaliseToSize: Option[Int], writeResult: WriteResult): Unit = {
+  def normaliseAndClose[T <: Transient](normaliseToSize: Option[Int], writeResult: WriteResult): Unit = {
 
     val normalisedBytes =
       normaliseToSize map {

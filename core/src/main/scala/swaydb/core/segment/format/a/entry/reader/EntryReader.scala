@@ -22,11 +22,13 @@ package swaydb.core.segment.format.a.entry.reader
 import swaydb.IO
 import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
+import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
-import swaydb.data.slice.ReaderBase
+import swaydb.core.util.Bytes
+import swaydb.data.slice.{ReaderBase, Slice}
 
 trait EntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,
@@ -84,14 +86,22 @@ object EntryReader {
         )
     } getOrElse IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
 
-  def read(indexReader: ReaderBase[swaydb.Error.Segment],
+  def read(indexEntry: Slice[Byte],
            mightBeCompressed: Boolean,
            valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
            indexOffset: Int,
            nextIndexOffset: Int,
            nextIndexSize: Int,
            hasAccessPositionIndex: Boolean,
-           previous: Option[Persistent]): IO[swaydb.Error.Segment, Persistent] =
+           isNormalised: Boolean,
+           previous: Option[Persistent]): IO[swaydb.Error.Segment, Persistent] = {
+    //check if de-normalising is required.
+    val indexReader =
+      if (isNormalised)
+        Reader[swaydb.Error.Segment](Bytes.deNormalise(indexEntry))
+      else
+        Reader[swaydb.Error.Segment](indexEntry)
+
     indexReader.readIntUnsigned() flatMap {
       keyValueId =>
         if (KeyValueId.Put.hasKeyValueId(keyValueId))
@@ -195,4 +205,5 @@ object EntryReader {
         else
           IO.failed[swaydb.Error.Segment, Persistent](swaydb.Exception.InvalidKeyValueId(keyValueId))
     }
+  }
 }

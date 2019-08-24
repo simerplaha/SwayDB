@@ -336,18 +336,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           }.get
       }
 
-      //if they entries were normalised then deNormalise the indexEntry and pass it to the EntryReader for parsing.
-      val deNormalisedIndexEntryBytes =
-        if (!indexReader.block.isPreNormalised && indexReader.block.normaliseForBinarySearch)
-          Bytes.deNormalise(indexEntryBytesAndNextIndexEntrySize.take(indexSize))
-        else
-          indexEntryBytesAndNextIndexEntrySize.take(indexSize)
-
-      val sortedIndexReader = Reader[swaydb.Error.Segment](deNormalisedIndexEntryBytes)
-
-      //create value cache reader given the value offset.
-      //todo pass in blockIO config when read values.
-      def valueCache =
+      val valueCache = //create value cache reader given the value offset. todo pass in blockIO config when read values.
         valuesReader map {
           valuesReader =>
             Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](synchronised = false, stored = false, initial = None) {
@@ -361,12 +350,13 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       EntryReader.read(
         //take only the bytes required for this in entry and submit it for parsing/reading.
-        indexReader = sortedIndexReader,
+        indexEntry = indexEntryBytesAndNextIndexEntrySize.take(indexSize),
         mightBeCompressed = indexReader.block.hasPrefixCompression,
         valueCache = valueCache,
         indexOffset = positionBeforeRead,
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
+        isNormalised = !indexReader.block.isPreNormalised && indexReader.block.normaliseForBinarySearch,
         hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
         previous = previous
       )

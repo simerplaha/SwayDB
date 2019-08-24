@@ -26,7 +26,7 @@ import java.nio.charset.{Charset, StandardCharsets}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.{ByteSizeOf, ByteUtil}
-import swaydb.{ErrorHandler, IO}
+import swaydb.{Error, ErrorHandler, IO}
 
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
@@ -244,6 +244,12 @@ object Slice {
 
     def readInt(): Int =
       ByteUtil.readInt(slice)
+
+    def dropIntUnsigned(): IO[Error.IO, Slice[Byte]] =
+      readIntUnsignedWithByteSize() map {
+        case (_, byteSize) =>
+          slice.drop(byteSize)
+      }
 
     def addIntSigned(int: Int): Slice[Byte] = {
       ByteUtil.writeSignedInt(int, slice)
