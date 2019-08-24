@@ -32,6 +32,26 @@ import scala.concurrent.duration.Deadline
 import scala.concurrent.{ExecutionContext, Future}
 
 private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[swaydb.Error.Close, Unit])(implicit tag: Tag.Async[T]) extends Core[T] {
+
+  /**
+   * All reads are Async and use [[Tag.Async]] for execution.
+   *
+   * But writes currently occur synchronously in the execution thread which are converted
+   * to the async type [[T]] in the current thread.
+   *
+   * For example: If [[T]] was Future, the result would get converted to Future in current thread as:
+   *
+   * {{{
+   *   Future.successful(result) //for success
+   *   Future.failure(error) //for failure
+   * }}}
+   *
+   * Eventually async writes will also be supported but for now to apply back-pressure use [[LevelZero.levelZeroMeter]]
+   * to check how the writes are progressing and to control the write throughput from the source.
+   *
+   * See documentation for [[LevelZero.levelZeroMeter]] at [[http://www.swaydb.io/api/read/level0Meter/ level0Meter]].
+   */
+
   private val block = BlockingCore[IO.ApiIO](zero, onClose)(Tag.dbIO)
 
   override def put(key: Slice[Byte]): T[IO.Done] =
