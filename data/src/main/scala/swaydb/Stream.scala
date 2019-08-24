@@ -30,20 +30,29 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 /**
-  * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
-  * it's required by the stream.
-  */
+ * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
+ * it's required by the stream.
+ */
 object Stream {
 
   /**
-    * Create and empty [[Stream]].
-    */
-  def empty[A, T[_]](implicit tag: Tag[T]) =
+   * Create and empty [[Stream]].
+   */
+  def empty[A, T[_]](implicit tag: Tag[T]): Stream[A, T] =
     apply[A, T](Iterable.empty)
 
+  def apply[A, T[_]](streamer: Streamer[A, T])(implicit tag: Tag[T]): Stream[A, T] =
+    new Stream[A, T] {
+      override def headOption(): T[Option[A]] =
+        streamer.headOption
+
+      override private[swaydb] def next(previous: A): T[Option[A]] =
+        streamer.next(previous)
+    }
+
   /**
-    * Create a [[Stream]] from a collection.
-    */
+   * Create a [[Stream]] from a collection.
+   */
   def apply[A, T[_]](items: Iterable[A])(implicit tag: Tag[T]): Stream[A, T] =
     new Stream[A, T] {
 
@@ -100,18 +109,18 @@ object Stream {
 }
 
 /**
-  * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
-  * it's required by the stream.
-  *
-  * @param tag Implementation for the tag type.
-  * @tparam A stream item's type
-  * @tparam T wrapper type.
-  */
-abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamed[A, T] { self =>
+ * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
+ * it's required by the stream.
+ *
+ * @param tag Implementation for the tag type.
+ * @tparam A stream item's type
+ * @tparam T wrapper type.
+ */
+abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { self =>
 
   /**
-    * Private val used in [[tag.foldLeft]] for reading only single item.
-    */
+   * Private val used in [[tag.foldLeft]] for reading only single item.
+   */
   private val takeOne = Some(1)
 
   def headOption: T[Option[A]]
@@ -215,8 +224,8 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamed[A, T] { se
         }
 
       /**
-        * Previous input parameter here is ignored so that parent stream can be read.
-        */
+       * Previous input parameter here is ignored so that parent stream can be read.
+       */
       override private[swaydb] def next(previous: B): T[Option[B]] =
         previousA
           .map {
@@ -295,9 +304,9 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamed[A, T] { se
     }
 
   /**
-    * Converts the current Stream with Future API. If the current stream is blocking,
-    * the output stream will still return blocking stream but wrapped as future APIs.
-    */
+   * Converts the current Stream with Future API. If the current stream is blocking,
+   * the output stream will still return blocking stream but wrapped as future APIs.
+   */
   def toFuture(implicit ec: ExecutionContext): Stream[A, Future] =
     new Stream[A, Future]()(Tag.future) {
       override def headOption: Future[Option[A]] =
@@ -308,10 +317,10 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamed[A, T] { se
     }
 
   /**
-    * If the current stream is Future/Async this will return a blocking stream.
-    *
-    * @param timeout If the current stream is async/future based then the timeout is used else it's ignored.
-    */
+   * If the current stream is Future/Async this will return a blocking stream.
+   *
+   * @param timeout If the current stream is async/future based then the timeout is used else it's ignored.
+   */
   def toIO[E: ErrorHandler](timeout: FiniteDuration): Stream[A, IO.ApiIO] =
     new Stream[A, IO.ApiIO] {
       override def headOption: IO.ApiIO[Option[A]] =
@@ -322,10 +331,10 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamed[A, T] { se
     }
 
   /**
-    * If the current stream is Async this will return a blocking stream.
-    *
-    * @param timeout If the current stream is async/future based then the timeout is used else it's ignored.
-    */
+   * If the current stream is Async this will return a blocking stream.
+   *
+   * @param timeout If the current stream is async/future based then the timeout is used else it's ignored.
+   */
   def toTry(timeout: FiniteDuration): Stream[A, Try] =
     new Stream[A, Try] {
       override def headOption: Try[Option[A]] =
@@ -336,10 +345,10 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamed[A, T] { se
     }
 
   /**
-    * Reads all items from the Stream and returns the last.
-    *
-    * For a more efficient one use swaydb.Map.lastOption or swaydb.Set.lastOption instead.
-    */
+   * Reads all items from the Stream and returns the last.
+   *
+   * For a more efficient one use swaydb.Map.lastOption or swaydb.Set.lastOption instead.
+   */
   def lastOption: T[Option[A]] =
     foldLeft(Option.empty[A]) {
       (_, next) =>
@@ -347,8 +356,8 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamed[A, T] { se
     }
 
   /**
-    * Materializes are executes the stream.
-    */
+   * Materializes are executes the stream.
+   */
   def foldLeft[B](initial: B)(f: (B, A) => B): T[B] =
     tag(()) flatMap {
       _ =>
@@ -356,8 +365,8 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamed[A, T] { se
     }
 
   /**
-    * Folds over all elements in the Stream to calculate it's total size.
-    */
+   * Folds over all elements in the Stream to calculate it's total size.
+   */
   def size: T[Int] =
     foldLeft(0) {
       case (size, _) =>
@@ -365,8 +374,8 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamed[A, T] { se
     }
 
   /**
-    * Materialises/closes and processes the stream to a [[Seq]].
-    */
+   * Materialises/closes and processes the stream to a [[Seq]].
+   */
   def materialize: T[Seq[A]] =
     foldLeft(new StreamBuilder[A, T]()) {
       (buffer, item) =>

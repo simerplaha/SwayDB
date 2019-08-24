@@ -38,7 +38,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
                            private val from: Option[From[K]] = None,
                            private[swaydb] val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
                                                                                   valueSerializer: Serializer[V],
-                                                                                  tag: Tag[T]) extends Streamed[(K, V), T] { self =>
+                                                                                  tag: Tag[T]) extends Streamable[(K, V), T] { self =>
 
   def wrapCall[C](f: => T[C]): T[C] =
     tag.success(()) flatMap (_ => f)
