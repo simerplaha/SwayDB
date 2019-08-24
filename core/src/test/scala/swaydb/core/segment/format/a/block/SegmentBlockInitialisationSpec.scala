@@ -278,6 +278,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 BloomFilterBlock.Config(
                   falsePositiveRate = 1,
                   minimumNumberOfKeys = 0,
+                  optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
                   blockIO = _ => randomIOAccess(),
                   compressions = _ => randomCompressionsOrEmpty()
                 )
@@ -303,6 +304,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 bloomFilterConfig =
                   BloomFilterBlock.Config(
                     falsePositiveRate = 0.001,
+                    optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
                     minimumNumberOfKeys = generatedKeyValues.size + 1,
                     blockIO = _ => randomIOAccess(),
                     compressions = _ => randomCompressionsOrEmpty()
@@ -351,6 +353,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   BloomFilterBlock.Config(
                     falsePositiveRate = 0.001,
                     minimumNumberOfKeys = 0,
+                    optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
                     blockIO = _ => randomIOAccess(),
                     compressions = _ => randomCompressionsOrEmpty()
                   )
@@ -453,6 +456,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
             BloomFilterBlock.Config(
               falsePositiveRate = 0.001,
               minimumNumberOfKeys = 2,
+              optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
               blockIO = _ => randomIOAccess(cacheOnAccess = true),
               compressions = _ => compressions(4)
             )

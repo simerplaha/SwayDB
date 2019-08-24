@@ -117,6 +117,7 @@ object DefaultPersistentConfig {
           MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
+            updateMaxProbe = optimalMaxProbe => 1,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
           ),
@@ -180,6 +181,7 @@ object DefaultPersistentConfig {
           MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
+            updateMaxProbe = optimalMaxProbe => 1,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
           ),
@@ -243,6 +245,7 @@ object DefaultPersistentConfig {
           MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
+            updateMaxProbe = optimalMaxProbe => 1,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
           ),
@@ -306,6 +309,7 @@ object DefaultPersistentConfig {
           MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
+            updateMaxProbe = optimalMaxProbe => 1,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
           ),
@@ -369,6 +373,7 @@ object DefaultPersistentConfig {
           MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
+            updateMaxProbe = optimalMaxProbe => 1,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
           ),
@@ -434,6 +439,7 @@ object DefaultPersistentConfig {
           MightContainIndex.Enable(
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
+            updateMaxProbe = optimalMaxProbe => 1,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compression = _ => Seq.empty
           ),

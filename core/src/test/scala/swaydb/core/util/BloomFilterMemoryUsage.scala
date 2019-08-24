@@ -41,6 +41,7 @@ object BloomFilterMemoryUsage extends App {
     BloomFilterBlock.init(
       numberOfKeys = 1000000,
       falsePositiveRate = 0.01,
+      updateMaxProbe = probe => probe,
       compressions = _ => Seq.empty
     ).get
 

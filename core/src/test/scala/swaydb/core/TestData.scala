@@ -535,6 +535,7 @@ object TestData {
       BloomFilterBlock.Config(
         falsePositiveRate = Random.nextDouble(),
         minimumNumberOfKeys = randomIntMax(5),
+        optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
         blockIO = _ => randomIOAccess(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )

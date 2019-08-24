@@ -47,6 +47,7 @@ class BloomFilterBlockSpec extends TestBase {
         val filter =
           BloomFilterBlock.init(
             numberOfKeys = 10,
+            updateMaxProbe = probe => probe,
             falsePositiveRate = 0.01,
             compressions = _ => compressions
           ).get
@@ -77,6 +78,7 @@ class BloomFilterBlockSpec extends TestBase {
         val state =
           BloomFilterBlock.init(
             numberOfKeys = 10,
+            updateMaxProbe = probe => probe,
             falsePositiveRate = 0.01,
             compressions = _ => compressions
           ).get
@@ -103,8 +105,8 @@ class BloomFilterBlockSpec extends TestBase {
 
   "optimalSegmentBloomFilterByteSize" should {
     "return empty if false positive rate is 0.0 or number of keys is 0" in {
-      BloomFilterBlock.optimalSize(1000, 0.0, randomBoolean(), minimumNumberOfKeys = 0) shouldBe 0
-      BloomFilterBlock.optimalSize(0, 0.001, randomBoolean(), minimumNumberOfKeys = 0) shouldBe 0
+      BloomFilterBlock.optimalSize(1000, 0.0, randomBoolean(), updateMaxProbe = probe => probe, minimumNumberOfKeys = 0) shouldBe 0
+      BloomFilterBlock.optimalSize(0, 0.001, randomBoolean(), updateMaxProbe = probe => probe, minimumNumberOfKeys = 0) shouldBe 0
     }
 
     "return the number of bytes required to store the Bloom filter" in {
@@ -119,6 +121,7 @@ class BloomFilterBlockSpec extends TestBase {
           val bloomFilter =
             BloomFilterBlock.init(
               numberOfKeys = numberOfItems,
+              updateMaxProbe = probe => probe,
               falsePositiveRate = falsePositiveRate,
               compressions = _ => compression
             ).get
@@ -126,6 +129,7 @@ class BloomFilterBlockSpec extends TestBase {
           bloomFilter.bytes.size should be <=
             BloomFilterBlock.optimalSize(
               numberOfKeys = numberOfItems,
+              updateMaxProbe = probe => probe,
               falsePositiveRate = falsePositiveRate,
               hasCompression = compression.nonEmpty,
               minimumNumberOfKeys = 0
@@ -138,6 +142,7 @@ class BloomFilterBlockSpec extends TestBase {
     "not initialise if keyValues are empty" in {
       BloomFilterBlock.init(
         numberOfKeys = 0,
+        updateMaxProbe = probe => probe,
         falsePositiveRate = randomFalsePositiveRate(),
         compressions = _ => randomCompressionsOrEmpty()
       ) shouldBe empty
@@ -146,6 +151,7 @@ class BloomFilterBlockSpec extends TestBase {
     "not initialise if false positive range is 0.0 are empty" in {
       BloomFilterBlock.init(
         numberOfKeys = 100,
+        updateMaxProbe = probe => probe,
         falsePositiveRate = 0.0,
         compressions = _ => randomCompressionsOrEmpty()
       ) shouldBe empty
@@ -263,6 +269,7 @@ class BloomFilterBlockSpec extends TestBase {
       val state =
         BloomFilterBlock.init(
           numberOfKeys = 10000,
+          updateMaxProbe = probe => probe,
           falsePositiveRate = 0.001,
           compressions = _ => compressions
         ).get

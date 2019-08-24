@@ -204,7 +204,8 @@ private[core] object Stats {
           numberOfKeys = segmentUniqueKeysCount,
           falsePositiveRate = bloomFilter.falsePositiveRate,
           hasCompression = false,
-          minimumNumberOfKeys = bloomFilter.minimumNumberOfKeys
+          minimumNumberOfKeys = bloomFilter.minimumNumberOfKeys,
+          updateMaxProbe = _ => 1
         )
 
     val segmentSizeWithoutFooter: Int =

@@ -77,6 +77,7 @@ object DefaultGroupBy {
         MightContainIndex.Enable(
           falsePositiveRate = 0.001,
           minimumNumberOfKeys = 10,
+          updateMaxProbe = optimalMaxProbe => 1,
           ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
           compression = _ => Seq.empty
         ),

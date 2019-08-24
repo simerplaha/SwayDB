@@ -375,6 +375,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 BloomFilterBlock.Config(
                   falsePositiveRate = 0.001,
                   minimumNumberOfKeys = 0,
+                  optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
                   blockIO = _ => randomIOStrategy(),
                   compressions = _ => randomCompressionsOrEmpty()
                 )
@@ -396,6 +397,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 BloomFilterBlock.Config(
                   falsePositiveRate = 0.001,
                   minimumNumberOfKeys = 0,
+                  optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
                   blockIO = _ => randomIOStrategy(),
                   compressions = _ => randomCompressionsOrEmpty()
                 )
@@ -421,6 +423,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               BloomFilterBlock.Config(
                 falsePositiveRate = 0.001,
                 minimumNumberOfKeys = 0,
+                optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
                 blockIO = _ => randomIOStrategy(),
                 compressions = _ => randomCompressionsOrEmpty()
               )

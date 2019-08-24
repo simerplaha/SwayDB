@@ -33,6 +33,7 @@ object MightContainIndex {
 
   case object Disable extends MightContainIndex
   case class Enable(falsePositiveRate: Double,
+                    updateMaxProbe: Int => Int,
                     minimumNumberOfKeys: Int,
                     ioStrategy: IOAction => IOStrategy,
                     compression: UncompressedBlockInfo => Seq[Compression]) extends MightContainIndex

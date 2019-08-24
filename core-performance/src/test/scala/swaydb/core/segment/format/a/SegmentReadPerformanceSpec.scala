@@ -271,6 +271,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         BloomFilterBlock.Config(
           falsePositiveRate = 0.001,
           minimumNumberOfKeys = 2,
+          optimalMaxProbe = _ => 1,
           blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
           compressions = _ => Seq.empty
         )

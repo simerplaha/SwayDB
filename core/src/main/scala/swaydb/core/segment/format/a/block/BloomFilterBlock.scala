@@ -40,6 +40,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
       Config(
         falsePositiveRate = 0.0,
         minimumNumberOfKeys = Int.MaxValue,
+        optimalMaxProbe = probe => probe / 2,
         blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         compressions = _ => Seq.empty
       )
@@ -50,13 +51,16 @@ private[core] object BloomFilterBlock extends LazyLogging {
           Config(
             falsePositiveRate = 0.0,
             minimumNumberOfKeys = Int.MaxValue,
+            optimalMaxProbe = _ => 0,
             blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
             compressions = _ => Seq.empty
           )
+
         case enable: swaydb.data.config.MightContainIndex.Enable =>
           Config(
             falsePositiveRate = enable.falsePositiveRate,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
+            optimalMaxProbe = FunctionUtil.safe(probe => probe, enable.updateMaxProbe),
             blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
               FunctionUtil.safe(
@@ -69,6 +73,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
 
   case class Config(falsePositiveRate: Double,
                     minimumNumberOfKeys: Int,
+                    optimalMaxProbe: Int => Int,
                     blockIO: IOAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
@@ -96,12 +101,13 @@ private[core] object BloomFilterBlock extends LazyLogging {
   def optimalSize(numberOfKeys: Int,
                   falsePositiveRate: Double,
                   hasCompression: Boolean,
+                  updateMaxProbe: Int => Int,
                   minimumNumberOfKeys: Int): Int = {
     if (falsePositiveRate <= 0.0 || numberOfKeys < minimumNumberOfKeys || numberOfKeys <= 0) {
       0
     } else {
       val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
-      val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits)
+      val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits, updateMaxProbe)
 
       val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
       val maxProbeSize = Bytes.sizeOf(maxProbe)
@@ -119,9 +125,10 @@ private[core] object BloomFilterBlock extends LazyLogging {
 
   private def apply(numberOfKeys: Int,
                     falsePositiveRate: Double,
+                    updateMaxProbe: Int => Int,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal]): BloomFilterBlock.State = {
     val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
-    val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits)
+    val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits, updateMaxProbe) max 1
 
     val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
     val maxProbeSize = Bytes.sizeOf(maxProbe)
@@ -159,11 +166,16 @@ private[core] object BloomFilterBlock extends LazyLogging {
     else
       math.ceil(-1 * numberOfKeys * math.log(falsePositiveRate) / math.log(2) / math.log(2)).toInt max ByteSizeOf.long
 
-  def optimalNumberOfProbes(numberOfKeys: Int, numberOfBits: Long): Int =
-    if (numberOfKeys <= 0 || numberOfBits <= 0)
-      0
-    else
-      math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
+  def optimalNumberOfProbes(numberOfKeys: Int, numberOfBits: Long,
+                            update: Int => Int): Int = {
+    val optimal =
+      if (numberOfKeys <= 0 || numberOfBits <= 0)
+        0
+      else
+        math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
+
+    update(optimal)
+  }
 
   def closeForMemory(state: BloomFilterBlock.State): IO[swaydb.Error.Segment, Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]] =
     BloomFilterBlock.close(state) flatMap {
@@ -227,7 +239,8 @@ private[core] object BloomFilterBlock extends LazyLogging {
       init(
         numberOfKeys = keyValues.last.stats.segmentUniqueKeysCount,
         falsePositiveRate = keyValues.last.bloomFilterConfig.falsePositiveRate,
-        compressions = keyValues.last.bloomFilterConfig.compressions
+        compressions = keyValues.last.bloomFilterConfig.compressions,
+        updateMaxProbe = keyValues.last.bloomFilterConfig.optimalMaxProbe
       )
     else
       None
@@ -237,6 +250,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
    */
   def init(numberOfKeys: Int,
            falsePositiveRate: Double,
+           updateMaxProbe: Int => Int,
            compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Option[BloomFilterBlock.State] =
     if (numberOfKeys <= 0 || falsePositiveRate <= 0.0)
       None
@@ -245,6 +259,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
         BloomFilterBlock(
           numberOfKeys = numberOfKeys,
           falsePositiveRate = falsePositiveRate,
+          updateMaxProbe = updateMaxProbe,
           compressions = compressions
         )
       )
