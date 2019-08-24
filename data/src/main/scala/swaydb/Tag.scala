@@ -29,7 +29,7 @@ import scala.util.Try
  * [[Tag]]s are used to tag databases operations (side-effects) into types that can be
  * used to build custom Sync and Async wrappers.
  */
-trait Tag[T[_]] {
+trait Tag[T[_]] { self =>
   def apply[A](a: => A): T[A]
   def foreach[A, B](a: A)(f: A => B): Unit
   def map[A, B](a: A)(f: A => B): T[B]
@@ -39,7 +39,6 @@ trait Tag[T[_]] {
   def none[A]: T[Option[A]]
   def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, T], drop: Int, take: Option[Int])(operation: (U, A) => U): T[U]
   def collectFirst[A](previous: A, stream: swaydb.Stream[A, T])(condition: A => Boolean): T[Option[A]]
-  def toFuture[A](a: T[A]): Future[A]
   def fromIO[E: ErrorHandler, A](a: IO[E, A]): T[A]
 }
 
@@ -48,30 +47,114 @@ object Tag {
   /**
    * Maps container type A to type B.
    */
-  trait Map[A[_], B[_]] {
+  trait Converter[A[_], B[_]] {
     def to[T](a: A[T]): B[T]
+    def from[T](a: B[T]): A[T]
   }
 
-  implicit val optionToTry = new Map[Option, Try] {
+  implicit val optionToTry = new Converter[Option, Try] {
     override def to[T](a: Option[T]): Try[T] =
       Try(a.get)
-  }
 
-  implicit val tryToOption = new Map[Try, Option] {
-    override def to[T](a: Try[T]): Option[T] =
+    override def from[T](a: Try[T]): Option[T] =
       a.toOption
   }
 
-  implicit val tryToIO = new Map[Try, IO.ApiIO] {
+  implicit val tryToOption = new Converter[Try, Option] {
+    override def to[T](a: Try[T]): Option[T] =
+      a.toOption
+
+    override def from[T](a: Option[T]): Try[T] =
+      Try(a.get)
+  }
+
+  implicit val tryToIO = new Converter[Try, IO.ApiIO] {
     override def to[T](a: Try[T]): ApiIO[T] =
+      IO.fromTry[Error.API, T](a)
+
+    override def from[T](a: ApiIO[T]): Try[T] =
+      a.toTry
+  }
+
+  implicit val ioToTry = new Converter[IO.ApiIO, Try] {
+    override def to[T](a: ApiIO[T]): Try[T] =
+      a.toTry
+    override def from[T](a: Try[T]): ApiIO[T] =
       IO.fromTry[Error.API, T](a)
   }
 
-  trait Sync[T[_]] extends Tag[T] {
+  implicit val ioToOption = new Converter[IO.ApiIO, Option] {
+    override def to[T](a: ApiIO[T]): Option[T] =
+      a.toOption
+    override def from[T](a: Option[T]): ApiIO[T] =
+      IO[Error.API, T](a.get)
+  }
+
+  trait Sync[T[_]] extends Tag[T] { self =>
     def isSuccess[A](a: T[A]): Boolean
     def isFailure[A](a: T[A]): Boolean
     def getOrElse[A, B >: A](a: T[A])(b: => B): B
     def orElse[A, B >: A](a: T[A])(b: T[B]): T[B]
+
+    def to[X[_]](implicit converter: Tag.Converter[T, X]) =
+      new Tag.Sync[X] {
+
+        val flipConverter =
+          new Tag.Converter[X, T] {
+            override def to[A](a: X[A]): T[A] =
+              converter.from(a)
+
+            override def from[A](a: T[A]): X[A] =
+              converter.to(a)
+          }
+
+        override def apply[A](a: => A): X[A] =
+          converter.to(self.apply(a))
+
+        override def foreach[A, B](a: A)(f: A => B): Unit =
+          self.foreach(a)(f)
+
+        override def map[A, B](a: A)(f: A => B): X[B] =
+          converter.to(self.map(a)(f))
+
+        override def flatMap[A, B](fa: X[A])(f: A => X[B]): X[B] =
+          converter.to {
+            self.flatMap(converter.from(fa)) {
+              a =>
+                converter.from(f(a))
+            }
+          }
+
+        override def isSuccess[A](a: X[A]): Boolean =
+          self.isSuccess(converter.from(a))
+
+        override def isFailure[A](a: X[A]): Boolean =
+          self.isFailure(converter.from(a))
+
+        override def getOrElse[A, B >: A](a: X[A])(b: => B): B =
+          self.getOrElse[A, B](converter.from(a))(b)
+
+        override def orElse[A, B >: A](a: X[A])(b: X[B]): X[B] =
+          converter.to(self.orElse[A, B](converter.from(a))(converter.from(b)))
+
+        override def success[A](value: A): X[A] =
+          converter.to(self.success(value))
+
+        override def failure[A](exception: Throwable): X[A] =
+          converter.to(self.failure(exception))
+
+        override def none[A]: X[Option[A]] =
+          converter.to(self.none)
+
+        override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, X], drop: Int, take: Option[Int])(operation: (U, A) => U): X[U] =
+          converter.to(self.foldLeft(initial, after, stream.to[T](self, flipConverter), drop, take)(operation))
+
+        override def collectFirst[A](previous: A, stream: Stream[A, X])(condition: A => Boolean): X[Option[A]] =
+          converter.to(self.collectFirst(previous, stream.to[T](self, flipConverter))(condition))
+
+        override def fromIO[E: ErrorHandler, A](a: IO[E, A]): X[A] =
+          converter.to(self.fromIO(a))
+      }
   }
 
   trait Async[T[_]] extends Tag[T] {
@@ -94,115 +177,6 @@ object Tag {
         tag.flatMap(a)(f)
     }
   }
-
-  implicit val optionTag: Tag.Sync[Option] =
-    new Tag.Sync[Option] {
-      override def apply[A](a: => A): Option[A] =
-        Some(a)
-
-      def isSuccess[A](a: Option[A]): Boolean =
-        a.isDefined
-
-      def isFailure[A](a: Option[A]): Boolean =
-        a.isEmpty
-
-      override def getOrElse[A, B >: A](a: Option[A])(b: => B): B =
-        a.getOrElse(b)
-
-      override def orElse[A, B >: A](a: Option[A])(b: Option[B]): Option[B] =
-        a.orElse(b)
-
-      override def foreach[A, B](a: A)(f: A => B): Unit =
-        f(a)
-
-      override def map[A, B](a: A)(f: A => B): Option[B] =
-        Some(f(a))
-
-      override def flatMap[A, B](fa: Option[A])(f: A => Option[B]): Option[B] =
-        fa.flatMap(f)
-
-      override def success[A](value: A): Option[A] =
-        Some(value)
-
-      override def failure[A](exception: Throwable): Option[A] =
-        None
-
-      override def none[A]: Option[Option[A]] =
-        None
-
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, Option], drop: Int, take: Option[Int])(operation: (U, A) => U): Option[U] =
-        tryTag.foldLeft(initial, after, stream.to, drop, take)(operation).toOption //todo
-
-      override def collectFirst[A](previous: A, stream: Stream[A, Option])(condition: A => Boolean): Option[Option[A]] =
-        tryTag.collectFirst(previous, stream.to)(condition).toOption
-
-      override def toFuture[A](a: Option[A]): Future[A] =
-        a.map(Future.successful) getOrElse Future.failed(new Exception("None value"))
-
-      override def fromIO[E: ErrorHandler, A](a: IO[E, A]): Option[A] =
-        a.toOption
-    }
-
-  implicit val tryTag: Tag.Sync[Try] =
-    new Tag.Sync[Try] {
-      override def apply[A](a: => A): Try[A] =
-        Try(a)
-
-      override def map[A, B](a: A)(f: A => B): Try[B] =
-        Try(f(a))
-
-      override def foreach[A, B](a: A)(f: A => B): Unit =
-        f(a)
-
-      override def flatMap[A, B](fa: Try[A])(f: A => Try[B]): Try[B] =
-        fa.flatMap(f)
-
-      override def getOrElse[A, B >: A](a: Try[A])(b: => B): B =
-        a.getOrElse(b)
-
-      override def orElse[A, B >: A](a: Try[A])(b: Try[B]): Try[B] =
-        a.orElse(b)
-
-      def isSuccess[A](a: Try[A]): Boolean =
-        a.isSuccess
-
-      def isFailure[A](a: Try[A]): Boolean =
-        a.isFailure
-
-      override def success[A](value: A): Try[A] =
-        scala.util.Success(value)
-
-      override def none[A]: Try[Option[A]] =
-        scala.util.Success(None)
-
-      override def toFuture[A](a: Try[A]): Future[A] =
-        Future.fromTry(a)
-
-      override def fromIO[E: ErrorHandler, A](a: IO[E, A]): Try[A] =
-        a.toTry
-
-      override def failure[A](exception: Throwable): Try[A] =
-        scala.util.Failure(exception)
-
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Try], drop: Int, take: Option[Int])(operation: (U, A) => U): Try[U] =
-        dbIO.foldLeft(initial, after, stream.to, drop, take)(operation).toTry //use ioWrap and convert that result to try.
-
-      @tailrec
-      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Try])(condition: A => Boolean): Try[Option[A]] =
-        stream.next(previous) match {
-          case success @ scala.util.Success(Some(nextA)) =>
-            if (condition(nextA))
-              success
-            else
-              collectFirst(nextA, stream)(condition)
-
-          case none @ scala.util.Success(None) =>
-            none
-
-          case failure @ scala.util.Failure(_) =>
-            failure
-        }
-    }
 
   implicit val dbIO: Tag.Sync[IO.ApiIO] =
     new Tag.Sync[IO.ApiIO] {
@@ -241,9 +215,6 @@ object Tag {
 
       override def none[A]: IO.ApiIO[Option[A]] =
         IO.none
-
-      override def toFuture[A](a: IO.ApiIO[A]): Future[A] =
-        a.toFuture
 
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, IO.ApiIO], drop: Int, take: Option[Int])(operation: (U, A) => U): IO.ApiIO[U] = {
         @tailrec
@@ -318,6 +289,10 @@ object Tag {
         IO[Error.API, A](a.get)
     }
 
+  implicit val tryTag: Tag.Sync[Try] = dbIO.to[Try]
+
+  implicit val optionTag: Tag.Sync[Option] = dbIO.to[Option]
+
   implicit def future(implicit ec: ExecutionContext): Async[Future] =
     new Async[Future] {
       override def apply[A](a: => A): Future[A] =
@@ -340,9 +315,6 @@ object Tag {
 
       override def foreach[A, B](a: A)(f: A => B): Unit =
         f(a)
-
-      override def toFuture[A](a: Future[A]): Future[A] =
-        a
 
       override def fromFuture[A](a: Future[A]): Future[A] =
         a

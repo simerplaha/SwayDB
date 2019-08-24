@@ -342,12 +342,12 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
    * Converts the current Stream with Future API. If the current stream is blocking,
    * the output stream will still return blocking stream but wrapped as future APIs.
    */
-  def to[B[_]](implicit tag: Tag[B], mapper: Tag.Map[T, B]): Stream[A, B] =
+  def to[B[_]](implicit tag: Tag[B], converter: Tag.Converter[T, B]): Stream[A, B] =
     new Stream[A, B]()(tag) {
       override def headOption: B[Option[A]] =
-        mapper.to(self.headOption)
+        converter.to(self.headOption)
 
       override private[swaydb] def next(previous: A) =
-        mapper.to(self.next(previous))
+        converter.to(self.next(previous))
     }
 }
