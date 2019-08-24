@@ -107,7 +107,7 @@ object DefaultPersistentConfig {
             compression = _ => Seq.empty
           ),
         binarySearchIndex =
-          BinarySearchKeyIndex.FullIndex(
+          BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
             searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
@@ -171,7 +171,7 @@ object DefaultPersistentConfig {
             compression = _ => Seq.empty
           ),
         binarySearchIndex =
-          BinarySearchKeyIndex.FullIndex(
+          BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
             searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
@@ -235,7 +235,7 @@ object DefaultPersistentConfig {
             compression = _ => Seq.empty
           ),
         binarySearchIndex =
-          BinarySearchKeyIndex.FullIndex(
+          BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
             searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
@@ -299,7 +299,7 @@ object DefaultPersistentConfig {
             compression = _ => Seq.empty
           ),
         binarySearchIndex =
-          BinarySearchKeyIndex.FullIndex(
+          BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
             searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
@@ -363,7 +363,7 @@ object DefaultPersistentConfig {
             compression = _ => Seq.empty
           ),
         binarySearchIndex =
-          BinarySearchKeyIndex.FullIndex(
+          BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
             searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
@@ -429,7 +429,7 @@ object DefaultPersistentConfig {
             compression = _ => Seq.empty
           ),
         binarySearchIndex =
-          BinarySearchKeyIndex.FullIndex(
+          BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
             searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),

@@ -120,7 +120,7 @@ object DefaultEventuallyPersistentConfig {
             compression = _ => Seq.empty
           ),
         binarySearchIndex =
-          BinarySearchKeyIndex.FullIndex(
+          BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 5,
             searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),

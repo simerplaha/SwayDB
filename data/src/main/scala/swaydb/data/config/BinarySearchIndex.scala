@@ -20,14 +20,13 @@
 package swaydb.data.config
 
 import swaydb.data.api.grouping.Compression
-import swaydb.data.config.BinarySearchKeyIndex.{Disable, FullIndex, SecondaryIndex}
 
-sealed trait BinarySearchKeyIndex
+sealed trait BinarySearchIndex
 
-object BinarySearchKeyIndex {
-  case class Disable(searchSortedIndexDirectly: Boolean) extends BinarySearchKeyIndex
+object BinarySearchIndex {
+  case class Disable(searchSortedIndexDirectly: Boolean) extends BinarySearchIndex
 
-  sealed trait Enable extends BinarySearchKeyIndex {
+  sealed trait Enable extends BinarySearchIndex {
     def minimumNumberOfKeys: Int
     def ioStrategy: IOAction => IOStrategy
     def compression: UncompressedBlockInfo => Seq[Compression]
