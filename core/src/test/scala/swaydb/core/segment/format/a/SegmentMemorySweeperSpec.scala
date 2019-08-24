@@ -21,22 +21,22 @@ package swaydb.core.segment.format.a
 
 import java.nio.file._
 
-import swaydb.core.CommonAssertions._
+import org.scalatest.OptionValues._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, _}
 import swaydb.core.io.file.BlockCache
-import swaydb.core.queue.{FileSweeper, MemorySweeper}
+import swaydb.core.queue.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
-import swaydb.core.util._
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import org.scalatest.OptionValues._
+
 import scala.concurrent.duration._
 
 /**
@@ -58,7 +58,7 @@ class SegmentMemorySweeperSpec extends TestBase {
      */
     "not drop head Group on memory-overflow" in {
       //create a group
-      val groupKeyValues = randomizedKeyValues(1000, addPut = true, addGroups = false)
+      val groupKeyValues = randomizedKeyValues(1000, addGroups = false)
       val group =
         Transient.Group(
           keyValues = groupKeyValues,
@@ -132,7 +132,7 @@ class SegmentMemorySweeperSpec extends TestBase {
   "PersistentSegment" should {
     "drop Group key-value only after it's been decompressed" in {
       //create a group
-      val groupKeyValues = randomKeyValues(10000, addPut = true)
+      val groupKeyValues = randomKeyValues(10000)
       val group =
         Transient.Group(
           keyValues = groupKeyValues,

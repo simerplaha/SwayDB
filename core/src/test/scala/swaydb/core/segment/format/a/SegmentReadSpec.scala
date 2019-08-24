@@ -169,7 +169,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
     }
 
     "for randomizedKeyValues" in {
-      val keyValues = randomizedKeyValues(keyValuesCount)
+      val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(keyValuesCount + 1000))
       val segment = TestSegment(keyValues).runRandomIO.value
 
       val minKeyInt = keyValues.head.key.readInt()
