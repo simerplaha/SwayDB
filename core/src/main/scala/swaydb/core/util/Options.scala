@@ -26,9 +26,9 @@ object Options {
   val unit: Option[Unit] = Some(())
   val zero: Option[Int] = Option(0)
 
-  def when[T](condition: Boolean)(code: => Option[T]): Option[T] =
+  def when[T](condition: Boolean)(success: => Option[T]): Option[T] =
     if (condition)
-      code
+      success
     else
       None
 }

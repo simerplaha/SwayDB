@@ -39,15 +39,8 @@ private[core] object SegmentSearcher extends LazyLogging {
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
              hasRange: Boolean,
              keyValueCount: Int,
-             threadState: Option[SegmentReadThreadState])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] = {
-    val isSequentialRead =
-      threadState exists {
-        state =>
-          state.incrementReadCount()
-          state.isSequentialRead()
-      }
-
-    when(isSequentialRead)(start) map {
+             threadState: Option[SegmentReadThreadState])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
+    when(threadState.exists(_.isSequentialRead()))(start) map {
       startFrom =>
         SortedIndexBlock.searchSeekOne(
           key = key,
@@ -57,7 +50,7 @@ private[core] object SegmentSearcher extends LazyLogging {
         ) flatMap {
           found =>
             if (found.isDefined) {
-              threadState.foreach(_.incrementSequentialReadSuccess())
+              threadState foreach (_.notifySuccessfulSequentialRead())
               IO.Success(found)
             } else {
               hashIndexSearch(
@@ -86,7 +79,6 @@ private[core] object SegmentSearcher extends LazyLogging {
         hasRange = hasRange
       )
     }
-  }
 
   def hashIndexSearch(key: Slice[Byte],
                       start: Option[Persistent],

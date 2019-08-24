@@ -54,31 +54,28 @@ class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[Long, Segmen
 
 sealed trait SegmentReadThreadState {
   def isSequentialRead(): Boolean
-  def incrementReadCount(): Unit
-  def incrementSequentialReadSuccess(): Unit
+  def notifySuccessfulSequentialRead(): Unit
 }
 
 class SegmentThreadState[K, V](@BeanProperty var skipList: MinMaxSkipList[K, V],
-                               var readCount: Int,
+                               var accessCount: Int,
                                var sequentialReadsSuccess: Int) extends SegmentReadThreadState {
   /**
    * Detects if the read is sequential. If it's random then it randomly resets the flags to
    * return sequential read.
    */
   def isSequentialRead(): Boolean = {
-    val seqReadFailures = readCount - sequentialReadsSuccess
+    val seqReadFailures = accessCount - sequentialReadsSuccess
     val isRandom = seqReadFailures > 3 // >= 4
     if (isRandom && Random.nextDouble() < 0.01) {
       //reset
-      readCount = 2 //reset to 2 so that at least two more reads occur (>= 4 || > 3) before confirming that current read is still random.
+      accessCount = 2 //reset to 2 so that at least two more reads occur (>= 4 || > 3) before confirming that current read is still random.
       sequentialReadsSuccess = 0
     }
+    accessCount += 1
     !isRandom
   }
 
-  def incrementReadCount(): Unit =
-    readCount += 1
-
-  def incrementSequentialReadSuccess(): Unit =
+  def notifySuccessfulSequentialRead(): Unit =
     sequentialReadsSuccess += 1
 }

@@ -146,7 +146,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         case IOAction.ReadDataOverview =>
           IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DataAction =>
-          IOStrategy.SynchronisedIO(cacheOnAccess = true)
+          IOStrategy.SynchronisedIO(cacheOnAccess = false)
       },
       binarySearchIndexBlockIO = {
         case IOAction.OpenResource =>
@@ -233,10 +233,10 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       startId = Some(1),
       sortedIndexConfig =
         SortedIndexBlock.Config(
-          ioStrategy = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+          ioStrategy = _ => IOStrategy.SynchronisedIO(cacheOnAccess = false),
           prefixCompressionResetCount = 0,
           enableAccessPositionIndex = true,
-          normaliseIndex = true,
+          normaliseIndex = false,
           compressions = _ => Seq.empty
         ),
       binarySearchIndexConfig =
@@ -258,23 +258,23 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       hashIndexConfig =
         HashIndexBlock.Config(
           maxProbe = 2,
-          copyIndex = true,
+          copyIndex = false,
           minimumNumberOfKeys = 5,
           minimumNumberOfHits = 5,
           allocateSpace = _.requiredSpace * 10,
-          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = false),
           compressions = _ => Seq.empty
         ),
       //      hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig =
-        //        BloomFilterBlock.Config.disabled
-        BloomFilterBlock.Config(
-          falsePositiveRate = 0.001,
-          minimumNumberOfKeys = 2,
-          optimalMaxProbe = _ => 1,
-          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-          compressions = _ => Seq.empty
-        )
+        BloomFilterBlock.Config.disabled
+      //        BloomFilterBlock.Config(
+      //          falsePositiveRate = 0.001,
+      //          minimumNumberOfKeys = 2,
+      //          optimalMaxProbe = _ => 1,
+      //          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+      //          compressions = _ => Seq.empty
+      //        )
     )
 
   val group =
@@ -329,8 +329,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   val unGroupedKeyValuesZipped = unGroupedKeyValues.zipWithIndex
 
   def assertGet(segment: Segment) = {
-    unGroupedKeyValuesZipped foreach {
-      case (keyValue, index) =>
+    shuffledUnGroupedKeyValues foreach {
+      keyValue =>
         //        if (index % 1000 == 0)
         //          segment.get(shuffledUnGroupedKeyValues.head.key)
 
@@ -435,6 +435,10 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertGet(segment)
     }
+
+    //    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+    //      assertGet(segment)
+    //    }
 
     //    println("totalReads: " + SegmentSearcher.totalReads)
     //    println("sequentialRead: " + SegmentSearcher.sequentialRead)
