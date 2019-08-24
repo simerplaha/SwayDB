@@ -45,6 +45,19 @@ trait Tag[T[_]] {
 
 object Tag {
 
+  object Implicits {
+    implicit class TagImplicits[A, T[_] : Tag](a: T[A])(implicit tag: Tag[T]) {
+      @inline def map[B](f: A => B): T[B] =
+        tag.flatMap(a) {
+          a =>
+            tag.map[A, B](a)(f)
+        }
+
+      @inline def flatMap[B](f: A => T[B]): T[B] =
+        tag.flatMap(a)(f)
+    }
+  }
+
   /**
    * Converts containers. More tags can be created from existing Tags with this trait using [[Tag.to]]
    */
@@ -91,6 +104,56 @@ object Tag {
       IO[Error.API, T](a.get)
   }
 
+  sealed trait ConverterBase[T[_], X[_]] {
+    def base: Tag[T]
+
+    def baseConverter: Tag.Converter[T, X]
+
+    val flipConverter =
+      new Tag.Converter[X, T] {
+        override def to[A](a: X[A]): T[A] =
+          baseConverter.from(a)
+
+        override def from[A](a: T[A]): X[A] =
+          baseConverter.to(a)
+      }
+
+    def apply[A](a: => A): X[A] =
+      baseConverter.to(base.apply(a))
+
+    def foreach[A, B](a: A)(f: A => B): Unit =
+      base.foreach(a)(f)
+
+    def map[A, B](a: A)(f: A => B): X[B] =
+      baseConverter.to(base.map(a)(f))
+
+    def flatMap[A, B](fa: X[A])(f: A => X[B]): X[B] =
+      baseConverter.to {
+        base.flatMap(baseConverter.from(fa)) {
+          a =>
+            baseConverter.from(f(a))
+        }
+      }
+
+    def success[A](value: A): X[A] =
+      baseConverter.to(base.success(value))
+
+    def failure[A](exception: Throwable): X[A] =
+      baseConverter.to(base.failure(exception))
+
+    def none[A]: X[Option[A]] =
+      baseConverter.to(base.none)
+
+    def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, X], drop: Int, take: Option[Int])(operation: (U, A) => U): X[U] =
+      baseConverter.to(base.foldLeft(initial, after, stream.to[T](base, flipConverter), drop, take)(operation))
+
+    def collectFirst[A](previous: A, stream: Stream[A, X])(condition: A => Boolean): X[Option[A]] =
+      baseConverter.to(base.collectFirst(previous, stream.to[T](base, flipConverter))(condition))
+
+    def fromIO[E: ErrorHandler, A](a: IO[E, A]): X[A] =
+      baseConverter.to(base.fromIO(a))
+  }
+
   trait Sync[T[_]] extends Tag[T] { self =>
     def isSuccess[A](a: T[A]): Boolean
     def isFailure[A](a: T[A]): Boolean
@@ -99,33 +162,10 @@ object Tag {
     def orElse[A, B >: A](a: T[A])(b: T[B]): T[B]
 
     def to[X[_]](implicit converter: Tag.Converter[T, X]): Tag.Sync[X] =
-      new Tag.Sync[X] {
+      new Tag.Sync[X] with ConverterBase[T, X] {
+        override val base: Tag[T] = self
 
-        val flipConverter =
-          new Tag.Converter[X, T] {
-            override def to[A](a: X[A]): T[A] =
-              converter.from(a)
-
-            override def from[A](a: T[A]): X[A] =
-              converter.to(a)
-          }
-
-        override def apply[A](a: => A): X[A] =
-          converter.to(self.apply(a))
-
-        override def foreach[A, B](a: A)(f: A => B): Unit =
-          self.foreach(a)(f)
-
-        override def map[A, B](a: A)(f: A => B): X[B] =
-          converter.to(self.map(a)(f))
-
-        override def flatMap[A, B](fa: X[A])(f: A => X[B]): X[B] =
-          converter.to {
-            self.flatMap(converter.from(fa)) {
-              a =>
-                converter.from(f(a))
-            }
-          }
+        override val baseConverter: Converter[T, X] = converter
 
         override def exception[A](a: X[A]): Option[Throwable] =
           self.exception(converter.from(a))
@@ -141,24 +181,6 @@ object Tag {
 
         override def orElse[A, B >: A](a: X[A])(b: X[B]): X[B] =
           converter.to(self.orElse[A, B](converter.from(a))(converter.from(b)))
-
-        override def success[A](value: A): X[A] =
-          converter.to(self.success(value))
-
-        override def failure[A](exception: Throwable): X[A] =
-          converter.to(self.failure(exception))
-
-        override def none[A]: X[Option[A]] =
-          converter.to(self.none)
-
-        override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, X], drop: Int, take: Option[Int])(operation: (U, A) => U): X[U] =
-          converter.to(self.foldLeft(initial, after, stream.to[T](self, flipConverter), drop, take)(operation))
-
-        override def collectFirst[A](previous: A, stream: Stream[A, X])(condition: A => Boolean): X[Option[A]] =
-          converter.to(self.collectFirst(previous, stream.to[T](self, flipConverter))(condition))
-
-        override def fromIO[E: ErrorHandler, A](a: IO[E, A]): X[A] =
-          converter.to(self.fromIO(a))
       }
   }
 
@@ -169,70 +191,17 @@ object Tag {
       !isComplete(a)
 
     def to[X[_]](implicit converter: Tag.Converter[T, X]): Tag.Async[X] =
-      new Tag.Async[X] {
-        val flipConverter =
-          new Tag.Converter[X, T] {
-            override def to[A](a: X[A]): T[A] =
-              converter.from(a)
+      new Tag.Async[X] with ConverterBase[T, X] {
+        override val base: Tag[T] = self
 
-            override def from[A](a: T[A]): X[A] =
-              converter.to(a)
-          }
+        override val baseConverter: Converter[T, X] = converter
 
         override def fromPromise[A](a: Promise[A]): X[A] =
           converter.to(self.fromPromise(a))
 
         override def isComplete[A](a: X[A]): Boolean =
           self.isComplete(converter.from(a))
-
-        override def apply[A](a: => A): X[A] =
-          converter.to(self.apply(a))
-
-        override def foreach[A, B](a: A)(f: A => B): Unit =
-          self.foreach(a)(f)
-
-        override def map[A, B](a: A)(f: A => B): X[B] =
-          converter.to(self.map(a)(f))
-
-        override def flatMap[A, B](fa: X[A])(f: A => X[B]): X[B] =
-          converter.to {
-            self.flatMap(converter.from(fa)) {
-              a =>
-                converter.from(f(a))
-            }
-          }
-
-        override def success[A](value: A): X[A] =
-          converter.to(self.success(value))
-
-        override def failure[A](exception: Throwable): X[A] =
-          converter.to(self.failure(exception))
-
-        override def none[A]: X[Option[A]] =
-          converter.to(self.none)
-
-        override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, X], drop: Int, take: Option[Int])(operation: (U, A) => U): X[U] =
-          converter.to(self.foldLeft(initial, after, stream.to[T](self, flipConverter), drop, take)(operation))
-
-        override def collectFirst[A](previous: A, stream: Stream[A, X])(condition: A => Boolean): X[Option[A]] =
-          converter.to(self.collectFirst(previous, stream.to[T](self, flipConverter))(condition))
-
-        override def fromIO[E: ErrorHandler, A](a: IO[E, A]): X[A] =
-          converter.to(self.fromIO(a))
       }
-  }
-
-  object Implicits {
-    implicit class TagImplicits[A, T[_] : Tag](a: T[A])(implicit tag: Tag[T]) {
-      @inline def map[B](f: A => B): T[B] =
-        tag.flatMap(a) {
-          a =>
-            tag.map[A, B](a)(f)
-        }
-
-      @inline def flatMap[B](f: A => T[B]): T[B] =
-        tag.flatMap(a)(f)
-    }
   }
 
   implicit val dbIO: Tag.Sync[IO.ApiIO] =
