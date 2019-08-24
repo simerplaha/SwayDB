@@ -467,7 +467,7 @@ object IO {
     /**
      * Opens all [[IO.Deferred]] types to read the final value in a blocking manner.
      */
-    def runIO: IO[E, A] = {
+    def runSync: IO[E, A] = {
 
       def blockIfNeeded(deferred: IO.Deferred[E, A]): Unit =
         deferred.error foreach {
@@ -613,6 +613,6 @@ object IO {
 
     //flattens using blocking IO.
     def flatten[F, B](implicit ev: A <:< IO.Deferred[F, B]): IO.Deferred[F, B] =
-      runIO.get
+      runSync.get
   }
 }

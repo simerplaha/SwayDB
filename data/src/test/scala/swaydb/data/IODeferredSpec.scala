@@ -146,11 +146,11 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
             }
           }
           if (Random.nextBoolean()) {
-            createDefers.runIO shouldBe IO.Success(5)
+            createDefers.runSync shouldBe IO.Success(5)
             createDefers.runFutureIO shouldBe IO.Success(5)
           } else {
             createDefers.runFutureIO shouldBe IO.Success(5)
-            createDefers.runIO shouldBe IO.Success(5)
+            createDefers.runSync shouldBe IO.Success(5)
           }
       }
     }
@@ -162,7 +162,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
         deferred.isComplete shouldBe false
         deferred.isReady shouldBe true
 
-        deferred.runIO.get shouldBe 1
+        deferred.runSync.get shouldBe 1
         deferred.isComplete shouldBe true
         deferred.isReady shouldBe true
       }
@@ -178,7 +178,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
         deferred.isComplete shouldBe false
         deferred.isReady shouldBe true
 
-        deferred.runIO shouldBe IO.Failure(unknownError)
+        deferred.runSync shouldBe IO.Failure(unknownError)
         deferred.isComplete shouldBe false
         deferred.isReady shouldBe true
       }
@@ -205,13 +205,13 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
       deferred.isReady shouldBe true
       deferred.isComplete shouldBe false
 
-      deferred.runIO shouldBe IO.Success(2)
+      deferred.runSync shouldBe IO.Success(2)
 
       deferred.isReady shouldBe true
       deferred.isComplete shouldBe true
 
       //deferred's value is initialised initialised so the mock function is not invoked again.
-      deferred.runIO shouldBe IO.Success(2)
+      deferred.runSync shouldBe IO.Success(2)
     }
 
     "non-recoverable failure" in {
@@ -228,7 +228,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
       deferred.isReady shouldBe true
       deferred.isComplete shouldBe false
 
-      deferred.runIO shouldBe IO.Failure(unknownError)
+      deferred.runSync shouldBe IO.Failure(unknownError)
       timesRun shouldBe 1
     }
 
@@ -251,7 +251,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
       deferred.isReady shouldBe true
       deferred.isComplete shouldBe false
 
-      deferred.runIO shouldBe IO.Failure(unknownError)
+      deferred.runSync shouldBe IO.Failure(unknownError)
       timesRecovered shouldBe 10
     }
   }
@@ -284,8 +284,8 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
 
       deferred.isReady shouldBe true
 
-      deferred.runIO shouldBe IO.Success(4)
-      deferred.runIO shouldBe IO.Success(4)
+      deferred.runSync shouldBe IO.Success(4)
+      deferred.runSync shouldBe IO.Success(4)
     }
 
     "recoverable & non-recoverable failure" in {
@@ -464,7 +464,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
             1
         }
 
-      deferred.runIO shouldBe IO.Success(1)
+      deferred.runSync shouldBe IO.Success(1)
     }
 
     "recoverable failure" in {
@@ -699,6 +699,6 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
           }
       }
 
-    flattenedDefers.runIO.get shouldBe 1
+    flattenedDefers.runSync.get shouldBe 1
   }
 }

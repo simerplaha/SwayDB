@@ -24,7 +24,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Random
 
-sealed trait IOValues {
+trait IOValues {
 
   implicit class IOIncompleteImplicits[E: ErrorHandler, T](io: => IO[E, T]) {
     def runBlockingIO: IO[E, T] =
@@ -45,7 +45,7 @@ sealed trait IOValues {
   implicit class DeferredIOImplicits[E: ErrorHandler, T](io: => IO.Deferred[E, T]) {
 
     def runBlockingIO: IO[E, T] =
-      io.runIO
+      io.runSync
 
     def runFutureIO: IO[E, T] =
       IO(Await.result(io.runAsync, 5.minutes))

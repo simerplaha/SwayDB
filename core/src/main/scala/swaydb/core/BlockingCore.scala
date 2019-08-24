@@ -189,7 +189,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(zero.update(fromKey, to, value))
 
   override def clear(): T[IO.Done] =
-    tag.fromIO(zero.clear().runIO)
+    tag.fromIO(zero.clear().runSync)
 
   def function(key: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
     tag.fromIO(zero.applyFunction(key, function))
@@ -201,7 +201,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     zero.registerFunction(functionID, function)
 
   private def headIO: IO[swaydb.Error.Level, Option[KeyValueTuple]] =
-    zero.head.runIO flatMap {
+    zero.head.runSync flatMap {
       result =>
         result map {
           response =>
@@ -225,7 +225,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(headIO)
 
   def headKey: T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.headKey.runIO)
+    tag.fromIO(zero.headKey.runSync)
 
   private def lastIO: IO[swaydb.Error.Level, Option[KeyValueTuple]] =
     ???
@@ -253,20 +253,20 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(lastIO)
 
   def lastKey: T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.lastKey.runIO)
+    tag.fromIO(zero.lastKey.runSync)
 
   def bloomFilterKeyValueCount: T[Int] =
   //    tag.fromIO(IO.Deferred.recover(zero.bloomFilterKeyValueCount.get).runBlocking)
     ???
 
   def deadline(key: Slice[Byte]): T[Option[Deadline]] =
-    tag.fromIO(zero.deadline(key).runIO)
+    tag.fromIO(zero.deadline(key).runSync)
 
   def sizeOfSegments: Long =
     zero.sizeOfSegments
 
   def contains(key: Slice[Byte]): T[Boolean] =
-    tag.fromIO(zero.contains(key).runIO)
+    tag.fromIO(zero.contains(key).runSync)
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
   //    tag.fromIO(IO.Deferred.recover(zero.mightContainKey(key).get).runBlocking)
@@ -277,7 +277,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     ???
 
   private def getIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[Option[Slice[Byte]]]] =
-    zero.get(key).runIO flatMap {
+    zero.get(key).runSync flatMap {
       result =>
         result map {
           response =>
@@ -301,7 +301,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(getIO(key))
 
   def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.getKey(key).runIO)
+    tag.fromIO(zero.getKey(key).runSync)
 
   private def getKeyValueIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValueTuple]] =
     ???
@@ -354,7 +354,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(beforeIO(key))
 
   def beforeKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.lower(key).runIO.map(_.map(_.key)))
+    tag.fromIO(zero.lower(key).runSync.map(_.map(_.key)))
 
   private def afterIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValueTuple]] =
     ???
@@ -382,10 +382,10 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     tag.fromIO(afterIO(key))
 
   def afterKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
-    tag.fromIO(zero.higher(key).runIO.map(_.map(_.key)))
+    tag.fromIO(zero.higher(key).runSync.map(_.map(_.key)))
 
   def valueSize(key: Slice[Byte]): T[Option[Int]] =
-    tag.fromIO(zero.valueSize(key).runIO)
+    tag.fromIO(zero.valueSize(key).runSync)
 
   def level0Meter: LevelZeroMeter =
     zero.levelZeroMeter
