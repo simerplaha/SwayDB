@@ -713,7 +713,7 @@ object CommonAssertions {
   def assertHigher(keyValuesIterable: Iterable[KeyValue],
                    level: LevelRef): Unit = {
     val keyValues = keyValuesIterable.toSlice
-    assertHigher(keyValues, getHigher = key => level.higher(key).runSync)
+    assertHigher(keyValues, getHigher = key => level.higher(key).runIO)
   }
 
   def assertLower(keyValuesIterable: Iterable[KeyValue],
@@ -900,8 +900,8 @@ object CommonAssertions {
 
   def assertEmptyHeadAndLast(level: LevelRef) =
     Seq(
-      () => level.head.runSync.get shouldBe empty,
-      () => level.last.runSync.get shouldBe empty,
+      () => level.head.runIO.get shouldBe empty,
+      () => level.last.runIO.get shouldBe empty,
     ).runThisRandomlyInParallel
 
   def assertReads(keyValues: Slice[Transient],

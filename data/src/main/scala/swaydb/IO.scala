@@ -467,7 +467,7 @@ object IO {
     /**
      * Opens all [[IO.Deferred]] types to read the final value in a blocking manner.
      */
-    def runSync: IO[E, A] = {
+    def runIO: IO[E, A] = {
 
       def blockIfNeeded(deferred: IO.Deferred[E, A]): Unit =
         deferred.error foreach {
@@ -486,25 +486,68 @@ object IO {
         IO.Deferred.runAndRecover(deferred) match {
           case Left(io) =>
             logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
-            (recovery: @unchecked) match {
-              case Some(recovery: ((E) => IO.Deferred[E, A])) =>
-                io match {
-                  case success @ IO.Success(_) =>
-                    success
+            io match {
+              case success @ IO.Success(_) =>
+                success
 
-                  case IO.Failure(error) =>
-                    logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
-                    doRun(recovery(error), 0)
-                }
-
-              case None =>
-                io
+              case IO.Failure(error) =>
+                logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
+                if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
+                  doRun(recovery.get.asInstanceOf[(E) => IO.Deferred[E, A]](error), 0)
+                else
+                  io
             }
 
           case Right(deferred) =>
             logger.debug(s"Retry! isCached: ${getValue.isDefined}. ${deferred.error}")
             if (tried > 0 && tried % IO.Deferred.maxRecoveriesBeforeWarn == 0)
               logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via IO. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => ErrorHandler.reserve(error).map(_.name))}")
+            doRun(deferred, tried + 1)
+        }
+      }
+
+      doRun(this, 0)
+    }
+
+    /**
+     * TODO -  Similar to [[runIO]]. [[runIO]] should be calling this function
+     * to build it's execution process.
+     */
+    def runSync[B >: A, T[_]](implicit tag: Tag.Sync[T]): T[B] = {
+
+      def blockIfNeeded(deferred: IO.Deferred[E, B]): Unit =
+        deferred.error foreach {
+          error =>
+            ErrorHandler.reserve(error) foreach {
+              reserve =>
+                logger.debug(s"Blocking. ${reserve.name}")
+                Reserve.blockUntilFree(reserve)
+                logger.debug(s"Freed. ${reserve.name}")
+            }
+        }
+
+      @tailrec
+      def doRun(deferred: IO.Deferred[E, B], tried: Int): T[B] = {
+        blockIfNeeded(deferred)
+        IO.Deferred.runAndRecover(deferred) match {
+          case Left(io) =>
+            logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
+            io match {
+              case success @ IO.Success(_) =>
+                tag.fromIO(success)
+
+              case IO.Failure(error) =>
+                logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
+                if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
+                  doRun(recovery.get.asInstanceOf[(E) => IO.Deferred[E, B]](error), 0)
+                else
+                  tag.fromIO(io)
+            }
+
+          case Right(deferred) =>
+            logger.debug(s"Retry! isCached: ${getValue.isDefined}. ${deferred.error}")
+            if (tried > 0 && tried % IO.Deferred.maxRecoveriesBeforeWarn == 0)
+              logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via runSync. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => ErrorHandler.reserve(error).map(_.name))}")
             doRun(deferred, tried + 1)
         }
       }
@@ -613,6 +656,6 @@ object IO {
 
     //flattens using blocking IO.
     def flatten[F, B](implicit ev: A <:< IO.Deferred[F, B]): IO.Deferred[F, B] =
-      runSync.get
+      runIO.get
   }
 }

@@ -45,7 +45,7 @@ trait IOValues {
   implicit class DeferredIOImplicits[E: ErrorHandler, T](io: => IO.Deferred[E, T]) {
 
     def runBlockingIO: IO[E, T] =
-      io.runSync
+      io.runIO
 
     def runFutureIO: IO[E, T] =
       IO(Await.result(io.runAsync, 5.minutes))
