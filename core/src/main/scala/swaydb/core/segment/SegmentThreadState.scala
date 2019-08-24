@@ -29,12 +29,12 @@ import scala.beans.BeanProperty
 import scala.reflect.ClassTag
 import scala.util.Random
 
-object SegmentThreadState {
+private[segment] object SegmentThreadState {
   def create[K, V: ClassTag]()(implicit ordering: KeyOrder[K]) =
     new SegmentThreadStates(new ConcurrentHashMap[Long, SegmentThreadState[K, V]]())
 }
 
-class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[Long, SegmentThreadState[K, V]])(implicit val ordering: KeyOrder[K]) {
+private[segment] class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[Long, SegmentThreadState[K, V]])(implicit val ordering: KeyOrder[K]) {
   def get(): SegmentThreadState[K, V] = {
     val threadId = Thread.currentThread().getId
     val existingState = states.get(threadId)
@@ -52,14 +52,14 @@ class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[Long, Segmen
     states.clear()
 }
 
-sealed trait SegmentReadThreadState {
+private[segment] sealed trait SegmentReadThreadState {
   def isSequentialRead(): Boolean
   def notifySuccessfulSequentialRead(): Unit
 }
 
-class SegmentThreadState[K, V](@BeanProperty var skipList: MinMaxSkipList[K, V],
-                               var accessCount: Int,
-                               var sequentialReadsSuccess: Int) extends SegmentReadThreadState {
+private[segment] class SegmentThreadState[K, V](@BeanProperty var skipList: MinMaxSkipList[K, V],
+                                                var accessCount: Int,
+                                                var sequentialReadsSuccess: Int) extends SegmentReadThreadState {
   /**
    * Detects if the read is sequential. If it's random then it randomly resets the flags to
    * return sequential read.
