@@ -22,8 +22,7 @@ package swaydb
 import swaydb.IO.ApiIO
 
 import scala.annotation.tailrec
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future, Promise}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
 
 /**
@@ -41,11 +40,32 @@ trait Tag[T[_]] {
   def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, T], drop: Int, take: Option[Int])(operation: (U, A) => U): T[U]
   def collectFirst[A](previous: A, stream: swaydb.Stream[A, T])(condition: A => Boolean): T[Option[A]]
   def toFuture[A](a: T[A]): Future[A]
-  def toIO[E: ErrorHandler, A](a: T[A], timeout: FiniteDuration): IO[E, A]
   def fromIO[E: ErrorHandler, A](a: IO[E, A]): T[A]
 }
 
 object Tag {
+
+  /**
+   * Maps container type A to type B.
+   */
+  trait Map[A[_], B[_]] {
+    def to[T](a: A[T]): B[T]
+  }
+
+  implicit val optionToTry = new Map[Option, Try] {
+    override def to[T](a: Option[T]): Try[T] =
+      Try(a.get)
+  }
+
+  implicit val tryToOption = new Map[Try, Option] {
+    override def to[T](a: Try[T]): Option[T] =
+      a.toOption
+  }
+
+  implicit val tryToIO = new Map[Try, IO.ApiIO] {
+    override def to[T](a: Try[T]): ApiIO[T] =
+      IO.fromTry[Error.API, T](a)
+  }
 
   trait Sync[T[_]] extends Tag[T] {
     def isSuccess[A](a: T[A]): Boolean
@@ -111,16 +131,13 @@ object Tag {
         None
 
       override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, Option], drop: Int, take: Option[Int])(operation: (U, A) => U): Option[U] =
-        tryTag.foldLeft(initial, after, stream.toTry(10.seconds), drop, take)(operation).toOption //todo
+        tryTag.foldLeft(initial, after, stream.to, drop, take)(operation).toOption //todo
 
       override def collectFirst[A](previous: A, stream: Stream[A, Option])(condition: A => Boolean): Option[Option[A]] =
-        tryTag.collectFirst(previous, stream.toTry(10.seconds))(condition).toOption
+        tryTag.collectFirst(previous, stream.to)(condition).toOption
 
       override def toFuture[A](a: Option[A]): Future[A] =
         a.map(Future.successful) getOrElse Future.failed(new Exception("None value"))
-
-      override def toIO[E: ErrorHandler, A](a: Option[A], timeout: FiniteDuration): IO[E, A] =
-        a.map(IO.Success(_)) getOrElse IO.failed(new Exception("None value"))
 
       override def fromIO[E: ErrorHandler, A](a: IO[E, A]): Option[A] =
         a.toOption
@@ -161,9 +178,6 @@ object Tag {
       override def toFuture[A](a: Try[A]): Future[A] =
         Future.fromTry(a)
 
-      override def toIO[E: ErrorHandler, A](a: Try[A], timeout: FiniteDuration): IO[E, A] =
-        IO.fromTry[E, A](a)
-
       override def fromIO[E: ErrorHandler, A](a: IO[E, A]): Try[A] =
         a.toTry
 
@@ -171,7 +185,7 @@ object Tag {
         scala.util.Failure(exception)
 
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Try], drop: Int, take: Option[Int])(operation: (U, A) => U): Try[U] =
-        dbIO.foldLeft(initial, after, stream.toIO[swaydb.Error.API](10.seconds), drop, take)(operation).toTry //use ioWrap and convert that result to try.
+        dbIO.foldLeft(initial, after, stream.to, drop, take)(operation).toTry //use ioWrap and convert that result to try.
 
       @tailrec
       override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Try])(condition: A => Boolean): Try[Option[A]] =
@@ -300,9 +314,6 @@ object Tag {
           case failure @ IO.Failure(_) =>
             failure
         }
-      override def toIO[E: ErrorHandler, A](a: IO.ApiIO[A], timeout: FiniteDuration): IO[E, A] =
-        IO[E, A](a.get)
-
       override def fromIO[E: ErrorHandler, A](a: IO[E, A]): IO.ApiIO[A] =
         IO[Error.API, A](a.get)
     }
@@ -400,8 +411,6 @@ object Tag {
           case None =>
             Future.successful(None)
         }
-      override def toIO[E: ErrorHandler, A](a: Future[A], timeout: FiniteDuration): IO[E, A] =
-        IO(Await.result(a, timeout))
 
       override def fromIO[E: ErrorHandler, A](a: IO[E, A]): Future[A] = a.toFuture
     }

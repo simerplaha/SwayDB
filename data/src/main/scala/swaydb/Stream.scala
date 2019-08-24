@@ -25,9 +25,6 @@ import swaydb.Tag.Implicits._
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 /**
  * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
@@ -304,47 +301,6 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
     }
 
   /**
-   * Converts the current Stream with Future API. If the current stream is blocking,
-   * the output stream will still return blocking stream but wrapped as future APIs.
-   */
-  def toFuture(implicit ec: ExecutionContext): Stream[A, Future] =
-    new Stream[A, Future]()(Tag.future) {
-      override def headOption: Future[Option[A]] =
-        self.tag.toFuture(self.headOption)
-
-      override private[swaydb] def next(previous: A): Future[Option[A]] =
-        self.tag.toFuture(self.next(previous))
-    }
-
-  /**
-   * If the current stream is Future/Async this will return a blocking stream.
-   *
-   * @param timeout If the current stream is async/future based then the timeout is used else it's ignored.
-   */
-  def toIO[E: ErrorHandler](timeout: FiniteDuration): Stream[A, IO.ApiIO] =
-    new Stream[A, IO.ApiIO] {
-      override def headOption: IO.ApiIO[Option[A]] =
-        self.tag.toIO(self.headOption, timeout)
-
-      override private[swaydb] def next(previous: A): IO.ApiIO[Option[A]] =
-        self.tag.toIO(self.next(previous), timeout)
-    }
-
-  /**
-   * If the current stream is Async this will return a blocking stream.
-   *
-   * @param timeout If the current stream is async/future based then the timeout is used else it's ignored.
-   */
-  def toTry(timeout: FiniteDuration): Stream[A, Try] =
-    new Stream[A, Try] {
-      override def headOption: Try[Option[A]] =
-        self.tag.toIO[Throwable, Option[A]](self.headOption, timeout).toTry
-
-      override private[swaydb] def next(previous: A): Try[Option[A]] =
-        self.tag.toIO[Throwable, Option[A]](self.next(previous), timeout).toTry
-    }
-
-  /**
    * Reads all items from the Stream and returns the last.
    *
    * For a more efficient one use swaydb.Map.lastOption or swaydb.Set.lastOption instead.
@@ -381,4 +337,17 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
       (buffer, item) =>
         buffer += item
     } map (_.asSeq)
+
+  /**
+   * Converts the current Stream with Future API. If the current stream is blocking,
+   * the output stream will still return blocking stream but wrapped as future APIs.
+   */
+  def to[B[_]](implicit tag: Tag[B], mapper: Tag.Map[T, B]): Stream[A, B] =
+    new Stream[A, B]()(tag) {
+      override def headOption: B[Option[A]] =
+        mapper.to(self.headOption)
+
+      override private[swaydb] def next(previous: A) =
+        mapper.to(self.next(previous))
+    }
 }
