@@ -46,7 +46,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
-import swaydb.core.util.UUIDUtil
+import swaydb.core.util.{BlockCacheFileIDGenerator, UUIDUtil}
 import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -132,6 +132,7 @@ object TestData {
         path = path,
         mmapReads = randomBoolean(),
         mmapWrites = randomBoolean(),
+        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
         minKey = segment.minKey,
         maxKey = segment.maxKey,
         segmentSize = segment.segmentSize,

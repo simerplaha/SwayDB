@@ -22,7 +22,7 @@ package swaydb.core.io.file
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.{Path, StandardOpenOption}
-import java.nio.{BufferOverflowException, BufferUnderflowException, MappedByteBuffer}
+import java.nio.{BufferOverflowException, MappedByteBuffer}
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
@@ -37,33 +37,38 @@ import scala.annotation.tailrec
 
 private[file] object MMAPFile {
 
-  def read(path: Path): IO[swaydb.Error.IO, MMAPFile] =
+  def read(path: Path,
+           blockCacheFileId: Long): IO[swaydb.Error.IO, MMAPFile] =
     IO(FileChannel.open(path, StandardOpenOption.READ)) flatMap {
       channel =>
         MMAPFile(
           path = path,
           channel = channel,
           mode = MapMode.READ_ONLY,
-          bufferSize = channel.size()
+          bufferSize = channel.size(),
+          blockCacheFileId = blockCacheFileId
         )
     }
 
   def write(path: Path,
-            bufferSize: Long): IO[swaydb.Error.IO, MMAPFile] =
+            bufferSize: Long,
+            blockCacheFileId: Long): IO[swaydb.Error.IO, MMAPFile] =
     IO(FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
       channel =>
         MMAPFile(
           path = path,
           channel = channel,
           mode = MapMode.READ_WRITE,
-          bufferSize = bufferSize
+          bufferSize = bufferSize,
+          blockCacheFileId = blockCacheFileId
         )
     }
 
   private def apply(path: Path,
                     channel: FileChannel,
                     mode: MapMode,
-                    bufferSize: Long): IO[swaydb.Error.IO, MMAPFile] =
+                    bufferSize: Long,
+                    blockCacheFileId: Long): IO[swaydb.Error.IO, MMAPFile] =
     IO {
       val buff = channel.map(mode, 0, bufferSize)
       new MMAPFile(
@@ -71,7 +76,8 @@ private[file] object MMAPFile {
         channel = channel,
         mode = mode,
         bufferSize = bufferSize,
-        buffer = buff
+        buffer = buff,
+        blockCacheFileId = blockCacheFileId
       )
     }
 }
@@ -80,6 +86,7 @@ private[file] class MMAPFile(val path: Path,
                              channel: FileChannel,
                              mode: MapMode,
                              bufferSize: Long,
+                             val blockCacheFileId: Long,
                              @volatile private var buffer: MappedByteBuffer) extends LazyLogging with DBFileType {
 
   private val open = new AtomicBoolean(true)

@@ -36,7 +36,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
-import swaydb.core.util.{FiniteDurationUtil, IDGenerator, MinMax, SkipList}
+import swaydb.core.util.{BlockCacheFileIDGenerator, FiniteDurationUtil, IDGenerator, MinMax, SkipList}
 import swaydb.data.MaxKey
 import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -146,6 +146,7 @@ private[core] object Segment extends LazyLogging {
                 path = path,
                 autoClose = true,
                 ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                blockCacheFileId = BlockCacheFileIDGenerator.nextID,
                 bytes = result.segmentBytes
               )
             //if mmapReads is false, write bytes in mmaped mode and then close and re-open for read.
@@ -154,6 +155,7 @@ private[core] object Segment extends LazyLogging {
                 path = path,
                 autoClose = true,
                 ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                blockCacheFileId = BlockCacheFileIDGenerator.nextID,
                 bytes = result.segmentBytes
               ) flatMap {
                 file =>
@@ -164,6 +166,7 @@ private[core] object Segment extends LazyLogging {
                       DBFile.channelRead(
                         path = file.path,
                         ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
                         autoClose = true
                       )
                   }
@@ -174,6 +177,7 @@ private[core] object Segment extends LazyLogging {
                   DBFile.mmapRead(
                     path = path,
                     ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                    blockCacheFileId = BlockCacheFileIDGenerator.nextID,
                     autoClose = true
                   )
               }
@@ -183,6 +187,7 @@ private[core] object Segment extends LazyLogging {
                   DBFile.channelRead(
                     path = path,
                     ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                    blockCacheFileId = BlockCacheFileIDGenerator.nextID,
                     autoClose = true
                   )
               }
@@ -240,6 +245,7 @@ private[core] object Segment extends LazyLogging {
           _ =>
             Segment(
               path = nextPath,
+              blockCacheFileId = segment.file.blockCacheFileId,
               mmapReads = mmapSegmentsOnRead,
               mmapWrites = mmapSegmentsOnWrite,
               minKey = segment.minKey,
@@ -409,6 +415,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def apply(path: Path,
+            blockCacheFileId: Long,
             mmapReads: Boolean,
             mmapWrites: Boolean,
             minKey: Slice[Byte],
@@ -429,6 +436,7 @@ private[core] object Segment extends LazyLogging {
         DBFile.mmapRead(
           path = path,
           ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+          blockCacheFileId = blockCacheFileId,
           autoClose = true,
           checkExists = checkExists
         )
@@ -436,6 +444,7 @@ private[core] object Segment extends LazyLogging {
         DBFile.channelRead(
           path = path,
           ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+          blockCacheFileId = blockCacheFileId,
           autoClose = true,
           checkExists = checkExists
         )
@@ -480,6 +489,7 @@ private[core] object Segment extends LazyLogging {
         DBFile.mmapRead(
           path = path,
           ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
           autoClose = false,
           checkExists = checkExists
         )
@@ -487,6 +497,7 @@ private[core] object Segment extends LazyLogging {
         DBFile.channelRead(
           path = path,
           ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
           autoClose = false,
           checkExists = checkExists
         )

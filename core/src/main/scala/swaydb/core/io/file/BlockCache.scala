@@ -33,7 +33,7 @@ private[core] object BlockCache {
 
   //TODO - need a faster way to unique keys.
   def buildKey(fileType: DBFileType, position: Int): Key =
-    Key(fileType.inMemoryUniqueFileID, position)
+    Key(fileType.blockCacheFileId, position)
 
   def init(memorySweeper: MemorySweeper): Option[BlockCache.State] =
     memorySweeper match {

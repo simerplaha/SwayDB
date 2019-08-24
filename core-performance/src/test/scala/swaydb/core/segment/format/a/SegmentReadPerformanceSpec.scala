@@ -29,7 +29,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.segment.{PersistentSegment, Segment}
-import swaydb.core.util.Benchmark
+import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -395,6 +395,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       path = segment.path,
       mmapReads = levelStorage.mmapSegmentsOnRead,
       mmapWrites = levelStorage.mmapSegmentsOnWrite,
+      blockCacheFileId = BlockCacheFileIDGenerator.nextID,
       minKey = segment.minKey,
       maxKey = segment.maxKey,
       segmentSize = segment.segmentSize,

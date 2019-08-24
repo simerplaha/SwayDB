@@ -29,22 +29,26 @@ import swaydb.IO
 import swaydb.data.slice.Slice
 
 private[file] object ChannelFile {
-  def write(path: Path): IO[swaydb.Error.IO, ChannelFile] =
+  def write(path: Path,
+            blockCacheFileId: Long): IO[swaydb.Error.IO, ChannelFile] =
     IO {
       val channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
       new ChannelFile(
         path = path,
-        channel = channel
+        channel = channel,
+        blockCacheFileId = blockCacheFileId
       )
     }
 
-  def read(path: Path): IO[swaydb.Error.IO, ChannelFile] =
+  def read(path: Path,
+           blockCacheFileId: Long): IO[swaydb.Error.IO, ChannelFile] =
     if (IOEffect.exists(path))
       IO {
         val channel = FileChannel.open(path, StandardOpenOption.READ)
         new ChannelFile(
           path = path,
-          channel = channel
+          channel = channel,
+          blockCacheFileId = blockCacheFileId
         )
       }
     else
@@ -52,7 +56,8 @@ private[file] object ChannelFile {
 }
 
 private[file] class ChannelFile(val path: Path,
-                                channel: FileChannel) extends LazyLogging with DBFileType {
+                                channel: FileChannel,
+                                val blockCacheFileId: Long) extends LazyLogging with DBFileType {
 
   def close: IO[swaydb.Error.IO, Unit] =
     IO {

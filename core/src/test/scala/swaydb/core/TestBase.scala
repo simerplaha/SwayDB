@@ -43,7 +43,7 @@ import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
-import swaydb.core.util.IDGenerator
+import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
@@ -376,7 +376,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     implicit val limiter = fileSweeper
     implicit val memorySweeper = TestLimitQueues.memorySweeper
     new FileReader(
-      DBFile.mmapRead(path, randomIOStrategy(), autoClose = true).runRandomIO.value
+      DBFile.mmapRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.value
     )
   }
 
@@ -387,7 +387,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     implicit val limiter = fileSweeper
     implicit val memorySweeper = TestLimitQueues.memorySweeper
     new FileReader(
-      DBFile.channelRead(path, randomIOStrategy(), autoClose = true).runRandomIO.value
+      DBFile.channelRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.value
     )
   }
 

@@ -39,6 +39,7 @@ object DBFile extends LazyLogging {
                 memoryMapped: Boolean,
                 ioStrategy: IOStrategy,
                 file: Option[DBFileType],
+                blockCacheFileId: Long,
                 autoClose: Boolean)(implicit fileSweeper: FileSweeper) = {
 
     //FIX-ME: need a better solution.
@@ -73,9 +74,9 @@ object DBFile extends LazyLogging {
 
           val openResult =
             if (memoryMapped)
-              MMAPFile.read(filePath)
+              MMAPFile.read(filePath, blockCacheFileId)
             else
-              ChannelFile.read(filePath)
+              ChannelFile.read(filePath, blockCacheFileId)
 
           if (autoClose) fileSweeper.foreach(_.close(closer))
           openResult
@@ -97,21 +98,24 @@ object DBFile extends LazyLogging {
 
   def channelWrite(path: Path,
                    ioStrategy: IOStrategy,
+                   blockCacheFileId: Long,
                    autoClose: Boolean)(implicit fileSweeper: FileSweeper,
                                        blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
-    ChannelFile.write(path) map {
+    ChannelFile.write(path, blockCacheFileId) map {
       file =>
         new DBFile(
           path = path,
           memoryMapped = false,
           autoClose = autoClose,
+          blockCacheFileId = blockCacheFileId,
           fileCache =
             fileCache(
               filePath = path,
               memoryMapped = false,
               file = Some(file),
               ioStrategy = ioStrategy,
-              autoClose = autoClose
+              autoClose = autoClose,
+              blockCacheFileId = blockCacheFileId
             )
         )
     }
@@ -119,6 +123,7 @@ object DBFile extends LazyLogging {
   def channelRead(path: Path,
                   ioStrategy: IOStrategy,
                   autoClose: Boolean,
+                  blockCacheFileId: Long,
                   checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                                blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
     if (checkExists && IOEffect.notExists(path))
@@ -129,13 +134,15 @@ object DBFile extends LazyLogging {
           path = path,
           memoryMapped = false,
           autoClose = autoClose,
+          blockCacheFileId = blockCacheFileId,
           fileCache =
             fileCache(
               filePath = path,
               memoryMapped = false,
               file = None,
               ioStrategy = ioStrategy,
-              autoClose = autoClose
+              autoClose = autoClose,
+              blockCacheFileId = blockCacheFileId
             )
         )
       }
@@ -143,6 +150,7 @@ object DBFile extends LazyLogging {
   def mmapWriteAndRead(path: Path,
                        ioStrategy: IOStrategy,
                        autoClose: Boolean,
+                       blockCacheFileId: Long,
                        bytes: Iterable[Slice[Byte]])(implicit fileSweeper: FileSweeper,
                                                      blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
   //do not write bytes if the Slice has empty bytes.
@@ -158,7 +166,8 @@ object DBFile extends LazyLogging {
           path = path,
           bufferSize = totalWritten,
           ioStrategy = ioStrategy,
-          autoClose = autoClose
+          autoClose = autoClose,
+          blockCacheFileId = blockCacheFileId
         ) flatMap {
           file =>
             file.append(bytes) map {
@@ -171,6 +180,7 @@ object DBFile extends LazyLogging {
   def mmapWriteAndRead(path: Path,
                        ioStrategy: IOStrategy,
                        autoClose: Boolean,
+                       blockCacheFileId: Long,
                        bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
                                            blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
   //do not write bytes if the Slice has empty bytes.
@@ -181,6 +191,7 @@ object DBFile extends LazyLogging {
         path = path,
         bufferSize = bytes.size,
         ioStrategy = ioStrategy,
+        blockCacheFileId = blockCacheFileId,
         autoClose = autoClose
       ) flatMap {
         file =>
@@ -193,6 +204,7 @@ object DBFile extends LazyLogging {
   def mmapRead(path: Path,
                ioStrategy: IOStrategy,
                autoClose: Boolean,
+               blockCacheFileId: Long,
                checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                             blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
     if (checkExists && IOEffect.notExists(path))
@@ -203,10 +215,12 @@ object DBFile extends LazyLogging {
           path = path,
           memoryMapped = true,
           autoClose = autoClose,
+          blockCacheFileId = blockCacheFileId,
           fileCache =
             fileCache(
               filePath = path,
               memoryMapped = true,
+              blockCacheFileId = blockCacheFileId,
               ioStrategy = ioStrategy,
               file = None,
               autoClose = autoClose
@@ -217,19 +231,22 @@ object DBFile extends LazyLogging {
   def mmapInit(path: Path,
                ioStrategy: IOStrategy,
                bufferSize: Long,
+               blockCacheFileId: Long,
                autoClose: Boolean)(implicit fileSweeper: FileSweeper,
                                    blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
-    MMAPFile.write(path, bufferSize) map {
+    MMAPFile.write(path, bufferSize, blockCacheFileId) map {
       file =>
         new DBFile(
           path = path,
           memoryMapped = true,
           autoClose = autoClose,
+          blockCacheFileId = blockCacheFileId,
           fileCache =
             fileCache(
               filePath = path,
               memoryMapped = true,
               file = Some(file),
+              blockCacheFileId = blockCacheFileId,
               ioStrategy = ioStrategy,
               autoClose = autoClose
             )
@@ -244,6 +261,7 @@ object DBFile extends LazyLogging {
 class DBFile(val path: Path,
              memoryMapped: Boolean,
              autoClose: Boolean,
+             val blockCacheFileId: Long,
              fileCache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit blockCache: Option[BlockCache.State]) extends LazyLogging {
 
   def existsOnDisk =

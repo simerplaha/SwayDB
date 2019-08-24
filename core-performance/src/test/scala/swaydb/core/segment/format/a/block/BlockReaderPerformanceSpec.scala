@@ -20,17 +20,15 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.IOValues._
-import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.io.file.{DBFile, BlockCache}
-import swaydb.core.io.reader.Reader
+import swaydb.core.io.file.{BlockCache, DBFile}
+import swaydb.core.io.reader.FileReader
 import swaydb.core.queue.FileSweeper
 import swaydb.core.segment.format.a.block.reader.{BlockReader, BlockRefReader}
-import swaydb.core.util.Benchmark
+import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.config.IOStrategy
 import swaydb.data.util.StorageUnits._
-import swaydb.core.io.reader.FileReader
 
 class BlockReaderPerformanceSpec extends TestBase {
 
@@ -44,13 +42,13 @@ class BlockReaderPerformanceSpec extends TestBase {
 
     val ioStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true)
 
-    val file = DBFile.mmapInit(randomFilePath, ioStrategy, bytes.size, autoClose = true).runRandomIO.value
+    val file = DBFile.mmapInit(randomFilePath, ioStrategy, bytes.size, autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.value
     file.append(bytes).runRandomIO.value
     file.isFull.runRandomIO.value shouldBe true
     file.forceSave().get
     file.close.get
 
-    val readerFile = DBFile.mmapRead(path = file.path, ioStrategy = ioStrategy, autoClose = true).get
+    val readerFile = DBFile.mmapRead(path = file.path, ioStrategy = ioStrategy, autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).get
 
     /**
      * @note For randomReads:

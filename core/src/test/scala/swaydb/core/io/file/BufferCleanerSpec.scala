@@ -29,6 +29,7 @@ import swaydb.core.RunThis._
 import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues}
 import swaydb.core.TestData._
 import swaydb.core.queue.FileSweeper
+import swaydb.core.util.BlockCacheFileIDGenerator
 import swaydb.data.config.ActorConfig
 import swaydb.data.slice.Slice
 
@@ -47,7 +48,14 @@ class BufferCleanerSpec extends TestBase {
 
   "clear a MMAP file" in {
     implicit val limiter = FileSweeper(0, ActorConfig.Basic(10000, TestExecutionContext.executionContext))
-    val file: DBFile = DBFile.mmapWriteAndRead(randomDir, randomIOStrategy(cacheOnAccess = true), autoClose = true, Slice(randomBytesSlice())).get
+    val file: DBFile =
+      DBFile.mmapWriteAndRead(
+        path = randomDir,
+        ioStrategy = randomIOStrategy(cacheOnAccess = true),
+        autoClose = true,
+        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+        bytes = Slice(randomBytesSlice())
+      ).get
 
     eventual(10.seconds) {
       file.file match {
@@ -73,7 +81,15 @@ class BufferCleanerSpec extends TestBase {
       val files =
         (1 to 20) map {
           _ =>
-            val file = DBFile.mmapWriteAndRead(randomDir, randomIOStrategy(cacheOnAccess = true), autoClose = true, Slice(randomBytesSlice())).get
+            val file =
+              DBFile.mmapWriteAndRead(
+                path = randomDir,
+                ioStrategy = randomIOStrategy(cacheOnAccess = true),
+                autoClose = true,
+                blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+                bytes = Slice(randomBytesSlice())
+              ).get
+
             file.delete().get
             file
         }

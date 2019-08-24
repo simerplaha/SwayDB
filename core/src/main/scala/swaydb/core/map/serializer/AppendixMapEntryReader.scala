@@ -32,7 +32,7 @@ import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
-import swaydb.core.util.{Bytes, MinMax}
+import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{ReaderBase, Slice}
@@ -135,6 +135,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
             path = segmentPath,
             mmapReads = mmapSegmentsOnRead,
             mmapWrites = mmapSegmentsOnWrite,
+            blockCacheFileId = BlockCacheFileIDGenerator.nextID,
             minKey = minKey,
             maxKey = maxKey,
             segmentSize = segmentSize,
