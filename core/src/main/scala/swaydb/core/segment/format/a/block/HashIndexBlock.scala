@@ -629,7 +629,9 @@ private[core] object HashIndexBlock extends LazyLogging {
 
                       case IO.Failure(error) =>
                         error.exception match {
-                          //readIntUnsignedWithByteSize could return failure read unsignedInt. TO-DO need to be type-safe.
+                          case _: ArrayIndexOutOfBoundsException =>
+                            doFind(probe + 1)
+
                           case exception: IllegalArgumentException if exception.getMessage.contains("requirement failed") =>
                             doFind(probe + 1)
 

@@ -40,7 +40,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
       Config(
         falsePositiveRate = 0.0,
         minimumNumberOfKeys = Int.MaxValue,
-        optimalMaxProbe = probe => probe / 2,
+        optimalMaxProbe = probe => probe,
         blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         compressions = _ => Seq.empty
       )
@@ -229,6 +229,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
     keyValues.last.stats.segmentHasRemoveRange ||
       keyValues.last.stats.segmentBloomFilterSize <= 0 ||
       keyValues.last.bloomFilterConfig.falsePositiveRate <= 0.0 ||
+      keyValues.last.bloomFilterConfig.falsePositiveRate >= 1 ||
       keyValues.size < keyValues.last.bloomFilterConfig.minimumNumberOfKeys
 
   def shouldCreateBloomFilter(keyValues: Iterable[Transient]): Boolean =

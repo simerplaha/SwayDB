@@ -534,7 +534,7 @@ object TestData {
 
     def random(hasCompression: Boolean): BloomFilterBlock.Config =
       BloomFilterBlock.Config(
-        falsePositiveRate = Random.nextDouble(),
+        falsePositiveRate = Random.nextDouble() min 0.5,
         minimumNumberOfKeys = randomIntMax(5),
         optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
         blockIO = _ => randomIOAccess(),
