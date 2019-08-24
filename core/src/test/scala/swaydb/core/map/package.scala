@@ -39,7 +39,6 @@ package object map {
                timeOrder: TimeOrder[Slice[Byte]],
                functionStore: FunctionStore,
                fileSweeper: FileSweeper,
-               memorySweeper: MemorySweeper.Enabled,
                ec: ExecutionContext,
                writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]],
                reader: MapEntryReader[MapEntry[Slice[Byte], Memory.SegmentResponse]],
