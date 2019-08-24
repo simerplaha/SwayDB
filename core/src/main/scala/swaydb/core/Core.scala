@@ -76,7 +76,7 @@ private[swaydb] trait Core[T[_]] {
   def levelMeter(levelNumber: Int): Option[LevelMeter]
 
   def tagAsync[T[_]](implicit tag: Tag.Async[T]): Core[T]
-  def tagBlocking[T[_]](implicit tag: Tag[T]): BlockingCore[T]
+  def tagBlocking[T[_]](implicit tag: Tag.Sync[T]): BlockingCore[T]
 
   def close(): T[Unit]
   def delete(): T[Unit]

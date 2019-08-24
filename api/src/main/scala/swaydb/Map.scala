@@ -27,7 +27,6 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
@@ -373,7 +372,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
   /**
    * Returns an blocking API of type O where the [[Tag]] is known.
    */
-  def tagBlocking[T2[_]](implicit tag: Tag[T2]): Map[K, V, T2] =
+  def tagBlocking[T2[_]](implicit tag: Tag.Sync[T2]): Map[K, V, T2] =
     copy(core = core.tagBlocking[T2])
 
   def asScala: scala.collection.mutable.Map[K, V] =

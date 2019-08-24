@@ -45,8 +45,18 @@ trait Tag[T[_]] {
 
 object Tag {
 
-  implicit val optionTag: Tag[Option] =
-    new Tag[Option] {
+  trait Sync[T[_]] extends Tag[T]
+
+  trait Async[T[_]] extends Tag[T] {
+    def fromFuture[A](a: Future[A]): T[A]
+    def fromPromise[A](a: Promise[A]): T[A]
+    def isComplete[A](a: T[A]): Boolean
+    def isIncomplete[A](a: T[A]): Boolean =
+      !isComplete(a)
+  }
+
+  implicit val optionTag: Tag.Sync[Option] =
+    new Tag.Sync[Option] {
       override def apply[A](a: => A): Option[A] =
         Some(a)
 
@@ -90,8 +100,8 @@ object Tag {
         a.toOption
     }
 
-  implicit val tryTag: Tag[Try] =
-    new Tag[Try] {
+  implicit val tryTag: Tag.Sync[Try] =
+    new Tag.Sync[Try] {
       override def apply[A](a: => A): Try[A] =
         Try(a)
 
@@ -148,8 +158,8 @@ object Tag {
         }
     }
 
-  implicit val sio: Tag[IO.ApiIO] =
-    new Tag[IO.ApiIO] {
+  implicit val sio: Tag.Sync[IO.ApiIO] =
+    new Tag.Sync[IO.ApiIO] {
 
       import swaydb.Error.API.ErrorHandler
 
@@ -255,14 +265,6 @@ object Tag {
       override def toIO[E: ErrorHandler, A](a: IO.ApiIO[A], timeout: FiniteDuration): IO[E, A] = ???
       override def fromIO[E: ErrorHandler, A](a: IO[E, A]): IO.ApiIO[A] = ???
     }
-
-  trait Async[T[_]] extends Tag[T] {
-    def fromFuture[A](a: Future[A]): T[A]
-    def fromPromise[A](a: Promise[A]): T[A]
-    def isComplete[A](a: T[A]): Boolean
-    def isIncomplete[A](a: T[A]): Boolean =
-      !isComplete(a)
-  }
 
   implicit def future(implicit ec: ExecutionContext): Async[Future] =
     new Async[Future] {
