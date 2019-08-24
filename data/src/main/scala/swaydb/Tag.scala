@@ -41,6 +41,8 @@ trait Tag[T[_]] {
   def collectFirst[A](previous: A, stream: swaydb.Stream[A, T])(condition: A => Boolean): T[Option[A]]
   def fromIO[E: ErrorHandler, A](a: IO[E, A]): T[A]
   def to[X[_]](implicit converter: Tag.Converter[T, X]): Tag[X]
+  def defer[C](f: => T[C]): T[C] =
+    flatMap[Unit, C](success(()))(_ => f)
 }
 
 object Tag {
