@@ -362,11 +362,11 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
   /**
    * Returns an Async API of type O where the [[Tag]] is known.
    */
-  def to[X[_]](implicit tag: Tag[X]): Map[K, V, X] =
-    copy(core = core.to[X])
+  def toTag[X[_]](implicit tag: Tag[X]): Map[K, V, X] =
+    copy(core = core.toTag[X])
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V](to[IO.ApiIO](Tag.dbIO))
+    ScalaMap[K, V](toTag[IO.ApiIO](Tag.dbIO))
 
   def close(): T[Unit] =
     tag.defer(core.close())

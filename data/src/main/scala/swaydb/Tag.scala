@@ -40,9 +40,9 @@ trait Tag[T[_]] {
   def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, T], drop: Int, take: Option[Int])(operation: (U, A) => U): T[U]
   def collectFirst[A](previous: A, stream: swaydb.Stream[A, T])(condition: A => Boolean): T[Option[A]]
   def fromIO[E: ErrorHandler, A](a: IO[E, A]): T[A]
-  def to[X[_]](implicit converter: Tag.Converter[T, X]): Tag[X]
-  def defer[C](f: => T[C]): T[C] =
-    flatMap[Unit, C](success(()))(_ => f)
+  def toTag[X[_]](implicit converter: Tag.Converter[T, X]): Tag[X]
+  def defer[B](f: => T[B]): T[B] =
+    flatMap[Unit, B](success(()))(_ => f)
 }
 
 object Tag {
@@ -61,7 +61,7 @@ object Tag {
   }
 
   /**
-   * Converts containers. More tags can be created from existing Tags with this trait using [[Tag.to]]
+   * Converts containers. More tags can be created from existing Tags with this trait using [[Tag.toTag]]
    */
   trait Converter[A[_], B[_]] {
     def to[T](a: A[T]): B[T]
@@ -163,7 +163,7 @@ object Tag {
     def getOrElse[A, B >: A](a: T[A])(b: => B): B
     def orElse[A, B >: A](a: T[A])(b: T[B]): T[B]
 
-    def to[X[_]](implicit converter: Tag.Converter[T, X]): Tag.Sync[X] =
+    def toTag[X[_]](implicit converter: Tag.Converter[T, X]): Tag.Sync[X] =
       new Tag.Sync[X] with ConverterBase[T, X] {
         override val base: Tag[T] = self
 
@@ -192,7 +192,7 @@ object Tag {
     def isIncomplete[A](a: T[A]): Boolean =
       !isComplete(a)
 
-    def to[X[_]](implicit converter: Tag.Converter[T, X]): Tag.Async[X] =
+    def toTag[X[_]](implicit converter: Tag.Converter[T, X]): Tag.Async[X] =
       new Tag.Async[X] with ConverterBase[T, X] {
         override val base: Tag[T] = self
 
@@ -320,9 +320,9 @@ object Tag {
         IO[Error.API, A](a.get)
     }
 
-  implicit val tryTag: Tag.Sync[Try] = dbIO.to[Try]
+  implicit val tryTag: Tag.Sync[Try] = dbIO.toTag[Try]
 
-  implicit val optionTag: Tag.Sync[Option] = dbIO.to[Option]
+  implicit val optionTag: Tag.Sync[Option] = dbIO.toTag[Option]
 
   implicit def future(implicit ec: ExecutionContext): Tag.Async[Future] =
     new Async[Future] {

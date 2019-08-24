@@ -271,11 +271,11 @@ case class Set[A, T[_]](private val core: Core[T],
   def reverse: Set[A, T] =
     copy(reverseIteration = true)
 
-  def to[X[_]](implicit tag: Tag[X]): Set[A, X] =
-    copy(core = core.to[X])
+  def toTag[X[_]](implicit tag: Tag[X]): Set[A, X] =
+    copy(core = core.toTag[X])
 
   def asScala: scala.collection.mutable.Set[A] =
-    ScalaSet[A](to[IO.ApiIO])
+    ScalaSet[A](toTag[IO.ApiIO])
 
   def close(): T[Unit] =
     tag.defer(core.close())

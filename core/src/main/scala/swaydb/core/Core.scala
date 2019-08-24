@@ -75,7 +75,7 @@ private[swaydb] trait Core[T[_]] {
   def level0Meter: LevelZeroMeter
   def levelMeter(levelNumber: Int): Option[LevelMeter]
 
-  def to[T[_]](implicit tag: Tag[T]): Core[T]
+  def toTag[T[_]](implicit tag: Tag[T]): Core[T]
 
   def close(): T[Unit]
   def delete(): T[Unit]

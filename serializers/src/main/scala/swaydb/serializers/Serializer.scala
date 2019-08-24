@@ -21,8 +21,8 @@ package swaydb.serializers
 
 import swaydb.data.slice.Slice
 
-trait Serializer[T] {
-  def write(data: T): Slice[Byte]
+trait Serializer[A] {
+  def write(data: A): Slice[Byte]
 
-  def read(data: Slice[Byte]): T
+  def read(data: Slice[Byte]): A
 }
