@@ -21,7 +21,7 @@ package swaydb
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.util.Try
 
 /**
@@ -258,6 +258,10 @@ object Tag {
 
   trait Async[T[_]] extends Tag[T] {
     def fromFuture[A](a: Future[A]): T[A]
+    def fromPromise[A](a: Promise[A]): T[A]
+    def isComplete[A](a: T[A]): Boolean
+    def isIncomplete[A](a: T[A]): Boolean =
+      !isComplete(a)
   }
 
   implicit def future(implicit ec: ExecutionContext): Async[Future] =
@@ -288,6 +292,12 @@ object Tag {
 
       override def fromFuture[A](a: Future[A]): Future[A] =
         a
+
+      def fromPromise[A](a: Promise[A]): Future[A] =
+        a.future
+
+      def isComplete[A](a: Future[A]): Boolean =
+        a.isCompleted
 
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Future], drop: Int, take: Option[Int])(operation: (U, A) => U): Future[U] = {
         def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): Future[U] =
@@ -347,18 +357,22 @@ object Tag {
           case None =>
             Future.successful(None)
         }
-      override def toIO[E: ErrorHandler, A](a: Future[A], timeout: FiniteDuration): IO[E, A] = ???
-      override def fromIO[E: ErrorHandler, A](a: IO[E, A]): Future[A] = ???
+      override def toIO[E: ErrorHandler, A](a: Future[A], timeout: FiniteDuration): IO[E, A] =
+        IO(Await.result(a, timeout))
+
+      override def fromIO[E: ErrorHandler, A](a: IO[E, A]): Future[A] = a.toFuture
     }
 
-  implicit class TagImplicits[A, T[_] : Tag](a: T[A])(implicit tag: Tag[T]) {
-    @inline def map[B](f: A => B): T[B] =
-      tag.flatMap(a) {
-        a =>
-          tag.map[A, B](a)(f)
-      }
+  object Implicits {
+    implicit class TagImplicits[A, T[_] : Tag](a: T[A])(implicit tag: Tag[T]) {
+      @inline def map[B](f: A => B): T[B] =
+        tag.flatMap(a) {
+          a =>
+            tag.map[A, B](a)(f)
+        }
 
-    @inline def flatMap[B](f: A => T[B]): T[B] =
-      tag.flatMap(a)(f)
+      @inline def flatMap[B](f: A => T[B]): T[B] =
+        tag.flatMap(a)(f)
+    }
   }
 }

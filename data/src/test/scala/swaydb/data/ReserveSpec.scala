@@ -34,7 +34,7 @@ class ReserveSpec extends FlatSpec with Matchers {
     val futures =
       (1 to 100) map {
         i =>
-          Reserve.future(busy) map { _ => i }
+          Reserve.promise(busy).future map { _ => i }
       }
 
     Future.sequence(futures).await should contain theSameElementsInOrderAs (1 to 100)
@@ -45,7 +45,7 @@ class ReserveSpec extends FlatSpec with Matchers {
     val futures =
       (1 to 10000) map {
         i =>
-          Reserve.future(busy) map { _ => i }
+          Reserve.promise(busy).future map { _ => i }
       }
 
     Future {

@@ -20,7 +20,7 @@
 package swaydb
 
 import swaydb.Stream.StreamBuilder
-import swaydb.Tag._
+import swaydb.Tag.Implicits._
 
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable

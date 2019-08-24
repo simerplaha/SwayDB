@@ -513,61 +513,59 @@ object IO {
       doRun(this, 0)
     }
 
-    /**
-     * Run the deferred IO without blocking.
-     */
-    def runFuture(implicit ec: ExecutionContext): Future[A] = {
+    def runAsync[B >: A, T[_]](implicit tag: Tag.Async[T]): T[B] = {
 
       /**
        * If the value is already fetched [[isPending]] run in current thread
-       * else return a Future that listens for the value to be complete.
+       * else return a T that listens for the value to be complete.
        */
-      def delayedRun(deferred: IO.Deferred[E, A]): Option[Future[Unit]] =
+      def delayedRun(deferred: IO.Deferred[E, B]): Option[T[Unit]] =
         deferred.error flatMap {
           error =>
             ErrorHandler.reserve(error) flatMap {
               reserve =>
-                Reserve.futureOption(reserve)
+                val promise = Reserve.promise(reserve)
+                if (promise.isCompleted)
+                  None
+                else
+                  Some(tag.fromPromise(promise))
             }
         }
 
-      def runDelayed(deferred: IO.Deferred[E, A],
+      def runDelayed(deferred: IO.Deferred[E, B],
                      tried: Int,
-                     future: Future[Unit]): Future[A] =
-        future flatMap {
+                     async: T[Unit]): T[B] =
+        tag.flatMap(async) {
           _ =>
             runNow(deferred, tried)
         }
 
       @tailrec
-      def runNow(deferred: IO.Deferred[E, A], tried: Int): Future[A] =
+      def runNow(deferred: IO.Deferred[E, B], tried: Int): T[B] =
         delayedRun(deferred) match {
-          case Some(delayedFuture) if !delayedFuture.isCompleted =>
+          case Some(async) if tag.isIncomplete(async) =>
             logger.debug(s"Run delayed! isCached: ${getValue.isDefined}.")
-            runDelayed(deferred, tried, delayedFuture)
+            runDelayed(deferred, tried, async)
 
           case Some(_) | None =>
             logger.debug(s"Run no delay! isCached: ${getValue.isDefined}")
             //no delay required run in stack safe manner.
             IO.Deferred.runAndRecover(deferred) match {
               case Left(io) =>
-                (recovery: @unchecked) match {
-                  case Some(recovery: ((E) => IO.Deferred[E, A])) =>
-                    io match {
-                      case success @ IO.Success(_) =>
-                        success.toFuture
+                if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
+                  io match {
+                    case success @ IO.Success(_) =>
+                      tag.fromIO(success)
 
-                      case IO.Failure(error) =>
-                        runNow(recovery(error), 0)
-                    }
-
-                  case None =>
-                    io.toFuture
-                }
+                    case IO.Failure(error) =>
+                      runNow(recovery.get.asInstanceOf[(E) => IO.Deferred[E, B]](error), 0)
+                  }
+                else
+                  tag.fromIO(io)
 
               case Right(deferred) =>
                 if (tried > 0 && tried % IO.Deferred.maxRecoveriesBeforeWarn == 0)
-                  logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via Future. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => ErrorHandler.reserve(error).map(_.name))}")
+                  logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via T. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => ErrorHandler.reserve(error).map(_.name))}")
                 runNow(deferred, tried + 1)
             }
         }

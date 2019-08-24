@@ -21,7 +21,7 @@ package swaydb.core.level.compaction
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ErrorHandler
-import swaydb.IO
+import swaydb.{IO, Tag}
 import swaydb.IO._
 import swaydb.core.actor.WiredActor
 import swaydb.core.level.LevelRef
@@ -35,7 +35,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
-
+import swaydb.Tag._
 /**
  * Compactor = Compaction Actor.
  *
@@ -121,7 +121,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
         case (nearestDeadline, waiting @ LevelCompactionState.AwaitingPull(ioAync, timeout, _, _)) =>
           //do not create another hook if a future was already initialised to invoke wakeUp.
           if (!waiting.listenerInitialised) {
-            ioAync.runFuture(self.ec).foreach {
+            ioAync.runAsync(Tag.future(self.ec)).foreach {
               _ =>
                 logger.debug(s"${state.id}: received pull request. Sending wakeUp now.")
                 waiting.isReady = true

@@ -33,6 +33,7 @@
 //import swaydb.data.slice.Slice
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
+//import swaydb.Error.Level.ErrorHandler
 //
 //class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with OptionValues {
 //
@@ -58,11 +59,11 @@
 //          //@formatter:off
 //          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(put))
 //          next.stateID          _ expects ()                returning 1
-//          next.higher           _ expects (0: Slice[Byte])  returning IO.none
+//          next.higher           _ expects (0: Slice[Byte])  returning IO.Deferred(None)
 //          next.hasStateChanged  _ expects 1                 returning false
 //          //@formatter:on
 //        }
-//        Higher(0: Slice[Byte]).runIO.value shouldBe put
+//        Higher(0: Slice[Byte]).runRandomIO.value shouldBe put
 //      }
 //    }
 //
@@ -82,11 +83,11 @@
 //          //@formatter:off
 //          current.higher        _ expects (0: Slice[Byte])  returning IO.none
 //          next.stateID          _ expects ()                returning 1
-//          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(put)).toDeferred
+//          next.higher           _ expects (0: Slice[Byte])  returning IO.Deferred(Some(put))
 //          next.hasStateChanged  _ expects 1                 returning false
 //          //@formatter:on
 //        }
-//        Higher(0: Slice[Byte]).runIO.value shouldBe put
+//        Higher(0: Slice[Byte]).runRandomIO.value shouldBe put
 //      }
 //    }
 //
@@ -102,17 +103,17 @@
 //
 //        val upperKeyValue = randomFixedKeyValue(1, includeRemoves = false, deadline = randomDeadlineOption(false), functionOutput = randomUpdateFunctionOutput())
 //        val lowerKeyValue = randomPutKeyValue(1, deadline = None)
-//        val expected = FixedMerger(upperKeyValue, lowerKeyValue).runIO
+//        val expected = FixedMerger(upperKeyValue, lowerKeyValue).runRandomIO
 //
 //        inSequence {
 //          //@formatter:off
 //          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(upperKeyValue))
 //          next.stateID          _ expects ()                returning 1
-//          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(lowerKeyValue)).toDeferred
+//          next.higher           _ expects (0: Slice[Byte])  returning IO.Deferred(Some(lowerKeyValue))
 //          next.hasStateChanged  _ expects 1                 returning false
 //          //@formatter:on
 //        }
-//        Higher(0: Slice[Byte]).runIO.value shouldBe expected
+//        Higher(0: Slice[Byte]).runRandomIO.value shouldBe expected
 //      }
 //    }
 //
@@ -145,7 +146,7 @@
 //          //@formatter:off
 //          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(upperKeyValue))
 //          next.stateID          _ expects ()                returning 1
-//          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(lowerKeyValue)).toDeferred
+//          next.higher           _ expects (0: Slice[Byte])  returning IO.Deferred(Some(lowerKeyValue))
 //          next.hasStateChanged  _ expects 1                 returning false
 //          if(!isUpperExpected) {
 //            next.hasStateChanged  _ expects 1                 returning false
@@ -154,7 +155,7 @@
 //          }
 //          //@formatter:on
 //        }
-//        Higher(0: Slice[Byte]).runIO.value shouldBe expected
+//        Higher(0: Slice[Byte]).runRandomIO.value shouldBe expected
 //      }
 //    }
 //
@@ -174,11 +175,11 @@
 //          //@formatter:off
 //          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(upperKeyValue))
 //          next.stateID          _ expects ()                returning 1
-//          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(lowerKeyValue)).toDeferred
+//          next.higher           _ expects (0: Slice[Byte])  returning IO.Deferred(Some(lowerKeyValue))
 //          next.hasStateChanged  _ expects 1                 returning false
 //          //@formatter:on
 //        }
-//        Higher(0: Slice[Byte]).runIO.value shouldBe lowerKeyValue
+//        Higher(0: Slice[Byte]).runRandomIO.value shouldBe lowerKeyValue
 //      }
 //    }
 //  }

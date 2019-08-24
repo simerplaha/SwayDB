@@ -20,7 +20,7 @@
 package swaydb
 
 import swaydb.PrepareImplicits._
-import swaydb.Tag._
+import swaydb.Tag.Implicits._
 import swaydb.core.Core
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter

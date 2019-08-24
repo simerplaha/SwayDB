@@ -19,7 +19,7 @@
 
 package swaydb
 
-import swaydb.Tag._
+import swaydb.Tag.Implicits._
 
 trait Tagged[A, T[_]] {
   def get: T[A]

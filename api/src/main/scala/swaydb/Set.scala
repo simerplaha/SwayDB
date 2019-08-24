@@ -23,7 +23,7 @@ import swaydb.PrepareImplicits._
 import swaydb.core.Core
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.Tag._
+import swaydb.Tag.Implicits._
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
@@ -276,7 +276,7 @@ case class Set[A, T[_]](private val core: Core[T],
     copy(reverseIteration = true)
 
   def tagAsync[O[_]](implicit ec: ExecutionContext,
-                     tag: Async[O]): Set[A, O] =
+                     tag: Tag.Async[O]): Set[A, O] =
     copy(core = core.tagAsync[O])
 
   def tagBlocking[O[_]](implicit tag: Tag[O]): Set[A, O] =

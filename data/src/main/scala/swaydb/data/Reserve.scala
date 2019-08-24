@@ -55,27 +55,16 @@ object Reserve {
     reserve.promises.foreach(_.trySuccess(()))
   }
 
-  def future[T](reserve: Reserve[T]): Future[Unit] =
+  def promise[T](reserve: Reserve[T]): Promise[Unit] =
     reserve.synchronized {
       if (reserve.isBusy) {
         val promise = Promise[Unit]
         reserve.savePromise(promise)
-        promise.future
+        promise
       } else {
-        Futures.unit
+        Promise.successful(())
       }
     }
-
-  /**
-    * Return future only if required. If not then return None.
-    */
-  def futureOption[T](reserve: Reserve[T]): Option[Future[Unit]] = {
-    val futureMayBe = future(reserve)
-    if (futureMayBe.isCompleted)
-      None
-    else
-      Some(futureMayBe)
-  }
 
   def setBusyOrGet[T](info: T, reserve: Reserve[T]): Option[T] =
     reserve.synchronized {
