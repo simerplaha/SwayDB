@@ -31,8 +31,7 @@ import swaydb.{IO, Prepare, Tag}
 import scala.concurrent.duration.Deadline
 import scala.concurrent.{ExecutionContext, Future}
 
-private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[swaydb.Error.Close, Unit])(implicit ec: ExecutionContext,
-                                                                                                         tag: Tag.Async[T]) extends Core[T] {
+private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[swaydb.Error.Close, Unit])(implicit tag: Tag.Async[T]) extends Core[T] {
   private val block = BlockingCore[IO.ApiIO](zero, onClose)(Tag.sio)
 
   override def put(key: Slice[Byte]): T[IO.Done] =
@@ -287,7 +286,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
   def valueSize(key: Slice[Byte]): T[Option[Int]] =
     zero.valueSize(key).runAsync
 
-  override def tagAsync[T[_]](implicit ec: ExecutionContext, tag: Tag.Async[T]): Core[T] =
+  override def tagAsync[T[_]](implicit tag: Tag.Async[T]): Core[T] =
     copy(zero)
 
   override def tagBlocking[T[_]](implicit tag: Tag[T]): BlockingCore[T] =

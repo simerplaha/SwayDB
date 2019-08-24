@@ -399,7 +399,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def delete(): T[Unit] =
     tag.fromIO(onClose().flatMap(_ => zero.delete))
 
-  override def tagAsync[T[_]](implicit ec: ExecutionContext, tag: Tag.Async[T]): Core[T] =
+  override def tagAsync[T[_]](implicit tag: Tag.Async[T]): Core[T] =
     AsyncCore(zero, onClose)
 
   override def tagBlocking[T[_]](implicit tag: Tag[T]): BlockingCore[T] =

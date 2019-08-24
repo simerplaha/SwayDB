@@ -367,8 +367,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
   /**
    * Returns an Async API of type O where the [[Tag]] is known.
    */
-  def tagAsync[T2[_]](implicit ec: ExecutionContext,
-                      tag: Tag.Async[T2]): Map[K, V, T2] =
+  def tagAsync[T2[_]](implicit tag: Tag.Async[T2]): Map[K, V, T2] =
     copy(core = core.tagAsync[T2])
 
   /**
