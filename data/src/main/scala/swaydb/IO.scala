@@ -446,7 +446,6 @@ object IO {
     def isBusy =
       error.flatMap(ErrorHandler.reserve[E]) exists (_.isBusy)
 
-    @throws[scala.Exception]
     private[IO] def getUnsafe: A = {
       //Runs composed functions does not perform any recovery.
       def forceGet: A =
@@ -552,21 +551,20 @@ object IO {
             //no delay required run in stack safe manner.
             IO.Deferred.runAndRecover(deferred) match {
               case Left(io) =>
-                if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
-                  io match {
-                    case success @ IO.Success(_) =>
-                      tag.fromIO(success)
+                io match {
+                  case success @ IO.Success(_) =>
+                    tag.fromIO(success)
 
-                    case IO.Failure(error) =>
-                      //.get because tailrec is failing to compile on pattern match.
+                  case IO.Failure(error) =>
+                    if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
                       runNow(recovery.get.asInstanceOf[(E) => IO.Deferred[E, B]](error), 0)
-                  }
-                else
-                  tag.fromIO(io)
+                    else
+                      tag.fromIO(io)
+                }
 
               case Right(deferred) =>
                 if (tried > 0 && tried % IO.Deferred.maxRecoveriesBeforeWarn == 0)
-                  logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via T. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => ErrorHandler.reserve(error).map(_.name))}")
+                  logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via Async. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => ErrorHandler.reserve(error).map(_.name))}")
                 runNow(deferred, tried + 1)
             }
         }
