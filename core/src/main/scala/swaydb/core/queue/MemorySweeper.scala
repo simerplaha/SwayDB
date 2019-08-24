@@ -22,6 +22,7 @@ package swaydb.core.queue
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Tagged
 import swaydb.core.data.{KeyValue, Memory, Persistent}
+import swaydb.core.io.file.BlockCache
 import swaydb.core.queue.Command.WeighedKeyValue
 import swaydb.core.util.{JavaHashMap, SkipList}
 import swaydb.data.config.{ActorConfig, MemoryCache}
@@ -45,9 +46,9 @@ private[core] object Command {
                              skipListRef: WeakReference[SkipList[Slice[Byte], _]],
                              weight: Int) extends KeyValueCommand
 
-  case class Block(key: Long,
+  case class Block(key: BlockCache.Key,
                    valueSize: Long,
-                   map: JavaHashMap.Concurrent[Long, Slice[Byte]]) extends Command
+                   map: JavaHashMap.Concurrent[BlockCache.Key, Slice[Byte]]) extends Command
 }
 
 private[core] sealed trait MemorySweeper extends Tagged[MemorySweeper.Enabled, Option]
@@ -70,9 +71,9 @@ private[core] object MemorySweeper {
   sealed trait Block extends Enabled {
     def queue: CacheActor[Command]
 
-    def add(key: Long,
+    def add(key: BlockCache.Key,
             value: Slice[Byte],
-            map: JavaHashMap.Concurrent[Long, Slice[Byte]]): Unit =
+            map: JavaHashMap.Concurrent[BlockCache.Key, Slice[Byte]]): Unit =
       queue ! Command.Block(key, value.size, map)
   }
 

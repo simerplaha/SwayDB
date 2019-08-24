@@ -639,7 +639,13 @@ private[core] object HashIndexBlock extends LazyLogging {
                     }
 
                 case IO.Failure(error) =>
-                  IO.Failure(error)
+                  error.exception match {
+                    case _: ArrayIndexOutOfBoundsException =>
+                      doFind(probe + 1)
+
+                    case _ =>
+                      IO.Failure(error)
+                  }
               }
             }
 

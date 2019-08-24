@@ -38,3 +38,12 @@ private[core] class IDGenerator(initial: Long) {
   def nextSegmentID: String =
     nextID + s".${Extension.Seg}"
 }
+
+object FileIDGenerator {
+
+  val generator = IDGenerator()
+
+  def nextID: Long =
+    generator.nextID
+
+}

@@ -23,27 +23,16 @@ import java.nio.file.Path
 
 import swaydb.IO
 import swaydb.core.queue.FileSweeperItem
+import swaydb.core.util.FileIDGenerator
 import swaydb.data.slice.Slice
 
 private[file] trait DBFileType extends FileSweeperItem {
 
   val path: Path
 
-  val folderId: Long =
-    try
-      IOEffect.folderId(path.getParent)
-    catch {
-      case _: Exception =>
-        path.getParent.hashCode()
-    }
-
-  val fileId =
-    try
-      IOEffect.fileId(path).get._1
-    catch {
-      case _: Exception =>
-        path.hashCode()
-    }
+  //todo - this should copy over when Segment files are copied from Level to Level.
+  val inMemoryUniqueFileID =
+    FileIDGenerator.generator.nextID
 
   def delete(): IO[swaydb.Error.IO, Unit]
 

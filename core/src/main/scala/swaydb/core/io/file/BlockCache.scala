@@ -29,8 +29,11 @@ import scala.annotation.tailrec
 
 private[core] object BlockCache {
 
-  def buildKey(fileType: DBFileType, position: Int): Long =
-    (fileType.folderId << 32) + fileType.fileId + position
+  case class Key(fileId: Long, position: Int)
+
+  //TODO - need a faster way to unique keys.
+  def buildKey(fileType: DBFileType, position: Int): Key =
+    Key(fileType.inMemoryUniqueFileID, position)
 
   def init(memorySweeper: MemorySweeper): Option[BlockCache.State] =
     memorySweeper match {
@@ -53,25 +56,25 @@ private[core] object BlockCache {
     new State(
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
-      map = JavaHashMap.concurrent[Long, Slice[Byte]]()
+      map = JavaHashMap.concurrent[BlockCache.Key, Slice[Byte]]()
     )
 
   def init(memorySweeper: MemorySweeper.Both) =
     new State(
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
-      map = JavaHashMap.concurrent[Long, Slice[Byte]]()
+      map = JavaHashMap.concurrent[BlockCache.Key, Slice[Byte]]()
     )
 
   class State(val blockSize: Int,
               val sweeper: MemorySweeper.Block,
-              private[BlockCache] val map: JavaHashMap.Concurrent[Long, Slice[Byte]]) {
+              private[BlockCache] val map: JavaHashMap.Concurrent[BlockCache.Key, Slice[Byte]]) {
     val blockSizeDouble: Double = blockSize
 
     def clear() =
       map.clear()
 
-    def remove(key: Long) =
+    def remove(key: BlockCache.Key) =
       map remove key
   }
 
