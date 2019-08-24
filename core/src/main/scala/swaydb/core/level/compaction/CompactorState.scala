@@ -22,13 +22,14 @@ package swaydb.core.level.compaction
 import java.util.TimerTask
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Tag
 import swaydb.core.actor.WiredActor
 import swaydb.core.level.LevelRef
 import swaydb.core.util.FiniteDurationUtil
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
 /**
@@ -43,6 +44,7 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
   private[compaction] var sleepTask: Option[(TimerTask, Deadline)] = None
   val hasLevelZero: Boolean = levels.exists(_.isZero)
   val levelsReversed = Slice(levels.reverse.toArray)
+  val tag: Tag.Async[Future] = Tag.future(executionContext)
 
   def id =
     if (levels.size == 1)

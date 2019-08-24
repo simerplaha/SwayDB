@@ -26,7 +26,7 @@ import scala.util.Try
 
 /**
  * [[Tag]]s are used to tag databases operations (side-effects) into types that can be
- * used to build custom wrappers.
+ * used to build custom Sync and Async wrappers.
  */
 trait Tag[T[_]] {
   def apply[A](a: => A): T[A]
@@ -53,6 +53,19 @@ object Tag {
     def isComplete[A](a: T[A]): Boolean
     def isIncomplete[A](a: T[A]): Boolean =
       !isComplete(a)
+  }
+
+  object Implicits {
+    implicit class TagImplicits[A, T[_] : Tag](a: T[A])(implicit tag: Tag[T]) {
+      @inline def map[B](f: A => B): T[B] =
+        tag.flatMap(a) {
+          a =>
+            tag.map[A, B](a)(f)
+        }
+
+      @inline def flatMap[B](f: A => T[B]): T[B] =
+        tag.flatMap(a)(f)
+    }
   }
 
   implicit val optionTag: Tag.Sync[Option] =
@@ -262,8 +275,11 @@ object Tag {
           case failure @ IO.Failure(_) =>
             failure
         }
-      override def toIO[E: ErrorHandler, A](a: IO.ApiIO[A], timeout: FiniteDuration): IO[E, A] = ???
-      override def fromIO[E: ErrorHandler, A](a: IO[E, A]): IO.ApiIO[A] = ???
+      override def toIO[E: ErrorHandler, A](a: IO.ApiIO[A], timeout: FiniteDuration): IO[E, A] =
+        IO[E, A](a.get)
+
+      override def fromIO[E: ErrorHandler, A](a: IO[E, A]): IO.ApiIO[A] =
+        IO[Error.API, A](a.get)
     }
 
   implicit def future(implicit ec: ExecutionContext): Async[Future] =
@@ -364,17 +380,4 @@ object Tag {
 
       override def fromIO[E: ErrorHandler, A](a: IO[E, A]): Future[A] = a.toFuture
     }
-
-  object Implicits {
-    implicit class TagImplicits[A, T[_] : Tag](a: T[A])(implicit tag: Tag[T]) {
-      @inline def map[B](f: A => B): T[B] =
-        tag.flatMap(a) {
-          a =>
-            tag.map[A, B](a)(f)
-        }
-
-      @inline def flatMap[B](f: A => T[B]): T[B] =
-        tag.flatMap(a)(f)
-    }
-  }
 }
