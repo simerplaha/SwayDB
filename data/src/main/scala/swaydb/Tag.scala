@@ -29,7 +29,7 @@ import scala.util.Try
  * [[Tag]]s are used to tag databases operations (side-effects) into types that can be
  * used to build custom Sync and Async wrappers.
  */
-trait Tag[T[_]] { self =>
+trait Tag[T[_]] {
   def apply[A](a: => A): T[A]
   def foreach[A, B](a: A)(f: A => B): Unit
   def map[A, B](a: A)(f: A => B): T[B]
@@ -40,12 +40,13 @@ trait Tag[T[_]] { self =>
   def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, T], drop: Int, take: Option[Int])(operation: (U, A) => U): T[U]
   def collectFirst[A](previous: A, stream: swaydb.Stream[A, T])(condition: A => Boolean): T[Option[A]]
   def fromIO[E: ErrorHandler, A](a: IO[E, A]): T[A]
+  def to[X[_]](implicit converter: Tag.Converter[T, X]): Tag[X]
 }
 
 object Tag {
 
   /**
-   * Maps container type A to type B.
+   * Converts containers. More tags can be created from existing Tags with this trait using [[Tag.to]]
    */
   trait Converter[A[_], B[_]] {
     def to[T](a: A[T]): B[T]
@@ -93,10 +94,11 @@ object Tag {
   trait Sync[T[_]] extends Tag[T] { self =>
     def isSuccess[A](a: T[A]): Boolean
     def isFailure[A](a: T[A]): Boolean
+    def exception[A](a: T[A]): Option[Throwable]
     def getOrElse[A, B >: A](a: T[A])(b: => B): B
     def orElse[A, B >: A](a: T[A])(b: T[B]): T[B]
 
-    def to[X[_]](implicit converter: Tag.Converter[T, X]) =
+    def to[X[_]](implicit converter: Tag.Converter[T, X]): Tag.Sync[X] =
       new Tag.Sync[X] {
 
         val flipConverter =
@@ -124,6 +126,9 @@ object Tag {
                 converter.from(f(a))
             }
           }
+
+        override def exception[A](a: X[A]): Option[Throwable] =
+          self.exception(converter.from(a))
 
         override def isSuccess[A](a: X[A]): Boolean =
           self.isSuccess(converter.from(a))
@@ -157,12 +162,64 @@ object Tag {
       }
   }
 
-  trait Async[T[_]] extends Tag[T] {
-    def fromFuture[A](a: Future[A]): T[A]
+  trait Async[T[_]] extends Tag[T] { self =>
     def fromPromise[A](a: Promise[A]): T[A]
     def isComplete[A](a: T[A]): Boolean
     def isIncomplete[A](a: T[A]): Boolean =
       !isComplete(a)
+
+    def to[X[_]](implicit converter: Tag.Converter[T, X]): Tag.Async[X] =
+      new Tag.Async[X] {
+        val flipConverter =
+          new Tag.Converter[X, T] {
+            override def to[A](a: X[A]): T[A] =
+              converter.from(a)
+
+            override def from[A](a: T[A]): X[A] =
+              converter.to(a)
+          }
+
+        override def fromPromise[A](a: Promise[A]): X[A] =
+          converter.to(self.fromPromise(a))
+
+        override def isComplete[A](a: X[A]): Boolean =
+          self.isComplete(converter.from(a))
+
+        override def apply[A](a: => A): X[A] =
+          converter.to(self.apply(a))
+
+        override def foreach[A, B](a: A)(f: A => B): Unit =
+          self.foreach(a)(f)
+
+        override def map[A, B](a: A)(f: A => B): X[B] =
+          converter.to(self.map(a)(f))
+
+        override def flatMap[A, B](fa: X[A])(f: A => X[B]): X[B] =
+          converter.to {
+            self.flatMap(converter.from(fa)) {
+              a =>
+                converter.from(f(a))
+            }
+          }
+
+        override def success[A](value: A): X[A] =
+          converter.to(self.success(value))
+
+        override def failure[A](exception: Throwable): X[A] =
+          converter.to(self.failure(exception))
+
+        override def none[A]: X[Option[A]] =
+          converter.to(self.none)
+
+        override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, X], drop: Int, take: Option[Int])(operation: (U, A) => U): X[U] =
+          converter.to(self.foldLeft(initial, after, stream.to[T](self, flipConverter), drop, take)(operation))
+
+        override def collectFirst[A](previous: A, stream: Stream[A, X])(condition: A => Boolean): X[Option[A]] =
+          converter.to(self.collectFirst(previous, stream.to[T](self, flipConverter))(condition))
+
+        override def fromIO[E: ErrorHandler, A](a: IO[E, A]): X[A] =
+          converter.to(self.fromIO(a))
+      }
   }
 
   object Implicits {
@@ -206,6 +263,9 @@ object Tag {
 
       override def failure[A](exception: Throwable): IO.ApiIO[A] =
         IO.failed(exception)
+
+      override def exception[A](a: ApiIO[A]): Option[Throwable] =
+        a.failed.map(_.exception).toOption
 
       override def getOrElse[A, B >: A](a: ApiIO[A])(b: => B): B =
         a.getOrElse(b)
@@ -293,7 +353,7 @@ object Tag {
 
   implicit val optionTag: Tag.Sync[Option] = dbIO.to[Option]
 
-  implicit def future(implicit ec: ExecutionContext): Async[Future] =
+  implicit def future(implicit ec: ExecutionContext): Tag.Async[Future] =
     new Async[Future] {
       override def apply[A](a: => A): Future[A] =
         Future(a)
@@ -315,9 +375,6 @@ object Tag {
 
       override def foreach[A, B](a: A)(f: A => B): Unit =
         f(a)
-
-      override def fromFuture[A](a: Future[A]): Future[A] =
-        a
 
       def fromPromise[A](a: Promise[A]): Future[A] =
         a.future

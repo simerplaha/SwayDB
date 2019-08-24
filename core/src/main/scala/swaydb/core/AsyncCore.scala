@@ -143,7 +143,8 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     ???
 
   def head: T[Option[KeyValueTuple]] =
-    tag.fromFuture(headFuture)
+  //    tag.fromFuture(headFuture)
+    ???
 
   def headKey: T[Option[Slice[Byte]]] =
     zero.headKey.runAsync
@@ -171,7 +172,8 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     ???
 
   def last: T[Option[KeyValueTuple]] =
-    tag.fromFuture(lastFuture)
+  //    tag.fromFuture(lastFuture)
+    ???
 
   def lastKey: T[Option[Slice[Byte]]] =
     zero.lastKey.runAsync
@@ -217,7 +219,8 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     ???
 
   def get(key: Slice[Byte]): T[Option[Option[Slice[Byte]]]] =
-    tag.fromFuture(getFuture(key))
+  //    tag.fromFuture(getFuture(key))
+    ???
 
   def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
     zero.getKey(key).runAsync
@@ -245,7 +248,8 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     ???
 
   def getKeyValue(key: Slice[Byte]): T[Option[KeyValueTuple]] =
-    tag.fromFuture(getKeyValueFuture(key))
+  //    tag.fromFuture(getKeyValueFuture(key))
+    ???
 
   def beforeFuture(key: Slice[Byte]): Future[Option[KeyValueTuple]] =
   //    zero.lower(key).runInFuture flatMap {
@@ -270,7 +274,8 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     ???
 
   def before(key: Slice[Byte]): T[Option[KeyValueTuple]] =
-    tag.fromFuture(beforeFuture(key))
+  //    tag.fromFuture(beforeFuture(key))
+    ???
 
   def beforeKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
     zero.lower(key).runAsync.map(_.map(_.key))
@@ -298,7 +303,8 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     ???
 
   def after(key: Slice[Byte]): T[Option[KeyValueTuple]] =
-    tag.fromFuture(afterFuture(key))
+  //    tag.fromFuture(afterFuture(key))
+    ???
 
   def afterKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
     zero.higher(key).runAsync.map(_.map(_.key))
