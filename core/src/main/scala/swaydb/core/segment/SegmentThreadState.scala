@@ -27,6 +27,7 @@ import swaydb.data.order.KeyOrder
 
 import scala.beans.BeanProperty
 import scala.reflect.ClassTag
+import scala.util.Random
 
 object SegmentThreadState {
   def create[K, V: ClassTag]()(implicit ordering: KeyOrder[K]) =
@@ -39,7 +40,7 @@ class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[Long, Segmen
     val existingState = states.get(threadId)
     if (existingState == null) {
       //todo - could possible copy the state of another thread instead of creating an empty one?
-      val newState = new SegmentThreadState[K, V](skipList = SkipList.minMax[K, V]())
+      val newState = new SegmentThreadState[K, V](skipList = SkipList.minMax[K, V](), 0, 0)
       states.put(threadId, newState)
       newState
     } else {
@@ -51,4 +52,33 @@ class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHashMap[Long, Segmen
     states.clear()
 }
 
-class SegmentThreadState[K, V](@BeanProperty var skipList: MinMaxSkipList[K, V])
+sealed trait SegmentReadThreadState {
+  def isSequentialRead(): Boolean
+  def incrementReadCount(): Unit
+  def incrementSequentialReadSuccess(): Unit
+}
+
+class SegmentThreadState[K, V](@BeanProperty var skipList: MinMaxSkipList[K, V],
+                               var readCount: Int,
+                               var sequentialReadsSuccess: Int) extends SegmentReadThreadState {
+  /**
+   * Detects if the read is sequential. If it's random then it randomly resets the flags to
+   * return sequential read.
+   */
+  def isSequentialRead(): Boolean = {
+    val seqReadFailures = readCount - sequentialReadsSuccess
+    val isRandom = seqReadFailures > 3 // >= 4
+    if (isRandom && Random.nextDouble() < 0.01) {
+      //reset
+      readCount = 2 //reset to 2 so that at least two more reads occur (>= 4 || > 3) before confirming that current read is still random.
+      sequentialReadsSuccess = 0
+    }
+    !isRandom
+  }
+
+  def incrementReadCount(): Unit =
+    readCount += 1
+
+  def incrementSequentialReadSuccess(): Unit =
+    sequentialReadsSuccess += 1
+}

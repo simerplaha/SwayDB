@@ -69,8 +69,10 @@ private[core] class SegmentCache(id: String,
 
   private val threadStates = SegmentThreadState.create[Slice[Byte], Persistent]()
 
+  def thisThreadState = threadStates.get()
+
   def skipList: SkipList[Slice[Byte], Persistent] =
-    _skipList getOrElse threadStates.get().skipList
+    _skipList getOrElse thisThreadState.skipList
 
   /**
    * Notes for why use putIfAbsent before adding to cache:
@@ -115,7 +117,8 @@ private[core] class SegmentCache(id: String,
                   start: Option[Persistent],
                   end: => Option[Persistent],
                   hasRange: Boolean,
-                  keyValueCount: Int): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+                  keyValueCount: Int,
+                  threadState: SegmentReadThreadState): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
     blockCache.createHashIndexReader() flatMap {
       hashIndexReader =>
         blockCache.createBinarySearchIndexReader() flatMap {
@@ -133,7 +136,8 @@ private[core] class SegmentCache(id: String,
                       binarySearchIndexReader = binarySearchIndexReader,
                       sortedIndexReader = sortedIndexReader,
                       valuesReader = valuesReader,
-                      hasRange = hasRange
+                      hasRange = hasRange,
+                      threadState = Some(threadState)
                     ) flatMap {
                       case Some(response: Persistent.SegmentResponse) =>
                         addToCache(response)
@@ -164,6 +168,9 @@ private[core] class SegmentCache(id: String,
       //        IO.none
 
       case _ =>
+        val threadState = thisThreadState
+        val skipList = threadState.skipList
+
         skipList.floor(key) match {
           case Some(floor: Persistent.SegmentResponse) if floor.key equiv key =>
             IO.Success(Some(floor))
@@ -209,6 +216,7 @@ private[core] class SegmentCache(id: String,
                       start = floorValue,
                       keyValueCount = footer.keyValueCount,
                       end = skipList.higher(key),
+                      threadState = thisThreadState,
                       hasRange = footer.hasRange
                     )
                   else
@@ -219,6 +227,7 @@ private[core] class SegmentCache(id: String,
                             key = key,
                             start = floorValue,
                             keyValueCount = footer.keyValueCount,
+                            threadState = thisThreadState,
                             end = skipList.higher(key),
                             hasRange = footer.hasRange
                           )

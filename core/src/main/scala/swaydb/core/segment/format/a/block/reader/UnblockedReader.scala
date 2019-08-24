@@ -75,9 +75,6 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
   override val state: BlockReader.State =
     BlockReader(offset, reader)
 
-  def isSequentialRead =
-    state.isSequentialRead
-
   override def moveTo(newPosition: Long): UnblockedReader[O, B] = {
     state moveTo newPosition.toInt
     this

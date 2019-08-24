@@ -41,7 +41,7 @@ private[block] trait BlockReaderBase extends ReaderBase[swaydb.Error.Segment] wi
   def state: BlockReader.State
 
   override def size: IO[swaydb.Error.Segment, Long] =
-    IO(state.size)
+    IO(state.offset.size)
 
   def hasMore: IO[swaydb.Error.Segment, Boolean] =
     IO(state.hasMore)

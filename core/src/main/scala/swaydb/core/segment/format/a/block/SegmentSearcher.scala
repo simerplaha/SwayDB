@@ -22,10 +22,11 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.data.Persistent
+import swaydb.core.segment.SegmentReadThreadState
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.util.Options._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.core.util.Options._
 
 private[core] object SegmentSearcher extends LazyLogging {
 
@@ -37,8 +38,16 @@ private[core] object SegmentSearcher extends LazyLogging {
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
              hasRange: Boolean,
-             keyValueCount: Int)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
-    when(sortedIndexReader.isSequentialRead)(start) map {
+             keyValueCount: Int,
+             threadState: Option[SegmentReadThreadState])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] = {
+    val isSequentialRead =
+      threadState exists {
+        state =>
+          state.incrementReadCount()
+          state.isSequentialRead()
+      }
+
+    when(isSequentialRead)(start) map {
       startFrom =>
         SortedIndexBlock.searchSeekOne(
           key = key,
@@ -47,9 +56,10 @@ private[core] object SegmentSearcher extends LazyLogging {
           valuesReader = valuesReader
         ) flatMap {
           found =>
-            if (found.isDefined)
+            if (found.isDefined) {
+              threadState.foreach(_.incrementSequentialReadSuccess())
               IO.Success(found)
-            else
+            } else {
               hashIndexSearch(
                 key = key,
                 start = start,
@@ -61,6 +71,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                 valuesReader = valuesReader,
                 hasRange = hasRange
               )
+            }
         }
     } getOrElse {
       hashIndexSearch(
@@ -75,6 +86,7 @@ private[core] object SegmentSearcher extends LazyLogging {
         hasRange = hasRange
       )
     }
+  }
 
   def hashIndexSearch(key: Slice[Byte],
                       start: Option[Persistent],

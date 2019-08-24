@@ -59,7 +59,8 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
             sortedIndexReader = blocks.sortedIndexReader,
             valuesReader = blocks.valuesReader,
             hasRange = keyValues.last.stats.segmentHasRange,
-            keyValueCount = keyValues.size
+            keyValueCount = keyValues.size,
+            threadState = None
           ).get
 
         got shouldBe defined
@@ -93,7 +94,8 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader,
               hasRange = keyValues.last.stats.segmentHasRange,
-              keyValueCount = keyValues.size
+              keyValueCount = keyValues.size,
+              threadState = None
             ).get
 
           found.get shouldBe keyValue
@@ -121,7 +123,8 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = Some(ValuesBlock.emptyUnblocked), //give it empty blocks since values are not read.
           hasRange = keyValues.last.stats.segmentHasRange,
-          keyValueCount = keyValues.size
+          keyValueCount = keyValues.size,
+          threadState = None
         ).get shouldBe empty
     }
 

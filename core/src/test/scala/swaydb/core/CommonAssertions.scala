@@ -775,7 +775,8 @@ object CommonAssertions {
           binarySearchIndexReader = blocks.binarySearchIndexReader,
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
-          hasRange = blocks.footer.hasRange
+          hasRange = blocks.footer.hasRange,
+          threadState = None
         ).runRandomIO.value.value shouldBe keyValue
     }
   }

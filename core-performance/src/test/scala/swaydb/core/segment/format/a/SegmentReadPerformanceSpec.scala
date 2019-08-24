@@ -20,30 +20,26 @@
 package swaydb.core.segment.format.a
 
 import swaydb.IOValues._
-import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
 import swaydb.core.group.compression.GroupByInternal
+import swaydb.core.io.file.BlockCache
 import swaydb.core.queue.{FileSweeper, MemorySweeper}
-import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.merge.SegmentMerger
+import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.core.RunThis._
-import swaydb.core.io.file.{DBFile, BlockCache}
-import swaydb.core.io.reader.Reader
 
-import scala.concurrent.duration._
 import scala.util.Random
 
 class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = true
+  val testGroupedKeyValues: Boolean = false
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
 }
@@ -112,7 +108,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
   implicit val memorySweeper: Option[MemorySweeper.KeyValue] = None
-  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.blockCache
+  implicit val blockCache: Option[BlockCache.State] = TestLimitQueues.blockCache
 
   def strategy(action: IOAction): IOStrategy =
     action match {
@@ -150,7 +146,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         case IOAction.ReadDataOverview =>
           IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DataAction =>
-          IOStrategy.SynchronisedIO(cacheOnAccess = false)
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
       },
       binarySearchIndexBlockIO = {
         case IOAction.OpenResource =>
@@ -271,14 +267,13 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         ),
       //      hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig =
-        BloomFilterBlock.Config.disabled
-      //      bloomFilterConfig =
-      //        BloomFilterBlock.Config(
-      //          falsePositiveRate = 0.001,
-      //          minimumNumberOfKeys = 2,
-      //          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-      //          compressions = _ => Seq.empty
-      //        )
+        //        BloomFilterBlock.Config.disabled
+        BloomFilterBlock.Config(
+          falsePositiveRate = 0.001,
+          minimumNumberOfKeys = 2,
+          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+          compressions = _ => Seq.empty
+        )
     )
 
   val group =
@@ -330,17 +325,22 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   def keyValues = if (testGroupedKeyValues) groupedKeyValues else unGroupedKeyValues
 
   val shuffledUnGroupedKeyValues = Random.shuffle(unGroupedKeyValues)
+  val unGroupedKeyValuesZipped = unGroupedKeyValues.zipWithIndex
 
   def assertGet(segment: Segment) = {
-    shuffledUnGroupedKeyValues foreach {
-      keyValue =>
+    unGroupedKeyValuesZipped foreach {
+      case (keyValue, index) =>
+        //        if (index % 1000 == 0)
+        //          segment.get(shuffledUnGroupedKeyValues.head.key)
+
+        //
         //        val key = keyValue.key.readInt()
         ////        if (key % 1000 == 0)
         //          println(key)
         //        val found = segment.get(keyValue.key).get.get
         //        found.getOrFetchValue
-        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
-      //        segment.get(keyValue.key).get
+        //        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
+        segment.get(keyValue.key).get
     }
   }
 
@@ -435,9 +435,14 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       assertGet(segment)
     }
 
-    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
-      assertGet(segment)
-    }
+    //    println("totalReads: " + SegmentSearcher.totalReads)
+    //    println("sequentialRead: " + SegmentSearcher.sequentialRead)
+    //    println("sequentialReadSuccess: " + SegmentSearcher.sequentialReadSuccess)
+    //    println("sequentialReadFailure: " + SegmentSearcher.sequentialReadFailure)
+
+    //    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+    //      assertGet(segment)
+    //    }
 
     //
     //    //    segment.clearCachedKeyValues()

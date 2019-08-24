@@ -34,26 +34,15 @@ private[reader] object BlockReader extends LazyLogging {
     new State(
       offset = offset,
       position = 0,
-      previousReadEndPosition = 0,
-      isSequentialRead = true,
       reader = reader
     )
 
   class State(val offset: BlockOffset,
               val reader: Reader[swaydb.Error.Segment],
-              var isSequentialRead: Boolean, //var that stores the guess if the previous read was sequential.
-              var position: Int,
-              var previousReadEndPosition: Int) {
-
-    val isFile = reader.isFile
-
-    val size = offset.size
-
-    def updatePreviousEndPosition(): Unit =
-      previousReadEndPosition = position - 1
+              var position: Int) {
 
     def remaining: Int =
-      size - position
+      offset.size - position
 
     def moveTo(position: Int) =
       this.position = position
@@ -65,21 +54,11 @@ private[reader] object BlockReader extends LazyLogging {
       hasAtLeast(position, atLeastSize)
 
     def hasAtLeast(fromPosition: Long, atLeastSize: Long): Boolean =
-      (size - fromPosition) >= atLeastSize
-  }
-
-  def isSequentialRead(state: State): Boolean = {
-    val isSeq =
-      state.previousReadEndPosition == 0 || //if this is the initial read.
-        state.position - state.previousReadEndPosition <= 1 //if position is continuation of previous read's end position
-    state.isSequentialRead = isSeq
-    isSeq
+      (offset.size - fromPosition) >= atLeastSize
   }
 
   def get(state: State): IO[swaydb.Error.Segment, Int] =
-    if (state.isFile)
-      read(1, state).map(_.head)
-    else if (state.hasMore)
+    if (state.hasMore)
       state.
         reader
         .moveTo(state.offset.start + state.position)
@@ -105,7 +84,6 @@ private[reader] object BlockReader extends LazyLogging {
         .map {
           bytes =>
             state.position += bytesToRead
-            state.updatePreviousEndPosition()
             bytes
         }
     }
