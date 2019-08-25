@@ -29,7 +29,7 @@ object FileCache {
   }
 
   case class Enable(maxOpen: Int,
-                    actorQueue: ActorConfig) extends FileCache {
+                    actorConfig: ActorConfig) extends FileCache {
     override def get: Option[Enable] = Some(this)
   }
 }

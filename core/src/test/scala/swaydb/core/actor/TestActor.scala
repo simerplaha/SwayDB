@@ -27,6 +27,7 @@ import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.Span._
 import swaydb.core.RunThis._
 import swaydb.core.util.Scheduler
+import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -37,6 +38,7 @@ case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit](st
                                                                               maxMessagesToProcessAtOnce = Actor.defaultMaxMessagesToProcessAtOnce,
                                                                               overflow = Actor.defaultMaxOverflowAllowed,
                                                                               execution = (_, _) => None,
+                                                                              queue = ActorQueue(QueueOrder.FIFO),
                                                                               defaultDelay = None) with Eventually with Matchers with ScalaFutures {
 //@formatter:on
 

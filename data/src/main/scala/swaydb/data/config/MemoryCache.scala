@@ -31,24 +31,24 @@ object MemoryCache {
 
   sealed trait Enabled extends MemoryCache {
     def capacity: Int
-    def actorQueue: ActorConfig
+    def actorConfig: ActorConfig
     override def get: Option[MemoryCache.Enabled] = Some(this)
   }
 
   sealed trait Block extends Enabled {
     val blockSize: Int
     val capacity: Int
-    val actorQueue: ActorConfig
+    val actorConfig: ActorConfig
   }
 
   case class EnableBlockCache(blockSize: Int,
                               capacity: Int,
-                              actorQueue: ActorConfig) extends Block
+                              actorConfig: ActorConfig) extends Block
 
   case class EnableKeyValueCache(capacity: Int,
-                                 actorQueue: ActorConfig) extends Enabled
+                                 actorConfig: ActorConfig) extends Enabled
 
   case class EnableBoth(blockSize: Int,
                         capacity: Int,
-                        actorQueue: ActorConfig) extends Enabled with Block
+                        actorConfig: ActorConfig) extends Enabled with Block
 }

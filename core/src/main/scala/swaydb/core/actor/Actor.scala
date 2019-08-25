@@ -20,13 +20,14 @@
 package swaydb.core.actor
 
 import java.util.TimerTask
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
-import java.util.concurrent.{ConcurrentLinkedQueue, TimeUnit}
 import java.util.function.IntUnaryOperator
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Scheduler
 import swaydb.data.config.ActorConfig
+import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future}
@@ -107,21 +108,21 @@ private[swaydb] object Actor {
       case config: ActorConfig.Basic =>
         apply[T](
           maxMessagesToProcessAtOnce = config.maxMessagesToProcessAtOnce
-        )(execution)(config.ec)
+        )(execution)(config.ec, QueueOrder.FIFO)
 
       case config: ActorConfig.Timer =>
         timer(
           maxMessagesToProcessAtOnce = config.maxMessagesToProcessAtOnce,
           overflowAllowed = config.maxOverflow,
           fixedDelay = config.delay
-        )(execution)(Scheduler()(config.ec))
+        )(execution)(Scheduler()(config.ec), QueueOrder.FIFO)
 
       case config: ActorConfig.TimeLoop =>
         timerLoop(
           initialDelay = config.delay,
           maxMessagesToProcessAtOnce = config.maxMessagesToProcessAtOnce,
           overflowAllowed = config.maxOverflow
-        )(execution)(Scheduler()(config.ec))
+        )(execution)(Scheduler()(config.ec), QueueOrder.FIFO)
     }
 
   def fromConfig[T, S](config: ActorConfig,
@@ -131,7 +132,7 @@ private[swaydb] object Actor {
         apply[T, S](
           state = state,
           maxMessagesToProcessAtOnce = config.maxMessagesToProcessAtOnce
-        )(execution)(config.ec)
+        )(execution)(config.ec, QueueOrder.FIFO)
 
       case config: ActorConfig.Timer =>
         timer[T, S](
@@ -139,7 +140,7 @@ private[swaydb] object Actor {
           maxMessagesToProcessAtOnce = config.maxMessagesToProcessAtOnce,
           overflowAllowed = config.maxOverflow,
           fixedDelay = config.delay
-        )(execution)(Scheduler()(config.ec))
+        )(execution)(Scheduler()(config.ec), QueueOrder.FIFO)
 
       case config: ActorConfig.TimeLoop =>
         timerLoop[T, S](
@@ -147,7 +148,7 @@ private[swaydb] object Actor {
           maxMessagesToProcessAtOnce = config.maxMessagesToProcessAtOnce,
           overflowAllowed = config.maxOverflow,
           initialDelay = config.delay
-        )(execution)(Scheduler()(config.ec))
+        )(execution)(Scheduler()(config.ec), QueueOrder.FIFO)
     }
 
   /**
@@ -155,7 +156,8 @@ private[swaydb] object Actor {
    *
    * On each message send (!) the Actor is woken up if it's not already running.
    */
-  def apply[T](execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
+  def apply[T](execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
+                                                       queueOrder: QueueOrder[T]): ActorRef[T] =
     apply[T, Unit]((), defaultMaxMessagesToProcessAtOnce)(execution)
 
   /**
@@ -163,10 +165,12 @@ private[swaydb] object Actor {
    *
    * On each message send (!) the Actor is woken up if it's not already running.
    */
-  def apply[T](maxMessagesToProcessAtOnce: Int)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
+  def apply[T](maxMessagesToProcessAtOnce: Int)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
+                                                                                        queueOrder: QueueOrder[T]): ActorRef[T] =
     apply[T, Unit]((), maxMessagesToProcessAtOnce)(execution)
 
-  def apply[T, S](state: S)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
+  def apply[T, S](state: S)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
+                                                                 queueOrder: QueueOrder[T]): ActorRef[T] =
     apply(state, defaultMaxMessagesToProcessAtOnce)(execution)
 
   /**
@@ -175,19 +179,22 @@ private[swaydb] object Actor {
    * On each message send (!) the Actor is woken up if it's not already running.
    */
   def apply[T, S](state: S,
-                  maxMessagesToProcessAtOnce: Int)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
+                  maxMessagesToProcessAtOnce: Int)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
+                                                                                        queueOrder: QueueOrder[T]): ActorRef[T] =
     new Actor[T, S](
       state = state,
       maxMessagesToProcessAtOnce = maxMessagesToProcessAtOnce,
       overflow = maxMessagesToProcessAtOnce,
       execution = execution,
+      queue = ActorQueue(queueOrder),
       defaultDelay = None
     )
 
   /**
    * Stateless [[timer]] actor
    */
-  def timer[T](fixedDelay: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit scheduler: Scheduler): ActorRef[T] =
+  def timer[T](fixedDelay: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit scheduler: Scheduler,
+                                                                                   queueOrder: QueueOrder[T]): ActorRef[T] =
     timer(
       state = (),
       overflowAllowed = defaultMaxOverflowAllowed,
@@ -200,7 +207,8 @@ private[swaydb] object Actor {
    */
   def timer[T](maxMessagesToProcessAtOnce: Int,
                overflowAllowed: Int,
-               fixedDelay: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit scheduler: Scheduler): ActorRef[T] =
+               fixedDelay: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit scheduler: Scheduler,
+                                                                                   queueOrder: QueueOrder[T]): ActorRef[T] =
     timer(
       state = (),
       overflowAllowed = overflowAllowed,
@@ -217,12 +225,14 @@ private[swaydb] object Actor {
   def timer[T, S](state: S,
                   maxMessagesToProcessAtOnce: Int,
                   overflowAllowed: Int,
-                  fixedDelay: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler): ActorRef[T] =
+                  fixedDelay: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler,
+                                                                                   queueOrder: QueueOrder[T]): ActorRef[T] =
     new Actor[T, S](
       state = state,
       maxMessagesToProcessAtOnce = maxMessagesToProcessAtOnce,
       overflow = overflowAllowed,
       execution = execution,
+      queue = ActorQueue(queueOrder),
       defaultDelay = Some(fixedDelay, false, scheduler)
     )(scheduler.ec)
 
@@ -233,19 +243,22 @@ private[swaydb] object Actor {
    * is stopped and restarted only when a new message is added the queue.
    */
   def timer[T, S](state: S,
-                  fixedDelay: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler): ActorRef[T] =
+                  fixedDelay: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler,
+                                                                                   queueOrder: QueueOrder[T]): ActorRef[T] =
     new Actor[T, S](
       state = state,
       maxMessagesToProcessAtOnce = defaultMaxMessagesToProcessAtOnce,
       overflow = defaultMaxOverflowAllowed,
       execution = execution,
+      queue = ActorQueue(queueOrder),
       defaultDelay = Some(fixedDelay, false, scheduler)
     )(scheduler.ec)
 
   /**
    * Stateless [[timerLoop]]
    */
-  def timerLoop[T](initialDelay: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit scheduler: Scheduler): ActorRef[T] =
+  def timerLoop[T](initialDelay: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit scheduler: Scheduler,
+                                                                                         queueOrder: QueueOrder[T]): ActorRef[T] =
     timerLoop(
       state = (),
       overflowAllowed = defaultMaxOverflowAllowed,
@@ -258,7 +271,8 @@ private[swaydb] object Actor {
    */
   def timerLoop[T](initialDelay: FiniteDuration,
                    maxMessagesToProcessAtOnce: Int,
-                   overflowAllowed: Int)(execution: (T, Actor[T, Unit]) => Unit)(implicit scheduler: Scheduler): ActorRef[T] =
+                   overflowAllowed: Int)(execution: (T, Actor[T, Unit]) => Unit)(implicit scheduler: Scheduler,
+                                                                                 queueOrder: QueueOrder[T]): ActorRef[T] =
     timerLoop(
       state = (),
       overflowAllowed = overflowAllowed,
@@ -273,12 +287,14 @@ private[swaydb] object Actor {
    * Use .submit instead of !. There should be a type-safe way of handling this but.
    */
   def timerLoop[T, S](state: S,
-                      initialDelay: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler): ActorRef[T] =
+                      initialDelay: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler,
+                                                                                         queueOrder: QueueOrder[T]): ActorRef[T] =
     new Actor[T, S](
       state = state,
       execution = execution,
       overflow = defaultMaxOverflowAllowed,
       maxMessagesToProcessAtOnce = defaultMaxMessagesToProcessAtOnce,
+      queue = ActorQueue(queueOrder),
       defaultDelay = Some(initialDelay, true, scheduler)
     )(scheduler.ec)
 
@@ -291,12 +307,14 @@ private[swaydb] object Actor {
   def timerLoop[T, S](state: S,
                       maxMessagesToProcessAtOnce: Int,
                       overflowAllowed: Int,
-                      initialDelay: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler): ActorRef[T] =
+                      initialDelay: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler,
+                                                                                         queueOrder: QueueOrder[T]): ActorRef[T] =
     new Actor[T, S](
       state = state,
       execution = execution,
       overflow = overflowAllowed,
       maxMessagesToProcessAtOnce = maxMessagesToProcessAtOnce,
+      queue = ActorQueue(queueOrder),
       defaultDelay = Some(initialDelay, true, scheduler)
     )(scheduler.ec)
 
@@ -329,12 +347,12 @@ private[swaydb] object Actor {
 
 private[swaydb] class Actor[T, +S](val state: S,
                                    maxMessagesToProcessAtOnce: Int,
+                                   queue: ActorQueue[T],
                                    overflow: Int,
                                    execution: (T, Actor[T, S]) => Unit,
                                    defaultDelay: Option[(FiniteDuration, Boolean, Scheduler)])(implicit ec: ExecutionContext) extends ActorRef[T] with LazyLogging { self =>
 
   private val busy = new AtomicBoolean(false)
-  private val queue = new ConcurrentLinkedQueue[T]
   private val queueSize = new AtomicInteger(0)
   @volatile private var terminated = false
   @volatile private var task = Option.empty[TimerTask]
@@ -349,7 +367,7 @@ private[swaydb] class Actor[T, +S](val state: S,
     if (terminated) {
       logger.debug("Message not processed. Terminated actor.")
     } else {
-      queue offer message
+      queue add message
       queueSize.incrementAndGet()
       processMessages(runNow = false)
     }
@@ -364,7 +382,7 @@ private[swaydb] class Actor[T, +S](val state: S,
     if (queueSize.get() >= overflow) {
       self ! message
     } else {
-      queue offer message
+      queue add message
       queueSize.incrementAndGet()
     }
 

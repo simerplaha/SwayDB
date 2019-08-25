@@ -41,4 +41,14 @@ object ActorConfig {
                       maxOverflow: Int,
                       delay: FiniteDuration,
                       ec: ExecutionContext) extends ActorConfig
+
+
+  sealed trait QueueOrder[+T]
+
+  object QueueOrder {
+
+    case object FIFO extends QueueOrder[Nothing]
+    case class Ordered[T](ordering: Ordering[T]) extends QueueOrder[T]
+
+  }
 }

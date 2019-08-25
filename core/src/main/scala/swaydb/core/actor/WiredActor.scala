@@ -22,6 +22,7 @@ package swaydb.core.actor
 import java.util.TimerTask
 
 import swaydb.core.util.Scheduler
+import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{Future, Promise}
@@ -38,6 +39,7 @@ object WiredActor {
 class WiredActor[+T, +S](impl: T, delays: Option[FiniteDuration], state: S)(implicit val scheduler: Scheduler) {
 
   implicit val ec = scheduler.ec
+  implicit val queueOrder = QueueOrder.FIFO
 
   private val actor: Actor[() => Unit, S] =
     delays map {

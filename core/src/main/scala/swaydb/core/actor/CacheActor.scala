@@ -32,12 +32,12 @@ private class State[T](var size: Long,
 private[core] object CacheActor {
 
   def apply[T](maxWeight: Long,
-               actorQueue: ActorConfig,
+               actorConfig: ActorConfig,
                weigher: T => Long)(onEvict: T => Unit): CacheActor[T] =
     new CacheActor(
       maxWeight = maxWeight,
       onEvict = onEvict,
-      actorQueue = actorQueue,
+      actorConfig = actorConfig,
       weigher = weigher
     )
 }
@@ -50,13 +50,13 @@ private[core] object CacheActor {
  */
 private[core] class CacheActor[T](maxWeight: Long,
                                   onEvict: T => Unit,
-                                  actorQueue: ActorConfig,
+                                  actorConfig: ActorConfig,
                                   weigher: T => Long) extends LazyLogging {
 
   //  logger.info(s"${this.getClass.getSimpleName} started with limit: {}, defaultDelay: {}", limit, defaultDelay)
 
   private val actor: ActorRef[T] =
-    Actor.fromConfig[T, State[T]](actorQueue, new State(0, mutable.Queue())) {
+    Actor.fromConfig[T, State[T]](actorConfig, new State(0, mutable.Queue())) {
       case (item, self) =>
         //        println("Item: " + item)
         val weight = weigher(item)

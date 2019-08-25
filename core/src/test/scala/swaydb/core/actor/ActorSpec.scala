@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentSkipListSet
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.RunThis._
+import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
@@ -31,6 +32,7 @@ import scala.concurrent.duration._
 class ActorSpec extends WordSpec with Matchers {
 
   import swaydb.core.TestData._
+  implicit val ordering = QueueOrder.FIFO
 
   "Actor" should {
 

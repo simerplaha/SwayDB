@@ -20,10 +20,13 @@
 package swaydb.core.actor
 
 import swaydb.core.RunThis._
+import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.concurrent.duration._
 
 object PingPong extends App {
+
+  implicit val ordering = QueueOrder.FIFO
 
   case class Pong(replyTo: ActorRef[Ping])
   case class Ping(replyTo: ActorRef[Pong])

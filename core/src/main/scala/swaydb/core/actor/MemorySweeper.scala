@@ -79,7 +79,7 @@ private[core] object MemorySweeper {
 
   case class BlockSweeper(blockSize: Int,
                           cacheSize: Long,
-                          actorQueue: ActorConfig) extends MemorySweeperImpl with Block
+                          actorConfig: ActorConfig) extends MemorySweeperImpl with Block
 
   sealed trait KeyValue extends Enabled {
     def queue: CacheActor[Command]
@@ -101,11 +101,11 @@ private[core] object MemorySweeper {
   }
 
   case class KeyValueSweeper(cacheSize: Long,
-                             actorQueue: ActorConfig) extends MemorySweeperImpl with KeyValue
+                             actorConfig: ActorConfig) extends MemorySweeperImpl with KeyValue
 
   case class Both(blockSize: Int,
                   cacheSize: Long,
-                  actorQueue: ActorConfig) extends MemorySweeperImpl with Block with KeyValue
+                  actorConfig: ActorConfig) extends MemorySweeperImpl with Block with KeyValue
 
   def apply(memoryCache: MemoryCache): Option[MemorySweeper.Enabled] =
     memoryCache match {
@@ -117,23 +117,23 @@ private[core] object MemorySweeper {
           MemorySweeper.BlockSweeper(
             blockSize = block.blockSize,
             cacheSize = block.capacity,
-            actorQueue = block.actorQueue
+            actorConfig = block.actorConfig
           )
         )
-      case MemoryCache.EnableKeyValueCache(capacity, actorQueue) =>
+      case MemoryCache.EnableKeyValueCache(capacity, actorConfig) =>
         Some(
           MemorySweeper.KeyValueSweeper(
             cacheSize = capacity,
-            actorQueue = actorQueue
+            actorConfig = actorConfig
           )
         )
 
-      case MemoryCache.EnableBoth(blockSize, capacity, actorQueue) =>
+      case MemoryCache.EnableBoth(blockSize, capacity, actorConfig) =>
         Some(
           MemorySweeper.Both(
             blockSize = blockSize,
             cacheSize = capacity,
-            actorQueue = actorQueue
+            actorConfig = actorConfig
           )
         )
     }
@@ -163,7 +163,7 @@ private[core] object MemorySweeper {
 trait MemorySweeperImpl extends LazyLogging {
   def cacheSize: Long
 
-  def actorQueue: ActorConfig
+  def actorConfig: ActorConfig
 
   /**
    * Lazy initialisation because this queue is not require for Memory database that do not use compression.
@@ -171,7 +171,7 @@ trait MemorySweeperImpl extends LazyLogging {
   lazy val queue: CacheActor[Command] =
     CacheActor[Command](
       maxWeight = cacheSize,
-      actorQueue = actorQueue,
+      actorConfig = actorConfig,
       weigher = MemorySweeper.keyValueWeigher
     ) {
       case Command.Block(key, _, map) =>

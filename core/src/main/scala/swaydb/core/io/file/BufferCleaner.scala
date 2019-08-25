@@ -29,6 +29,7 @@ import swaydb.IO
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.core.io.file.BufferCleaner.State
 import swaydb.core.util.Scheduler
+import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -134,6 +135,7 @@ private[core] object BufferCleaner extends LazyLogging {
 
 private[core] class BufferCleaner(implicit scheduler: Scheduler) extends LazyLogging {
   logger.debug("Starting buffer cleaner.")
+  implicit val queueOrder = QueueOrder.FIFO
 
   private val actor: ActorRef[(MappedByteBuffer, Path, Boolean)] =
     Actor.timer[(MappedByteBuffer, Path, Boolean), State](

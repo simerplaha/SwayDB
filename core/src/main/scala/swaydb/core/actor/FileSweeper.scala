@@ -70,11 +70,11 @@ private[swaydb] object FileSweeper extends LazyLogging {
   def apply(fileCache: FileCache.Enable): FileSweeper.Enabled =
     apply(
       maxOpenSegments = fileCache.maxOpen,
-      actorQueue = fileCache.actorQueue
+      actorConfig = fileCache.actorConfig
     )
 
-  def apply(maxOpenSegments: Long, actorQueue: ActorConfig): FileSweeper.Enabled = {
-    lazy val queue = CacheActor[Action](maxOpenSegments, actorQueue, weigher) {
+  def apply(maxOpenSegments: Long, actorConfig: ActorConfig): FileSweeper.Enabled = {
+    lazy val queue = CacheActor[Action](maxOpenSegments, actorConfig, weigher) {
       case Action.Delete(file) =>
         file.delete() onFailureSideEffect {
           error =>
@@ -93,7 +93,7 @@ private[swaydb] object FileSweeper extends LazyLogging {
 
     new FileSweeper.Enabled {
 
-      def ec = actorQueue.ec
+      def ec = actorConfig.ec
 
       override def close(file: FileSweeperItem): Unit =
         queue ! Action.Close(new WeakReference[FileSweeperItem](file))
