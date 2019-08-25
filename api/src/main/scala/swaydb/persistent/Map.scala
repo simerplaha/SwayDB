@@ -23,7 +23,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.{DefaultGroupBy, DefaultPersistentConfig}
-import swaydb.core.BlockingCore
+import swaydb.core.CoreSync
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.GroupBy
@@ -98,7 +98,7 @@ object Map extends LazyLogging {
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                         fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
                                                                                         memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
-    BlockingCore(
+    CoreSync(
       config = DefaultPersistentConfig(
         dir = dir,
         otherDirs = otherDirs,

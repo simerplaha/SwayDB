@@ -37,7 +37,7 @@ import swaydb.{IO, Prepare, Tag}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-private[swaydb] object BlockingCore {
+private[swaydb] object CoreSync {
 
   def apply(config: SwayDBPersistentConfig,
             maxOpenSegments: Int,
@@ -48,7 +48,7 @@ private[swaydb] object BlockingCore {
             fileSweeperEC: ExecutionContext,
             memorySweeperEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
+                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, CoreSync[IO.ApiIO]] =
   //    CoreInitializer(
   //      config = config,
   //      maxOpenSegments = maxOpenSegments,
@@ -70,7 +70,7 @@ private[swaydb] object BlockingCore {
             fileSweeperEC: ExecutionContext,
             memorySweeperEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
+                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, CoreSync[IO.ApiIO]] =
   //    CoreInitializer(
   //      config = config,
   //      maxOpenSegments = maxOpenSegments,
@@ -86,7 +86,7 @@ private[swaydb] object BlockingCore {
   def apply(config: LevelZeroConfig)(implicit mmapCleanerEC: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] =
+                                     functionStore: FunctionStore): IO[swaydb.Error.Boot, CoreSync[IO.ApiIO]] =
   //    CoreInitializer(
   //      config = config,
   //      bufferCleanerEC = mmapCleanerEC
@@ -135,7 +135,8 @@ private[swaydb] object BlockingCore {
     }
 }
 
-private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO[swaydb.Error.Close, Unit])(implicit tag: Tag.Sync[T]) extends Core[T] {
+private[swaydb] case class CoreSync[T[_]](zero: LevelZero,
+                                          onClose: () => IO[swaydb.Error.Close, Unit])(implicit tag: Tag.Sync[T]) extends Core[T] {
 
   def put(key: Slice[Byte]): T[IO.Done] =
     tag.fromIO(zero.put(key))
@@ -162,7 +163,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
     if (entries.isEmpty)
       tag.fromIO(IO.failed("Cannot write empty batch"))
     else
-      tag.fromIO(zero.put(BlockingCore.prepareToMapEntry(entries)(_).get)) //Gah .get! hmm.
+      tag.fromIO(zero.put(CoreSync.prepareToMapEntry(entries)(_).get)) //Gah .get! hmm.
 
   def remove(key: Slice[Byte]): T[IO.Done] =
     tag.fromIO(zero.remove(key))
@@ -402,8 +403,9 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   override def toTag[T[_]](implicit tag: Tag[T]): Core[T] =
     tag match {
       case async: Tag.Async[T] =>
-        AsyncCore(zero, onClose)(async)
+        CoreAsync(zero, onClose)(async)
+
       case sync: Tag.Sync[T] =>
-        BlockingCore(zero, onClose)(sync)
+        CoreSync(zero, onClose)(sync)
     }
 }

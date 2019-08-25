@@ -74,7 +74,7 @@ private[core] object CoreInitializer extends LazyLogging {
             fileCache: FileCache.Enable,
             bufferCleanerEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] = {
+                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, CoreSync[IO.ApiIO]] = {
     implicit val fileSweeper: FileSweeper.Enabled =
       FileSweeper(fileCache)
 
@@ -92,7 +92,7 @@ private[core] object CoreInitializer extends LazyLogging {
     ) match {
       case IO.Success(zero) =>
         addShutdownHook(zero, None)
-        IO(BlockingCore(zero, () => IO.unit))
+        IO(CoreSync(zero, () => IO.unit))
 
       case IO.Failure(error) =>
         IO.failed(error.exception)
@@ -140,7 +140,7 @@ private[core] object CoreInitializer extends LazyLogging {
             fileCache: FileCache.Enable,
             memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                       timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, BlockingCore[IO.ApiIO]] = {
+                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, CoreSync[IO.ApiIO]] = {
 
     implicit val fileSweeper: FileSweeper.Enabled =
       FileSweeper(fileCache)
@@ -227,7 +227,7 @@ private[core] object CoreInitializer extends LazyLogging {
       }
 
     def createLevels(levelConfigs: List[LevelConfig],
-                     previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, BlockingCore[IO.ApiIO]] =
+                     previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, CoreSync[IO.ApiIO]] =
       levelConfigs match {
         case Nil =>
           createLevel(
@@ -258,7 +258,7 @@ private[core] object CoreInitializer extends LazyLogging {
                       //trigger initial wakeUp.
                       compactor foreach sendInitialWakeUp
 
-                      BlockingCore(
+                      CoreSync(
                         zero = zero,
                         onClose = () => IO(compactor foreach compactionStrategy.terminate)
                       )

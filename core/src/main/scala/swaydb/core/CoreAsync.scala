@@ -31,7 +31,8 @@ import swaydb.{IO, Prepare, Tag}
 import scala.concurrent.duration.Deadline
 import scala.concurrent.{ExecutionContext, Future}
 
-private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[swaydb.Error.Close, Unit])(implicit tag: Tag.Async[T]) extends Core[T] {
+private[swaydb] case class CoreAsync[T[_]](zero: LevelZero,
+                                           onClose: () => IO[swaydb.Error.Close, Unit])(implicit tag: Tag.Async[T]) extends Core[T] {
 
   /**
    * All reads are Async and use [[Tag.Async]] for execution.
@@ -52,73 +53,73 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
    * See documentation for [[LevelZero.levelZeroMeter]] at [[http://www.swaydb.io/api/read/level0Meter/ level0Meter]].
    */
 
-  private val block = BlockingCore[IO.ApiIO](zero, onClose)(Tag.dbIO)
+  private val sync = CoreSync[IO.ApiIO](zero, onClose)(Tag.apiIO)
 
   override def put(key: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(block.put(key))
+    tag.fromIO(sync.put(key))
 
   override def put(key: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(block.put(key, value))
+    tag.fromIO(sync.put(key, value))
 
   override def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
-    tag.fromIO(block.put(key, value))
+    tag.fromIO(sync.put(key, value))
 
   override def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.Done] =
-    tag.fromIO(block.put(key, value, removeAt))
+    tag.fromIO(sync.put(key, value, removeAt))
 
   override def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.Done] =
-    tag.fromIO(block.put(entries))
+    tag.fromIO(sync.put(entries))
 
   override def remove(key: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(block.remove(key))
+    tag.fromIO(sync.remove(key))
 
   override def remove(key: Slice[Byte], at: Deadline): T[IO.Done] =
-    tag.fromIO(block.remove(key, at))
+    tag.fromIO(sync.remove(key, at))
 
   override def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(block.remove(from, to))
+    tag.fromIO(sync.remove(from, to))
 
   override def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.Done] =
-    tag.fromIO(block.remove(from, to, at))
+    tag.fromIO(sync.remove(from, to, at))
 
   override def update(key: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(block.update(key, value))
+    tag.fromIO(sync.update(key, value))
 
   override def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
-    tag.fromIO(block.update(key, value))
+    tag.fromIO(sync.update(key, value))
 
   override def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(block.update(fromKey, to, value))
+    tag.fromIO(sync.update(fromKey, to, value))
 
   override def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
-    tag.fromIO(block.update(fromKey, to, value))
+    tag.fromIO(sync.update(fromKey, to, value))
 
   override def clear(): T[IO.Done] =
     zero.clear().run
 
   override def function(key: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(block.function(key, function))
+    tag.fromIO(sync.function(key, function))
 
   override def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(block.function(from, to, function))
+    tag.fromIO(sync.function(from, to, function))
 
   override def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
-    block.registerFunction(functionID, function)
+    sync.registerFunction(functionID, function)
 
   override def sizeOfSegments: Long =
-    block.sizeOfSegments
+    sync.sizeOfSegments
 
   override def level0Meter: LevelZeroMeter =
-    block.level0Meter
+    sync.level0Meter
 
   override def levelMeter(levelNumber: Int): Option[LevelMeter] =
-    block.levelMeter(levelNumber)
+    sync.levelMeter(levelNumber)
 
   override def close(): T[Unit] =
-    tag.fromIO(block.close())
+    tag.fromIO(sync.close())
 
   override def delete(): T[Unit] =
-    tag.fromIO(block.delete())
+    tag.fromIO(sync.delete())
 
   private def headFuture: Future[Option[KeyValueTuple]] =
   //    zero.head.runInFuture flatMap {
@@ -316,7 +317,8 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[sw
     tag match {
       case async: Tag.Async[T] =>
         copy(zero)(async)
+
       case sync: Tag.Sync[T] =>
-        BlockingCore(zero, onClose)(sync)
+        CoreSync(zero, onClose)(sync)
     }
 }

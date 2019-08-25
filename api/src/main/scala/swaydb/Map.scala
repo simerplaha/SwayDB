@@ -366,7 +366,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     copy(core = core.toTag[X])
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V](toTag[IO.ApiIO](Tag.dbIO))
+    ScalaMap[K, V](toTag[IO.ApiIO](Tag.apiIO))
 
   def close(): T[Unit] =
     tag.point(core.close())

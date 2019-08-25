@@ -19,7 +19,7 @@
 
 package swaydb
 
-import swaydb.IO.ApiIO
+import swaydb.IO.{ApiIO, ThrowableIO}
 
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -77,45 +77,71 @@ object Tag {
     def from[T](a: B[T]): A[T]
   }
 
-  implicit val optionToTry = new Converter[Option, Try] {
-    override def to[T](a: Option[T]): Try[T] =
-      Try(a.get)
+  object Converter {
+    implicit val optionToTry = new Converter[Option, Try] {
+      override def to[T](a: Option[T]): Try[T] =
+        tryTag(a.get)
 
-    override def from[T](a: Try[T]): Option[T] =
-      a.toOption
+      override def from[T](a: Try[T]): Option[T] =
+        a.toOption
+    }
+
+    implicit val tryToOption = new Converter[Try, Option] {
+      override def to[T](a: Try[T]): Option[T] =
+        a.toOption
+
+      override def from[T](a: Option[T]): Try[T] =
+        tryTag(a.get)
+    }
+
+    implicit val tryToIO = new Converter[Try, IO.ApiIO] {
+      override def to[T](a: Try[T]): ApiIO[T] =
+        IO.fromTry[Error.API, T](a)
+
+      override def from[T](a: ApiIO[T]): Try[T] =
+        a.toTry
+    }
+
+    implicit val ioToTry = new Converter[IO.ApiIO, Try] {
+      override def to[T](a: ApiIO[T]): Try[T] =
+        a.toTry
+      override def from[T](a: Try[T]): ApiIO[T] =
+        IO.fromTry[Error.API, T](a)
+    }
+
+    implicit val ioToOption = new Converter[IO.ApiIO, Option] {
+      override def to[T](a: ApiIO[T]): Option[T] =
+        a.toOption
+      override def from[T](a: Option[T]): ApiIO[T] =
+        IO[Error.API, T](a.get)
+    }
+
+    implicit val throwableToApiIO = new Tag.Converter[IO.ThrowableIO, IO.ApiIO] {
+      override def to[T](a: IO.ThrowableIO[T]): IO.ApiIO[T] =
+        IO(a.get)
+
+      override def from[T](a: IO.ApiIO[T]): IO.ThrowableIO[T] =
+        IO(a.get)
+    }
+
+    implicit val throwableToTry = new Tag.Converter[IO.ThrowableIO, Try] {
+      override def to[T](a: IO.ThrowableIO[T]): Try[T] =
+        a.toTry
+
+      override def from[T](a: Try[T]): IO.ThrowableIO[T] =
+        IO.fromTry(a)
+    }
+
+    implicit val throwableToOption = new Tag.Converter[IO.ThrowableIO, Option] {
+      override def to[T](a: IO.ThrowableIO[T]): Option[T] =
+        a.toOption
+
+      override def from[T](a: Option[T]): IO.ThrowableIO[T] =
+        IO(a.get)
+    }
   }
 
-  implicit val tryToOption = new Converter[Try, Option] {
-    override def to[T](a: Try[T]): Option[T] =
-      a.toOption
-
-    override def from[T](a: Option[T]): Try[T] =
-      Try(a.get)
-  }
-
-  implicit val tryToIO = new Converter[Try, IO.ApiIO] {
-    override def to[T](a: Try[T]): ApiIO[T] =
-      IO.fromTry[Error.API, T](a)
-
-    override def from[T](a: ApiIO[T]): Try[T] =
-      a.toTry
-  }
-
-  implicit val ioToTry = new Converter[IO.ApiIO, Try] {
-    override def to[T](a: ApiIO[T]): Try[T] =
-      a.toTry
-    override def from[T](a: Try[T]): ApiIO[T] =
-      IO.fromTry[Error.API, T](a)
-  }
-
-  implicit val ioToOption = new Converter[IO.ApiIO, Option] {
-    override def to[T](a: ApiIO[T]): Option[T] =
-      a.toOption
-    override def from[T](a: Option[T]): ApiIO[T] =
-      IO[Error.API, T](a.get)
-  }
-
-  sealed trait ConverterBase[T[_], X[_]] {
+  private sealed trait ToTagBase[T[_], X[_]] {
     def base: Tag[T]
 
     def baseConverter: Tag.Converter[T, X]
@@ -173,7 +199,7 @@ object Tag {
     def orElse[A, B >: A](a: T[A])(b: T[B]): T[B]
 
     def toTag[X[_]](implicit converter: Tag.Converter[T, X]): Tag.Sync[X] =
-      new Tag.Sync[X] with ConverterBase[T, X] {
+      new Tag.Sync[X] with ToTagBase[T, X] {
         override val base: Tag[T] = self
 
         override val baseConverter: Converter[T, X] = converter
@@ -202,7 +228,7 @@ object Tag {
       !isComplete(a)
 
     def toTag[X[_]](implicit converter: Tag.Converter[T, X]): Tag.Async[X] =
-      new Tag.Async[X] with ConverterBase[T, X] {
+      new Tag.Async[X] with ToTagBase[T, X] {
         override val base: Tag[T] = self
 
         override val baseConverter: Converter[T, X] = converter
@@ -215,50 +241,48 @@ object Tag {
       }
   }
 
-  implicit val dbIO: Tag.Sync[IO.ApiIO] =
-    new Tag.Sync[IO.ApiIO] {
+  implicit val throwableIO: Tag.Sync[IO.ThrowableIO] =
+    new Tag.Sync[IO.ThrowableIO] {
 
-      import swaydb.Error.API.ErrorHandler
-
-      override def apply[A](a: => A): IO.ApiIO[A] =
+      override def apply[A](a: => A): IO.ThrowableIO[A] =
         IO(a)
 
-      def isSuccess[A](a: IO.ApiIO[A]): Boolean =
+      def isSuccess[A](a: IO.ThrowableIO[A]): Boolean =
         a.isSuccess
 
-      def isFailure[A](a: IO.ApiIO[A]): Boolean =
+      def isFailure[A](a: IO.ThrowableIO[A]): Boolean =
         a.isFailure
 
-      override def map[A, B](a: A)(f: A => B): IO.ApiIO[B] =
+      override def map[A, B](a: A)(f: A => B): IO.ThrowableIO[B] =
         IO(f(a))
 
       override def foreach[A, B](a: A)(f: A => B): Unit =
         f(a)
 
-      override def flatMap[A, B](fa: IO.ApiIO[A])(f: A => IO.ApiIO[B]): IO.ApiIO[B] =
+      override def flatMap[A, B](fa: IO.ThrowableIO[A])(f: A => IO.ThrowableIO[B]): IO.ThrowableIO[B] =
         fa.flatMap(f)
 
-      override def success[A](value: A): IO.ApiIO[A] =
+      override def success[A](value: A): IO.ThrowableIO[A] =
         IO.successful(value)
 
-      override def failure[A](exception: Throwable): IO.ApiIO[A] =
+      override def failure[A](exception: Throwable): IO.ThrowableIO[A] =
         IO.failed(exception)
 
-      override def exception[A](a: ApiIO[A]): Option[Throwable] =
-        a.failed.map(_.exception).toOption
+      override def exception[A](a: IO.ThrowableIO[A]): Option[Throwable] =
+        a.failed.toOption
 
-      override def getOrElse[A, B >: A](a: ApiIO[A])(b: => B): B =
+      override def getOrElse[A, B >: A](a: IO.ThrowableIO[A])(b: => B): B =
         a.getOrElse(b)
 
-      override def orElse[A, B >: A](a: ApiIO[A])(b: ApiIO[B]): ApiIO[B] =
+      override def orElse[A, B >: A](a: IO.ThrowableIO[A])(b: IO.ThrowableIO[B]): IO.ThrowableIO[B] =
         a.orElse(b)
 
-      override def none[A]: IO.ApiIO[Option[A]] =
+      override def none[A]: IO.ThrowableIO[Option[A]] =
         IO.none
 
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, IO.ApiIO], drop: Int, take: Option[Int])(operation: (U, A) => U): IO.ApiIO[U] = {
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, IO.ThrowableIO], drop: Int, take: Option[Int])(operation: (U, A) => U): IO.ThrowableIO[U] = {
         @tailrec
-        def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): IO.ApiIO[U] =
+        def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): IO.ThrowableIO[U] =
           if (take.contains(currentSize))
             IO.Success(previousResult)
           else
@@ -311,7 +335,7 @@ object Tag {
       }
 
       @tailrec
-      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, IO.ApiIO])(condition: A => Boolean): IO.ApiIO[Option[A]] =
+      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, IO.ThrowableIO])(condition: A => Boolean): IO.ThrowableIO[Option[A]] =
         stream.next(previous) match {
           case success @ IO.Success(Some(nextA)) =>
             if (condition(nextA))
@@ -325,13 +349,9 @@ object Tag {
           case failure @ IO.Failure(_) =>
             failure
         }
-      override def fromIO[E: ErrorHandler, A](a: IO[E, A]): IO.ApiIO[A] =
-        IO[Error.API, A](a.get)
+      override def fromIO[E: ErrorHandler, A](a: IO[E, A]): IO.ThrowableIO[A] =
+        IO[Throwable, A](a.get)
     }
-
-  implicit val tryTag: Tag.Sync[Try] = dbIO.toTag[Try]
-
-  implicit val optionTag: Tag.Sync[Option] = dbIO.toTag[Option]
 
   implicit def future(implicit ec: ExecutionContext): Tag.Async[Future] =
     new Async[Future] {
@@ -423,4 +443,10 @@ object Tag {
 
       override def fromIO[E: ErrorHandler, A](a: IO[E, A]): Future[A] = a.toFuture
     }
+
+  implicit val apiIO: Tag.Sync[IO.ApiIO] = throwableIO.toTag[IO.ApiIO]
+
+  implicit val tryTag: Tag.Sync[Try] = throwableIO.toTag[Try]
+
+  implicit val option: Tag.Sync[Option] = throwableIO.toTag[Option]
 }

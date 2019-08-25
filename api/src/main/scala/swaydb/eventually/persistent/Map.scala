@@ -23,7 +23,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultGroupBy}
-import swaydb.core.BlockingCore
+import swaydb.core.CoreSync
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.GroupBy
@@ -32,7 +32,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{IO, SwayDB, Tag}
+import swaydb.{IO, SwayDB}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -96,7 +96,7 @@ object Map extends LazyLogging {
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                         fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
                                                                                         memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
-    BlockingCore(
+    CoreSync(
       config =
         DefaultEventuallyPersistentConfig(
           dir = dir,

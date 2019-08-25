@@ -22,7 +22,7 @@ package swaydb
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.BlockingCore
+import swaydb.core.CoreSync
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.tool.AppendixRepairer
@@ -94,7 +94,7 @@ object SwayDB extends LazyLogging {
                                                keyOrder: KeyOrder[Slice[Byte]],
                                                fileSweeperEC: ExecutionContext,
                                                memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
-    BlockingCore(
+    CoreSync(
       config = config,
       maxOpenSegments = maxOpenSegments,
       keyValueCacheSize = keyValueCacheSize,
@@ -117,7 +117,7 @@ object SwayDB extends LazyLogging {
                                             keyOrder: KeyOrder[Slice[Byte]],
                                             fileSweeperEC: ExecutionContext,
                                             memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
-    BlockingCore(
+    CoreSync(
       config = config,
       maxOpenSegments = maxOpenSegments,
       keyValueCacheSize = cacheSize,
@@ -139,7 +139,7 @@ object SwayDB extends LazyLogging {
                                                keyOrder: KeyOrder[Slice[Byte]],
                                                fileSweeperEC: ExecutionContext,
                                                memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
-    BlockingCore(
+    CoreSync(
       config = config,
       maxOpenSegments = 0,
       cacheSize = cacheSize,
@@ -160,7 +160,7 @@ object SwayDB extends LazyLogging {
                                             keyOrder: KeyOrder[Slice[Byte]],
                                             fileSweeperEC: ExecutionContext,
                                             memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
-    BlockingCore(
+    CoreSync(
       config = config,
       maxOpenSegments = 0,
       cacheSize = cacheSize,
@@ -177,7 +177,7 @@ object SwayDB extends LazyLogging {
   def apply[T](config: LevelZeroConfig)(implicit serializer: Serializer[T],
                                         keyOrder: KeyOrder[Slice[Byte]],
                                         ec: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
-    BlockingCore(
+    CoreSync(
       config = config
     ) map {
       db =>
