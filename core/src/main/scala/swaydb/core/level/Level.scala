@@ -360,7 +360,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private implicit val currentWalker =
     new CurrentWalker {
-      override def get(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         self get key
 
       override def higher(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
@@ -375,13 +375,13 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private implicit val nextWalker =
     new NextWalker {
-      override def higher(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[ReadOnly.Put]] =
+      override def higher(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         higherInNextLevel(key)
 
-      override def lower(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[ReadOnly.Put]] =
+      override def lower(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         lowerFromNextLevel(key)
 
-      override def get(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         getFromNextLevel(key)
 
       override def hasStateChanged(previousState: Long): Boolean =
@@ -548,10 +548,10 @@ private[core] case class Level(dirs: Seq[Dir],
       maxKeyInclusive = segment.maxKey.inclusive
     )
 
-  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Deferred[swaydb.Error.Level, Unit] =
+  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit] =
     put(Seq(segment))
 
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Deferred[swaydb.Error.Level, Unit] = {
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit] = {
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
     reserve(segments).toDeferred flatMap {
       case Left(future) =>
@@ -625,7 +625,7 @@ private[core] case class Level(dirs: Seq[Dir],
         appendEntry = None
       )
 
-  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Deferred[swaydb.Error.Level, Unit] = {
+  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.skipList.count())
     reserve(map).toDeferred flatMap {
       case Left(future) =>
@@ -831,7 +831,7 @@ private[core] case class Level(dirs: Seq[Dir],
     )
   }
 
-  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Deferred[swaydb.Error.Level, Unit] = {
+  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit] = {
     logger.debug("{}: Running refresh.", paths.head)
     reserve(Seq(segment)).toDeferred flatMap {
       case Left(future) =>
@@ -916,10 +916,10 @@ private[core] case class Level(dirs: Seq[Dir],
     } getOrElse IO.Failure[swaydb.Error.Level, Int](swaydb.Error.NoSegmentsRemoved)
   }
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Deferred[swaydb.Error.Level, Int] = {
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Int] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
     if (segments.isEmpty || appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
-      IO.Deferred.zero
+      IO.Defer.zero
     } else {
       //other segments in the appendix that are not the input segments (segments to collapse).
       val levelSegments = segmentsInLevel()
@@ -1131,10 +1131,10 @@ private[core] case class Level(dirs: Seq[Dir],
         IO.none
     }
 
-  def getFromNextLevel(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-    nextLevel.map(_.get(key)) getOrElse IO.Deferred.none
+  def getFromNextLevel(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+    nextLevel.map(_.get(key)) getOrElse IO.Defer.none
 
-  override def get(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+  override def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Get(key)
 
   private def mightContainKeyInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Boolean] =
@@ -1181,19 +1181,19 @@ private[core] case class Level(dirs: Seq[Dir],
   private def lowerInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
     appendixWithReadLocked(_.skipList.lower(key)).map(_.lower(key)) getOrElse IO.none
 
-  private def lowerFromNextLevel(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[ReadOnly.Put]] =
-    nextLevel.map(_.lower(key)) getOrElse IO.Deferred.none
+  private def lowerFromNextLevel(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+    nextLevel.map(_.lower(key)) getOrElse IO.Defer.none
 
-  override def floor(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+  override def floor(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     get(key) flatMap {
       case some @ Some(_) =>
-        IO.Deferred(some)
+        IO.Defer(some)
 
       case None =>
         lower(key)
     }
 
-  override def lower(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[ReadOnly.Put]] =
+  override def lower(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
     Lower(
       key = key,
       currentSeek = Seek.Read,
@@ -1215,19 +1215,19 @@ private[core] case class Level(dirs: Seq[Dir],
           higherFromHigherSegment(key)
     }
 
-  private def higherInNextLevel(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-    nextLevel.map(_.higher(key)) getOrElse IO.Deferred.none
+  private def higherInNextLevel(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+    nextLevel.map(_.higher(key)) getOrElse IO.Defer.none
 
-  def ceiling(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+  def ceiling(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     get(key) flatMap {
       case got @ Some(_) =>
-        IO.Deferred(got)
+        IO.Defer(got)
 
       case None =>
         higher(key)
     }
 
-  override def higher(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+  override def higher(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Higher(
       key = key,
       currentSeek = Seek.Read,
@@ -1238,8 +1238,8 @@ private[core] case class Level(dirs: Seq[Dir],
    * Does a quick appendix lookup.
    * It does not check if the returned key is removed. Use [[Level.head]] instead.
    */
-  override def headKey: IO.Deferred[swaydb.Error.Level, Option[Slice[Byte]]] =
-    nextLevel.map(_.headKey) getOrElse IO.Deferred.none map {
+  override def headKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
+    nextLevel.map(_.headKey) getOrElse IO.Defer.none map {
       nextLevelFirstKey =>
         MinMax.minFavourLeft(appendixWithReadLocked(_.skipList.headKey), nextLevelFirstKey)(keyOrder)
     }
@@ -1248,22 +1248,22 @@ private[core] case class Level(dirs: Seq[Dir],
    * Does a quick appendix lookup.
    * It does not check if the returned key is removed. Use [[Level.last]] instead.
    */
-  override def lastKey: IO.Deferred[swaydb.Error.Level, Option[Slice[Byte]]] =
-    nextLevel.map(_.lastKey) getOrElse IO.Deferred.none map {
+  override def lastKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
+    nextLevel.map(_.lastKey) getOrElse IO.Defer.none map {
       nextLevelLastKey =>
         MinMax.maxFavourLeft(appendixWithReadLocked(_.skipList.last()).map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
     }
 
-  override def head: IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+  override def head: IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     headKey flatMap {
       firstKey =>
-        firstKey.map(ceiling) getOrElse IO.Deferred.none
+        firstKey.map(ceiling) getOrElse IO.Defer.none
     }
 
   override def last =
     lastKey flatMap {
       lastKey =>
-        lastKey.map(floor) getOrElse IO.Deferred.none
+        lastKey.map(floor) getOrElse IO.Defer.none
     }
 
   def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean =

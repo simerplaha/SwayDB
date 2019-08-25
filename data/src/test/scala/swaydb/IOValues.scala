@@ -28,13 +28,13 @@ trait IOValues {
 
   implicit class IOIncompleteImplicits[E: ErrorHandler, T](io: => IO[E, T]) {
     def runBlockingIO: IO[E, T] =
-      IO.Deferred(io.get).runBlockingIO
+      IO.Defer(io.get).runBlockingIO
 
     def runFutureIO: IO[E, T] =
-      IO.Deferred(io.get).runFutureIO
+      IO.Defer(io.get).runFutureIO
 
     def runRandomIO: IO[E, T] =
-      IO.Deferred(io.get).runRandomIO
+      IO.Defer(io.get).runRandomIO
   }
 
   implicit class IOImplicits[E: ErrorHandler, T](io: IO[E, T]) {
@@ -42,7 +42,7 @@ trait IOValues {
       io.get
   }
 
-  implicit class DeferredIOImplicits[E: ErrorHandler, T](io: => IO.Deferred[E, T]) {
+  implicit class DeferredIOImplicits[E: ErrorHandler, T](io: => IO.Defer[E, T]) {
 
     def runBlockingIO: IO[E, T] =
       io.runIO

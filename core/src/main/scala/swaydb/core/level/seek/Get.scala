@@ -36,7 +36,7 @@ private[core] object Get {
            currentGetter: CurrentGetter,
            nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
-                                   functionStore: FunctionStore): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                                   functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Get(key = key)(
       keyOrder = keyOrder,
       timeOrder = timeOrder,
@@ -49,12 +49,12 @@ private[core] object Get {
                               timeOrder: TimeOrder[Slice[Byte]],
                               currentGetter: CurrentGetter,
                               nextGetter: NextGetter,
-                              functionStore: FunctionStore): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
+                              functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
 
     import keyOrder._
 
     @tailrec
-    def returnSegmentResponse(current: KeyValue.ReadOnly.SegmentResponse): IO.Deferred[swaydb.Error.Level, Option[ReadOnly.Put]] =
+    def returnSegmentResponse(current: KeyValue.ReadOnly.SegmentResponse): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
       current match {
         case current: KeyValue.ReadOnly.Remove =>
           if (current.hasTimeLeft())
@@ -75,13 +75,13 @@ private[core] object Get {
                 }
             }
           else
-            IO.Deferred.none
+            IO.Defer.none
 
         case current: KeyValue.ReadOnly.Put =>
           if (current.hasTimeLeft())
-            IO.Deferred(Some(current))
+            IO.Defer(Some(current))
           else
-            IO.Deferred.none
+            IO.Defer.none
 
         case current: KeyValue.ReadOnly.Update =>
           if (current.hasTimeLeft())
@@ -102,7 +102,7 @@ private[core] object Get {
                 }
             }
           else
-            IO.Deferred.none
+            IO.Defer.none
 
         case current: KeyValue.ReadOnly.Range =>
           (if (current.key equiv key) current.fetchFromOrElseRangeValue else current.fetchRangeValue) match {
@@ -110,7 +110,7 @@ private[core] object Get {
               if (Value.hasTimeLeft(currentValue))
                 returnSegmentResponse(currentValue.toMemory(key))
               else
-                IO.Deferred.none
+                IO.Defer.none
 
             case failure @ IO.Failure(_) =>
               failure recoverTo Get(key)
@@ -124,18 +124,18 @@ private[core] object Get {
                   if (next.hasTimeLeft())
                     FunctionMerger(current, next) match {
                       case IO.Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
-                        IO.Deferred(Some(put))
+                        IO.Defer(Some(put))
 
                       case IO.Success(_: ReadOnly.Fixed) =>
-                        IO.Deferred.none
+                        IO.Defer.none
 
                       case failure @ IO.Failure(_) =>
                         failure recoverTo Get(key)
                     }
                   else
-                    IO.Deferred.none
+                    IO.Defer.none
               } getOrElse {
-                IO.Deferred.none
+                IO.Defer.none
               }
           }
 
@@ -147,18 +147,18 @@ private[core] object Get {
                   if (next.hasTimeLeft())
                     PendingApplyMerger(current, next) match {
                       case IO.Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
-                        IO.Deferred(Some(put))
+                        IO.Defer(Some(put))
 
                       case IO.Success(_: ReadOnly.Fixed) =>
-                        IO.Deferred.none
+                        IO.Defer.none
 
                       case failure @ IO.Failure(_) =>
                         failure recoverTo Get(key)
                     }
                   else
-                    IO.Deferred.none
+                    IO.Defer.none
               } getOrElse {
-                IO.Deferred.none
+                IO.Defer.none
               }
           }
       }

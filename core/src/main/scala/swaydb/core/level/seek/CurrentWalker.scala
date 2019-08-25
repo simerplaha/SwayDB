@@ -27,7 +27,7 @@ trait CurrentWalker {
 
   def levelNumber: String
 
-  def get(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
   def higher(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]]
 

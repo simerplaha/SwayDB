@@ -266,7 +266,7 @@ private[level] object Compaction extends LazyLogging {
     ???
 
   private[compaction] def pushForward(level: NextLevel,
-                                      segmentsToPush: Int)(implicit ec: ExecutionContext): IO.Deferred[swaydb.Error.Level, Int] =
+                                      segmentsToPush: Int)(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Int] =
     level.nextLevel map {
       nextLevel =>
         val (copyable, mergeable) = level.optimalSegmentsPushForward(take = segmentsToPush)
@@ -278,7 +278,7 @@ private[level] object Compaction extends LazyLogging {
         ) flatMap {
           copied =>
             if (copied >= segmentsToPush)
-              IO.Deferred(copied)
+              IO.Defer(copied)
             else
               putForward(
                 segments = mergeable take segmentsToPush,
@@ -413,7 +413,7 @@ private[level] object Compaction extends LazyLogging {
 
   private[compaction] def putForward(segments: Iterable[Segment],
                                      thisLevel: NextLevel,
-                                     nextLevel: NextLevel)(implicit ec: ExecutionContext): IO.Deferred[swaydb.Error.Level, Int] =
+                                     nextLevel: NextLevel)(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Int] =
   //    if (segments.isEmpty)
   //      IO.zero
   //    else

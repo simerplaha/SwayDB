@@ -151,25 +151,25 @@ private[core] trait LevelRef {
 
   def rootPath: Path
 
-  def head: IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def head: IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def last: IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def last: IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def get(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def ceiling(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def ceiling(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def floor(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def floor(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
   def mightContainKey(key: Slice[Byte]): IO[swaydb.Error.Level, Boolean]
 
-  def lower(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def lower(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def higher(key: Slice[Byte]): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def higher(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def headKey: IO.Deferred[swaydb.Error.Level, Option[Slice[Byte]]]
+  def headKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]]
 
-  def lastKey: IO.Deferred[swaydb.Error.Level, Option[Slice[Byte]]]
+  def lastKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]]
 
   def bloomFilterKeyValueCount: IO[swaydb.Error.Level, Int]
 

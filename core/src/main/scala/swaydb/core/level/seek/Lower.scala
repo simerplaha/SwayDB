@@ -61,7 +61,7 @@ private[core] object Lower {
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
-           functionStore: FunctionStore): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+           functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Lower(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   def seeker(key: Slice[Byte],
@@ -70,7 +70,7 @@ private[core] object Lower {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   currentWalker: CurrentWalker,
                                   nextWalker: NextWalker,
-                                  functionStore: FunctionStore): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                                  functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Lower(key, currentSeek, nextSeek)
 
   /**
@@ -87,7 +87,7 @@ private[core] object Lower {
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  currentWalker: CurrentWalker,
                                  nextWalker: NextWalker,
-                                 functionStore: FunctionStore): IO.Deferred[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
+                                 functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
     ???

@@ -169,7 +169,7 @@ sealed trait LevelCollapseSpec extends TestBase {
             }
         }
 
-      val sss: IO.Deferred[Error.Level, Option[ReadOnly.Put]] = ???
+      val sss: IO.Defer[Error.Level, Option[ReadOnly.Put]] = ???
 
       sss.runRandomIO
 
