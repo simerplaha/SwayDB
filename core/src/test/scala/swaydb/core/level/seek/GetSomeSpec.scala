@@ -52,7 +52,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val keyValue = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(keyValue))
 
-        Get(1).runRandomIO.value shouldBe keyValue
+        Get(1).runRandomIO.value.value shouldBe keyValue
       }
     }
 
@@ -70,7 +70,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(remove))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).toDeferred
 
-        Get(1).runRandomIO.value shouldBe expect
+        Get(1).runRandomIO.value.value shouldBe expect
       }
     }
 
@@ -88,7 +88,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(update))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).toDeferred
 
-        Get(1).runRandomIO.value shouldBe expect
+        Get(1).runRandomIO.value.value shouldBe expect
       }
     }
 
@@ -115,7 +115,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(function))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).toDeferred
 
-        Get(1).runRandomIO.value shouldBe expect
+        Get(1).runRandomIO.value.value shouldBe expect
       }
     }
 
@@ -145,7 +145,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(pendingApply))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).toDeferred
 
-        Get(1).runRandomIO.value shouldBe expected
+        Get(1).runRandomIO.value.value shouldBe expected
       }
     }
 
@@ -162,7 +162,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(range))
 
-        Get(1).runRandomIO.value shouldBe fromValue.toMemory(1)
+        Get(1).runRandomIO.value.value shouldBe fromValue.toMemory(1)
       }
     }
 
@@ -192,7 +192,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         //next level can return anything it will be removed.
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).toDeferred
 
-        Get(1).runRandomIO.value shouldBe expected
+        Get(1).runRandomIO.value.value shouldBe expected
       }
     }
   }
