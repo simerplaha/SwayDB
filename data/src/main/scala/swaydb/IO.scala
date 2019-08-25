@@ -464,6 +464,15 @@ object IO {
         } getOrElse forceGet
     }
 
+    def run[B >: A, T[_]](implicit tag: Tag[T]): T[B] =
+      tag match {
+        case sync: Tag.Sync[T] =>
+          runSync(sync)
+
+        case async: Tag.Async[T] =>
+          runAsync(async)
+      }
+
     /**
      * Opens all [[IO.Defer]] types to read the final value in a blocking manner.
      */
@@ -513,7 +522,7 @@ object IO {
      * TODO -  Similar to [[runIO]]. [[runIO]] should be calling this function
      * to build it's execution process.
      */
-    def runSync[B >: A, T[_]](implicit tag: Tag.Sync[T]): T[B] = {
+    private def runSync[B >: A, T[_]](implicit tag: Tag.Sync[T]): T[B] = {
 
       def blockIfNeeded(deferred: IO.Defer[E, B]): Unit =
         deferred.error foreach {
@@ -555,7 +564,7 @@ object IO {
       doRun(this, 0)
     }
 
-    def runAsync[B >: A, T[_]](implicit tag: Tag.Async[T]): T[B] = {
+    private def runAsync[B >: A, T[_]](implicit tag: Tag.Async[T]): T[B] = {
 
       /**
        * If the value is already fetched [[isPending]] run in current thread

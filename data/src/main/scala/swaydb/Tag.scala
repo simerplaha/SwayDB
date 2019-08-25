@@ -29,7 +29,7 @@ import scala.util.Try
  * [[Tag]]s are used to tag databases operations (side-effects) into types that can be
  * used to build custom Sync and Async wrappers.
  */
-trait Tag[T[_]] {
+sealed trait Tag[T[_]] {
   def apply[A](a: => A): T[A]
   def foreach[A, B](a: A)(f: A => B): Unit
   def map[A, B](a: A)(f: A => B): T[B]

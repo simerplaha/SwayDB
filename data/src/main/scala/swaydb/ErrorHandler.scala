@@ -45,20 +45,35 @@ object ErrorHandler extends LazyLogging {
     }
 
   object Nothing extends ErrorHandler[Nothing] {
-    override def fromException(e: Throwable): Nothing = throw new scala.Exception("Nothing cannot be created from Exception.", e)
-    override def toException[F >: Nothing](f: F): Throwable = new Exception("Nothing value.")
-    override def reserve[F >: Nothing](f: F): Option[Reserve[Unit]] = None
+    override def fromException(e: Throwable): Nothing =
+      throw new scala.Exception("Nothing cannot be created from Exception.", e)
+
+    override def toException[F >: Nothing](f: F): Throwable =
+      new Exception("Nothing value.")
+
+    override def reserve[F >: Nothing](f: F): Option[Reserve[Unit]] =
+      None
   }
 
   object Unit extends ErrorHandler[Unit] {
-    override def reserve[F >: Unit](f: F): Option[Reserve[Unit]] = None
-    override def fromException(e: Throwable): Unit = throw new scala.Exception("Unit cannot be created from Exception.", e)
-    override def toException[F >: Unit](f: F): Throwable = new Exception("Unit value.")
+    override def reserve[F >: Unit](f: F): Option[Reserve[Unit]] =
+      None
+
+    override def fromException(e: Throwable): Unit =
+      throw new scala.Exception("Unit cannot be created from Exception.", e)
+
+    override def toException[F >: Unit](f: F): Throwable =
+      new Exception("Unit value.")
   }
 
   implicit object Throwable extends ErrorHandler[Throwable] {
-    override def fromException(e: Throwable): Throwable = e
-    override def toException[F >: Throwable](f: F): Throwable = f.asInstanceOf[Throwable]
-    override def reserve[F >: Throwable](f: F): Option[Reserve[Unit]] = None
+    override def fromException(e: Throwable): Throwable =
+      e
+
+    override def toException[F >: Throwable](f: F): Throwable =
+      f.asInstanceOf[Throwable]
+
+    override def reserve[F >: Throwable](f: F): Option[Reserve[Unit]] =
+      None
   }
 }

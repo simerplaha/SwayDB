@@ -19,7 +19,7 @@
 
 package swaydb
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Random
@@ -48,7 +48,7 @@ trait IOValues {
       io.runIO
 
     def runFutureIO: IO[E, T] =
-      IO(Await.result(io.runAsync, 5.minutes))
+      IO(Await.result(io.run[T, Future], 5.minutes))
 
     def runRandomIO: IO[E, T] =
       if (Random.nextBoolean())
