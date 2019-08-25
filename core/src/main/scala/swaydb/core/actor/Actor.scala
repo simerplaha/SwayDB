@@ -31,7 +31,7 @@ import swaydb.data.config.ActorConfig
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future}
 
-private[swaydb] sealed trait ActorRef[-T] {
+private[swaydb] sealed trait ActorRef[-T] { self =>
 
   /**
    * Submits message to Actor's queue and starts message execution if not already running.
@@ -52,11 +52,48 @@ private[swaydb] sealed trait ActorRef[-T] {
    */
   def schedule(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask
 
-  def hasMessages: Boolean
+  def messageCount: Int
 
-  def messages: Int
+  def hasMessages: Boolean =
+    messageCount > 0
 
   def terminate(): Unit
+
+  /**
+   * Returns an Actor that merges both Actor and sends messages
+   * to both Actors.
+   *
+   * Currently does not guarantee the order in which the messages will get processed by both actors.
+   * Is order guarantee required?
+   */
+  def flatMap[B <: T](actor: ActorRef[B]): ActorRef[B] =
+    new ActorRef[B] {
+      def !(message: B): Unit = {
+        self ! message
+        actor ! message
+      }
+
+      def submit(message: B): Unit = {
+        self.submit(message)
+        actor.submit(message)
+      }
+
+      /**
+       * Sends a message to this actor with delay
+       */
+      def schedule(message: B, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask = {
+        self.schedule(message, delay)
+        actor.schedule(message, delay)
+      }
+
+      def messageCount: Int =
+        self.messageCount + actor.messageCount
+
+      def terminate(): Unit = {
+        self.terminate()
+        actor.terminate()
+      }
+    }
 }
 
 private[swaydb] object Actor {
@@ -317,10 +354,7 @@ private[swaydb] class Actor[T, +S](val state: S,
       processMessages(runNow = false)
     }
 
-  override def hasMessages: Boolean =
-    queue.isEmpty
-
-  override def messages: Int =
+  override def messageCount: Int =
     queueSize.get()
 
   override def schedule(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask =
