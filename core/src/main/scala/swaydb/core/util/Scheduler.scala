@@ -27,8 +27,21 @@ import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
 
 private[core] object Scheduler {
-  def apply()(implicit ec: ExecutionContext): Scheduler =
-    new Scheduler(new Timer(false))
+
+  /**
+   * Creates a Scheduler.
+   *
+   * @param name     the name of the associated thread
+   * @param isDaemon true if the associated thread should run as a daemon
+   */
+  def apply(name: Option[String] = None,
+            isDaemon: Boolean = false)(implicit ec: ExecutionContext): Scheduler =
+    name map {
+      name =>
+        new Scheduler(new Timer(name, isDaemon))
+    } getOrElse {
+      new Scheduler(new Timer(isDaemon))
+    }
 }
 
 class Scheduler(timer: Timer)(implicit val ec: ExecutionContext) {
