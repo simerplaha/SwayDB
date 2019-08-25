@@ -54,6 +54,8 @@ private[swaydb] sealed trait ActorRef[-T] {
 
   def hasMessages: Boolean
 
+  def messages: Int
+
   def terminate(): Unit
 }
 
@@ -292,7 +294,7 @@ private[swaydb] class Actor[T, +S](val state: S,
                                    maxMessagesToProcessAtOnce: Int,
                                    overflow: Int,
                                    execution: (T, Actor[T, S]) => Unit,
-                                   private val defaultDelay: Option[(FiniteDuration, Boolean)])(implicit ec: ExecutionContext) extends ActorRef[T] with LazyLogging { self =>
+                                   defaultDelay: Option[(FiniteDuration, Boolean)])(implicit ec: ExecutionContext) extends ActorRef[T] with LazyLogging { self =>
 
   private val busy = new AtomicBoolean(false)
   private val queue = new ConcurrentLinkedQueue[T]
@@ -302,12 +304,14 @@ private[swaydb] class Actor[T, +S](val state: S,
 
   //if initial delay is defined this actor will keep checking for messages at
   //regular interval. This interval can be updated via the execution function.
-  val loop = defaultDelay.exists(_._2)
+  val isLoop = defaultDelay.exists(_._2)
   //if initial detail is defined, trigger processMessages() to start the timer loop.
-  if (loop) processMessages(runNow = false)
+  if (isLoop) processMessages(runNow = false)
 
   override def !(message: T): Unit =
-    if (!terminated) {
+    if (terminated) {
+      logger.debug("Message not processed. Terminated actor.")
+    } else {
       queue offer message
       queueSize.incrementAndGet()
       processMessages(runNow = false)
@@ -315,6 +319,9 @@ private[swaydb] class Actor[T, +S](val state: S,
 
   override def hasMessages: Boolean =
     queue.isEmpty
+
+  override def messages: Int =
+    queueSize.get()
 
   override def schedule(message: T, delay: FiniteDuration): TimerTask =
     Delay.task(delay)(this ! message)
@@ -345,7 +352,7 @@ private[swaydb] class Actor[T, +S](val state: S,
    * @param runNow ignores default delays and processes actor.
    */
   private def processMessages(runNow: Boolean): Unit =
-    if (!terminated && (loop || !queue.isEmpty) && busy.compareAndSet(false, true)) {
+    if (!terminated && (isLoop || !queue.isEmpty) && busy.compareAndSet(false, true)) {
       clearTask()
 
       if (runNow)
@@ -366,7 +373,7 @@ private[swaydb] class Actor[T, +S](val state: S,
 
   private def receive(max: Int): Unit = {
     var processed = 0
-    try {
+    try
       while (!terminated && processed < max) {
         val message = queue.poll
         if (message != null) {
@@ -387,7 +394,7 @@ private[swaydb] class Actor[T, +S](val state: S,
           processed = max
         }
       }
-    } finally {
+    finally {
       busy.set(false)
       processMessages(runNow = false)
     }
