@@ -31,7 +31,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestLimitQueues.{fileSweeper, _}
-import swaydb.core.actor.WiredActor
+import swaydb.core.actor.{FileSweeper, MemorySweeper, WiredActor}
 import swaydb.core.data.{Memory, Time, Transient}
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.{BlockCache, BufferCleaner, DBFile, IOEffect}
@@ -40,7 +40,7 @@ import swaydb.core.level.compaction._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
-import swaydb.core.queue.{FileSweeper, MemorySweeper}
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}

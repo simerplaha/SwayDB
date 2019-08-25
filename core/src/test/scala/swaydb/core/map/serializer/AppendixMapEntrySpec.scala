@@ -24,10 +24,11 @@ import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.TestData._
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
-import swaydb.core.queue.{FileSweeper, MemorySweeper}
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.SkipList

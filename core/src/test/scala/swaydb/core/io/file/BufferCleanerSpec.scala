@@ -28,7 +28,7 @@ import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.RunThis._
 import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues}
 import swaydb.core.TestData._
-import swaydb.core.queue.FileSweeper
+import swaydb.core.actor.FileSweeper
 import swaydb.core.util.BlockCacheFileIDGenerator
 import swaydb.data.config.ActorConfig
 import swaydb.data.slice.Slice

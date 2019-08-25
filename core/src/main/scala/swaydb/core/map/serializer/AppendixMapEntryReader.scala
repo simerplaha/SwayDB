@@ -24,12 +24,13 @@ import java.nio.file.{Path, Paths}
 import java.util.concurrent.TimeUnit
 
 import swaydb.Error.Map.ErrorHandler
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.{Error, IO}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.BlockCache
 import swaydb.core.map.MapEntry
-import swaydb.core.queue.{FileSweeper, MemorySweeper}
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, MinMax}

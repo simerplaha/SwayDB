@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.queue
+package swaydb.core.actor
 
 import java.util.concurrent.ConcurrentSkipListSet
 

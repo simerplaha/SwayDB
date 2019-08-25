@@ -17,13 +17,13 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.queue
+package swaydb.core.actor
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Tagged
+import swaydb.core.actor.Command.WeighedKeyValue
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.io.file.BlockCache
-import swaydb.core.queue.Command.WeighedKeyValue
 import swaydb.core.util.{JavaHashMap, SkipList}
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.slice.Slice

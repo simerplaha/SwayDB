@@ -26,6 +26,7 @@ import java.util
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ErrorHandler
 import swaydb.IO
+import swaydb.core.actor.FileSweeper
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -36,7 +37,6 @@ import swaydb.core.map
 import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
-import swaydb.core.queue.FileSweeper
 import swaydb.core.segment.Segment
 import swaydb.core.util.MinMax
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}

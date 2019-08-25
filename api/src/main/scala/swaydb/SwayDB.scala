@@ -23,10 +23,10 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.CoreSync
+import swaydb.core.actor.FileSweeper
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.tool.AppendixRepairer
-import swaydb.core.queue.FileSweeper
 import swaydb.data.MaxKey
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}

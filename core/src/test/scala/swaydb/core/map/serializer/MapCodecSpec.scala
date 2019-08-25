@@ -25,9 +25,10 @@ import swaydb.Error.Map.ErrorHandler
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.TestData._
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.io.file.BlockCache
-import swaydb.core.queue.{FileSweeper, MemorySweeper}
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.SkipList
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}

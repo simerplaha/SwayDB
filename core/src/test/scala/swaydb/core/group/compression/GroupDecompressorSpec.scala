@@ -27,7 +27,7 @@
 //import swaydb.core.IOAssert._
 //import swaydb.core.data._
 //import swaydb.core.io.reader.Reader
-//import swaydb.core.queue.MemorySweeper
+//import swaydb.core.actor.MemorySweeper
 //import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
 //import swaydb.IO._
 //import swaydb.core.{TestBase, TestData}

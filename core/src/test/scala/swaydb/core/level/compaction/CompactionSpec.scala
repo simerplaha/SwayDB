@@ -27,7 +27,7 @@
 //import swaydb.core.TestData._
 //import swaydb.core.data.Memory
 //import swaydb.core.level.NextLevel
-//import swaydb.core.queue.{FileSweeper, MemorySweeper}
+//import swaydb.core.actor.{FileSweeper, MemorySweeper}
 //import swaydb.core.segment.Segment
 //import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 //import swaydb.data.order.{KeyOrder, TimeOrder}

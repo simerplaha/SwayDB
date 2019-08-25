@@ -29,7 +29,7 @@
 //import swaydb.core.CommonAssertions.{randomBlockSize, randomIOStrategy}
 //import swaydb.core.RunThis._
 //import swaydb.core.TestData._
-//import swaydb.core.queue.{FileSweeper, FileSweeperItem}
+//import swaydb.core.actor.{FileSweeper, FileSweeperItem}
 //import swaydb.core.util.PipeOps._
 //import swaydb.core.{TestBase, TestLimitQueues}
 //import swaydb.data.slice.Slice

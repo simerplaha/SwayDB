@@ -24,7 +24,7 @@
 //import swaydb.IO
 //import swaydb.core.RunThis._
 //import swaydb.core.actor.WiredActor
-//import swaydb.core.queue.{FileSweeper, MemorySweeper}
+//import swaydb.core.actor.{FileSweeper, MemorySweeper}
 //import swaydb.core.util.Delay
 //import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
 //import swaydb.data.Reserve

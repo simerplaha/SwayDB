@@ -22,8 +22,8 @@ package swaydb.core.segment
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
-import swaydb.core.queue.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.SkipList

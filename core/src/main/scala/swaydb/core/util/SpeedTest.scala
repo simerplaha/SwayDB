@@ -21,8 +21,8 @@ package swaydb.core.util
 
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedDeque}
 
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.io.file.BlockCache
-import swaydb.core.queue.MemorySweeper
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._

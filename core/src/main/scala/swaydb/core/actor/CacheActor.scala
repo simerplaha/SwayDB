@@ -17,16 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.queue
+package swaydb.core.actor
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
-import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.data.config.ActorConfig
 
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext
 
 private class State[T](var size: Long,
                        val queue: mutable.Queue[(T, Long)])

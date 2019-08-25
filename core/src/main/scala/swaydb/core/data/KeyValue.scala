@@ -21,11 +21,11 @@ package swaydb.core.data
 
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.cache.{Cache, NoIO}
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
-import swaydb.core.queue.MemorySweeper
 import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}

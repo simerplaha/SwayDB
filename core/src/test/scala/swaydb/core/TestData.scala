@@ -29,6 +29,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.TestLimitQueues.fileSweeper
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.cache.Cache
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.Transient.Range
@@ -41,7 +42,7 @@ import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
 import swaydb.core.map.serializer.RangeValueSerializer
-import swaydb.core.queue.{FileSweeper, MemorySweeper}
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}

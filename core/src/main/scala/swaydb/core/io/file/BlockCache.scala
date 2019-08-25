@@ -20,7 +20,7 @@
 package swaydb.core.io.file
 
 import swaydb.Error.IO.ErrorHandler
-import swaydb.core.queue.MemorySweeper
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.util.JavaHashMap
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}

@@ -33,7 +33,7 @@
 //import swaydb.core.io.file.IOEffect._
 //import swaydb.core.level.zero.LevelZeroSkipListMerger
 //import swaydb.core.map.MapEntry
-//import swaydb.core.queue.{FileSweeper, MemorySweeper}
+//import swaydb.core.actor.{FileSweeper, MemorySweeper}
 //import swaydb.core.segment.Segment
 //import swaydb.core.util.{Extension, ReserveRange}
 //import swaydb.core.{TestBase, TestLimitQueues, TestTimer}

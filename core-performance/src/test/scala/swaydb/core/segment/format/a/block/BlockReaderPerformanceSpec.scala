@@ -21,9 +21,9 @@ package swaydb.core.segment.format.a.block
 
 import swaydb.IOValues._
 import swaydb.core.TestData._
+import swaydb.core.actor.FileSweeper
 import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.io.reader.FileReader
-import swaydb.core.queue.FileSweeper
 import swaydb.core.segment.format.a.block.reader.{BlockReader, BlockRefReader}
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 import swaydb.core.{TestBase, TestLimitQueues}

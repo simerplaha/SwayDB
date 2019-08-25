@@ -25,12 +25,12 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
+import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.io.file.{DBFile, IOEffect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
-import swaydb.core.queue.FileSweeper
 import swaydb.core.util.{Extension, SkipList}
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}

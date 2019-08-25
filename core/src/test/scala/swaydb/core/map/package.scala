@@ -20,10 +20,11 @@
 package swaydb.core
 
 import swaydb.IOValues._
+import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
-import swaydb.core.queue.{FileSweeper, MemorySweeper}
+import swaydb.core.actor.MemorySweeper
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

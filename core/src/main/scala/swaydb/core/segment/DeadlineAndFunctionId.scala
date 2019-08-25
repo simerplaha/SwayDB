@@ -22,8 +22,8 @@ package swaydb.core.segment
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.IO._
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.KeyValue
-import swaydb.core.queue.MemorySweeper
 import swaydb.core.segment.Segment.getNearestDeadline
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{FiniteDurationUtil, MinMax}

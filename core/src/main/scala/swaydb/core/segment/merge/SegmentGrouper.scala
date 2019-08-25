@@ -22,9 +22,9 @@ package swaydb.core.segment.merge
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.queue.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice

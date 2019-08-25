@@ -21,10 +21,11 @@ package swaydb.core.segment.format.a
 
 import swaydb.IOValues._
 import swaydb.core.TestData._
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Transient
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.BlockCache
-import swaydb.core.queue.{FileSweeper, MemorySweeper}
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.merge.SegmentMerger

@@ -26,10 +26,10 @@ import swaydb.Error.Segment.ErrorHandler
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.TestData._
+import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.queue.FileSweeper
 import swaydb.core.util.Extension
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.accelerate.Accelerator

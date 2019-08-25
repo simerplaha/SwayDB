@@ -29,6 +29,7 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
@@ -41,7 +42,6 @@ import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSerializer}
 import swaydb.core.merge._
-import swaydb.core.queue.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
 import swaydb.core.segment.format.a.block._
