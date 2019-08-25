@@ -26,20 +26,23 @@ import swaydb.IO
 import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
 
-private[core] object Delay {
-
+private[core] object Scheduler {
   val futureNone = Future.successful(None)
 
   val futureUnit = Future.successful(())
 
-  private val timer = new Timer(true)
+  def create()(implicit ec: ExecutionContext): Scheduler =
+    new Scheduler(new Timer(false))
+}
 
-  private def runWithDelay[T](delayFor: FiniteDuration)(block: => Future[T])(implicit ctx: ExecutionContext): Future[T] = {
+class Scheduler(timer: Timer)(implicit val ec: ExecutionContext) {
+
+  def apply[T](delayFor: FiniteDuration)(block: => Future[T]): Future[T] = {
     val promise = Promise[T]()
     val task =
       new TimerTask {
         def run() {
-          ctx.execute(
+          ec.execute(
             new Runnable {
               override def run(): Unit =
                 promise.completeWith(block)
@@ -51,7 +54,13 @@ private[core] object Delay {
     promise.future
   }
 
-  private def createTask(delayFor: FiniteDuration)(block: => Unit): TimerTask = {
+  def future[T](delayFor: FiniteDuration)(block: => T): Future[T] =
+    apply(delayFor)(Future(block))
+
+  def futureFromIO[T](delayFor: FiniteDuration)(block: => IO[swaydb.Error.Segment, T]): Future[T] =
+    apply(delayFor)(Future(block).flatMap(_.toFuture))
+
+  def task(delayFor: FiniteDuration)(block: => Unit): TimerTask = {
     val task =
       new TimerTask {
         def run() =
@@ -61,18 +70,6 @@ private[core] object Delay {
     task
   }
 
-  def apply[T](delayFor: FiniteDuration)(block: => Future[T])(implicit ctx: ExecutionContext): Future[T] =
-    runWithDelay(delayFor)(block)
-
-  def future[T](delayFor: FiniteDuration)(block: => T)(implicit ctx: ExecutionContext): Future[T] =
-    apply(delayFor)(Future(block))
-
-  def futureFromIO[T](delayFor: FiniteDuration)(block: => IO[swaydb.Error.Segment, T])(implicit ctx: ExecutionContext): Future[T] =
-    apply(delayFor)(Future(block).flatMap(_.toFuture))
-
-  def task(delayFor: FiniteDuration)(block: => Unit): TimerTask =
-    createTask(delayFor)(block)
-
-  def cancelTimer(): Unit =
+  def terminate(): Unit =
     timer.cancel()
 }

@@ -21,19 +21,23 @@ package swaydb.core.actor
 
 import java.util.TimerTask
 
+import swaydb.core.util.Scheduler
+
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{Future, Promise}
 import scala.util.Try
 
 object WiredActor {
-  def apply[T, S](impl: T, state: S)(implicit ec: ExecutionContext): WiredActor[T, S] =
+  def apply[T, S](impl: T, state: S)(implicit scheduler: Scheduler): WiredActor[T, S] =
     new WiredActor(impl, None, state)
 
-  def apply[T, S](impl: T, delays: FiniteDuration, state: S)(implicit ec: ExecutionContext): WiredActor[T, S] =
+  def apply[T, S](impl: T, delays: FiniteDuration, state: S)(implicit scheduler: Scheduler): WiredActor[T, S] =
     new WiredActor(impl, Some(delays), state)
 }
 
-class WiredActor[+T, +S](impl: T, delays: Option[FiniteDuration], state: S)(implicit val ec: ExecutionContext) {
+class WiredActor[+T, +S](impl: T, delays: Option[FiniteDuration], state: S)(implicit val scheduler: Scheduler) {
+
+  implicit val ec = scheduler.ec
 
   private val actor: Actor[() => Unit, S] =
     delays map {

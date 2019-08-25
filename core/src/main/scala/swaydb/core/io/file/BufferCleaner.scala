@@ -28,6 +28,7 @@ import swaydb.Error.IO.ErrorHandler
 import swaydb.IO
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.core.io.file.BufferCleaner.State
+import swaydb.core.util.Scheduler
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -120,7 +121,7 @@ private[core] object BufferCleaner extends LazyLogging {
   //FIXME: Rah! Not very nice way to initialise BufferCleaner.
   //       Currently BufferCleaner is required to be globally known.
   //       Instead this should be passed around whenever required and be explicit.
-  def initialiseCleaner(implicit ec: ExecutionContext) =
+  def initialiseCleaner(implicit scheduler: Scheduler) =
     if (cleaner.isEmpty)
       cleaner = Some(new BufferCleaner)
 
@@ -131,7 +132,7 @@ private[core] object BufferCleaner extends LazyLogging {
     } getOrElse logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
 }
 
-private[core] class BufferCleaner(implicit ec: ExecutionContext) extends LazyLogging {
+private[core] class BufferCleaner(implicit scheduler: Scheduler) extends LazyLogging {
   logger.debug("Starting buffer cleaner.")
 
   private val actor: ActorRef[(MappedByteBuffer, Path, Boolean)] =

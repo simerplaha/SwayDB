@@ -106,7 +106,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
                     WiredActor[CompactionStrategy[CompactorState], CompactorState](
                       impl = Compactor,
                       state = compaction
-                    )(executionContext)
+                    )(???)
                   )
               } head
         }

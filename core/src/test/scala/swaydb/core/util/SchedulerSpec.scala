@@ -27,7 +27,7 @@ import swaydb.IO
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-class DelaySpec extends WordSpec with Matchers with Eventually {
+class SchedulerSpec extends WordSpec with Matchers with Eventually {
 
   //  "Delay.cancelTimer" should {
   //    "cancel all existing scheduled tasks" in {
@@ -57,22 +57,26 @@ class DelaySpec extends WordSpec with Matchers with Eventually {
     "run tasks and cancel tasks" in {
       @volatile var tasksExecuted = 0
 
-      Delay.task(1.seconds)(tasksExecuted += 1)
-      Delay.task(2.seconds)(tasksExecuted += 1)
-      Delay.task(3.seconds)(tasksExecuted += 1)
-      Delay.task(4.seconds)(tasksExecuted += 1)
-      Delay.task(5.seconds)(tasksExecuted += 1)
+      val scheduler = Scheduler.create()
+
+      scheduler.task(1.seconds)(tasksExecuted += 1)
+      scheduler.task(2.seconds)(tasksExecuted += 1)
+      scheduler.task(3.seconds)(tasksExecuted += 1)
+      scheduler.task(4.seconds)(tasksExecuted += 1)
+      scheduler.task(5.seconds)(tasksExecuted += 1)
 
       eventually(timeout(8.seconds)) {
         tasksExecuted shouldBe 5
       }
 
-      Delay.task(1.seconds)(tasksExecuted += 1).cancel()
-      Delay.task(1.seconds)(tasksExecuted += 1)
+      scheduler.task(1.seconds)(tasksExecuted += 1).cancel()
+      scheduler.task(1.seconds)(tasksExecuted += 1)
 
       Thread.sleep(5.seconds.toMillis)
 
       tasksExecuted shouldBe 6
+
+      scheduler.terminate()
     }
   }
 
@@ -80,7 +84,9 @@ class DelaySpec extends WordSpec with Matchers with Eventually {
     "run in future and return result" in {
       @volatile var tryThread = ""
 
-      Delay.futureFromIO(100.millisecond)(IO(tryThread = Thread.currentThread().getName))
+      val scheduler = Scheduler.create()
+
+      scheduler.futureFromIO(100.millisecond)(IO(tryThread = Thread.currentThread().getName))
 
       val currentThread = Thread.currentThread().getName
 
@@ -88,6 +94,8 @@ class DelaySpec extends WordSpec with Matchers with Eventually {
         tryThread should not be empty
         tryThread should not be currentThread
       }
+
+      scheduler.terminate()
     }
   }
 
@@ -95,7 +103,9 @@ class DelaySpec extends WordSpec with Matchers with Eventually {
     "run in future" in {
       @volatile var futureThread = ""
 
-      Delay.future(100.millisecond)(futureThread = Thread.currentThread().getName)
+      val scheduler = Scheduler.create()
+
+      scheduler.future(100.millisecond)(futureThread = Thread.currentThread().getName)
 
       val currentThread = Thread.currentThread().getName
 
@@ -103,6 +113,8 @@ class DelaySpec extends WordSpec with Matchers with Eventually {
         futureThread should not be empty
         futureThread should not be currentThread
       }
+
+      scheduler.terminate()
     }
   }
 }

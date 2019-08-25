@@ -57,7 +57,7 @@ import scala.util.Random
 
 trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Eventually {
 
-  BufferCleaner.initialiseCleaner
+  BufferCleaner.initialiseCleaner(TestData.scheduler)
 
   implicit val idGenerator = IDGenerator()
 

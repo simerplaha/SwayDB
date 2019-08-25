@@ -30,6 +30,8 @@ import scala.concurrent.duration._
 
 class ActorSpec extends WordSpec with Matchers {
 
+  import swaydb.core.TestData._
+
   "Actor" should {
 
     "process messages in order of arrival" in {

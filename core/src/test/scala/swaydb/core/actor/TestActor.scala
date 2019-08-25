@@ -26,7 +26,7 @@ import org.scalatest.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.Span._
 import swaydb.core.RunThis._
-import swaydb.core.util.Delay
+import swaydb.core.util.Scheduler
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -45,8 +45,8 @@ case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit](st
   override def submit(message: T): Unit =
     queue offer message
 
-  override def schedule(message: T, delay: FiniteDuration): TimerTask =
-    Delay.task(delay)(this ! message)
+  override def schedule(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask =
+    scheduler.task(delay)(this ! message)
 
   override def hasMessages: Boolean =
     !queue.isEmpty
@@ -69,9 +69,9 @@ case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit](st
       message.get.asInstanceOf[A]
     }
 
-  def expectNoMessage(after: FiniteDuration = 100.millisecond): Unit = {
-    Delay.future(after) {
+  def expectNoMessage(after: FiniteDuration = 100.millisecond)(implicit scheduler: Scheduler): Unit = {
+    scheduler.future(after) {
       queue.isEmpty shouldBe true
-    }(ec).await(after.plus(1.second))
+    }.await(after.plus(1.second))
   }
 }
