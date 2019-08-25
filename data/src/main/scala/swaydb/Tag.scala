@@ -19,7 +19,7 @@
 
 package swaydb
 
-import swaydb.IO.{ApiIO, ThrowableIO}
+import swaydb.IO.ApiIO
 
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -137,6 +137,22 @@ object Tag {
         a.toOption
 
       override def from[T](a: Option[T]): IO.ThrowableIO[T] =
+        IO(a.get)
+    }
+
+    implicit val throwableToUnit = new Tag.Converter[IO.ThrowableIO, IO.UnitIO] {
+      override def to[T](a: IO.ThrowableIO[T]): IO.UnitIO[T] =
+        IO[Unit, T](a.get)(ErrorHandler.Unit)
+
+      override def from[T](a: IO.UnitIO[T]): IO.ThrowableIO[T] =
+        IO(a.get)
+    }
+
+    implicit val throwableToNothing = new Tag.Converter[IO.ThrowableIO, IO.NothingIO] {
+      override def to[T](a: IO.ThrowableIO[T]): IO.NothingIO[T] =
+        IO[Nothing, T](a.get)(ErrorHandler.Nothing)
+
+      override def from[T](a: IO.NothingIO[T]): IO.ThrowableIO[T] =
         IO(a.get)
     }
   }
@@ -445,6 +461,10 @@ object Tag {
     }
 
   implicit val apiIO: Tag.Sync[IO.ApiIO] = throwableIO.toTag[IO.ApiIO]
+
+  implicit val unit: Tag.Sync[IO.UnitIO] = throwableIO.toTag[IO.UnitIO]
+
+  implicit val nothing: Tag.Sync[IO.UnitIO] = throwableIO.toTag[IO.UnitIO]
 
   implicit val tryTag: Tag.Sync[Try] = throwableIO.toTag[Try]
 
