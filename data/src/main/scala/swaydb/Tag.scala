@@ -41,6 +41,15 @@ sealed trait Tag[T[_]] {
   def collectFirst[A](previous: A, stream: swaydb.Stream[A, T])(condition: A => Boolean): T[Option[A]]
   def fromIO[E: ErrorHandler, A](a: IO[E, A]): T[A]
   def toTag[X[_]](implicit converter: Tag.Converter[T, X]): Tag[X]
+
+  /**
+   * For Async [[Tag]]s [[apply]] will always run asynchronously but to cover
+   * cases where the operation might already be executed [[point]] is used.
+   *
+   * @example All SwayDB writes occur synchronously using [[IO]]. Running completed [[IO]] in a [[Future]]
+   *          will have a performance cost. [[point]] is used to cover these cases and [[IO]]
+   *          types that are complete are directly converted to Future in current thread.
+   */
   def point[B](f: => T[B]): T[B] =
     flatMap[Unit, B](success(()))(_ => f)
 }
