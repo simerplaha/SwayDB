@@ -44,7 +44,7 @@ object Error {
   sealed trait API extends Error
 
   object Segment {
-    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.Segment] {
+    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.Segment] {
       override def toException(f: Error.Segment): Throwable =
         f.exception
 
@@ -69,7 +69,7 @@ object Error {
   }
 
   object Level {
-    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.Level] {
+    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.Level] {
       override def toException(f: Error.Level): Throwable =
         f.exception
 
@@ -94,7 +94,7 @@ object Error {
   }
 
   object Map {
-    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.Map] {
+    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.Map] {
       override def toException(f: Error.Map): Throwable =
         f.exception
 
@@ -119,7 +119,7 @@ object Error {
   }
 
   object Boot {
-    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.Boot] {
+    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.Boot] {
       override def toException(f: Error.Boot): Throwable =
         f.exception
 
@@ -144,7 +144,7 @@ object Error {
   }
 
   object Close {
-    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.Close] {
+    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.Close] {
       override def toException(f: Error.Close): Throwable =
         f.exception
 
@@ -169,7 +169,7 @@ object Error {
   }
 
   object Delete {
-    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.Delete] {
+    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.Delete] {
       override def toException(f: Error.Delete): Throwable =
         f.exception
 
@@ -194,7 +194,7 @@ object Error {
   }
 
   object API {
-    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.API] {
+    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.API] {
       override def toException(f: Error.API): Throwable =
         f.exception
 
@@ -219,7 +219,7 @@ object Error {
   }
 
   object IO {
-    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.IO] {
+    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.IO] {
       override def toException(f: Error.IO): Throwable =
         f.exception
 
@@ -416,9 +416,6 @@ object Error {
 
       override def fromException(e: Throwable): Error.Fatal =
         Error.Fatal(e)
-
-      override def reserve(f: Error.Fatal): Option[Reserve[Unit]] =
-        None
     }
   }
 

@@ -19,10 +19,8 @@
 
 package swaydb.data
 
-import swaydb.data.util.Futures
-
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Promise
 
 class Reserve[T](@volatile var info: Option[T],
                  private[data] val promises: ListBuffer[Promise[Unit]],

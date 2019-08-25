@@ -25,6 +25,10 @@ import swaydb.data.Reserve
 trait ErrorHandler[E] {
   def toException(f: E): Throwable
   def fromException(e: Throwable): E
+  def reserve(f: E): Option[Reserve[Unit]] = None
+}
+
+trait RecoverableErrorHandler[E] extends ErrorHandler[E] {
   def reserve(f: E): Option[Reserve[Unit]]
 }
 
@@ -50,15 +54,9 @@ object ErrorHandler extends LazyLogging {
 
     override def toException(f: Nothing): Throwable =
       new Exception("Nothing value.")
-
-    override def reserve(f: Nothing): Option[Reserve[Unit]] =
-      None
   }
 
   object Unit extends ErrorHandler[Unit] {
-    override def reserve(f: Unit): Option[Reserve[Unit]] =
-      None
-
     override def fromException(e: Throwable): Unit =
       throw new scala.Exception("Unit cannot be created from Exception.", e)
 
@@ -72,8 +70,5 @@ object ErrorHandler extends LazyLogging {
 
     override def toException(f: Throwable): Throwable =
       f
-
-    override def reserve(f: Throwable): Option[Reserve[Unit]] =
-      None
   }
 }
