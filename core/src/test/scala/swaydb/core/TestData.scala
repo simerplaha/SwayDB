@@ -47,7 +47,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
-import swaydb.core.util.{BlockCacheFileIDGenerator, Scheduler, UUIDUtil}
+import swaydb.core.util.{BlockCacheFileIDGenerator, Scheduler, UUIDs}
 import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}

@@ -21,7 +21,7 @@ package swaydb.core.io.file
 
 import swaydb.Error.IO.ErrorHandler
 import swaydb.core.actor.MemorySweeper
-import swaydb.core.util.JavaHashMap
+import swaydb.core.util.HashedMap
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
@@ -56,19 +56,19 @@ private[core] object BlockCache {
     new State(
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
-      map = JavaHashMap.concurrent[BlockCache.Key, Slice[Byte]]()
+      map = HashedMap.concurrent[BlockCache.Key, Slice[Byte]]()
     )
 
   def init(memorySweeper: MemorySweeper.Both) =
     new State(
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
-      map = JavaHashMap.concurrent[BlockCache.Key, Slice[Byte]]()
+      map = HashedMap.concurrent[BlockCache.Key, Slice[Byte]]()
     )
 
   class State(val blockSize: Int,
               val sweeper: MemorySweeper.Block,
-              private[BlockCache] val map: JavaHashMap.Concurrent[BlockCache.Key, Slice[Byte]]) {
+              private[BlockCache] val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]) {
     val blockSizeDouble: Double = blockSize
 
     def clear() =

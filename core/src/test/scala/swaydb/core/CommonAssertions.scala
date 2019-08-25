@@ -47,7 +47,7 @@ import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.merge.SegmentMerger
-import swaydb.core.util.CollectionUtil._
+import swaydb.core.util.Collections._
 import swaydb.core.util.{Benchmark, SkipList}
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}

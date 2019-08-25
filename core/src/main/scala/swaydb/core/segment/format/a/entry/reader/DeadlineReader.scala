@@ -24,7 +24,7 @@ import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
-import swaydb.core.util.TimeUtil._
+import swaydb.core.util.Times._
 import swaydb.data.slice.ReaderBase
 import swaydb.data.util.ByteSizeOf
 

@@ -19,25 +19,16 @@
 
 package swaydb.core.util
 
-import com.typesafe.scalalogging.LazyLogging
+import swaydb.data.slice.Slice
 
-object FunctionUtil extends LazyLogging {
+object UUIDs {
 
-  def safe[T](default: => T, function: => T): T =
-    try
-      function
-    catch {
-      case exception: Throwable =>
-        logger.error("Please make sure your functions do not throw exceptions. Using default value.", exception)
-        default
-    }
+  def randomId(): String =
+    java.util.UUID.randomUUID.toString
 
-  def safeBoolean[T](function: => Boolean): Boolean =
-    try
-      function
-    catch {
-      case exception: Throwable =>
-        logger.error("Please make sure your functions do not throw exceptions. Using default value 'false'.", exception)
-        false
-    }
+  def randomIdNoHyphen(): String =
+    randomId().replace("-", "")
+
+  def randomIdNoHyphenBytes(): Slice[Byte] =
+    Slice.writeString(randomIdNoHyphen())
 }

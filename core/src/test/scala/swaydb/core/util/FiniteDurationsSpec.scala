@@ -22,11 +22,11 @@ package swaydb.core.util
 import java.util.{Timer, TimerTask}
 
 import org.scalatest.{FlatSpec, Matchers}
-import swaydb.core.util.FiniteDurationUtil._
+import swaydb.core.util.FiniteDurations._
 
 import scala.concurrent.duration._
 
-class FiniteDurationUtilSpec extends FlatSpec with Matchers {
+class FiniteDurationsSpec extends FlatSpec with Matchers {
 
   it should "return duration as string" in {
     (1 to 100) foreach {
@@ -63,20 +63,20 @@ class FiniteDurationUtilSpec extends FlatSpec with Matchers {
   }
 
   it should "return None for empty deadlines" in {
-    FiniteDurationUtil.getNearestDeadline(None, None) shouldBe empty
+    FiniteDurations.getNearestDeadline(None, None) shouldBe empty
   }
 
   it should "return earliest deadline" in {
     val deadline1 = 10.seconds.fromNow
     val deadline2 = 20.seconds.fromNow
 
-    FiniteDurationUtil.getNearestDeadline(Some(deadline1), None) should contain(deadline1)
-    FiniteDurationUtil.getNearestDeadline(Some(deadline2), None) should contain(deadline2)
+    FiniteDurations.getNearestDeadline(Some(deadline1), None) should contain(deadline1)
+    FiniteDurations.getNearestDeadline(Some(deadline2), None) should contain(deadline2)
 
-    FiniteDurationUtil.getNearestDeadline(None, Some(deadline1)) should contain(deadline1)
-    FiniteDurationUtil.getNearestDeadline(None, Some(deadline2)) should contain(deadline2)
+    FiniteDurations.getNearestDeadline(None, Some(deadline1)) should contain(deadline1)
+    FiniteDurations.getNearestDeadline(None, Some(deadline2)) should contain(deadline2)
 
-    FiniteDurationUtil.getNearestDeadline(Some(deadline1), Some(deadline2)) should contain(deadline1)
-    FiniteDurationUtil.getNearestDeadline(Some(deadline2), Some(deadline1)) should contain(deadline1)
+    FiniteDurations.getNearestDeadline(Some(deadline1), Some(deadline2)) should contain(deadline1)
+    FiniteDurations.getNearestDeadline(Some(deadline2), Some(deadline1)) should contain(deadline1)
   }
 }

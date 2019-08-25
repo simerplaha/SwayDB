@@ -19,11 +19,25 @@
 
 package swaydb.core.util
 
-object NumberUtil {
+import com.typesafe.scalalogging.LazyLogging
 
-  def whenOrZero(condition: Boolean)(int: Int): Int =
-    if (condition)
-      int
-    else
-      0
+object Functions extends LazyLogging {
+
+  def safe[T](default: => T, function: => T): T =
+    try
+      function
+    catch {
+      case exception: Throwable =>
+        logger.error("Please make sure your functions do not throw exceptions. Using default value.", exception)
+        default
+    }
+
+  def safeBoolean[T](function: => Boolean): Boolean =
+    try
+      function
+    catch {
+      case exception: Throwable =>
+        logger.error("Please make sure your functions do not throw exceptions. Using default value 'false'.", exception)
+        false
+    }
 }

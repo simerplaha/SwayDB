@@ -26,8 +26,8 @@ import swaydb.IO._
 import swaydb.core.actor.WiredActor
 import swaydb.core.level.LevelRef
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.util.FiniteDurationUtil
-import swaydb.core.util.FiniteDurationUtil._
+import swaydb.core.util.FiniteDurations
+import swaydb.core.util.FiniteDurations._
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
 
@@ -137,13 +137,13 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
             waiting.listenerInitialised = true
           }
 
-          FiniteDurationUtil.getNearestDeadline(
+          FiniteDurations.getNearestDeadline(
             deadline = nearestDeadline,
             next = Some(timeout)
           )
 
         case (nearestDeadline, LevelCompactionState.Sleep(sleepDeadline, _, _)) =>
-          FiniteDurationUtil.getNearestDeadline(
+          FiniteDurations.getNearestDeadline(
             deadline = nearestDeadline,
             next = Some(sleepDeadline)
           )

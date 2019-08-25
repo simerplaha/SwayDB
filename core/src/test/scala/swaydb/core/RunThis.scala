@@ -20,7 +20,7 @@
 package swaydb.core
 
 import org.scalatest.concurrent.Eventually
-import swaydb.core.util.FiniteDurationUtil._
+import swaydb.core.util.FiniteDurations._
 
 import scala.concurrent.duration.{Deadline, FiniteDuration, _}
 import scala.concurrent.{Await, ExecutionContext, Future}

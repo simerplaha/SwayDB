@@ -36,8 +36,8 @@ import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.merge.SegmentMerger
-import swaydb.core.util.CollectionUtil._
-import swaydb.core.util.{BlockCacheFileIDGenerator, FiniteDurationUtil, IDGenerator, MinMax, SkipList}
+import swaydb.core.util.Collections._
+import swaydb.core.util.{BlockCacheFileIDGenerator, FiniteDurations, IDGenerator, MinMax, SkipList}
 import swaydb.data.MaxKey
 import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -790,16 +790,16 @@ private[core] object Segment extends LazyLogging {
                          next: KeyValue.ReadOnly): IO[swaydb.Error.Segment, Option[Deadline]] =
     next match {
       case readOnly: KeyValue.ReadOnly.Put =>
-        IO(FiniteDurationUtil.getNearestDeadline(deadline, readOnly.deadline))
+        IO(FiniteDurations.getNearestDeadline(deadline, readOnly.deadline))
 
       case readOnly: KeyValue.ReadOnly.Remove =>
-        IO(FiniteDurationUtil.getNearestDeadline(deadline, readOnly.deadline))
+        IO(FiniteDurations.getNearestDeadline(deadline, readOnly.deadline))
 
       case readOnly: KeyValue.ReadOnly.Update =>
-        IO(FiniteDurationUtil.getNearestDeadline(deadline, readOnly.deadline))
+        IO(FiniteDurations.getNearestDeadline(deadline, readOnly.deadline))
 
       case readOnly: KeyValue.ReadOnly.PendingApply =>
-        IO(FiniteDurationUtil.getNearestDeadline(deadline, readOnly.deadline))
+        IO(FiniteDurations.getNearestDeadline(deadline, readOnly.deadline))
 
       case _: KeyValue.ReadOnly.Function =>
         IO(deadline)
@@ -815,14 +815,14 @@ private[core] object Segment extends LazyLogging {
         }
 
       case group: KeyValue.ReadOnly.Group =>
-        IO(FiniteDurationUtil.getNearestDeadline(deadline, group.deadline))
+        IO(FiniteDurations.getNearestDeadline(deadline, group.deadline))
     }
 
   def getNearestDeadline(deadline: Option[Deadline],
                          keyValue: Transient): Option[Deadline] =
     keyValue match {
       case writeOnly: Transient.Fixed =>
-        FiniteDurationUtil.getNearestDeadline(deadline, writeOnly.deadline)
+        FiniteDurations.getNearestDeadline(deadline, writeOnly.deadline)
 
       case range: Transient.Range =>
         (range.fromValue, range.rangeValue) match {
@@ -835,7 +835,7 @@ private[core] object Segment extends LazyLogging {
         }
 
       case group: Transient.Group =>
-        FiniteDurationUtil.getNearestDeadline(deadline, group.deadline)
+        FiniteDurations.getNearestDeadline(deadline, group.deadline)
     }
 
   def getNearestDeadline(deadline: Option[Deadline],
@@ -845,20 +845,20 @@ private[core] object Segment extends LazyLogging {
         getNearestDeadline(deadline, rangeValue)
 
       case put: Value.Put =>
-        FiniteDurationUtil.getNearestDeadline(deadline, put.deadline)
+        FiniteDurations.getNearestDeadline(deadline, put.deadline)
     }
 
   def getNearestDeadline(deadline: Option[Deadline],
                          rangeValue: Value.RangeValue): Option[Deadline] =
     rangeValue match {
       case remove: Value.Remove =>
-        FiniteDurationUtil.getNearestDeadline(deadline, remove.deadline)
+        FiniteDurations.getNearestDeadline(deadline, remove.deadline)
       case update: Value.Update =>
-        FiniteDurationUtil.getNearestDeadline(deadline, update.deadline)
+        FiniteDurations.getNearestDeadline(deadline, update.deadline)
       case _: Value.Function =>
         deadline
       case pendingApply: Value.PendingApply =>
-        FiniteDurationUtil.getNearestDeadline(deadline, pendingApply.deadline)
+        FiniteDurations.getNearestDeadline(deadline, pendingApply.deadline)
     }
 
   def getNearestDeadline(previous: Option[Deadline],

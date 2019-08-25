@@ -30,7 +30,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.KeyMatcher.Result
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.util.{Bytes, FunctionUtil}
+import swaydb.core.util.{Bytes, Functions}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -75,9 +75,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
         prefixCompressionResetCount = enable.prefixCompression.resetCount max 0,
         //cannot normalise if prefix compression is enabled.
         normaliseIndex = enable.prefixCompression.resetCount <= 0 && enable.prefixCompression.normaliseIndexForBinarySearch,
-        ioStrategy = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
+        ioStrategy = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
         compressions =
-          FunctionUtil.safe(
+          Functions.safe(
             default = (_: UncompressedBlockInfo) => Seq.empty[CompressionInternal],
             function = enable.compressions(_: UncompressedBlockInfo) map CompressionInternal.apply
           )

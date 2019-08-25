@@ -26,7 +26,7 @@ import swaydb.IO._
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.{Bytes, FunctionUtil, MurmurHash3Generic, Options}
+import swaydb.core.util.{Bytes, Functions, MurmurHash3Generic, Options}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -60,10 +60,10 @@ private[core] object BloomFilterBlock extends LazyLogging {
           Config(
             falsePositiveRate = enable.falsePositiveRate,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
-            optimalMaxProbe = FunctionUtil.safe(probe => probe, enable.updateMaxProbe),
-            blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
+            optimalMaxProbe = Functions.safe(probe => probe, enable.updateMaxProbe),
+            blockIO = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
-              FunctionUtil.safe(
+              Functions.safe(
                 default = _ => Seq.empty[CompressionInternal],
                 function = enable.compression(_) map CompressionInternal.apply
               )

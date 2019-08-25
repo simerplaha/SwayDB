@@ -19,13 +19,11 @@
 
 package swaydb.core.util
 
-import swaydb.core.TestBase
+object Numbers {
 
-class UUIDUtilSpec extends TestBase {
-
-  "randomIdNoHyphen" should {
-    "return unique UUID without hyphens" in {
-      UUIDUtil.randomIdNoHyphen() should not include "-"
-    }
-  }
+  def whenOrZero(condition: Boolean)(int: Int): Int =
+    if (condition)
+      int
+    else
+      0
 }

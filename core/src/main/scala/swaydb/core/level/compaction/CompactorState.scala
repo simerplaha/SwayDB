@@ -25,7 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Tag
 import swaydb.core.actor.WiredActor
 import swaydb.core.level.LevelRef
-import swaydb.core.util.FiniteDurationUtil
+import swaydb.core.util.FiniteDurations
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable
@@ -61,7 +61,7 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
     else
       levels.foldLeft(LevelCompactionState.longSleep) {
         case (deadline, level) =>
-          FiniteDurationUtil.getNearestDeadline(
+          FiniteDurations.getNearestDeadline(
             Some(deadline),
             Some(level.nextCompactionDelay.fromNow)
           ) getOrElse deadline

@@ -19,16 +19,20 @@
 
 package swaydb.core.util
 
-import swaydb.data.slice.Slice
+import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 
-object UUIDUtil {
+private[core] object Exceptions extends LazyLogging {
 
-  def randomId(): String =
-    java.util.UUID.randomUUID.toString
+  def logFailure(message: => String, failure: IO.Failure[swaydb.Error, _]): Unit =
+    logFailure(message, failure.error)
 
-  def randomIdNoHyphen(): String =
-    randomId().replace("-", "")
+  def logFailure(message: => String, error: swaydb.Error): Unit =
+    error match {
+      case swaydb.Error.Fatal(exception) =>
+        logger.error(message, exception)
 
-  def randomIdNoHyphenBytes(): Slice[Byte] =
-    Slice.writeString(randomIdNoHyphen())
+      case _: swaydb.Error =>
+        if (logger.underlying.isTraceEnabled) logger.trace(message, error.exception)
+    }
 }

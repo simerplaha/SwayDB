@@ -20,12 +20,12 @@
 package swaydb.core.util
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.util.CollectionUtil._
+import swaydb.core.util.Collections._
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
-class CollectionUtilSpec extends WordSpec with Matchers {
+class CollectionsSpec extends WordSpec with Matchers {
 
   "foreachBreak" should {
     "exit on break" in {
@@ -140,10 +140,10 @@ class CollectionUtilSpec extends WordSpec with Matchers {
   }
 
   "groupedMergeSingles" in {
-    CollectionUtil.groupedMergeSingles(0, List(1, 2, 3)) shouldBe List(List(1, 2, 3))
-    CollectionUtil.groupedMergeSingles(1, List(1, 2, 3)) shouldBe List(List(1), List(2), List(3))
-    CollectionUtil.groupedMergeSingles(2, List(1, 2, 3)) shouldBe List(List(1, 2, 3))
-    CollectionUtil.groupedMergeSingles(3, List(1, 2, 3)) shouldBe List(List(1, 2, 3))
-    CollectionUtil.groupedMergeSingles(4, List(1, 2, 3)) shouldBe List(List(1, 2, 3))
+    Collections.groupedMergeSingles(0, List(1, 2, 3)) shouldBe List(List(1, 2, 3))
+    Collections.groupedMergeSingles(1, List(1, 2, 3)) shouldBe List(List(1), List(2), List(3))
+    Collections.groupedMergeSingles(2, List(1, 2, 3)) shouldBe List(List(1, 2, 3))
+    Collections.groupedMergeSingles(3, List(1, 2, 3)) shouldBe List(List(1, 2, 3))
+    Collections.groupedMergeSingles(4, List(1, 2, 3)) shouldBe List(List(1, 2, 3))
   }
 }

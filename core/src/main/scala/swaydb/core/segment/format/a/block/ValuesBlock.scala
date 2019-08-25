@@ -24,7 +24,7 @@ import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.{Bytes, FunctionUtil}
+import swaydb.core.util.{Bytes, Functions}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 
@@ -55,9 +55,9 @@ private[core] object ValuesBlock {
       Config(
         compressDuplicateValues = enable.compressDuplicateValues,
         compressDuplicateRangeValues = enable.compressDuplicateRangeValues,
-        blockIO = FunctionUtil.safe(IOStrategy.concurrentStoredIfCompressed, enable.ioStrategy),
+        blockIO = Functions.safe(IOStrategy.concurrentStoredIfCompressed, enable.ioStrategy),
         compressions =
-          FunctionUtil.safe(
+          Functions.safe(
             default = _ => Seq.empty[CompressionInternal],
             function = enable.compression(_) map CompressionInternal.apply
           )

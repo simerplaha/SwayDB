@@ -24,7 +24,7 @@ import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.{Bytes, FunctionUtil, MinMax, Options}
+import swaydb.core.util.{Bytes, Functions, MinMax, Options}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -66,9 +66,9 @@ private[core] object BinarySearchIndexBlock {
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectly,
             fullIndex = true,
-            blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
+            blockIO = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
-              FunctionUtil.safe(
+              Functions.safe(
                 default = _ => Seq.empty[CompressionInternal],
                 function = enable.compression(_) map CompressionInternal.apply
               )
@@ -80,9 +80,9 @@ private[core] object BinarySearchIndexBlock {
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectlyIfPreNormalised,
             fullIndex = false,
-            blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
+            blockIO = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
-              FunctionUtil.safe(
+              Functions.safe(
                 default = _ => Seq.empty[CompressionInternal],
                 function = enable.compression(_) map CompressionInternal.apply
               )

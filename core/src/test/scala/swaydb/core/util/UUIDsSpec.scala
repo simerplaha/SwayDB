@@ -19,20 +19,13 @@
 
 package swaydb.core.util
 
-import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
+import swaydb.core.TestBase
 
-private[core] object ExceptionUtil extends LazyLogging {
+class UUIDsSpec extends TestBase {
 
-  def logFailure(message: => String, failure: IO.Failure[swaydb.Error, _]): Unit =
-    logFailure(message, failure.error)
-
-  def logFailure(message: => String, error: swaydb.Error): Unit =
-    error match {
-      case swaydb.Error.Fatal(exception) =>
-        logger.error(message, exception)
-
-      case _: swaydb.Error =>
-        if (logger.underlying.isTraceEnabled) logger.trace(message, error.exception)
+  "randomIdNoHyphen" should {
+    "return unique UUID without hyphens" in {
+      UUIDs.randomIdNoHyphen() should not include "-"
     }
+  }
 }

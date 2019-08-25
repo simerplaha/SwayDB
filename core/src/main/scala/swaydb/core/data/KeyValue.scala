@@ -31,7 +31,7 @@ import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReade
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.{Segment, SegmentCache}
-import swaydb.core.util.CollectionUtil._
+import swaydb.core.util.Collections._
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder

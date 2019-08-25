@@ -26,7 +26,7 @@ import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.Segment.getNearestDeadline
 import swaydb.core.segment.format.a.block.SegmentIO
-import swaydb.core.util.{FiniteDurationUtil, MinMax}
+import swaydb.core.util.{FiniteDurations, MinMax}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -64,7 +64,7 @@ private[core] object DeadlineAndFunctionId {
       case readOnly: KeyValue.ReadOnly.Put =>
         IO {
           DeadlineAndFunctionId(
-            deadline = FiniteDurationUtil.getNearestDeadline(deadline, readOnly.deadline),
+            deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
             minMaxFunctionId = minMaxFunctionId
           )
         }
@@ -72,7 +72,7 @@ private[core] object DeadlineAndFunctionId {
       case readOnly: KeyValue.ReadOnly.Remove =>
         IO {
           DeadlineAndFunctionId(
-            deadline = FiniteDurationUtil.getNearestDeadline(deadline, readOnly.deadline),
+            deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
             minMaxFunctionId = minMaxFunctionId
           )
         }
@@ -80,7 +80,7 @@ private[core] object DeadlineAndFunctionId {
       case readOnly: KeyValue.ReadOnly.Update =>
         IO {
           DeadlineAndFunctionId(
-            deadline = FiniteDurationUtil.getNearestDeadline(deadline, readOnly.deadline),
+            deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
             minMaxFunctionId = minMaxFunctionId
           )
         }
@@ -89,7 +89,7 @@ private[core] object DeadlineAndFunctionId {
         readOnly.getOrFetchApplies map {
           applies =>
             DeadlineAndFunctionId(
-              deadline = FiniteDurationUtil.getNearestDeadline(deadline, readOnly.deadline),
+              deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
               minMaxFunctionId = MinMax.minMaxFunction(applies, minMaxFunctionId)
             )
         }
@@ -120,7 +120,7 @@ private[core] object DeadlineAndFunctionId {
         }
 
       case group: KeyValue.ReadOnly.Group =>
-        val nextDeadline = FiniteDurationUtil.getNearestDeadline(deadline, group.deadline)
+        val nextDeadline = FiniteDurations.getNearestDeadline(deadline, group.deadline)
 
         group
           .segment

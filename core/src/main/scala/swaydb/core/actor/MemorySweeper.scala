@@ -24,7 +24,7 @@ import swaydb.Tagged
 import swaydb.core.actor.Command.WeighedKeyValue
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.io.file.BlockCache
-import swaydb.core.util.{JavaHashMap, SkipList}
+import swaydb.core.util.{HashedMap, SkipList}
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -48,7 +48,7 @@ private[core] object Command {
 
   case class Block(key: BlockCache.Key,
                    valueSize: Long,
-                   map: JavaHashMap.Concurrent[BlockCache.Key, Slice[Byte]]) extends Command
+                   map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]) extends Command
 }
 
 private[core] sealed trait MemorySweeper extends Tagged[MemorySweeper.Enabled, Option]
@@ -73,7 +73,7 @@ private[core] object MemorySweeper {
 
     def add(key: BlockCache.Key,
             value: Slice[Byte],
-            map: JavaHashMap.Concurrent[BlockCache.Key, Slice[Byte]]): Unit =
+            map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]): Unit =
       queue ! Command.Block(key, value.size, map)
   }
 

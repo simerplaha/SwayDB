@@ -104,50 +104,50 @@ private[swaydb] object Actor {
 
   def fromConfig[T](config: ActorConfig)(execution: (T, Actor[T, Unit]) => Unit): ActorRef[T] =
     config match {
-      case actorQueue: ActorConfig.Basic =>
+      case config: ActorConfig.Basic =>
         apply[T](
-          maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce
-        )(execution)(actorQueue.ec)
+          maxMessagesToProcessAtOnce = config.maxMessagesToProcessAtOnce
+        )(execution)(config.ec)
 
-      case actorQueue: ActorConfig.Timer =>
+      case config: ActorConfig.Timer =>
         timer(
-          maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce,
-          overflowAllowed = actorQueue.maxOverflow,
-          fixedDelay = actorQueue.delay
-        )(execution)(Scheduler()(actorQueue.ec))
+          maxMessagesToProcessAtOnce = config.maxMessagesToProcessAtOnce,
+          overflowAllowed = config.maxOverflow,
+          fixedDelay = config.delay
+        )(execution)(Scheduler()(config.ec))
 
-      case actorQueue: ActorConfig.TimeLoop =>
+      case config: ActorConfig.TimeLoop =>
         timerLoop(
-          initialDelay = actorQueue.delay,
-          maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce,
-          overflowAllowed = actorQueue.maxOverflow
-        )(execution)(Scheduler()(actorQueue.ec))
+          initialDelay = config.delay,
+          maxMessagesToProcessAtOnce = config.maxMessagesToProcessAtOnce,
+          overflowAllowed = config.maxOverflow
+        )(execution)(Scheduler()(config.ec))
     }
 
   def fromConfig[T, S](config: ActorConfig,
                        state: S)(execution: (T, Actor[T, S]) => Unit): ActorRef[T] =
     config match {
-      case actorQueue: ActorConfig.Basic =>
+      case config: ActorConfig.Basic =>
         apply[T, S](
           state = state,
-          maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce
-        )(execution)(actorQueue.ec)
+          maxMessagesToProcessAtOnce = config.maxMessagesToProcessAtOnce
+        )(execution)(config.ec)
 
-      case actorQueue: ActorConfig.Timer =>
+      case config: ActorConfig.Timer =>
         timer[T, S](
           state = state,
-          maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce,
-          overflowAllowed = actorQueue.maxOverflow,
-          fixedDelay = actorQueue.delay
-        )(execution)(Scheduler()(actorQueue.ec))
+          maxMessagesToProcessAtOnce = config.maxMessagesToProcessAtOnce,
+          overflowAllowed = config.maxOverflow,
+          fixedDelay = config.delay
+        )(execution)(Scheduler()(config.ec))
 
-      case actorQueue: ActorConfig.TimeLoop =>
+      case config: ActorConfig.TimeLoop =>
         timerLoop[T, S](
           state = state,
-          maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce,
-          overflowAllowed = actorQueue.maxOverflow,
-          initialDelay = actorQueue.delay
-        )(execution)(Scheduler()(actorQueue.ec))
+          maxMessagesToProcessAtOnce = config.maxMessagesToProcessAtOnce,
+          overflowAllowed = config.maxOverflow,
+          initialDelay = config.delay
+        )(execution)(Scheduler()(config.ec))
     }
 
   /**

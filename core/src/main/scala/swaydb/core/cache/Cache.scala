@@ -22,7 +22,7 @@ package swaydb.core.cache
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.FunctionUtil
+import swaydb.core.util.Functions
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
 import swaydb.{ErrorHandler, IO}
@@ -124,7 +124,7 @@ private[core] object Cache {
     new BlockIOCache[E, I, O](
       Cache.noIO[I, Cache[E, I, O]](synchronised = true, stored = true, initial = None) {
         i =>
-          val ioStrategy = FunctionUtil.safe((_: I) => IOStrategy.SynchronisedIO(false), strategy)(i)
+          val ioStrategy = Functions.safe((_: I) => IOStrategy.SynchronisedIO(false), strategy)(i)
           Cache.io[E, ER, I, O](
             strategy = ioStrategy,
             reserveError = reserveError,

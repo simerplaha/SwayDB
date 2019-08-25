@@ -40,8 +40,8 @@ import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.{Segment, SegmentAssigner}
-import swaydb.core.util.CollectionUtil._
-import swaydb.core.util.ExceptionUtil._
+import swaydb.core.util.Collections._
+import swaydb.core.util.Exceptions._
 import swaydb.core.util.{MinMax, _}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.Dir
@@ -1380,7 +1380,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .exists {
         segment =>
           Level.shouldCollapse(self, segment) ||
-            FiniteDurationUtil.getNearestDeadline(None, segment.nearestExpiryDeadline).exists(_.isOverdue())
+            FiniteDurations.getNearestDeadline(None, segment.nearestExpiryDeadline).exists(_.isOverdue())
       }
 
   def hasKeyValuesToExpire: Boolean =

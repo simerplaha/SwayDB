@@ -20,12 +20,12 @@
 package swaydb.core.util
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.util.TimeUtil._
+import swaydb.core.util.Times._
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration._
 
-class TimeUtilSpec extends WordSpec with Matchers {
+class TimesSpec extends WordSpec with Matchers {
 
   "toNanos" should {
     "convert deadline to nanos" in {

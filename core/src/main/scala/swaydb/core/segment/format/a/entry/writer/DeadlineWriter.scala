@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.entry.writer
 import swaydb.core.segment.format.a.entry.id.BaseEntryId.DeadlineId
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
 import swaydb.core.util.Bytes
-import swaydb.core.util.TimeUtil._
+import swaydb.core.util.Times._
 import swaydb.data.slice.Slice
 import swaydb.core.util.Options._
 

@@ -24,8 +24,8 @@ import swaydb.Error.Segment.ErrorHandler
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.NumberUtil._
-import swaydb.core.util.{Bytes, CRC32, FunctionUtil}
+import swaydb.core.util.Numbers._
+import swaydb.core.util.{Bytes, CRC32, Functions}
 import swaydb.data.config.{IOAction, IOStrategy, RandomKeyIndex, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -74,10 +74,10 @@ private[core] object HashIndexBlock extends LazyLogging {
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             minimumNumberOfHits = enable.minimumNumberOfHits,
             copyIndex = enable.copyKeys,
-            allocateSpace = FunctionUtil.safe(_.requiredSpace, enable.allocateSpace),
-            blockIO = FunctionUtil.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
+            allocateSpace = Functions.safe(_.requiredSpace, enable.allocateSpace),
+            blockIO = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
-              FunctionUtil.safe(
+              Functions.safe(
                 default = _ => Seq.empty[CompressionInternal],
                 function = enable.compression(_) map CompressionInternal.apply
               )
