@@ -173,13 +173,13 @@ object SegmentFooterBlock {
       val footerBytes = fullFooterBytes.moveTo(fullFooterBytes.size.get - footerSize).readRemaining().get
       val actualCRC = CRC32.forBytes(footerBytes dropRight ByteSizeOf.long) //drop crc bytes.
       if (expectedCRC != actualCRC) {
-        IO.Failure(swaydb.Error.DataAccess(s"Corrupted Segment: CRC Check failed. $expectedCRC != $actualCRC", new Exception("CRC check failed.")))
+        IO.Failure(swaydb.Error.DataAccess(s"Corrupted Segment: CRC Check failed. $expectedCRC != $actualCRC", new Exception("CRC check failed.")): swaydb.Error.Segment)
       } else {
         val footerReader = Reader(footerBytes)
         val formatId = footerReader.readIntUnsigned().get
         if (formatId != SegmentBlock.formatId) {
           val message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}"
-          IO.Failure(swaydb.Error.DataAccess(message = message, new Exception(message)))
+          IO.Failure(swaydb.Error.DataAccess(message = message, new Exception(message)): swaydb.Error.Segment)
         } else {
           val createdInLevel = footerReader.readIntUnsigned().get
           val numberOfGroups = footerReader.readIntUnsigned().get
@@ -258,7 +258,7 @@ object SegmentFooterBlock {
       }
     } catch {
       case exception: Throwable =>
-        IO.Failure(swaydb.Error.DataAccess(s"Corrupted Segment", exception))
+        IO.Failure(swaydb.Error.DataAccess(s"Corrupted Segment", exception): swaydb.Error.Segment)
     }
 
   implicit object SegmentFooterBlockOps extends BlockOps[SegmentFooterBlock.Offset, SegmentFooterBlock] {

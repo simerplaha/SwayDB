@@ -89,7 +89,7 @@ private[core] object FunctionMerger {
               }
 
             case None =>
-              IO.Failure(swaydb.Error.FunctionNotFound(function))
+              IO.Failure[swaydb.Error.Segment, ReadOnly.Fixed](swaydb.Error.FunctionNotFound(function))
           }
       }
 
@@ -179,7 +179,7 @@ private[core] object FunctionMerger {
               }
 
             case None =>
-              IO.Failure(swaydb.Error.FunctionNotFound(function))
+              IO.Failure[swaydb.Error.Segment, ReadOnly.Fixed](swaydb.Error.FunctionNotFound(function))
           }
       }
     else
@@ -238,7 +238,7 @@ private[core] object FunctionMerger {
                   }
 
                 case None =>
-                  IO.Failure(swaydb.Error.FunctionNotFound(function))
+                  IO.Failure[swaydb.Error.Segment, ReadOnly.Fixed](swaydb.Error.FunctionNotFound(function))
               }
           }
       }

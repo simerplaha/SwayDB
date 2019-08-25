@@ -22,10 +22,10 @@ package swaydb
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.Reserve
 
-trait ErrorHandler[-E] {
-  def toException(e: E): Throwable
-  def fromException[F <: E](e: Throwable): F
-  def reserve(e: E): Option[Reserve[Unit]]
+trait ErrorHandler[+E] {
+  def toException[F >: E](f: F): Throwable
+  def fromException(e: Throwable): E
+  def reserve[F >: E](f: F): Option[Reserve[Unit]]
 }
 
 object ErrorHandler extends LazyLogging {
@@ -45,20 +45,20 @@ object ErrorHandler extends LazyLogging {
     }
 
   object Nothing extends ErrorHandler[Nothing] {
-    override def toException(e: Nothing): Throwable = new Exception("Nothing value.")
-    override def fromException[F <: Nothing](e: Throwable): F = throw new scala.Exception("Exception cannot be created from Nothing.", e)
-    override def reserve(e: Nothing): Option[Reserve[Unit]] = None
+    override def fromException(e: Throwable): Nothing = throw new scala.Exception("Nothing cannot be created from Exception.", e)
+    override def toException[F >: Nothing](f: F): Throwable = new Exception("Nothing value.")
+    override def reserve[F >: Nothing](f: F): Option[Reserve[Unit]] = None
   }
 
   object Unit extends ErrorHandler[Unit] {
-    override def toException(e: Unit): Throwable = new Exception("Unit value.")
-    override def fromException[F <: Unit](e: Throwable): F = ().asInstanceOf[F]
-    override def reserve(e: Unit): Option[Reserve[Unit]] = None
+    override def reserve[F >: Unit](f: F): Option[Reserve[Unit]] = None
+    override def fromException(e: Throwable): Unit = throw new scala.Exception("Unit cannot be created from Exception.", e)
+    override def toException[F >: Unit](f: F): Throwable = new Exception("Unit value.")
   }
 
   implicit object Throwable extends ErrorHandler[Throwable] {
-    override def toException(e: Throwable): Throwable = e
-    override def fromException[F <: Throwable](e: Throwable): F = e.asInstanceOf[F]
-    override def reserve(e: Throwable): Option[Reserve[Unit]] = None
+    override def fromException(e: Throwable): Throwable = e
+    override def toException[F >: Throwable](f: F): Throwable = f.asInstanceOf[Throwable]
+    override def reserve[F >: Throwable](f: F): Option[Reserve[Unit]] = None
   }
 }

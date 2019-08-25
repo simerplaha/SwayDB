@@ -34,21 +34,22 @@ protected sealed trait Error {
 
 object Error {
 
-  private[Error] trait BaseErrorHandler[E <: swaydb.Error] extends ErrorHandler[E] {
-    override def toException(e: E): Throwable =
-      e.exception
+  private[Error] sealed trait BaseErrorHandler[E <: swaydb.Error] extends ErrorHandler[E] {
 
-    override def fromException[F <: E](e: Throwable): F =
+    override def toException[F >: E](f: F): Throwable =
+      f.asInstanceOf[swaydb.Error].exception
+
+    override def fromException(e: Throwable): E =
       Error(e) match {
         case error: E =>
-          error.asInstanceOf[F]
+          error
 
         case otherError: Error =>
-          Error.Fatal(otherError.exception).asInstanceOf[F]
+          Error.Fatal(otherError.exception).asInstanceOf[E]
       }
 
-    override def reserve(e: E): Option[Reserve[Unit]] =
-      e match {
+    override def reserve[F >: E](f: F): Option[Reserve[Unit]] =
+      f match {
         case recoverable: Error.Recoverable =>
           Some(recoverable.reserve)
 
@@ -204,9 +205,9 @@ object Error {
   }
 
   /**
-    * This error can also be turned into Busy and LevelActor can use it to listen to when
-    * there are no more overlapping Segments.
-    */
+   * This error can also be turned into Busy and LevelActor can use it to listen to when
+   * there are no more overlapping Segments.
+   */
   case object OverlappingPushSegment extends Error.Level {
     override def exception: Throwable = Exception.OverlappingPushSegment
   }
@@ -256,11 +257,11 @@ object Error {
   }
 
   /**
-    * Error that are not known and indicate something unexpected went wrong like a file corruption.
-    *
-    * Pre-cautions are implemented in place to even recover from these failures using tools like AppendixRepairer.
-    * This Error is not expected to occur on healthy databases.
-    */
+   * Error that are not known and indicate something unexpected went wrong like a file corruption.
+   *
+   * Pre-cautions are implemented in place to even recover from these failures using tools like AppendixRepairer.
+   * This Error is not expected to occur on healthy databases.
+   */
   object Fatal {
     def apply(message: String): Fatal =
       new Fatal(new scala.Exception(message))

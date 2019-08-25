@@ -141,6 +141,6 @@ object RangeValueId {
 
   def apply(id: Int): IO[swaydb.Error.Fatal, RangeValueId] =
     ids.get(id)
-      .map(IO.Success(_))
+      .map(IO.Success[swaydb.Error.Fatal, RangeValueId](_))
       .getOrElse(IO.failed(s"Invalid ${this.getClass.getSimpleName}: $id"))
 }

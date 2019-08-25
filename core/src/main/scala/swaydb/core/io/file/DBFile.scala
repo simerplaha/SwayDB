@@ -127,7 +127,7 @@ object DBFile extends LazyLogging {
                   checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                                blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
     if (checkExists && IOEffect.notExists(path))
-      IO.Failure(swaydb.Error.NoSuchFile(path))
+      IO.Failure[swaydb.Error.IO, DBFile](swaydb.Error.NoSuchFile(path))
     else
       IO {
         new DBFile(
@@ -208,7 +208,7 @@ object DBFile extends LazyLogging {
                checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                             blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
     if (checkExists && IOEffect.notExists(path))
-      IO.Failure(swaydb.Error.NoSuchFile(path))
+      IO.Failure[swaydb.Error.IO, DBFile](swaydb.Error.NoSuchFile(path))
     else
       IO(
         new DBFile(

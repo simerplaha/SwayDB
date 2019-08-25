@@ -378,7 +378,7 @@ object IO {
 
     //Deferred instance that will handle the outcome of the Future
     val recoverableDeferred =
-      IO.Deferred[swaydb.Error.Recoverable, A](
+      IO.Deferred[swaydb.Error.Segment, A](
         value = deferredValue,
         error = error
       )
@@ -399,10 +399,10 @@ object IO {
 
     val maxRecoveriesBeforeWarn = 5
 
-    val none = IO.Deferred(None, swaydb.Error.ReservedResource(Reserve(name = "Deferred.none")))
-    val done = IO.Deferred(IO.Done, swaydb.Error.ReservedResource(Reserve(name = "Deferred.done")))
-    val unit = IO.Deferred((), swaydb.Error.ReservedResource(Reserve(name = "Deferred.unit")))
-    val zero = IO.Deferred(0, swaydb.Error.ReservedResource(Reserve(name = "Deferred.zero")))
+    val none: IO.Deferred[Nothing, None.type] = new IO.Deferred[Nothing, None.type](() => None, None)(swaydb.ErrorHandler.Nothing)
+    val done: IO.Deferred[Nothing, Done] = new IO.Deferred[Nothing, Done](() => Done, None)(swaydb.ErrorHandler.Nothing)
+    val unit: IO.Deferred[Nothing, Unit] = new IO.Deferred[Nothing, Unit](() => (), None)(swaydb.ErrorHandler.Nothing)
+    val zero: IO.Deferred[Nothing, Int] = new IO.Deferred[Nothing, Int](() => 0, None)(swaydb.ErrorHandler.Nothing)
 
     @inline final def apply[E: ErrorHandler, A](value: => A): IO.Deferred[E, A] =
       new Deferred(() => value, None)

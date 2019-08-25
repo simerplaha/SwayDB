@@ -89,7 +89,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
               throw error.exception
             }
 
-          testFuture(future, IO.Failure(error))
+          testFuture(future, IO.Failure(error: swaydb.Error.IO))
       }
     }
 
@@ -185,8 +185,8 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
 
       doAssert(IO.Deferred[swaydb.Error.Segment, Int](throw unknownError.exception))
       doAssert(IO.Deferred(throw unknownError.exception, unknownError)) //is not reserved Error
-      doAssert(IO.Deferred(throw unknownError.exception, recoverableError))
-      doAssert(IO.Deferred(if (Random.nextBoolean()) throw recoverableError.exception else throw unknownError.exception, recoverableError))
+      doAssert(IO.Deferred(throw unknownError.exception, recoverableError: swaydb.Error.IO))
+      doAssert(IO.Deferred(if (Random.nextBoolean()) throw recoverableError.exception else throw unknownError.exception, recoverableError: swaydb.Error.IO))
       doAssert(IO.Deferred(() => throw unknownError.exception, Some(unknownError)))
     }
   }
@@ -309,7 +309,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
       var throwError: Option[Error] = Option(unknownError)
 
       val deferred: Deferred[Error.Segment, Int] =
-        IO.Deferred(value1()) flatMap {
+        IO.Deferred[swaydb.Error.Segment, Int](value1()) flatMap {
           int =>
             int shouldBe 1
             secondDeferredCache flatMap {
@@ -353,7 +353,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
 
   "flatMapIO" when {
     "successful deferred and IO" in {
-      val deferred = IO.Deferred(10)
+      val deferred = IO.Deferred[swaydb.Error.Segment, Int](10)
 
       deferred.isComplete shouldBe false
       deferred.isReady shouldBe true
@@ -372,7 +372,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
     }
 
     "successful deferred and failed IO" in {
-      val deferred = IO.Deferred(10)
+      val deferred = IO.Deferred[swaydb.Error.Segment, Int](10)
 
       deferred.isComplete shouldBe false
       deferred.isReady shouldBe true
@@ -541,7 +541,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
                     throw unknownError.exception
                 }
             }
-        } recoverWith[Error.Segment, Int] {
+        } recoverWith {
           case error: Error.Segment =>
             error shouldBe unknownError
             IO.Deferred(1)
@@ -585,7 +585,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
                     throw unknownError.exception
                 }
             }
-        } recoverWith[Error.Segment, Int] {
+        } recoverWith {
           case error: Error.Segment =>
             error shouldBe unknownError
             recoveredDeferred
@@ -687,7 +687,7 @@ class IODeferredSpec extends WordSpec with Matchers with Eventually with MockFac
               }
             }
           else
-            IO.Deferred(1)
+            IO.Deferred[swaydb.Error.Segment, Int](1)
       }
 
     val flattenedDefers =

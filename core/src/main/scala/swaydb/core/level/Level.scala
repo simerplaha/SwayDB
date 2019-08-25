@@ -151,7 +151,7 @@ private[core] object Level extends LazyLogging {
                   dropCorruptedTailEntries = false
                 ).map(_.item) recoverWith {
                   case error =>
-                    IO.Failure(ErrorHandler.fromException[swaydb.Error.Segment](error.exception))
+                    IO.Failure(ErrorHandler.fromException(error.exception))
                 }
               }
 
@@ -913,7 +913,7 @@ private[core] case class Level(dirs: Seq[Dir],
                   IO.zero
               }
         }
-    } getOrElse IO.Failure(swaydb.Error.NoSegmentsRemoved)
+    } getOrElse IO.Failure[swaydb.Error.Level, Int](swaydb.Error.NoSegmentsRemoved)
   }
 
   def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Deferred[swaydb.Error.Level, Int] = {
@@ -1003,7 +1003,7 @@ private[core] case class Level(dirs: Seq[Dir],
         logger.trace(s"{}: Assigned segments {} for {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
         if (assignments.isEmpty) {
           logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", paths.head, keyValues.size)
-          IO.Failure(swaydb.Error.MergeKeyValuesWithoutTargetSegment(keyValues.size))
+          IO.Failure[swaydb.Error.Level, Unit](swaydb.Error.MergeKeyValuesWithoutTargetSegment(keyValues.size))
         } else {
           logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
           putAssignedKeyValues(assignments) flatMap {

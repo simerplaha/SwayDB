@@ -97,7 +97,7 @@ private[segment] case class MemorySegment(path: Path,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                   groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Slice[Segment]] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       getAll() flatMap {
         currentKeyValues =>
@@ -150,7 +150,7 @@ private[segment] case class MemorySegment(path: Path,
                        targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                       groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Slice[Segment]] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       getAll() flatMap {
         currentKeyValues =>
@@ -210,7 +210,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       mightContainKey(key, rangeCheck = true) flatMap {
         mightContain =>
@@ -276,7 +276,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def lower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       skipList.lower(key) map {
         case response: Memory.SegmentResponse =>
@@ -314,7 +314,7 @@ private[segment] case class MemorySegment(path: Path,
 
   def floorHigherHint(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       hasPut map {
         hasPut =>
@@ -331,7 +331,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def higher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else if (_hasRange || _hasGroup)
       skipList.floor(key) map {
         case floorRange: Memory.Range if floorRange contains key =>
@@ -363,7 +363,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       IO {
         val slice = addTo getOrElse Slice.create[KeyValue.ReadOnly](skipList.size)
@@ -380,7 +380,7 @@ private[segment] case class MemorySegment(path: Path,
     //cache should not be cleared.
     logger.trace(s"{}: DELETING FILE", path)
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       IO.Success {
         deleted = true
@@ -392,7 +392,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def getBloomFilterKeyValueCount(): IO[swaydb.Error.Segment, Int] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       skipList.values().asScala.foldLeftIO(0) {
         case (count, keyValue) =>
@@ -407,7 +407,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def getHeadKeyValueCount(): IO[swaydb.Error.Segment, Int] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path))
+      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       IO.Success(skipList.size)
 

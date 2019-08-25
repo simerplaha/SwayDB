@@ -21,7 +21,6 @@ package swaydb.core.cache
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -210,6 +209,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
     "synchronised and stored" should {
       "not allow concurrent modifications" in {
         val value = randomInt()
+        implicit val exception = swaydb.ErrorHandler.Throwable
 
         val mockValueFunction = mockFunction[Int]
         mockValueFunction expects() returning value //this function is only invoked once.
@@ -246,6 +246,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
     "synchronised is false" should {
       "allow concurrent modifications" in {
         val value = Random.nextInt()
+        implicit val exception = swaydb.ErrorHandler.Throwable
 
         val mockValueFunction = mockFunction[Int]
         mockValueFunction expects() returning value repeat (2 to 100) //this function is invoked more than once.

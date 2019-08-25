@@ -52,7 +52,7 @@ private[file] object ChannelFile {
         )
       }
     else
-      IO.Failure(swaydb.Error.NoSuchFile(path))
+      IO.Failure[swaydb.Error.IO, ChannelFile](swaydb.Error.NoSuchFile(path))
 }
 
 private[file] class ChannelFile(val path: Path,

@@ -92,17 +92,17 @@ class IOFailureSpec extends WordSpec with Matchers {
   }
 
   "recoverWith failure" in {
-    IO.Failure(error) recoverWith {
+    IO.Failure(error: swaydb.Error.IO) recoverWith {
       case error =>
         error shouldBe this.error
-        IO.Failure(otherError)
-    } shouldBe IO.Failure(otherError)
+        IO.Failure(otherError: swaydb.Error.IO)
+    } shouldBe IO.Failure(otherError: swaydb.Error.IO)
 
     IO.Failure(error) recoverWith {
       case error =>
         error shouldBe this.error
         throw otherError.exception
-    } shouldBe IO.Failure(otherError)
+    } shouldBe IO.Failure(otherError: swaydb.Error.IO)
   }
 
   "failed" in {

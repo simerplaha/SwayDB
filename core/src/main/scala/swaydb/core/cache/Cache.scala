@@ -276,7 +276,7 @@ private class ReservedIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable,
         finally
           Reserve.setFree(error.reserve)
       else
-        IO.Failure(error)
+        IO.Failure[E, B](error)
     }
 
   override def isCached: Boolean =
