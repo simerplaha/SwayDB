@@ -332,7 +332,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
                             throw error.exception
                         } getOrElse {
                           //if there is not error succeed.
-                          IO.Defer(int + 1)
+                          IO.Defer[swaydb.Error.Segment, Int](int + 1)
                         }
                     }
                 }
@@ -362,7 +362,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
         deferred flatMapIO {
           result =>
             result shouldBe 10
-            IO.Success(result + 1)
+            IO.Success[swaydb.Error.Segment, Int](result + 1)
         }
 
       ioDeferred.isComplete shouldBe false
@@ -394,7 +394,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
     "failed non-recoverable deferred and successful IO" in {
       val failure = IO.failed("Kaboom!")
-      val deferred: Defer[Error.Segment, Int] = IO.Defer(throw failure.exception)
+      val deferred: Defer[Error.Segment, Int] = IO.Defer[swaydb.Error.Segment, Int](throw failure.exception)
 
       deferred.isComplete shouldBe false
       deferred.isReady shouldBe true
@@ -417,7 +417,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
           var errorToUse = Option(recoverableError)
 
           val deferred: Defer[Error.Segment, Int] =
-            IO.Defer {
+            IO.Defer[swaydb.Error.Segment, Int] {
               errorToUse map {
                 error =>
                   //first time around throw the recoverable error and then no error.
@@ -435,7 +435,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
             deferred flatMapIO {
               int =>
                 int shouldBe 10
-                IO.Success(int + 1)
+                IO.Success[swaydb.Error.Segment, Int](int + 1)
             }
 
           ioDeferred.isComplete shouldBe false
@@ -448,6 +448,8 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
   "recover" when {
     "non-recoverable failure" in {
+      import swaydb.Error.Segment.ErrorHandler
+
       val deferred =
         IO.Defer[Error.Segment, Int](1) flatMap {
           i =>
@@ -469,6 +471,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
     "recoverable failure" in {
       @volatile var failureCount = 0
+      import swaydb.Error.Segment.ErrorHandler
 
       def deferred =
         IO.Defer[Error.Segment, Int](1) flatMap {
@@ -499,6 +502,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
     "recoverable failure with non-recoverable failure result" in {
       @volatile var failureCount = 0
+      import swaydb.Error.Segment.ErrorHandler
 
       def deferred =
         IO.Defer[Error.Segment, Int](1) flatMap {
@@ -531,6 +535,8 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
   "recoverWith" when {
     "non-recoverable failure" in {
+      import swaydb.Error.Segment.ErrorHandler
+
       def deferred =
         IO.Defer[Error.Segment, Int](1) flatMap {
           i =>
@@ -552,6 +558,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
     }
 
     "non-recoverable failure when recoverWith result in recoverable Failure" in {
+      import swaydb.Error.Segment.ErrorHandler
 
       @volatile var failureCount = 0
 
@@ -596,6 +603,8 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
     }
 
     "recoverable failure" in {
+      import swaydb.Error.Segment.ErrorHandler
+
       @volatile var failureCount = 0
 
       def deferred =
@@ -627,6 +636,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
     "recoverable failure with non-recoverable failure result" in {
       @volatile var failureCount = 0
+      import swaydb.Error.Segment.ErrorHandler
 
       def deferred =
         IO.Defer[Error.Segment, Int](1) flatMap {
@@ -658,6 +668,8 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
   }
 
   "concurrent randomly releases" in {
+    import swaydb.Error.Segment.ErrorHandler
+
     val defers: Seq[IO.Defer[Error.Segment, Int]] =
       (1 to 100) map {
         i =>

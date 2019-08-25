@@ -117,7 +117,8 @@ class IOSuccessSpec extends WordSpec with Matchers {
   }
 
   "flatten" in {
-    val nested: IO[Throwable, IO[Throwable, IO[Throwable, IO[Throwable, Int]]]] = IO.Success(IO.Success(IO.Success(IO.Success(1))))
+
+    val nested = IO.Success(IO.Success(IO.Success(IO.Success(1))))
     nested.flatten.flatten.flatten shouldBe IO.Success(1)
   }
 

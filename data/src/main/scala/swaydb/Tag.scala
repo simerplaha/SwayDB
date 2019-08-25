@@ -118,7 +118,7 @@ object Tag {
 
     implicit val throwableToApiIO = new Tag.Converter[IO.ThrowableIO, IO.ApiIO] {
       override def to[T](a: IO.ThrowableIO[T]): IO.ApiIO[T] =
-        IO(a.get)
+        IO[swaydb.Error.API, T](a.get)
 
       override def from[T](a: IO.ApiIO[T]): IO.ThrowableIO[T] =
         IO(a.get)

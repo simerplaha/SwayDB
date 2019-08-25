@@ -22,10 +22,10 @@ package swaydb
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.Reserve
 
-trait ErrorHandler[+E] {
-  def toException[F >: E](f: F): Throwable
+trait ErrorHandler[E] {
+  def toException(f: E): Throwable
   def fromException(e: Throwable): E
-  def reserve[F >: E](f: F): Option[Reserve[Unit]]
+  def reserve(f: E): Option[Reserve[Unit]]
 }
 
 object ErrorHandler extends LazyLogging {
@@ -48,21 +48,21 @@ object ErrorHandler extends LazyLogging {
     override def fromException(e: Throwable): Nothing =
       throw new scala.Exception("Nothing cannot be created from Exception.", e)
 
-    override def toException[F >: Nothing](f: F): Throwable =
+    override def toException(f: Nothing): Throwable =
       new Exception("Nothing value.")
 
-    override def reserve[F >: Nothing](f: F): Option[Reserve[Unit]] =
+    override def reserve(f: Nothing): Option[Reserve[Unit]] =
       None
   }
 
   object Unit extends ErrorHandler[Unit] {
-    override def reserve[F >: Unit](f: F): Option[Reserve[Unit]] =
+    override def reserve(f: Unit): Option[Reserve[Unit]] =
       None
 
     override def fromException(e: Throwable): Unit =
       throw new scala.Exception("Unit cannot be created from Exception.", e)
 
-    override def toException[F >: Unit](f: F): Throwable =
+    override def toException(f: Unit): Throwable =
       new Exception("Unit value.")
   }
 
@@ -70,10 +70,10 @@ object ErrorHandler extends LazyLogging {
     override def fromException(e: Throwable): Throwable =
       e
 
-    override def toException[F >: Throwable](f: F): Throwable =
-      f.asInstanceOf[Throwable]
+    override def toException(f: Throwable): Throwable =
+      f
 
-    override def reserve[F >: Throwable](f: F): Option[Reserve[Unit]] =
+    override def reserve(f: Throwable): Option[Reserve[Unit]] =
       None
   }
 }

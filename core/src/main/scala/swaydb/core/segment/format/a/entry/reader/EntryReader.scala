@@ -29,6 +29,7 @@ import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.Error.Segment.ErrorHandler
 
 trait EntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,

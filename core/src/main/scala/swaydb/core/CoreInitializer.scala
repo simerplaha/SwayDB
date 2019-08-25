@@ -23,12 +23,12 @@ import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ErrorHandler
-import swaydb.{IO, Tag}
+import swaydb.IO
 import swaydb.core.actor.WiredActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.{BufferCleaner, BlockCache}
 import swaydb.core.io.file.IOEffect._
+import swaydb.core.io.file.{BlockCache, BufferCleaner}
 import swaydb.core.level.compaction._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
@@ -41,7 +41,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
 
 private[core] object CoreInitializer extends LazyLogging {
 
@@ -92,10 +91,10 @@ private[core] object CoreInitializer extends LazyLogging {
     ) match {
       case IO.Success(zero) =>
         addShutdownHook(zero, None)
-        IO(CoreSync(zero, () => IO.unit))
+        IO[swaydb.Error.Boot, CoreSync[IO.ApiIO]](CoreSync(zero, () => IO.unit))
 
       case IO.Failure(error) =>
-        IO.failed(error.exception)
+        IO.failed[swaydb.Error.Boot, CoreSync[IO.ApiIO]](error.exception)
     }
   }
 
@@ -260,7 +259,7 @@ private[core] object CoreInitializer extends LazyLogging {
 
                       CoreSync(
                         zero = zero,
-                        onClose = () => IO(compactor foreach compactionStrategy.terminate)
+                        onClose = () => IO[swaydb.Error.Close, Unit](compactor foreach compactionStrategy.terminate)
                       )
                   }
               }
@@ -286,10 +285,10 @@ private[core] object CoreInitializer extends LazyLogging {
      */
     createLevels(config.otherLevels.reverse, None) match {
       case IO.Success(core) =>
-        IO(core)
+        IO[swaydb.Error.Boot, CoreSync[IO.ApiIO]](core)
 
       case IO.Failure(error) =>
-        IO.failed(error.exception)
+        IO.failed[swaydb.Error.Boot, CoreSync[IO.ApiIO]](error.exception)
     }
   }
 }

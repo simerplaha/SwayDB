@@ -44,7 +44,7 @@ private[core] object Cache {
         Option(IO.Success(output))
 
       override def getOrElse[F >: E : ErrorHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
-        IO(output)
+        IO[F, BB](output)
     }
 
   def emptyValuesBlock[E: ErrorHandler]: Cache[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =

@@ -34,30 +34,6 @@ protected sealed trait Error {
 
 object Error {
 
-  private[Error] sealed trait BaseErrorHandler[E <: swaydb.Error] extends ErrorHandler[E] {
-
-    override def toException[F >: E](f: F): Throwable =
-      f.asInstanceOf[swaydb.Error].exception
-
-    override def fromException(e: Throwable): E =
-      Error(e) match {
-        case error: E =>
-          error
-
-        case otherError: Error =>
-          Error.Fatal(otherError.exception).asInstanceOf[E]
-      }
-
-    override def reserve[F >: E](f: F): Option[Reserve[Unit]] =
-      f match {
-        case recoverable: Error.Recoverable =>
-          Some(recoverable.reserve)
-
-        case _: Error =>
-          None
-      }
-  }
-
   sealed trait Level extends Error
   sealed trait Map extends Level
   sealed trait Segment extends Level
@@ -68,35 +44,203 @@ object Error {
   sealed trait API extends Error
 
   object Segment {
-    implicit object ErrorHandler extends BaseErrorHandler[Error.Segment]
+    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.Segment] {
+      override def toException(f: Error.Segment): Throwable =
+        f.exception
+
+      override def fromException(e: Throwable): Error.Segment =
+        Error(e) match {
+          case segment: Error.Segment =>
+            segment
+
+          case error: Error =>
+            Error.Fatal(error.exception)
+        }
+
+      override def reserve(f: Error.Segment): Option[Reserve[Unit]] =
+        f match {
+          case recoverable: Error.Recoverable =>
+            Some(recoverable.reserve)
+
+          case _: Error =>
+            None
+        }
+    }
   }
 
   object Level {
-    implicit object ErrorHandler extends BaseErrorHandler[Error.Level]
+    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.Level] {
+      override def toException(f: Error.Level): Throwable =
+        f.exception
+
+      override def fromException(e: Throwable): Error.Level =
+        Error(e) match {
+          case segment: Error.Level =>
+            segment
+
+          case error: Error =>
+            Error.Fatal(error.exception)
+        }
+
+      override def reserve(f: Error.Level): Option[Reserve[Unit]] =
+        f match {
+          case recoverable: Error.Recoverable =>
+            Some(recoverable.reserve)
+
+          case _: Error =>
+            None
+        }
+    }
   }
 
   object Map {
-    implicit object ErrorHandler extends BaseErrorHandler[Error.Map]
+    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.Map] {
+      override def toException(f: Error.Map): Throwable =
+        f.exception
+
+      override def fromException(e: Throwable): Error.Map =
+        Error(e) match {
+          case segment: Error.Map =>
+            segment
+
+          case error: Error =>
+            Error.Fatal(error.exception)
+        }
+
+      override def reserve(f: Error.Map): Option[Reserve[Unit]] =
+        f match {
+          case recoverable: Error.Recoverable =>
+            Some(recoverable.reserve)
+
+          case _: Error =>
+            None
+        }
+    }
   }
 
   object Boot {
-    implicit object ErrorHandler extends BaseErrorHandler[Error.Boot]
+    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.Boot] {
+      override def toException(f: Error.Boot): Throwable =
+        f.exception
+
+      override def fromException(e: Throwable): Error.Boot =
+        Error(e) match {
+          case segment: Error.Boot =>
+            segment
+
+          case error: Error =>
+            Error.Fatal(error.exception)
+        }
+
+      override def reserve(f: Error.Boot): Option[Reserve[Unit]] =
+        f match {
+          case recoverable: Error.Recoverable =>
+            Some(recoverable.reserve)
+
+          case _: Error =>
+            None
+        }
+    }
   }
 
   object Close {
-    implicit object ErrorHandler extends BaseErrorHandler[Error.Close]
+    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.Close] {
+      override def toException(f: Error.Close): Throwable =
+        f.exception
+
+      override def fromException(e: Throwable): Error.Close =
+        Error(e) match {
+          case segment: Error.Close =>
+            segment
+
+          case error: Error =>
+            Error.Fatal(error.exception)
+        }
+
+      override def reserve(f: Error.Close): Option[Reserve[Unit]] =
+        f match {
+          case recoverable: Error.Recoverable =>
+            Some(recoverable.reserve)
+
+          case _: Error =>
+            None
+        }
+    }
   }
 
   object Delete {
-    implicit object ErrorHandler extends BaseErrorHandler[Error.Delete]
+    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.Delete] {
+      override def toException(f: Error.Delete): Throwable =
+        f.exception
+
+      override def fromException(e: Throwable): Error.Delete =
+        Error(e) match {
+          case segment: Error.Delete =>
+            segment
+
+          case error: Error =>
+            Error.Fatal(error.exception)
+        }
+
+      override def reserve(f: Error.Delete): Option[Reserve[Unit]] =
+        f match {
+          case recoverable: Error.Recoverable =>
+            Some(recoverable.reserve)
+
+          case _: Error =>
+            None
+        }
+    }
   }
 
   object API {
-    implicit object ErrorHandler extends BaseErrorHandler[Error.API]
+    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.API] {
+      override def toException(f: Error.API): Throwable =
+        f.exception
+
+      override def fromException(e: Throwable): Error.API =
+        Error(e) match {
+          case segment: Error.API =>
+            segment
+
+          case error: Error =>
+            Error.Fatal(error.exception)
+        }
+
+      override def reserve(f: Error.API): Option[Reserve[Unit]] =
+        f match {
+          case recoverable: Error.Recoverable =>
+            Some(recoverable.reserve)
+
+          case _: Error =>
+            None
+        }
+    }
   }
 
   object IO {
-    implicit object ErrorHandler extends BaseErrorHandler[Error.IO]
+    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.IO] {
+      override def toException(f: Error.IO): Throwable =
+        f.exception
+
+      override def fromException(e: Throwable): Error.IO =
+        Error(e) match {
+          case segment: Error.IO =>
+            segment
+
+          case error: Error =>
+            Error.Fatal(error.exception)
+        }
+
+      override def reserve(f: Error.IO): Option[Reserve[Unit]] =
+        f match {
+          case recoverable: Error.Recoverable =>
+            Some(recoverable.reserve)
+
+          case _: Error =>
+            None
+        }
+    }
   }
 
   def apply[T](exception: Throwable): Error =
@@ -266,7 +410,16 @@ object Error {
     def apply(message: String): Fatal =
       new Fatal(new scala.Exception(message))
 
-    implicit object ErrorHandler extends BaseErrorHandler[Error.Fatal]
+    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.Fatal] {
+      override def toException(f: Error.Fatal): Throwable =
+        f.exception
+
+      override def fromException(e: Throwable): Error.Fatal =
+        Error.Fatal(e)
+
+      override def reserve(f: Error.Fatal): Option[Reserve[Unit]] =
+        None
+    }
   }
 
   case class Fatal(exception: Throwable)
