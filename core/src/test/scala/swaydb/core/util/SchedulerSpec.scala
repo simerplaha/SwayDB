@@ -57,7 +57,7 @@ class SchedulerSpec extends WordSpec with Matchers with Eventually {
     "run tasks and cancel tasks" in {
       @volatile var tasksExecuted = 0
 
-      val scheduler = Scheduler.create()
+      val scheduler = Scheduler()
 
       scheduler.task(1.seconds)(tasksExecuted += 1)
       scheduler.task(2.seconds)(tasksExecuted += 1)
@@ -84,7 +84,7 @@ class SchedulerSpec extends WordSpec with Matchers with Eventually {
     "run in future and return result" in {
       @volatile var tryThread = ""
 
-      val scheduler = Scheduler.create()
+      val scheduler = Scheduler()
 
       scheduler.futureFromIO(100.millisecond)(IO(tryThread = Thread.currentThread().getName))
 
@@ -103,7 +103,7 @@ class SchedulerSpec extends WordSpec with Matchers with Eventually {
     "run in future" in {
       @volatile var futureThread = ""
 
-      val scheduler = Scheduler.create()
+      val scheduler = Scheduler()
 
       scheduler.future(100.millisecond)(futureThread = Thread.currentThread().getName)
 

@@ -114,14 +114,14 @@ private[swaydb] object Actor {
           maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce,
           overflowAllowed = actorQueue.maxOverflow,
           fixedDelay = actorQueue.delay
-        )(execution)(Scheduler.create()(actorQueue.ec))
+        )(execution)(Scheduler()(actorQueue.ec))
 
       case actorQueue: ActorConfig.TimeLoop =>
         timerLoop(
           initialDelay = actorQueue.delay,
           maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce,
           overflowAllowed = actorQueue.maxOverflow
-        )(execution)(Scheduler.create()(actorQueue.ec))
+        )(execution)(Scheduler()(actorQueue.ec))
     }
 
   def fromConfig[T, S](config: ActorConfig,
@@ -139,7 +139,7 @@ private[swaydb] object Actor {
           maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce,
           overflowAllowed = actorQueue.maxOverflow,
           fixedDelay = actorQueue.delay
-        )(execution)(Scheduler.create()(actorQueue.ec))
+        )(execution)(Scheduler()(actorQueue.ec))
 
       case actorQueue: ActorConfig.TimeLoop =>
         timerLoop[T, S](
@@ -147,7 +147,7 @@ private[swaydb] object Actor {
           maxMessagesToProcessAtOnce = actorQueue.maxMessagesToProcessAtOnce,
           overflowAllowed = actorQueue.maxOverflow,
           initialDelay = actorQueue.delay
-        )(execution)(Scheduler.create()(actorQueue.ec))
+        )(execution)(Scheduler()(actorQueue.ec))
     }
 
   /**

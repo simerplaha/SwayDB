@@ -480,7 +480,7 @@ private[core] case class Level(dirs: Seq[Dir],
             case (minKey, maxKey, toInclusive) =>
               ReserveRange.reserveOrListen(minKey, maxKey, toInclusive, ())
           }
-          .getOrElse(Left(Scheduler.futureUnit))
+          .getOrElse(Left(Futures.unit))
     }
 
   private[level] def reserve(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[swaydb.Error.Level, Either[Future[Unit], Slice[Byte]]] =
@@ -495,7 +495,7 @@ private[core] case class Level(dirs: Seq[Dir],
         ) map {
           case (minKey, maxKey, toInclusive) =>
             ReserveRange.reserveOrListen(minKey, maxKey, toInclusive, ())
-        } getOrElse Left(Scheduler.futureUnit)
+        } getOrElse Left(Futures.unit)
     }
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =

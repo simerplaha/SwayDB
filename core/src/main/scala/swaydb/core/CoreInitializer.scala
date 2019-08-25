@@ -80,7 +80,7 @@ private[core] object CoreInitializer extends LazyLogging {
     implicit val memorySweeper = MemorySweeper.Disabled
 
     implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
-    if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(Scheduler.create()(bufferCleanerEC))
+    if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(Scheduler()(bufferCleanerEC))
 
     LevelZero(
       mapSize = config.mapSize,
@@ -172,7 +172,7 @@ private[core] object CoreInitializer extends LazyLogging {
       DefaultCompactionOrdering
 
     //TODO - only initialise if MMAP
-    BufferCleaner.initialiseCleaner(Scheduler.create()(fileSweeper.ec))
+    BufferCleaner.initialiseCleaner(Scheduler()(fileSweeper.ec))
     //    if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(bufferCleanerEC)
 
     def createLevel(id: Long,

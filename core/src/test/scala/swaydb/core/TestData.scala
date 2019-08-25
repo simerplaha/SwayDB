@@ -71,7 +71,7 @@ object TestData {
    * Sequential time bytes generator.
    */
 
-  implicit val scheduler = Scheduler.create()(TestExecutionContext.executionContext)
+  implicit val scheduler = Scheduler()(TestExecutionContext.executionContext)
 
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
 

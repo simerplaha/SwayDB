@@ -27,11 +27,7 @@ import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
 
 private[core] object Scheduler {
-  val futureNone = Future.successful(None)
-
-  val futureUnit = Future.successful(())
-
-  def create()(implicit ec: ExecutionContext): Scheduler =
+  def apply()(implicit ec: ExecutionContext): Scheduler =
     new Scheduler(new Timer(false))
 }
 
