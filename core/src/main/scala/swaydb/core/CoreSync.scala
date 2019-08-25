@@ -32,7 +32,7 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{LevelZeroConfig, SwayDBMemoryConfig, SwayDBPersistentConfig}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.{IO, Prepare, Tag}
+import swaydb.{Error, IO, Prepare, Tag}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -189,9 +189,6 @@ private[swaydb] case class CoreSync[T[_]](zero: LevelZero,
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
     tag.fromIO(zero.update(fromKey, to, value))
 
-  override def clear(): T[IO.Done] =
-    tag.fromIO(zero.clear().runIO)
-
   def function(key: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
     tag.fromIO(zero.applyFunction(key, function))
 
@@ -201,64 +198,20 @@ private[swaydb] case class CoreSync[T[_]](zero: LevelZero,
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
     zero.registerFunction(functionID, function)
 
-  private def headIO: IO[swaydb.Error.Level, Option[KeyValueTuple]] =
-    zero.head.runIO flatMap {
-      result =>
-        result map {
-          response =>
-            response.getOrFetchValue map {
-              result =>
-                Some(response.key, result)
-            } recoverWith {
-              case error =>
-                error match {
-                  case _: swaydb.Error.ReservedResource =>
-                    headIO
-
-                  case failure =>
-                    IO.Failure(error = failure)
-                }
-            }
-        } getOrElse IO.none
-    }
-
   def head: T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
-    tag.fromIO(headIO)
+    tag.fromIO(zero.runIO(_.head))
 
   def headKey: T[Option[Slice[Byte]]] =
     tag.fromIO(zero.headKey.runIO)
 
-  private def lastIO: IO[swaydb.Error.Level, Option[KeyValueTuple]] =
-    ???
-  //    zero.last.runBlocking flatMap {
-  //      result =>
-  //        result map {
-  //          response =>
-  //            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
-  //              result =>
-  //                Some(response.key, result)
-  //            } recoverWith {
-  //              case error =>
-  //                error match {
-  //                  case _: swaydb.Error.ReservedIO =>
-  //                    lastIO
-  //
-  //                  case failure =>
-  //                    IO.Failure(error = failure)
-  //                }
-  //            }
-  //        } getOrElse IO.none
-  //    }
-
   def last: T[Option[KeyValueTuple]] =
-    tag.fromIO(lastIO)
+    tag.fromIO(zero.runIO(_.last))
 
   def lastKey: T[Option[Slice[Byte]]] =
     tag.fromIO(zero.lastKey.runIO)
 
   def bloomFilterKeyValueCount: T[Int] =
-  //    tag.fromIO(IO.Defer.recover(zero.bloomFilterKeyValueCount.get).runBlocking)
-    ???
+    tag.fromIO(IO.Defer(zero.bloomFilterKeyValueCount.get).runIO)
 
   def deadline(key: Slice[Byte]): T[Option[Deadline]] =
     tag.fromIO(zero.deadline(key).runIO)
@@ -270,117 +223,28 @@ private[swaydb] case class CoreSync[T[_]](zero: LevelZero,
     tag.fromIO(zero.contains(key).runIO)
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
-  //    tag.fromIO(IO.Defer.recover(zero.mightContainKey(key).get).runBlocking)
-    ???
+    tag.fromIO(IO.Defer(zero.mightContainKey(key).get).runIO)
 
   def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
-  //    tag.fromIO(IO.Defer.recover(zero.mightContainFunction(functionId).get).runBlocking)
-    ???
-
-  private def getIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[Option[Slice[Byte]]]] =
-    zero.get(key).runIO flatMap {
-      result =>
-        result map {
-          response =>
-            response.getOrFetchValue map {
-              result =>
-                Some(result)
-            } recoverWith[swaydb.Error.Level, Option[Option[Slice[Byte]]]] {
-              case error =>
-                error match {
-                  case _: swaydb.Error.ReservedResource =>
-                    getIO(key)
-
-                  case failure =>
-                    IO.Failure(error = failure)
-                }
-            }
-        } getOrElse IO.none
-    }
+    tag.fromIO(IO.Defer(zero.mightContainFunction(functionId).get).runIO)
 
   def get(key: Slice[Byte]): T[Option[Option[Slice[Byte]]]] =
-    tag.fromIO(getIO(key))
+    tag.fromIO(zero.runIO(_.get(key)).map(_.map(_._2)))
 
   def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
     tag.fromIO(zero.getKey(key).runIO)
 
-  private def getKeyValueIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValueTuple]] =
-    ???
-  //    zero.get(key).runBlocking flatMap {
-  //      result =>
-  //        result map {
-  //          response =>
-  //            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
-  //              result =>
-  //                Some(response.key, result)
-  //            } recoverWith[swaydb.Error.Level, Option[KeyValueTuple]] {
-  //              case error =>
-  //                error match {
-  //                  case _: swaydb.Error.ReservedIO =>
-  //                    getKeyValueIO(key)
-  //
-  //                  case failure =>
-  //                    IO.Failure(error = failure)
-  //                }
-  //            }
-  //        } getOrElse IO.none
-  //    }
-
   def getKeyValue(key: Slice[Byte]): T[Option[KeyValueTuple]] =
-    tag.fromIO(getKeyValueIO(key))
-
-  private def beforeIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValueTuple]] =
-    ???
-  //    zero.lower(key).runBlocking flatMap {
-  //      result =>
-  //        result map {
-  //          response =>
-  //            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
-  //              result =>
-  //                Some(response.key, result)
-  //            } recoverWith[swaydb.Error.Level, Option[KeyValueTuple]] {
-  //              case error =>
-  //                error match {
-  //                  case _: swaydb.Error.ReservedIO =>
-  //                    beforeIO(key)
-  //
-  //                  case failure =>
-  //                    IO.Failure(error = failure)
-  //                }
-  //            }
-  //        } getOrElse IO.none
-  //    }
+    tag.fromIO(zero.runIO(_.get(key)))
 
   def before(key: Slice[Byte]): T[Option[KeyValueTuple]] =
-    tag.fromIO(beforeIO(key))
+    tag.fromIO(zero.runIO(_.lower(key)))
 
   def beforeKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
     tag.fromIO(zero.lower(key).runIO.map(_.map(_.key)))
 
-  private def afterIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValueTuple]] =
-    ???
-  //    zero.higher(key).runBlocking flatMap {
-  //      result =>
-  //        result map {
-  //          response =>
-  //            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
-  //              result =>
-  //                Some(response.key, result)
-  //            } recoverWith {
-  //              case error =>
-  //                error match {
-  //                  case _: swaydb.Error.ReservedIO =>
-  //                    afterIO(key)
-  //
-  //                  case failure =>
-  //                    IO.Failure(error = failure)
-  //                }
-  //            }
-  //        } getOrElse IO.none
-  //    }
-
   def after(key: Slice[Byte]): T[Option[KeyValueTuple]] =
-    tag.fromIO(afterIO(key))
+    tag.fromIO(zero.runIO(_.higher(key)))
 
   def afterKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
     tag.fromIO(zero.higher(key).runIO.map(_.map(_.key)))
@@ -400,7 +264,10 @@ private[swaydb] case class CoreSync[T[_]](zero: LevelZero,
   def delete(): T[Unit] =
     tag.fromIO(onClose().flatMap(_ => zero.delete))
 
-  override def toTag[T[_]](implicit tag: Tag[T]): Core[T] =
+  def clear(): T[IO.Done] =
+    tag.fromIO(zero.clear().runIO)
+
+  def toTag[T[_]](implicit tag: Tag[T]): Core[T] =
     tag match {
       case async: Tag.Async[T] =>
         CoreAsync(zero, onClose)(async)

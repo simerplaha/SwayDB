@@ -25,7 +25,7 @@ import java.util
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ErrorHandler
-import swaydb.IO
+import swaydb.{Error, IO}
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
@@ -765,4 +765,32 @@ private[core] case class LevelZero(path: Path,
 
   override def delete: IO[swaydb.Error.Delete, Unit] =
     LevelZero.delete(this)
+
+  @tailrec
+  final def runIO(apply: LevelZero => IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]]): IO[Error.Level, Option[(Slice[Byte], Option[Slice[Byte]])]] =
+    apply(this).runIO flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(response.key, result)
+            } recoverWith {
+              case _ =>
+                IO.Defer(response.getOrFetchValue.get).runIO map {
+                  value =>
+                    Some((response.key, value))
+                }
+            }
+        } getOrElse IO.none
+    } match {
+      case IO.Success(value) =>
+        IO.Success(value)
+
+      case failure @ IO.Failure(error) =>
+        if (swaydb.ErrorHandler.reserve(error).isDefined)
+          runIO(apply)
+        else
+          failure
+    }
 }
