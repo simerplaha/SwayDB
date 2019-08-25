@@ -110,7 +110,7 @@
 //                update =>
 //                  val (gotValue, gotDeadline) = level.get(update.key) map {
 //                    case Some(put) =>
-//                      val value = IO.Deferred(put.getOrFetchValue.get).runIO.runRandomIO.value
+//                      val value = IO.Defer(put.getOrFetchValue.get).runIO.runRandomIO.value
 //                      (value, put.deadline)
 //
 //                    case None =>

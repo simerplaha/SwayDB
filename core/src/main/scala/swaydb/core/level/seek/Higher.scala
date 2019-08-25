@@ -111,7 +111,7 @@ private[core] object Higher {
     //            Higher(key, Seek.Current.Stop, nextSeek)
     //
     //          case IO.Failure(_) =>
-    //            IO.Deferred(Higher.seeker(key, currentSeek, nextSeek).get)
+    //            IO.Defer(Higher.seeker(key, currentSeek, nextSeek).get)
     //        }
     //
     //      case (currentStash @ Seek.Current.Stash(current), Seek.Read) =>
@@ -157,7 +157,7 @@ private[core] object Higher {
     //                    case IO.Success(_) =>
     //                      Higher(currentRange.toKey, Seek.Read, nextSeek)
     //
-    //                    case later @ IO.Deferred(_, _) =>
+    //                    case later @ IO.Defer(_, _) =>
     //                      later flatMapIO {
     //                        case Some(ceiling) if ceiling.hasTimeLeft() =>
     //                          IO.Success(Some(ceiling))
@@ -192,7 +192,7 @@ private[core] object Higher {
     //              case IO.Success(None) =>
     //                Higher(key, currentStash, Seek.Next.Stop(nextStateID))
     //
-    //              case later @ IO.Deferred(_, _) =>
+    //              case later @ IO.Defer(_, _) =>
     //                later flatMapIO {
     //                  case Some(next) =>
     //                    Higher.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
@@ -214,7 +214,7 @@ private[core] object Higher {
     //              case IO.Success(None) =>
     //                Higher(key, currentStash, Seek.Next.Stop(nextStateID))
     //
-    //              case later @ IO.Deferred(_, _) =>
+    //              case later @ IO.Defer(_, _) =>
     //                later flatMapIO {
     //                  case Some(next) =>
     //                    Higher.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
@@ -237,7 +237,7 @@ private[core] object Higher {
     //          case IO.Success(None) =>
     //            Higher(key, currentSeek, Seek.Next.Stop(nextStateID))
     //
-    //          case later @ IO.Deferred(_, _) =>
+    //          case later @ IO.Defer(_, _) =>
     //            later flatMapIO {
     //              case Some(next) =>
     //                Higher.seeker(key, currentSeek, Seek.Next.Stash(next, nextStateID))
@@ -431,7 +431,7 @@ private[core] object Higher {
     //                          case IO.Success(None) =>
     //                            Higher(current.toKey, Seek.Read, nextStash)
     //
-    //                          case later @ IO.Deferred(_, _) =>
+    //                          case later @ IO.Defer(_, _) =>
     //                            later flatMapIO {
     //                              case Some(current) =>
     //                                Higher.seeker(key, Seek.Current.Stash(current), nextStash)
@@ -518,7 +518,7 @@ private[core] object Higher {
     //                        case IO.Success(None) =>
     //                          Higher(current.toKey, Seek.Read, nextSeek)
     //
-    //                        case later @ IO.Deferred(_, _) =>
+    //                        case later @ IO.Defer(_, _) =>
     //                          later flatMapIO {
     //                            case Some(put) =>
     //                              Higher.seeker(key, Seek.Current.Stash(put), nextSeek)

@@ -149,7 +149,7 @@ private[level] object Compaction extends LazyLogging {
     //          previousStateID = stateID
     //        )
     //
-    //      case later @ IO.Deferred(_, _) =>
+    //      case later @ IO.Defer(_, _) =>
     //        LevelCompactionState.AwaitingPull(
     //          later = later,
     //          timeout = awaitPullTimeout,
@@ -255,7 +255,7 @@ private[level] object Compaction extends LazyLogging {
   //          previousStateID = stateID
   //        )
   //
-  //      case later @ IO.Deferred(_, _) =>
+  //      case later @ IO.Defer(_, _) =>
   //        LevelCompactionState.AwaitingPull(
   //          later = later,
   //          timeout = awaitPullTimeout,
@@ -315,7 +315,7 @@ private[level] object Compaction extends LazyLogging {
   //                segmentsCompacted = segmentsCompacted + 1
   //              )
   //
-  //            case IO.Deferred(_, _) =>
+  //            case IO.Defer(_, _) =>
   //              logger.debug(s"Level(${level.levelNumber}): Later on refresh.")
   //              runLastLevelCompaction(
   //                level = level,
@@ -352,7 +352,7 @@ private[level] object Compaction extends LazyLogging {
   //            segmentsCompacted = segmentsCompacted + count
   //          )
   //
-  //        case IO.Deferred(_, _) =>
+  //        case IO.Defer(_, _) =>
   //          logger.debug(s"Level(${level.levelNumber}): Later on collapse.")
   //          runLastLevelCompaction(
   //            level = level,
@@ -403,7 +403,7 @@ private[level] object Compaction extends LazyLogging {
   //            logger.error(s"Level(${level.levelNumber}): Failed copy Segments forward.", error.exception)
   //            0
   //
-  //          case IO.Deferred(_, _) =>
+  //          case IO.Defer(_, _) =>
   //            //this should never really occur when no other concurrent compactions are occurring.
   //            logger.warn(s"Level(${level.levelNumber}): Received later compaction.")
   //            0
@@ -424,7 +424,7 @@ private[level] object Compaction extends LazyLogging {
   //              IO.Success(segments.size)
   //          } toDeferred
   //
-  //        case async @ IO.Deferred(_, _) =>
+  //        case async @ IO.Defer(_, _) =>
   //          async map (_ => 0)
   //
   //        case IO.Failure(error) =>

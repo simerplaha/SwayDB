@@ -92,7 +92,7 @@
 //                println(s"$index: End put.")
 //                Future.unit
 //
-//              case later @ IO.Deferred(_, _) =>
+//              case later @ IO.Defer(_, _) =>
 //                println(s"$index: Later")
 //                later.runInFuture flatMap {
 //                  _ =>

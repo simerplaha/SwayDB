@@ -59,7 +59,7 @@
 //          //@formatter:off
 //          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(put))
 //          next.stateID          _ expects ()                returning 1
-//          next.higher           _ expects (0: Slice[Byte])  returning IO.Deferred(None)
+//          next.higher           _ expects (0: Slice[Byte])  returning IO.Defer(None)
 //          next.hasStateChanged  _ expects 1                 returning false
 //          //@formatter:on
 //        }
@@ -83,7 +83,7 @@
 //          //@formatter:off
 //          current.higher        _ expects (0: Slice[Byte])  returning IO.none
 //          next.stateID          _ expects ()                returning 1
-//          next.higher           _ expects (0: Slice[Byte])  returning IO.Deferred(Some(put))
+//          next.higher           _ expects (0: Slice[Byte])  returning IO.Defer(Some(put))
 //          next.hasStateChanged  _ expects 1                 returning false
 //          //@formatter:on
 //        }
@@ -109,7 +109,7 @@
 //          //@formatter:off
 //          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(upperKeyValue))
 //          next.stateID          _ expects ()                returning 1
-//          next.higher           _ expects (0: Slice[Byte])  returning IO.Deferred(Some(lowerKeyValue))
+//          next.higher           _ expects (0: Slice[Byte])  returning IO.Defer(Some(lowerKeyValue))
 //          next.hasStateChanged  _ expects 1                 returning false
 //          //@formatter:on
 //        }
@@ -146,7 +146,7 @@
 //          //@formatter:off
 //          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(upperKeyValue))
 //          next.stateID          _ expects ()                returning 1
-//          next.higher           _ expects (0: Slice[Byte])  returning IO.Deferred(Some(lowerKeyValue))
+//          next.higher           _ expects (0: Slice[Byte])  returning IO.Defer(Some(lowerKeyValue))
 //          next.hasStateChanged  _ expects 1                 returning false
 //          if(!isUpperExpected) {
 //            next.hasStateChanged  _ expects 1                 returning false
@@ -175,7 +175,7 @@
 //          //@formatter:off
 //          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(upperKeyValue))
 //          next.stateID          _ expects ()                returning 1
-//          next.higher           _ expects (0: Slice[Byte])  returning IO.Deferred(Some(lowerKeyValue))
+//          next.higher           _ expects (0: Slice[Byte])  returning IO.Defer(Some(lowerKeyValue))
 //          next.hasStateChanged  _ expects 1                 returning false
 //          //@formatter:on
 //        }

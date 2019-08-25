@@ -131,7 +131,7 @@ private[core] object Lower {
     //                    case IO.Success(None) =>
     //                      Lower(key, currentStash, Seek.Next.Stop(nextStateID))
     //
-    //                    case later @ IO.Deferred(_, _) =>
+    //                    case later @ IO.Defer(_, _) =>
     //                      later flatMapIO {
     //                        case Some(next) =>
     //                          Lower.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
@@ -164,7 +164,7 @@ private[core] object Lower {
     //                            case IO.Success(None) =>
     //                              Lower(key, currentStash, Seek.Next.Stop(nextStateID))
     //
-    //                            case later @ IO.Deferred(_, _) =>
+    //                            case later @ IO.Defer(_, _) =>
     //                              later flatMapIO {
     //                                case Some(next) =>
     //                                  Lower.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
@@ -205,7 +205,7 @@ private[core] object Lower {
     //              case IO.Success(None) =>
     //                Lower(key, currentStash, Seek.Next.Stop(nextStateID))
     //
-    //              case later @ IO.Deferred(_, _) =>
+    //              case later @ IO.Defer(_, _) =>
     //                later flatMapIO {
     //                  case Some(nextFromKey) =>
     //                    Lower.seeker(key, currentStash, Seek.Next.Stash(nextFromKey, nextStateID))
@@ -229,7 +229,7 @@ private[core] object Lower {
     //              case IO.Success(None) =>
     //                Lower(key, currentStash, Seek.Next.Stop(nextStateID))
     //
-    //              case later @ IO.Deferred(_, _) =>
+    //              case later @ IO.Defer(_, _) =>
     //                later flatMapIO {
     //                  case Some(next) =>
     //                    Lower.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
@@ -251,7 +251,7 @@ private[core] object Lower {
     //              case IO.Success(None) =>
     //                Lower(key, currentStash, Seek.Next.Stop(nextStateID))
     //
-    //              case later @ IO.Deferred(_, _) =>
+    //              case later @ IO.Defer(_, _) =>
     //                later flatMapIO {
     //                  case Some(next) =>
     //                    Lower.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
@@ -274,7 +274,7 @@ private[core] object Lower {
     //          case IO.Success(None) =>
     //            Lower(key, currentSeek, Seek.Next.Stop(nextStateID))
     //
-    //          case later @ IO.Deferred(_, _) =>
+    //          case later @ IO.Defer(_, _) =>
     //            later flatMapIO {
     //              case Some(next) =>
     //                Lower.seeker(key, currentSeek, Seek.Next.Stash(next, nextStateID))
@@ -297,7 +297,7 @@ private[core] object Lower {
     //        if (nextWalker.hasStateChanged(nextStateID))
     //          Lower(key, currentSeek, Seek.Read)
     //        else if (next.hasTimeLeft())
-    //          IO.Deferred(Some(next))
+    //          IO.Defer(Some(next))
     //        else
     //          Lower(next.key, currentSeek, Seek.Read)
     //
@@ -339,7 +339,7 @@ private[core] object Lower {
     //                  case IO.Success(merged) =>
     //                    merged match {
     //                      case put: ReadOnly.Put if put.hasTimeLeft() =>
-    //                        IO.Deferred(Some(put))
+    //                        IO.Defer(Some(put))
     //
     //                      case _ =>
     //                        //if it doesn't result in an unexpired put move forward.
@@ -356,7 +356,7 @@ private[core] object Lower {
     //              else if (current.key > next.key)
     //                current match {
     //                  case put: ReadOnly.Put if put.hasTimeLeft() =>
-    //                    IO.Deferred(Some(put))
+    //                    IO.Defer(Some(put))
     //
     //                  //if it doesn't result in an unexpired put move forward.
     //                  case _ =>
@@ -365,7 +365,7 @@ private[core] object Lower {
     //              //0
     //              //    2
     //              else //else lower from next is the lowest.
-    //                IO.Deferred(Some(next))
+    //                IO.Defer(Some(next))
     //
     //            /** *********************************************
     //             * *********************************************
@@ -379,7 +379,7 @@ private[core] object Lower {
     //              //10 - 20         (current)
     //              //     20 - 21    (next)
     //              if (next.key >= current.toKey)
-    //                IO.Deferred(Some(next))
+    //                IO.Defer(Some(next))
     //
     //              //  11 ->   20 (input keys)
     //              //10   -    20 (lower range)
@@ -391,7 +391,7 @@ private[core] object Lower {
     //                      case IO.Success(mergedCurrent) =>
     //                        mergedCurrent match {
     //                          case put: ReadOnly.Put if put.hasTimeLeft() =>
-    //                            IO.Deferred(Some(put))
+    //                            IO.Defer(Some(put))
     //
     //                          case _ =>
     //                            //do need to check if range is expired because if it was then
@@ -422,7 +422,7 @@ private[core] object Lower {
     //                  case IO.Success(rangeValue) =>
     //                    lowerFromValue(key, current.fromKey, Some(rangeValue)) match {
     //                      case lowerPut @ Some(_) =>
-    //                        IO.Deferred(lowerPut)
+    //                        IO.Defer(lowerPut)
     //
     //                      //fromValue is not put, check if merging is required else return next.
     //                      case None =>
@@ -430,7 +430,7 @@ private[core] object Lower {
     //                          case IO.Success(mergedValue) =>
     //                            mergedValue match { //return applied value with next key-value as the current value.
     //                              case put: Memory.Put if put.hasTimeLeft() =>
-    //                                IO.Deferred(Some(put))
+    //                                IO.Defer(Some(put))
     //
     //                              case _ =>
     //                                Lower(next.key, Seek.Read, Seek.Read)
@@ -460,7 +460,7 @@ private[core] object Lower {
     //                  case IO.Success(fromValue) =>
     //                    lowerFromValue(key, current.fromKey, fromValue) match {
     //                      case somePut @ Some(_) =>
-    //                        IO.Deferred(somePut)
+    //                        IO.Defer(somePut)
     //
     //                      case None =>
     //                        Lower(current.fromKey, Seek.Read, nextStash)
@@ -544,7 +544,7 @@ private[core] object Lower {
     //        if (nextWalker.hasStateChanged(nextStateID))
     //          Lower(key, currentSeek, Seek.Read)
     //        else
-    //          IO.Deferred.none
+    //          IO.Defer.none
     //    }
   }
 }

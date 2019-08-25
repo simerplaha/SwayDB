@@ -234,7 +234,7 @@ private[swaydb] case class CoreSync[T[_]](zero: LevelZero,
   //      result =>
   //        result map {
   //          response =>
-  //            IO.Deferred.recover(response.getOrFetchValue.get).runBlocking map {
+  //            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
   //              result =>
   //                Some(response.key, result)
   //            } recoverWith {
@@ -257,7 +257,7 @@ private[swaydb] case class CoreSync[T[_]](zero: LevelZero,
     tag.fromIO(zero.lastKey.runIO)
 
   def bloomFilterKeyValueCount: T[Int] =
-  //    tag.fromIO(IO.Deferred.recover(zero.bloomFilterKeyValueCount.get).runBlocking)
+  //    tag.fromIO(IO.Defer.recover(zero.bloomFilterKeyValueCount.get).runBlocking)
     ???
 
   def deadline(key: Slice[Byte]): T[Option[Deadline]] =
@@ -270,11 +270,11 @@ private[swaydb] case class CoreSync[T[_]](zero: LevelZero,
     tag.fromIO(zero.contains(key).runIO)
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
-  //    tag.fromIO(IO.Deferred.recover(zero.mightContainKey(key).get).runBlocking)
+  //    tag.fromIO(IO.Defer.recover(zero.mightContainKey(key).get).runBlocking)
     ???
 
   def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
-  //    tag.fromIO(IO.Deferred.recover(zero.mightContainFunction(functionId).get).runBlocking)
+  //    tag.fromIO(IO.Defer.recover(zero.mightContainFunction(functionId).get).runBlocking)
     ???
 
   private def getIO(key: Slice[Byte]): IO[swaydb.Error.Level, Option[Option[Slice[Byte]]]] =
@@ -310,7 +310,7 @@ private[swaydb] case class CoreSync[T[_]](zero: LevelZero,
   //      result =>
   //        result map {
   //          response =>
-  //            IO.Deferred.recover(response.getOrFetchValue.get).runBlocking map {
+  //            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
   //              result =>
   //                Some(response.key, result)
   //            } recoverWith[swaydb.Error.Level, Option[KeyValueTuple]] {
@@ -335,7 +335,7 @@ private[swaydb] case class CoreSync[T[_]](zero: LevelZero,
   //      result =>
   //        result map {
   //          response =>
-  //            IO.Deferred.recover(response.getOrFetchValue.get).runBlocking map {
+  //            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
   //              result =>
   //                Some(response.key, result)
   //            } recoverWith[swaydb.Error.Level, Option[KeyValueTuple]] {
@@ -363,7 +363,7 @@ private[swaydb] case class CoreSync[T[_]](zero: LevelZero,
   //      result =>
   //        result map {
   //          response =>
-  //            IO.Deferred.recover(response.getOrFetchValue.get).runBlocking map {
+  //            IO.Defer.recover(response.getOrFetchValue.get).runBlocking map {
   //              result =>
   //                Some(response.key, result)
   //            } recoverWith {

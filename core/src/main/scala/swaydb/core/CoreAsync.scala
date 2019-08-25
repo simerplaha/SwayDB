@@ -126,7 +126,7 @@ private[swaydb] case class CoreAsync[T[_]](zero: LevelZero,
   //      result =>
   //        result map {
   //          response =>
-  //            IO.Deferred.recover(response.getOrFetchValue.get).runInFuture map {
+  //            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
   //              result =>
   //                Some(response.key, result)
   //            } recoverWith {
@@ -155,7 +155,7 @@ private[swaydb] case class CoreAsync[T[_]](zero: LevelZero,
   //      result =>
   //        result map {
   //          response =>
-  //            IO.Deferred.recover(response.getOrFetchValue.get).runInFuture map {
+  //            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
   //              result =>
   //                Some(response.key, result)
   //            } recoverWith {
@@ -180,7 +180,7 @@ private[swaydb] case class CoreAsync[T[_]](zero: LevelZero,
     zero.lastKey.run
 
   def bloomFilterKeyValueCount: T[Int] =
-  //    tag.fromFuture(IO.Deferred.recover(zero.bloomFilterKeyValueCount.get).runInFuture)
+  //    tag.fromFuture(IO.Defer.recover(zero.bloomFilterKeyValueCount.get).runInFuture)
     ???
 
   def deadline(key: Slice[Byte]): T[Option[Deadline]] =
@@ -190,11 +190,11 @@ private[swaydb] case class CoreAsync[T[_]](zero: LevelZero,
     zero.contains(key).run
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
-  //    tag.fromFuture(IO.Deferred.recover(zero.mightContainKey(key).get).runInFuture)
+  //    tag.fromFuture(IO.Defer.recover(zero.mightContainKey(key).get).runInFuture)
     ???
 
   def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
-  //    tag.fromFuture(IO.Deferred.recover(zero.mightContainFunction(functionId).get).runInFuture)
+  //    tag.fromFuture(IO.Defer.recover(zero.mightContainFunction(functionId).get).runInFuture)
     ???
 
   def getFuture(key: Slice[Byte]): Future[Option[Option[Slice[Byte]]]] =
@@ -202,7 +202,7 @@ private[swaydb] case class CoreAsync[T[_]](zero: LevelZero,
   //      result =>
   //        result map {
   //          response =>
-  //            IO.Deferred.recover(response.getOrFetchValue.get).runInFuture map {
+  //            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
   //              result =>
   //                Some(result)
   //            } recoverWith {
@@ -231,7 +231,7 @@ private[swaydb] case class CoreAsync[T[_]](zero: LevelZero,
   //      result =>
   //        result map {
   //          response =>
-  //            IO.Deferred.recover(response.getOrFetchValue.get).runInFuture map {
+  //            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
   //              result =>
   //                Some(response.key, result)
   //            } recoverWith {
@@ -257,7 +257,7 @@ private[swaydb] case class CoreAsync[T[_]](zero: LevelZero,
   //      result =>
   //        result map {
   //          response =>
-  //            IO.Deferred.recover(response.getOrFetchValue.get).runInFuture map {
+  //            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
   //              result =>
   //                Some(response.key, result)
   //            } recoverWith {
@@ -286,7 +286,7 @@ private[swaydb] case class CoreAsync[T[_]](zero: LevelZero,
   //      result =>
   //        result map {
   //          response =>
-  //            IO.Deferred.recover(response.getOrFetchValue.get).runInFuture map {
+  //            IO.Defer.recover(response.getOrFetchValue.get).runInFuture map {
   //              result =>
   //                Some(response.key, result)
   //            } recoverWith {

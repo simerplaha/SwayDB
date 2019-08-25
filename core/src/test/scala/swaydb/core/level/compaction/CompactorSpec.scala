@@ -206,7 +206,7 @@
 //        val reserve = Reserve[Unit](())
 //        reserve.isBusy shouldBe true
 //        val busy = swaydb.Error.ReservedResource(reserve)
-//        val later = IO.Deferred((), busy)
+//        val later = IO.Defer((), busy)
 //        later.isBusy shouldBe true
 //
 //        val awaitingPull = LevelCompactionState.AwaitingPull(later, 1.minute.fromNow, 0, 0)
@@ -260,7 +260,7 @@
 //        val reserve = Reserve[Unit](())
 //        reserve.isBusy shouldBe true
 //        val busy = swaydb.Error.ReservedResource(reserve)
-//        val later = IO.Deferred((), busy)
+//        val later = IO.Defer((), busy)
 //        later.isBusy shouldBe true
 //
 //        val level1AwaitingPull = LevelCompactionState.AwaitingPull(later, 1.minute.fromNow, 0, 0)

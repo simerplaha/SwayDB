@@ -31,7 +31,6 @@ import swaydb.core.io.file.BufferCleaner.State
 import swaydb.core.util.Scheduler
 import swaydb.data.config.ActorConfig.QueueOrder
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 private[core] object Cleaner {

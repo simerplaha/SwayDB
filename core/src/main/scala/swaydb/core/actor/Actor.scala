@@ -427,7 +427,7 @@ private[swaydb] class Actor[T, +S](val state: S,
     var processed = 0
     try
       while (!terminated && processed < max) {
-        val message = queue.poll
+        val message = queue.poll()
         if (message != null) {
           try
             execution(message, self)

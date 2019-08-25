@@ -95,7 +95,7 @@
 //        (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
 //          (putSegments: Iterable[Segment], _) =>
 //            putSegments.map(_.path) shouldBe segments.map(_.path)
-//            IO.Deferred.unit
+//            IO.Defer.unit
 //        }
 //
 //        //segments value removed
