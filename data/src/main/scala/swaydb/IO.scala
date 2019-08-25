@@ -464,6 +464,9 @@ object IO {
         } getOrElse forceGet
     }
 
+    def toIO: IO[E, A] =
+      IO(getUnsafe)
+
     def run[B >: A, T[_]](implicit tag: Tag[T]): T[B] =
       tag match {
         case sync: Tag.Sync[T] =>
