@@ -25,7 +25,7 @@ import java.util
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ErrorHandler
-import swaydb.{Error, IO}
+import swaydb.{Error, IO, Tag}
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
@@ -767,30 +767,41 @@ private[core] case class LevelZero(path: Path,
     LevelZero.delete(this)
 
   @tailrec
-  final def runIO(apply: LevelZero => IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]]): IO[Error.Level, Option[(Slice[Byte], Option[Slice[Byte]])]] =
-    apply(this).runIO flatMap {
-      result =>
-        result map {
-          response =>
-            response.getOrFetchValue map {
-              result =>
-                Some(response.key, result)
-            } recoverWith {
-              case _ =>
-                IO.Defer(response.getOrFetchValue.get).runIO map {
-                  value =>
-                    Some((response.key, value))
-                }
-            }
-        } getOrElse IO.none
-    } match {
-      case IO.Success(value) =>
-        IO.Success(value)
+  final def run[T[_]](apply: LevelZero => IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]])(implicit tag: Tag[T]): T[Option[(Slice[Byte], Option[Slice[Byte]])]] = {
+    import Tag.Implicits._
 
-      case failure @ IO.Failure(error) =>
-        if (swaydb.ErrorHandler.reserve(error).isDefined)
-          runIO(apply)
-        else
-          failure
+    @volatile var failed: Option[Error] = None
+
+    val result: T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+      apply(this).run flatMap {
+        result =>
+          result map {
+            response =>
+              tag.fromIO {
+                response.getOrFetchValue map {
+                  result =>
+                    Some(response.key, result)
+                } onFailureSideEffect {
+                  failure => //if there was an error, store it locally for further processing.
+                    failed = Some(failure.error)
+                }
+              }: T[Option[(Slice[Byte], Option[Slice[Byte]])]]
+          } getOrElse tag.none
+      }
+
+    //if fetching value failed perform read again.
+    failed match {
+      case Some(error) =>
+        error match {
+          case _: Error.NoSuchFile | _: Error.FileNotFound =>
+            run(apply)
+
+          case _: Error =>
+            result
+        }
+
+      case None =>
+        result
     }
+  }
 }

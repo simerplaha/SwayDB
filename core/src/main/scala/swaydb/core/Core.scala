@@ -19,71 +19,256 @@
 
 package swaydb.core
 
-import swaydb.core.data.KeyValue.KeyValueTuple
-import swaydb.core.data.SwayFunction
+import swaydb.Error.Level.ErrorHandler
+import swaydb.core.data.KeyValue._
+import swaydb.core.data.{Memory, SwayFunction, Time, Value}
+import swaydb.core.function.FunctionStore
+import swaydb.core.level.zero.LevelZero
+import swaydb.core.map.MapEntry
+import swaydb.core.map.serializer.LevelZeroMapEntryWriter
+import swaydb.core.map.timer.Timer
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.config.{LevelZeroConfig, SwayDBMemoryConfig, SwayDBPersistentConfig}
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.{IO, Prepare, Tag}
 
-import scala.concurrent.duration.Deadline
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-private[swaydb] trait Core[T[_]] {
+private[swaydb] object Core {
 
-  def put(key: Slice[Byte]): T[IO.Done]
-  def put(key: Slice[Byte], value: Slice[Byte]): T[IO.Done]
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done]
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.Done]
-  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.Done]
+  def apply(config: SwayDBPersistentConfig,
+            maxOpenSegments: Int,
+            keyValueCacheSize: Option[Int],
+            keyValueCacheCheckDelay: FiniteDuration,
+            segmentsOpenCheckDelay: FiniteDuration,
+            blockCacheSize: Option[Int],
+            fileSweeperEC: ExecutionContext,
+            memorySweeperEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                               timeOrder: TimeOrder[Slice[Byte]],
+                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+  //    CoreInitializer(
+  //      config = config,
+  //      maxOpenSegments = maxOpenSegments,
+  //      keyValueCacheSize = keyValueCacheSize.map(_.toLong),
+  //      blockCacheSize = blockCacheSize,
+  //      keyValueQueueDelay = keyValueCacheCheckDelay,
+  //      segmentCloserDelay = segmentsOpenCheckDelay,
+  //      fileSweeperEC = fileSweeperEC,
+  //      memorySweeperEC = memorySweeperEC
+  //    )
+    ???
 
-  def remove(key: Slice[Byte]): T[IO.Done]
-  def remove(key: Slice[Byte], at: Deadline): T[IO.Done]
-  def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.Done]
-  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.Done]
+  def apply(config: SwayDBMemoryConfig,
+            maxOpenSegments: Int,
+            cacheSize: Int,
+            cacheCheckDelay: FiniteDuration,
+            blockCacheSize: Option[Int],
+            segmentsOpenCheckDelay: FiniteDuration,
+            fileSweeperEC: ExecutionContext,
+            memorySweeperEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                               timeOrder: TimeOrder[Slice[Byte]],
+                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+  //    CoreInitializer(
+  //      config = config,
+  //      maxOpenSegments = maxOpenSegments,
+  //      keyValueCacheSize = Some(cacheSize),
+  //      blockCacheSize = blockCacheSize,
+  //      keyValueQueueDelay = cacheCheckDelay,
+  //      segmentCloserDelay = segmentsOpenCheckDelay,
+  //      fileSweeperEC = fileSweeperEC,
+  //      memorySweeperEC = memorySweeperEC
+  //    )
+    ???
 
-  def update(key: Slice[Byte], value: Slice[Byte]): T[IO.Done]
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done]
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.Done]
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done]
+  def apply(config: LevelZeroConfig)(implicit mmapCleanerEC: ExecutionContext,
+                                     keyOrder: KeyOrder[Slice[Byte]],
+                                     timeOrder: TimeOrder[Slice[Byte]],
+                                     functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+  //    CoreInitializer(
+  //      config = config,
+  //      bufferCleanerEC = mmapCleanerEC
+  //    )
+    ???
 
-  def function(key: Slice[Byte], function: Slice[Byte]): T[IO.Done]
-  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.Done]
-  def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction
+  private def prepareToMapEntry(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory.SegmentResponse]] =
+    entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
+      case (mapEntry, prepare) =>
+        val nextEntry =
+          prepare match {
+            case Prepare.Put(key, value, expire) =>
+              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
 
-  def head: T[Option[KeyValueTuple]]
-  def headKey: T[Option[Slice[Byte]]]
+            case Prepare.Add(key, expire) =>
+              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, None, expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
 
-  def last: T[Option[KeyValueTuple]]
-  def lastKey: T[Option[Slice[Byte]]]
+            case Prepare.Remove(key, toKey, expire) =>
+              toKey map {
+                toKey =>
+                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Remove(expire, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                    MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire, timer.next))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+              } getOrElse {
+                MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, expire, timer.next))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+              }
 
-  def contains(key: Slice[Byte]): T[Boolean]
-  def mightContainKey(key: Slice[Byte]): T[Boolean]
-  def mightContainFunction(functionId: Slice[Byte]): T[Boolean]
+            case Prepare.Update(key, toKey, value) =>
+              toKey map {
+                toKey =>
+                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Update(value, None, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                    MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, None, None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+              } getOrElse {
+                MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+              }
 
-  def get(key: Slice[Byte]): T[Option[Option[Slice[Byte]]]]
-  def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]]
-  def getKeyValue(key: Slice[Byte]): T[Option[KeyValueTuple]]
+            case Prepare.ApplyFunction(key, toKey, function) =>
+              toKey map {
+                toKey =>
+                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Function(function, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                    MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))(LevelZeroMapEntryWriter.Level0FunctionWriter)
+              } getOrElse {
+                MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next))(LevelZeroMapEntryWriter.Level0FunctionWriter)
+              }
+          }
+        Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
+    }
+}
 
-  def before(key: Slice[Byte]): T[Option[KeyValueTuple]]
-  def beforeKey(key: Slice[Byte]): T[Option[Slice[Byte]]]
+private[swaydb] class Core[T[_]](zero: LevelZero,
+                                 onClose: () => IO[swaydb.Error.Close, Unit])(implicit tag: Tag[T]) {
 
-  def after(key: Slice[Byte]): T[Option[KeyValueTuple]]
-  def afterKey(key: Slice[Byte]): T[Option[Slice[Byte]]]
+  import Tag.Implicits._
 
-  def valueSize(key: Slice[Byte]): T[Option[Int]]
+  def put(key: Slice[Byte]): T[IO.Done] =
+    tag.fromIO(zero.put(key))
 
-  def level0Meter: LevelZeroMeter
-  def levelMeter(levelNumber: Int): Option[LevelMeter]
+  def put(key: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
+    tag.fromIO(zero.put(key, value))
 
-  def toTag[T[_]](implicit tag: Tag[T]): Core[T]
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
+    tag.fromIO(zero.put(key, value))
 
-  def close(): T[Unit]
-  def delete(): T[Unit]
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.Done] =
+    tag.fromIO(zero.put(key, value, removeAt))
 
-  def bloomFilterKeyValueCount: T[Int]
-  def sizeOfSegments: Long
+  /**
+   * Each [[Prepare]] requires a new next [[Time]] for cases where a batch contains overriding keys.
+   *
+   * Same time indicates that the later Prepare in this batch with the same time as newer Prepare has already applied
+   * to the newer prepare therefore ignoring the newer prepare.
+   *
+   * @note If the default time order [[TimeOrder.long]] is used
+   *       Times should always be unique and in incremental order for *ALL* key values.
+   */
+  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.Done] =
+    if (entries.isEmpty)
+      tag.fromIO(IO.failed("Cannot write empty batch"))
+    else
+      tag.fromIO(zero.put(Core.prepareToMapEntry(entries)(_).get)) //Gah .get! hmm.
 
-  def deadline(key: Slice[Byte]): T[Option[Deadline]]
+  def remove(key: Slice[Byte]): T[IO.Done] =
+    tag.fromIO(zero.remove(key))
 
-  def clear(): T[IO.Done]
+  def remove(key: Slice[Byte], at: Deadline): T[IO.Done] =
+    tag.fromIO(zero.remove(key, at))
+
+  def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.Done] =
+    tag.fromIO(zero.remove(from, to))
+
+  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.Done] =
+    tag.fromIO(zero.remove(from, to, at))
+
+  def update(key: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
+    tag.fromIO(zero.update(key, value))
+
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
+    tag.fromIO(zero.update(key, value))
+
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
+    tag.fromIO(zero.update(fromKey, to, value))
+
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
+    tag.fromIO(zero.update(fromKey, to, value))
+
+  def function(key: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
+    tag.fromIO(zero.applyFunction(key, function))
+
+  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
+    tag.fromIO(zero.applyFunction(from, to, function))
+
+  def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
+    zero.registerFunction(functionID, function)
+
+  def head: T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+    zero.run(_.head)
+
+  def headKey: T[Option[Slice[Byte]]] =
+    zero.headKey.run
+
+  def last: T[Option[KeyValueTuple]] =
+    zero.run(_.last)
+
+  def lastKey: T[Option[Slice[Byte]]] =
+    zero.lastKey.run
+
+  def bloomFilterKeyValueCount: T[Int] =
+    IO.Defer(zero.bloomFilterKeyValueCount.get).run
+
+  def deadline(key: Slice[Byte]): T[Option[Deadline]] =
+    zero.deadline(key).run
+
+  def sizeOfSegments: Long =
+    zero.sizeOfSegments
+
+  def contains(key: Slice[Byte]): T[Boolean] =
+    zero.contains(key).run
+
+  def mightContainKey(key: Slice[Byte]): T[Boolean] =
+    IO.Defer(zero.mightContainKey(key).get).run
+
+  def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
+    IO.Defer(zero.mightContainFunction(functionId).get).run
+
+  def get(key: Slice[Byte]): T[Option[Option[Slice[Byte]]]] =
+    zero.run(_.get(key)).map(_.map(_._2))
+
+  def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
+    zero.getKey(key).run
+
+  def getKeyValue(key: Slice[Byte]): T[Option[KeyValueTuple]] =
+    zero.run(_.get(key))
+
+  def before(key: Slice[Byte]): T[Option[KeyValueTuple]] =
+    zero.run(_.lower(key))
+
+  def beforeKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
+    zero.lower(key).run.map(_.map(_.key))
+
+  def after(key: Slice[Byte]): T[Option[KeyValueTuple]] =
+    zero.run(_.higher(key))
+
+  def afterKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
+    zero.higher(key).run.map(_.map(_.key))
+
+  def valueSize(key: Slice[Byte]): T[Option[Int]] =
+    zero.valueSize(key).run
+
+  def level0Meter: LevelZeroMeter =
+    zero.levelZeroMeter
+
+  def levelMeter(levelNumber: Int): Option[LevelMeter] =
+    zero.meterFor(levelNumber)
+
+  def close(): T[Unit] =
+    tag.fromIO(onClose().flatMap(_ => zero.close))
+
+  def delete(): T[Unit] =
+    tag.fromIO(onClose().flatMap(_ => zero.delete))
+
+  def clear(): T[IO.Done] =
+    zero.clear().run
+
+  def toTag[X[_]](implicit tag: Tag[X]): Core[X] =
+    new Core[X](zero, onClose)(tag)
 }

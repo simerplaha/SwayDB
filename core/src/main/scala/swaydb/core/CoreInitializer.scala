@@ -73,7 +73,7 @@ private[core] object CoreInitializer extends LazyLogging {
             fileCache: FileCache.Enable,
             bufferCleanerEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, CoreSync[IO.ApiIO]] = {
+                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
     implicit val fileSweeper: FileSweeper.Enabled =
       FileSweeper(fileCache)
 
@@ -91,10 +91,10 @@ private[core] object CoreInitializer extends LazyLogging {
     ) match {
       case IO.Success(zero) =>
         addShutdownHook(zero, None)
-        IO[swaydb.Error.Boot, CoreSync[IO.ApiIO]](CoreSync(zero, () => IO.unit))
+        IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, () => IO.unit))
 
       case IO.Failure(error) =>
-        IO.failed[swaydb.Error.Boot, CoreSync[IO.ApiIO]](error.exception)
+        IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
     }
   }
 
@@ -139,7 +139,7 @@ private[core] object CoreInitializer extends LazyLogging {
             fileCache: FileCache.Enable,
             memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                       timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, CoreSync[IO.ApiIO]] = {
+                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
 
     implicit val fileSweeper: FileSweeper.Enabled =
       FileSweeper(fileCache)
@@ -226,7 +226,7 @@ private[core] object CoreInitializer extends LazyLogging {
       }
 
     def createLevels(levelConfigs: List[LevelConfig],
-                     previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, CoreSync[IO.ApiIO]] =
+                     previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, Core[IO.ApiIO]] =
       levelConfigs match {
         case Nil =>
           createLevel(
@@ -257,7 +257,7 @@ private[core] object CoreInitializer extends LazyLogging {
                       //trigger initial wakeUp.
                       compactor foreach sendInitialWakeUp
 
-                      CoreSync(
+                      new Core(
                         zero = zero,
                         onClose = () => IO[swaydb.Error.Close, Unit](compactor foreach compactionStrategy.terminate)
                       )
@@ -285,10 +285,10 @@ private[core] object CoreInitializer extends LazyLogging {
      */
     createLevels(config.otherLevels.reverse, None) match {
       case IO.Success(core) =>
-        IO[swaydb.Error.Boot, CoreSync[IO.ApiIO]](core)
+        IO[swaydb.Error.Boot, Core[IO.ApiIO]](core)
 
       case IO.Failure(error) =>
-        IO.failed[swaydb.Error.Boot, CoreSync[IO.ApiIO]](error.exception)
+        IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
     }
   }
 }

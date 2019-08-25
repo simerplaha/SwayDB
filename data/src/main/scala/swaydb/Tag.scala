@@ -66,6 +66,13 @@ object Tag {
 
       @inline def flatMap[B](f: A => T[B]): T[B] =
         tag.flatMap(a)(f)
+
+      @inline def foreach[B](f: A => B): Unit =
+        tag.flatMap(a) {
+          value =>
+            tag.foreach(value)(f)
+            a
+        }
     }
   }
 

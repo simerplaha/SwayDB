@@ -23,7 +23,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultPersistentZeroConfig
-import swaydb.core.CoreSync
+import swaydb.core.Core
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{Dir, RecoveryMode}
@@ -48,7 +48,7 @@ object Set extends LazyLogging {
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                      ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
-    CoreSync(
+    Core(
       config = DefaultPersistentZeroConfig(
         dir = dir,
         otherDirs = otherDirs,

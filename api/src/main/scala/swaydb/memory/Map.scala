@@ -21,7 +21,7 @@ package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultMemoryConfig
-import swaydb.core.CoreSync
+import swaydb.core.Core
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.GroupBy
@@ -71,7 +71,7 @@ object Map extends LazyLogging {
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                         fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
                                                                                         memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
-    CoreSync(
+    Core(
       config = DefaultMemoryConfig(
         mapSize = mapSize,
         segmentSize = segmentSize,
