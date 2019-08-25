@@ -45,70 +45,70 @@ case class Set[A, T[_]](private val core: Core[T],
                                                                                tag: Tag[T]) extends Streamable[A, T] { self =>
 
   def get(elem: A): T[Option[A]] =
-    tag.defer(core.getKey(elem).map(_.map(_.read[A])))
+    tag.point(core.getKey(elem).map(_.map(_.read[A])))
 
   def contains(elem: A): T[Boolean] =
-    tag.defer(core contains elem)
+    tag.point(core contains elem)
 
   def mightContain(elem: A): T[Boolean] =
-    tag.defer(core mightContainKey elem)
+    tag.point(core mightContainKey elem)
 
   def mightContainFunction(functionId: A): T[Boolean] =
-    tag.defer(core mightContainFunction functionId)
+    tag.point(core mightContainFunction functionId)
 
   def add(elem: A): T[IO.Done] =
-    tag.defer(core.put(key = elem))
+    tag.point(core.put(key = elem))
 
   def add(elem: A, expireAt: Deadline): T[IO.Done] =
-    tag.defer(core.put(elem, None, expireAt))
+    tag.point(core.put(elem, None, expireAt))
 
   def add(elem: A, expireAfter: FiniteDuration): T[IO.Done] =
-    tag.defer(core.put(elem, None, expireAfter.fromNow))
+    tag.point(core.put(elem, None, expireAfter.fromNow))
 
   def add(elems: A*): T[IO.Done] =
     add(elems)
 
   def add(elems: Stream[A, T]): T[IO.Done] =
-    tag.defer(elems.materialize flatMap add)
+    tag.point(elems.materialize flatMap add)
 
   def add(elems: Iterable[A]): T[IO.Done] =
-    tag.defer(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None))))
+    tag.point(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None))))
 
   def remove(elem: A): T[IO.Done] =
-    tag.defer(core.remove(elem))
+    tag.point(core.remove(elem))
 
   def remove(from: A, to: A): T[IO.Done] =
-    tag.defer(core.remove(from, to))
+    tag.point(core.remove(from, to))
 
   def remove(elems: A*): T[IO.Done] =
     remove(elems)
 
   def remove(elems: Stream[A, T]): T[IO.Done] =
-    tag.defer(elems.materialize flatMap remove)
+    tag.point(elems.materialize flatMap remove)
 
   def remove(elems: Iterable[A]): T[IO.Done] =
-    tag.defer(core.put(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
+    tag.point(core.put(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
 
   def expire(elem: A, after: FiniteDuration): T[IO.Done] =
-    tag.defer(core.remove(elem, after.fromNow))
+    tag.point(core.remove(elem, after.fromNow))
 
   def expire(elem: A, at: Deadline): T[IO.Done] =
-    tag.defer(core.remove(elem, at))
+    tag.point(core.remove(elem, at))
 
   def expire(from: A, to: A, after: FiniteDuration): T[IO.Done] =
-    tag.defer(core.remove(from, to, after.fromNow))
+    tag.point(core.remove(from, to, after.fromNow))
 
   def expire(from: A, to: A, at: Deadline): T[IO.Done] =
-    tag.defer(core.remove(from, to, at))
+    tag.point(core.remove(from, to, at))
 
   def expire(elems: (A, Deadline)*): T[IO.Done] =
     expire(elems)
 
   def expire(elems: Stream[(A, Deadline), T]): T[IO.Done] =
-    tag.defer(elems.materialize flatMap expire)
+    tag.point(elems.materialize flatMap expire)
 
   def expire(elems: Iterable[(A, Deadline)]): T[IO.Done] =
-    tag.defer {
+    tag.point {
       core.put {
         elems map {
           elemWithExpire =>
@@ -122,7 +122,7 @@ case class Set[A, T[_]](private val core: Core[T],
     }
 
   def clear(): T[IO.Done] =
-    tag.defer(core.clear())
+    tag.point(core.clear())
 
   def registerFunction(functionID: A, function: (A, Option[Deadline]) => Apply.Set[A]): A = {
     core.registerFunction(functionID, SwayDB.toCoreFunction(function))
@@ -130,19 +130,19 @@ case class Set[A, T[_]](private val core: Core[T],
   }
 
   def applyFunction(from: A, to: A, functionID: A): T[IO.Done] =
-    tag.defer(core.function(from, to, functionID))
+    tag.point(core.function(from, to, functionID))
 
   def applyFunction(elem: A, function: A): T[IO.Done] =
-    tag.defer(core.function(elem, function))
+    tag.point(core.function(elem, function))
 
   def commit(prepare: Prepare[A, Nothing]*): T[IO.Done] =
-    tag.defer(core.put(prepare))
+    tag.point(core.put(prepare))
 
   def commit(prepare: Stream[Prepare[A, Nothing], T]): T[IO.Done] =
-    tag.defer(prepare.materialize flatMap commit)
+    tag.point(prepare.materialize flatMap commit)
 
   def commit(prepare: Iterable[Prepare[A, Nothing]]): T[IO.Done] =
-    tag.defer(core.put(prepare))
+    tag.point(core.put(prepare))
 
   def level0Meter: LevelZeroMeter =
     core.level0Meter
@@ -157,7 +157,7 @@ case class Set[A, T[_]](private val core: Core[T],
     (elem: Slice[Byte]).size
 
   def expiration(elem: A): T[Option[Deadline]] =
-    tag.defer(core deadline elem)
+    tag.point(core deadline elem)
 
   def timeLeft(elem: A): T[Option[FiniteDuration]] =
     expiration(elem).map(_.map(_.timeLeft))
@@ -178,7 +178,7 @@ case class Set[A, T[_]](private val core: Core[T],
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
   override def headOption: T[Option[A]] =
-    tag.defer {
+    tag.point {
       from match {
         case Some(from) =>
           val fromKeyBytes: Slice[Byte] = from.key
@@ -245,7 +245,7 @@ case class Set[A, T[_]](private val core: Core[T],
         self.headOption
 
       override private[swaydb] def next(previous: A): T[Option[A]] =
-        tag.defer {
+        tag.point {
           if (reverseIteration)
             core.beforeKey(serializer.write(previous))
           else
@@ -254,19 +254,19 @@ case class Set[A, T[_]](private val core: Core[T],
     }
 
   def sizeOfBloomFilterEntries: T[Int] =
-    tag.defer(core.bloomFilterKeyValueCount)
+    tag.point(core.bloomFilterKeyValueCount)
 
   def isEmpty: T[Boolean] =
-    tag.defer(core.headKey.map(_.isEmpty))
+    tag.point(core.headKey.map(_.isEmpty))
 
   def nonEmpty: T[Boolean] =
     isEmpty.map(!_)
 
   def lastOption: T[Option[A]] =
     if (reverseIteration)
-      tag.defer(core.headKey.map(_.map(_.read[A])))
+      tag.point(core.headKey.map(_.map(_.read[A])))
     else
-      tag.defer(core.lastKey.map(_.map(_.read[A])))
+      tag.point(core.lastKey.map(_.map(_.read[A])))
 
   def reverse: Set[A, T] =
     copy(reverseIteration = true)
@@ -278,10 +278,10 @@ case class Set[A, T[_]](private val core: Core[T],
     ScalaSet[A](toTag[IO.ApiIO])
 
   def close(): T[Unit] =
-    tag.defer(core.close())
+    tag.point(core.close())
 
   def delete(): T[Unit] =
-    tag.defer(core.delete())
+    tag.point(core.delete())
 
   override def toString(): String =
     classOf[Map[_, _, T]].getClass.getSimpleName

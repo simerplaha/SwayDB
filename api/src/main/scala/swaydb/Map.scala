@@ -40,22 +40,22 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
                                                                                   valueSerializer: Serializer[V],
                                                                                   tag: Tag[T]) extends Streamable[(K, V), T] { self =>
   def put(key: K, value: V): T[IO.Done] =
-    tag.defer(core.put(key = key, value = Some(value)))
+    tag.point(core.put(key = key, value = Some(value)))
 
   def put(key: K, value: V, expireAfter: FiniteDuration): T[IO.Done] =
-    tag.defer(core.put(key, Some(value), expireAfter.fromNow))
+    tag.point(core.put(key, Some(value), expireAfter.fromNow))
 
   def put(key: K, value: V, expireAt: Deadline): T[IO.Done] =
-    tag.defer(core.put(key, Some(value), expireAt))
+    tag.point(core.put(key, Some(value), expireAt))
 
   def put(keyValues: (K, V)*): T[IO.Done] =
-    tag.defer(put(keyValues))
+    tag.point(put(keyValues))
 
   def put(keyValues: Stream[(K, V), T]): T[IO.Done] =
-    tag.defer(keyValues.materialize flatMap put)
+    tag.point(keyValues.materialize flatMap put)
 
   def put(keyValues: Iterable[(K, V)]): T[IO.Done] =
-    tag.defer {
+    tag.point {
       core.put {
         keyValues map {
           case (key, value) =>
@@ -65,40 +65,40 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     }
 
   def remove(key: K): T[IO.Done] =
-    tag.defer(core.remove(key))
+    tag.point(core.remove(key))
 
   def remove(from: K, to: K): T[IO.Done] =
-    tag.defer(core.remove(from, to))
+    tag.point(core.remove(from, to))
 
   def remove(keys: K*): T[IO.Done] =
-    tag.defer(remove(keys))
+    tag.point(remove(keys))
 
   def remove(keys: Stream[K, T]): T[IO.Done] =
-    tag.defer(keys.materialize flatMap remove)
+    tag.point(keys.materialize flatMap remove)
 
   def remove(keys: Iterable[K]): T[IO.Done] =
-    tag.defer(core.put(keys.map(key => Prepare.Remove(keySerializer.write(key)))))
+    tag.point(core.put(keys.map(key => Prepare.Remove(keySerializer.write(key)))))
 
   def expire(key: K, after: FiniteDuration): T[IO.Done] =
-    tag.defer(core.remove(key, after.fromNow))
+    tag.point(core.remove(key, after.fromNow))
 
   def expire(key: K, at: Deadline): T[IO.Done] =
-    tag.defer(core.remove(key, at))
+    tag.point(core.remove(key, at))
 
   def expire(from: K, to: K, after: FiniteDuration): T[IO.Done] =
-    tag.defer(core.remove(from, to, after.fromNow))
+    tag.point(core.remove(from, to, after.fromNow))
 
   def expire(from: K, to: K, at: Deadline): T[IO.Done] =
-    tag.defer(core.remove(from, to, at))
+    tag.point(core.remove(from, to, at))
 
   def expire(keys: (K, Deadline)*): T[IO.Done] =
-    tag.defer(expire(keys))
+    tag.point(expire(keys))
 
   def expire(keys: Stream[(K, Deadline), T]): T[IO.Done] =
-    tag.defer(keys.materialize flatMap expire)
+    tag.point(keys.materialize flatMap expire)
 
   def expire(keys: Iterable[(K, Deadline)]): T[IO.Done] =
-    tag.defer {
+    tag.point {
       core.put {
         keys map {
           keyDeadline =>
@@ -112,19 +112,19 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     }
 
   def update(key: K, value: V): T[IO.Done] =
-    tag.defer(core.update(key, Some(value)))
+    tag.point(core.update(key, Some(value)))
 
   def update(from: K, to: K, value: V): T[IO.Done] =
-    tag.defer(core.update(from, to, Some(value)))
+    tag.point(core.update(from, to, Some(value)))
 
   def update(keyValues: (K, V)*): T[IO.Done] =
-    tag.defer(update(keyValues))
+    tag.point(update(keyValues))
 
   def update(keyValues: Stream[(K, V), T]): T[IO.Done] =
-    tag.defer(keyValues.materialize flatMap update)
+    tag.point(keyValues.materialize flatMap update)
 
   def update(keyValues: Iterable[(K, V)]): T[IO.Done] =
-    tag.defer {
+    tag.point {
       core.put {
         keyValues map {
           case (key, value) =>
@@ -134,7 +134,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     }
 
   def clear(): T[IO.Done] =
-    tag.defer(core.clear())
+    tag.point(core.clear())
 
   def registerFunction(functionID: K, function: V => Apply.Map[V]): K = {
     core.registerFunction(functionID, SwayDB.toCoreFunction(function))
@@ -152,25 +152,25 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
   }
 
   def applyFunction(key: K, functionID: K): T[IO.Done] =
-    tag.defer(core.function(key, functionID))
+    tag.point(core.function(key, functionID))
 
   def applyFunction(from: K, to: K, functionID: K): T[IO.Done] =
-    tag.defer(core.function(from, to, functionID))
+    tag.point(core.function(from, to, functionID))
 
   def commit(prepare: Prepare[K, V]*): T[IO.Done] =
-    tag.defer(core.put(prepare))
+    tag.point(core.put(prepare))
 
   def commit(prepare: Stream[Prepare[K, V], T]): T[IO.Done] =
-    tag.defer(prepare.materialize flatMap commit)
+    tag.point(prepare.materialize flatMap commit)
 
   def commit(prepare: Iterable[Prepare[K, V]]): T[IO.Done] =
-    tag.defer(core.put(prepare))
+    tag.point(core.put(prepare))
 
   /**
    * Returns target value for the input key.
    */
   def get(key: K): T[Option[V]] =
-    tag.defer(core.get(key).map(_.map(_.read[V])))
+    tag.point(core.get(key).map(_.map(_.read[V])))
 
   /**
    * Returns target full key for the input partial key.
@@ -178,10 +178,10 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
    * This function is mostly used for Set databases where partial ordering on the Key is provided.
    */
   def getKey(key: K): T[Option[K]] =
-    tag.defer(core.getKey(key).map(_.map(_.read[K])))
+    tag.point(core.getKey(key).map(_.map(_.read[K])))
 
   def getKeyValue(key: K): T[Option[(K, V)]] =
-    tag.defer {
+    tag.point {
       core.getKeyValue(key).map(_.map {
         case (key, value) =>
           (key.read[K], value.read[V])
@@ -189,13 +189,13 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     }
 
   def contains(key: K): T[Boolean] =
-    tag.defer(core contains key)
+    tag.point(core contains key)
 
   def mightContain(key: K): T[Boolean] =
-    tag.defer(core mightContainKey key)
+    tag.point(core mightContainKey key)
 
   def mightContainFunction(functionId: K): T[Boolean] =
-    tag.defer(core mightContainFunction functionId)
+    tag.point(core mightContainFunction functionId)
 
   def keys: Set[K, T] =
     Set[K, T](
@@ -220,10 +220,10 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     (value: Slice[Byte]).size
 
   def expiration(key: K): T[Option[Deadline]] =
-    tag.defer(core deadline key)
+    tag.point(core deadline key)
 
   def timeLeft(key: K): T[Option[FiniteDuration]] =
-    tag.defer(expiration(key).map(_.map(_.timeLeft)))
+    tag.point(expiration(key).map(_.map(_.timeLeft)))
 
   def from(key: K): Map[K, V, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
@@ -241,7 +241,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
   def headOption: T[Option[(K, V)]] =
-    tag.defer {
+    tag.point {
       from match {
         case Some(from) =>
           val fromKeyBytes: Slice[Byte] = from.key
@@ -304,7 +304,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     stream.foldLeft(initial)(f)
 
   def size: T[Int] =
-    tag.defer(keys.size)
+    tag.point(keys.size)
 
   def stream: Stream[(K, V), T] =
     new Stream[(K, V), T] {
@@ -312,7 +312,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
         self.headOption
 
       override private[swaydb] def next(previous: (K, V)): T[Option[(K, V)]] =
-        tag.defer {
+        tag.point {
           val next =
             if (reverseIteration)
               core.before(keySerializer.write(previous._1))
@@ -327,17 +327,17 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     }
 
   def sizeOfBloomFilterEntries: T[Int] =
-    tag.defer(core.bloomFilterKeyValueCount)
+    tag.point(core.bloomFilterKeyValueCount)
 
   def isEmpty: T[Boolean] =
-    tag.defer(core.headKey.map(_.isEmpty))
+    tag.point(core.headKey.map(_.isEmpty))
 
   def nonEmpty: T[Boolean] =
     isEmpty.map(!_)
 
   def lastOption: T[Option[(K, V)]] =
     if (reverseIteration)
-      tag.defer {
+      tag.point {
         core.head map {
           case Some((key, value)) =>
             Some(key.read[K], value.read[V])
@@ -347,7 +347,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
         }
       }
     else
-      tag.defer {
+      tag.point {
         core.last map {
           case Some((key, value)) =>
             Some(key.read[K], value.read[V])
@@ -369,10 +369,10 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     ScalaMap[K, V](toTag[IO.ApiIO](Tag.dbIO))
 
   def close(): T[Unit] =
-    tag.defer(core.close())
+    tag.point(core.close())
 
   def delete(): T[Unit] =
-    tag.defer(core.delete())
+    tag.point(core.delete())
 
   override def toString(): String =
     classOf[Map[_, _, T]].getClass.getSimpleName

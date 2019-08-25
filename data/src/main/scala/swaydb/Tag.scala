@@ -41,7 +41,7 @@ sealed trait Tag[T[_]] {
   def collectFirst[A](previous: A, stream: swaydb.Stream[A, T])(condition: A => Boolean): T[Option[A]]
   def fromIO[E: ErrorHandler, A](a: IO[E, A]): T[A]
   def toTag[X[_]](implicit converter: Tag.Converter[T, X]): Tag[X]
-  def defer[B](f: => T[B]): T[B] =
+  def point[B](f: => T[B]): T[B] =
     flatMap[Unit, B](success(()))(_ => f)
 }
 
