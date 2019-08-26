@@ -115,6 +115,8 @@ class WiredActor[+T, +S](impl: T, delays: Option[FiniteDuration], state: S)(impl
   def scheduleSend[R](delay: FiniteDuration)(function: (T, S) => R): TimerTask =
     actor.schedule(() => function(impl, unsafeGetState), delay)
 
-  def terminate(): Unit =
+  def terminate(): Unit = {
+    scheduler.terminate()
     actor.terminate()
+  }
 }

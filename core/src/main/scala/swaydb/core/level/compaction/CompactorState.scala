@@ -25,7 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Tag
 import swaydb.core.actor.WiredActor
 import swaydb.core.level.LevelRef
-import swaydb.core.util.FiniteDurations
+import swaydb.core.util.{FiniteDurations, Scheduler}
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable
@@ -45,6 +45,7 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
   val hasLevelZero: Boolean = levels.exists(_.isZero)
   val levelsReversed = Slice(levels.reverse.toArray)
   val tag: Tag.Async[Future] = Tag.future(executionContext)
+  val scheduler = Scheduler(Some(s"Scheduler for Level: ${levels.map(_.levelNumber).mkString(", ")}."))(executionContext)
 
   def id =
     if (levels.size == 1)

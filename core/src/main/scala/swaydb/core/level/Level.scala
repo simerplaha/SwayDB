@@ -467,7 +467,10 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   def ensureRelease[T](key: Slice[Byte])(f: => T): T =
-    try f finally ReserveRange.free(key)
+    try
+      f
+    finally
+      ReserveRange.free(key)
 
   private[level] def reserve(segments: Iterable[Segment]): IO[swaydb.Error.Level, Either[Future[Unit], Slice[Byte]]] =
     SegmentAssigner.assignMinMaxOnly(
