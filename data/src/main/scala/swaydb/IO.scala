@@ -502,7 +502,7 @@ object IO {
 
       @tailrec
       def doRun(deferred: IO.Defer[E, A], tried: Int): IO[E, A] = {
-        blockIfNeeded(deferred)
+        if (tried > 0) blockIfNeeded(deferred)
         IO.Defer.runAndRecover(deferred) match {
           case Left(io) =>
             logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
@@ -548,7 +548,7 @@ object IO {
 
       @tailrec
       def doRun(deferred: IO.Defer[E, B], tried: Int): T[B] = {
-        blockIfNeeded(deferred)
+        if (tried > 0) blockIfNeeded(deferred)
         IO.Defer.runAndRecover(deferred) match {
           case Left(io) =>
             logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
@@ -602,9 +602,16 @@ object IO {
             runNow(deferred, tried)
         }
 
+      //TO-DO moved Options.scala to data package.
+      def when[B](condition: Boolean)(success: => Option[B]): Option[B] =
+        if (condition)
+          success
+        else
+          None
+
       @tailrec
       def runNow(deferred: IO.Defer[E, B], tried: Int): T[B] =
-        delayedRun(deferred) match {
+        when(tried > 0)(delayedRun(deferred)) match {
           case Some(async) if tag.isIncomplete(async) =>
             logger.debug(s"Run delayed! isCached: ${getValue.isDefined}.")
             runDelayed(deferred, tried, async)
