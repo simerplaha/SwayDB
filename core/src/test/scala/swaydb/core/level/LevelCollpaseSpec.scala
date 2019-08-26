@@ -75,7 +75,7 @@ sealed trait LevelCollapseSpec extends TestBase {
 
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
   implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeper
-  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
+  implicit val groupBy: Option[GroupByInternal.KeyValues] = None
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "collapse" should {
@@ -169,11 +169,6 @@ sealed trait LevelCollapseSpec extends TestBase {
               None
             }
         }
-
-      val sss: IO.Defer[Error.Level, Option[ReadOnly.Put]] = ???
-
-      sss.runRandomIO
-
 
       //delete half of the key values which will create small Segments
       level.putKeyValuesTest(Slice(expireEverySecond.toArray)).runRandomIO.value

@@ -138,9 +138,9 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         level.put(map).runRandomIO
         assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
 
-        level.get("one").runRandomIO.value shouldBe existingKeyValues(0)
-        level.get("two").runRandomIO.value shouldBe existingKeyValues(1)
-        level.get("three").runRandomIO.value shouldBe existingKeyValues(2)
+        level.get("one").runRandomIO.value.value shouldBe existingKeyValues(0)
+        level.get("two").runRandomIO.value.value shouldBe existingKeyValues(1)
+        level.get("three").runRandomIO.value.value shouldBe existingKeyValues(2)
         level.get("four").runRandomIO.value shouldBe empty
       }
     }
