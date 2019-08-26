@@ -438,7 +438,6 @@ private[core] object Higher {
                 failure recoverTo Higher.seeker(key, currentSeek, nextSeek)
             }
 
-
           case Seek.Next.Stash(next, nextStateID) =>
             if (nextWalker.hasStateChanged(nextStateID))
               Higher(key, currentSeek, Seek.Read)
@@ -446,7 +445,6 @@ private[core] object Higher {
               IO.Defer(Some(next))
             else
               Higher(next.key, currentSeek, Seek.Read)
-
 
           case Seek.Next.Stop(nextStateID) =>
             if (nextWalker.hasStateChanged(nextStateID))
