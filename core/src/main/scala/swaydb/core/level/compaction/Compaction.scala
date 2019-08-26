@@ -29,18 +29,18 @@ import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Promise}
 
 /**
-  * This object does not implement any concurrency which should be handled by an Actor.
-  *
-  * It just implements functions that given a Level and it's [[CompactorState]] mutates the state
-  * such to reflect it's current compaction state. This state can then used to determine
-  * how the next compaction should occur.
-  *
-  * State mutation is necessary to avoid unnecessary garbage during compaction. Functions returning Unit mutate the state.
-  */
+ * This object does not implement any concurrency which should be handled by an Actor.
+ *
+ * It just implements functions that given a Level and it's [[CompactorState]] mutates the state
+ * such to reflect it's current compaction state. This state can then used to determine
+ * how the next compaction should occur.
+ *
+ * State mutation is necessary to avoid unnecessary garbage during compaction. Functions returning Unit mutate the state.
+ */
 private[level] object Compaction extends LazyLogging {
 
   val awaitPullTimeout = 6.seconds.fromNow
@@ -139,36 +139,35 @@ private[level] object Compaction extends LazyLogging {
     }
 
   private[compaction] def pushForward(level: NextLevel, stateID: Long)(implicit ec: ExecutionContext): LevelCompactionState = {
-    //    val throttle = level.throttle(level.meter)
-    //    pushForward(level, throttle.segmentsToPush max 1) match {
-    //      case IO.Success(pushed) =>
-    //        logger.debug(s"Level(${level.levelNumber}): pushed $pushed Segments.")
-    //        LevelCompactionState.Sleep(
-    //          sleepDeadline = level.nextCompactionDelay.fromNow,
-    //          stateID = level.stateID,
-    //          previousStateID = stateID
-    //        )
-    //
-    //      case later @ IO.Defer(_, _) =>
-    //        LevelCompactionState.AwaitingPull(
-    //          later = later,
-    //          timeout = awaitPullTimeout,
-    //          stateID = level.stateID,
-    //          previousStateID = stateID
-    //        )
-    //
-    //      case IO.Failure(_) =>
-    //        LevelCompactionState.Sleep(
-    //          sleepDeadline =
-    //            if (LevelCompactionState.failureSleepDuration.timeLeft < throttle.pushDelay)
-    //              LevelCompactionState.failureSleepDuration
-    //            else
-    //              throttle.pushDelay.fromNow,
-    //          stateID = level.stateID,
-    //          previousStateID = stateID
-    //        )
-    //    }
-    ???
+    val throttle = level.throttle(level.meter)
+    pushForward(level, throttle.segmentsToPush max 1) match {
+      case Right(IO.Success(pushed)) =>
+        logger.debug(s"Level(${level.levelNumber}): pushed $pushed Segments.")
+        LevelCompactionState.Sleep(
+          sleepDeadline = level.nextCompactionDelay.fromNow,
+          stateID = level.stateID,
+          previousStateID = stateID
+        )
+
+      case Right(IO.Failure(_)) =>
+        LevelCompactionState.Sleep(
+          sleepDeadline =
+            if (LevelCompactionState.failureSleepDuration.timeLeft < throttle.pushDelay)
+              LevelCompactionState.failureSleepDuration
+            else
+              throttle.pushDelay.fromNow,
+          stateID = level.stateID,
+          previousStateID = stateID
+        )
+
+      case Left(promise) =>
+        LevelCompactionState.AwaitingPull(
+          promise = promise,
+          timeout = awaitPullTimeout,
+          stateID = level.stateID,
+          previousStateID = stateID
+        )
+    }
   }
 
   private[compaction] def pushForward(zero: LevelZero, stateID: Long)(implicit ec: ExecutionContext): LevelCompactionState =
@@ -213,60 +212,59 @@ private[level] object Compaction extends LazyLogging {
                                       nextLevel: NextLevel,
                                       stateID: Long,
                                       map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): LevelCompactionState =
-  //    nextLevel.put(map) match {
-  //      case IO.Success(_) =>
-  //        logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
-  //        // If there is a failure removing the last map, maps will add the same map back into the queue and print
-  //        // error message to be handled by the User.
-  //        // Do not trigger another Push. This will stop LevelZero from pushing new memory maps to Level1.
-  //        // Maps are ALWAYS required to be processed sequentially in the order of write.
-  //        // Un order merging of maps should NOT be allowed.
-  //        zero.maps.removeLast() foreach {
-  //          result =>
-  //            result onFailureSideEffect {
-  //              error =>
-  //                val mapPath: String = zero.maps.last().map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
-  //                logger.error(
-  //                  s"Failed to delete the oldest memory map '$mapPath'. The map is added back to the memory-maps queue." +
-  //                    "No more maps will be pushed to Level1 until this error is fixed " +
-  //                    "as sequential conversion of memory-map files to Segments is required to maintain data accuracy. " +
-  //                    "Please check file system permissions and ensure that SwayDB can delete files and reboot the database.",
-  //                  error.exception
-  //                )
-  //            }
-  //        }
-  //        LevelCompactionState.Sleep(
-  //          sleepDeadline = zero.nextCompactionDelay.fromNow,
-  //          stateID = zero.stateID,
-  //          previousStateID = stateID
-  //        )
-  //
-  //      case IO.Failure(error) =>
-  //        error match {
-  //          //do not log the stack if the IO.Failure to merge was ContainsOverlappingBusySegments.
-  //          case swaydb.Error.OverlappingPushSegment =>
-  //            logger.debug(s"Level(${zero.levelNumber}): Failed to push", swaydb.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
-  //          case _ =>
-  //            logger.error(s"Level(${zero.levelNumber}): Failed to push", error.exception)
-  //        }
-  //        LevelCompactionState.Sleep(
-  //          sleepDeadline = LevelCompactionState.failureSleepDuration,
-  //          stateID = zero.stateID,
-  //          previousStateID = stateID
-  //        )
-  //
-  //      case later @ IO.Defer(_, _) =>
-  //        LevelCompactionState.AwaitingPull(
-  //          later = later,
-  //          timeout = awaitPullTimeout,
-  //          stateID = zero.stateID,
-  //          previousStateID = stateID
-  //        )
-  //    }
-    ???
+    nextLevel.put(map) match {
+      case Right(IO.Success(_)) =>
+        logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
+        // If there is a failure removing the last map, maps will add the same map back into the queue and print
+        // error message to be handled by the User.
+        // Do not trigger another Push. This will stop LevelZero from pushing new memory maps to Level1.
+        // Maps are ALWAYS required to be processed sequentially in the order of write.
+        // Un order merging of maps should NOT be allowed.
+        zero.maps.removeLast() foreach {
+          result =>
+            result onFailureSideEffect {
+              error =>
+                val mapPath: String = zero.maps.last().map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
+                logger.error(
+                  s"Failed to delete the oldest memory map '$mapPath'. The map is added back to the memory-maps queue." +
+                    "No more maps will be pushed to Level1 until this error is fixed " +
+                    "as sequential conversion of memory-map files to Segments is required to maintain data accuracy. " +
+                    "Please check file system permissions and ensure that SwayDB can delete files and reboot the database.",
+                  error.exception
+                )
+            }
+        }
+        LevelCompactionState.Sleep(
+          sleepDeadline = zero.nextCompactionDelay.fromNow,
+          stateID = zero.stateID,
+          previousStateID = stateID
+        )
+
+      case Right(IO.Failure(error)) =>
+        error match {
+          //do not log the stack if the IO.Failure to merge was ContainsOverlappingBusySegments.
+          case swaydb.Error.OverlappingPushSegment =>
+            logger.debug(s"Level(${zero.levelNumber}): Failed to push", swaydb.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
+          case _ =>
+            logger.error(s"Level(${zero.levelNumber}): Failed to push", error.exception)
+        }
+        LevelCompactionState.Sleep(
+          sleepDeadline = LevelCompactionState.failureSleepDuration,
+          stateID = zero.stateID,
+          previousStateID = stateID
+        )
+
+      case later @ Left(promise) =>
+        LevelCompactionState.AwaitingPull(
+          promise = promise,
+          timeout = awaitPullTimeout,
+          stateID = zero.stateID,
+          previousStateID = stateID
+        )
+    }
 
   private[compaction] def pushForward(level: NextLevel,
-                                      segmentsToPush: Int)(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Int] =
+                                      segmentsToPush: Int)(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Int]] =
     level.nextLevel map {
       nextLevel =>
         val (copyable, mergeable) = level.optimalSegmentsPushForward(take = segmentsToPush)
@@ -276,105 +274,109 @@ private[level] object Compaction extends LazyLogging {
           thisLevel = level,
           nextLevel = nextLevel
         ) flatMap {
-          copied =>
+          case IO.Success(copied) =>
             if (copied >= segmentsToPush)
-              IO.Defer(copied)
+              Right(IO.Success(copied))
             else
               putForward(
                 segments = mergeable take segmentsToPush,
                 thisLevel = level,
                 nextLevel = nextLevel
-              ) map (_ + copied)
+              ).map(_.map(_ + copied))
+
+          case IO.Failure(error) =>
+            Right(IO.Failure(error))
         }
     } getOrElse {
-      runLastLevelCompaction(
-        level = level,
-        checkExpired = true,
-        remainingCompactions = segmentsToPush,
-        segmentsCompacted = 0
-      ).toDeferred
+      Right(
+        runLastLevelCompaction(
+          level = level,
+          checkExpired = true,
+          remainingCompactions = segmentsToPush,
+          segmentsCompacted = 0
+        )
+      )
     }
 
-  //  @tailrec
+  @tailrec
   def runLastLevelCompaction(level: NextLevel,
                              checkExpired: Boolean,
                              remainingCompactions: Int,
                              segmentsCompacted: Int)(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Int] =
-  //    if (level.hasNextLevel || remainingCompactions <= 0)
-  //      IO.Success(segmentsCompacted)
-  //    else if (checkExpired)
-  //      Segment.getNearestDeadlineSegment(level.segmentsInLevel()) match {
-  //        case Some(segment) =>
-  //          level.refresh(segment) match {
-  //            case IO.Success(_) =>
-  //              logger.debug(s"Level(${level.levelNumber}): Refresh successful.")
-  //              runLastLevelCompaction(
-  //                level = level,
-  //                checkExpired = checkExpired,
-  //                remainingCompactions = remainingCompactions - 1,
-  //                segmentsCompacted = segmentsCompacted + 1
-  //              )
-  //
-  //            case IO.Defer(_, _) =>
-  //              logger.debug(s"Level(${level.levelNumber}): Later on refresh.")
-  //              runLastLevelCompaction(
-  //                level = level,
-  //                checkExpired = false,
-  //                remainingCompactions = remainingCompactions,
-  //                segmentsCompacted = segmentsCompacted
-  //              )
-  //
-  //            case IO.Failure(_) =>
-  //              runLastLevelCompaction(
-  //                level = level,
-  //                checkExpired = false,
-  //                remainingCompactions = remainingCompactions,
-  //                segmentsCompacted = segmentsCompacted
-  //              )
-  //          }
-  //
-  //        case None =>
-  //          runLastLevelCompaction(
-  //            level = level,
-  //            checkExpired = false,
-  //            remainingCompactions = remainingCompactions,
-  //            segmentsCompacted = segmentsCompacted
-  //          )
-  //      }
-  //    else
-  //      level.collapse(level.optimalSegmentsToCollapse(remainingCompactions max 2)) match { //need at least 2 for collapse.
-  //        case IO.Success(count) =>
-  //          logger.debug(s"Level(${level.levelNumber}): Collapsed $count small segments.")
-  //          runLastLevelCompaction(
-  //            level = level,
-  //            checkExpired = checkExpired,
-  //            remainingCompactions = if (count == 0) 0 else remainingCompactions - count,
-  //            segmentsCompacted = segmentsCompacted + count
-  //          )
-  //
-  //        case IO.Defer(_, _) =>
-  //          logger.debug(s"Level(${level.levelNumber}): Later on collapse.")
-  //          runLastLevelCompaction(
-  //            level = level,
-  //            checkExpired = checkExpired,
-  //            remainingCompactions = 0,
-  //            segmentsCompacted = segmentsCompacted
-  //          )
-  //
-  //        case IO.Failure(_) =>
-  //          runLastLevelCompaction(
-  //            level = level,
-  //            checkExpired = checkExpired,
-  //            remainingCompactions = 0,
-  //            segmentsCompacted = segmentsCompacted
-  //          )
-  //      }
-    ???
+    if (level.hasNextLevel || remainingCompactions <= 0)
+      IO.Success(segmentsCompacted)
+    else if (checkExpired)
+      Segment.getNearestDeadlineSegment(level.segmentsInLevel()) match {
+        case Some(segment) =>
+          level.refresh(segment) match {
+            case Right(IO.Success(_)) =>
+              logger.debug(s"Level(${level.levelNumber}): Refresh successful.")
+              runLastLevelCompaction(
+                level = level,
+                checkExpired = checkExpired,
+                remainingCompactions = remainingCompactions - 1,
+                segmentsCompacted = segmentsCompacted + 1
+              )
+
+            case Left(_) =>
+              logger.debug(s"Level(${level.levelNumber}): Later on refresh.")
+              runLastLevelCompaction(
+                level = level,
+                checkExpired = false,
+                remainingCompactions = remainingCompactions,
+                segmentsCompacted = segmentsCompacted
+              )
+
+            case Right(IO.Failure(_)) =>
+              runLastLevelCompaction(
+                level = level,
+                checkExpired = false,
+                remainingCompactions = remainingCompactions,
+                segmentsCompacted = segmentsCompacted
+              )
+          }
+
+        case None =>
+          runLastLevelCompaction(
+            level = level,
+            checkExpired = false,
+            remainingCompactions = remainingCompactions,
+            segmentsCompacted = segmentsCompacted
+          )
+      }
+    else
+      level.collapse(level.optimalSegmentsToCollapse(remainingCompactions max 2)) match { //need at least 2 for collapse.
+        case Right(IO.Success(count)) =>
+          logger.debug(s"Level(${level.levelNumber}): Collapsed $count small segments.")
+          runLastLevelCompaction(
+            level = level,
+            checkExpired = checkExpired,
+            remainingCompactions = if (count == 0) 0 else remainingCompactions - count,
+            segmentsCompacted = segmentsCompacted + count
+          )
+
+        case Left(_) =>
+          logger.debug(s"Level(${level.levelNumber}): Later on collapse.")
+          runLastLevelCompaction(
+            level = level,
+            checkExpired = checkExpired,
+            remainingCompactions = 0,
+            segmentsCompacted = segmentsCompacted
+          )
+
+        case Right(IO.Failure(_)) =>
+          runLastLevelCompaction(
+            level = level,
+            checkExpired = checkExpired,
+            remainingCompactions = 0,
+            segmentsCompacted = segmentsCompacted
+          )
+      }
 
   /**
-    * Runs lazy error checks. Ignores all errors and continues copying
-    * each Level starting from the lowest level first.
-    */
+   * Runs lazy error checks. Ignores all errors and continues copying
+   * each Level starting from the lowest level first.
+   */
   private[compaction] def copyForwardForEach(levels: Slice[LevelRef])(implicit ec: ExecutionContext): Int =
     levels.foldLeft(0) {
       case (totalCopies, level: NextLevel) =>
@@ -387,48 +389,43 @@ private[level] object Compaction extends LazyLogging {
     }
 
   private def copyForward(level: NextLevel)(implicit ec: ExecutionContext): Int =
-  //    level.nextLevel map {
-  //      nextLevel =>
-  //        val (copyable, _) = nextLevel.partitionUnreservedCopyable(level.segmentsInLevel())
-  //        putForward(
-  //          segments = copyable,
-  //          thisLevel = level,
-  //          nextLevel = nextLevel
-  //        ) match {
-  //          case IO.Success(copied) =>
-  //            logger.debug(s"Level(${level.levelNumber}): Forward copied $copied Segments.")
-  //            copied
-  //
-  //          case IO.Failure(error) =>
-  //            logger.error(s"Level(${level.levelNumber}): Failed copy Segments forward.", error.exception)
-  //            0
-  //
-  //          case IO.Defer(_, _) =>
-  //            //this should never really occur when no other concurrent compactions are occurring.
-  //            logger.warn(s"Level(${level.levelNumber}): Received later compaction.")
-  //            0
-  //        }
-  //    } getOrElse 0
-    ???
+    level.nextLevel map {
+      nextLevel =>
+        val (copyable, _) = nextLevel.partitionUnreservedCopyable(level.segmentsInLevel())
+        putForward(
+          segments = copyable,
+          thisLevel = level,
+          nextLevel = nextLevel
+        ) match {
+          case Right(IO.Success(copied)) =>
+            logger.debug(s"Level(${level.levelNumber}): Forward copied $copied Segments.")
+            copied
+
+          case Right(IO.Failure(error)) =>
+            logger.error(s"Level(${level.levelNumber}): Failed copy Segments forward.", error.exception)
+            0
+
+          case Left(_) =>
+            //this should never really occur when no other concurrent compactions are occurring.
+            logger.warn(s"Level(${level.levelNumber}): Received later compaction.")
+            0
+        }
+    } getOrElse 0
 
   private[compaction] def putForward(segments: Iterable[Segment],
                                      thisLevel: NextLevel,
-                                     nextLevel: NextLevel)(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Int] =
-  //    if (segments.isEmpty)
-  //      IO.zero
-  //    else
-  //      nextLevel.put(segments) match {
-  //        case IO.Success(_) =>
-  //          thisLevel.removeSegments(segments) recoverWith[swaydb.Error.Level, Int] {
-  //            case _ =>
-  //              IO.Success(segments.size)
-  //          } toDeferred
-  //
-  //        case async @ IO.Defer(_, _) =>
-  //          async map (_ => 0)
-  //
-  //        case IO.Failure(error) =>
-  //          IO.Failure(error)
-  //      }
-    ???
+                                     nextLevel: NextLevel)(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Int]] =
+    if (segments.isEmpty)
+      IO.eitherZero
+    else
+      nextLevel.put(segments) map {
+        case IO.Success(_) =>
+          thisLevel.removeSegments(segments) recoverWith[swaydb.Error.Level, Int] {
+            case _ =>
+              IO.Success(segments.size)
+          }
+
+        case IO.Failure(error) =>
+          IO.Failure(error)
+      }
 }

@@ -19,8 +19,7 @@
 
 package swaydb.core.level.compaction
 
-import swaydb.IO
-
+import scala.concurrent.Promise
 import scala.concurrent.duration.{Deadline, _}
 
 private[level] sealed trait LevelCompactionState {
@@ -32,7 +31,7 @@ private[level] object LevelCompactionState {
 
   def longSleep = 365.days.fromNow
 
-  case class AwaitingPull(later: IO.Defer[_, _],
+  case class AwaitingPull(promise: Promise[Unit],
                           timeout: Deadline,
                           stateID: Long,
                           previousStateID: Long) extends LevelCompactionState {

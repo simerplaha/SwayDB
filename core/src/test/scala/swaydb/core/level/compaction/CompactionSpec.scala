@@ -20,6 +20,7 @@
 package swaydb.core.level.compaction
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.EitherValues._
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.IOValues._
@@ -106,7 +107,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             IO.Success(segments.size)
         }
 
-        Compaction.putForward(segments, thisLevel, nextLevel).runRandomIO.value shouldBe segments.size
+        Compaction.putForward(segments, thisLevel, nextLevel).right.value.value shouldBe segments.size
       }
     }
 
@@ -132,7 +133,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             IO.failed("Failed!")
         }
 
-        Compaction.putForward(segments, thisLevel, nextLevel).runRandomIO.value shouldBe segments.size
+        Compaction.putForward(segments, thisLevel, nextLevel).right.value.value shouldBe segments.size
       }
     }
   }

@@ -20,18 +20,16 @@
 package swaydb.core.level.compaction
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.IO
 import swaydb.core.RunThis._
 import swaydb.core.actor.{FileSweeper, MemorySweeper, WiredActor}
+import swaydb.core.util.Scheduler
 import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
-import swaydb.data.Reserve
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.Error.Level.ErrorHandler
-import swaydb.core.util.Scheduler
 
 import scala.collection.mutable
+import scala.concurrent.Promise
 import scala.concurrent.duration._
 
 class CompactorSpec0 extends CompactorSpec
@@ -205,13 +203,9 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         implicit val scheduler = Scheduler()
 
         //create IO.Later that is busy
-        val reserve = Reserve[Unit]((), "test")
-        reserve.isBusy shouldBe true
-        val busy = swaydb.Error.ReservedResource(reserve)
-        val later = IO.Defer((), busy: swaydb.Error.Level)
-        later.isBusy shouldBe true
+        val promise = Promise[Unit]()
 
-        val awaitingPull = LevelCompactionState.AwaitingPull(later, 1.minute.fromNow, 0, 0)
+        val awaitingPull = LevelCompactionState.AwaitingPull(promise, 1.minute.fromNow, 0, 0)
         awaitingPull.isReady shouldBe false
         //set the state to be awaiting pull
         val state =
@@ -245,7 +239,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         awaitingPull.listenerInitialised shouldBe true
 
         //free the reserve and compaction should expect a message.
-        scheduler.future(1.second)(Reserve.setFree(reserve))
+        scheduler.future(1.second)(promise.success())
 
         eventual(3.seconds) {
           //eventually is set to be ready.
@@ -261,13 +255,9 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         implicit val scheduler = Scheduler()
 
         //create IO.Later that is busy
-        val reserve = Reserve[Unit]((), "test")
-        reserve.isBusy shouldBe true
-        val busy = swaydb.Error.ReservedResource(reserve)
-        val later = IO.Defer((), busy: swaydb.Error.Level)
-        later.isBusy shouldBe true
+        val promise = Promise[Unit]()
 
-        val level1AwaitingPull = LevelCompactionState.AwaitingPull(later, 1.minute.fromNow, 0, 0)
+        val level1AwaitingPull = LevelCompactionState.AwaitingPull(promise, 1.minute.fromNow, 0, 0)
         level1AwaitingPull.isReady shouldBe false
 
         //level 2's sleep is shorter than level1's awaitPull timeout sleep.
