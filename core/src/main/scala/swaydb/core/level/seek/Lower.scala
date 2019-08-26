@@ -105,7 +105,7 @@ private[core] object Lower {
             }
 
           case Seek.Next.Stash(_, nextStateID) =>
-            if (nextWalker.hasStateChanged(nextStateID))
+            if (nextWalker hasStateChanged nextStateID)
               Lower(key, currentSeek, Seek.Read)
             else
               currentWalker.lower(key) match {
@@ -120,7 +120,7 @@ private[core] object Lower {
               }
 
           case Seek.Next.Stop(nextStateID) =>
-            if (nextWalker.hasStateChanged(nextStateID))
+            if (nextWalker hasStateChanged nextStateID)
               Lower(key, currentSeek, Seek.Read)
             else
               currentWalker.lower(key) match {
@@ -239,7 +239,7 @@ private[core] object Lower {
             }
 
           case nextStash @ Seek.Next.Stash(next, nextStateID) =>
-            if (nextWalker.hasStateChanged(nextStateID))
+            if (nextWalker hasStateChanged nextStateID)
               Lower(key, currentSeek, Seek.Read)
             else
               (current, next) match {
@@ -376,7 +376,7 @@ private[core] object Lower {
               }
 
           case Seek.Next.Stop(nextStateID) =>
-            if (nextWalker.hasStateChanged(nextStateID))
+            if (nextWalker hasStateChanged nextStateID)
               Lower(key, currentSeek, Seek.Read)
             else
               current match {
@@ -431,7 +431,7 @@ private[core] object Lower {
             }
 
           case Seek.Next.Stash(next, nextStateID) =>
-            if (nextWalker.hasStateChanged(nextStateID))
+            if (nextWalker hasStateChanged nextStateID)
               Lower(key, currentSeek, Seek.Read)
             else if (next.hasTimeLeft())
               IO.Defer(Some(next))
@@ -439,7 +439,7 @@ private[core] object Lower {
               Lower(next.key, currentSeek, Seek.Read)
 
           case Seek.Next.Stop(nextStateID) =>
-            if (nextWalker.hasStateChanged(nextStateID))
+            if (nextWalker hasStateChanged nextStateID)
               Lower(key, currentSeek, Seek.Read)
             else
               IO.Defer.none

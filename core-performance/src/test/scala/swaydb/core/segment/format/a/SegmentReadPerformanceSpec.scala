@@ -25,7 +25,6 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Transient
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.BlockCache
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.merge.SegmentMerger
@@ -40,7 +39,7 @@ import swaydb.data.util.StorageUnits._
 import scala.util.Random
 
 class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = false
+  val testGroupedKeyValues: Boolean = true
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
 }
@@ -235,7 +234,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       sortedIndexConfig =
         SortedIndexBlock.Config(
           ioStrategy = _ => IOStrategy.SynchronisedIO(cacheOnAccess = false),
-          prefixCompressionResetCount = 0,
+          prefixCompressionResetCount = 10,
           enableAccessPositionIndex = true,
           normaliseIndex = false,
           compressions = _ => Seq.empty
