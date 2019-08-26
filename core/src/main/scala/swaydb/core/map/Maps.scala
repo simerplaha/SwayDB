@@ -82,7 +82,7 @@ private[core] object Maps extends LazyLogging {
           recoveredMapsReversed.headOption match {
             case Some(lastMaps) =>
               lastMaps match {
-                case PersistentMap(path, _, _, _, _, _, _) =>
+                case PersistentMap(path, _, _, _, _, _, _, _) =>
                   path.incrementFolderId
                 case _ =>
                   path.resolve(0.toFolderId)
@@ -247,7 +247,7 @@ private[core] object Maps extends LazyLogging {
                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                      skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, Map[K, V]] =
     currentMap match {
-      case currentMap @ PersistentMap(_, _, _, _, _, _, _) =>
+      case currentMap @ PersistentMap(_, _, _, _, _, _, _, _) =>
         currentMap.close() flatMap {
           _ =>
             Map.persistent[K, V](
