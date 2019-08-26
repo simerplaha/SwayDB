@@ -22,18 +22,19 @@ package swaydb.core.level
 import java.nio.channels.OverlappingFileLockException
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.EitherValues._
 import org.scalatest.PrivateMethodTester
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.IOEffect
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.MapEntry
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.segment.Segment
 import swaydb.core.util.{Extension, ReserveRange}
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
@@ -153,7 +154,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         val level = TestLevel()
         val segment = TestSegment(randomKeyValues(keyValuesCount)).value
 
-        level.put(segment).runRandomIO
+        level.put(segment).right.value.value
 
         //delete the appendix file
         level.paths.headPath.resolve("appendix").files(Extension.Log) map IOEffect.delete
@@ -347,7 +348,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       val level = TestLevel()
       val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2).map(_.updateStats)
       val segments = Seq(TestSegment(keyValues.head).runRandomIO.value, TestSegment(keyValues.last).runRandomIO.value)
-      level.put(segments).runRandomIO.value
+      level.put(segments).right.value.value
 
       level.delete.runRandomIO.value
     }

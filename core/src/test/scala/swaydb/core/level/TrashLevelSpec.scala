@@ -20,6 +20,7 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.EitherValues._
 import org.scalatest.PrivateMethodTester
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IOValues._
@@ -67,7 +68,7 @@ sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethod
       val level = TestLevel(nextLevel = Some(TrashLevel), throttle = (_) => Throttle(1.seconds, 10))
 
       val segments = Seq(TestSegment(randomKeyValues(keyValuesCount)).runRandomIO.value, TestSegment(randomIntKeyStringValues(keyValuesCount)).runRandomIO.value)
-      level.put(segments).runRandomIO
+      level.put(segments).right.value.value
 
       //throttle is Duration.Zero, Segments value merged to lower ExpiryLevel and deleted from Level.
       eventual(15.seconds)(level.isEmpty shouldBe true)

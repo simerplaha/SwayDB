@@ -22,12 +22,13 @@ package swaydb.core.level.compaction
 import org.scalamock.scalatest.MockFactory
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
+import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Memory
 import swaydb.core.level.NextLevel
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -35,7 +36,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.IOValues._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
@@ -96,7 +96,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
           (putSegments: Iterable[Segment], _) =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
-            IO.Defer.unit
+            IO.eitherUnit
         }
 
         //segments value removed
@@ -122,7 +122,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
           (putSegments: Iterable[Segment], _) =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
-            IO.Defer.unit
+            IO.eitherUnit
         }
 
         //segments value removed
@@ -251,7 +251,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           (segment: Segment, _) =>
             segments find (_.path == segment.path) shouldBe defined
             segments -= segment
-            segment.delete.toDeferred
+            Right(segment.delete)
         } repeat 5.times
 
         Compaction.runLastLevelCompaction(
@@ -292,7 +292,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           (segmentsToCollapse: Iterable[Segment], _) =>
             segmentsToCollapse foreach (segment => segments find (_.path == segment.path) shouldBe defined)
             segments --= segmentsToCollapse
-            IO.Defer(segmentsToCollapse.size)
+            Right(IO(segmentsToCollapse.size))
         } repeat 2.times
 
         Compaction.runLastLevelCompaction(

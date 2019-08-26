@@ -94,12 +94,14 @@ object IO {
   final case object Done extends Done
 
   val unit: IO.Success[Nothing, Unit] = IO.Success()(ErrorHandler.Nothing)
+  val eitherUnit: Either[Nothing, Success[Nothing, Unit]] = Right(IO.Success()(ErrorHandler.Nothing))
   val none: IO.Success[Nothing, Option[Nothing]] = IO.Success(None)(ErrorHandler.Nothing)
   val `false`: Success[Nothing, Boolean] = IO.Success(false)(ErrorHandler.Nothing)
   val `true`: Success[Nothing, Boolean] = IO.Success(true)(ErrorHandler.Nothing)
   val someTrue: IO[Nothing, Some[Boolean]] = IO.Success(Some(true))(ErrorHandler.Nothing)
   val someFalse: IO[Nothing, Some[Boolean]] = IO.Success(Some(false))(ErrorHandler.Nothing)
   val zero: Success[Nothing, Int] = IO.Success(0)(ErrorHandler.Nothing)
+  val eitherZero: Right[Nothing, Success[Nothing, Int]] = Right(IO.Success(0)(ErrorHandler.Nothing))
   val emptyBytes: Success[Nothing, Slice[Byte]] = IO.Success(Slice.emptyBytes)(ErrorHandler.Nothing)
   val emptySeqBytes: Success[Nothing, Seq[Slice[Byte]]] = IO.Success(Seq.empty[Slice[Byte]])(ErrorHandler.Nothing)
   val done: Success[Nothing, Done] = IO.Success(Done)(ErrorHandler.Nothing)

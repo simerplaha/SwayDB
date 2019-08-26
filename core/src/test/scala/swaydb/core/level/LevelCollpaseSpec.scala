@@ -19,20 +19,16 @@
 
 package swaydb.core.level
 
-import org.scalamock.scalatest.MockFactory
+import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
-import org.scalatest.PrivateMethodTester
-import swaydb.{Error, IO}
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -103,7 +99,7 @@ sealed trait LevelCollapseSpec extends TestBase {
         }
       //delete half of the key values which will create small Segments
       level.putKeyValuesTest(Slice(deleteEverySecond.toArray)).runRandomIO.value
-      level.collapse(level.segmentsInLevel()).runRandomIO
+      level.collapse(level.segmentsInLevel()).right.value.value
       //since every second key-value was delete, the number of Segments is reduced to half
       level.segmentFilesInAppendix shouldBe <=((segmentCountBeforeDelete / 2) + 1) //+1 for odd number of key-values
       assertReads(Slice(keyValuesNoDeleted.toArray), level)
@@ -132,7 +128,7 @@ sealed trait LevelCollapseSpec extends TestBase {
 
           //reopen the Level with larger min segment size
           val reopenLevel = level.reopen(segmentSize = 20.mb)
-          reopenLevel.collapse(level.segmentsInLevel()).runRandomIO
+          reopenLevel.collapse(level.segmentsInLevel()).right.value.value
 
           //resulting segments is 1
           eventually {
@@ -180,7 +176,7 @@ sealed trait LevelCollapseSpec extends TestBase {
       }
 
       sleep(20.seconds)
-      level.collapse(level.segmentsInLevel()).runRandomIO
+      level.collapse(level.segmentsInLevel()).right.value.value
       level.segmentFilesInAppendix should be <= (segmentCountBeforeDelete / 2)
 
       assertReads(Slice(keyValuesNotExpired.toArray), level)
@@ -194,13 +190,13 @@ sealed trait LevelCollapseSpec extends TestBase {
 
     val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
     val maps = TestMap(keyValues.toTransient.toMemoryResponse)
-    level.put(maps).runRandomIO
+    level.put(maps).right.value.value
 
     val nextLevel = TestLevel()
-    nextLevel.put(level.segmentsInLevel()).runRandomIO
+    nextLevel.put(level.segmentsInLevel()).right.value.value
 
     if (persistent) nextLevel.segmentsInLevel() foreach (_.createdInLevel.runRandomIO.value shouldBe level.levelNumber)
-    nextLevel.collapse(nextLevel.segmentsInLevel()).runRandomIO
+    nextLevel.collapse(nextLevel.segmentsInLevel()).right.value.value
     nextLevel.segmentsInLevel() foreach (_.createdInLevel.runRandomIO.value shouldBe nextLevel.levelNumber)
   }
 }

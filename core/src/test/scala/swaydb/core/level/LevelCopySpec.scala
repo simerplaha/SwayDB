@@ -22,10 +22,11 @@ package swaydb.core.level
 import java.nio.file.NoSuchFileException
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.EitherValues._
 import org.scalatest.PrivateMethodTester
 import swaydb.Error.Segment.ErrorHandler
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
@@ -33,7 +34,6 @@ import swaydb.core.data._
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.BlockCache
 import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -134,7 +134,7 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
     val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
     val maps = TestMap(keyValues.toTransient.toMemoryResponse)
 
-    level1.put(maps).runRandomIO
+    level1.put(maps).right.value.value
 
     level1.isEmpty shouldBe true
     level2.isEmpty shouldBe false

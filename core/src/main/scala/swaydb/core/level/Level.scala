@@ -25,19 +25,18 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ErrorHandler
-import swaydb.{Error, IO}
+import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.{BlockCache, IOEffect}
 import swaydb.core.io.file.IOEffect._
+import swaydb.core.io.file.{BlockCache, IOEffect}
 import swaydb.core.level.seek._
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.{Segment, SegmentAssigner}
 import swaydb.core.util.Collections._
@@ -54,7 +53,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Promise}
 
 private[core] object Level extends LazyLogging {
 
@@ -472,7 +471,7 @@ private[core] case class Level(dirs: Seq[Dir],
     finally
       ReserveRange.free(key)
 
-  private[level] def reserve(segments: Iterable[Segment]): IO[swaydb.Error.Level, Either[Future[Unit], Slice[Byte]]] =
+  private[level] def reserve(segments: Iterable[Segment]): IO[swaydb.Error.Level, Either[Promise[Unit], Slice[Byte]]] =
     SegmentAssigner.assignMinMaxOnly(
       inputSegments = segments,
       targetSegments = appendix.skipList.values().asScala
@@ -483,10 +482,10 @@ private[core] case class Level(dirs: Seq[Dir],
             case (minKey, maxKey, toInclusive) =>
               ReserveRange.reserveOrListen(minKey, maxKey, toInclusive, ())
           }
-          .getOrElse(Left(Futures.unit))
+          .getOrElse(Left(Promise.successful()))
     }
 
-  private[level] def reserve(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[swaydb.Error.Level, Either[Future[Unit], Slice[Byte]]] =
+  private[level] def reserve(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[swaydb.Error.Level, Either[Promise[Unit], Slice[Byte]]] =
     SegmentAssigner.assignMinMaxOnly(
       map = map,
       targetSegments = appendix.skipList.values().asScala
@@ -498,7 +497,7 @@ private[core] case class Level(dirs: Seq[Dir],
         ) map {
           case (minKey, maxKey, toInclusive) =>
             ReserveRange.reserveOrListen(minKey, maxKey, toInclusive, ())
-        } getOrElse Left(Futures.unit)
+        } getOrElse Left(Promise.successful())
     }
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
@@ -552,25 +551,49 @@ private[core] case class Level(dirs: Seq[Dir],
       maxKeyInclusive = segment.maxKey.inclusive
     )
 
-  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit] =
+  def reserveAndRelease[T](segments: Iterable[Segment])(f: => IO[swaydb.Error.Level, T]): Either[Promise[Unit], IO[swaydb.Error.Level, T]] =
+    reserve(segments) map {
+      reserveOutcome =>
+        reserveOutcome map {
+          minKey =>
+            ensureRelease(minKey)(f)
+        }
+    } match {
+      case IO.Success(either) =>
+        either
+
+      case IO.Failure(error) =>
+        Right(IO.Failure(error))
+    }
+
+  def reserveAndRelease[T](map: Map[Slice[Byte], Memory.SegmentResponse])(f: => IO[swaydb.Error.Level, T]): Either[Promise[Unit], IO[swaydb.Error.Level, T]] =
+    reserve(map) map {
+      reserveOutcome =>
+        reserveOutcome map {
+          minKey =>
+            ensureRelease(minKey)(f)
+        }
+    } match {
+      case IO.Success(either) =>
+        either
+
+      case IO.Failure(error) =>
+        Right(IO.Failure(error))
+    }
+
+  def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
     put(Seq(segment))
 
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit] = {
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
-    reserve(segments).toDeferred flatMap {
-      case Left(future) =>
-        IO.fromFuture(future)
-
-      case Right(minKey) =>
-        ensureRelease(minKey) {
-          val appendixSegments = appendix.skipList.values().asScala
-          val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixSegments)
-          put(
-            segmentsToMerge = segmentToMerge,
-            segmentsToCopy = segmentToCopy,
-            targetSegments = appendixSegments
-          ).toDeferred
-        }
+    reserveAndRelease(segments) {
+      val appendixSegments = appendix.skipList.values().asScala
+      val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixSegments)
+      put(
+        segmentsToMerge = segmentToMerge,
+        segmentsToCopy = segmentToCopy,
+        targetSegments = appendixSegments
+      )
     }
   }
 
@@ -629,41 +652,35 @@ private[core] case class Level(dirs: Seq[Dir],
         appendEntry = None
       )
 
-  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit] = {
+  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.skipList.count())
-    reserve(map).toDeferred flatMap {
-      case Left(future) =>
-        IO.fromFuture(future)
-
-      case Right(minKey) =>
-        ensureRelease(minKey) {
-          val appendixValues = appendix.skipList.values().asScala
-          val result =
-            if (Segment.overlaps(map, appendixValues))
-              putKeyValues(
-                keyValues = Slice(map.skipList.values().toArray(new Array[Memory](map.skipList.size))),
-                targetSegments = appendixValues,
-                appendEntry = None
-              )
-            else
-              copyForwardOrCopyLocal(map) flatMap {
-                newSegments =>
-                  if (newSegments.nonEmpty)
-                    buildNewMapEntry(newSegments, None, None) flatMap {
-                      entry =>
-                        appendixWriteLocked(entry)
-                    } onFailureSideEffect {
-                      failure =>
-                        logFailure(s"${paths.head}: Failed to create a log entry.", failure)
-                        deleteCopiedSegments(newSegments)
-                    }
-                  else {
-                    appendix.incrementWriteCountStateId
-                    Segment.emptyIterableIO
-                  }
+    reserveAndRelease(map) {
+      val appendixValues = appendix.skipList.values().asScala
+      if (Segment.overlaps(map, appendixValues))
+        putKeyValues(
+          keyValues = Slice(map.skipList.values().toArray(new Array[Memory](map.skipList.size))),
+          targetSegments = appendixValues,
+          appendEntry = None
+        )
+      else
+        copyForwardOrCopyLocal(map) flatMap {
+          newSegments =>
+            if (newSegments.nonEmpty)
+              buildNewMapEntry(newSegments, None, None) flatMap {
+                entry =>
+                  appendixWriteLocked(entry)
+              } onFailureSideEffect {
+                failure =>
+                  logFailure(s"${paths.head}: Failed to create a log entry.", failure)
+                  deleteCopiedSegments(newSegments)
               }
-
-          result map (_ => ()) toDeferred
+            else {
+              appendix.incrementWriteCountStateId
+              Segment.emptyIterableIO
+            }
+        } map {
+          _ =>
+            ()
         }
     }
   }
@@ -689,7 +706,7 @@ private[core] case class Level(dirs: Seq[Dir],
       nextLevel =>
         if (!nextLevel.isCopyable(map))
           IO.`false`
-        else if (nextLevel.put(map).isSuccess)
+        else if (nextLevel.put(map).exists(_.isSuccess))
           IO.`true`
         else
           IO.`false`
@@ -768,7 +785,7 @@ private[core] case class Level(dirs: Seq[Dir],
         val (copyable, nonCopyable) = nextLevel partitionUnreservedCopyable segments
         if (copyable.isEmpty)
           IO.Success(segments)
-        else if (nextLevel.put(copyable).toIO.isSuccess)
+        else if (nextLevel.put(copyable).exists(_.isSuccess))
           IO.Success(nonCopyable)
         else
           IO.Success(segments)
@@ -835,52 +852,46 @@ private[core] case class Level(dirs: Seq[Dir],
     )
   }
 
-  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit] = {
+  def refresh(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
     logger.debug("{}: Running refresh.", paths.head)
-    reserve(Seq(segment)).toDeferred flatMap {
-      case Left(future) =>
-        IO.fromFuture(future)
-
-      case Right(minKey) =>
-        ensureRelease(minKey) {
-          segment.refresh(
-            minSegmentSize = segmentSize,
-            removeDeletes = removeDeletedRecords,
-            createdInLevel = levelNumber,
-            valuesConfig = valuesConfig,
-            sortedIndexConfig = sortedIndexConfig,
-            binarySearchIndexConfig = binarySearchIndexConfig,
-            hashIndexConfig = hashIndexConfig,
-            bloomFilterConfig = bloomFilterConfig,
-            segmentConfig = segmentConfig,
-            targetPaths = paths
-          ) flatMap {
-            newSegments =>
-              logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", paths.head, segment.path, newSegments.map(_.path).mkString(", "))
-              buildNewMapEntry(newSegments, Some(segment), None) flatMap {
-                entry =>
-                  appendixWriteLocked(entry).map(_ => ()) onSuccessSideEffect {
-                    _ =>
-                      if (deleteSegmentsEventually)
-                        segment.deleteSegmentsEventually
-                      else
-                        segment.delete onFailureSideEffect {
-                          failure =>
-                            logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segment.path, failure)
-                        }
-                  }
-              } onFailureSideEffect {
+    reserveAndRelease(Seq(segment)) {
+      segment.refresh(
+        minSegmentSize = segmentSize,
+        removeDeletes = removeDeletedRecords,
+        createdInLevel = levelNumber,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig,
+        targetPaths = paths
+      ) flatMap {
+        newSegments =>
+          logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", paths.head, segment.path, newSegments.map(_.path).mkString(", "))
+          buildNewMapEntry(newSegments, Some(segment), None) flatMap {
+            entry =>
+              appendixWriteLocked(entry).map(_ => ()) onSuccessSideEffect {
                 _ =>
-                  newSegments foreach {
-                    segment =>
-                      segment.delete onFailureSideEffect {
-                        failure =>
-                          logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, failure)
-                      }
+                  if (deleteSegmentsEventually)
+                    segment.deleteSegmentsEventually
+                  else
+                    segment.delete onFailureSideEffect {
+                      failure =>
+                        logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segment.path, failure)
+                    }
+              }
+          } onFailureSideEffect {
+            _ =>
+              newSegments foreach {
+                segment =>
+                  segment.delete onFailureSideEffect {
+                    failure =>
+                      logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, failure)
                   }
               }
-          } toDeferred
-        }
+          }
+      }
     }
   }
 
@@ -920,10 +931,10 @@ private[core] case class Level(dirs: Seq[Dir],
     } getOrElse IO.Failure[swaydb.Error.Level, Int](swaydb.Error.NoSegmentsRemoved)
   }
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Int] = {
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Int]] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
     if (segments.isEmpty || appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
-      IO.Defer.zero
+      Right(IO.zero)
     } else {
       //other segments in the appendix that are not the input segments (segments to collapse).
       val levelSegments = segmentsInLevel()
@@ -942,41 +953,35 @@ private[core] case class Level(dirs: Seq[Dir],
         }
 
       //reserve the Level. It's unknown here what segments will value collapsed into what other Segments.
-      reserve(levelSegments).toDeferred flatMap {
-        case Left(future) =>
-          IO.fromFuture(future.map(_ => 0))
+      reserveAndRelease(levelSegments) {
+        //create an appendEntry that will remove smaller segments from the appendix.
+        //this entry will value applied only if the putSegments is successful orElse this entry will be discarded.
+        val appendEntry =
+        segmentsToMerge.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
+          case (mapEntry, smallSegment) =>
+            val entry = MapEntry.Remove(smallSegment.minKey)
+            mapEntry.map(_ ++ entry) orElse Some(entry)
+        }
 
-        case Right(minKey) =>
-          ensureRelease(minKey) {
-            //create an appendEntry that will remove smaller segments from the appendix.
-            //this entry will value applied only if the putSegments is successful orElse this entry will be discarded.
-            val appendEntry =
-            segmentsToMerge.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
-              case (mapEntry, smallSegment) =>
-                val entry = MapEntry.Remove(smallSegment.minKey)
-                mapEntry.map(_ ++ entry) orElse Some(entry)
-            }
-
-            merge(
-              segments = segmentsToMerge,
-              targetSegments = targetSegments,
-              appendEntry = appendEntry
-            ) map {
-              _ =>
-                //delete the segments merged with self.
-                if (deleteSegmentsEventually)
-                  segmentsToMerge foreach (_.deleteSegmentsEventually)
-                else
-                  segmentsToMerge foreach {
-                    segment =>
-                      segment.delete onFailureSideEffect {
-                        exception =>
-                          logger.warn(s"{}: Failed to delete Segment {} after successful collapse", paths.head, segment.path, exception)
-                      }
+        merge(
+          segments = segmentsToMerge,
+          targetSegments = targetSegments,
+          appendEntry = appendEntry
+        ) map {
+          _ =>
+            //delete the segments merged with self.
+            if (deleteSegmentsEventually)
+              segmentsToMerge foreach (_.deleteSegmentsEventually)
+            else
+              segmentsToMerge foreach {
+                segment =>
+                  segment.delete onFailureSideEffect {
+                    exception =>
+                      logger.warn(s"{}: Failed to delete Segment {} after successful collapse", paths.head, segment.path, exception)
                   }
-                segmentsToMerge.size
-            }
-          } toDeferred
+              }
+            segmentsToMerge.size
+        }
       }
     }
   }

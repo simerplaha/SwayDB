@@ -20,17 +20,17 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.EitherValues._
 import org.scalatest.PrivateMethodTester
 import swaydb.IO
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -208,7 +208,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
 
       level.segmentsInLevel() foreach {
         segment =>
-          level.refresh(segment).runRandomIO
+          level.refresh(segment).right.value.value
       }
 
       //expired key-values return empty after 2.seconds
@@ -283,7 +283,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
 
       level.segmentsInLevel() foreach {
         segment =>
-          level.refresh(segment).runRandomIO
+          level.refresh(segment).right.value.value
       }
 
       level.segmentFilesInAppendix shouldBe 0

@@ -22,15 +22,15 @@ package swaydb.core.level
 import java.nio.file.{Path, Paths}
 
 import swaydb.Error.Segment.ErrorHandler
-import swaydb.IO
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
+import swaydb.{Error, IO}
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Promise}
 
 private[core] object TrashLevel extends NextLevel {
 
@@ -151,14 +151,14 @@ private[core] object TrashLevel extends NextLevel {
   override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     (segments, Iterable.empty)
 
-  override def put(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Segment, Unit] =
-    IO.Defer.unit
+  override def put(segment: Segment)(implicit ec: ExecutionContext): Either[Nothing, IO.Success[Nothing, Unit]] =
+    IO.eitherUnit
 
-  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Segment, Unit] =
-    IO.Defer.unit
+  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
+    Right(IO.unit)
 
-  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Segment, Unit] =
-    IO.Defer.unit
+  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
+    Right(IO.unit)
 
   override def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Int] =
     IO.Success(segments.size)
@@ -172,11 +172,11 @@ private[core] object TrashLevel extends NextLevel {
       override def nextLevelMeter: Option[LevelMeter] = None
     }
 
-  override def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Segment, Unit] =
-    IO.Defer.unit
+  override def refresh(segment: Segment)(implicit ec: ExecutionContext): Either[Nothing, IO.Success[Nothing, Unit]] =
+    IO.eitherUnit
 
-  override def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Segment, Int] =
-    IO.Defer(segments.size)
+  override def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Nothing, IO[Error.Segment, Int]] =
+    Right(IO(segments.size))
 
   override def isZero: Boolean =
     false

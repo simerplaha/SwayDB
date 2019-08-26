@@ -20,16 +20,16 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.CommonAssertions._
+import org.scalatest.EitherValues._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.IOEffect._
-import swaydb.core.segment.format.a.block.{BinarySearchIndexBlock, BloomFilterBlock, HashIndexBlock, SegmentBlock, SortedIndexBlock, ValuesBlock}
-import swaydb.core.util.Benchmark
-import swaydb.core.{TestBase, TestData, TestTimer}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.core.segment.format.a.block._
+import swaydb.core.{TestBase, TestTimer}
+import swaydb.data.compaction.Throttle
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -137,7 +137,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
       segments should have size 1
       val segment = segments.head
 
-      level.put(Seq(segment)).runRandomIO.value
+      level.put(Seq(segment)).right.value.value
 
       level.meter.segmentsCount shouldBe 1
       level.meter.levelSize shouldBe segment.segmentSize
@@ -169,7 +169,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
       segments should have size 1
       val segment = segments.head
 
-      level2.put(Seq(segment)).runRandomIO.value
+      level2.put(Seq(segment)).right.value.value
 
       level1.meter.levelSize shouldBe 0
       level1.meter.segmentsCount shouldBe 0
@@ -192,7 +192,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
 
       val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
       val segment = TestSegment(putKeyValues).runRandomIO.value
-      level2.put(Seq(segment)).runRandomIO.value
+      level2.put(Seq(segment)).right.value.value
 
       level1.meterFor(3) shouldBe empty
     }

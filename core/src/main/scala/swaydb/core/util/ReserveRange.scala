@@ -26,7 +26,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Promise
 
 /**
  * Reserves a range of keys for processing by a single thread.
@@ -82,7 +82,7 @@ object ReserveRange extends LazyLogging {
                          to: Slice[Byte],
                          toInclusive: Boolean,
                          info: T)(implicit state: State[T],
-                                  ordering: KeyOrder[Slice[Byte]]): Either[Future[Unit], Slice[Byte]] =
+                                  ordering: KeyOrder[Slice[Byte]]): Either[Promise[Unit], Slice[Byte]] =
     state.synchronized {
       reserveOrGetRange(
         from = from,
@@ -93,7 +93,7 @@ object ReserveRange extends LazyLogging {
         case Left(range) =>
           val promise = Promise[Unit]()
           range.reserve.savePromise(promise)
-          Left(promise.future)
+          Left(promise)
 
         case Right(value) =>
           Right(value)

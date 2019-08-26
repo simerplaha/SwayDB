@@ -20,17 +20,17 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.EitherValues._
 import org.scalatest.PrivateMethodTester
 import swaydb.Error.Segment.ErrorHandler
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -93,7 +93,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
       sleep(3.seconds)
       level.segmentsInLevel() foreach {
         segment =>
-          level.refresh(segment).runRandomIO
+          level.refresh(segment).right.value
       }
 
       level.segmentFilesInAppendix shouldBe 0
@@ -104,13 +104,13 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
 
       val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
       val maps = TestMap(keyValues.toTransient.toMemoryResponse)
-      level.put(maps).runRandomIO
+      level.put(maps).right.value
 
       val nextLevel = TestLevel()
-      nextLevel.put(level.segmentsInLevel()).runRandomIO
+      nextLevel.put(level.segmentsInLevel()).right.value
 
       nextLevel.segmentsInLevel() foreach (_.createdInLevel.runRandomIO.value shouldBe level.levelNumber)
-      nextLevel.segmentsInLevel() foreach (segment => nextLevel.refresh(segment).runRandomIO)
+      nextLevel.segmentsInLevel() foreach (segment => nextLevel.refresh(segment).right.value)
       nextLevel.segmentsInLevel() foreach (_.createdInLevel.runRandomIO.value shouldBe nextLevel.levelNumber)
     }
   }

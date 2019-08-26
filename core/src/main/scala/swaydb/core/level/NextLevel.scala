@@ -28,7 +28,7 @@ import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Promise}
 
 object NextLevel {
 
@@ -52,8 +52,8 @@ object NextLevel {
 }
 
 /**
-  * Levels that can have upper Levels or Levels that upper Levels can merge Segments or Maps into.
-  */
+ * Levels that can have upper Levels or Levels that upper Levels can merge Segments or Maps into.
+ */
 trait NextLevel extends LevelRef {
 
   def paths: PathsDistributor
@@ -72,19 +72,19 @@ trait NextLevel extends LevelRef {
 
   def mightContainFunction(key: Slice[Byte]): IO[swaydb.Error.Level, Boolean]
 
-  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit]
+  def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]]
 
-  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit]
+  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]]
 
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit]
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]]
 
   def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Level, Int]
 
   def meter: LevelMeter
 
-  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Unit]
+  def refresh(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]]
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Defer[swaydb.Error.Level, Int]
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Int]]
 
   def reverseNextLevels: ListBuffer[NextLevel] = {
     val levels = ListBuffer.empty[NextLevel]

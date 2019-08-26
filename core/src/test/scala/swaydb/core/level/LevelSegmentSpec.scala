@@ -22,17 +22,18 @@ package swaydb.core.level
 import java.nio.file.{FileAlreadyExistsException, Files, NoSuchFileException}
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.EitherValues._
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.segment.Segment
 import swaydb.core.util.PipeOps._
 import swaydb.core.util.{Extension, IDGenerator}
@@ -90,7 +91,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val keyValues = randomIntKeyStringValues(keyValuesCount)
         val segment = TestSegment(keyValues).runRandomIO.value
         segment.close.runRandomIO.value
-        level.put(segment).runRandomIO.value
+        level.put(segment).right.value.value
         assertReads(keyValues, level)
         level.close.runRandomIO.value
       }
@@ -101,11 +102,11 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val level = TestLevel(segmentSize = 100.bytes)
         val keyValues = randomIntKeyStringValues(keyValuesCount)
         val segment = TestSegment(keyValues).runRandomIO.value
-        level.put(segment).runRandomIO.value
+        level.put(segment).right.value.value
 
         val keyValues2 = randomIntKeyStringValues(keyValuesCount * 10)
         val segment2 = TestSegment(keyValues2).runRandomIO.value
-        level.put(segment2).runRandomIO.value
+        level.put(segment2).right.value.value
 
         assertGet(keyValues, level)
         assertGet(keyValues2, level)
@@ -125,7 +126,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             }
 
         val segments = Seq(TestSegment(keyValues1).runRandomIO.value, TestSegment(keyValues2).runRandomIO.value, TestSegment(keyValues3).runRandomIO.value)
-        level.put(segments).runRandomIO.value
+        level.put(segments).right.value.value
 
         assertReads(keyValues, level)
       }
@@ -143,7 +144,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         level.isEmpty shouldBe false
 
         val segments = Seq(TestSegment(keyValues1.toTransient).runRandomIO.value, TestSegment(keyValues3.toTransient).runRandomIO.value)
-        level.put(segments).runRandomIO.value
+        level.put(segments).right.value.value
 
         assertReads(allKeyValues, level)
       }
@@ -226,7 +227,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val targetSegment = TestSegment(keyValues.last).runRandomIO.value
 
         val level = TestLevel()
-        level.put(targetSegment).runRandomIO.value
+        level.put(targetSegment).right.value.value
         level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).runRandomIO.value
 
         level.isEmpty shouldBe false
@@ -243,7 +244,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val segment = TestSegment(keyValues).value
         segment.delete.value
 
-        val result = level.put(segment).toIO.failed.get
+        val result = level.put(segment).right.value.failed.get
         if (persistent)
           result.exception shouldBe a[NoSuchFileException]
         else
@@ -270,7 +271,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           val targetSegment = TestSegment(keyValues.last).runRandomIO.value
 
           val level = TestLevel(segmentSize = 150.bytes)
-          level.put(targetSegment).runRandomIO.value
+          level.put(targetSegment).right.value.value
 
           //segment to copy
           val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 9)
@@ -327,8 +328,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         level.putKeyValues(keyValues, Seq(TestSegment(keyValues).runRandomIO.value), None).runRandomIO.value //write first Segment to Level
         assertGetFromThisLevelOnly(keyValues, level)
 
-        level.put(TestSegment(keyValues.take(1).updateStats).runRandomIO.value).runRandomIO.value
-        level.put(TestSegment(keyValues.takeRight(1).updateStats).runRandomIO.value).runRandomIO.value
+        level.put(TestSegment(keyValues.take(1).updateStats).runRandomIO.value).right.value.value
+        level.put(TestSegment(keyValues.takeRight(1).updateStats).runRandomIO.value).right.value.value
 
         level.close.runRandomIO.value
       }
@@ -358,10 +359,10 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment.path
-            IO.Defer.unit
+            IO.eitherUnit
         }
 
-        level.put(segment).runRandomIO.value
+        level.put(segment).right.value.value
 
         assertGet(keyValues, level) //previous existing key-values should still exist
         assertGetNoneFromThisLevelOnly(keyValues2, level) //newly added key-values do not exist because nextLevel is mocked.
@@ -388,7 +389,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             (Iterable.empty, segments)
         }
 
-        level.put(segment).runRandomIO.value
+        level.put(segment).right.value.value
 
         assertGet(keyValues, level) //previous existing key-values should still exist
         assertGetFromThisLevelOnly(keyValues2, level) //newly added key-values do not exist because nextLevel is mocked.
@@ -421,10 +422,10 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment3.path
-            IO.Defer.unit
+            IO.eitherUnit
         }
 
-        level.put(Seq(segment2, segment3)).runRandomIO.value
+        level.put(Seq(segment2, segment3)).right.value.value
 
         assertGetFromThisLevelOnly(keyValues, level) //all key-values value persisted into upper level.
         //segment2's key-values still readable from upper Level since they were copied locally.
@@ -457,10 +458,10 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment.path
-            IO.Defer(throw new Exception("Kaboom!!"))
+            Right(IO(throw new Exception("Kaboom!!")))
         }
 
-        level.put(segment).runRandomIO.value
+        level.put(segment).right.value.value
 
         assertGetFromThisLevelOnly(keyValues, level) //all key-values value persisted into upper level.
         assertGetFromThisLevelOnly(keyValues2, level) //all key-values value persisted into upper level.
