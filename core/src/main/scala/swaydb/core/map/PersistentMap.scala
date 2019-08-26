@@ -20,6 +20,7 @@
 package swaydb.core.map
 
 import java.nio.file.Path
+import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ErrorHandler
@@ -65,9 +66,10 @@ private[map] object PersistentMap extends LazyLogging {
             fileSize = fileSize,
             flushOnOverflow = flushOnOverflow,
             initialWriteCount = initialWriteCount,
+            skipList = skipList,
             currentFile = fileRecoveryResult.item,
             hasRangeInitial = hasRange
-          )(skipList),
+          ),
           result = fileRecoveryResult.result
         )
     }
@@ -96,8 +98,9 @@ private[map] object PersistentMap extends LazyLogging {
           flushOnOverflow = flushOnOverflow,
           initialWriteCount = initialWriteCount,
           currentFile = file,
+          skipList = skipList,
           hasRangeInitial = false
-        )(skipList)
+        )
     }
   }
 
@@ -249,14 +252,15 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
                                                       fileSize: Long,
                                                       flushOnOverflow: Boolean,
                                                       initialWriteCount: Long,
+                                                      skipList: SkipList.Concurrent[K, V],
                                                       private var currentFile: DBFile,
-                                                      private val hasRangeInitial: Boolean)(val skipList: SkipList.Concurrent[K, V])(implicit keyOrder: KeyOrder[K],
-                                                                                                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                                     fileSweeper: FileSweeper,
-                                                                                                                                     functionStore: FunctionStore,
-                                                                                                                                     reader: MapEntryReader[MapEntry[K, V]],
-                                                                                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                                                     skipListMerger: SkipListMerger[K, V]) extends Map[K, V] with LazyLogging {
+                                                      private val hasRangeInitial: Boolean)(implicit keyOrder: KeyOrder[K],
+                                                                                            timeOrder: TimeOrder[Slice[Byte]],
+                                                                                            fileSweeper: FileSweeper,
+                                                                                            functionStore: FunctionStore,
+                                                                                            reader: MapEntryReader[MapEntry[K, V]],
+                                                                                            writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                                            skipListMerger: SkipListMerger[K, V]) extends Map[K, V] with LazyLogging {
 
   // actualSize of the file can be different to fileSize when the entry's size is > fileSize.
   // In this case a file is created just to fit those bytes (for that one entry).
@@ -273,29 +277,40 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
 
   override def hasRange: Boolean = _hasRange
 
-  private val stateIDLock = new Object()
+  private val lock = new ReentrantReadWriteLock()
 
   def currentFilePath =
     currentFile.path
 
-  def writeCountStateId: Long =
-    stateIDLock.synchronized {
+  def writeCountStateId: Long = {
+    lock.readLock().lock()
+    try
       _writeCount
-    }
+    finally
+      lock.readLock().unlock()
+  }
 
-  def incrementWriteCountStateId: Long =
-    stateIDLock.synchronized {
+  def incrementWriteCountStateId: Long = {
+    lock.writeLock().lock()
+    try {
       _writeCount += 1
       _writeCount
+    } finally {
+      lock.writeLock().unlock()
     }
+  }
 
-  override def write(mapEntry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] =
-    stateIDLock.synchronized {
+  override def write(mapEntry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] = {
+    lock.writeLock().lock()
+    try {
       persist(mapEntry) onSuccessSideEffect {
         _ =>
           _writeCount += 1
       }
+    } finally {
+      lock.writeLock().unlock()
     }
+  }
 
   /**
    * Before writing the Entry, check to ensure if the current [[MapEntry]] requires a merge write or direct write.

@@ -31,8 +31,8 @@ import scala.concurrent.duration.FiniteDuration
 sealed trait PersistentConfig
 
 /**
-  * http://swaydb.io#configuring-levels
-  */
+ * http://swaydb.io#configuring-levels
+ */
 object ConfigWizard {
   def addPersistentLevel0(dir: Path,
                           mapSize: Long,
@@ -256,6 +256,13 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
                               level1: LevelConfig,
                               otherLevels: List[LevelConfig]) extends SwayDBConfig {
 
+  def addPersistentLevel(config: PersistentLevelConfig) =
+    SwayDBPersistentConfig(
+      level0 = level0,
+      level1 = level1,
+      otherLevels = otherLevels :+ config
+    )
+
   def addPersistentLevel(dir: Path,
                          otherDirs: Seq[Dir],
                          segmentSize: Int,
@@ -274,31 +281,32 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
                          groupBy: Option[GroupBy.KeyValues],
                          compactionExecutionContext: CompactionExecutionContext,
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
-    SwayDBPersistentConfig(
-      level0 = level0,
-      level1 = level1,
-      otherLevels = otherLevels :+
-        PersistentLevelConfig(
-          dir = dir,
-          otherDirs = otherDirs,
-          segmentSize = segmentSize,
-          mmapSegment = mmapSegment,
-          mmapAppendix = mmapAppendix,
-          appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-          copyForward = copyForward,
-          deleteSegmentsEventually = deleteSegmentsEventually,
-          sortedIndex = sortedIndex,
-          hashIndex = hashIndex,
-          binarySearchIndex = binarySearchIndex,
-          segmentIO = segmentIO,
-          segmentCompressions = segmentCompressions,
-          mightContainKey = mightContainKey,
-          values = values,
-          groupBy = groupBy,
-          compactionExecutionContext = compactionExecutionContext,
-          throttle = throttle
-        )
+    addPersistentLevel(
+      PersistentLevelConfig(
+        dir = dir,
+        otherDirs = otherDirs,
+        segmentSize = segmentSize,
+        mmapSegment = mmapSegment,
+        mmapAppendix = mmapAppendix,
+        appendixFlushCheckpointSize = appendixFlushCheckpointSize,
+        copyForward = copyForward,
+        deleteSegmentsEventually = deleteSegmentsEventually,
+        sortedIndex = sortedIndex,
+        hashIndex = hashIndex,
+        binarySearchIndex = binarySearchIndex,
+        segmentIO = segmentIO,
+        segmentCompressions = segmentCompressions,
+        mightContainKey = mightContainKey,
+        values = values,
+        groupBy = groupBy,
+        compactionExecutionContext = compactionExecutionContext,
+        throttle = throttle
+      )
     )
+
+  def addMemoryLevel(config: MemoryLevelConfig): SwayDBMemoryConfig =
+
+    copy(otherLevels = otherLevels :+ config)
 
   def addMemoryLevel(segmentSize: Int,
                      copyForward: Boolean,
@@ -308,23 +316,20 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
                      compactionExecutionContext: CompactionExecutionContext,
                      throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
 
-    copy(
-      otherLevels = otherLevels :+
-        MemoryLevelConfig(
-          segmentSize = segmentSize,
-          copyForward = copyForward,
-          deleteSegmentsEventually = deleteSegmentsEventually,
-          mightContainKey = mightContainKey,
-          groupBy = groupBy,
-          compactionExecutionContext = compactionExecutionContext,
-          throttle = throttle
-        )
+    addMemoryLevel(
+      MemoryLevelConfig(
+        segmentSize = segmentSize,
+        copyForward = copyForward,
+        deleteSegmentsEventually = deleteSegmentsEventually,
+        mightContainKey = mightContainKey,
+        groupBy = groupBy,
+        compactionExecutionContext = compactionExecutionContext,
+        throttle = throttle
+      )
     )
 
-  def addTrashLevel: SwayDBMemoryConfig =
-    copy(
-      otherLevels = otherLevels :+ TrashLevelConfig
-    )
+  def addTrashLevel(): SwayDBMemoryConfig =
+    copy(otherLevels = otherLevels :+ TrashLevelConfig)
 
   override def persistent: Boolean = false
 }
@@ -332,6 +337,9 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
 case class SwayDBPersistentConfig(level0: LevelZeroConfig,
                                   level1: LevelConfig,
                                   otherLevels: List[LevelConfig]) extends SwayDBConfig {
+
+  def addPersistentLevel(config: PersistentLevelConfig): SwayDBPersistentConfig =
+    copy(otherLevels = otherLevels :+ config)
 
   def addPersistentLevel(dir: Path,
                          otherDirs: Seq[Dir],
@@ -375,6 +383,9 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
         )
     )
 
+  def addMemoryLevel(config: MemoryLevelConfig): SwayDBPersistentConfig =
+    copy(otherLevels = otherLevels :+ config)
+
   def addMemoryLevel(segmentSize: Int,
                      copyForward: Boolean,
                      deleteSegmentsEventually: Boolean,
@@ -396,10 +407,8 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
         )
     )
 
-  def addTrashLevel: SwayDBPersistentConfig =
-    copy(
-      otherLevels = otherLevels :+ TrashLevelConfig
-    )
+  def addTrashLevel(): SwayDBPersistentConfig =
+    copy(otherLevels = otherLevels :+ TrashLevelConfig)
 
   override def persistent: Boolean = true
 }

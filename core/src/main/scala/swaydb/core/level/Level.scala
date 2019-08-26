@@ -21,7 +21,6 @@ package swaydb.core.level
 
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, StandardOpenOption}
-import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ErrorHandler
@@ -210,8 +209,7 @@ private[core] object Level extends LazyLogging {
                       lock = lock,
                       deleteSegmentsEventually = deleteSegmentsEventually,
                       paths = paths,
-                      removeDeletedRecords = Level.removeDeletes(nextLevel),
-                      appendixReadWriteLock = new ReentrantReadWriteLock()
+                      removeDeletedRecords = Level.removeDeletes(nextLevel)
                     )
                 }
             }
@@ -342,19 +340,18 @@ private[core] case class Level(dirs: Seq[Dir],
                                lock: Option[FileLock],
                                deleteSegmentsEventually: Boolean,
                                paths: PathsDistributor,
-                               removeDeletedRecords: Boolean,
-                               appendixReadWriteLock: ReentrantReadWriteLock)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                                              functionStore: FunctionStore,
-                                                                              removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
-                                                                              addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
-                                                                              memorySweeper: Option[MemorySweeper.KeyValue],
-                                                                              fileSweeper: FileSweeper.Enabled,
-                                                                              blockCache: Option[BlockCache.State],
-                                                                              val groupBy: Option[GroupByInternal.KeyValues],
-                                                                              val segmentIDGenerator: IDGenerator,
-                                                                              segmentIO: SegmentIO,
-                                                                              reserve: ReserveRange.State[Unit]) extends NextLevel with LazyLogging { self =>
+                               removeDeletedRecords: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                              timeOrder: TimeOrder[Slice[Byte]],
+                                                              functionStore: FunctionStore,
+                                                              removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
+                                                              addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
+                                                              memorySweeper: Option[MemorySweeper.KeyValue],
+                                                              fileSweeper: FileSweeper.Enabled,
+                                                              blockCache: Option[BlockCache.State],
+                                                              val groupBy: Option[GroupByInternal.KeyValues],
+                                                              val segmentIDGenerator: IDGenerator,
+                                                              segmentIO: SegmentIO,
+                                                              reserve: ReserveRange.State[Unit]) extends NextLevel with LazyLogging { self =>
 
   logger.info(s"{}: Level started.", paths)
 
@@ -417,22 +414,6 @@ private[core] case class Level(dirs: Seq[Dir],
       override def segmentCountAndLevelSize: (Int, Long) =
         self.segmentCountAndLevelSize
     }
-
-  private def appendixWriteLocked(initialMapEntry: MapEntry[Slice[Byte], Segment]): IO[swaydb.Error.Level, Boolean] = {
-    appendixReadWriteLock.writeLock().lock()
-    try
-      appendix write initialMapEntry
-    finally
-      appendixReadWriteLock.writeLock().unlock()
-  }
-
-  private def appendixWithReadLocked[T](f: Map[Slice[Byte], Segment] => T): T = {
-    appendixReadWriteLock.readLock().lock()
-    try
-      f(appendix)
-    finally
-      appendixReadWriteLock.readLock().unlock()
-  }
 
   def rootPath: Path =
     dirs.head.path
@@ -626,7 +607,7 @@ private[core] case class Level(dirs: Seq[Dir],
                       appendEntry = Some(copiedSegmentsEntry)
                     )
                   else
-                    appendixWriteLocked(copiedSegmentsEntry) map (_ => ())
+                    appendix.write(copiedSegmentsEntry) map (_ => ())
 
                 putResult onFailureSideEffect {
                   failure =>
@@ -668,7 +649,7 @@ private[core] case class Level(dirs: Seq[Dir],
             if (newSegments.nonEmpty)
               buildNewMapEntry(newSegments, None, None) flatMap {
                 entry =>
-                  appendixWriteLocked(entry)
+                  appendix write entry
               } onFailureSideEffect {
                 failure =>
                   logFailure(s"${paths.head}: Failed to create a log entry.", failure)
@@ -871,7 +852,7 @@ private[core] case class Level(dirs: Seq[Dir],
           logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", paths.head, segment.path, newSegments.map(_.path).mkString(", "))
           buildNewMapEntry(newSegments, Some(segment), None) flatMap {
             entry =>
-              appendixWriteLocked(entry).map(_ => ()) onSuccessSideEffect {
+              appendix.write(entry).map(_ => ()) onSuccessSideEffect {
                 _ =>
                   if (deleteSegmentsEventually)
                     segment.deleteSegmentsEventually
@@ -910,7 +891,7 @@ private[core] case class Level(dirs: Seq[Dir],
       mapEntry =>
         //        logger.info(s"$id. Build map entry: ${mapEntry.string(_.asInt().toString, _.id.toString)}")
         logger.trace(s"{}: Built map entry to remove Segments {}", paths.head, segments.map(_.path.toString))
-        appendixWriteLocked(mapEntry) flatMap {
+        appendix.write(mapEntry) flatMap {
           _ =>
             logger.debug(s"{}: MapEntry delete Segments successfully written. Deleting physical Segments: {}", paths.head, segments.map(_.path.toString))
             // If a delete fails that would be due OS permission issue.
@@ -1026,7 +1007,7 @@ private[core] case class Level(dirs: Seq[Dir],
                   //Note: appendEntry should not overwrite new Segment's entries with same keys so perform distinct
                   //which will remove oldEntries with duplicates with newer keys.
                   val mapEntryToWrite = appendEntry.map(appendEntry => MapEntry.distinct(mapEntry, appendEntry)) getOrElse mapEntry
-                  appendixWriteLocked(mapEntryToWrite) map {
+                  appendix.write(mapEntryToWrite) map {
                     _ =>
                       logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", paths.head, assignments.map(_._1.path.toString))
                       //delete assigned segments as they are replaced with new segments.
@@ -1132,7 +1113,7 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   def getFromThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
-    appendixWithReadLocked(_.skipList.floor(key)) match {
+    appendix.skipList.floor(key) match {
       case Some(segment) =>
         segment get key
 
@@ -1147,7 +1128,7 @@ private[core] case class Level(dirs: Seq[Dir],
     Get(key)
 
   private def mightContainKeyInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Boolean] =
-    appendixWithReadLocked(_.skipList.floor(key)) match {
+    appendix.skipList.floor(key) match {
       case Some(segment) =>
         segment mightContainKey key
 
@@ -1188,7 +1169,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   private def lowerInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
-    appendixWithReadLocked(_.skipList.lower(key)).map(_.lower(key)) getOrElse IO.none
+    appendix.skipList.lower(key).map(_.lower(key)) getOrElse IO.none
 
   private def lowerFromNextLevel(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
     nextLevel.map(_.lower(key)) getOrElse IO.Defer.none
@@ -1210,10 +1191,10 @@ private[core] case class Level(dirs: Seq[Dir],
     )
 
   private def higherFromFloorSegment(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
-    appendixWithReadLocked(_.skipList.floor(key)).map(_.higher(key)) getOrElse IO.none
+    appendix.skipList.floor(key).map(_.higher(key)) getOrElse IO.none
 
   private def higherFromHigherSegment(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
-    appendixWithReadLocked(_.skipList.higher(key)).map(_.higher(key)) getOrElse IO.none
+    appendix.skipList.higher(key).map(_.higher(key)) getOrElse IO.none
 
   private[core] def higherInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
     higherFromFloorSegment(key) flatMap {
@@ -1250,7 +1231,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def headKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
     nextLevel.map(_.headKey) getOrElse IO.Defer.none map {
       nextLevelFirstKey =>
-        MinMax.minFavourLeft(appendixWithReadLocked(_.skipList.headKey), nextLevelFirstKey)(keyOrder)
+        MinMax.minFavourLeft(appendix.skipList.headKey, nextLevelFirstKey)(keyOrder)
     }
 
   /**
@@ -1260,7 +1241,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def lastKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
     nextLevel.map(_.lastKey) getOrElse IO.Defer.none map {
       nextLevelLastKey =>
-        MinMax.maxFavourLeft(appendixWithReadLocked(_.skipList.last()).map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
+        MinMax.maxFavourLeft(appendix.skipList.last().map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
     }
 
   override def head: IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
