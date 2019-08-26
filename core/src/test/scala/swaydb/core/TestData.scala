@@ -236,7 +236,7 @@ object TestData {
         segmentSize = segmentSize,
         throttle = throttle,
         nextLevel = nextLevel
-      ).runRandomIO.value
+      ).value
 
     def tryReopen(segmentSize: Long = level.segmentSize,
                   throttle: LevelMeter => Throttle = level.throttle,

@@ -686,7 +686,7 @@ private[core] case class Level(dirs: Seq[Dir],
       nextLevel =>
         if (!nextLevel.isCopyable(map))
           IO.`false`
-        else if (nextLevel.put(map).isReady)
+        else if (nextLevel.put(map).isSuccess)
           IO.`true`
         else
           IO.`false`
@@ -765,7 +765,7 @@ private[core] case class Level(dirs: Seq[Dir],
         val (copyable, nonCopyable) = nextLevel partitionUnreservedCopyable segments
         if (copyable.isEmpty)
           IO.Success(segments)
-        else if (nextLevel.put(copyable).isReady)
+        else if (nextLevel.put(copyable).toIO.isSuccess)
           IO.Success(nonCopyable)
         else
           IO.Success(segments)

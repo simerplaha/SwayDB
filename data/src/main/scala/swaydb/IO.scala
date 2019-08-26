@@ -384,7 +384,7 @@ object IO {
       )
 
     //Deferred that returns the result of the above deferred when completed.
-    IO.Defer[E, A](recoverableDeferred.getUnsafe)
+    IO.Defer[E, A](recoverableDeferred.toIO.get)
   }
 
   /** **********************************
@@ -435,7 +435,10 @@ object IO {
 
     //a deferred IO is completed if it's not reserved.
     def isReady: Boolean =
-      error.flatMap(ErrorHandler.reserve[E]) forall (_.isFree)
+      error forall (ErrorHandler.reserve[E](_).forall(_.isFree))
+
+    def isBusy =
+      !isReady
 
     def isComplete: Boolean =
       getValue.isDefined
@@ -443,10 +446,13 @@ object IO {
     def isPending: Boolean =
       !isComplete
 
-    def isBusy =
-      error.flatMap(ErrorHandler.reserve[E]) exists (_.isBusy)
+    def isSuccess: Boolean =
+      isComplete || toIO.isSuccess
 
-    private[IO] def getUnsafe: A = {
+    def isFailure: Boolean =
+      isPending && toIO.isFailure
+
+    private[Defer] def getUnsafe: A = {
       //Runs composed functions does not perform any recovery.
       def forceGet: A =
         getValue getOrElse {
