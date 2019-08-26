@@ -193,7 +193,7 @@ private[core] object Segment extends LazyLogging {
                   )
               }
 
-          writeResult flatMap {
+          writeResult map {
             file =>
               PersistentSegment(
                 file = file,
@@ -450,7 +450,7 @@ private[core] object Segment extends LazyLogging {
           checkExists = checkExists
         )
 
-    fileIO flatMap {
+    fileIO map {
       file =>
         PersistentSegment(
           file = file,
@@ -528,7 +528,7 @@ private[core] object Segment extends LazyLogging {
                           keyValues =>
                             file.close flatMap {
                               _ =>
-                                DeadlineAndFunctionId(keyValues) flatMap {
+                                DeadlineAndFunctionId(keyValues) map {
                                   deadlineMinMaxFunctionId =>
                                     PersistentSegment(
                                       file = file,

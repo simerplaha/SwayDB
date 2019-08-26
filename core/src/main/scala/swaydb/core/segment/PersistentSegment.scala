@@ -56,31 +56,29 @@ object PersistentSegment {
                                                      memorySweeper: Option[MemorySweeper.KeyValue],
                                                      blockCache: Option[BlockCache.State],
                                                      fileSweeper: FileSweeper.Enabled,
-                                                     segmentIO: SegmentIO): IO[swaydb.Error.Segment, PersistentSegment] =
-    BlockRefReader(file) map {
-      blockRef =>
-        val segmentCache =
-          SegmentCache(
-            id = file.path.toString,
-            maxKey = maxKey,
-            minKey = minKey,
-            segmentIO = segmentIO,
-            unsliceKey = true,
-            blockRef = blockRef
-          )
+                                                     segmentIO: SegmentIO): PersistentSegment = {
+    val segmentCache =
+      SegmentCache(
+        id = file.path.toString,
+        maxKey = maxKey,
+        minKey = minKey,
+        segmentIO = segmentIO,
+        unsliceKey = true,
+        blockRef = BlockRefReader(file, segmentSize)
+      )
 
-        new PersistentSegment(
-          file = file,
-          mmapReads = mmapReads,
-          mmapWrites = mmapWrites,
-          minKey = minKey,
-          maxKey = maxKey,
-          minMaxFunctionId = minMaxFunctionId,
-          segmentSize = segmentSize,
-          nearestExpiryDeadline = nearestExpiryDeadline,
-          segmentCache = segmentCache
-        )
-    }
+    new PersistentSegment(
+      file = file,
+      mmapReads = mmapReads,
+      mmapWrites = mmapWrites,
+      minKey = minKey,
+      maxKey = maxKey,
+      minMaxFunctionId = minMaxFunctionId,
+      segmentSize = segmentSize,
+      nearestExpiryDeadline = nearestExpiryDeadline,
+      segmentCache = segmentCache
+    )
+  }
 }
 
 private[segment] case class PersistentSegment(file: DBFile,

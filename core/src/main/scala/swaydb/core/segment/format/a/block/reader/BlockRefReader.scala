@@ -37,6 +37,12 @@ private[core] object BlockRefReader {
         )
     }
 
+  def apply(file: DBFile, fileSize: Int): BlockRefReader[SegmentBlock.Offset] =
+    new BlockRefReader(
+      offset = SegmentBlock.Offset(0, fileSize),
+      reader = Reader(file)
+    )
+
   def apply[O <: BlockOffset](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader(
       offset = blockOps.createOffset(0, bytes.size),
