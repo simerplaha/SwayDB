@@ -81,7 +81,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val thisLevel = mock[NextLevel]("thisLevel")
         val nextLevel = mock[NextLevel]("nextLevel")
 
-        Compaction.putForward(Iterable.empty, thisLevel, nextLevel) shouldBe IO.zero
+        Compaction.putForward(Iterable.empty, thisLevel, nextLevel).right.value shouldBe IO.zero
       }
     }
 
@@ -159,13 +159,13 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val allKeyValues = randomPutKeyValues(keyValueCount, startId = Some(1)).toMemory
         val keyValues = allKeyValues.groupedSlice(5)
 
-        val level5 = TestLevel(keyValues = keyValues(4), segmentSize = 2.kb)
-        val level4 = TestLevel(nextLevel = Some(level5), keyValues = keyValues(3), segmentSize = 2.kb)
-        val level3 = TestLevel(nextLevel = Some(level4), keyValues = keyValues(2), segmentSize = 2.kb)
-        val level2 = TestLevel(nextLevel = Some(level3), keyValues = keyValues(1), segmentSize = 2.kb)
-        val level1 = TestLevel(nextLevel = Some(level2), keyValues = keyValues(0), segmentSize = 2.kb)
+        val level5 = TestLevel(keyValues = keyValues(4), segmentSize = 1.kb)
+        val level4 = TestLevel(nextLevel = Some(level5), keyValues = keyValues(3), segmentSize = 10.bytes)
+        val level3 = TestLevel(nextLevel = Some(level4), keyValues = keyValues(2), segmentSize = 10.bytes)
+        val level2 = TestLevel(nextLevel = Some(level3), keyValues = keyValues(1), segmentSize = 10.bytes)
+        val level1 = TestLevel(nextLevel = Some(level2), keyValues = keyValues(0), segmentSize = 10.bytes)
 
-        level1.foreachLevel(_.segmentsCount() should be > 1)
+        //        level1.foreachLevel(_.segmentsCount() should be > 1)
 
         val expectedCopiedSegments = level1.foldLeftLevels(0)(_ + _.segmentsCount()) - level5.segmentsCount()
         Compaction.copyForwardForEach(level1.reverseLevels.toSlice) shouldBe expectedCopiedSegments

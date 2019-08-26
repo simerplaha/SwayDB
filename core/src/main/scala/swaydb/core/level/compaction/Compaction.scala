@@ -254,7 +254,7 @@ private[level] object Compaction extends LazyLogging {
           previousStateID = stateID
         )
 
-      case later @ Left(promise) =>
+      case Left(promise) =>
         LevelCompactionState.AwaitingPull(
           promise = promise,
           timeout = awaitPullTimeout,

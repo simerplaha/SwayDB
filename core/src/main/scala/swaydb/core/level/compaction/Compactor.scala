@@ -113,10 +113,11 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
 
   def scheduleNextWakeUp(state: CompactorState,
                          self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit = {
-    val updatedStates = state.updatedLevelCompactionStates
-    logger.debug(s"${state.id}: scheduling next wakeup for updated state: ${updatedStates.size}. Current scheduled: ${state.sleepTask.map(_._2.timeLeft.asString)}")
+    logger.debug(s"${state.id}: scheduling next wakeup for updated state: ${state.levels.size}. Current scheduled: ${state.sleepTask.map(_._2.timeLeft.asString)}")
 
-    updatedStates
+    state
+      .compactionStates
+      .values
       .foldLeft(Option.empty[Deadline]) {
         case (nearestDeadline, waiting @ LevelCompactionState.AwaitingPull(ioAync, timeout, _, _)) =>
           //do not create another hook if a future was already initialised to invoke wakeUp.
@@ -151,7 +152,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
       .foreach {
         newWakeUpDeadline =>
           //if the wakeUp deadlines are the same do not trigger another wakeUp.
-          if (state.sleepTask.forall(_._2.compareTo(newWakeUpDeadline) != 0)) {
+          if (state.sleepTask.forall(_._2 > newWakeUpDeadline)) {
             val newTask =
               self.scheduleSend(newWakeUpDeadline.timeLeft) {
                 (impl, state) =>

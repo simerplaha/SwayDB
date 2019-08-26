@@ -40,7 +40,6 @@ import swaydb.core.level.compaction._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
@@ -61,7 +60,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
   implicit val idGenerator = IDGenerator()
 
-  private val currentLevelId = new AtomicInteger(Byte.MaxValue + 1)
+  val currentLevelId = new AtomicInteger(Byte.MaxValue + 1)
 
   private def nextLevelId: Int = {
     //LevelNumber cannot be greater than 1 byte. If more than one byte is used, reset.
@@ -203,10 +202,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   //    walkDeleteFolder(testDir)
   //  }
 
-  override protected def afterEach(): Unit = {
+  override protected def afterEach(): Unit =
     walkDeleteFolder(testDir)
-    currentLevelId set 0
-  }
 
   object TestMap {
     def apply(keyValues: Slice[Memory.SegmentResponse],

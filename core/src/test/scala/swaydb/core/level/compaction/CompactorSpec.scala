@@ -254,7 +254,6 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
       "one of level states is awaiting pull and other Level's sleep is shorter" in {
         implicit val scheduler = Scheduler()
 
-        //create IO.Later that is busy
         val promise = Promise[Unit]()
 
         val level1AwaitingPull = LevelCompactionState.AwaitingPull(promise, 1.minute.fromNow, 0, 0)

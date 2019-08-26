@@ -38,7 +38,7 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
                                         child: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]],
                                         ordering: Ordering[LevelRef],
                                         executionContext: ExecutionContext,
-                                        private[level] val compactionStates: mutable.Map[LevelRef, LevelCompactionState]) extends LazyLogging {
+                                        compactionStates: mutable.Map[LevelRef, LevelCompactionState]) extends LazyLogging {
   @volatile private[compaction] var terminate: Boolean = false
   private[compaction] var sleepTask: Option[(TimerTask, Deadline)] = None
   val hasLevelZero: Boolean = levels.exists(_.isZero)
@@ -61,17 +61,11 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
       levels.foldLeft(LevelCompactionState.longSleep) {
         case (deadline, level) =>
           FiniteDurations.getNearestDeadline(
-            Some(deadline),
-            Some(level.nextCompactionDelay.fromNow)
+            deadline = Some(deadline),
+            next = Some(level.nextCompactionDelay.fromNow)
           ) getOrElse deadline
       }
 
   def terminateCompaction() =
     terminate = true
-
-  def updatedLevelCompactionStates: mutable.Iterable[LevelCompactionState] =
-    compactionStates collect {
-      case (_, levelState) if levelState.stateID != levelState.previousStateID =>
-        levelState
-    }
 }
