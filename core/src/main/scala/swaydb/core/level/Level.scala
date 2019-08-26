@@ -1378,7 +1378,6 @@ private[core] case class Level(dirs: Seq[Dir],
   def close: IO[swaydb.Error.Close, Unit] =
     (nextLevel.map(_.close) getOrElse IO.unit) flatMap {
       _ =>
-
         appendix.close() onFailureSideEffect {
           failure =>
             logger.error("{}: Failed to close appendix", paths.head, failure)
