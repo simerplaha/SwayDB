@@ -27,7 +27,7 @@ import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.reflect.ClassTag
 import scala.util.Try
 
@@ -97,14 +97,14 @@ object IO {
   final case object Done extends Done
 
   val unit: IO.Right[Nothing, Unit] = IO.Right()(IO.ErrorHandler.Nothing)
-  val eitherUnit: Either[Nothing, IO.Right[Nothing, Unit]] = scala.util.Right(IO.Right()(IO.ErrorHandler.Nothing))
+  val unitUnit: IO.Right[Nothing, IO.Right[Nothing, Unit]] = IO.Right(IO.Right()(IO.ErrorHandler.Nothing))(IO.ErrorHandler.Nothing)
   val none: IO.Right[Nothing, Option[Nothing]] = IO.Right(None)(IO.ErrorHandler.Nothing)
   val `false`: IO.Right[Nothing, Boolean] = IO.Right(false)(IO.ErrorHandler.Nothing)
   val `true`: IO.Right[Nothing, Boolean] = IO.Right(true)(IO.ErrorHandler.Nothing)
   val someTrue: IO[Nothing, Some[Boolean]] = IO.Right(Some(true))(IO.ErrorHandler.Nothing)
   val someFalse: IO[Nothing, Some[Boolean]] = IO.Right(Some(false))(IO.ErrorHandler.Nothing)
   val zero: IO.Right[Nothing, Int] = IO.Right(0)(IO.ErrorHandler.Nothing)
-  val eitherZero: scala.util.Right[Nothing, IO.Right[Nothing, Int]] = scala.util.Right(IO.Right(0)(IO.ErrorHandler.Nothing))
+  val zeroZero: IO[Nothing, IO.Right[Nothing, Int]] = IO.Right(IO.Right(0)(IO.ErrorHandler.Nothing))(IO.ErrorHandler.Nothing)
   val emptyBytes: IO.Right[Nothing, Slice[Byte]] = IO.Right(Slice.emptyBytes)(IO.ErrorHandler.Nothing)
   val emptySeqBytes: IO.Right[Nothing, Seq[Slice[Byte]]] = IO.Right(Seq.empty[Slice[Byte]])(IO.ErrorHandler.Nothing)
   val done: IO.Right[Nothing, Done] = IO.Right(Done)(IO.ErrorHandler.Nothing)
@@ -321,6 +321,14 @@ object IO {
       override def toException(f: Throwable): Throwable =
         f
     }
+
+    object PromiseUnit extends IO.ErrorHandler[Promise[Unit]] {
+      override def toException(f: Promise[Unit]): Throwable =
+        new Exception("Exception cannot be created from Promise.")
+
+      override def fromException(e: Throwable): Promise[Unit] =
+        Promise.failed(e)
+    }
   }
 
   def successful[E: IO.ErrorHandler, A](value: A): IO.Right[E, A] =
@@ -486,8 +494,8 @@ object IO {
   }
 
   final case class Defer[+E: IO.ErrorHandler, +A] private(private val operation: () => A,
-                                                       error: Option[E],
-                                                       private val recovery: Option[_ => IO.Defer[E, A]] = None) extends LazyLogging {
+                                                          error: Option[E],
+                                                          private val recovery: Option[_ => IO.Defer[E, A]] = None) extends LazyLogging {
 
     @volatile private var _value: Option[Any] = None
     private def getValue = _value.map(_.asInstanceOf[A])

@@ -114,7 +114,7 @@ class IOIOLeftSpec extends WordSpec with Matchers {
   }
 
   "toEither" in {
-    IO.Left(error).toEither shouldBe scala.util.Left(error)
+    IO.Left(error).toEither shouldBe IO.Left(error)
   }
 
   "filter" in {

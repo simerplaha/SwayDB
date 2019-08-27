@@ -32,6 +32,7 @@ import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Promise}
 
+
 /**
  * This object does not implement any concurrency which should be handled by an Actor.
  *
@@ -141,7 +142,7 @@ private[level] object Compaction extends LazyLogging {
   private[compaction] def pushForward(level: NextLevel, stateID: Long)(implicit ec: ExecutionContext): LevelCompactionState = {
     val throttle = level.throttle(level.meter)
     pushForward(level, throttle.segmentsToPush max 1) match {
-      case scala.util.Right(IO.Right(pushed)) =>
+      case IO.Right(IO.Right(pushed)) =>
         logger.debug(s"Level(${level.levelNumber}): pushed $pushed Segments.")
         LevelCompactionState.Sleep(
           sleepDeadline = level.nextCompactionDelay.fromNow,
@@ -149,7 +150,7 @@ private[level] object Compaction extends LazyLogging {
           previousStateID = stateID
         )
 
-      case scala.util.Right(IO.Left(_)) =>
+      case IO.Right(IO.Left(_)) =>
         LevelCompactionState.Sleep(
           sleepDeadline =
             if (LevelCompactionState.failureSleepDuration.timeLeft < throttle.pushDelay)
@@ -160,7 +161,7 @@ private[level] object Compaction extends LazyLogging {
           previousStateID = stateID
         )
 
-      case scala.util.Left(promise) =>
+      case IO.Left(promise) =>
         LevelCompactionState.AwaitingPull(
           promise = promise,
           timeout = awaitPullTimeout,
@@ -213,7 +214,7 @@ private[level] object Compaction extends LazyLogging {
                                       stateID: Long,
                                       map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): LevelCompactionState =
     nextLevel.put(map) match {
-      case scala.util.Right(IO.Right(_)) =>
+      case IO.Right(IO.Right(_)) =>
         logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
         // If there is a failure removing the last map, maps will add the same map back into the queue and print
         // error message to be handled by the User.
@@ -240,7 +241,7 @@ private[level] object Compaction extends LazyLogging {
           previousStateID = stateID
         )
 
-      case scala.util.Right(IO.Left(error)) =>
+      case IO.Right(IO.Left(error)) =>
         error match {
           //do not log the stack if the IO.Failure to merge was ContainsOverlappingBusySegments.
           case swaydb.Error.OverlappingPushSegment =>
@@ -254,7 +255,7 @@ private[level] object Compaction extends LazyLogging {
           previousStateID = stateID
         )
 
-      case scala.util.Left(promise) =>
+      case IO.Left(promise) =>
         LevelCompactionState.AwaitingPull(
           promise = promise,
           timeout = awaitPullTimeout,
@@ -264,7 +265,7 @@ private[level] object Compaction extends LazyLogging {
     }
 
   private[compaction] def pushForward(level: NextLevel,
-                                      segmentsToPush: Int)(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Int]] =
+                                      segmentsToPush: Int)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
     level.nextLevel map {
       nextLevel =>
         val (copyable, mergeable) = level.optimalSegmentsPushForward(take = segmentsToPush)
@@ -273,10 +274,10 @@ private[level] object Compaction extends LazyLogging {
           segments = copyable,
           thisLevel = level,
           nextLevel = nextLevel
-        ) flatMap {
+        ).flatMap {
           case IO.Right(copied) =>
             if (copied >= segmentsToPush)
-              scala.util.Right(IO.Right(copied))
+              IO.Right(IO.Right(copied))(IO.ErrorHandler.PromiseUnit)
             else
               putForward(
                 segments = mergeable take segmentsToPush,
@@ -285,17 +286,17 @@ private[level] object Compaction extends LazyLogging {
               ).map(_.map(_ + copied))
 
           case IO.Left(error) =>
-            scala.util.Right(IO.Left(error))
-        }
+            IO.Right(IO.Left(error))(IO.ErrorHandler.PromiseUnit)
+        }(IO.ErrorHandler.PromiseUnit)
     } getOrElse {
-      scala.util.Right(
+      IO.Right[Promise[Unit], IO[swaydb.Error.Level, Int]](
         runLastLevelCompaction(
           level = level,
           checkExpired = true,
           remainingCompactions = segmentsToPush,
           segmentsCompacted = 0
         )
-      )
+      )(IO.ErrorHandler.PromiseUnit)
     }
 
   @tailrec
@@ -309,7 +310,7 @@ private[level] object Compaction extends LazyLogging {
       Segment.getNearestDeadlineSegment(level.segmentsInLevel()) match {
         case Some(segment) =>
           level.refresh(segment) match {
-            case scala.util.Right(IO.Right(_)) =>
+            case IO.Right(IO.Right(_)) =>
               logger.debug(s"Level(${level.levelNumber}): Refresh successful.")
               runLastLevelCompaction(
                 level = level,
@@ -318,7 +319,7 @@ private[level] object Compaction extends LazyLogging {
                 segmentsCompacted = segmentsCompacted + 1
               )
 
-            case scala.util.Left(_) =>
+            case IO.Left(_) =>
               logger.debug(s"Level(${level.levelNumber}): Later on refresh.")
               runLastLevelCompaction(
                 level = level,
@@ -327,7 +328,7 @@ private[level] object Compaction extends LazyLogging {
                 segmentsCompacted = segmentsCompacted
               )
 
-            case scala.util.Right(IO.Left(_)) =>
+            case IO.Right(IO.Left(_)) =>
               runLastLevelCompaction(
                 level = level,
                 checkExpired = false,
@@ -346,7 +347,7 @@ private[level] object Compaction extends LazyLogging {
       }
     else
       level.collapse(level.optimalSegmentsToCollapse(remainingCompactions max 2)) match { //need at least 2 for collapse.
-        case scala.util.Right(IO.Right(count)) =>
+        case IO.Right(IO.Right(count)) =>
           logger.debug(s"Level(${level.levelNumber}): Collapsed $count small segments.")
           runLastLevelCompaction(
             level = level,
@@ -355,7 +356,7 @@ private[level] object Compaction extends LazyLogging {
             segmentsCompacted = segmentsCompacted + count
           )
 
-        case scala.util.Left(_) =>
+        case IO.Left(_) =>
           logger.debug(s"Level(${level.levelNumber}): Later on collapse.")
           runLastLevelCompaction(
             level = level,
@@ -364,7 +365,7 @@ private[level] object Compaction extends LazyLogging {
             segmentsCompacted = segmentsCompacted
           )
 
-        case scala.util.Right(IO.Left(_)) =>
+        case IO.Right(IO.Left(_)) =>
           runLastLevelCompaction(
             level = level,
             checkExpired = checkExpired,
@@ -397,15 +398,15 @@ private[level] object Compaction extends LazyLogging {
           thisLevel = level,
           nextLevel = nextLevel
         ) match {
-          case scala.util.Right(IO.Right(copied)) =>
+          case IO.Right(IO.Right(copied)) =>
             logger.debug(s"Level(${level.levelNumber}): Forward copied $copied Segments.")
             copied
 
-          case scala.util.Right(IO.Left(error)) =>
+          case IO.Right(IO.Left(error)) =>
             logger.error(s"Level(${level.levelNumber}): Failed copy Segments forward.", error.exception)
             0
 
-          case scala.util.Left(_) =>
+          case IO.Left(_) =>
             //this should never really occur when no other concurrent compactions are occurring.
             logger.warn(s"Level(${level.levelNumber}): Received later compaction.")
             0
@@ -414,9 +415,9 @@ private[level] object Compaction extends LazyLogging {
 
   private[compaction] def putForward(segments: Iterable[Segment],
                                      thisLevel: NextLevel,
-                                     nextLevel: NextLevel)(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Int]] =
+                                     nextLevel: NextLevel)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
     if (segments.isEmpty)
-      IO.eitherZero
+      IO.zeroZero
     else
       nextLevel.put(segments) map {
         case IO.Right(_) =>

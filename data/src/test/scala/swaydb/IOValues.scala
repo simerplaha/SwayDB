@@ -26,14 +26,14 @@ import scala.util.Random
 
 trait IOValues {
 
-  implicit class IOIncompleteImplicits[E: IO.ErrorHandler, T](io: => IO[E, T]) {
-    def runBlockingIO: IO[E, T] =
+  implicit class IOIncompleteImplicits[L: IO.ErrorHandler, R](io: => IO[L, R]) {
+    def runBlockingIO: IO[L, R] =
       IO.Defer(io.get).runBlockingIO
 
-    def runFutureIO: IO[E, T] =
+    def runFutureIO: IO[L, R] =
       IO.Defer(io.get).runFutureIO
 
-    def runRandomIO: IO[E, T] =
+    def runRandomIO: IO[L, R] =
       IO.Defer(io.get).runRandomIO
   }
 
@@ -42,15 +42,15 @@ trait IOValues {
       io.get
   }
 
-  implicit class DeferredIOImplicits[E: IO.ErrorHandler, T](io: => IO.Defer[E, T]) {
+  implicit class DeferredIOImplicits[L: IO.ErrorHandler, R](io: => IO.Defer[L, R]) {
 
-    def runBlockingIO: IO[E, T] =
+    def runBlockingIO: IO[L, R] =
       io.runIO
 
-    def runFutureIO: IO[E, T] =
-      IO(Await.result(io.run[T, Future], 5.minutes))
+    def runFutureIO: IO[L, R] =
+      IO(Await.result(io.run[R, Future], 5.minutes))
 
-    def runRandomIO: IO[E, T] =
+    def runRandomIO: IO[L, R] =
       if (Random.nextBoolean())
         runBlockingIO
       else

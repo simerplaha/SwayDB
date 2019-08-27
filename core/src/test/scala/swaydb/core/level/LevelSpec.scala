@@ -24,6 +24,7 @@ import java.nio.channels.OverlappingFileLockException
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.EitherValues._
 import org.scalatest.PrivateMethodTester
+import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -45,6 +46,8 @@ import swaydb.data.storage.LevelStorage
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+
+import scala.concurrent.Promise
 
 class LevelSpec0 extends LevelSpec
 
@@ -327,12 +330,12 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2).map(_.updateStats)
       val segment1 = TestSegment(keyValues.head).runRandomIO.value
       val segment2 = TestSegment(keyValues.last).runRandomIO.value
-      level.reserve(Seq(segment1, segment2)).get shouldBe scala.util.Right(keyValues.head.head.key)
+      level.reserve(Seq(segment1, segment2)).get shouldBe IO.Right[Promise[Unit], Slice[Byte]](keyValues.head.head.key)(IO.ErrorHandler.PromiseUnit)
 
       //cannot reserve again
-      level.reserve(Seq(segment1, segment2)).get shouldBe a[scala.util.Left[_, _]]
-      level.reserve(Seq(segment1)).get shouldBe a[scala.util.Left[_, _]]
-      level.reserve(Seq(segment2)).get shouldBe a[scala.util.Left[_, _]]
+      level.reserve(Seq(segment1, segment2)).get shouldBe a[IO.Left[_, _]]
+      level.reserve(Seq(segment1)).get shouldBe a[IO.Left[_, _]]
+      level.reserve(Seq(segment2)).get shouldBe a[IO.Left[_, _]]
 
       level.delete.runRandomIO.value
     }

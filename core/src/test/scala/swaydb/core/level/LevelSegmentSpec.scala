@@ -44,7 +44,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
 import swaydb.data.util.StorageUnits._
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Promise}
 import scala.util.Random
 
 class LevelSegmentSpec0 extends LevelSegmentSpec
@@ -359,7 +359,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment.path
-            IO.eitherUnit
+            IO.unitUnit
         }
 
         level.put(segment).right.value.value
@@ -422,7 +422,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment3.path
-            IO.eitherUnit
+            IO.unitUnit
         }
 
         level.put(Seq(segment2, segment3)).right.value.value
@@ -458,7 +458,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment.path
-            scala.util.Right(IO(throw new Exception("Kaboom!!")))
+            IO.Right[Promise[Unit], IO[swaydb.Error.Level, Unit]](IO(throw new Exception("Kaboom!!")))(IO.ErrorHandler.PromiseUnit)
         }
 
         level.put(segment).right.value.value

@@ -453,7 +453,7 @@ private[core] case class Level(dirs: Seq[Dir],
     (throttle(stats).segmentsToPush, stats.segmentsCount)
   }
 
-  private[level] implicit def reserve(segments: Iterable[Segment]): IO[Error.Segment, Either[Promise[Unit], Slice[Byte]]] =
+  private[level] implicit def reserve(segments: Iterable[Segment]): IO[Error.Segment, IO[Promise[Unit], Slice[Byte]]] =
     SegmentAssigner.assignMinMaxOnly(
       inputSegments = segments,
       targetSegments = appendix.skipList.values().asScala
@@ -470,10 +470,10 @@ private[core] case class Level(dirs: Seq[Dir],
               toInclusive = toInclusive,
               info = ()
             )
-        } getOrElse scala.util.Left(Promise.successful())
+        } getOrElse IO.Left(Promise.successful())(IO.ErrorHandler.PromiseUnit)
     }
 
-  private[level] implicit def reserve(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Error.Segment, Either[Promise[Unit], Slice[Byte]]] =
+  private[level] implicit def reserve(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Error.Segment, IO[Promise[Unit], Slice[Byte]]] =
     SegmentAssigner.assignMinMaxOnly(
       map = map,
       targetSegments = appendix.skipList.values().asScala
@@ -490,7 +490,7 @@ private[core] case class Level(dirs: Seq[Dir],
               toInclusive = toInclusive,
               info = ()
             )
-        } getOrElse scala.util.Left(Promise.successful())
+        } getOrElse IO.Left(Promise.successful())(IO.ErrorHandler.PromiseUnit)
     }
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
@@ -548,7 +548,7 @@ private[core] case class Level(dirs: Seq[Dir],
       maxKeyInclusive = segment.maxKey.inclusive
     )
 
-  def reserveAndRelease[I, T](segments: I)(f: => IO[swaydb.Error.Level, T])(implicit tryReserve: I => IO[swaydb.Error.Level, Either[Promise[Unit], Slice[Byte]]]): Either[Promise[Unit], IO[swaydb.Error.Level, T]] =
+  def reserveAndRelease[I, T](segments: I)(f: => IO[swaydb.Error.Level, T])(implicit tryReserve: I => IO[swaydb.Error.Level, IO[Promise[Unit], Slice[Byte]]]): IO[Promise[Unit], IO[swaydb.Error.Level, T]] =
     tryReserve(segments) map {
       reserveOutcome =>
         reserveOutcome map {
@@ -563,13 +563,13 @@ private[core] case class Level(dirs: Seq[Dir],
         either
 
       case IO.Left(error) =>
-        scala.util.Right(IO.Left(error))
+        IO.Right[Promise[Unit], IO[swaydb.Error.Level, T]](IO.Left[swaydb.Error.Level, T](error))(IO.ErrorHandler.PromiseUnit)
     }
 
-  def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
+  def put(segment: Segment)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
     put(Seq(segment))
 
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
     reserveAndRelease(segments) {
       val appendixSegments = appendix.skipList.values().asScala
@@ -637,7 +637,7 @@ private[core] case class Level(dirs: Seq[Dir],
         appendEntry = None
       )
 
-  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
+  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.skipList.count())
     reserveAndRelease(map) {
       val appendixValues = appendix.skipList.values().asScala
@@ -837,7 +837,7 @@ private[core] case class Level(dirs: Seq[Dir],
     )
   }
 
-  def refresh(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
+  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
     logger.debug("{}: Running refresh.", paths.head)
     reserveAndRelease(Seq(segment)) {
       segment.refresh(
@@ -916,10 +916,10 @@ private[core] case class Level(dirs: Seq[Dir],
     } getOrElse IO.Left[swaydb.Error.Level, Int](swaydb.Error.NoSegmentsRemoved)
   }
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Int]] = {
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
     if (segments.isEmpty || appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
-      scala.util.Right(IO.zero)
+      IO.Right[Promise[Unit], IO[swaydb.Error.Level, Int]](IO.zero)(IO.ErrorHandler.PromiseUnit)
     } else {
       //other segments in the appendix that are not the input segments (segments to collapse).
       val levelSegments = segmentsInLevel()

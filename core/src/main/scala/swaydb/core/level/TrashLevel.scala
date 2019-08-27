@@ -151,14 +151,14 @@ private[core] object TrashLevel extends NextLevel {
   override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     (segments, Iterable.empty)
 
-  override def put(segment: Segment)(implicit ec: ExecutionContext): Either[Nothing, IO.Right[Nothing, Unit]] =
-    IO.eitherUnit
+  override def put(segment: Segment)(implicit ec: ExecutionContext): IO[Nothing, IO.Right[Nothing, Unit]] =
+    IO.unitUnit
 
-  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
-    scala.util.Right(IO.unit)
+  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
+    IO.unitUnit
 
-  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
-    scala.util.Right(IO.unit)
+  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
+    IO.unitUnit
 
   override def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Int] =
     IO.Right(segments.size)
@@ -172,11 +172,11 @@ private[core] object TrashLevel extends NextLevel {
       override def nextLevelMeter: Option[LevelMeter] = None
     }
 
-  override def refresh(segment: Segment)(implicit ec: ExecutionContext): Either[Nothing, IO.Right[Nothing, Unit]] =
-    IO.eitherUnit
+  override def refresh(segment: Segment)(implicit ec: ExecutionContext): IO[Nothing, IO.Right[Nothing, Unit]] =
+    IO.unitUnit
 
-  override def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Nothing, IO[Error.Segment, Int]] =
-    scala.util.Right(IO(segments.size))
+  override def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Nothing, IO[Error.Segment, Int]] =
+    IO.Right[Nothing, IO[Error.Segment, Int]](IO.Right(segments.size))(IO.ErrorHandler.Nothing)
 
   override def isZero: Boolean =
     false

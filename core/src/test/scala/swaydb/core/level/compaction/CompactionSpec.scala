@@ -20,7 +20,6 @@
 package swaydb.core.level.compaction
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.EitherValues._
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.IOValues._
@@ -97,7 +96,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
           (putSegments: Iterable[Segment], _) =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
-            IO.eitherUnit
+            IO.unitUnit
         }
 
         //segments value removed
@@ -123,7 +122,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
           (putSegments: Iterable[Segment], _) =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
-            IO.eitherUnit
+            IO.unitUnit
         }
 
         //segments value removed
@@ -252,7 +251,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           (segment: Segment, _) =>
             segments find (_.path == segment.path) shouldBe defined
             segments -= segment
-            scala.util.Right(segment.delete)
+            IO.Right(segment.delete)(IO.ErrorHandler.PromiseUnit)
         } repeat 5.times
 
         Compaction.runLastLevelCompaction(
@@ -293,7 +292,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           (segmentsToCollapse: Iterable[Segment], _) =>
             segmentsToCollapse foreach (segment => segments find (_.path == segment.path) shouldBe defined)
             segments --= segmentsToCollapse
-            scala.util.Right(IO(segmentsToCollapse.size))
+            IO.Right(IO(segmentsToCollapse.size))(IO.ErrorHandler.PromiseUnit)
         } repeat 2.times
 
         Compaction.runLastLevelCompaction(

@@ -380,7 +380,7 @@ object Error {
 
   object DataAccess {
     def message =
-      "Either the input or the accessed data was in incorrect format/order. Please see the exception to find out the cause."
+      "IO the input or the accessed data was in incorrect format/order. Please see the exception to find out the cause."
   }
   case class DataAccess(message: String, exception: Throwable) extends Error.IO
   case class SegmentFileMissing(exception: Exception.SegmentFileMissing) extends Error.Boot {

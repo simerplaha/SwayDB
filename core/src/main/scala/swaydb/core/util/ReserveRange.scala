@@ -20,6 +20,7 @@
 package swaydb.core.util
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.segment.Segment
 import swaydb.data.Reserve
 import swaydb.data.order.KeyOrder
@@ -40,6 +41,13 @@ object ReserveRange extends LazyLogging {
                       to: Slice[Byte],
                       toInclusive: Boolean,
                       reserve: Reserve[T])
+
+  object Range {
+    implicit def ErrorHandler[T] = new IO.ErrorHandler[Range[T]] {
+      override def toException(f: Range[T]): Throwable = throw new UnsupportedOperationException("Exception on Range")
+      override def fromException(e: Throwable): Range[T] = throw e
+    }
+  }
 
   case class State[T](ranges: ListBuffer[Range[T]])
 
@@ -70,10 +78,10 @@ object ReserveRange extends LazyLogging {
         toInclusive = toInclusive,
         info = info
       ) match {
-        case scala.util.Left(range) =>
+        case IO.Left(range) =>
           range.reserve.info
 
-        case scala.util.Right(_) =>
+        case IO.Right(_) =>
           None
       }
     }
@@ -82,7 +90,7 @@ object ReserveRange extends LazyLogging {
                          to: Slice[Byte],
                          toInclusive: Boolean,
                          info: T)(implicit state: State[T],
-                                  ordering: KeyOrder[Slice[Byte]]): Either[Promise[Unit], Slice[Byte]] =
+                                  ordering: KeyOrder[Slice[Byte]]): IO[Promise[Unit], Slice[Byte]] =
     state.synchronized {
       reserveOrGetRange(
         from = from,
@@ -90,13 +98,13 @@ object ReserveRange extends LazyLogging {
         toInclusive = toInclusive,
         info = info
       ) match {
-        case scala.util.Left(range) =>
+        case IO.Left(range) =>
           val promise = Promise[Unit]()
           range.reserve.savePromise(promise)
-          scala.util.Left(promise)
+          IO.Left[Promise[Unit], Slice[Byte]](promise)(IO.ErrorHandler.PromiseUnit)
 
-        case scala.util.Right(value) =>
-          scala.util.Right(value)
+        case IO.Right(value) =>
+          IO.Right[Promise[Unit], Slice[Byte]](value)(IO.ErrorHandler.PromiseUnit)
       }
     }
 
@@ -137,18 +145,18 @@ object ReserveRange extends LazyLogging {
                                    to: Slice[Byte],
                                    toInclusive: Boolean,
                                    info: T)(implicit state: State[T],
-                                            ordering: KeyOrder[Slice[Byte]]): Either[Range[T], Slice[Byte]] =
+                                            ordering: KeyOrder[Slice[Byte]]): IO[ReserveRange.Range[T], Slice[Byte]] =
     state.synchronized {
       state
         .ranges
         .find(range => Slice.intersects((from, to, toInclusive), (range.from, range.to, range.toInclusive)))
-        .map(scala.util.Left(_))
+        .map(IO.Left(_)(Range.ErrorHandler))
         .getOrElse {
           state.ranges += ReserveRange.Range(from, to, toInclusive, Reserve(info, "ReserveRange"))
           val waitingCount = state.ranges.size
           //Helps debug situations if too many threads and try to compact into the same Segment.
           if (waitingCount >= 100) logger.warn(s"Too many listeners: $waitingCount")
-          scala.util.Right(from)
+          IO.Right[ReserveRange.Range[T], Slice[Byte]](from)
         }
     }
 }

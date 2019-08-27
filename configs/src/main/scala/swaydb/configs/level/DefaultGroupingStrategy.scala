@@ -36,7 +36,7 @@ object DefaultGroupBy {
     *
     * After key-values are Grouped, the Groups can also be grouped which will result in nested Groups. Although nested Groups
     * can give high compression but they it can also have .
-    * Either [[GroupBy.Groups]] can be used check documentation on the website for more info.
+    * IO [[GroupBy.Groups]] can be used check documentation on the website for more info.
     *
     * By default currently nested Group compression is not used because the default file sizes are too small (2.mb) to be creating nested Groups.
     */
