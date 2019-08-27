@@ -47,7 +47,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
 
       val read =
         EntryReader.read(
-          indexEntry = entry.indexEntryBytes.dropIntUnsigned().value,
+          indexEntry = entry.indexEntryBytes.dropIntUnsigned().right.value,
           mightBeCompressed = entry.stats.hasPrefixCompression,
           valueCache = entry.valueEntryBytes.headOption.map(buildSingleValueCache),
           indexOffset = 0,
@@ -56,7 +56,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           isNormalised = false,
           hasAccessPositionIndex = entry.sortedIndexConfig.enableAccessPositionIndex,
           previous = None
-        ).runRandomIO.value
+        ).runRandomIO.right.value
 
       //      println("read:  " + read)
       read shouldBe entry
@@ -91,7 +91,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
 
       val previousRead =
         EntryReader.read(
-          indexEntry = previous.indexEntryBytes.dropIntUnsigned().value,
+          indexEntry = previous.indexEntryBytes.dropIntUnsigned().right.value,
           mightBeCompressed = false,
           isNormalised = false,
           valueCache = Some(buildSingleValueCache(valueBytes)),
@@ -100,13 +100,13 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           hasAccessPositionIndex = previous.sortedIndexConfig.enableAccessPositionIndex,
           previous = None
-        ).runRandomIO.value
+        ).runRandomIO.right.value
 
       previousRead shouldBe previous
 
       val nextRead =
         EntryReader.read(
-          indexEntry = next.indexEntryBytes.dropIntUnsigned().value,
+          indexEntry = next.indexEntryBytes.dropIntUnsigned().right.value,
           mightBeCompressed = next.stats.hasPrefixCompression,
           isNormalised = false,
           valueCache = Some(buildSingleValueCache(valueBytes)),
@@ -115,7 +115,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           nextIndexSize = 0,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
           previous = Some(previousRead)
-        ).runRandomIO.value
+        ).runRandomIO.right.value
 
       nextRead shouldBe next
     }

@@ -80,7 +80,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val thisLevel = mock[NextLevel]("thisLevel")
         val nextLevel = mock[NextLevel]("nextLevel")
 
-        Compaction.putForward(Iterable.empty, thisLevel, nextLevel).right.value shouldBe IO.zero
+        Compaction.putForward(Iterable.empty, thisLevel, nextLevel).right.right.value shouldBe IO.zero
       }
     }
 
@@ -106,7 +106,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             IO.Right(segments.size)
         }
 
-        Compaction.putForward(segments, thisLevel, nextLevel).right.value.value shouldBe segments.size
+        Compaction.putForward(segments, thisLevel, nextLevel).right.right.value.right.value shouldBe segments.size
       }
     }
 
@@ -132,7 +132,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             IO.left("Failed!")
         }
 
-        Compaction.putForward(segments, thisLevel, nextLevel).right.value.value shouldBe segments.size
+        Compaction.putForward(segments, thisLevel, nextLevel).right.right.value.right.value shouldBe segments.size
       }
     }
   }

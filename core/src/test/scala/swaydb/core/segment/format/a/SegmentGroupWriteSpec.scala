@@ -69,7 +69,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
         val keyValues = (Slice(mergePut) ++ rightKeyValues).updateStats
 
         implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupBy(keyValuesCount))
-        val segment = TestSegment(keyValues).value
+        val segment = TestSegment(keyValues).right.value
 
         //write a head key-values so that it triggers merging and grouping
         val groupedSegments =
@@ -84,7 +84,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
             hashIndexConfig = keyValues.last.hashIndexConfig,
             bloomFilterConfig = keyValues.last.bloomFilterConfig,
             segmentConfig = SegmentBlock.Config.random
-          ).runRandomIO.value
+          ).runRandomIO.right.value
         //        printGroupHierarchy(newSegments)
         groupedSegments should have size 1
         val newGroupedSegment = groupedSegments.head
@@ -119,16 +119,16 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
             hashIndexConfig = keyValues.last.hashIndexConfig,
             bloomFilterConfig = keyValues.last.bloomFilterConfig,
             segmentConfig = SegmentBlock.Config.random
-          ).runRandomIO.value
+          ).runRandomIO.right.value
 
         newSegmentsWithRemovedKeyValues should have size 1
         val lastSegment = newSegmentsWithRemovedKeyValues.head
         keyValues foreach {
           keyValue =>
-            lastSegment.get(keyValue.key).runRandomIO.value.get match {
+            lastSegment.get(keyValue.key).runRandomIO.right.value.get match {
               case _: KeyValue.ReadOnly.Remove =>
               case remove: KeyValue.ReadOnly.Range =>
-                remove.fetchFromOrElseRangeValue.runRandomIO.value shouldBe Value.remove(None)
+                remove.fetchFromOrElseRangeValue.runRandomIO.right.value shouldBe Value.remove(None)
               case actual =>
                 fail(s"Expected Remove found ${actual.getClass.getName}")
             }

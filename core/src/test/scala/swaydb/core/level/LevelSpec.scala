@@ -99,7 +99,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
             otherDirs = otherDirs
           )
 
-        val lock = Level.acquireLock(storage).runRandomIO.value
+        val lock = Level.acquireLock(storage).runRandomIO.right.value
         lock shouldBe defined
         //other directories do not have locks.
         storage.otherDirs foreach {
@@ -108,11 +108,11 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         }
 
         //trying to lock again should fail
-        Level.acquireLock(storage).left.runRandomIO.value.exception shouldBe a[OverlappingFileLockException]
+        Level.acquireLock(storage).left.runRandomIO.right.value.exception shouldBe a[OverlappingFileLockException]
 
         //closing the lock should allow re-locking
         lock.get.close()
-        Level.acquireLock(storage).runRandomIO.value shouldBe defined
+        Level.acquireLock(storage).runRandomIO.right.value shouldBe defined
       }
     }
   }
@@ -147,7 +147,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       level.segmentsInLevel() shouldBe empty
       level.removeDeletedRecords shouldBe true
 
-      level.delete.runRandomIO.value
+      level.delete.runRandomIO.right.value
       level.existsOnDisk shouldBe false
     }
 
@@ -155,9 +155,9 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       if (persistent) {
         //create a non empty level
         val level = TestLevel()
-        val segment = TestSegment(randomKeyValues(keyValuesCount)).value
+        val segment = TestSegment(randomKeyValues(keyValuesCount)).right.value
 
-        level.put(segment).right.value.value
+        level.put(segment).right.right.value.right.value
 
         //delete the appendix file
         level.paths.headPath.resolve("appendix").files(Extension.Log) map IOEffect.delete
@@ -165,11 +165,11 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
 
         //delete folder
-        IOEffect.delete(level.paths.headPath.resolve("appendix")).runRandomIO.value
+        IOEffect.delete(level.paths.headPath.resolve("appendix")).runRandomIO.right.value
         //expect failure when folder does not exist
         level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
 
-        level.delete.runRandomIO.value
+        level.delete.runRandomIO.right.value
       }
     }
   }
@@ -180,30 +180,30 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         // memory Level do not have uncommitted Segments
       } else {
         val level = TestLevel()
-        level.putKeyValuesTest(randomPutKeyValues()).runRandomIO.value
+        level.putKeyValuesTest(randomPutKeyValues()).runRandomIO.right.value
         val segmentsIdsBeforeInvalidSegments = level.segmentFilesOnDisk
         segmentsIdsBeforeInvalidSegments should have size 1
 
-        val currentSegmentId = segmentsIdsBeforeInvalidSegments.head.fileId.runRandomIO.value._1
+        val currentSegmentId = segmentsIdsBeforeInvalidSegments.head.fileId.runRandomIO.right.value._1
 
         //create 3 invalid segments in all the paths of the Level
         level.dirs.foldLeft(currentSegmentId) {
           case (currentSegmentId, dir) =>
-            TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId)).runRandomIO.value
-            TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId)).runRandomIO.value
-            TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId)).runRandomIO.value
+            TestSegment(path = dir.path.resolve((currentSegmentId + 1).toSegmentFileId)).runRandomIO.right.value
+            TestSegment(path = dir.path.resolve((currentSegmentId + 2).toSegmentFileId)).runRandomIO.right.value
+            TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId)).runRandomIO.right.value
             currentSegmentId + 3
         }
         //every level folder has 3 uncommitted Segments plus 1 valid Segment
         level.segmentFilesOnDisk should have size (level.dirs.size * 3) + 1
 
-        Level.deleteUncommittedSegments(level.dirs, level.segmentsInLevel()).runRandomIO.value
+        Level.deleteUncommittedSegments(level.dirs, level.segmentsInLevel()).runRandomIO.right.value
 
         level.segmentFilesOnDisk should have size 1
         level.segmentFilesOnDisk should contain only segmentsIdsBeforeInvalidSegments.head
         level.reopen.segmentFilesOnDisk should contain only segmentsIdsBeforeInvalidSegments.head
 
-        level.delete.runRandomIO.value
+        level.delete.runRandomIO.right.value
       }
     }
   }
@@ -211,19 +211,19 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
   "largestSegmentId" should {
     "value the largest segment in the Level when the Level is not empty" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValuesTest(randomizedKeyValues(2000)).runRandomIO.value
+      level.putKeyValuesTest(randomizedKeyValues(2000)).runRandomIO.right.value
 
       val largeSegmentId = Level.largestSegmentId(level.segmentsInLevel())
-      largeSegmentId shouldBe level.segmentsInLevel().map(_.path.fileId.runRandomIO.value._1).max
+      largeSegmentId shouldBe level.segmentsInLevel().map(_.path.fileId.runRandomIO.right.value._1).max
 
-      level.delete.runRandomIO.value
+      level.delete.runRandomIO.right.value
     }
 
     "return 0 when the Level is empty" in {
       val level = TestLevel(segmentSize = 1.kb)
       Level.largestSegmentId(level.segmentsInLevel()) shouldBe 0
 
-      level.delete.runRandomIO.value
+      level.delete.runRandomIO.right.value
     }
   }
 
@@ -239,10 +239,10 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         take = 10
       ) shouldBe Level.emptySegmentsToPush
 
-      level.close.runRandomIO.value
-      nextLevel.close.runRandomIO.value
+      level.close.runRandomIO.right.value
+      nextLevel.close.runRandomIO.right.value
 
-      level.delete.runRandomIO.value
+      level.delete.runRandomIO.right.value
     }
 
     "return all Segments to copy if next Level is empty" in {
@@ -262,8 +262,8 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       toMerge shouldBe empty
       toCopy.map(_.path) shouldBe level.segmentsInLevel().take(10).map(_.path)
 
-      level.close.runRandomIO.value
-      nextLevel.close.runRandomIO.value
+      level.close.runRandomIO.right.value
+      nextLevel.close.runRandomIO.right.value
     }
 
     "return all unreserved Segments to copy if next Level is empty" in {
@@ -286,8 +286,8 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       toMerge shouldBe empty
       toCopy.map(_.path) shouldBe level.segmentsInLevel().drop(1).take(10).map(_.path)
 
-      level.delete.runRandomIO.value
-      nextLevel.delete.runRandomIO.value
+      level.delete.runRandomIO.right.value
+      nextLevel.delete.runRandomIO.right.value
     }
   }
 
@@ -301,7 +301,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         take = 10
       ) shouldBe empty
 
-      level.delete.runRandomIO.value
+      level.delete.runRandomIO.right.value
     }
 
     "return empty if all segments were reserved" in {
@@ -320,7 +320,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         take = 10
       ) shouldBe empty
 
-      level.delete.runRandomIO.value
+      level.delete.runRandomIO.right.value
     }
   }
 
@@ -328,8 +328,8 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "reserve keys for compaction where Level is empty" in {
       val level = TestLevel()
       val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2).map(_.updateStats)
-      val segment1 = TestSegment(keyValues.head).runRandomIO.value
-      val segment2 = TestSegment(keyValues.last).runRandomIO.value
+      val segment1 = TestSegment(keyValues.head).runRandomIO.right.value
+      val segment2 = TestSegment(keyValues.last).runRandomIO.right.value
       level.reserve(Seq(segment1, segment2)).get shouldBe IO.Right[Promise[Unit], Slice[Byte]](keyValues.head.head.key)(IO.ErrorHandler.PromiseUnit)
 
       //cannot reserve again
@@ -337,23 +337,23 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       level.reserve(Seq(segment1)).get shouldBe a[IO.Left[_, _]]
       level.reserve(Seq(segment2)).get shouldBe a[IO.Left[_, _]]
 
-      level.delete.runRandomIO.value
+      level.delete.runRandomIO.right.value
     }
 
     "return completed Future for empty Segments" in {
       val level = TestLevel()
       level.reserve(Seq.empty).get.left.get.isCompleted shouldBe true
 
-      level.delete.runRandomIO.value
+      level.delete.runRandomIO.right.value
     }
 
     "reserve min and max keys" in {
       val level = TestLevel()
       val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2).map(_.updateStats)
-      val segments = Seq(TestSegment(keyValues.head).runRandomIO.value, TestSegment(keyValues.last).runRandomIO.value)
-      level.put(segments).right.value.value
+      val segments = Seq(TestSegment(keyValues.head).runRandomIO.right.value, TestSegment(keyValues.last).runRandomIO.right.value)
+      level.put(segments).right.right.value.right.value
 
-      level.delete.runRandomIO.value
+      level.delete.runRandomIO.right.value
     }
   }
 
@@ -363,26 +363,26 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "build MapEntry.Put map for the first created Segment" in {
       val level = TestLevel()
 
-      val segments = TestSegment(Slice(Transient.put(1, "value1"), Transient.put(2, "value2")).updateStats).runRandomIO.value
-      val actualMapEntry = level.buildNewMapEntry(Slice(segments), originalSegmentMayBe = None, initialMapEntry = None).runRandomIO.value
+      val segments = TestSegment(Slice(Transient.put(1, "value1"), Transient.put(2, "value2")).updateStats).runRandomIO.right.value
+      val actualMapEntry = level.buildNewMapEntry(Slice(segments), originalSegmentMayBe = None, initialMapEntry = None).runRandomIO.right.value
       val expectedMapEntry = MapEntry.Put[Slice[Byte], Segment](segments.minKey, segments)
 
       actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
         expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
 
-      level.delete.runRandomIO.value
+      level.delete.runRandomIO.right.value
     }
 
     "build MapEntry.Put map for the newly merged Segments and not add MapEntry.Remove map " +
       "for original Segment as it's minKey is replace by one of the new Segment" in {
       val level = TestLevel()
 
-      val originalSegment = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).runRandomIO.value
-      val mergedSegment1 = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).runRandomIO.value
-      val mergedSegment2 = TestSegment(Slice(Transient.put(6, "value"), Transient.put(10, "value")).updateStats).runRandomIO.value
-      val mergedSegment3 = TestSegment(Slice(Transient.put(11, "value"), Transient.put(15, "value")).updateStats).runRandomIO.value
+      val originalSegment = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).runRandomIO.right.value
+      val mergedSegment1 = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).runRandomIO.right.value
+      val mergedSegment2 = TestSegment(Slice(Transient.put(6, "value"), Transient.put(10, "value")).updateStats).runRandomIO.right.value
+      val mergedSegment3 = TestSegment(Slice(Transient.put(11, "value"), Transient.put(15, "value")).updateStats).runRandomIO.right.value
 
-      val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), Some(originalSegment), initialMapEntry = None).runRandomIO.value
+      val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), Some(originalSegment), initialMapEntry = None).runRandomIO.right.value
 
       val expectedMapEntry =
         MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
@@ -392,16 +392,16 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
         expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
 
-      level.delete.runRandomIO.value
+      level.delete.runRandomIO.right.value
     }
 
     "build MapEntry.Put map for the newly merged Segments and also add Remove map entry for original map when all minKeys are unique" in {
       val level = TestLevel()
 
-      val originalSegment = TestSegment(Slice(Transient.put(0, "value"), Transient.put(5, "value")).updateStats).runRandomIO.value
-      val mergedSegment1 = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).runRandomIO.value
-      val mergedSegment2 = TestSegment(Slice(Transient.put(6, "value"), Transient.put(10, "value")).updateStats).runRandomIO.value
-      val mergedSegment3 = TestSegment(Slice(Transient.put(11, "value"), Transient.put(15, "value")).updateStats).runRandomIO.value
+      val originalSegment = TestSegment(Slice(Transient.put(0, "value"), Transient.put(5, "value")).updateStats).runRandomIO.right.value
+      val mergedSegment1 = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).runRandomIO.right.value
+      val mergedSegment2 = TestSegment(Slice(Transient.put(6, "value"), Transient.put(10, "value")).updateStats).runRandomIO.right.value
+      val mergedSegment3 = TestSegment(Slice(Transient.put(11, "value"), Transient.put(15, "value")).updateStats).runRandomIO.right.value
 
       val expectedMapEntry =
         MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
@@ -409,12 +409,12 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
           MapEntry.Put[Slice[Byte], Segment](11, mergedSegment3) ++
           MapEntry.Remove[Slice[Byte]](0)
 
-      val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), Some(originalSegment), initialMapEntry = None).runRandomIO.value
+      val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), Some(originalSegment), initialMapEntry = None).runRandomIO.right.value
 
       actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
         expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
 
-      level.delete.runRandomIO.value
+      level.delete.runRandomIO.right.value
     }
   }
 }

@@ -51,7 +51,7 @@ class AppendixMapEntrySpec extends TestBase {
   implicit def segmentIO: SegmentIO = SegmentIO.random
 
   val appendixReader = AppendixMapEntryReader(true, true)
-  val segment = TestSegment().runRandomIO.value
+  val segment = TestSegment().runRandomIO.right.value
 
   "MapEntryWriterAppendix & MapEntryReaderAppendix" should {
 
@@ -65,10 +65,10 @@ class AppendixMapEntrySpec extends TestBase {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import appendixReader.AppendixPutReader
-      MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice.drop(1))).runRandomIO.value.value shouldBe entry
+      MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice.drop(1))).runRandomIO.right.value.value shouldBe entry
 
       import appendixReader.AppendixReader
-      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.right.value.value
       readEntry shouldBe entry
 
       val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
@@ -91,10 +91,10 @@ class AppendixMapEntrySpec extends TestBase {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import appendixReader.AppendixRemoveReader
-      MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](Reader[swaydb.Error.Map](slice.drop(1))).runRandomIO.value.value.key shouldBe entry.key
+      MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](Reader[swaydb.Error.Map](slice.drop(1))).runRandomIO.right.value.value.key shouldBe entry.key
 
       import appendixReader.AppendixReader
-      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.right.value.value
       readEntry shouldBe entry
 
       val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
@@ -106,11 +106,11 @@ class AppendixMapEntrySpec extends TestBase {
       import AppendixMapEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
       import swaydb.Error.Map.ErrorHandler
 
-      val segment1 = TestSegment().runRandomIO.value
-      val segment2 = TestSegment().runRandomIO.value
-      val segment3 = TestSegment().runRandomIO.value
-      val segment4 = TestSegment().runRandomIO.value
-      val segment5 = TestSegment().runRandomIO.value
+      val segment1 = TestSegment().runRandomIO.right.value
+      val segment2 = TestSegment().runRandomIO.right.value
+      val segment3 = TestSegment().runRandomIO.right.value
+      val segment4 = TestSegment().runRandomIO.right.value
+      val segment5 = TestSegment().runRandomIO.right.value
 
       val entry: MapEntry[Slice[Byte], Segment] =
         (MapEntry.Put[Slice[Byte], Segment](segment1.minKey, segment1): MapEntry[Slice[Byte], Segment]) ++
@@ -126,7 +126,7 @@ class AppendixMapEntrySpec extends TestBase {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import appendixReader.AppendixReader
-      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.value.value
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.right.value.value
       readEntry shouldBe entry
 
       val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
@@ -145,7 +145,7 @@ class AppendixMapEntrySpec extends TestBase {
       //write skip list to bytes should result in the same skip list as before
       import appendixReader.AppendixReader
       val bytes = MapCodec.write[Slice[Byte], Segment](skipList)
-      val crcEntries = MapCodec.read[Slice[Byte], Segment](bytes, false).runRandomIO.value.item.value
+      val crcEntries = MapCodec.read[Slice[Byte], Segment](bytes, false).runRandomIO.right.value.item.value
       skipList.clear()
       crcEntries applyTo skipList
       assertSkipList()

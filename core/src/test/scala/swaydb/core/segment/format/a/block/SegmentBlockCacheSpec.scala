@@ -45,12 +45,12 @@ class SegmentBlockCacheSpec extends TestBase {
           _ =>
             Seq(
               () => blockCache.getFooter().runRandomIO.get,
-              () => segmentBlockReader add blockCache.createSegmentBlockReader().runRandomIO.value,
-              () => sortedIndexReader add blockCache.createSortedIndexReader().runRandomIO.value,
-              () => blockCache.createBinarySearchIndexReader().runRandomIO.value.foreach(reader => binarySearchIndexReader.add(reader)),
-              () => blockCache.createBloomFilterReader().runRandomIO.value.foreach(reader => bloomFilterReader.add(reader)),
-              () => blockCache.createHashIndexReader().runRandomIO.value.foreach(reader => hashIndexReader.add(reader)),
-              () => blockCache.createValuesReader().runRandomIO.value.foreach(reader => valuesReader.add(reader)),
+              () => segmentBlockReader add blockCache.createSegmentBlockReader().runRandomIO.right.value,
+              () => sortedIndexReader add blockCache.createSortedIndexReader().runRandomIO.right.value,
+              () => blockCache.createBinarySearchIndexReader().runRandomIO.right.value.foreach(reader => binarySearchIndexReader.add(reader)),
+              () => blockCache.createBloomFilterReader().runRandomIO.right.value.foreach(reader => bloomFilterReader.add(reader)),
+              () => blockCache.createHashIndexReader().runRandomIO.right.value.foreach(reader => hashIndexReader.add(reader)),
+              () => blockCache.createValuesReader().runRandomIO.right.value.foreach(reader => valuesReader.add(reader)),
               () => eitherOne(blockCache.clear(), ())
             ).runThisRandomlyInParallel
         }
@@ -74,12 +74,12 @@ class SegmentBlockCacheSpec extends TestBase {
       val readers: Seq[() => Option[Object]] =
         Seq(
           () => Some(blockCache.getFooter().runRandomIO.get),
-          () => Some(blockCache.createSegmentBlockReader().runRandomIO.value),
-          () => Some(blockCache.createSortedIndexReader().runRandomIO.value),
-          () => blockCache.createBinarySearchIndexReader().runRandomIO.value,
-          () => blockCache.createBloomFilterReader().runRandomIO.value,
-          () => blockCache.createHashIndexReader().runRandomIO.value,
-          () => blockCache.createValuesReader().runRandomIO.value
+          () => Some(blockCache.createSegmentBlockReader().runRandomIO.right.value),
+          () => Some(blockCache.createSortedIndexReader().runRandomIO.right.value),
+          () => blockCache.createBinarySearchIndexReader().runRandomIO.right.value,
+          () => blockCache.createBloomFilterReader().runRandomIO.right.value,
+          () => blockCache.createHashIndexReader().runRandomIO.right.value,
+          () => blockCache.createValuesReader().runRandomIO.right.value
         )
 
       runThis(100.times) {

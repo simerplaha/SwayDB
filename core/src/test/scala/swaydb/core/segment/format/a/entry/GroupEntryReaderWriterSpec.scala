@@ -41,7 +41,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
 
       val read =
         EntryReader.read(
-          indexEntry = entry.indexEntryBytes.dropIntUnsigned().value,
+          indexEntry = entry.indexEntryBytes.dropIntUnsigned().right.value,
           mightBeCompressed = entry.stats.hasPrefixCompression,
           valueCache = Some(buildSingleValueCache(entry.valueEntryBytes.flatten.toSlice)),
           indexOffset = 0,
@@ -50,7 +50,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
           isNormalised = false,
           hasAccessPositionIndex = entry.sortedIndexConfig.enableAccessPositionIndex,
           previous = None
-        ).runRandomIO.value
+        ).runRandomIO.right.value
 
       //      println("read:  " + read)
       read shouldBe entry
@@ -73,7 +73,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
 
       val previousRead =
         EntryReader.read(
-          indexEntry = previous.indexEntryBytes.dropIntUnsigned().value,
+          indexEntry = previous.indexEntryBytes.dropIntUnsigned().right.value,
           mightBeCompressed = false,
           valueCache = Some(buildSingleValueCache(valueBytes)),
           indexOffset = 0,
@@ -82,7 +82,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
           isNormalised = false,
           hasAccessPositionIndex = previous.sortedIndexConfig.enableAccessPositionIndex,
           previous = None
-        ).runRandomIO.value
+        ).runRandomIO.right.value
 
       //      val previousRead = EntryReader.read(Reader(previous.indexEntryBytes), Reader(valueBytes), 0, 0, 0, None).runIO
       previousRead shouldBe previous
@@ -90,7 +90,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
       //      val read = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).runIO
       val nextRead =
         EntryReader.read(
-          indexEntry = next.indexEntryBytes.dropIntUnsigned().value,
+          indexEntry = next.indexEntryBytes.dropIntUnsigned().right.value,
           mightBeCompressed = next.stats.hasPrefixCompression,
           valueCache = Some(buildSingleValueCache(valueBytes)),
           indexOffset = 0,
@@ -99,7 +99,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
           isNormalised = false,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
           previous = Some(previousRead)
-        ).runRandomIO.value
+        ).runRandomIO.right.value
       //      println("read:  " + read)
       //      println
       nextRead shouldBe next

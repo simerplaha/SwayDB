@@ -271,15 +271,17 @@ object IO {
         IO.Left[E, A](value = IO.ErrorHandler.fromException[E](exception))
     }
 
-  trait ErrorHandler[E] {
-    def toException(f: E): Throwable
-    def fromException(e: Throwable): E
-    protected[swaydb] def recover(f: E): Option[Reserve[Unit]] = None
+  trait ErrorHandler[L] {
+    def toException(f: L): Throwable
+    def fromException(e: Throwable): L
+    protected[swaydb] def recover(f: L): Option[Reserve[Unit]] = None
   }
 
-  trait RecoverableErrorHandler[E] extends IO.ErrorHandler[E] {
-    def recoverFrom(f: E): Option[Reserve[Unit]]
-    override protected[swaydb] def recover(f: E): Option[Reserve[Unit]] = recoverFrom(f)
+  trait RecoverableErrorHandler[L] extends IO.ErrorHandler[L] {
+    def recoverFrom(f: L): Option[Reserve[Unit]]
+
+    override protected[swaydb] def recover(f: L): Option[Reserve[Unit]] =
+      recoverFrom(f)
   }
 
   object ErrorHandler extends LazyLogging {

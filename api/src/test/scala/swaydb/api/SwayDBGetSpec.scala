@@ -30,35 +30,35 @@ import scala.concurrent.duration._
 
 class SwayDBGetSpec0 extends SwayDBGetSpec {
   override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String](randomDir).value
+    swaydb.persistent.Map[Int, String](randomDir).right.value
 }
 
 class SwayDBGetSpec1 extends SwayDBGetSpec {
 
   override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).value
+    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).right.value
 }
 
 class SwayDBGetSpec2 extends SwayDBGetSpec {
 
   override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.Map[Int, String](mapSize = 1.byte).value
+    swaydb.memory.Map[Int, String](mapSize = 1.byte).right.value
 }
 
 class SwayDBGetSpec3 extends SwayDBGetSpec {
   override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.Map[Int, String]().value
+    swaydb.memory.Map[Int, String]().right.value
 }
 
 class SwayDBGetSpec4 extends SwayDBGetSpec {
 
   override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).value
+    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).right.value
 }
 
 class SwayDBGetSpec5 extends SwayDBGetSpec {
   override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String]().value
+    swaydb.memory.zero.Map[Int, String]().right.value
 }
 
 sealed trait SwayDBGetSpec extends TestBase {
@@ -71,17 +71,17 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).value
+          db.put(i, i.toString).right.value
       }
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).value
+          db.put(i, i.toString).right.value
       }
 
       (1 to 100) foreach {
         i =>
-          db.get(i).value.value shouldBe i.toString
+          db.get(i).right.value.value shouldBe i.toString
       }
 
       db.close().get
@@ -93,27 +93,27 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).value
+          db.put(i, i.toString).right.value
       }
 
       (10 to 90) foreach {
         i =>
-          db.remove(i).value
+          db.remove(i).right.value
       }
 
       (1 to 9) foreach {
         i =>
-          db.get(i).value.value shouldBe i.toString
+          db.get(i).right.value.value shouldBe i.toString
       }
 
       (10 to 90) foreach {
         i =>
-          db.get(i).value shouldBe empty
+          db.get(i).right.value shouldBe empty
       }
 
       (91 to 100) foreach {
         i =>
-          db.get(i).value.value shouldBe i.toString
+          db.get(i).right.value.value shouldBe i.toString
       }
 
       db.close().get
@@ -124,25 +124,25 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).value
+          db.put(i, i.toString).right.value
       }
 
       val expire = 2.second.fromNow
 
       (10 to 90) foreach {
         i =>
-          db.expire(i, expire).value
+          db.expire(i, expire).right.value
       }
 
-      (1 to 100) foreach { i => db.get(i).value.value shouldBe i.toString }
+      (1 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
 
       sleep(expire.timeLeft + 10.millisecond)
 
-      (10 to 90) foreach { i => db.get(i).value shouldBe empty }
-      (1 to 9) foreach { i => db.get(i).value.value shouldBe i.toString }
-      (91 to 100) foreach { i => db.get(i).value.value shouldBe i.toString }
+      (10 to 90) foreach { i => db.get(i).right.value shouldBe empty }
+      (1 to 9) foreach { i => db.get(i).right.value.value shouldBe i.toString }
+      (91 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
 
-      db.keys.stream.materialize.value shouldBe ((1 to 9) ++ (91 to 100))
+      db.keys.stream.materialize.right.value shouldBe ((1 to 9) ++ (91 to 100))
 
       db.close().get
     }
@@ -152,20 +152,20 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).value
+          db.put(i, i.toString).right.value
       }
 
       val expire = 2.second.fromNow
 
-      db.expire(10, 90, expire).value
+      db.expire(10, 90, expire).right.value
 
-      (1 to 100) foreach { i => db.get(i).value.value shouldBe i.toString }
+      (1 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
 
       sleep(expire.timeLeft + 10.millisecond)
 
-      (10 to 90) foreach { i => db.get(i).value shouldBe empty }
-      (1 to 9) foreach { i => db.get(i).value.value shouldBe i.toString }
-      (91 to 100) foreach { i => db.get(i).value.value shouldBe i.toString }
+      (10 to 90) foreach { i => db.get(i).right.value shouldBe empty }
+      (1 to 9) foreach { i => db.get(i).right.value.value shouldBe i.toString }
+      (91 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
 
       db.close().get
     }

@@ -32,7 +32,7 @@ class SwayDBRemoveSpec0 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String](dir = randomDir).value
+    swaydb.persistent.Map[Int, String](dir = randomDir).right.value
 }
 
 class SwayDBRemoveSpec1 extends SwayDBRemoveSpec {
@@ -40,7 +40,7 @@ class SwayDBRemoveSpec1 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).value
+    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).right.value
 }
 
 class SwayDBRemoveSpec2 extends SwayDBRemoveSpec {
@@ -48,14 +48,14 @@ class SwayDBRemoveSpec2 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.Map[Int, String](mapSize = 1.byte, segmentSize = 10.bytes).value
+    swaydb.memory.Map[Int, String](mapSize = 1.byte, segmentSize = 10.bytes).right.value
 }
 
 class SwayDBRemoveSpec3 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.Map[Int, String]().value
+    swaydb.memory.Map[Int, String]().right.value
 }
 
 class SwayDBRemoveSpec4 extends SwayDBRemoveSpec {
@@ -63,14 +63,14 @@ class SwayDBRemoveSpec4 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).value
+    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).right.value
 }
 
 class SwayDBRemoveSpec5 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String]().value
+    swaydb.memory.zero.Map[Int, String]().right.value
 }
 
 sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
@@ -83,11 +83,11 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
     "Put" in {
       val db = newDB()
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -98,14 +98,14 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
     "Put & Remove" in {
       val db = newDB()
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -116,14 +116,14 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
     "Put & Update" in {
       val db = newDB()
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
-        right = db.update(1, keyValueCount, value = "updated").value
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+        right = db.update(1, keyValueCount, value = "updated").right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -136,14 +136,14 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
       val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
-        right = db.expire(1, keyValueCount, deadline).value
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+        right = db.expire(1, keyValueCount, deadline).right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -156,12 +156,12 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
     "Put & Put" in {
       val db = newDB()
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString + " replaced").value }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString + " replaced").right.value }
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -175,12 +175,12 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       val db: Map[Int, String, IO.ApiIO] = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
-        right = db.update(1, keyValueCount, value = "updated").value
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+        right = db.update(1, keyValueCount, value = "updated").right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -192,16 +192,16 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
-        right = db.update(1, keyValueCount, value = "updated").value
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+        right = db.update(1, keyValueCount, value = "updated").right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -213,16 +213,16 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").value),
-        right = db.update(1, keyValueCount, value = "updated 1").value
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
+        right = db.update(1, keyValueCount, value = "updated 1").right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").value),
-        right = db.update(1, keyValueCount, value = "updated 2").value
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").right.value),
+        right = db.update(1, keyValueCount, value = "updated 2").right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -237,17 +237,17 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       val deadline2 = eitherOne(expiredDeadline(), 5.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").value),
-        right = db.update(1, keyValueCount, value = "updated 1").value
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
+        right = db.update(1, keyValueCount, value = "updated 1").right.value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
-        right = db.expire(1, keyValueCount, deadline).value
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+        right = db.expire(1, keyValueCount, deadline).right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -261,15 +261,15 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").value),
-        right = db.update(1, keyValueCount, value = "updated 1").value
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
+        right = db.update(1, keyValueCount, value = "updated 1").right.value
       )
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -283,12 +283,12 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -301,16 +301,16 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -322,16 +322,16 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
-        right = db.update(1, keyValueCount, value = "updated").value
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+        right = db.update(1, keyValueCount, value = "updated").right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -346,16 +346,16 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       val deadline2 = eitherOne(expiredDeadline(), 5.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
-        right = db.expire(1, keyValueCount, deadline).value
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+        right = db.expire(1, keyValueCount, deadline).right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -371,15 +371,15 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -397,13 +397,13 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
-        right = db.expire(1, keyValueCount, deadline).value
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+        right = db.expire(1, keyValueCount, deadline).right.value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -419,16 +419,16 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
-        right = db.expire(1, keyValueCount, deadline).value
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+        right = db.expire(1, keyValueCount, deadline).right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -444,17 +444,17 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
-        right = db.expire(1, keyValueCount, deadline).value
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+        right = db.expire(1, keyValueCount, deadline).right.value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").value),
-        right = db.update(1, keyValueCount, value = "updated").value
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+        right = db.update(1, keyValueCount, value = "updated").right.value
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -471,18 +471,18 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
-        right = db.expire(1, keyValueCount, deadline).value
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+        right = db.expire(1, keyValueCount, deadline).right.value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline2).value),
-        right = db.expire(1, keyValueCount, deadline2).value
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline2).right.value),
+        right = db.expire(1, keyValueCount, deadline2).right.value
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)
@@ -499,15 +499,15 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).value),
-        right = db.expire(1, keyValueCount, deadline).value
+        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+        right = db.expire(1, keyValueCount, deadline).right.value
       )
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).value }
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).value),
-        right = db.remove(1, keyValueCount).value
+        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+        right = db.remove(1, keyValueCount).right.value
       )
 
       doAssertEmpty(db)

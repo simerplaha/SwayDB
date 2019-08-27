@@ -93,7 +93,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
           fileSize = 1.mb,
           initialWriteCount = 0,
           dropCorruptedTailEntries = false
-        ).runRandomIO.value.item
+        ).runRandomIO.right.value.item
       else
         Map.memory[Slice[Byte], Memory.SegmentResponse]()
 
@@ -106,7 +106,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
     "succeed" when {
       "writing to an empty Level" in {
         val level = TestLevel()
-        level.put(map).right.value.value
+        level.put(map).right.right.value.right.value
         //since this is a new Segment and Level has no sub-level, all the deleted key-values will value removed.
         val (deletedKeyValues, otherKeyValues) = keyValues.partition(_.isInstanceOf[Memory.Remove])
 
@@ -115,7 +115,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         //deleted key-values do not exist.
         deletedKeyValues foreach {
           deleted =>
-            level.get(deleted.key).runRandomIO.value shouldBe empty
+            level.get(deleted.key).runRandomIO.right.value shouldBe empty
         }
       }
 
@@ -132,16 +132,16 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
               Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"), Memory.remove("four", randomly(expiredDeadline()))
             ).sorted(keyOrder.on[KeyValue](_.key)))
 
-        level.putKeyValuesTest(sortedExistingKeyValues).runRandomIO.value
+        level.putKeyValuesTest(sortedExistingKeyValues).runRandomIO.right.value
 
         //put a new map
-        level.put(map).right.value.value
+        level.put(map).right.right.value.right.value
         assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
 
-        level.get("one").runRandomIO.value.value shouldBe existingKeyValues(0)
-        level.get("two").runRandomIO.value.value shouldBe existingKeyValues(1)
-        level.get("three").runRandomIO.value.value shouldBe existingKeyValues(2)
-        level.get("four").runRandomIO.value shouldBe empty
+        level.get("one").runRandomIO.right.value.value shouldBe existingKeyValues(0)
+        level.get("two").runRandomIO.right.value.value shouldBe existingKeyValues(1)
+        level.get("three").runRandomIO.right.value.value shouldBe existingKeyValues(2)
+        level.get("four").runRandomIO.right.value shouldBe empty
       }
     }
   }
@@ -159,7 +159,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
           flushOnOverflow = true,
           fileSize = 1.mb,
           initialWriteCount = 0,
-          dropCorruptedTailEntries = false).runRandomIO.value.item
+          dropCorruptedTailEntries = false).runRandomIO.right.value.item
       else
         Map.memory[Slice[Byte], Memory.SegmentResponse]()
 
@@ -188,7 +188,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         }
 
         val level = TestLevel(nextLevel = Some(nextLevel))
-        level.put(map).right.value.value
+        level.put(map).right.right.value.right.value
         assertGetNoneFromThisLevelOnly(keyValues, level) //because nextLevel is a mock.
       }
 
@@ -214,9 +214,9 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
 
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000)).toTransient
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).runRandomIO.value), None).runRandomIO.value
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).runRandomIO.right.value), None).runRandomIO.right.value
 
-        level.put(map).right.value.value
+        level.put(map).right.right.value.right.value
         assertGetNoneFromThisLevelOnly(lastLevelKeyValues, level) //because nextLevel is a mock.
         assertGetFromThisLevelOnly(keyValues, level)
       }

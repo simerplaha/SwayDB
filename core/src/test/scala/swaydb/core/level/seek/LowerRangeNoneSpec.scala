@@ -65,7 +65,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
                 next.hasStateChanged  _ expects 1                   returning false
                 //@formatter:on
               }
-              Lower(key: Slice[Byte]).runRandomIO.value shouldBe empty
+              Lower(key: Slice[Byte]).runRandomIO.right.value shouldBe empty
           }
         }
       }
@@ -94,7 +94,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
                 next.hasStateChanged  _ expects 1                   returning false
                 //@formatter:on
               }
-              Lower(key: Slice[Byte]).runRandomIO.value shouldBe empty
+              Lower(key: Slice[Byte]).runRandomIO.right.value shouldBe empty
           }
         }
       }
@@ -125,7 +125,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
                 next.hasStateChanged  _ expects 1                   returning false
                 //@formatter:on
               }
-              Lower(key: Slice[Byte]).runRandomIO.value shouldBe empty
+              Lower(key: Slice[Byte]).runRandomIO.right.value shouldBe empty
           }
         }
       }
@@ -152,7 +152,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
                 next.hasStateChanged  _ expects 1                   returning false
                 //@formatter:on
               }
-              Lower(key: Slice[Byte]).runRandomIO.value shouldBe empty
+              Lower(key: Slice[Byte]).runRandomIO.right.value shouldBe empty
           }
         }
       }
@@ -178,7 +178,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
             next.hasStateChanged  _ expects 1                   returning false
             //@formatter:on
           }
-          Lower(12: Slice[Byte]).runRandomIO.value shouldBe empty
+          Lower(12: Slice[Byte]).runRandomIO.right.value shouldBe empty
         }
       }
     }

@@ -52,7 +52,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))))
 
-        Get(1).runIO.value shouldBe empty
+        Get(1).runIO.right.value shouldBe empty
       }
     }
 
@@ -65,7 +65,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomRemoveKeyValue(1, randomExpiredDeadlineOption())))
 
-        Get(1).runIO.value shouldBe empty
+        Get(1).runIO.right.value shouldBe empty
       }
     }
 
@@ -79,7 +79,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomRemoveKeyValue(1, Some(randomDeadline(expired = false)))))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.Defer.none
 
-        Get(1).runIO.value shouldBe empty
+        Get(1).runIO.right.value shouldBe empty
       }
     }
 
@@ -93,7 +93,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomRemoveKeyValue(1, Some(randomDeadline(expired = false)))))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).toDeferred
 
-        Get(1).runIO.value shouldBe empty
+        Get(1).runIO.right.value shouldBe empty
       }
     }
 
@@ -107,7 +107,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomUpdateKeyValue(1, deadline = randomDeadlineOption(false))))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.Defer.none
 
-        Get(1).runIO.value shouldBe empty
+        Get(1).runIO.right.value shouldBe empty
       }
     }
 
@@ -121,7 +121,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomUpdateKeyValue(1, deadline = randomDeadlineOption(false))))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).toDeferred
 
-        Get(1).runIO.value shouldBe empty
+        Get(1).runIO.right.value shouldBe empty
       }
     }
 
@@ -135,7 +135,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomFunctionKeyValue(1)))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.Defer.none
 
-        Get(1).runIO.value shouldBe empty
+        Get(1).runIO.right.value shouldBe empty
       }
     }
 
@@ -149,7 +149,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomFunctionKeyValue(1)))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).toDeferred
 
-        Get(1).runIO.value shouldBe empty
+        Get(1).runIO.right.value shouldBe empty
       }
     }
 
@@ -163,7 +163,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPendingApplyKeyValue(1)))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.Defer.none
 
-        Get(1).runIO.value shouldBe empty
+        Get(1).runIO.right.value shouldBe empty
       }
     }
 
@@ -177,7 +177,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPendingApplyKeyValue(1)))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).toDeferred
 
-        Get(1).runIO.value shouldBe empty
+        Get(1).runIO.right.value shouldBe empty
       }
     }
 
@@ -203,7 +203,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(pendingApply))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).toDeferred
 
-        Get(1).runIO.value shouldBe empty
+        Get(1).runIO.right.value shouldBe empty
       }
     }
 
@@ -223,7 +223,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, Some(fromValues))))
 
-        Get(1).runIO.value shouldBe empty
+        Get(1).runIO.right.value shouldBe empty
       }
     }
 
@@ -243,13 +243,13 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
                 SwayFunctionOutput.Expire(expiredDeadline()),
                 SwayFunctionOutput.Update(randomStringOption, Some(expiredDeadline())),
               )
-          ).toRangeValue().value
+          ).toRangeValue().right.value
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, eitherOne(None, Some(functionValue)), functionValue)))
         //next level can return anything it will be removed.
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPutKeyValue(1))).toDeferred
 
-        Get(1).runIO.value shouldBe empty
+        Get(1).runIO.right.value shouldBe empty
       }
     }
 
@@ -271,7 +271,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         ioStillBusy.isRight shouldBe false
 
         Reserve.setFree(busy.reserve)
-        io.runRandomIO.value shouldBe empty
+        io.runRandomIO.right.value shouldBe empty
       }
     }
   }

@@ -63,7 +63,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Lower(1: Slice[Byte]).value.value shouldBe put
+        Lower(1: Slice[Byte]).right.value.value shouldBe put
       }
     }
 
@@ -87,7 +87,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Lower(1: Slice[Byte]).value.value shouldBe put
+        Lower(1: Slice[Byte]).right.value.value shouldBe put
       }
     }
 
@@ -114,7 +114,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Lower(1: Slice[Byte]).runRandomIO.value.value shouldBe expected.value
+        Lower(1: Slice[Byte]).runRandomIO.right.value.value shouldBe expected.right.value
       }
     }
 
@@ -156,7 +156,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
           }
           //@formatter:on
         }
-        Lower(2: Slice[Byte]).runRandomIO.value.value shouldBe expected
+        Lower(2: Slice[Byte]).runRandomIO.right.value.value shouldBe expected
       }
     }
 
@@ -180,7 +180,7 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Lower(2: Slice[Byte]).runRandomIO.value.value shouldBe lowerKeyValue
+        Lower(2: Slice[Byte]).runRandomIO.right.value.value shouldBe lowerKeyValue
       }
     }
   }

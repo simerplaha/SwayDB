@@ -37,9 +37,14 @@ trait IOValues {
       IO.Defer(io.get).runRandomIO
   }
 
-  implicit class IOImplicits[E: IO.ErrorHandler, T](io: IO[E, T]) {
+  implicit class IOImplicits[T](io: IO[Throwable, T]) {
     def value: T =
-      io.get
+      try
+        io.get
+      catch {
+        case exception: Exception =>
+          throw new AssertionError("Value is not IO.Right.", exception)
+      }
   }
 
   implicit class DeferredIOImplicits[L: IO.ErrorHandler, R](io: => IO.Defer[L, R]) {

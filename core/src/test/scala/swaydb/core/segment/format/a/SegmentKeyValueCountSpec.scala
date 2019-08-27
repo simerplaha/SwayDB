@@ -75,8 +75,8 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
           assert =
             (keyValues, segment) => {
               keyValues should have size 1
-              segment.getHeadKeyValueCount().runRandomIO.value shouldBe 1
-              segment.getBloomFilterKeyValueCount().runRandomIO.value shouldBe unzipGroups(keyValues).size
+              segment.getHeadKeyValueCount().runRandomIO.right.value shouldBe 1
+              segment.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe unzipGroups(keyValues).size
             }
         )
       }
@@ -88,8 +88,8 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
           keyValues = randomizedKeyValues(keyValuesCount),
           assert =
             (keyValues, segment) => {
-              segment.getHeadKeyValueCount().runRandomIO.value shouldBe keyValues.size
-              segment.getBloomFilterKeyValueCount().runRandomIO.value shouldBe unzipGroups(keyValues).size
+              segment.getHeadKeyValueCount().runRandomIO.right.value shouldBe keyValues.size
+              segment.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe unzipGroups(keyValues).size
             }
         )
       }
@@ -103,8 +103,8 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
           assert =
             (keyValues, segment) => {
               //if nested groups are created then getHeadKeyValueCount shouldBe 1
-              segment.getHeadKeyValueCount().runRandomIO.value shouldBe 1
-              segment.getBloomFilterKeyValueCount().runRandomIO.value shouldBe unzipGroups(keyValues).size
+              segment.getHeadKeyValueCount().runRandomIO.right.value shouldBe 1
+              segment.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe unzipGroups(keyValues).size
             }
         )
       }
@@ -132,8 +132,8 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
           keyValues = Slice(group4),
           assert = {
             (_, segment) => {
-              segment.getBloomFilterKeyValueCount().runRandomIO.value shouldBe group4KeyValues.size
-              segment.getHeadKeyValueCount().runRandomIO.value shouldBe 1
+              segment.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe group4KeyValues.size
+              segment.getHeadKeyValueCount().runRandomIO.right.value shouldBe 1
             }
           }
         )
@@ -142,8 +142,8 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
           keyValues = Slice(group3),
           assert =
             (keyValues, segment) => {
-              segment.getBloomFilterKeyValueCount().runRandomIO.value shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
-              segment.getHeadKeyValueCount().runRandomIO.value shouldBe 1
+              segment.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
+              segment.getHeadKeyValueCount().runRandomIO.right.value shouldBe 1
             }
         )
 
@@ -151,8 +151,8 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
           keyValues = Slice(randomGroup(Slice(group3, group4).updateStats)),
           assert =
             (keyValues, segment) => {
-              segment.getBloomFilterKeyValueCount().runRandomIO.value shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size + group4KeyValues.size)
-              segment.getHeadKeyValueCount().runRandomIO.value shouldBe 1
+              segment.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size + group4KeyValues.size)
+              segment.getHeadKeyValueCount().runRandomIO.right.value shouldBe 1
             }
         )
       }

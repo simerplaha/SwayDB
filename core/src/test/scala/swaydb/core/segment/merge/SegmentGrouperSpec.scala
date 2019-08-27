@@ -154,7 +154,7 @@ class SegmentGrouperSpec extends TestBase {
         val group = buffer.groupedKeyValues.head
         group.keyValues shouldBe keyValues
 
-        val persistentGroupKeyValues = readAll(group).value
+        val persistentGroupKeyValues = readAll(group).right.value
         persistentGroupKeyValues shouldBe group.keyValues
       }
     }
@@ -214,7 +214,7 @@ class SegmentGrouperSpec extends TestBase {
         buffer.unGrouped.size shouldBe 0
 
         Benchmark("write a read all") {
-          val persistentGroupKeyValues = writeAndRead(buffer).value
+          val persistentGroupKeyValues = writeAndRead(buffer).right.value
           persistentGroupKeyValues shouldBe keyValues
         }
       }
@@ -289,7 +289,7 @@ class SegmentGrouperSpec extends TestBase {
         buffer.unGrouped.size shouldBe 0
 
         Benchmark("write a read all") {
-          val persistentGroupKeyValues = writeAndRead(buffer).value
+          val persistentGroupKeyValues = writeAndRead(buffer).right.value
           printGroupHierarchy(persistentGroupKeyValues, 5)
           persistentGroupKeyValues shouldBe keyValues
         }
@@ -378,7 +378,7 @@ class SegmentGrouperSpec extends TestBase {
         buffer.unGrouped.size shouldBe 0
 
         Benchmark("write a read all") {
-          val persistentGroupKeyValues = writeAndRead(buffer).value
+          val persistentGroupKeyValues = writeAndRead(buffer).right.value
           printGroupHierarchy(persistentGroupKeyValues, 5)
           persistentGroupKeyValues shouldBe keyValues
         }

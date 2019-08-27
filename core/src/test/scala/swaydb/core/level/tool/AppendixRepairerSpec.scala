@@ -51,24 +51,24 @@ class AppendixRepairerSpec extends TestBase {
 
   "AppendixRepair" should {
     "fail if the input path does not exist" in {
-      AppendixRepairer(nextLevelPath, AppendixRepairStrategy.ReportFailure).left.runRandomIO.value.exception shouldBe a[NoSuchFileException]
+      AppendixRepairer(nextLevelPath, AppendixRepairStrategy.ReportFailure).left.runRandomIO.right.value.exception shouldBe a[NoSuchFileException]
     }
 
     "create new appendix file if all the Segments in the Level are non-overlapping Segments" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValuesTest(randomizedKeyValues(10000).toMemory).runRandomIO.value
+      level.putKeyValuesTest(randomizedKeyValues(10000).toMemory).runRandomIO.right.value
 
       level.segmentsCount() should be > 2
       val segmentsBeforeRepair = level.segmentsInLevel()
 
       //repair appendix
-      AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).runRandomIO.value
+      AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).runRandomIO.right.value
       level.appendixPath.exists shouldBe true //appendix is created
 
       //reopen level and it should contain all the Segment
       val reopenedLevel = level.reopen
       reopenedLevel.segmentsInLevel().map(_.path) shouldBe segmentsBeforeRepair.map(_.path)
-      reopenedLevel.close.runRandomIO.value
+      reopenedLevel.close.runRandomIO.right.value
     }
 
     "create empty appendix file if the Level is empty" in {
@@ -76,17 +76,17 @@ class AppendixRepairerSpec extends TestBase {
       val level = TestLevel(segmentSize = 1.kb)
 
       //delete appendix
-      IOEffect.walkDelete(level.appendixPath).runRandomIO.value
+      IOEffect.walkDelete(level.appendixPath).runRandomIO.right.value
       level.appendixPath.exists shouldBe false
 
       //repair appendix
-      AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).runRandomIO.value
+      AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).runRandomIO.right.value
       level.appendixPath.exists shouldBe true //appendix is created
 
       //reopen level, the Level is empty
       val reopenedLevel = level.reopen
       reopenedLevel.isEmpty shouldBe true
-      reopenedLevel.close.runRandomIO.value
+      reopenedLevel.close.runRandomIO.right.value
     }
 
     "report duplicate Segments" in {
@@ -94,26 +94,26 @@ class AppendixRepairerSpec extends TestBase {
       val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
       val keyValues = randomizedKeyValues(1000).toMemory
-      level.putKeyValuesTest(keyValues).runRandomIO.value
+      level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
       level.segmentsCount() should be > 2
       val segmentsBeforeRepair = level.segmentsInLevel()
-      level.segmentsInLevel().foldLeft(segmentsBeforeRepair.last.path.fileId.runRandomIO.value._1 + 1) {
+      level.segmentsInLevel().foldLeft(segmentsBeforeRepair.last.path.fileId.runRandomIO.right.value._1 + 1) {
         case (segmentId, segment) =>
           //create a duplicate Segment
           val duplicateSegment = segment.path.getParent.resolve(segmentId.toSegmentFileId)
-          IOEffect.copy(segment.path, duplicateSegment).runRandomIO.value
+          IOEffect.copy(segment.path, duplicateSegment).runRandomIO.right.value
           //perform repair
-          AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).left.runRandomIO.value.exception shouldBe a[OverlappingSegmentsException]
+          AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).left.runRandomIO.right.value.exception shouldBe a[OverlappingSegmentsException]
           //perform repair with DeleteNext. This will delete the newest duplicate Segment.
-          AppendixRepairer(level.rootPath, AppendixRepairStrategy.KeepOld).runRandomIO.value
+          AppendixRepairer(level.rootPath, AppendixRepairStrategy.KeepOld).runRandomIO.right.value
           //newer duplicate Segment is deleted
           duplicateSegment.exists shouldBe false
 
           //copy again
-          IOEffect.copy(segment.path, duplicateSegment).runRandomIO.value
+          IOEffect.copy(segment.path, duplicateSegment).runRandomIO.right.value
           //now use delete previous instead
-          AppendixRepairer(level.rootPath, AppendixRepairStrategy.KeepNew).runRandomIO.value
+          AppendixRepairer(level.rootPath, AppendixRepairStrategy.KeepNew).runRandomIO.right.value
           //newer duplicate Segment exists
           duplicateSegment.exists shouldBe true
           //older duplicate Segment is deleted
@@ -122,8 +122,8 @@ class AppendixRepairerSpec extends TestBase {
       }
       //level still contains the same key-values
       val reopenedLevel = level.reopen
-      Segment.getAllKeyValues(reopenedLevel.segmentsInLevel()).runRandomIO.value shouldBe keyValues
-      reopenedLevel.close.runRandomIO.value
+      Segment.getAllKeyValues(reopenedLevel.segmentsInLevel()).runRandomIO.right.value shouldBe keyValues
+      reopenedLevel.close.runRandomIO.right.value
     }
 
     "report overlapping min & max key Segments & delete newer overlapping Segment if KeepOld is selected" in {
@@ -131,34 +131,34 @@ class AppendixRepairerSpec extends TestBase {
       val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
       val keyValues = randomizedKeyValues(10000).toMemory
-      level.putKeyValuesTest(keyValues).runRandomIO.value
+      level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
       level.segmentsCount() should be > 2
       val segmentsBeforeRepair = level.segmentsInLevel()
-      level.segmentsInLevel().foldLeft(segmentsBeforeRepair.last.path.fileId.runRandomIO.value._1 + 1) {
+      level.segmentsInLevel().foldLeft(segmentsBeforeRepair.last.path.fileId.runRandomIO.right.value._1 + 1) {
         case (overlappingSegmentId, segment) =>
           val overlappingLevelSegmentPath = level.rootPath.resolve(overlappingSegmentId.toSegmentFileId)
 
           def createOverlappingSegment() = {
             val numberOfKeyValuesToOverlap = randomNextInt(3) max 1
-            val keyValuesToOverlap = Random.shuffle(segment.getAll().runRandomIO.value.toList).take(numberOfKeyValuesToOverlap)
+            val keyValuesToOverlap = Random.shuffle(segment.getAll().runRandomIO.right.value.toList).take(numberOfKeyValuesToOverlap)
             //create overlapping Segment
-            val overlappingSegment = TestSegment(keyValuesToOverlap.toTransient).runRandomIO.value
-            IOEffect.copy(overlappingSegment.path, overlappingLevelSegmentPath).runRandomIO.value
-            overlappingSegment.close.runRandomIO.value //gotta close the new segment create after it's copied over.
+            val overlappingSegment = TestSegment(keyValuesToOverlap.toTransient).runRandomIO.right.value
+            IOEffect.copy(overlappingSegment.path, overlappingLevelSegmentPath).runRandomIO.right.value
+            overlappingSegment.close.runRandomIO.right.value //gotta close the new segment create after it's copied over.
           }
 
           createOverlappingSegment()
           //perform repair with Report
-          AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).left.runRandomIO.value.exception shouldBe a[OverlappingSegmentsException]
+          AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).left.runRandomIO.right.value.exception shouldBe a[OverlappingSegmentsException]
           //perform repair with DeleteNext. This will delete the newest overlapping Segment.
-          AppendixRepairer(level.rootPath, AppendixRepairStrategy.KeepOld).runRandomIO.value
+          AppendixRepairer(level.rootPath, AppendixRepairStrategy.KeepOld).runRandomIO.right.value
           //overlapping Segment does not exist.
           overlappingLevelSegmentPath.exists shouldBe false
 
           //create overlapping Segment again but this time do DeletePrevious
           createOverlappingSegment()
-          AppendixRepairer(level.rootPath, AppendixRepairStrategy.KeepNew).runRandomIO.value
+          AppendixRepairer(level.rootPath, AppendixRepairStrategy.KeepNew).runRandomIO.right.value
           //newer overlapping Segment exists
           overlappingLevelSegmentPath.exists shouldBe true
           //older overlapping Segment is deleted
@@ -168,7 +168,7 @@ class AppendixRepairerSpec extends TestBase {
       }
       val reopenedLevel = level.reopen
       reopenedLevel.segmentsCount() shouldBe segmentsBeforeRepair.size
-      reopenedLevel.close.runRandomIO.value
+      reopenedLevel.close.runRandomIO.right.value
     }
   }
 }

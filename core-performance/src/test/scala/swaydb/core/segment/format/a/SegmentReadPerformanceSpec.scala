@@ -317,7 +317,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         hashIndexConfig = unGroupedKeyValues.last.hashIndexConfig,
         bloomFilterConfig = unGroupedKeyValues.last.bloomFilterConfig,
         segmentIO = segmentIO
-      )(keyOrder = keyOrder, groupBy = group).value
+      )(keyOrder = keyOrder, groupBy = group).right.value
 
     grouped should have size 1
     grouped.head.toSlice
@@ -381,7 +381,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     Benchmark(s"Creating segment. keyValues: ${keyValues.size}. groupedKeyValues: $testGroupedKeyValues") {
       implicit val groupBy: Option[GroupByInternal.KeyValues] = None
       val segmentConfig = SegmentBlock.Config(strategy, _ => Seq.empty)
-      segment = TestSegment(keyValues, segmentConfig = segmentConfig).value
+      segment = TestSegment(keyValues, segmentConfig = segmentConfig).right.value
     }
 
     //    printGroupHierarchy(Slice(segment))
@@ -389,7 +389,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   def reopenSegment() = {
     println("Re-opening Segment")
-    segment.close.value
+    segment.close.right.value
     segment.clearAllCaches()
     segment = Segment(
       path = segment.path,
@@ -401,7 +401,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       segmentSize = segment.segmentSize,
       nearestExpiryDeadline = segment.nearestExpiryDeadline,
       minMaxFunctionId = segment.minMaxFunctionId
-    ).value
+    ).right.value
   }
 
   "Segment value benchmark 1" in {

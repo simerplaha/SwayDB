@@ -43,57 +43,57 @@ class DBFileStressWriteSpec extends TestBase {
     "write key values to a ChannelFile" in {
       val path = randomFilePath
 
-      val file = DBFile.channelWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.value
+      val file = DBFile.channelWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
       Benchmark("write 1 million key values to a ChannelFile") {
         bytes foreach {
           byteChunk =>
-            file.append(byteChunk).runRandomIO.value
+            file.append(byteChunk).runRandomIO.right.value
         }
       }
-      file.close.runRandomIO.value
+      file.close.runRandomIO.right.value
     }
 
     "write key values to a ChannelFile concurrently" in {
       val path = randomFilePath
 
-      val file = DBFile.channelWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.value
+      val file = DBFile.channelWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
       Benchmark("write 1 million key values to a ChannelFile concurrently") {
         Future.sequence {
           bytes map {
             chunk =>
-              Future(file.append(chunk).runRandomIO.value)
+              Future(file.append(chunk).runRandomIO.right.value)
           }
         } await 20.seconds
       }
-      file.close.runRandomIO.value
+      file.close.runRandomIO.right.value
     }
 
     "write key values to a MMAPlFile" in {
       val path = randomFilePath
 
-      val file = DBFile.mmapInit(path, randomIOAccess(true), bytes.size * 50, autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.value
+      val file = DBFile.mmapInit(path, randomIOAccess(true), bytes.size * 50, autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
       Benchmark("write 1 million key values to a MMAPlFile") {
         bytes foreach {
           chunk =>
-            file.append(chunk).runRandomIO.value
+            file.append(chunk).runRandomIO.right.value
         }
       }
-      file.close.runRandomIO.value
+      file.close.runRandomIO.right.value
     }
 
     "write key values to a MMAPlFile concurrently" in {
       val path = randomFilePath
 
-      val file = DBFile.mmapInit(path, randomIOAccess(true), bytes.size * 50, autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.value
+      val file = DBFile.mmapInit(path, randomIOAccess(true), bytes.size * 50, autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
       Benchmark("write 1 million key values to a MMAPlFile concurrently") {
         Future.sequence {
           bytes map {
             chunk =>
-              Future(file.append(chunk).runRandomIO.value)
+              Future(file.append(chunk).runRandomIO.right.value)
           }
         } await 20.seconds
       }
-      file.close.runRandomIO.value
+      file.close.runRandomIO.right.value
     }
   }
 }

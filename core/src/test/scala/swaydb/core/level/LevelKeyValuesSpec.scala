@@ -82,13 +82,13 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val level = TestLevel()
 
       val keyValues = randomPutKeyValues(startId = Some(1))
-      level.putKeyValuesTest(keyValues).runRandomIO.value
-      level.putKeyValuesTest(Slice(keyValues.head)).runRandomIO.value
+      level.putKeyValuesTest(keyValues).runRandomIO.right.value
+      level.putKeyValuesTest(Slice(keyValues.head)).runRandomIO.right.value
 
       level.segmentsInLevel() foreach {
         segment =>
-          segment.createdInLevel.runRandomIO.value shouldBe level.levelNumber
-          segment.isGrouped.runRandomIO.value shouldBe groupBy.isDefined
+          segment.createdInLevel.runRandomIO.right.value shouldBe level.levelNumber
+          segment.isGrouped.runRandomIO.right.value shouldBe groupBy.isDefined
       }
 
       assertReads(keyValues, level)
@@ -103,7 +103,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val level = TestLevel(segmentSize = 1.kb)
 
       val keyValues = randomPutKeyValues(keyValuesCount)
-      level.putKeyValuesTest(keyValues).runRandomIO.value
+      level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
       val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size * 2)
       keyValues foreach {
@@ -118,7 +118,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
           deleteKeyValues add Memory.remove(id, randomly(expiredDeadline()))
       }
 
-      level.putKeyValuesTest(deleteKeyValues).runRandomIO.value
+      level.putKeyValuesTest(deleteKeyValues).runRandomIO.right.value
       level.segmentFilesInAppendix shouldBe 0
 
       level.isEmpty shouldBe true
@@ -132,7 +132,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val level = TestLevel(nextLevel = Some(TestLevel()))
 
       val keyValues = randomPutKeyValues()
-      level.putKeyValuesTest(keyValues).runRandomIO.value
+      level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
       val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size)
       keyValues foreach {
@@ -140,11 +140,11 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
           deleteKeyValues add Memory.remove(keyValue.key)
       }
 
-      level.putKeyValuesTest(deleteKeyValues).runRandomIO.value
+      level.putKeyValuesTest(deleteKeyValues).runRandomIO.right.value
       level.isEmpty shouldBe false
       keyValues foreach {
         keyValue =>
-          level.get(keyValue.key).runRandomIO.value shouldBe empty
+          level.get(keyValue.key).runRandomIO.right.value shouldBe empty
       }
     }
 
@@ -152,9 +152,9 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val level = TestLevel(segmentSize = 1.kb)
 
       val keyValues = randomPutKeyValues(keyValuesCount)
-      level.putKeyValuesTest(keyValues).runRandomIO.value
+      level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
-      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(None)))).runRandomIO.value
+      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(None)))).runRandomIO.right.value
       level.segmentFilesInAppendix shouldBe 0
 
       level.isEmpty shouldBe true
@@ -168,10 +168,10 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()))
 
       val keyValues = randomPutKeyValues(keyValuesCount)
-      level.putKeyValuesTest(keyValues).runRandomIO.value
+      level.putKeyValuesTest(keyValues).runRandomIO.right.value
       val segmentsCountBeforeRemove = level.segmentFilesInAppendix
 
-      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(None)))).runRandomIO.value
+      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(None)))).runRandomIO.right.value
       level.segmentFilesInAppendix shouldBe segmentsCountBeforeRemove
 
       level.isEmpty shouldBe false
@@ -185,7 +185,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val level = TestLevel(segmentSize = 1.kb)
 
       val keyValues = randomPutKeyValues(keyValuesCount)
-      level.putKeyValuesTest(keyValues).runRandomIO.value
+      level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
       val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size * 2)
       keyValues foreach {
@@ -202,19 +202,19 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
 
       level.nextLevel shouldBe empty
 
-      level.putKeyValuesTest(deleteKeyValues).runRandomIO.value
+      level.putKeyValuesTest(deleteKeyValues).runRandomIO.right.value
 
       sleep(2.seconds)
 
       level.segmentsInLevel() foreach {
         segment =>
-          level.refresh(segment).right.value.value
+          level.refresh(segment).right.right.value.right.value
       }
 
       //expired key-values return empty after 2.seconds
       keyValues foreach {
         keyValue =>
-          level.get(keyValue.key).runRandomIO.value shouldBe empty
+          level.get(keyValue.key).runRandomIO.right.value shouldBe empty
       }
 
       level.segmentFilesInAppendix shouldBe 0
@@ -231,7 +231,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()))
 
       val keyValues = randomPutKeyValues(keyValuesCount)
-      level.putKeyValuesTest(keyValues).runRandomIO.value
+      level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
       val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size * 2)
       keyValues foreach {
@@ -246,12 +246,12 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
           deleteKeyValues add Memory.remove(id, randomly(expiredDeadline()))
       }
 
-      level.putKeyValuesTest(deleteKeyValues).runRandomIO.value
+      level.putKeyValuesTest(deleteKeyValues).runRandomIO.right.value
 
       //expired key-values return empty.
       keyValues foreach {
         keyValue =>
-          level.get(keyValue.key).runRandomIO.value shouldBe empty
+          level.get(keyValue.key).runRandomIO.right.value shouldBe empty
       }
 
       //sleep for 2.seconds and Segments should still exists.
@@ -269,21 +269,21 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val level = TestLevel(segmentSize = 1.kb)
 
       val keyValues = randomPutKeyValues(keyValuesCount)
-      level.putKeyValuesTest(keyValues).runRandomIO.value
+      level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
-      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(2.seconds.fromNow)))).runRandomIO.value
+      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(2.seconds.fromNow)))).runRandomIO.right.value
 
       //expired key-values return empty after 2.seconds
       eventual(5.seconds) {
         keyValues foreach {
           keyValue =>
-            level.get(keyValue.key).runRandomIO.value shouldBe empty
+            level.get(keyValue.key).runRandomIO.right.value shouldBe empty
         }
       }
 
       level.segmentsInLevel() foreach {
         segment =>
-          level.refresh(segment).right.value.value
+          level.refresh(segment).right.right.value.right.value
       }
 
       level.segmentFilesInAppendix shouldBe 0
@@ -300,15 +300,15 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()))
 
       val keyValues = randomPutKeyValues(keyValuesCount)
-      level.putKeyValuesTest(keyValues).runRandomIO.value
+      level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
-      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(2.seconds.fromNow)))).runRandomIO.value
+      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(2.seconds.fromNow)))).runRandomIO.right.value
 
       //expired key-values return empty after 2.seconds
       eventual(5.seconds) {
         keyValues foreach {
           keyValue =>
-            level.get(keyValue.key).runRandomIO.value shouldBe empty
+            level.get(keyValue.key).runRandomIO.right.value shouldBe empty
         }
       }
 
@@ -328,11 +328,11 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val level = TestLevel(segmentSize = 10.mb)
 
       val targetSegmentKeyValues = randomIntKeyStringValues()
-      val targetSegment = TestSegment(keyValues = targetSegmentKeyValues, path = testSegmentFile.resolveSibling("10.seg")).runRandomIO.value
+      val targetSegment = TestSegment(keyValues = targetSegmentKeyValues, path = testSegmentFile.resolveSibling("10.seg")).runRandomIO.right.value
 
       val keyValues = randomPutKeyValues()
       val function = PrivateMethod[IO[swaydb.Error.Segment, Unit]]('putKeyValues)
-      (level invokePrivate function(keyValues, Seq(targetSegment), None)).runRandomIO.value
+      (level invokePrivate function(keyValues, Seq(targetSegment), None)).runRandomIO.right.value
 
       targetSegment.existsOnDisk shouldBe false //target Segment should be deleted
 
@@ -351,7 +351,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val level = TestLevel(segmentSize = 10.mb)
 
       val targetSegmentKeyValues = randomIntKeyStringValues()
-      val targetSegment = TestSegment(keyValues = targetSegmentKeyValues).runRandomIO.value
+      val targetSegment = TestSegment(keyValues = targetSegmentKeyValues).runRandomIO.right.value
 
       val keyValues: Slice[KeyValue] = Slice.create[KeyValue](3) //null KeyValue will throw an exception and the put should be reverted
       keyValues.add(Memory.put(123))
@@ -363,8 +363,8 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       failed.isLeft shouldBe true
       failed.left.get.exception shouldBe a[NullPointerException]
 
-      level.get(123).runRandomIO.value shouldBe empty
-      level.get(1234).runRandomIO.value shouldBe empty
+      level.get(123).runRandomIO.right.value shouldBe empty
+      level.get(1234).runRandomIO.right.value shouldBe empty
     }
   }
 }

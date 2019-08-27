@@ -74,7 +74,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).toDeferred
           }
         }
-        Higher(0: Slice[Byte]).value.value shouldBe toKeyGet
+        Higher(0: Slice[Byte]).right.value.value shouldBe toKeyGet
       }
     }
 
@@ -105,7 +105,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).toDeferred
           }
         }
-        Higher(1: Slice[Byte]).value.value shouldBe toKeyGet
+        Higher(1: Slice[Byte]).right.value.value shouldBe toKeyGet
       }
     }
 
@@ -133,7 +133,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             current.get _ expects (3: Slice[Byte]) returning IO(Some(toKeyGet)).toDeferred
           }
         }
-        Higher(2: Slice[Byte]).value.value shouldBe toKeyGet
+        Higher(2: Slice[Byte]).right.value.value shouldBe toKeyGet
       }
     }
 
@@ -155,7 +155,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
           next.higher _ expects (3: Slice[Byte]) returning IO(Some(result)).toDeferred
           next.hasStateChanged _ expects 1 returning false
         }
-        Higher(3: Slice[Byte]).value.value shouldBe result
+        Higher(3: Slice[Byte]).right.value.value shouldBe result
       }
     }
   }

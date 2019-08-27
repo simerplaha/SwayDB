@@ -72,7 +72,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
       implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupBy(keyValuesCount))
 
       val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(0), addGroups = false)
-      val segment = TestSegment(keyValues).runRandomIO.value
+      val segment = TestSegment(keyValues).runRandomIO.right.value
 
       val segments =
         segment.put(
@@ -86,7 +86,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
           hashIndexConfig = keyValues.last.hashIndexConfig,
           bloomFilterConfig = keyValues.last.bloomFilterConfig,
           segmentConfig = SegmentBlock.Config.random
-        ).runRandomIO.value
+        ).runRandomIO.right.value
 
       printGroupHierarchy(segments)
 
@@ -116,7 +116,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
       //group5 is the root Group.
       val allGroupKeyValues = group1KeyValues ++ group2KeyValues ++ group3KeyValues ++ group4KeyValues ++ group5KeyValues
 
-      val readKeyValues = writeAndRead(Slice(group5)).runRandomIO.value
+      val readKeyValues = writeAndRead(Slice(group5)).runRandomIO.right.value
 
       readKeyValues shouldBe allGroupKeyValues
     }

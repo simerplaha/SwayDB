@@ -74,9 +74,9 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
   "removeSegments" should {
     "remove segments from disk and remove them from appendix" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValuesTest(randomPutKeyValues(keyValuesCount)).runRandomIO.value
+      level.putKeyValuesTest(randomPutKeyValues(keyValuesCount)).runRandomIO.right.value
 
-      level.removeSegments(level.segmentsInLevel()).runRandomIO.value
+      level.removeSegments(level.segmentsInLevel()).runRandomIO.right.value
 
       level.isEmpty shouldBe true
 

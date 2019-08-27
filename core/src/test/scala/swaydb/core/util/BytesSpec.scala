@@ -134,7 +134,7 @@ class BytesSpec extends WordSpec with Matchers {
       mergedBytes.size shouldBe 12
       mergedBytes.isFull shouldBe true
 
-      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.value
+      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.right.value
 
       (readBytes1, readBytes2) shouldBe ((bytes1, bytes2))
       readBytes1.isFull shouldBe true
@@ -149,7 +149,7 @@ class BytesSpec extends WordSpec with Matchers {
       mergedBytes.size should be < (bytes1.size + bytes2.size)
       mergedBytes.isFull shouldBe true
 
-      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.value
+      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.right.value
 
       (readBytes1, readBytes2) shouldBe ((bytes1, bytes2))
       readBytes1.isFull shouldBe true
@@ -162,7 +162,7 @@ class BytesSpec extends WordSpec with Matchers {
       mergedBytes.size should be < (bytes.size + bytes.size)
       mergedBytes.isFull shouldBe true
 
-      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.value
+      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.right.value
 
       (readBytes1, readBytes2) shouldBe ((bytes, bytes))
       readBytes1.isFull shouldBe true
@@ -191,7 +191,7 @@ class BytesSpec extends WordSpec with Matchers {
       val individualMergedSizes = individuallyCompressedBytes.foldLeft(0)(_ + _.size)
       individualMergedSizes shouldBe 120.bytes //results in 120.bytes which is smaller then without compression
       //uncompress
-      individuallyCompressedBytes.map(Bytes.decompressJoin).map(_.runRandomIO.value).toList shouldBe keys
+      individuallyCompressedBytes.map(Bytes.decompressJoin).map(_.runRandomIO.right.value).toList shouldBe keys
 
       //merge each (fromKey, toKey) pair with previous key-values merged bytes. This is should returns is higher compressed keys.
       val mergedCompressedKeys: Slice[Byte] =
@@ -215,7 +215,7 @@ class BytesSpec extends WordSpec with Matchers {
         val sliceReverse = ByteUtil.writeUnsignedIntReversed(intToWrite)
         sliceReverse shouldBe Slice(slice.toList.reverse.toArray)
 
-        ByteUtil.readLastUnsignedInt(sliceReverse).runRandomIO.value shouldBe ((intToWrite, slice.size))
+        ByteUtil.readLastUnsignedInt(sliceReverse).runRandomIO.right.value shouldBe ((intToWrite, slice.size))
     }
   }
 

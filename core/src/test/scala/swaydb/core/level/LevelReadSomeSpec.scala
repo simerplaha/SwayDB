@@ -110,12 +110,12 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
                   val (gotValue, gotDeadline) =
                     level.get(update.key).map {
                       case Some(put) =>
-                        val value = IO.Defer(put.getOrFetchValue.get).runIO.runRandomIO.value
+                        val value = IO.Defer(put.getOrFetchValue.get).runIO.runRandomIO.right.value
                         (value, put.deadline)
 
                       case None =>
                         (None, None)
-                    }.runRandomIO.value
+                    }.runRandomIO.right.value
 
                   Try(gotValue shouldBe updatedValue) match {
                     case Failure(testException: TestFailedException) =>
@@ -123,12 +123,12 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
                       implicit val keyOrder = KeyOrder.default
                       implicit val timeOrder = TimeOrder.long
                       val level: Level = TestLevel()
-                      level.putKeyValuesTest(level2KeyValues).runRandomIO.value
-                      level.putKeyValuesTest(level1KeyValues).runRandomIO.value
-                      level.putKeyValuesTest(level0KeyValues).runRandomIO.value
+                      level.putKeyValuesTest(level2KeyValues).runRandomIO.right.value
+                      level.putKeyValuesTest(level1KeyValues).runRandomIO.right.value
+                      level.putKeyValuesTest(level0KeyValues).runRandomIO.right.value
 
                       //if after merging into a single Level the result is not empty then print all the failed exceptions.
-                      Try(level.get(update.key).runIO.runRandomIO.value shouldBe empty).failed foreach {
+                      Try(level.get(update.key).runIO.runRandomIO.right.value shouldBe empty).failed foreach {
                         exception =>
                           exception.printStackTrace()
                           throw testException

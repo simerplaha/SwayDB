@@ -52,7 +52,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val keyValue = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(keyValue))
 
-        Get(1).runRandomIO.value.value shouldBe keyValue
+        Get(1).runRandomIO.right.value.value shouldBe keyValue
       }
     }
 
@@ -70,7 +70,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(remove))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).toDeferred
 
-        Get(1).runRandomIO.value.value shouldBe expect
+        Get(1).runRandomIO.right.value.value shouldBe expect
       }
     }
 
@@ -88,7 +88,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(update))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).toDeferred
 
-        Get(1).runRandomIO.value.value shouldBe expect
+        Get(1).runRandomIO.right.value.value shouldBe expect
       }
     }
 
@@ -110,12 +110,12 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
           )
 
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(expired = false))
-        val expect = FunctionMerger(function, put).runRandomIO.value
+        val expect = FunctionMerger(function, put).runRandomIO.right.value
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(function))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).toDeferred
 
-        Get(1).runRandomIO.value.value shouldBe expect
+        Get(1).runRandomIO.right.value.value shouldBe expect
       }
     }
 
@@ -140,12 +140,12 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val put =
           randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 
-        val expected = PendingApplyMerger(pendingApply, put).runRandomIO.value
+        val expected = PendingApplyMerger(pendingApply, put).runRandomIO.right.value
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(pendingApply))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).toDeferred
 
-        Get(1).runRandomIO.value.value shouldBe expected
+        Get(1).runRandomIO.right.value.value shouldBe expected
       }
     }
 
@@ -162,7 +162,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(range))
 
-        Get(1).runRandomIO.value.value shouldBe fromValue.toMemory(1)
+        Get(1).runRandomIO.right.value.value shouldBe fromValue.toMemory(1)
       }
     }
 
@@ -183,16 +183,16 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
               )
           )
 
-        val range = randomRangeKeyValue(1, 10, eitherOne(None, Some(functionValue.toRangeValue().runRandomIO.value)), functionValue.toRangeValue().runRandomIO.value)
+        val range = randomRangeKeyValue(1, 10, eitherOne(None, Some(functionValue.toRangeValue().runRandomIO.right.value)), functionValue.toRangeValue().runRandomIO.right.value)
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 
-        val expected = FixedMerger(functionValue, put).runRandomIO.value
+        val expected = FixedMerger(functionValue, put).runRandomIO.right.value
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(range))
         //next level can return anything it will be removed.
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put)).toDeferred
 
-        Get(1).runRandomIO.value.value shouldBe expected
+        Get(1).runRandomIO.right.value.value shouldBe expected
       }
     }
   }

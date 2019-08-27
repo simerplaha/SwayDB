@@ -55,7 +55,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
 
       val read =
         EntryReader.read(
-          indexEntry = normalisedEntry.indexEntryBytes.dropIntUnsigned().value,
+          indexEntry = normalisedEntry.indexEntryBytes.dropIntUnsigned().right.value,
           mightBeCompressed = entry.stats.hasPrefixCompression,
           valueCache = entry.valueEntryBytes.headOption.map(buildSingleValueCache),
           indexOffset = 0,
@@ -64,7 +64,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           hasAccessPositionIndex = entry.sortedIndexConfig.enableAccessPositionIndex,
           isNormalised = entry.sortedIndexConfig.normaliseIndex,
           previous = None
-        ).runRandomIO.value
+        ).runRandomIO.right.value
       //      println("read:  " + read)
       read shouldBe entry
     }
@@ -90,7 +90,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
 
       val previousRead =
         EntryReader.read(
-          indexEntry = previous.indexEntryBytes.dropIntUnsigned().value,
+          indexEntry = previous.indexEntryBytes.dropIntUnsigned().right.value,
           mightBeCompressed = false,
           valueCache = Some(buildSingleValueCache(valueBytes)),
           indexOffset = 0,
@@ -99,13 +99,13 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           hasAccessPositionIndex = previous.sortedIndexConfig.enableAccessPositionIndex,
           isNormalised = false,
           previous = None
-        ).runRandomIO.value
+        ).runRandomIO.right.value
 
       previousRead shouldBe previous
 
       val nextRead =
         EntryReader.read(
-          indexEntry = next.indexEntryBytes.dropIntUnsigned().value,
+          indexEntry = next.indexEntryBytes.dropIntUnsigned().right.value,
           mightBeCompressed = next.stats.hasPrefixCompression,
           valueCache = Some(buildSingleValueCache(valueBytes)),
           indexOffset = 0,
@@ -114,7 +114,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           isNormalised = false,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
           previous = Some(previousRead)
-        ).runRandomIO.value
+        ).runRandomIO.right.value
 
       //      val nextRead = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).runIO
       nextRead shouldBe next

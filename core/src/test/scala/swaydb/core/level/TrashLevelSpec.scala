@@ -67,15 +67,15 @@ sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethod
     "delete Segments when Push from an upper level" in {
       val level = TestLevel(nextLevel = Some(TrashLevel), throttle = (_) => Throttle(1.seconds, 10))
 
-      val segments = Seq(TestSegment(randomKeyValues(keyValuesCount)).runRandomIO.value, TestSegment(randomIntKeyStringValues(keyValuesCount)).runRandomIO.value)
-      level.put(segments).right.value.value
+      val segments = Seq(TestSegment(randomKeyValues(keyValuesCount)).runRandomIO.right.value, TestSegment(randomIntKeyStringValues(keyValuesCount)).runRandomIO.right.value)
+      level.put(segments).right.right.value.right.value
 
       //throttle is Duration.Zero, Segments value merged to lower ExpiryLevel and deleted from Level.
       eventual(15.seconds)(level.isEmpty shouldBe true)
       //key values do not exist
-      Segment.getAllKeyValues(segments).runRandomIO.value foreach {
+      Segment.getAllKeyValues(segments).runRandomIO.right.value foreach {
         keyValue =>
-          level.get(keyValue.key).runRandomIO.value shouldBe empty
+          level.get(keyValue.key).runRandomIO.right.value shouldBe empty
       }
       if (persistent) level.reopen.isEmpty shouldBe true
     }

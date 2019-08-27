@@ -42,9 +42,9 @@ class BlockReaderPerformanceSpec extends TestBase {
 
     val ioStrategy = IOStrategy.SynchronisedIO(cacheOnAccess = true)
 
-    val file = DBFile.mmapInit(randomFilePath, ioStrategy, bytes.size, autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.value
-    file.append(bytes).runRandomIO.value
-    file.isFull.runRandomIO.value shouldBe true
+    val file = DBFile.mmapInit(randomFilePath, ioStrategy, bytes.size, autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+    file.append(bytes).runRandomIO.right.value
+    file.isFull.runRandomIO.right.value shouldBe true
     file.forceSave().get
     file.close.get
 

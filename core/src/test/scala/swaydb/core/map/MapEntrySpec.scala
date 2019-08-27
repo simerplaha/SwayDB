@@ -190,7 +190,7 @@ class MapEntrySpec extends TestBase {
 
     "add Appendix single Put entry to skipList" in {
       import AppendixMapEntryWriter._
-      val segment = TestSegment(keyValues).runRandomIO.value
+      val segment = TestSegment(keyValues).runRandomIO.right.value
 
       val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
 
@@ -201,12 +201,12 @@ class MapEntrySpec extends TestBase {
       skipList should have size 1
       skipList.get(1: Slice[Byte]).value shouldBe segment
 
-      segment.close.runRandomIO.value
+      segment.close.runRandomIO.right.value
     }
 
     "remove Appendix entry from skipList" in {
       import AppendixMapEntryWriter._
-      val segment = TestSegment(keyValues).runRandomIO.value
+      val segment = TestSegment(keyValues).runRandomIO.right.value
 
       val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
 
@@ -220,17 +220,17 @@ class MapEntrySpec extends TestBase {
       MapEntry.Remove[Slice[Byte]](1) applyTo skipList
       skipList shouldBe empty
 
-      segment.close.runRandomIO.value
+      segment.close.runRandomIO.right.value
     }
 
     "batch multiple appendix entries to skipList" in {
       import AppendixMapEntryWriter._
 
       val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
-      val segment1 = TestSegment().runRandomIO.value
-      val segment2 = TestSegment().runRandomIO.value
-      val segment3 = TestSegment().runRandomIO.value
-      val segment4 = TestSegment().runRandomIO.value
+      val segment1 = TestSegment().runRandomIO.right.value
+      val segment2 = TestSegment().runRandomIO.right.value
+      val segment3 = TestSegment().runRandomIO.right.value
+      val segment4 = TestSegment().runRandomIO.right.value
 
       val entry =
         (MapEntry.Put[Slice[Byte], Segment](1, segment1): MapEntry[Slice[Byte], Segment]) ++
@@ -249,10 +249,10 @@ class MapEntrySpec extends TestBase {
       skipList.get(3: Slice[Byte]).value shouldBe segment3
       skipList.get(4: Slice[Byte]).value shouldBe segment4
 
-      segment1.close.runRandomIO.value
-      segment2.close.runRandomIO.value
-      segment3.close.runRandomIO.value
-      segment4.close.runRandomIO.value
+      segment1.close.runRandomIO.right.value
+      segment2.close.runRandomIO.right.value
+      segment3.close.runRandomIO.right.value
+      segment4.close.runRandomIO.right.value
     }
   }
 
@@ -268,14 +268,14 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-      MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Put]](bytes.drop(ByteSizeOf.int)).runRandomIO.value.value shouldBe entry
-      MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](bytes).runRandomIO.value.value shouldBe entry
+      MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Put]](bytes.drop(ByteSizeOf.int)).runRandomIO.right.value.value shouldBe entry
+      MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](bytes).runRandomIO.right.value.value shouldBe entry
     }
 
     "write and read bytes for a single Appendix" in {
       import AppendixMapEntryWriter._
       import appendixReader._
-      val segment = TestSegment(keyValues).runRandomIO.value
+      val segment = TestSegment(keyValues).runRandomIO.right.value
 
       val entry = MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
       entry.hasRange shouldBe false
@@ -284,10 +284,10 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-      MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](bytes.drop(1)).runRandomIO.value.value shouldBe entry
-      MapEntryReader.read[MapEntry[Slice[Byte], Segment]](bytes).runRandomIO.value.value shouldBe entry
+      MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](bytes.drop(1)).runRandomIO.right.value.value shouldBe entry
+      MapEntryReader.read[MapEntry[Slice[Byte], Segment]](bytes).runRandomIO.right.value.value shouldBe entry
 
-      segment.close.runRandomIO.value
+      segment.close.runRandomIO.right.value
     }
   }
 
@@ -303,14 +303,14 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-      MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Remove]](bytes.drop(ByteSizeOf.int)).runRandomIO.value.value shouldBe entry
-      MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](bytes).runRandomIO.value.value shouldBe entry
+      MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Remove]](bytes.drop(ByteSizeOf.int)).runRandomIO.right.value.value shouldBe entry
+      MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](bytes).runRandomIO.right.value.value shouldBe entry
     }
 
     "write and read bytes for single Appendix entry" in {
       import AppendixMapEntryWriter._
       import appendixReader._
-      val segment = TestSegment(keyValues).runRandomIO.value
+      val segment = TestSegment(keyValues).runRandomIO.right.value
 
       //do remove
       val entry = MapEntry.Remove[Slice[Byte]](segment.minKey)
@@ -320,10 +320,10 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-      MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](bytes.drop(1)).runRandomIO.value.value.key shouldBe entry.key
-      MapEntryReader.read[MapEntry[Slice[Byte], Segment]](bytes).runRandomIO.value.value shouldBe entry
+      MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](bytes.drop(1)).runRandomIO.right.value.value.key shouldBe entry.key
+      MapEntryReader.read[MapEntry[Slice[Byte], Segment]](bytes).runRandomIO.right.value.value shouldBe entry
 
-      segment.close.runRandomIO.value
+      segment.close.runRandomIO.right.value
     }
   }
 
@@ -345,7 +345,7 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps! This ensures that the size calculations are correct.
 
-      MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](bytes).runRandomIO.value.value shouldBe entry
+      MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](bytes).runRandomIO.right.value.value shouldBe entry
     }
   }
 
@@ -374,7 +374,7 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps!
 
-      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader[swaydb.Error.Map](bytes)).runRandomIO.value.value
+      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory.SegmentResponse]](Reader[swaydb.Error.Map](bytes)).runRandomIO.right.value.value
 
       val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse]()(keyOrder)
       readMapEntry applyTo skipList
@@ -390,7 +390,7 @@ class MapEntrySpec extends TestBase {
       import appendixReader._
       import swaydb.Error.Map.ErrorHandler
 
-      val segment = TestSegment(keyValues).runRandomIO.value
+      val segment = TestSegment(keyValues).runRandomIO.right.value
 
       val initialEntry: MapEntry[Slice[Byte], Segment] = MapEntry.Put[Slice[Byte], Segment](0, segment)
       var entry =
@@ -410,7 +410,7 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps!
 
-      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](bytes)).runRandomIO.value.value
+      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](bytes)).runRandomIO.right.value.value
 
       val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
       readMapEntry applyTo skipList
@@ -418,7 +418,7 @@ class MapEntrySpec extends TestBase {
       skipList.headKey.value shouldBe (0: Slice[Byte])
       skipList.lastKey.value shouldBe (4999: Slice[Byte])
 
-      segment.close.runRandomIO.value
+      segment.close.runRandomIO.right.value
     }
   }
 

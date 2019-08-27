@@ -231,7 +231,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
             flushOnOverflow = flushOnOverflow,
             initialWriteCount = 0,
             fileSize = fileSize
-          ).runRandomIO.value
+          ).runRandomIO.right.value
 
       keyValues foreach {
         keyValue =>
@@ -328,13 +328,13 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         bloomFilterConfig = bloomFilterConfig,
         deleteSegmentsEventually = deleteSegmentsEventually,
         segmentConfig = segmentConfig
-      ) flatMap {
+      ).flatMap {
         level =>
           level.putKeyValuesTest(keyValues) map {
             _ =>
               level
           }
-      } value
+      }.right.value
   }
 
   object TestLevelZero {
@@ -352,11 +352,11 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         nextLevel = nextLevel,
         throttle = throttle,
         acceleration = brake,
-      ).runRandomIO.value
+      ).runRandomIO.right.value
   }
 
   def createFile(bytes: Slice[Byte]): Path =
-    IOEffect.write(testDir.resolve(nextSegmentId), bytes).runRandomIO.value
+    IOEffect.write(testDir.resolve(nextSegmentId), bytes).runRandomIO.right.value
 
   def createRandomFileReader(path: Path): FileReader = {
     implicit val limiter = fileSweeper
@@ -373,7 +373,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     implicit val limiter = fileSweeper
     implicit val memorySweeper = TestLimitQueues.memorySweeper
     new FileReader(
-      DBFile.mmapRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.value
+      DBFile.mmapRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
     )
   }
 
@@ -384,7 +384,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     implicit val limiter = fileSweeper
     implicit val memorySweeper = TestLimitQueues.memorySweeper
     new FileReader(
-      DBFile.channelRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.value
+      DBFile.channelRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
     )
   }
 
@@ -563,7 +563,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
     runAsserts(asserts)
 
-    level0.delete.runRandomIO.value
+    level0.delete.runRandomIO.right.value
     compaction foreach Compactor.terminate
 
     if (!throttleOn)
@@ -595,13 +595,13 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                               assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                  groupBy: Option[GroupByInternal.KeyValues]): Unit = {
     println("level3.putKeyValues")
-    if (level3KeyValues.nonEmpty) level3.putKeyValuesTest(level3KeyValues).runRandomIO.value
+    if (level3KeyValues.nonEmpty) level3.putKeyValuesTest(level3KeyValues).runRandomIO.right.value
     println("level2.putKeyValues")
-    if (level2KeyValues.nonEmpty) level2.putKeyValuesTest(level2KeyValues).runRandomIO.value
+    if (level2KeyValues.nonEmpty) level2.putKeyValuesTest(level2KeyValues).runRandomIO.right.value
     println("level1.putKeyValues")
-    if (level1KeyValues.nonEmpty) level1.putKeyValuesTest(level1KeyValues).runRandomIO.value
+    if (level1KeyValues.nonEmpty) level1.putKeyValuesTest(level1KeyValues).runRandomIO.right.value
     println("level0.putKeyValues")
-    if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).runRandomIO.value
+    if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).runRandomIO.right.value
     import RunThis._
 
     Seq(
@@ -652,8 +652,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                           segmentIO: SegmentIO = SegmentIO.random,
                                                           groupBy: Option[GroupByInternal.KeyValues]) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")
-    val segment = TestSegment(keyValues).value
-    if (closeAfterCreate) segment.close.value
+    val segment = TestSegment(keyValues).right.value
+    if (closeAfterCreate) segment.close.right.value
 
     assert(keyValues, segment) //first
     if (testAgainAfterAssert) assert(keyValues, segment) //with cache populated
@@ -663,12 +663,12 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       assert(keyValues, segment) //same Segment but test with cleared cache.
 
       val segmentReopened = segment.reopen //reopen
-      if (closeAfterCreate) segmentReopened.close.value
+      if (closeAfterCreate) segmentReopened.close.right.value
       assert(keyValues, segmentReopened)
       if (testAgainAfterAssert) assert(keyValues, segmentReopened)
-      segmentReopened.close.value
+      segmentReopened.close.right.value
     } else {
-      segment.close.value
+      segment.close.right.value
     }
   }
 }

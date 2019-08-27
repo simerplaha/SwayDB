@@ -57,7 +57,7 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
         next.hasStateChanged  _ expects 1                 returning false
         //@formatter:on
       }
-      Higher(0: Slice[Byte]).value shouldBe empty
+      Higher(0: Slice[Byte]).right.value shouldBe empty
     }
 
     //   0
@@ -78,7 +78,7 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
           next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).value shouldBe empty
+        Higher(0: Slice[Byte]).right.value shouldBe empty
       }
     }
 
@@ -104,7 +104,7 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
           next.hasStateChanged  _ expects 2                 returning false
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).value shouldBe empty
+        Higher(0: Slice[Byte]).right.value shouldBe empty
       }
     }
 
@@ -134,7 +134,7 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
           next.hasStateChanged  _ expects 2                 returning false
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).value shouldBe empty
+        Higher(0: Slice[Byte]).right.value shouldBe empty
       }
     }
 

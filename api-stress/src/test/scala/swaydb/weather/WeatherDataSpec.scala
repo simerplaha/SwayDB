@@ -145,7 +145,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with BeforeAndAft
             key < (startFrom + 100)
         }
 
-    took.materialize.value should have size 100
+    took.materialize.right.value should have size 100
     took.headOption.get.get._1 shouldBe startFrom
     took.lastOption.get.get._1 shouldBe (startFrom + 99)
   }
@@ -178,7 +178,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with BeforeAndAft
             if (key % 10000 == 0)
               println(s"mapRight: key = $key")
             key
-        }.materialize.value
+        }.materialize.right.value
 
     val expected = (0 until 100) map (startFrom - _)
     took should have size 100
@@ -193,7 +193,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with BeforeAndAft
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.materialize.value shouldBe (1 to 100)
+      }.materialize.right.value shouldBe (1 to 100)
 
     db
       .fromOrAfter(0)
@@ -203,7 +203,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with BeforeAndAft
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.materialize.value shouldBe (1 to 100)
+      }.materialize.right.value shouldBe (1 to 100)
   }
 
   def doDrop =
@@ -215,7 +215,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with BeforeAndAft
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.materialize.value shouldBe (keyValueCount - 100 to keyValueCount)
+      }.materialize.right.value shouldBe (keyValueCount - 100 to keyValueCount)
 
   def doTakeRight =
     db
@@ -227,7 +227,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with BeforeAndAft
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.materialize.value shouldBe (keyValueCount - 99 to keyValueCount).reverse
+      }.materialize.right.value shouldBe (keyValueCount - 99 to keyValueCount).reverse
 
   def doCount =
     db.size.get should be >= keyValueCount

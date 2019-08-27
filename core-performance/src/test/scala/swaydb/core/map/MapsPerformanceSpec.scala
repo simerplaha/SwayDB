@@ -58,7 +58,7 @@ class MapsPerformanceSpec extends TestBase {
             maps.write {
               time =>
                 MapEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))(Level0PutWriter)
-            }.runRandomIO.value
+            }.runRandomIO.right.value
         }
 
       def testRead(maps: Maps[Slice[Byte], Memory.SegmentResponse]) =
@@ -70,7 +70,7 @@ class MapsPerformanceSpec extends TestBase {
 
       val dir1 = IOEffect.createDirectoryIfAbsent(testDir.resolve(1.toString))
 
-      val map1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).runRandomIO.value
+      val map1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).runRandomIO.right.value
       Benchmark(s"MMAP = true - writing ${keyValues.size} keys") {
         testWrite(map1)
       }
@@ -79,7 +79,7 @@ class MapsPerformanceSpec extends TestBase {
       }
 
       val dir2 = IOEffect.createDirectoryIfAbsent(testDir.resolve(2.toString))
-      val map2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).runRandomIO.value
+      val map2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).runRandomIO.right.value
       Benchmark(s"MMAP = false - writing ${keyValues.size} keys") {
         testWrite(map2)
       }
@@ -96,9 +96,9 @@ class MapsPerformanceSpec extends TestBase {
         testRead(map3)
       }
 
-      map1.close.runRandomIO.value
-      map2.close.runRandomIO.value
-      map3.close.runRandomIO.value
+      map1.close.runRandomIO.right.value
+      map2.close.runRandomIO.right.value
+      map3.close.runRandomIO.right.value
     }
   }
 }

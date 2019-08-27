@@ -70,7 +70,7 @@ class SegmentMemorySweeperSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           createdInLevel = randomIntMax()
-        ).runRandomIO.value
+        ).runRandomIO.right.value
 
       //add more key-values to the right of the Group
       val nonGroupKeyValues = randomKeyValues(count = 1000, addUpdates = true, startId = Some(groupKeyValues.last.key.readInt() + 1))
@@ -90,7 +90,7 @@ class SegmentMemorySweeperSpec extends TestBase {
             path = Paths.get("/test"),
             createdInLevel = 0,
             keyValues = mergedKeyValues
-          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileSweeper, None, Some(memorySweeper), SegmentIO.random).runRandomIO.value
+          )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileSweeper, None, Some(memorySweeper), SegmentIO.random).runRandomIO.right.value
 
         //perform reads multiple times and assert that while the key-values are getting drop, the group key-value does
         //not value dropped
@@ -144,7 +144,7 @@ class SegmentMemorySweeperSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           createdInLevel = randomIntMax()
-        ).runRandomIO.value
+        ).runRandomIO.right.value
 
       //add key-values to the right of the group
       val nonGroupKeyValues = randomKeyValues(count = 1000, addUpdates = true, startId = Some(groupKeyValues.last.key.readInt() + 1))
@@ -161,7 +161,7 @@ class SegmentMemorySweeperSpec extends TestBase {
       try {
 
         //create persistent Segment
-        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, Some(memorySweeper), TestLimitQueues.fileSweeper, timeOrder, blockCache, SegmentIO.random).runRandomIO.value
+        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, Some(memorySweeper), TestLimitQueues.fileSweeper, timeOrder, blockCache, SegmentIO.random).runRandomIO.right.value
 
         //initially Segment's cache is empty
         segment.areAllCachesEmpty shouldBe true
@@ -188,7 +188,7 @@ class SegmentMemorySweeperSpec extends TestBase {
         //expect group to removed entirely from the cache this time.
         eventual(4.seconds)(segment.isInKeyValueCache(headGroup.key) shouldBe false)
 
-        segment.close.value
+        segment.close.right.value
       } finally {
         memorySweeper.terminate()
       }

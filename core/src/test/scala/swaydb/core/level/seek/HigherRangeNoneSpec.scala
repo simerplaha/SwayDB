@@ -68,7 +68,7 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
                 next.hasStateChanged  _ expects 1                   returning false
                 //@formatter:on
               }
-              Higher(key: Slice[Byte]).value shouldBe empty
+              Higher(key: Slice[Byte]).right.value shouldBe empty
           }
         }
       }
@@ -97,7 +97,7 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
                 next.hasStateChanged  _ expects 1                   returning false
                 //@formatter:on
               }
-              Higher(key: Slice[Byte]).value shouldBe empty
+              Higher(key: Slice[Byte]).right.value shouldBe empty
           }
         }
       }
@@ -128,7 +128,7 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
             next.hasStateChanged  _ expects 1                   returning false
             //@formatter:on
           }
-          Higher(0: Slice[Byte]).leftSideValue.value shouldBe empty
+          Higher(0: Slice[Byte]).leftSideValue.right.value shouldBe empty
         }
       }
 
@@ -157,7 +157,7 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
             next.hasStateChanged  _ expects 1                   returning false
             //@formatter:on
           }
-          Higher(0: Slice[Byte]).value shouldBe empty
+          Higher(0: Slice[Byte]).right.value shouldBe empty
         }
       }
     }

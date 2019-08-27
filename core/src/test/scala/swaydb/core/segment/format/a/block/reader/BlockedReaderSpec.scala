@@ -36,7 +36,7 @@ class BlockedReaderSpec extends TestBase with MockFactory {
       val bytes = header ++ body
 
       val ref = BlockRefReader[ValuesBlock.Offset](bytes)
-      BlockedReader(ref).get.readRemaining().value shouldBe body
+      BlockedReader(ref).get.readRemaining().right.value shouldBe body
     }
 
     "unblocked Segment" in {
@@ -49,14 +49,14 @@ class BlockedReaderSpec extends TestBase with MockFactory {
       val segmentBytes = segmentHeader ++ segmentBody
 
       val segmentRef = BlockRefReader[SegmentBlock.Offset](segmentBytes)
-      val segmentUnblocked = Block.unblock(segmentRef).value
-      segmentUnblocked.copy().readRemaining().value shouldBe childBytes
+      val segmentUnblocked = Block.unblock(segmentRef).right.value
+      segmentUnblocked.copy().readRemaining().right.value shouldBe childBytes
 
       val childBlockRef = BlockRefReader.moveTo(0, childBytes.size, segmentUnblocked)
-      childBlockRef.copy().readRemaining().value shouldBe childBytes
-      val childUnblockedReader = Block.unblock(childBlockRef).value
+      childBlockRef.copy().readRemaining().right.value shouldBe childBytes
+      val childUnblockedReader = Block.unblock(childBlockRef).right.value
 
-      childUnblockedReader.readRemaining().value shouldBe childBody
+      childUnblockedReader.readRemaining().right.value shouldBe childBody
     }
   }
 }
