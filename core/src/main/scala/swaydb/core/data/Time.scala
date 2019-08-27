@@ -37,6 +37,7 @@ private[core] object Time {
     Time(Slice.writeLong(long.incrementAndGet()))
 
   def apply(time: Long): Time =
+  //TODO - store time as unsignedLong.
     new Time(Slice.writeLong(time))
 
   def >(upperTime: Time, lowerTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean = {

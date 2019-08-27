@@ -94,12 +94,12 @@ private[core] object MapCodec extends LazyLogging {
                           val failureMessage =
                             s"File corruption! Failed to match CRC check for entry at position ${reader.getPosition}. CRC expected = $crc actual = $checkCRC. Skip on corruption = $dropCorruptedTailEntries."
                           logger.error(failureMessage)
-                          IO.left(new IllegalStateException(failureMessage))
+                          IO.failed(new IllegalStateException(failureMessage))
                         }
                       } catch {
                         case ex: Throwable =>
                           logger.error("File corruption! Unable to read entry at position {}. dropCorruptedTailEntries = {}.", reader.getPosition, dropCorruptedTailEntries, ex)
-                          IO.left(new IllegalStateException(s"File corruption! Unable to read entry at position ${reader.getPosition}. dropCorruptedTailEntries = $dropCorruptedTailEntries.", ex))
+                          IO.failed(new IllegalStateException(s"File corruption! Unable to read entry at position ${reader.getPosition}. dropCorruptedTailEntries = $dropCorruptedTailEntries.", ex))
                       }
 
                   case IO.Left(failure) =>

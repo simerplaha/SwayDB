@@ -49,7 +49,7 @@ object ValueLengthReader {
             Bytes.decompress(Slice.writeInt(previousValueLength), valueLengthBytes, commonBytes).readInt()
         }
     } getOrElse {
-      IO.left(EntryReaderFailure.NoPreviousKeyValue)
+      IO.failed(EntryReaderFailure.NoPreviousKeyValue)
     }
 
   implicit object ValueLengthOneCompressed extends ValueLengthReader[BaseEntryId.ValueLength.OneCompressed] {
@@ -84,7 +84,7 @@ object ValueLengthReader {
       previous map {
         previous =>
           IO.Right(previous.valueLength)
-      } getOrElse IO.left(EntryReaderFailure.NoPreviousKeyValue)
+      } getOrElse IO.failed(EntryReaderFailure.NoPreviousKeyValue)
   }
 
   implicit object ValueLengthUncompressed extends ValueLengthReader[BaseEntryId.ValueLength.Uncompressed] {

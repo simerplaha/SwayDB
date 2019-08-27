@@ -94,7 +94,7 @@ private[core] object CoreInitializer extends LazyLogging {
         IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, () => IO.unit))
 
       case IO.Left(error) =>
-        IO.left[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
+        IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
     }
   }
 
@@ -288,7 +288,7 @@ private[core] object CoreInitializer extends LazyLogging {
         IO[swaydb.Error.Boot, Core[IO.ApiIO]](core)
 
       case IO.Left(error) =>
-        IO.left[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
+        IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
     }
   }
 }

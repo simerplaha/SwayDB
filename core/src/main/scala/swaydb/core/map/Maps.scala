@@ -139,7 +139,7 @@ private[core] object Maps extends LazyLogging {
           recovery match {
             case RecoveryMode.ReportFailure =>
               //return failure immediately without effecting the current state of Level0
-              IO.left(exception)
+              IO.failed(exception)
 
             case RecoveryMode.DropCorruptedTailEntries =>
               //Ignore the corrupted file and jump to to the next Map.
@@ -172,7 +172,7 @@ private[core] object Maps extends LazyLogging {
           }
 
         case exception: Throwable =>
-          IO.left(exception)
+          IO.failed(exception)
       }
 
     /**

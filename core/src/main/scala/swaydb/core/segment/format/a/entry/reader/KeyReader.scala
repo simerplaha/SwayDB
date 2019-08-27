@@ -69,7 +69,7 @@ object KeyReader {
             }
         }
     } getOrElse {
-      IO.left(EntryReaderFailure.NoPreviousKeyValue)
+      IO.failed(EntryReaderFailure.NoPreviousKeyValue)
     }
 
   def read(keyValueIdInt: Int,

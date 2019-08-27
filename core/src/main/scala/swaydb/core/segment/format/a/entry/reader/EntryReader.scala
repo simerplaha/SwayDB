@@ -85,7 +85,7 @@ object EntryReader {
           previous = previous,
           reader = entryReader
         )
-    } getOrElse IO.left(swaydb.Exception.InvalidKeyValueId(baseId))
+    } getOrElse IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
 
   def read(indexEntry: Slice[Byte],
            mightBeCompressed: Boolean,
@@ -204,7 +204,7 @@ object EntryReader {
             entryReader = PendingApplyReader
           )
         else
-          IO.left[swaydb.Error.Segment, Persistent](swaydb.Exception.InvalidKeyValueId(keyValueId))
+          IO.failed[swaydb.Error.Segment, Persistent](swaydb.Exception.InvalidKeyValueId(keyValueId))
     }
   }
 }

@@ -129,7 +129,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         (thisLevel.removeSegments(_: Iterable[Segment])) expects * onCall {
           putSegments: Iterable[Segment] =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
-            IO.left("Failed!")
+            IO.failed("Failed!")
         }
 
         Compaction.putForward(segments, thisLevel, nextLevel).right.right.value.right.value shouldBe segments.size

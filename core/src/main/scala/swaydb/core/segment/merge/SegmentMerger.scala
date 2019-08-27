@@ -71,7 +71,7 @@ private[core] object SegmentMerger extends LazyLogging {
                 }
 
               case _: Transient.Group =>
-                IO.left[swaydb.Error.Segment, ListBuffer[SegmentBuffer]]("Unexpected Group in Flattened SegmentBuffer")
+                IO.failed[swaydb.Error.Segment, ListBuffer[SegmentBuffer]]("Unexpected Group in Flattened SegmentBuffer")
             }
           case grouped: SegmentBuffer.Grouped =>
             buffers.last foreachIO {

@@ -572,9 +572,9 @@ private[core] object SegmentBlock {
       result =>
         //ensure that all the slices are full.
         if (!sortedIndexBlock.bytes.isFull)
-          IO.left(s"indexSlice is not full actual: ${sortedIndexBlock.bytes.size} - expected: ${sortedIndexBlock.bytes.allocatedSize}")
+          IO.failed(s"indexSlice is not full actual: ${sortedIndexBlock.bytes.size} - expected: ${sortedIndexBlock.bytes.allocatedSize}")
         else if (valuesBlock.exists(!_.bytes.isFull))
-          IO.left(s"valuesSlice is not full actual: ${valuesBlock.get.bytes.size} - expected: ${valuesBlock.get.bytes.allocatedSize}")
+          IO.failed(s"valuesSlice is not full actual: ${valuesBlock.get.bytes.size} - expected: ${valuesBlock.get.bytes.allocatedSize}")
         else
           IO.Right(result)
     }

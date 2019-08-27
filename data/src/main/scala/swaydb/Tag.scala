@@ -57,7 +57,7 @@ sealed trait Tag[T[_]] {
 object Tag {
 
   object Implicits {
-    implicit class TagImplicits[A, T[_] : Tag](a: T[A])(implicit tag: Tag[T]) {
+    implicit class TagImplicits[A, T[_]](a: T[A])(implicit tag: Tag[T]) {
       @inline def map[B](f: A => B): T[B] =
         tag.flatMap(a) {
           a =>
@@ -286,10 +286,10 @@ object Tag {
         fa.flatMap(f)
 
       override def success[A](value: A): IO.ThrowableIO[A] =
-        IO.successful(value)
+        IO.Right(value)
 
       override def failure[A](exception: Throwable): IO.ThrowableIO[A] =
-        IO.left(exception)
+        IO.failed(exception)
 
       override def exception[A](a: IO.ThrowableIO[A]): Option[Throwable] =
         a.left.toOption
@@ -319,7 +319,7 @@ object Tag {
                       operation(previousResult, next)
                     } catch {
                       case exception: Throwable =>
-                        return IO.left(exception)
+                        return IO.failed(exception)
                     }
                   fold(next, drop, currentSize + 1, nextResult)
                 }
@@ -344,7 +344,7 @@ object Tag {
                     operation(initial, first)
                   } catch {
                     case throwable: Throwable =>
-                      return IO.left(throwable)
+                      return IO.failed(throwable)
                   }
                 fold(first, drop, 1, next)
               }

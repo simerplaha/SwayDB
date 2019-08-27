@@ -110,7 +110,7 @@ private[core] object IOEffect extends LazyLogging {
       } getOrElse IO.unit
     catch {
       case exception: Exception =>
-        IO.left(exception)
+        IO.failed(exception)
     }
 
   def writeUnclosed(channel: WritableByteChannel,
@@ -122,12 +122,12 @@ private[core] object IOEffect extends LazyLogging {
       // but here the check on written ensures that only the actually written bytes find written.
       // All the client code invoking writes to Disk using Slice should ensure that no Slice contains empty bytes.
       if (written != bytes.size)
-        IO.left(swaydb.Exception.FailedToWriteAllBytes(written, bytes.size, bytes.size))
+        IO.failed(swaydb.Exception.FailedToWriteAllBytes(written, bytes.size, bytes.size))
       else
         IO.unit
     } catch {
       case exception: Exception =>
-        IO.left(exception)
+        IO.failed(exception)
     }
 
   def copy(copyFrom: Path,
@@ -240,7 +240,7 @@ private[core] object IOEffect extends LazyLogging {
     val extensionIndex = fileName.lastIndexOf(".")
     val extIndex = if (extensionIndex <= 0) fileName.length else extensionIndex
 
-    IO(fileName.substring(0, extIndex).toLong) orElse IO.left(swaydb.Exception.NotAnIntFile(path)) flatMap {
+    IO(fileName.substring(0, extIndex).toLong) orElse IO.failed(swaydb.Exception.NotAnIntFile(path)) flatMap {
       fileId =>
         val ext = fileName.substring(extIndex + 1, fileName.length)
         if (ext == Extension.Log.toString)
@@ -249,7 +249,7 @@ private[core] object IOEffect extends LazyLogging {
           IO.Right(fileId, Extension.Seg)
         else {
           logger.error("Unknown extension for file {}", path)
-          IO.left(swaydb.Exception.UnknownExtension(path))
+          IO.failed(swaydb.Exception.UnknownExtension(path))
         }
     }
   }

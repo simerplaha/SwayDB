@@ -377,7 +377,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
       deferred.isComplete shouldBe false
       deferred.isReady shouldBe true
 
-      val failure = IO.left[Error.Segment, Int]("Kaboom!")
+      val failure = IO.failed[Error.Segment, Int]("Kaboom!")
 
       val ioDeferred: Defer[Error.Segment, Int] =
         deferred flatMapIO {
@@ -393,7 +393,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
     }
 
     "failed non-recoverable deferred and successful IO" in {
-      val failure = IO.left("Kaboom!")
+      val failure = IO.failed("Kaboom!")
       val deferred: Defer[Error.Segment, Int] = IO.Defer[swaydb.Error.Segment, Int](throw failure.exception)
 
       deferred.isComplete shouldBe false

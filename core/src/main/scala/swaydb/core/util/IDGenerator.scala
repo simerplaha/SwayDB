@@ -39,10 +39,9 @@ private[core] class IDGenerator(initial: Long) {
     nextID + s".${Extension.Seg}"
 }
 
-object BlockCacheFileIDGenerator {
+private[core] object BlockCacheFileIDGenerator {
   private val atomicID = new AtomicLong(0)
 
   def nextID: Long =
     atomicID.incrementAndGet()
-
 }

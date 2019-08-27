@@ -41,7 +41,7 @@ object Stream {
   def apply[A, T[_]](streamer: Streamer[A, T])(implicit tag: Tag[T]): Stream[A, T] =
     new Stream[A, T] {
       override def headOption(): T[Option[A]] =
-        streamer.headOption
+        streamer.head
 
       override private[swaydb] def next(previous: A): T[Option[A]] =
         streamer.next(previous)

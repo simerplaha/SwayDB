@@ -58,9 +58,9 @@ object DeadlineReader {
           previous.indexEntryDeadline map {
             deadline =>
               IO.Right(Some(deadline))
-          } getOrElse IO.left(EntryReaderFailure.NoPreviousDeadline)
+          } getOrElse IO.failed(EntryReaderFailure.NoPreviousDeadline)
       } getOrElse {
-        IO.left(EntryReaderFailure.NoPreviousKeyValue)
+        IO.failed(EntryReaderFailure.NoPreviousKeyValue)
       }
   }
 
@@ -87,10 +87,10 @@ object DeadlineReader {
                 }
             }
         } getOrElse {
-          IO.left(EntryReaderFailure.NoPreviousDeadline)
+          IO.failed(EntryReaderFailure.NoPreviousDeadline)
         }
     } getOrElse {
-      IO.left(EntryReaderFailure.NoPreviousKeyValue)
+      IO.failed(EntryReaderFailure.NoPreviousKeyValue)
     }
 
   implicit object DeadlineOneCompressedReader extends DeadlineReader[BaseEntryId.Deadline.OneCompressed] {

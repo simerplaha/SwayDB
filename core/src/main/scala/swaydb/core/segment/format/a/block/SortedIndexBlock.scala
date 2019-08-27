@@ -361,7 +361,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       )
     } catch {
       case exception: Exception =>
-        IO.left(exception)
+        IO.failed(exception)
     }
 
   def readAll(keyValueCount: Int,
@@ -398,7 +398,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       } map (_ => entries)
     } catch {
       case exception: Exception =>
-        IO.left(exception)
+        IO.failed(exception)
     }
 
   def search(key: Slice[Byte],

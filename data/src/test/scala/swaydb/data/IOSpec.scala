@@ -53,7 +53,7 @@ class IOSpec extends WordSpec with Matchers {
           item =>
             iterations += 1
             if (item == 3)
-              IO.left(s"result at item $item")
+              IO.failed(s"result at item $item")
             else
               IO.Right(item)
         }
@@ -72,7 +72,7 @@ class IOSpec extends WordSpec with Matchers {
           item => {
             iterations += 1
             if (item == 3)
-              IO.left(s"result at item $item")
+              IO.failed(s"result at item $item")
             else {
               IO.Right(item)
             }
@@ -119,7 +119,7 @@ class IOSpec extends WordSpec with Matchers {
 
       val result: IO[Throwable, Slice[Int]] =
         slice.mapIO(
-          block = item => if (item == 3) IO.left(s"Failed at $item") else IO.Right(item),
+          block = item => if (item == 3) IO.failed(s"Failed at $item") else IO.Right(item),
           recover = (ints: Slice[Int], _: IO.Left[Throwable, Slice[Int]]) => ints.foreach(intsCleanedUp += _)
         )
 
@@ -154,7 +154,7 @@ class IOSpec extends WordSpec with Matchers {
               IO(List(item.toString))
             }
             else {
-              IO.left("Kaboom!")
+              IO.failed("Kaboom!")
             }
         }
       result.left.get.getMessage shouldBe "Kaboom!"
@@ -169,7 +169,7 @@ class IOSpec extends WordSpec with Matchers {
         slice.foldLeftIO(0) {
           case (count, item) =>
             if (item == "two")
-              IO.left(s"Failed at $item")
+              IO.failed(s"Failed at $item")
             else
               IO.Right(count + 1)
         }
@@ -271,7 +271,7 @@ class IOSpec extends WordSpec with Matchers {
         slice untilSome {
           item => {
             iterations += 1
-            IO.left(s"Failed at $item")
+            IO.failed(s"Failed at $item")
           }
         }
 

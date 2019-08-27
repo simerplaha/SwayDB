@@ -252,7 +252,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
               if (addToCurrentSplit(force = true))
                 IO.unit
               else
-                IO.left(s"Failed to add key-value to new Segment split. minSegmentSize: $minSegmentSize, splits: ${splits.size}, lastSplit: ${splits.lastOption.map(_.size)}")
+                IO.failed(s"Failed to add key-value to new Segment split. minSegmentSize: $minSegmentSize, splits: ${splits.size}, lastSplit: ${splits.lastOption.map(_.size)}")
             }
         }
     }

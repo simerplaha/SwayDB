@@ -48,7 +48,7 @@ object DBFile extends LazyLogging {
     val closer: FileSweeperItem =
       new FileSweeperItem {
         override def path: Path = filePath
-        override def delete(): IO[Error.Segment, Unit] = IO.left("only closable")
+        override def delete(): IO[Error.Segment, Unit] = IO.failed("only closable")
         override def close(): IO[Error.Segment, Unit] = {
           self.get() map {
             fileType =>
@@ -157,7 +157,7 @@ object DBFile extends LazyLogging {
     bytes.foldLeftIO(0) {
       case (written, bytes) =>
         if (!bytes.isFull)
-          IO.left(swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size))
+          IO.failed(swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size))
         else
           IO.Right(written + bytes.size)
     } flatMap {
@@ -185,7 +185,7 @@ object DBFile extends LazyLogging {
                                            blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull)
-      IO.left(swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size))
+      IO.failed(swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size))
     else
       mmapInit(
         path = path,

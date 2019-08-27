@@ -49,7 +49,7 @@ object ValueOffsetReader {
             Bytes.decompress(Slice.writeInt(previousValueOffset), valueOffsetBytes, commonBytes).readInt()
         }
     } getOrElse {
-      IO.left(EntryReaderFailure.NoPreviousKeyValue)
+      IO.failed(EntryReaderFailure.NoPreviousKeyValue)
     }
 
   implicit object ValueOffsetOneCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.OneCompressed] {

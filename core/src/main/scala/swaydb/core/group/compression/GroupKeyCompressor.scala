@@ -93,6 +93,6 @@ private[core] object GroupKeyCompressor {
             (minKey, MaxKey.Range(minKey, maxKey))
         }
     } getOrElse {
-      IO.left(GroupCompressorFailure.GroupKeyIsEmpty)
+      IO.failed(GroupCompressorFailure.GroupKeyIsEmpty)
     }
 }

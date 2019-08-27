@@ -123,7 +123,7 @@ private[swaydb] class LazyIO[E: IO.ErrorHandler, A](lazyValue: LazyValue[IO.Righ
       lazyValue set IO.Right(value.get)
     catch {
       case exception: Exception =>
-        IO.left[E, A](exception)
+        IO.failed[E, A](exception)
     }
 
   override def get(): Option[IO.Right[E, A]] =
@@ -134,7 +134,7 @@ private[swaydb] class LazyIO[E: IO.ErrorHandler, A](lazyValue: LazyValue[IO.Righ
       lazyValue getOrSet IO.Right(value.get)
     catch {
       case exception: Exception =>
-        IO.left[E, A](exception)
+        IO.failed[E, A](exception)
     }
 
   override def getOrElse[B >: IO[E, A]](f: => B): B =

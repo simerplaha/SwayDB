@@ -289,7 +289,7 @@ object IO {
     def fromException[E](exception: Throwable)(implicit errorHandler: IO.ErrorHandler[E]): E =
       errorHandler.fromException(exception)
 
-    def reserve[E](e: E)(implicit errorHandler: IO.ErrorHandler[E]): Option[Reserve[Unit]] =
+    def recover[E](e: E)(implicit errorHandler: IO.ErrorHandler[E]): Option[Reserve[Unit]] =
       try
         errorHandler.recover(e)
       catch {
@@ -331,14 +331,11 @@ object IO {
     }
   }
 
-  def successful[E: IO.ErrorHandler, A](value: A): IO.Right[E, A] =
-    new IO.Right[E, A](value)
-
   final case class Right[+L: IO.ErrorHandler, +R](value: R) extends IO[L, R] {
     override def get: R = value
     override def isLeft: Boolean = false
     override def isRight: Boolean = true
-    override def left: IO.Left[Throwable, L] = IO.left[Throwable, L](new UnsupportedOperationException("Value is IO.Right"))(IO.ErrorHandler.Throwable)
+    override def left: IO.Left[Throwable, L] = IO.Left[Throwable, L](new UnsupportedOperationException("Value is IO.Right"))(IO.ErrorHandler.Throwable)
     override def right: IO.Right[Throwable, R] = IO.Right[Throwable, R](get)(IO.ErrorHandler.Throwable)
     override def exists(f: R => Boolean): Boolean = f(value)
     override def getOrElse[B >: R](default: => B): B = get
@@ -352,7 +349,7 @@ object IO {
     override def toOption: Option[R] = Some(get)
     override def toEither: Either[L, R] = scala.util.Right(get)
     override def filter(p: R => Boolean): IO[L, R] =
-      IO.Catch(if (p(get)) this else IO.left[L, R](new NoSuchElementException("Predicate does not hold for " + get)))
+      IO.Catch(if (p(get)) this else IO.failed[L, R](new NoSuchElementException("Predicate does not hold for " + get)))
     override def toFuture: Future[R] = Future.successful(get)
     override def toTry: scala.util.Try[R] = scala.util.Success(get)
     override def onLeftSideEffect(f: IO.Left[L, R] => Unit): IO.Right[L, R] = this
@@ -366,10 +363,10 @@ object IO {
     }
   }
 
-  @inline final def left[E: IO.ErrorHandler, A](exception: Throwable): IO.Left[E, A] =
+  @inline final def failed[E: IO.ErrorHandler, A](exception: Throwable): IO.Left[E, A] =
     new IO.Left[E, A](IO.ErrorHandler.fromException[E](exception))
 
-  @inline final def left[E: IO.ErrorHandler, A](exceptionMessage: String): IO.Left[E, A] =
+  @inline final def failed[E: IO.ErrorHandler, A](exceptionMessage: String): IO.Left[E, A] =
     new IO.Left[E, A](IO.ErrorHandler.fromException[E](new scala.Exception(exceptionMessage)))
 
   final case class Left[+L: IO.ErrorHandler, +R](value: L) extends IO[L, R] {
@@ -379,7 +376,7 @@ object IO {
     override def isRight: Boolean = false
     override def left: IO.Right[Throwable, L] = IO.Right[Throwable, L](value)(IO.ErrorHandler.Throwable)
     override def right: IO.Left[Throwable, R] = IO.Left[Throwable, R](new UnsupportedOperationException("Value is IO.Left"))(IO.ErrorHandler.Throwable)
-    def isRecoverable = IO.ErrorHandler.reserve(value).isDefined
+    def isRecoverable = IO.ErrorHandler.recover(value).isDefined
     override def exists(f: R => Boolean): Boolean = false
     override def getOrElse[B >: R](default: => B): B = default
     override def orElse[L2 >: L : IO.ErrorHandler, B >: R](default: => IO[L2, B]): IO[L2, B] = IO.Catch(default)
@@ -486,7 +483,7 @@ object IO {
       catch {
         case ex: Throwable =>
           val error = IO.ErrorHandler.fromException[E](ex)
-          if (IO.ErrorHandler.reserve(error).isDefined)
+          if (IO.ErrorHandler.recover(error).isDefined)
             scala.util.Right(f.copy(error = Some(error)))
           else
             scala.util.Left(IO.Left(error))
@@ -502,7 +499,7 @@ object IO {
 
     //a deferred IO is completed if it's not reserved.
     def isReady: Boolean =
-      error forall (IO.ErrorHandler.reserve[E](_).forall(_.isFree))
+      error forall (IO.ErrorHandler.recover[E](_).forall(_.isFree))
 
     def isBusy =
       !isReady
@@ -557,7 +554,7 @@ object IO {
       def blockIfNeeded(deferred: IO.Defer[E, A]): Unit =
         deferred.error foreach {
           error =>
-            ErrorHandler.reserve(error) foreach {
+            ErrorHandler.recover(error) foreach {
               reserve =>
                 logger.debug(s"Blocking. ${reserve.name}")
                 Reserve.blockUntilFree(reserve)
@@ -586,7 +583,7 @@ object IO {
           case scala.util.Right(deferred) =>
             logger.debug(s"Retry! isCached: ${getValue.isDefined}. ${deferred.error}")
             if (tried > 0 && tried % IO.Defer.maxRecoveriesBeforeWarn == 0)
-              logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via IO. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => IO.ErrorHandler.reserve(error).map(_.name))}")
+              logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via IO. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => IO.ErrorHandler.recover(error).map(_.name))}")
             doRun(deferred, tried + 1)
         }
       }
@@ -603,7 +600,7 @@ object IO {
       def blockIfNeeded(deferred: IO.Defer[E, B]): Unit =
         deferred.error foreach {
           error =>
-            ErrorHandler.reserve(error) foreach {
+            ErrorHandler.recover(error) foreach {
               reserve =>
                 logger.debug(s"Blocking. ${reserve.name}")
                 Reserve.blockUntilFree(reserve)
@@ -632,7 +629,7 @@ object IO {
           case scala.util.Right(deferred) =>
             logger.debug(s"Retry! isCached: ${getValue.isDefined}. ${deferred.error}")
             if (tried > 0 && tried % IO.Defer.maxRecoveriesBeforeWarn == 0)
-              logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via runSync. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => IO.ErrorHandler.reserve(error).map(_.name))}")
+              logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via runSync. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => IO.ErrorHandler.recover(error).map(_.name))}")
             doRun(deferred, tried + 1)
         }
       }
@@ -649,7 +646,7 @@ object IO {
       def delayedRun(deferred: IO.Defer[E, B]): Option[T[Unit]] =
         deferred.error flatMap {
           error =>
-            ErrorHandler.reserve(error) flatMap {
+            ErrorHandler.recover(error) flatMap {
               reserve =>
                 val promise = Reserve.promise(reserve)
                 if (promise.isCompleted)
@@ -699,7 +696,7 @@ object IO {
 
               case scala.util.Right(deferred) =>
                 if (tried > 0 && tried % IO.Defer.maxRecoveriesBeforeWarn == 0)
-                  logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via Async. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => IO.ErrorHandler.reserve(error).map(_.name))}")
+                  logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via Async. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => IO.ErrorHandler.recover(error).map(_.name))}")
                 runNow(deferred, tried + 1)
             }
         }

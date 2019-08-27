@@ -61,9 +61,9 @@ private[core] object Segment extends LazyLogging {
                                              memorySweeper: Option[MemorySweeper.KeyValue],
                                              segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] =
     if (keyValues.isEmpty) {
-      IO.left("Empty key-values submitted to memory Segment.")
+      IO.failed("Empty key-values submitted to memory Segment.")
     } else if (keyValues.last.stats.segmentHasGroup && memorySweeper.isEmpty) { //this check needs to be type-safe instead.
-      IO.left("Segment has groups but memorySweeper is not specified.")
+      IO.failed("Segment has groups but memorySweeper is not specified.")
     } else {
       val bloomFilter: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
       val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)

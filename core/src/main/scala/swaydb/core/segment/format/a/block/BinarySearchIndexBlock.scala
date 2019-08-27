@@ -426,7 +426,7 @@ private[core] object BinarySearchIndexBlock {
                   context.startKeyValue map {
                     startKeyValue =>
                       if (lower.hashCode() != startKeyValue.hashCode())
-                        IO.left("Lower was defined.")
+                        IO.failed("Lower was defined.")
                       else
                         IO.Right(SearchResult.None(None))
                   }

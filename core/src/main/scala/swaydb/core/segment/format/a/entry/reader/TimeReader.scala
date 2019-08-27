@@ -101,9 +101,9 @@ object TimeReader {
           readTime(indexReader, previous.time)
 
         case _: KeyValue.ReadOnly.Range | _: KeyValue.ReadOnly.Group =>
-          IO.left(EntryReaderFailure.PreviousIsNotFixedKeyValue)
+          IO.failed(EntryReaderFailure.PreviousIsNotFixedKeyValue)
       } getOrElse {
-        IO.left(EntryReaderFailure.NoPreviousKeyValue)
+        IO.failed(EntryReaderFailure.NoPreviousKeyValue)
       }
   }
 }

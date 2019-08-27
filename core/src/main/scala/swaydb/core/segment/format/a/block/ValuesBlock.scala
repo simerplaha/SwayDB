@@ -170,7 +170,7 @@ private[core] object ValuesBlock {
     if (length == 0)
       IO.none
     else if (fromOffset < 0)
-      IO.left(s"Cannot read from negative offset '$fromOffset'.")
+      IO.failed(s"Cannot read from negative offset '$fromOffset'.")
     else
       reader
         .moveTo(fromOffset)
@@ -178,7 +178,7 @@ private[core] object ValuesBlock {
         .flatMap {
           slice =>
             if (slice.size != length)
-              IO.left(s"Read value bytes != expected. ${slice.size} != $length.")
+              IO.failed(s"Read value bytes != expected. ${slice.size} != $length.")
             else
               IO.Right(Some(slice))
         }
