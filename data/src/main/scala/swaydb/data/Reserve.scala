@@ -37,10 +37,10 @@ class Reserve[T](@volatile var info: Option[T],
 
 object Reserve {
 
-  def apply[T](name: String): Reserve[T] =
+  def free[T](name: String): Reserve[T] =
     new Reserve(None, ListBuffer.empty, name)
 
-  def apply[T](info: T, name: String): Reserve[T] =
+  def busy[T](info: T, name: String): Reserve[T] =
     new Reserve(Some(info), ListBuffer.empty, name)
 
   def blockUntilFree[T](reserve: Reserve[T]): Unit =

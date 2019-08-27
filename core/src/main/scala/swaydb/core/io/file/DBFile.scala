@@ -66,7 +66,7 @@ object DBFile extends LazyLogging {
     val cache =
       Cache.io[swaydb.Error.IO, Error.OpeningFile, Unit, DBFileType](
         strategy = ioStrategy.withCacheOnAccess,
-        reserveError = Error.OpeningFile(filePath, Reserve(name = s"DBFile: $filePath. MemoryMapped: $memoryMapped")),
+        reserveError = Error.OpeningFile(filePath, Reserve.free(name = s"DBFile: $filePath. MemoryMapped: $memoryMapped")),
         initial = file
       ) {
         _ =>

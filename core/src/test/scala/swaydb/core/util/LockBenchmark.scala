@@ -28,7 +28,7 @@ object LockBenchmark extends App {
 
   val locker = new ReentrantReadWriteLock()
   val atomic = new AtomicBoolean(false)
-  val reserve = Reserve[Unit]("")
+  val reserve = Reserve.free[Unit]("")
 
   Benchmark("") {
     (1 to 1000000) foreach {

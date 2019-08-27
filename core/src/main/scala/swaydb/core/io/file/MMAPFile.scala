@@ -103,7 +103,7 @@ private[file] class MMAPFile(val path: Path,
   def recoverFromNullPointer[T](f: => T): IO[swaydb.Error.IO, T] =
     IO[swaydb.Error.IO, T](f) recoverWith {
       case swaydb.Error.Fatal(ex: NullPointerException) =>
-        IO.Left[swaydb.Error.IO, T](swaydb.Error.NullMappedByteBuffer(swaydb.Exception.NullMappedByteBuffer(ex, Reserve(name = s"${this.getClass.getSimpleName}: $path"))))
+        IO.Left[swaydb.Error.IO, T](swaydb.Error.NullMappedByteBuffer(swaydb.Exception.NullMappedByteBuffer(ex, Reserve.free(name = s"${this.getClass.getSimpleName}: $path"))))
 
       case other =>
         IO.Left(other)

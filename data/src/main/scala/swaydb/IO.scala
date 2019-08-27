@@ -20,8 +20,6 @@
 package swaydb
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO.ErrorHandler
-import swaydb.IO.ErrorHandler.logger
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
 
@@ -415,7 +413,7 @@ object IO {
   }
 
   def fromFuture[L: IO.ErrorHandler, R](future: Future[R])(implicit ec: ExecutionContext): IO.Defer[L, R] = {
-    val reserve = Reserve[Unit]((), "fromFuture")
+    val reserve = Reserve.busy((), "Future reserve")
     future onComplete {
       _ =>
         Reserve.setFree(reserve)
@@ -580,7 +578,7 @@ object IO {
               case IO.Left(error) =>
                 logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
                 if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
-                  doRun(recovery.get.asInstanceOf[(E) => IO.Defer[E, A]](error), 0)
+                  doRun(recovery.get.asInstanceOf[E => IO.Defer[E, A]](error), 0)
                 else
                   io
             }
@@ -626,7 +624,7 @@ object IO {
               case IO.Left(error) =>
                 logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
                 if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
-                  doRun(recovery.get.asInstanceOf[(E) => IO.Defer[E, B]](error), 0)
+                  doRun(recovery.get.asInstanceOf[E => IO.Defer[E, B]](error), 0)
                 else
                   tag.fromIO(io)
             }
@@ -694,7 +692,7 @@ object IO {
 
                   case IO.Left(error) =>
                     if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
-                      runNow(recovery.get.asInstanceOf[(E) => IO.Defer[E, B]](error), 0)
+                      runNow(recovery.get.asInstanceOf[E => IO.Defer[E, B]](error), 0)
                     else
                       tag.fromIO(io)
                 }

@@ -74,15 +74,15 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
                    stored: Boolean,
                    initialValue: Option[Int]): (Unit => IO[swaydb.Error.Segment, Int]) => Cache[swaydb.Error.Segment, Unit, Int] =
     if (isBlockIO)
-      Cache.deferredIO(getIOStrategy(isConcurrent, isSynchronised, isReserved, stored), swaydb.Error.ReservedResource(Reserve(name = "test")))
+      Cache.deferredIO(getIOStrategy(isConcurrent, isSynchronised, isReserved, stored), swaydb.Error.ReservedResource(Reserve.free(name = "test")))
     else if (isConcurrent)
       Cache.concurrentIO(synchronised = false, stored = stored, initial = initialValue)
     else if (isSynchronised)
       Cache.concurrentIO(synchronised = true, stored = stored, initial = initialValue)
     else if (isReserved)
-      Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](stored = stored, swaydb.Error.ReservedResource(Reserve(name = "test")), initial = initialValue)
+      Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](stored = stored, swaydb.Error.ReservedResource(Reserve.free(name = "test")), initial = initialValue)
     else
-      Cache.io(getIOStrategy(isConcurrent, isSynchronised, isReserved, stored)(()), swaydb.Error.ReservedResource(Reserve(name = "test")), initialValue) //then it's strategy IO
+      Cache.io(getIOStrategy(isConcurrent, isSynchronised, isReserved, stored)(()), swaydb.Error.ReservedResource(Reserve.free(name = "test")), initialValue) //then it's strategy IO
 
   "valueIO" should {
     "always return initial value" in {
@@ -304,7 +304,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.map(IO(_)).value().left.get shouldBe swaydb.Error.Fatal(exception)
         cache.isCached shouldBe false
         cache.flatMap {
-          Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](true, swaydb.Error.ReservedResource(Reserve(name = "test")), None) {
+          Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](true, swaydb.Error.ReservedResource(Reserve.free(name = "test")), None) {
             int =>
               IO.Right(int + 1)
           }
@@ -406,14 +406,14 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
           val simpleCache =
             if (blockIO)
-              Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](strategy = _ => IOStrategy.AsyncIO(true), swaydb.Error.ReservedResource(Reserve(name = "test"))) {
+              Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](strategy = _ => IOStrategy.AsyncIO(true), swaydb.Error.ReservedResource(Reserve.free(name = "test"))) {
                 _ =>
                   invokeCount += 1
                   sleep(1.millisecond) //delay access
                   IO.Right(10)
               }
             else
-              Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](stored = true, swaydb.Error.ReservedResource(Reserve(name = "test")), None) {
+              Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](stored = true, swaydb.Error.ReservedResource(Reserve.free(name = "test")), None) {
                 _ =>
                   invokeCount += 1
                   sleep(1.millisecond) //delay access

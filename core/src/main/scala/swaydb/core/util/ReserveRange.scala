@@ -152,7 +152,7 @@ object ReserveRange extends LazyLogging {
         .find(range => Slice.intersects((from, to, toInclusive), (range.from, range.to, range.toInclusive)))
         .map(IO.Left(_)(Range.ErrorHandler))
         .getOrElse {
-          state.ranges += ReserveRange.Range(from, to, toInclusive, Reserve(info, "ReserveRange"))
+          state.ranges += ReserveRange.Range(from, to, toInclusive, Reserve.busy(info, "ReserveRange"))
           val waitingCount = state.ranges.size
           //Helps debug situations if too many threads and try to compact into the same Segment.
           if (waitingCount >= 100) logger.warn(s"Too many listeners: $waitingCount")
