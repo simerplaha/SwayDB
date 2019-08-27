@@ -32,7 +32,6 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.level.PathsDistributor
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.merge.SegmentMerger
@@ -98,7 +97,7 @@ private[segment] case class MemorySegment(path: Path,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                   groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Slice[Segment]] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       getAll() flatMap {
         currentKeyValues =>
@@ -127,10 +126,10 @@ private[segment] case class MemorySegment(path: Path,
                     ),
 
                 recover =
-                  (segments: Slice[Segment], _: IO.Failure[swaydb.Error.Segment, Iterable[Segment]]) =>
+                  (segments: Slice[Segment], _: IO.Left[swaydb.Error.Segment, Iterable[Segment]]) =>
                     segments foreach {
                       segmentToDelete =>
-                        segmentToDelete.delete onFailureSideEffect {
+                        segmentToDelete.delete onLeftSideEffect {
                           exception =>
                             logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
                         }
@@ -151,7 +150,7 @@ private[segment] case class MemorySegment(path: Path,
                        targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                       groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Slice[Segment]] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       getAll() flatMap {
         currentKeyValues =>
@@ -179,10 +178,10 @@ private[segment] case class MemorySegment(path: Path,
                     ),
 
                 recover =
-                  (segments: Slice[Segment], _: IO.Failure[swaydb.Error.Segment, Iterable[Segment]]) =>
+                  (segments: Slice[Segment], _: IO.Left[swaydb.Error.Segment, Iterable[Segment]]) =>
                     segments foreach {
                       segmentToDelete =>
-                        segmentToDelete.delete onFailureSideEffect {
+                        segmentToDelete.delete onLeftSideEffect {
                           exception =>
                             logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
                         }
@@ -201,17 +200,17 @@ private[segment] case class MemorySegment(path: Path,
   private def doBasicGet(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     skipList.get(key) map {
       case response: Memory.SegmentResponse =>
-        IO.Success(Some(response))
+        IO.Right(Some(response))
 
       case _: Memory.Group =>
-        IO.failed("Get resulted in a Group when floorEntry should've fetched the Group instead.")
+        IO.left("Get resulted in a Group when floorEntry should've fetched the Group instead.")
     } getOrElse {
       IO.none
     }
 
   override def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       mightContainKey(key, rangeCheck = true) flatMap {
         mightContain =>
@@ -227,7 +226,7 @@ private[segment] case class MemorySegment(path: Path,
                 if (_hasRange || _hasGroup)
                   skipList.floor(key) match {
                     case Some(range: Memory.Range) if range contains key =>
-                      IO.Success(Some(range))
+                      IO.Right(Some(range))
 
                     case Some(group: Memory.Group) if group contains key =>
                       addToQueueMayBe(group)
@@ -277,11 +276,11 @@ private[segment] case class MemorySegment(path: Path,
 
   override def lower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       skipList.lower(key) map {
         case response: Memory.SegmentResponse =>
-          IO.Success(Some(response))
+          IO.Right(Some(response))
         case group: Memory.Group =>
           addToQueueMayBe(group)
           group.segment.lower(key) flatMap {
@@ -301,7 +300,7 @@ private[segment] case class MemorySegment(path: Path,
   private def doBasicHigher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     skipList.higher(key) map {
       case response: Memory.SegmentResponse =>
-        IO.Success(Some(response))
+        IO.Right(Some(response))
       case group: Memory.Group =>
         group.segment.higher(key) flatMap {
           case Some(persistent) =>
@@ -315,7 +314,7 @@ private[segment] case class MemorySegment(path: Path,
 
   def floorHigherHint(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       hasPut map {
         hasPut =>
@@ -332,11 +331,11 @@ private[segment] case class MemorySegment(path: Path,
 
   override def higher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else if (_hasRange || _hasGroup)
       skipList.floor(key) map {
         case floorRange: Memory.Range if floorRange contains key =>
-          IO.Success(Some(floorRange))
+          IO.Right(Some(floorRange))
 
         case floorGroup: Memory.Group if floorGroup containsHigher key =>
           addToQueueMayBe(floorGroup)
@@ -350,7 +349,7 @@ private[segment] case class MemorySegment(path: Path,
               //Group's last key-value can be inclusive or exclusive and fromKey & toKey can be the same.
               //So it's hard to know if the Group contain higher therefore a basicHigher is required if group returns None for higher.
               if (higher.isDefined)
-                IO.Success(higher)
+                IO.Right(higher)
               else
                 doBasicHigher(key)
           }
@@ -364,7 +363,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       IO {
         val slice = addTo getOrElse Slice.create[KeyValue.ReadOnly](skipList.size)
@@ -381,9 +380,9 @@ private[segment] case class MemorySegment(path: Path,
     //cache should not be cleared.
     logger.trace(s"{}: DELETING FILE", path)
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
-      IO.Success {
+      IO.Right {
         deleted = true
       }
   }
@@ -393,13 +392,13 @@ private[segment] case class MemorySegment(path: Path,
 
   override def getBloomFilterKeyValueCount(): IO[swaydb.Error.Segment, Int] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       skipList.values().asScala.foldLeftIO(0) {
         case (count, keyValue) =>
           keyValue match {
             case _: SegmentResponse =>
-              IO.Success(count + 1)
+              IO.Right(count + 1)
 
             case group: Group =>
               group.segment.getBloomFilterKeyValueCount() map (_ + count)
@@ -408,9 +407,9 @@ private[segment] case class MemorySegment(path: Path,
 
   override def getHeadKeyValueCount(): IO[swaydb.Error.Segment, Int] =
     if (deleted)
-      IO.Failure(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
-      IO.Success(skipList.size)
+      IO.Right(skipList.size)
 
   override def isOpen: Boolean =
     !deleted

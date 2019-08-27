@@ -40,8 +40,8 @@ private[core] object Cache {
       override def clear(): Unit =
         ()
 
-      override def get(): Option[IO.Success[E, B]] =
-        Option(IO.Success(output))
+      override def get(): Option[IO.Right[E, B]] =
+        Option(IO.Right(output))
 
       override def getOrElse[F >: E : ErrorHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
         IO[F, BB](output)
@@ -142,7 +142,7 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
   def value(i: => I): IO[E, O]
   def isCached: Boolean
   def clear(): Unit
-  def get(): Option[IO.Success[E, O]]
+  def get(): Option[IO.Right[E, O]]
   def getOrElse[F >: E : ErrorHandler, B >: O](f: => IO[F, B]): IO[F, B]
 
   def getSomeOrElse[F >: E : ErrorHandler, B >: O](f: => IO[F, Option[B]]): IO[F, Option[B]] =
@@ -165,14 +165,14 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
       override def getOrElse[FF >: F : ErrorHandler, BB >: B](f: => IO[FF, BB]): IO[FF, BB] =
         get() getOrElse f
 
-      override def get(): Option[IO.Success[F, B]] =
+      override def get(): Option[IO.Right[F, B]] =
         self.get() flatMap {
           success =>
             success.flatMap(f) match {
-              case success: IO.Success[F, B] =>
+              case success: IO.Right[F, B] =>
                 Some(success)
 
-              case ex: IO.Failure[F, B] =>
+              case ex: IO.Left[F, B] =>
                 logger.error("Failed to apply map function on Cache.", ex.exception)
                 None
             }
@@ -199,15 +199,15 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
        * If [[next]] is not already cached see if [[self]] is cached
        * and send it's value to [[next]]'s cache to populate.
        */
-      override def get(): Option[IO.Success[F, B]] =
+      override def get(): Option[IO.Right[F, B]] =
         next.get() orElse {
           self.get() flatMap {
             value =>
               next.value(value.get) match {
-                case success @ IO.Success(_) =>
+                case success @ IO.Right(_) =>
                   Some(success)
 
-                case failure @ IO.Failure(_) =>
+                case failure @ IO.Left(_) =>
                   logger.error("Failed to apply flatMap function on Cache.", failure.exception)
                   None
               }
@@ -237,7 +237,7 @@ private class BlockIOCache[E: ErrorHandler, -I, +B](cache: NoIO[I, Cache[E, I, B
     cache.clear()
   }
 
-  override def get(): Option[IO.Success[E, B]] =
+  override def get(): Option[IO.Right[E, B]] =
     cache.get().flatMap(_.get())
 }
 
@@ -256,7 +256,7 @@ private class SynchronisedIO[E: ErrorHandler, -I, +B](fetch: I => IO[E, B],
   override def clear(): Unit =
     lazyIO.clear()
 
-  override def get(): Option[IO.Success[E, B]] =
+  override def get(): Option[IO.Right[E, B]] =
     lazyIO.get()
 }
 
@@ -276,7 +276,7 @@ private class ReservedIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable,
         finally
           Reserve.setFree(error.reserve)
       else
-        IO.Failure[E, B](error)
+        IO.Left[E, B](error)
     }
 
   override def isCached: Boolean =
@@ -288,7 +288,7 @@ private class ReservedIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable,
   override def clear() =
     lazyIO.clear()
 
-  override def get(): Option[IO.Success[E, B]] =
+  override def get(): Option[IO.Right[E, B]] =
     lazyIO.get()
 }
 

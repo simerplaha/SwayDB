@@ -26,10 +26,10 @@ import java.nio.file.{NoSuchFileException, StandardOpenOption}
 import swaydb.IO
 import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.RunThis._
-import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues}
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.util.BlockCacheFileIDGenerator
+import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues}
 import swaydb.data.config.ActorConfig
 import swaydb.data.slice.Slice
 
@@ -59,13 +59,13 @@ class BufferCleanerSpec extends TestBase {
 
     eventual(10.seconds) {
       file.file match {
-        case IO.Success(file: MMAPFile) =>
+        case IO.Right(file: MMAPFile) =>
           file.isBufferEmpty shouldBe true
 
-        case IO.Success(file) =>
+        case IO.Right(file) =>
           fail(s"Didn't expect file type: ${file.getClass.getSimpleName}")
 
-        case IO.Failure(_) =>
+        case IO.Left(_) =>
         //success it was null and removed.
       }
     }
@@ -100,7 +100,7 @@ class BufferCleanerSpec extends TestBase {
         file =>
           Future {
             while (true)
-              file.get(0).failed.get.exception shouldBe a[NoSuchFileException]
+              file.get(0).left.get.exception shouldBe a[NoSuchFileException]
           }
       }
 
@@ -116,7 +116,7 @@ class BufferCleanerSpec extends TestBase {
     val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
     val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
     val result = BufferCleaner.clean(BufferCleaner.State(None), buffer, path)
-    result shouldBe a[IO.Success[_, _]]
+    result shouldBe a[IO.Right[_, _]]
     result.get.cleaner shouldBe defined
   }
 }

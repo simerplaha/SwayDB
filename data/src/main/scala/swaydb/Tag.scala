@@ -271,10 +271,10 @@ object Tag {
         IO(a)
 
       def isSuccess[A](a: IO.ThrowableIO[A]): Boolean =
-        a.isSuccess
+        a.isRight
 
       def isFailure[A](a: IO.ThrowableIO[A]): Boolean =
-        a.isFailure
+        a.isLeft
 
       override def map[A, B](a: A)(f: A => B): IO.ThrowableIO[B] =
         IO(f(a))
@@ -289,10 +289,10 @@ object Tag {
         IO.successful(value)
 
       override def failure[A](exception: Throwable): IO.ThrowableIO[A] =
-        IO.failed(exception)
+        IO.left(exception)
 
       override def exception[A](a: IO.ThrowableIO[A]): Option[Throwable] =
-        a.failed.toOption
+        a.left.toOption
 
       override def getOrElse[A, B >: A](a: IO.ThrowableIO[A])(b: => B): B =
         a.getOrElse(b)
@@ -307,10 +307,10 @@ object Tag {
         @tailrec
         def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): IO.ThrowableIO[U] =
           if (take.contains(currentSize))
-            IO.Success(previousResult)
+            IO.Right(previousResult)
           else
             stream.next(previous) match {
-              case IO.Success(Some(next)) =>
+              case IO.Right(Some(next)) =>
                 if (drop >= 1) {
                   fold(next, drop - 1, currentSize, previousResult)
                 } else {
@@ -319,23 +319,23 @@ object Tag {
                       operation(previousResult, next)
                     } catch {
                       case exception: Throwable =>
-                        return IO.failed(exception)
+                        return IO.left(exception)
                     }
                   fold(next, drop, currentSize + 1, nextResult)
                 }
 
-              case IO.Success(None) =>
-                IO.Success(previousResult)
+              case IO.Right(None) =>
+                IO.Right(previousResult)
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         if (take.contains(0))
-          IO.Success(initial)
+          IO.Right(initial)
         else
           after.map(stream.next).getOrElse(stream.headOption) match {
-            case IO.Success(Some(first)) =>
+            case IO.Right(Some(first)) =>
               if (drop >= 1)
                 fold(first, drop - 1, 0, initial)
               else {
@@ -344,32 +344,32 @@ object Tag {
                     operation(initial, first)
                   } catch {
                     case throwable: Throwable =>
-                      return IO.failed(throwable)
+                      return IO.left(throwable)
                   }
                 fold(first, drop, 1, next)
               }
 
-            case IO.Success(None) =>
-              IO.Success(initial)
+            case IO.Right(None) =>
+              IO.Right(initial)
 
-            case IO.Failure(error) =>
-              IO.Failure(error)
+            case IO.Left(error) =>
+              IO.Left(error)
           }
       }
 
       @tailrec
       override def collectFirst[A](previous: A, stream: swaydb.Stream[A, IO.ThrowableIO])(condition: A => Boolean): IO.ThrowableIO[Option[A]] =
         stream.next(previous) match {
-          case success @ IO.Success(Some(nextA)) =>
+          case success @ IO.Right(Some(nextA)) =>
             if (condition(nextA))
               success
             else
               collectFirst(nextA, stream)(condition)
 
-          case none @ IO.Success(None) =>
+          case none @ IO.Right(None) =>
             none
 
-          case failure @ IO.Failure(_) =>
+          case failure @ IO.Left(_) =>
             failure
         }
       override def fromIO[E: ErrorHandler, A](a: IO[E, A]): IO.ThrowableIO[A] =

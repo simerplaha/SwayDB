@@ -85,7 +85,7 @@ private[core] object GroupKeyCompressor {
 
       case 2 =>
         val keyWithoutId = key.dropRight(1)
-        IO.Success(keyWithoutId, MaxKey.Fixed(keyWithoutId))
+        IO.Right(keyWithoutId, MaxKey.Fixed(keyWithoutId))
 
       case 3 =>
         Bytes.decompressJoin(key.dropRight(1)) map {
@@ -93,6 +93,6 @@ private[core] object GroupKeyCompressor {
             (minKey, MaxKey.Range(minKey, maxKey))
         }
     } getOrElse {
-      IO.failed(GroupCompressorFailure.GroupKeyIsEmpty)
+      IO.left(GroupCompressorFailure.GroupKeyIsEmpty)
     }
 }

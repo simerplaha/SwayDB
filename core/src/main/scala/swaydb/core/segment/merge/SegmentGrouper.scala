@@ -109,7 +109,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           case keyValue: KeyValue.ReadOnly.Group =>
             implicit val groupIO = groupBy.map(_.groupIO) getOrElse segmentIO
             keyValue.segment.getAll() match {
-              case IO.Success(groupKeyValues) =>
+              case IO.Right(groupKeyValues) =>
                 addKeyValues(
                   keyValues = MergeList[Memory.Range, KeyValue.ReadOnly](groupKeyValues) append keyValues.dropHead(),
                   splits = splits,
@@ -120,8 +120,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   segmentMergeConfigs = segmentMergeConfigs,
                   segmentIO = segmentIO
                 )
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
           case keyValue =>
@@ -135,7 +135,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
               segmentMergeConfigs = segmentMergeConfigs,
               segmentIO = segmentIO
             ) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 addKeyValues(
                   keyValues = keyValues.dropHead(),
                   splits = splits,
@@ -146,8 +146,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   segmentMergeConfigs = segmentMergeConfigs,
                   segmentIO = segmentIO
                 )
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
         }
       case None =>
@@ -252,7 +252,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
               if (addToCurrentSplit(force = true))
                 IO.unit
               else
-                IO.failed(s"Failed to add key-value to new Segment split. minSegmentSize: $minSegmentSize, splits: ${splits.size}, lastSplit: ${splits.lastOption.map(_.size)}")
+                IO.left(s"Failed to add key-value to new Segment split. minSegmentSize: $minSegmentSize, splits: ${splits.size}, lastSplit: ${splits.lastOption.map(_.size)}")
             }
         }
     }
@@ -469,7 +469,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
         case range: KeyValue.ReadOnly.Range =>
           if (isLastLevel)
             range.fetchFromValue match {
-              case IO.Success(fromValue) =>
+              case IO.Right(fromValue) =>
                 fromValue match {
                   case Some(fromValue) =>
                     fromValue match {
@@ -499,8 +499,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   case None =>
                     IO.unit
                 }
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else
             range.fetchFromAndRangeValue flatMap {

@@ -52,25 +52,25 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
   def createActor(levels: List[LevelRef],
                   executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering): IO[swaydb.Error.Level, WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     if (levels.size != executionContexts.size)
-      IO.Failure(swaydb.Error.Fatal(new IllegalStateException(s"Number of ExecutionContexts(${executionContexts.size}) is not the same as number of Levels(${levels.size}).")))
+      IO.Left(swaydb.Error.Fatal(new IllegalStateException(s"Number of ExecutionContexts(${executionContexts.size}) is not the same as number of Levels(${levels.size}).")))
     else
       levels
         .zip(executionContexts)
         .foldLeftIO(ListBuffer.empty[(ListBuffer[LevelRef], ExecutionContext)]) {
           case (jobs, (level, CompactionExecutionContext.Create(executionContext))) => //new thread pool.
             jobs += ((ListBuffer(level), executionContext))
-            IO.Success(jobs)
+            IO.Right(jobs)
 
           case (jobs, (level, CompactionExecutionContext.Shared)) => //share with previous thread pool.
             jobs.lastOption match {
               case Some((lastGroup, _)) =>
                 lastGroup += level
-                IO.Success(jobs)
+                IO.Right(jobs)
 
               case None =>
                 //this will never occur because during configuration Level0 is only allowed to have Create
                 //so Shared can never happen with Create.
-                IO.Failure(swaydb.Error.Fatal(new IllegalStateException("Shared ExecutionContext submitted without Create.")))
+                IO.Left(swaydb.Error.Fatal(new IllegalStateException("Shared ExecutionContext submitted without Create.")))
             }
         }
         .map {
@@ -231,7 +231,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
           levels = zero +: LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
           executionContexts = executionContexts
         )
-    } getOrElse IO.Failure(swaydb.Error.Fatal(new Exception("Compaction not started because there is no lower level.")))
+    } getOrElse IO.Left(swaydb.Error.Fatal(new Exception("Compaction not started because there is no lower level.")))
 
   /**
    * Note: [[LevelZero.onNextMapCallback]] does not support thread-safe updates so it should be

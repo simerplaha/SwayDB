@@ -20,12 +20,9 @@
 package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ErrorHandler
-import swaydb.core.io.file.BlockCache
-import swaydb.core.io.reader.FileReader
+import swaydb.IO
 import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.data.slice.{Reader, Slice}
-import swaydb.{Error, IO}
 
 private[reader] object BlockReader extends LazyLogging {
 
@@ -69,7 +66,7 @@ private[reader] object BlockReader extends LazyLogging {
             byte
         }
     else
-      IO.Failure(swaydb.Error.Fatal(s"Has no more bytes. Position: ${state.position}"))
+      IO.Left(swaydb.Error.Fatal(s"Has no more bytes. Position: ${state.position}"))
 
   def read(size: Int, state: State): IO[swaydb.Error.Segment, Slice[Byte]] = {
     val remaining = state.remaining

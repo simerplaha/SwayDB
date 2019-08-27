@@ -89,12 +89,12 @@ private[core] object FunctionMerger {
               }
 
             case None =>
-              IO.Failure[swaydb.Error.Segment, ReadOnly.Fixed](swaydb.Error.FunctionNotFound(function))
+              IO.Left[swaydb.Error.Segment, ReadOnly.Fixed](swaydb.Error.FunctionNotFound(function))
           }
       }
 
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
   }
 
   def apply(newKeyValue: ReadOnly.Function,
@@ -179,11 +179,11 @@ private[core] object FunctionMerger {
               }
 
             case None =>
-              IO.Failure[swaydb.Error.Segment, ReadOnly.Fixed](swaydb.Error.FunctionNotFound(function))
+              IO.Left[swaydb.Error.Segment, ReadOnly.Fixed](swaydb.Error.FunctionNotFound(function))
           }
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
   }
 
   def apply(newKeyValue: ReadOnly.Function,
@@ -216,7 +216,7 @@ private[core] object FunctionMerger {
         function =>
           oldKeyValue.deadline match {
             case None =>
-              IO.Success(oldKeyValue.copyWithTime(newKeyValue.time))
+              IO.Right(oldKeyValue.copyWithTime(newKeyValue.time))
 
             case Some(_) =>
               functionStore.get(function) match {
@@ -238,13 +238,13 @@ private[core] object FunctionMerger {
                   }
 
                 case None =>
-                  IO.Failure[swaydb.Error.Segment, ReadOnly.Fixed](swaydb.Error.FunctionNotFound(function))
+                  IO.Left[swaydb.Error.Segment, ReadOnly.Fixed](swaydb.Error.FunctionNotFound(function))
               }
           }
       }
 
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
   }
 
   def apply(newKeyValue: ReadOnly.Function,
@@ -258,7 +258,7 @@ private[core] object FunctionMerger {
         Memory.PendingApply(newKeyValue.key, Slice(oldValue, newValue))
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
@@ -303,5 +303,5 @@ private[core] object FunctionMerger {
           FixedMerger(newKeyValue, oldApplies)
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 }

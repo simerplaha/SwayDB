@@ -45,7 +45,7 @@ private[core] object ApplyMerger {
           FunctionMerger(newValue.toMemory(oldKeyValue.key), oldKeyValue)
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newKeyValue: Value.Apply,
             oldKeyValue: ReadOnly.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]],
@@ -62,7 +62,7 @@ private[core] object ApplyMerger {
           FunctionMerger(newValue.toMemory(oldKeyValue.key), oldKeyValue)
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newKeyValue: Value.Apply,
             oldKeyValue: ReadOnly.Update)(implicit timeOrder: TimeOrder[Slice[Byte]],
@@ -79,7 +79,7 @@ private[core] object ApplyMerger {
           FunctionMerger(newValue.toMemory(oldKeyValue.key), oldKeyValue)
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newKeyValue: Value.Apply,
             oldKeyValue: ReadOnly.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
@@ -96,7 +96,7 @@ private[core] object ApplyMerger {
           FunctionMerger(newValue.toMemory(oldKeyValue.key), oldKeyValue)
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newKeyValue: Value.Apply,
             oldKeyValue: ReadOnly.Function)(implicit timeOrder: TimeOrder[Slice[Byte]],
@@ -113,7 +113,7 @@ private[core] object ApplyMerger {
           FunctionMerger(newValue.toMemory(oldKeyValue.key), oldKeyValue)
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newApplies: Slice[Value.Apply],
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],

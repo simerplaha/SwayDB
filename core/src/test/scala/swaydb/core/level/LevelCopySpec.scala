@@ -107,7 +107,7 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
       segment2.delete.runRandomIO.value // delete segment2 so there is a failure in copying Segments
 
       val segments = Iterable(segment1, segment2)
-      level.copy(segments).failed.runRandomIO.value.exception shouldBe a[NoSuchFileException]
+      level.copy(segments).left.runRandomIO.value.exception shouldBe a[NoSuchFileException]
 
       level.isEmpty shouldBe true
       if (persistent) level.reopen.isEmpty shouldBe true

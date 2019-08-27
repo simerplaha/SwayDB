@@ -244,7 +244,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val segment = TestSegment(keyValues).value
         segment.delete.value
 
-        val result = level.put(segment).right.value.failed.get
+        val result = level.put(segment).right.value.left.get
         if (persistent)
           result.exception shouldBe a[NoSuchFileException]
         else
@@ -260,7 +260,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val keyValues = randomKeyValues(keyValuesCount)
         val segmentsToMerge = TestSegment(keyValues).runRandomIO.value
         val level = TestLevel()
-        level.put(Seq(segmentsToMerge), Seq(), Seq()).failed.get shouldBe swaydb.Error.MergeKeyValuesWithoutTargetSegment(keyValues.size)
+        level.put(Seq(segmentsToMerge), Seq(), Seq()).left.get shouldBe swaydb.Error.MergeKeyValuesWithoutTargetSegment(keyValues.size)
       }
 
       "revert copy if merge fails" in {
@@ -282,7 +282,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
           val appendixBeforePut = level.segmentsInLevel()
           val levelFilesBeforePut = level.segmentFilesOnDisk
-          level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).failed.get.exception shouldBe a[FileAlreadyExistsException]
+          level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).left.get.exception shouldBe a[FileAlreadyExistsException]
           level.segmentFilesOnDisk shouldBe levelFilesBeforePut
           level.segmentsInLevel().map(_.path) shouldBe appendixBeforePut.map(_.path)
         }
@@ -303,7 +303,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           }
           val levelFilesBeforePut = level.segmentFilesOnDisk
 
-          level.put(Seq.empty, segmentToCopy, Seq.empty).failed.get.exception shouldBe a[FileAlreadyExistsException]
+          level.put(Seq.empty, segmentToCopy, Seq.empty).left.get.exception shouldBe a[FileAlreadyExistsException]
 
           level.isEmpty shouldBe true
           level.segmentFilesOnDisk shouldBe levelFilesBeforePut
@@ -458,7 +458,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment.path
-            Right(IO(throw new Exception("Kaboom!!")))
+            scala.util.Right(IO(throw new Exception("Kaboom!!")))
         }
 
         level.put(segment).right.value.value

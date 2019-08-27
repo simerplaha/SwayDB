@@ -29,7 +29,7 @@ private[core] object Time {
 
   val empty = Time(Slice.emptyBytes)
   val someEmpty = Some(empty)
-  val successEmpty = IO.Success[Nothing, Time](empty)(ErrorHandler.Nothing)
+  val successEmpty = IO.Right[Nothing, Time](empty)(ErrorHandler.Nothing)
 
   val long = new AtomicLong(System.nanoTime())
 

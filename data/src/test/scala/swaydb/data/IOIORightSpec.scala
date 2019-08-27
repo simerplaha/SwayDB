@@ -26,171 +26,171 @@ import swaydb.data.Base._
 
 import scala.util.Try
 
-class IOSuccessSpec extends WordSpec with Matchers {
+class IOIORightSpec extends WordSpec with Matchers {
 
   val error = swaydb.Error.Fatal(this.getClass.getSimpleName + " test exception.")
 
   "set booleans" in {
-    val io = IO.Success(1)
-    io.isFailure shouldBe false
-    io.isSuccess shouldBe true
+    val io = IO.Right(1)
+    io.isLeft shouldBe false
+    io.isRight shouldBe true
   }
 
   "get" in {
-    IO.Success(1).get shouldBe 1
-    IO.Success(2).get shouldBe 2
+    IO.Right(1).get shouldBe 1
+    IO.Right(2).get shouldBe 2
   }
 
   "exists" in {
-    IO.Success(1).exists(_ == 1) shouldBe true
-    IO.Success(1).exists(_ == 2) shouldBe false
+    IO.Right(1).exists(_ == 1) shouldBe true
+    IO.Right(1).exists(_ == 2) shouldBe false
   }
 
   "getOrElse" in {
-    IO.Success(1) getOrElse 2 shouldBe 1
-    IO.Failure(swaydb.Error.Fatal("")) getOrElse 3 shouldBe 3
+    IO.Right(1) getOrElse 2 shouldBe 1
+    IO.Left(swaydb.Error.Fatal("")) getOrElse 3 shouldBe 3
   }
 
   "orElse" in {
-    IO.Success(1) orElse IO.Success(2) shouldBe IO.Success(1)
-    IO.Failure(error) orElse IO.Success(3) shouldBe IO.Success(3)
+    IO.Right(1) orElse IO.Right(2) shouldBe IO.Right(1)
+    IO.Left(error) orElse IO.Right(3) shouldBe IO.Right(3)
   }
 
   "foreach" in {
-    IO.Success(1) foreach (_ shouldBe 1) shouldBe()
-    IO.Success(2) foreach {
+    IO.Right(1) foreach (_ shouldBe 1) shouldBe()
+    IO.Right(2) foreach {
       i =>
         i shouldBe 2
-        IO.Failure(error)
+        IO.Left(error)
     } shouldBe()
   }
 
   "map" in {
-    IO.Success(1) map {
+    IO.Right(1) map {
       i =>
         i shouldBe 1
         i + 1
-    } shouldBe IO.Success(2)
+    } shouldBe IO.Right(2)
   }
 
   "map throws exception" in {
-    IO.Success(1) map {
+    IO.Right(1) map {
       i =>
         i shouldBe 1
         throw error.exception
-    } shouldBe IO.Failure(error)
+    } shouldBe IO.Left(error)
   }
 
   "flatMap on Success" in {
-    IO.Success(1) flatMap {
+    IO.Right(1) flatMap {
       i =>
         i shouldBe 1
-        IO.Success(i + 1)
-    } shouldBe IO.Success(2)
+        IO.Right(i + 1)
+    } shouldBe IO.Right(2)
 
-    IO.Success(1) flatMap {
+    IO.Right(1) flatMap {
       i =>
         i shouldBe 1
-        IO.Success(i + 1) flatMap {
+        IO.Right(i + 1) flatMap {
           two =>
             two shouldBe 2
-            IO.Success(two + 1)
+            IO.Right(two + 1)
         }
-    } shouldBe IO.Success(3)
+    } shouldBe IO.Right(3)
   }
 
   "flatMap on Failure" in {
-    IO.Success(1) flatMap {
+    IO.Right(1) flatMap {
       i =>
         i shouldBe 1
-        IO.Failure(error)
-    } shouldBe IO.Failure(error)
+        IO.Left(error)
+    } shouldBe IO.Left(error)
 
-    IO.Success(1) flatMap {
+    IO.Right(1) flatMap {
       i =>
         i shouldBe 1
-        IO.Success(i + 1) flatMap {
+        IO.Right(i + 1) flatMap {
           two =>
-            IO.Failure(error)
+            IO.Left(error)
         }
-    } shouldBe IO.Failure(error)
+    } shouldBe IO.Left(error)
   }
 
   "flatten" in {
 
-    val nested = IO.Success(IO.Success(IO.Success(IO.Success(1))))
-    nested.flatten.flatten.flatten shouldBe IO.Success(1)
+    val nested = IO.Right(IO.Right(IO.Right(IO.Right(1))))
+    nested.flatten.flatten.flatten shouldBe IO.Right(1)
   }
 
   "flatten on successes with failure" in {
-    val nested = IO.Success(IO.Success(IO.Success(IO.Failure(swaydb.Error.Fatal(new Exception("Kaboom!"))))))
+    val nested = IO.Right(IO.Right(IO.Right(IO.Left(swaydb.Error.Fatal(new Exception("Kaboom!"))))))
 
-    nested.flatten.flatten.flatten.failed.get.exception.getMessage shouldBe "Kaboom!"
+    nested.flatten.flatten.flatten.left.get.exception.getMessage shouldBe "Kaboom!"
   }
 
   "recover" in {
-    IO.Success(1) recover {
+    IO.Right(1) recover {
       case _ =>
         fail("should not recover on success")
-    } shouldBe IO.Success(1)
+    } shouldBe IO.Right(1)
   }
 
   "recoverWith" in {
-    IO.Success(2) recoverWith {
+    IO.Right(2) recoverWith {
       case _ =>
         fail("should not recover on success")
-    } shouldBe IO.Success(2)
+    } shouldBe IO.Right(2)
   }
 
   "failed" in {
-    IO.Success(2).failed shouldBe a[IO.Failure[_, _]]
+    IO.Right(2).left shouldBe a[IO.Left[_, _]]
   }
 
   "toOption" in {
-    IO.Success(2).toOption shouldBe Some(2)
+    IO.Right(2).toOption shouldBe Some(2)
   }
 
   "toEither" in {
-    IO.Success(2).toEither shouldBe Right(2)
+    IO.Right(2).toEither shouldBe scala.util.Right(2)
   }
 
   "filter" in {
-    IO.Success(2).filter(_ == 2) shouldBe IO(2)
-    IO.Success(2).filter(_ == 1) shouldBe a[IO.Failure[_, _]]
+    IO.Right(2).filter(_ == 2) shouldBe IO(2)
+    IO.Right(2).filter(_ == 1) shouldBe a[IO.Left[_, _]]
   }
 
   "toFuture" in {
-    val future = IO.Success(2).toFuture
+    val future = IO.Right(2).toFuture
     future.isCompleted shouldBe true
     future.await shouldBe 2
   }
 
   "toTry" in {
-    IO.Success(2).toTry shouldBe Try(2)
+    IO.Right(2).toTry shouldBe Try(2)
   }
 
   "onFailureSideEffect" in {
-    IO.Success(2) onFailureSideEffect {
+    IO.Right(2) onLeftSideEffect {
       _ =>
         fail()
-    } shouldBe IO.Success(2)
+    } shouldBe IO.Right(2)
   }
 
   "onSuccessSideEffect" in {
     var invoked = false
-    IO.Success(2) onSuccessSideEffect {
+    IO.Right(2) onRightSideEffect {
       _ =>
         invoked = true
-    } shouldBe IO.Success(2)
+    } shouldBe IO.Right(2)
     invoked shouldBe true
   }
 
   "onCompleteSideEffect" in {
     var invoked = false
-    IO.Success(2) onCompleteSideEffect {
+    IO.Right(2) onCompleteSideEffect {
       _ =>
         invoked = true
-    } shouldBe IO.Success(2)
+    } shouldBe IO.Right(2)
     invoked shouldBe true
   }
 }

@@ -33,9 +33,9 @@ class IOSpec extends WordSpec with Matchers {
     "exception" in {
       val exception = new Exception("Failed")
 
-      def io: IO.Success[swaydb.Error.Segment, Unit] = throw exception
+      def io: IO.Right[swaydb.Error.Segment, Unit] = throw exception
 
-      IO.Catch(io).failed.get shouldBe swaydb.Error.Fatal(exception)
+      IO.Catch(io).left.get shouldBe swaydb.Error.Fatal(exception)
     }
 
     "no exception" in {
@@ -48,14 +48,14 @@ class IOSpec extends WordSpec with Matchers {
       val slice = Slice(1, 2, 3, 4)
       var iterations = 0
 
-      val result: Option[IO.Failure[Throwable, Int]] =
+      val result: Option[IO.Left[Throwable, Int]] =
         slice foreachIO {
           item =>
             iterations += 1
             if (item == 3)
-              IO.failed(s"result at item $item")
+              IO.left(s"result at item $item")
             else
-              IO.Success(item)
+              IO.Right(item)
         }
 
       result.isDefined shouldBe true
@@ -67,14 +67,14 @@ class IOSpec extends WordSpec with Matchers {
       val slice = Slice(1, 2, 3, 4)
       var iterations = 0
 
-      val result: Option[IO.Failure[Throwable, Int]] =
+      val result: Option[IO.Left[Throwable, Int]] =
         slice.foreachIO(
           item => {
             iterations += 1
             if (item == 3)
-              IO.failed(s"result at item $item")
+              IO.left(s"result at item $item")
             else {
-              IO.Success(item)
+              IO.Right(item)
             }
           },
           failFast = false
@@ -88,10 +88,10 @@ class IOSpec extends WordSpec with Matchers {
     "finish iteration on IO.Success IO's" in {
       val slice = Slice(1, 2, 3, 4)
 
-      val result: Option[IO.Failure[Throwable, Int]] =
+      val result: Option[IO.Left[Throwable, Int]] =
         slice.foreachIO {
           item =>
-            IO.Success(item)
+            IO.Right(item)
         }
 
       result.isEmpty shouldBe true
@@ -106,7 +106,7 @@ class IOSpec extends WordSpec with Matchers {
       val result: IO[Throwable, Slice[Int]] =
         slice.mapIO {
           item =>
-            IO.Success(item + 1)
+            IO.Right(item + 1)
         }
 
       result.get.toArray shouldBe Array(2, 3, 4, 5, 6)
@@ -119,12 +119,12 @@ class IOSpec extends WordSpec with Matchers {
 
       val result: IO[Throwable, Slice[Int]] =
         slice.mapIO(
-          block = item => if (item == 3) IO.failed(s"Failed at $item") else IO.Success(item),
-          recover = (ints: Slice[Int], _: IO.Failure[Throwable, Slice[Int]]) => ints.foreach(intsCleanedUp += _)
+          block = item => if (item == 3) IO.left(s"Failed at $item") else IO.Right(item),
+          recover = (ints: Slice[Int], _: IO.Left[Throwable, Slice[Int]]) => ints.foreach(intsCleanedUp += _)
         )
 
-      result.isFailure shouldBe true
-      result.failed.get.getMessage shouldBe "Failed at 3"
+      result.isLeft shouldBe true
+      result.left.get.getMessage shouldBe "Failed at 3"
 
       intsCleanedUp should contain inOrderOnly(1, 2)
     }
@@ -154,10 +154,10 @@ class IOSpec extends WordSpec with Matchers {
               IO(List(item.toString))
             }
             else {
-              IO.failed("Kaboom!")
+              IO.left("Kaboom!")
             }
         }
-      result.failed.get.getMessage shouldBe "Kaboom!"
+      result.left.get.getMessage shouldBe "Kaboom!"
     }
   }
 
@@ -169,13 +169,13 @@ class IOSpec extends WordSpec with Matchers {
         slice.foldLeftIO(0) {
           case (count, item) =>
             if (item == "two")
-              IO.failed(s"Failed at $item")
+              IO.left(s"Failed at $item")
             else
-              IO.Success(count + 1)
+              IO.Right(count + 1)
         }
 
-      result.isFailure shouldBe true
-      result.failed.get.getMessage shouldBe "Failed at two"
+      result.isLeft shouldBe true
+      result.left.get.getMessage shouldBe "Failed at two"
     }
 
     "allow fold on Slice" in {
@@ -184,10 +184,10 @@ class IOSpec extends WordSpec with Matchers {
       val result: IO[Throwable, Int] =
         slice.foldLeftIO(0) {
           case (count, _) =>
-            IO.Success(count + 1)
+            IO.Right(count + 1)
         }
 
-      result.isSuccess shouldBe true
+      result.isRight shouldBe true
       result.get shouldBe 3
     }
   }
@@ -201,7 +201,7 @@ class IOSpec extends WordSpec with Matchers {
         slice untilSome {
           item => {
             iterations += 1
-            IO.Success(Some(item))
+            IO.Right(Some(item))
           }
         }
 
@@ -218,7 +218,7 @@ class IOSpec extends WordSpec with Matchers {
           item => {
             iterations += 1
             if (item == 4)
-              IO.Success(Some(item))
+              IO.Right(Some(item))
             else
               IO.none
           }
@@ -237,7 +237,7 @@ class IOSpec extends WordSpec with Matchers {
           item => {
             iterations += 1
             if (item == 3)
-              IO.Success(Some(item))
+              IO.Right(Some(item))
             else
               IO.none
           }
@@ -271,12 +271,12 @@ class IOSpec extends WordSpec with Matchers {
         slice untilSome {
           item => {
             iterations += 1
-            IO.failed(s"Failed at $item")
+            IO.left(s"Failed at $item")
           }
         }
 
-      result.isFailure shouldBe true
-      result.failed.get.getMessage shouldBe "Failed at 1"
+      result.isLeft shouldBe true
+      result.left.get.getMessage shouldBe "Failed at 1"
       iterations shouldBe 1
     }
   }
@@ -294,13 +294,13 @@ class IOSpec extends WordSpec with Matchers {
   "Failure fromTry" in {
     val exception = new Exception("failed")
     val failure = IO.fromTry(scala.util.Failure(exception))
-    failure shouldBe a[IO.Failure[_, _]]
-    failure.asInstanceOf[IO.Failure[_, _]].exception shouldBe exception
+    failure shouldBe a[IO.Left[_, _]]
+    failure.asInstanceOf[IO.Left[_, _]].exception shouldBe exception
   }
 
   "Success fromTry" in {
     val failure = IO.fromTry(scala.util.Success(1))
-    failure shouldBe a[IO.Success[_, _]]
-    failure.asInstanceOf[IO.Success[_, _]].get shouldBe 1
+    failure shouldBe a[IO.Right[_, _]]
+    failure.asInstanceOf[IO.Right[_, _]].get shouldBe 1
   }
 }

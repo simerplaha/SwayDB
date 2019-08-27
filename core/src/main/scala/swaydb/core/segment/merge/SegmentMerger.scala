@@ -71,7 +71,7 @@ private[core] object SegmentMerger extends LazyLogging {
                 }
 
               case _: Transient.Group =>
-                IO.failed[swaydb.Error.Segment, ListBuffer[SegmentBuffer]]("Unexpected Group in Flattened SegmentBuffer")
+                IO.left[swaydb.Error.Segment, ListBuffer[SegmentBuffer]]("Unexpected Group in Flattened SegmentBuffer")
             }
           case grouped: SegmentBuffer.Grouped =>
             buffers.last foreachIO {
@@ -103,7 +103,7 @@ private[core] object SegmentMerger extends LazyLogging {
 
       result match {
         case Some(failure) =>
-          IO.Failure(failure.error)
+          IO.Left(failure.value)
 
         case None =>
           IO(newBuffers.filter(_.nonEmpty))
@@ -137,7 +137,7 @@ private[core] object SegmentMerger extends LazyLogging {
       hashIndexConfig = hashIndexConfig,
       bloomFilterConfig = bloomFilterConfig
     ) match {
-      case transferredBuffersIO @ IO.Success(transferredBuffers) =>
+      case transferredBuffersIO @ IO.Right(transferredBuffers) =>
         transferredBuffers.lastOption match {
           case Some(last) =>
             last match {
@@ -165,7 +165,7 @@ private[core] object SegmentMerger extends LazyLogging {
             transferredBuffersIO
         }
 
-      case failure @ IO.Failure(_) =>
+      case failure @ IO.Left(_) =>
         failure
     }
 
@@ -219,8 +219,8 @@ private[core] object SegmentMerger extends LazyLogging {
           bloomFilterConfig = bloomFilterConfig
         )
 
-      case Some(IO.Failure(failure)) =>
-        IO.Failure(failure)
+      case Some(IO.Left(failure)) =>
+        IO.Left(failure)
     }
   }
 
@@ -368,34 +368,34 @@ private[core] object SegmentMerger extends LazyLogging {
         case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>
           if (oldKeyValue.key < newKeyValue.key)
             add(oldKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (newKeyValue.key < oldKeyValue.key)
             add(newKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else
             FixedMerger(
               newKeyValue = newKeyValue,
               oldKeyValue = oldKeyValue
             ) match {
-              case IO.Success(mergedKeyValue) =>
+              case IO.Right(mergedKeyValue) =>
                 add(mergedKeyValue) match {
-                  case IO.Success(_) =>
+                  case IO.Right(_) =>
                     doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
 
-                  case IO.Failure(error) =>
-                    IO.Failure(error)
+                  case IO.Left(error) =>
+                    IO.Left(error)
                 }
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
@@ -404,26 +404,26 @@ private[core] object SegmentMerger extends LazyLogging {
         case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldRangeKeyValue: ReadOnly.Range)) =>
           if (newKeyValue.key < oldRangeKeyValue.fromKey)
             add(newKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (newKeyValue.key >= oldRangeKeyValue.toKey)
             add(oldRangeKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else //is in-range key
             oldRangeKeyValue.fetchFromAndRangeValue match {
-              case IO.Success((oldFromValue, oldRangeRangeValue)) if newKeyValue.key equiv oldRangeKeyValue.fromKey =>
+              case IO.Right((oldFromValue, oldRangeRangeValue)) if newKeyValue.key equiv oldRangeKeyValue.fromKey =>
                 FixedMerger(
                   newKeyValue = newKeyValue,
                   oldKeyValue = oldFromValue.getOrElse(oldRangeRangeValue).toMemory(newKeyValue.key)
                 ).flatMap(_.toFromValue()) match {
-                  case IO.Success(newFromValue) =>
+                  case IO.Right(newFromValue) =>
                     val toPrepend =
                       Memory.Range(
                         fromKey = oldRangeKeyValue.fromKey,
@@ -433,31 +433,31 @@ private[core] object SegmentMerger extends LazyLogging {
                       )
                     doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(toPrepend))
 
-                  case IO.Failure(error) =>
-                    IO.Failure(error)
+                  case IO.Left(error) =>
+                    IO.Left(error)
                 }
 
-              case IO.Success((oldFromValue, oldRangeValue)) => //else it's a mid range value - split required.
+              case IO.Right((oldFromValue, oldRangeValue)) => //else it's a mid range value - split required.
                 FixedMerger(
                   newKeyValue = newKeyValue,
                   oldKeyValue = oldRangeValue.toMemory(newKeyValue.key)
                 ).flatMap(_.toFromValue()) match {
-                  case IO.Success(newFromValue) =>
+                  case IO.Right(newFromValue) =>
                     val lowerSplit = Memory.Range(oldRangeKeyValue.fromKey, newKeyValue.key, oldFromValue, oldRangeValue)
                     val upperSplit = Memory.Range(newKeyValue.key, oldRangeKeyValue.toKey, Some(newFromValue), oldRangeValue)
                     add(lowerSplit) match {
-                      case IO.Success(_) =>
+                      case IO.Right(_) =>
                         doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(upperSplit))
 
-                      case IO.Failure(error) =>
-                        IO.Failure(error)
+                      case IO.Left(error) =>
+                        IO.Left(error)
                     }
-                  case IO.Failure(error) =>
-                    IO.Failure(error)
+                  case IO.Left(error) =>
+                    IO.Left(error)
                 }
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
@@ -466,21 +466,21 @@ private[core] object SegmentMerger extends LazyLogging {
         case (Some(newRangeKeyValue: ReadOnly.Range), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>
           if (oldKeyValue.key >= newRangeKeyValue.toKey)
             add(newRangeKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (oldKeyValue.key < newRangeKeyValue.fromKey)
             add(oldKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else //is in-range key
             newRangeKeyValue.fetchFromAndRangeValue match {
-              case IO.Success((newRangeFromValue, newRangeRangeValue)) if newRangeKeyValue.fromKey equiv oldKeyValue.key =>
+              case IO.Right((newRangeFromValue, newRangeRangeValue)) if newRangeKeyValue.fromKey equiv oldKeyValue.key =>
                 val fromOrRange = newRangeFromValue.getOrElse(newRangeRangeValue)
                 fromOrRange match {
                   //the range is remove or put simply drop old key-value. No need to merge! Important! do a time check.
@@ -493,7 +493,7 @@ private[core] object SegmentMerger extends LazyLogging {
                       newKeyValue = newRangeFromValue.getOrElse(newRangeRangeValue).toMemory(oldKeyValue.key),
                       oldKeyValue = oldKeyValue
                     ).flatMap(_.toFromValue()) match {
-                      case IO.Success(newFromValue) =>
+                      case IO.Right(newFromValue) =>
                         val newKeyValue =
                           Memory.Range(
                             fromKey = newRangeKeyValue.fromKey,
@@ -503,12 +503,12 @@ private[core] object SegmentMerger extends LazyLogging {
                           )
                         doMerge(newKeyValues.dropPrepend(newKeyValue), oldKeyValues.dropHead())
 
-                      case IO.Failure(error) =>
-                        IO.Failure(error)
+                      case IO.Left(error) =>
+                        IO.Left(error)
                     }
                 }
 
-              case IO.Success((newRangeFromValue, newRangeRangeValue)) => //split required.
+              case IO.Right((newRangeFromValue, newRangeRangeValue)) => //split required.
                 newRangeRangeValue match {
                   //the range is remove or put simply remove all old key-values. No need to merge! Important! do a time check.
                   case Value.Remove(None, rangeTime) if rangeTime > oldKeyValue.time =>
@@ -519,23 +519,23 @@ private[core] object SegmentMerger extends LazyLogging {
                       newKeyValue = newRangeRangeValue.toMemory(oldKeyValue.key),
                       oldKeyValue = oldKeyValue
                     ).flatMap(_.toFromValue()) match {
-                      case IO.Success(newFromValue) =>
+                      case IO.Right(newFromValue) =>
                         val lowerSplit = Memory.Range(newRangeKeyValue.fromKey, oldKeyValue.key, newRangeFromValue, newRangeRangeValue)
                         val upperSplit = Memory.Range(oldKeyValue.key, newRangeKeyValue.toKey, Some(newFromValue), newRangeRangeValue)
                         add(lowerSplit) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropPrepend(upperSplit), oldKeyValues.dropHead())
-                          case IO.Failure(error) =>
-                            IO.Failure(error)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
 
-                      case IO.Failure(error) =>
-                        IO.Failure(error)
+                      case IO.Left(error) =>
+                        IO.Left(error)
                     }
                 }
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
@@ -544,24 +544,24 @@ private[core] object SegmentMerger extends LazyLogging {
         case (Some(newRangeKeyValue: ReadOnly.Range), Some(oldRangeKeyValue: ReadOnly.Range)) =>
           if (newRangeKeyValue.toKey <= oldRangeKeyValue.fromKey)
             add(newRangeKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
           else if (oldRangeKeyValue.toKey <= newRangeKeyValue.fromKey)
             add(oldRangeKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else
             newRangeKeyValue.fetchFromAndRangeValue match {
-              case IO.Success((newRangeFromValue, newRangeRangeValue)) =>
+              case IO.Right((newRangeFromValue, newRangeRangeValue)) =>
                 oldRangeKeyValue.fetchFromAndRangeValue match {
-                  case IO.Success((oldRangeFromValue, oldRangeRangeValue)) =>
+                  case IO.Right((oldRangeFromValue, oldRangeRangeValue)) =>
                     val newRangeFromKey = newRangeKeyValue.fromKey
                     val newRangeToKey = newRangeKeyValue.toKey
                     val oldRangeFromKey = oldRangeKeyValue.fromKey
@@ -582,11 +582,11 @@ private[core] object SegmentMerger extends LazyLogging {
                         val lowerSplit = Memory.Range(newRangeToKey, oldRangeToKey, None, oldRangeRangeValue)
 
                         add(upperSplit).flatMap(_ => add(middleSplit)) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(lowerSplit))
 
-                          case IO.Failure(error) =>
-                            IO.Failure(error)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       } else if (newRangeToKey equiv oldRangeToKey) {
                         //1      -      20
@@ -602,11 +602,11 @@ private[core] object SegmentMerger extends LazyLogging {
                           )
 
                         add(upperSplit).flatMap(_ => add(lowerSplit)) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
 
-                          case IO.Failure(error) =>
-                            IO.Failure(error)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       } else {
                         //1      -         21
@@ -623,11 +623,11 @@ private[core] object SegmentMerger extends LazyLogging {
                         val lowerSplit = Memory.Range(oldRangeToKey, newRangeToKey, None, newRangeRangeValue)
 
                         add(upperSplit).flatMap(_ => add(middleSplit)) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropPrepend(lowerSplit), oldKeyValues.dropHead())
 
-                          case IO.Failure(error) =>
-                            IO.Failure(error)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       }
                     } else if (newRangeFromKey equiv oldRangeFromKey) {
@@ -646,11 +646,11 @@ private[core] object SegmentMerger extends LazyLogging {
                         val lowerSplit = Memory.Range(newRangeToKey, oldRangeToKey, None, oldRangeRangeValue)
 
                         add(upperSplit) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(lowerSplit))
 
-                          case IO.Failure(error) =>
-                            IO.Failure(error)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       } else if (newRangeToKey equiv oldRangeToKey) {
                         //      10   -  20
@@ -666,11 +666,11 @@ private[core] object SegmentMerger extends LazyLogging {
                         )
 
                         add(update) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
 
-                          case IO.Failure(error) =>
-                            IO.Failure(error)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       } else {
                         //      10   -     21
@@ -687,11 +687,11 @@ private[core] object SegmentMerger extends LazyLogging {
                         val lowerSplit = Memory.Range(oldRangeToKey, newRangeToKey, None, newRangeRangeValue)
 
                         add(upperSplit) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropPrepend(lowerSplit), oldKeyValues.dropHead())
 
-                          case IO.Failure(error) =>
-                            IO.Failure(error)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       }
                     } else {
@@ -711,11 +711,11 @@ private[core] object SegmentMerger extends LazyLogging {
                         val lowerSplit = Memory.Range(newRangeToKey, oldRangeToKey, None, oldRangeRangeValue)
 
                         add(upperSplit).flatMap(_ => add(middleSplit)) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(lowerSplit))
 
-                          case IO.Failure(error) =>
-                            IO.Failure(error)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       } else if (newRangeToKey equiv oldRangeToKey) {
                         //        11 -   20
@@ -730,11 +730,11 @@ private[core] object SegmentMerger extends LazyLogging {
                         )
 
                         add(upperSplit).flatMap(_ => add(lowerSplit)) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
 
-                          case IO.Failure(error) =>
-                            IO.Failure(error)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       } else {
                         //        11 -     21
@@ -752,21 +752,21 @@ private[core] object SegmentMerger extends LazyLogging {
                         val lowerSplit = Memory.Range(oldRangeToKey, newRangeToKey, None, newRangeRangeValue)
 
                         add(upperSplit).flatMap(_ => add(middleSplit)) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropPrepend(lowerSplit), oldKeyValues.dropHead())
 
-                          case IO.Failure(error) =>
-                            IO.Failure(error)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       }
                     }
 
-                  case IO.Failure(error) =>
-                    IO.Failure(error)
+                  case IO.Left(error) =>
+                    IO.Left(error)
                 }
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
@@ -775,28 +775,28 @@ private[core] object SegmentMerger extends LazyLogging {
         case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldGroupKeyValue: ReadOnly.Group)) =>
           if (newKeyValue.key < oldGroupKeyValue.minKey)
             add(newKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (oldGroupKeyValue.maxKey lessThan newKeyValue.key)
             add(oldGroupKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else //is in-group key. Open the Group and merge.
             oldGroupKeyValue.segment.getAll() match {
-              case IO.Success(oldGroupKeyValues) =>
+              case IO.Right(oldGroupKeyValues) =>
                 doMerge(
                   newKeyValues,
                   MergeList[Memory.Range, KeyValue.ReadOnly](oldGroupKeyValues) append oldKeyValues.dropHead()
                 )
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
@@ -805,28 +805,28 @@ private[core] object SegmentMerger extends LazyLogging {
         case (Some(newGroupKeyValue: ReadOnly.Group), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>
           if (newGroupKeyValue.maxKey lessThan oldKeyValue.key)
             add(newGroupKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (oldKeyValue.key < newGroupKeyValue.key)
             add(oldKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else //Group overlaps fixed key-value
             newGroupKeyValue.segment.getAll() match {
-              case IO.Success(newGroupKeyValues) =>
+              case IO.Right(newGroupKeyValues) =>
                 doMerge(
                   MergeList[Memory.Range, KeyValue.ReadOnly](newGroupKeyValues) append newKeyValues.dropHead(),
                   oldKeyValues
                 )
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
@@ -835,40 +835,40 @@ private[core] object SegmentMerger extends LazyLogging {
         case (Some(newRangeKeyValue: KeyValue.ReadOnly.Range), Some(oldGroupKeyValue: ReadOnly.Group)) =>
           if (newRangeKeyValue.toKey <= oldGroupKeyValue.minKey)
             add(newRangeKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (oldGroupKeyValue.maxKey lessThan newRangeKeyValue.fromKey)
             add(oldGroupKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else
           //Open the Group and merge.
             newRangeKeyValue.fetchFromAndRangeValue match {
               //Cases when the Remove range completely overlaps the group and there is no time set for
               //both fromValue & RangeValue then there is no need to open the group. Simply remove the Group.
-              case IO.Success((None | Some(Value.Remove(None, Time.empty)), Value.Remove(None, Time.empty))) if newRangeKeyValue.fromKey <= oldGroupKeyValue.minKey && oldGroupKeyValue.maxKey.maxKey < newRangeKeyValue.toKey =>
+              case IO.Right((None | Some(Value.Remove(None, Time.empty)), Value.Remove(None, Time.empty))) if newRangeKeyValue.fromKey <= oldGroupKeyValue.minKey && oldGroupKeyValue.maxKey.maxKey < newRangeKeyValue.toKey =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
 
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 oldGroupKeyValue.segment.getAll() match {
-                  case IO.Success(oldGroupKeyValues) =>
+                  case IO.Right(oldGroupKeyValues) =>
                     doMerge(
                       newKeyValues,
                       MergeList[Memory.Range, KeyValue.ReadOnly](oldGroupKeyValues) append oldKeyValues.dropHead()
                     )
 
-                  case IO.Failure(error) =>
-                    IO.Failure(error)
+                  case IO.Left(error) =>
+                    IO.Left(error)
                 }
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
@@ -877,28 +877,28 @@ private[core] object SegmentMerger extends LazyLogging {
         case (Some(newGroupKeyValue: ReadOnly.Group), Some(oldRangeKeyValue: KeyValue.ReadOnly.Range)) =>
           if (newGroupKeyValue.maxKey lessThan oldRangeKeyValue.fromKey)
             add(newGroupKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (oldRangeKeyValue.toKey <= newGroupKeyValue.minKey)
             add(oldRangeKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else //Group overlaps fixed key-value
             newGroupKeyValue.segment.getAll() match {
-              case IO.Success(newGroupKeyValues) =>
+              case IO.Right(newGroupKeyValues) =>
                 doMerge(
                   MergeList[Memory.Range, KeyValue.ReadOnly](newGroupKeyValues) append newKeyValues.dropHead(),
                   oldKeyValues
                 )
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
@@ -907,58 +907,58 @@ private[core] object SegmentMerger extends LazyLogging {
         case (Some(newGroupKeyValue: ReadOnly.Group), Some(oldGroupKeyValue: KeyValue.ReadOnly.Group)) =>
           if (newGroupKeyValue.maxKey lessThan oldGroupKeyValue.minKey)
             add(newGroupKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (oldGroupKeyValue.maxKey lessThan newGroupKeyValue.minKey)
             add(oldGroupKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else //Group overlaps fixed key-value
             newGroupKeyValue.segment.getAll() match {
-              case IO.Success(newGroupKeyValues) =>
+              case IO.Right(newGroupKeyValues) =>
                 oldGroupKeyValue.segment.getAll() match {
-                  case IO.Success(oldGroupKeyValues) =>
+                  case IO.Right(oldGroupKeyValues) =>
                     doMerge(
                       MergeList[Memory.Range, KeyValue.ReadOnly](newGroupKeyValues) append newKeyValues.dropHead(),
                       MergeList[Memory.Range, KeyValue.ReadOnly](oldGroupKeyValues) append oldKeyValues.dropHead()
                     )
 
-                  case IO.Failure(error) =>
-                    IO.Failure(error)
+                  case IO.Left(error) =>
+                    IO.Left(error)
                 }
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         //there are no more oldKeyValues. Add all remaining newKeyValues
         case (Some(_), None) =>
           newKeyValues.foreachIO(add) match {
-            case Some(IO.Failure(error)) =>
-              IO.Failure(error)
+            case Some(IO.Left(error)) =>
+              IO.Left(error)
 
             case None =>
-              IO.Success(splits)
+              IO.Right(splits)
           }
 
         //there are no more newKeyValues. Add all remaining oldKeyValues
         case (None, Some(_)) =>
           oldKeyValues.foreachIO(add) match {
-            case Some(IO.Failure(error)) =>
-              IO.Failure(error)
+            case Some(IO.Left(error)) =>
+              IO.Left(error)
 
             case None =>
-              IO.Success(splits)
+              IO.Right(splits)
           }
 
         case (None, None) =>
-          IO.Success(splits)
+          IO.Right(splits)
       }
 
     IO.Catch(doMerge(newKeyValues, oldKeyValues))

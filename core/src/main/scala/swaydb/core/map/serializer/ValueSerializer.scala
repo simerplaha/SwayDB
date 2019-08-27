@@ -235,7 +235,7 @@ object ValueSerializer {
                             applies
                         }
                       else
-                        IO.failed(s"Invalid id:$id")
+                        IO.left(s"Invalid id:$id")
                   }
               }
           }
@@ -301,9 +301,9 @@ object ValueSerializer {
       SeqOfBytesSerializer.read(reader) flatMap {
         bytes =>
           if (bytes.size != 2)
-            IO.failed(TupleOfBytesSerializer.getClass.getSimpleName + s".read did not return a tuple. Size = ${bytes.size}")
+            IO.left(TupleOfBytesSerializer.getClass.getSimpleName + s".read did not return a tuple. Size = ${bytes.size}")
           else
-            IO.Success(bytes.head, bytes.last)
+            IO.Right(bytes.head, bytes.last)
       }
   }
 
@@ -374,7 +374,7 @@ object ValueSerializer {
       reader.get() flatMap {
         format =>
           if (format != formatId)
-            IO.Failure(swaydb.Error.Fatal(new Exception(s"Invalid formatID: $format")))
+            IO.Left(swaydb.Error.Fatal(new Exception(s"Invalid formatID: $format")))
           else
             reader.foldLeftIO(mutable.Map.empty[Int, Iterable[(Slice[Byte], Slice[Byte])]]) {
               case (map, reader) =>

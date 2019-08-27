@@ -131,7 +131,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
 
     "not write empty key-value" in {
       val zero = TestLevelZero(Some(TestLevel()))
-      zero.put(Slice.empty, Slice.empty).failed.get.exception shouldBe a[IllegalArgumentException]
+      zero.put(Slice.empty, Slice.empty).left.get.exception shouldBe a[IllegalArgumentException]
     }
 
     "write empty values" in {
@@ -340,16 +340,16 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
   "LevelZero.remove range" should {
     "not allow from key to be > than to key" in {
       val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
-      zero.remove(10, 1).failed.get.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
-      zero.remove(2, 1).failed.get.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
+      zero.remove(10, 1).left.get.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
+      zero.remove(2, 1).left.get.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
     }
   }
 
   "LevelZero.update range" should {
     "not allow from key to be > than to key" in {
       val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
-      zero.update(10, 1, value = "value").failed.get.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
-      zero.update(2, 1, value = "value").failed.get.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
+      zero.update(10, 1, value = "value").left.get.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
+      zero.update(2, 1, value = "value").left.get.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
     }
   }
 }

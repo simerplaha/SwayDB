@@ -770,7 +770,7 @@ object CommonAssertions {
           key = keyValue.key,
           start = None,
           end = None,
-          keyValueCount = IO.Success(blocks.footer.keyValueCount),
+          keyValueCount = IO.Right(blocks.footer.keyValueCount),
           hashIndexReader = blocks.hashIndexReader,
           binarySearchIndexReader = blocks.binarySearchIndexReader,
           sortedIndexReader = blocks.sortedIndexReader,
@@ -1141,7 +1141,7 @@ object CommonAssertions {
               key = range.fromKey,
               start = None,
               end = None,
-              keyValueCount = IO.Success(blocks.footer.keyValueCount),
+              keyValueCount = IO.Right(blocks.footer.keyValueCount),
               binarySearchIndexReader = blocks.binarySearchIndexReader,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
@@ -1153,7 +1153,7 @@ object CommonAssertions {
                   key = Slice.writeInt(key),
                   start = None,
                   end = None,
-                  keyValueCount = IO.Success(blocks.footer.keyValueCount),
+                  keyValueCount = IO.Right(blocks.footer.keyValueCount),
                   binarySearchIndexReader = blocks.binarySearchIndexReader,
                   sortedIndexReader = blocks.sortedIndexReader,
                   valuesReader = blocks.valuesReader
@@ -1165,7 +1165,7 @@ object CommonAssertions {
               key = keyValues(index).key,
               start = None,
               end = None,
-              keyValueCount = IO.Success(blocks.footer.keyValueCount),
+              keyValueCount = IO.Right(blocks.footer.keyValueCount),
               binarySearchIndexReader = blocks.binarySearchIndexReader,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
@@ -1180,7 +1180,7 @@ object CommonAssertions {
               key = range.fromKey,
               start = None,
               end = None,
-              keyValueCount = IO.Success(blocks.footer.keyValueCount),
+              keyValueCount = IO.Right(blocks.footer.keyValueCount),
               binarySearchIndexReader = blocks.binarySearchIndexReader,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
@@ -1192,7 +1192,7 @@ object CommonAssertions {
                   key = Slice.writeInt(key),
                   start = None,
                   end = None,
-                  keyValueCount = IO.Success(blocks.footer.keyValueCount),
+                  keyValueCount = IO.Right(blocks.footer.keyValueCount),
                   binarySearchIndexReader = blocks.binarySearchIndexReader,
                   sortedIndexReader = blocks.sortedIndexReader,
                   valuesReader = blocks.valuesReader
@@ -1204,7 +1204,7 @@ object CommonAssertions {
               key = keyValues(index).key,
               start = None,
               end = None,
-              keyValueCount = IO.Success(blocks.footer.keyValueCount),
+              keyValueCount = IO.Right(blocks.footer.keyValueCount),
               binarySearchIndexReader = blocks.binarySearchIndexReader,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
@@ -1229,7 +1229,7 @@ object CommonAssertions {
             key = key,
             start = None,
             end = None,
-            keyValueCount = IO.Success(blocks.footer.keyValueCount),
+            keyValueCount = IO.Right(blocks.footer.keyValueCount),
             binarySearchIndexReader = blocks.binarySearchIndexReader,
             sortedIndexReader = blocks.sortedIndexReader,
             valuesReader = blocks.valuesReader
@@ -1586,7 +1586,7 @@ object CommonAssertions {
     }
 
   def assertNotSliced(keyValue: KeyValue.ReadOnly): Unit =
-    IO(assertSliced(keyValue)).failed.runRandomIO.value
+    IO(assertSliced(keyValue)).left.runRandomIO.value
 
   def assertSliced(value: Value): Unit =
     value match {

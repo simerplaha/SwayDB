@@ -62,7 +62,7 @@ private[swaydb] case class SliceReader[E >: swaydb.Error.IO : ErrorHandler](slic
     }
 
   def hasMore =
-    IO.Success(position < slice.size)
+    IO.Right(position < slice.size)
 
   override def getPosition: Int =
     position

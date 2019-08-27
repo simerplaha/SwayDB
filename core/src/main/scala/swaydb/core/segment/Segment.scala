@@ -32,12 +32,11 @@ import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.{BlockCache, DBFile, IOEffect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.Collections._
-import swaydb.core.util.{BlockCacheFileIDGenerator, FiniteDurations, IDGenerator, MinMax, SkipList}
+import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -50,7 +49,7 @@ import scala.concurrent.duration.Deadline
 private[core] object Segment extends LazyLogging {
 
   val emptyIterable = Iterable.empty[Segment]
-  val emptyIterableIO = IO.Success[Nothing, Iterable[Segment]](emptyIterable)(swaydb.ErrorHandler.Nothing)
+  val emptyIterableIO = IO.Right[Nothing, Iterable[Segment]](emptyIterable)(swaydb.ErrorHandler.Nothing)
 
   def memory(path: Path,
              createdInLevel: Long,
@@ -62,9 +61,9 @@ private[core] object Segment extends LazyLogging {
                                              memorySweeper: Option[MemorySweeper.KeyValue],
                                              segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] =
     if (keyValues.isEmpty) {
-      IO.failed("Empty key-values submitted to memory Segment.")
+      IO.left("Empty key-values submitted to memory Segment.")
     } else if (keyValues.last.stats.segmentHasGroup && memorySweeper.isEmpty) { //this check needs to be type-safe instead.
-      IO.failed("Segment has groups but memorySweeper is not specified.")
+      IO.left("Segment has groups but memorySweeper is not specified.")
     } else {
       val bloomFilter: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
       val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
@@ -138,7 +137,7 @@ private[core] object Segment extends LazyLogging {
         if (result.isEmpty) {
           //This is fatal!! Empty Segments should never be created. If this does have for whatever reason it should
           //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
-          IO.Failure(swaydb.Error.Fatal(new Exception("Empty key-values submitted to persistent Segment.")))
+          IO.Left(swaydb.Error.Fatal(new Exception("Empty key-values submitted to persistent Segment.")))
         } else {
           val writeResult =
           //if both read and writes are mmaped. Keep the file open.
@@ -254,10 +253,10 @@ private[core] object Segment extends LazyLogging {
               segmentSize = segment.segmentSize,
               minMaxFunctionId = segment.minMaxFunctionId,
               nearestExpiryDeadline = segment.nearestExpiryDeadline
-            ) onFailureSideEffect {
+            ) onLeftSideEffect {
               exception =>
                 logger.error("Failed to copyToPersist Segment {}", segment.path, exception)
-                IOEffect.deleteIfExists(nextPath) onFailureSideEffect {
+                IOEffect.deleteIfExists(nextPath) onLeftSideEffect {
                   exception =>
                     logger.error("Failed to delete copied persistent Segment {}", segment.path, exception)
                 }
@@ -332,10 +331,10 @@ private[core] object Segment extends LazyLogging {
               ),
 
           recover =
-            (segments: Slice[Segment], _: IO.Failure[swaydb.Error.Segment, Slice[Segment]]) =>
+            (segments: Slice[Segment], _: IO.Left[swaydb.Error.Segment, Slice[Segment]]) =>
               segments foreach {
                 segmentToDelete =>
-                  segmentToDelete.delete onFailureSideEffect {
+                  segmentToDelete.delete onLeftSideEffect {
                     exception =>
                       logger.error(s"Failed to delete Segment '{}' in recover due to failed copyToPersist", segmentToDelete.path, exception)
                   }
@@ -647,7 +646,7 @@ private[core] object Segment extends LazyLogging {
    */
   def getAllKeyValues(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
     if (segments.isEmpty)
-      IO.Success(Slice.create[KeyValue.ReadOnly](0))
+      IO.Right(Slice.create[KeyValue.ReadOnly](0))
     else if (segments.size == 1)
       segments.head.getAll()
     else

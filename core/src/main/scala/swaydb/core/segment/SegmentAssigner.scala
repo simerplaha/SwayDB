@@ -104,15 +104,15 @@ private[core] object SegmentAssigner {
               nextSegmentMayBe match {
                 case Some(nextSegment) if keyValue.toKey > nextSegment.minKey =>
                   keyValue.fetchFromAndRangeValue match {
-                    case IO.Success((fromValue, rangeValue)) =>
+                    case IO.Right((fromValue, rangeValue)) =>
                       val thisSegmentsRange = Memory.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue)
                       val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = None, rangeValue = rangeValue)
 
                       assignKeyValueToSegment(thisSegment, thisSegmentsRange, remainingKeyValues.size)
                       assign(remainingKeyValues.dropPrepend(nextSegmentsRange), Some(nextSegment), getNextSegmentMayBe())
 
-                    case IO.Failure(error) =>
-                      IO.Failure(error)
+                    case IO.Left(error) =>
+                      IO.Left(error)
                   }
 
                 case _ =>
@@ -132,15 +132,15 @@ private[core] object SegmentAssigner {
 
                 case _ =>
                   keyValue.segment.getAll() match {
-                    case IO.Success(groupsKeyValues) =>
+                    case IO.Right(groupsKeyValues) =>
                       assign(
                         MergeList[Memory.Range, KeyValue.ReadOnly](groupsKeyValues) append remainingKeyValues.dropHead(),
                         thisSegmentMayBe,
                         nextSegmentMayBe
                       )
 
-                    case IO.Failure(error) =>
-                      IO.Failure(error)
+                    case IO.Left(error) =>
+                      IO.Left(error)
                   }
               }
           }
@@ -193,15 +193,15 @@ private[core] object SegmentAssigner {
 
                 case _ =>
                   keyValue.segment.getAll() match {
-                    case IO.Success(groupsKeyValues) =>
+                    case IO.Right(groupsKeyValues) =>
                       assign(
                         remainingKeyValues = MergeList[Memory.Range, KeyValue.ReadOnly](groupsKeyValues) append remainingKeyValues.dropHead(),
                         thisSegmentMayBe = thisSegmentMayBe,
                         nextSegmentMayBe = nextSegmentMayBe
                       )
 
-                    case IO.Failure(error) =>
-                      IO.Failure(error)
+                    case IO.Left(error) =>
+                      IO.Left(error)
                   }
               }
           }
@@ -214,7 +214,7 @@ private[core] object SegmentAssigner {
       }
 
     if (segments.size == 1)
-      IO.Success(mutable.Map((segments.head, keyValues)))
+      IO.Right(mutable.Map((segments.head, keyValues)))
     else if (segmentsIterator.hasNext)
       assign(MergeList(keyValues), Some(segmentsIterator.next()), getNextSegmentMayBe()) map {
         _ =>
@@ -224,6 +224,6 @@ private[core] object SegmentAssigner {
           }
       }
     else
-      IO.Success(assignmentsMap)
+      IO.Right(assignmentsMap)
   }
 }

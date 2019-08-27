@@ -26,11 +26,11 @@ import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
+import swaydb.core.util.Options._
 import swaydb.core.util.SkipList
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.core.util.Options._
 
 private[core] object SegmentCache {
 
@@ -141,7 +141,7 @@ private[core] class SegmentCache(id: String,
                     ) flatMap {
                       case Some(response: Persistent.SegmentResponse) =>
                         addToCache(response)
-                        IO.Success(Some(response))
+                        IO.Right(Some(response))
 
                       case Some(group: Persistent.Group) =>
                         addToCache(group)
@@ -173,14 +173,14 @@ private[core] class SegmentCache(id: String,
 
         skipList.floor(key) match {
           case Some(floor: Persistent.SegmentResponse) if floor.key equiv key =>
-            IO.Success(Some(floor))
+            IO.Right(Some(floor))
 
           //check if the key belongs to this group.
           case Some(group: Persistent.Group) if group contains key =>
             group.segment.get(key)
 
           case Some(floorRange: Persistent.Range) if floorRange contains key =>
-            IO.Success(Some(floorRange))
+            IO.Right(Some(floorRange))
 
           case floorValue =>
             if (key equiv minKey)
@@ -196,7 +196,7 @@ private[core] class SegmentCache(id: String,
                       ) flatMap {
                         case Some(response: Persistent.SegmentResponse) =>
                           addToCache(response)
-                          IO.Success(Some(response))
+                          IO.Right(Some(response))
 
                         case Some(group: Persistent.Group) =>
                           addToCache(group)
@@ -214,7 +214,7 @@ private[core] class SegmentCache(id: String,
                     get(
                       key = key,
                       start = floorValue,
-                      keyValueCount = IO.Success(footer.keyValueCount),
+                      keyValueCount = IO.Right(footer.keyValueCount),
                       end = skipList.higher(key),
                       threadState = thisThreadState,
                       hasRange = footer.hasRange
@@ -226,7 +226,7 @@ private[core] class SegmentCache(id: String,
                           get(
                             key = key,
                             start = floorValue,
-                            keyValueCount = IO.Success(footer.keyValueCount),
+                            keyValueCount = IO.Right(footer.keyValueCount),
                             threadState = thisThreadState,
                             end = skipList.higher(key),
                             hasRange = footer.hasRange
@@ -259,7 +259,7 @@ private[core] class SegmentCache(id: String,
                 ) flatMap {
                   case Some(response: Persistent.SegmentResponse) =>
                     addToCache(response)
-                    IO.Success(Some(response))
+                    IO.Right(Some(response))
 
                   case Some(group: Persistent.Group) =>
                     addToCache(group)
@@ -305,7 +305,7 @@ private[core] class SegmentCache(id: String,
               if (lowerKeyValue.nextIndexOffset == -1) //-1 indicated last key-value in the Segment.
                 lowerKeyValue match {
                   case response: Persistent.SegmentResponse =>
-                    IO.Success(Some(response))
+                    IO.Right(Some(response))
 
                   case group: Persistent.Group =>
                     group.segment.lower(key)
@@ -313,7 +313,7 @@ private[core] class SegmentCache(id: String,
               else
                 lowerKeyValue match {
                   case lowerRange: Persistent.Range if lowerRange containsLower key =>
-                    IO.Success(Some(lowerRange))
+                    IO.Right(Some(lowerRange))
 
                   case lowerGroup: Persistent.Group if lowerGroup containsLower key =>
                     lowerGroup.segment.lower(key)
@@ -323,7 +323,7 @@ private[core] class SegmentCache(id: String,
                       case Some(got) if lowerKeyValue.nextIndexOffset == got.indexOffset =>
                         lowerKeyValue match {
                           case response: Persistent.SegmentResponse =>
-                            IO.Success(Some(response))
+                            IO.Right(Some(response))
 
                           case group: Persistent.Group =>
                             group.segment.lower(key)
@@ -331,7 +331,7 @@ private[core] class SegmentCache(id: String,
 
                       case someCeiling @ Some(ceilingRange: Persistent.Range) =>
                         if (ceilingRange containsLower key)
-                          IO.Success(Some(ceilingRange))
+                          IO.Right(Some(ceilingRange))
                         else
                           lower(
                             key = key,
@@ -407,7 +407,7 @@ private[core] class SegmentCache(id: String,
                   valuesReader =>
                     val startFrom =
                       if (start.isDefined || footer.hasGroup) //don't do get if it has Group because it will fetch the inner group key-value which cannot be used as startFrom.
-                        IO.Success(start)
+                        IO.Right(start)
                       else
                         get(key)
 
@@ -424,7 +424,7 @@ private[core] class SegmentCache(id: String,
                         ) flatMap {
                           case Some(response: Persistent.SegmentResponse) =>
                             addToCache(response)
-                            IO.Success(Some(response))
+                            IO.Right(Some(response))
 
                           case Some(group: Persistent.Group) =>
                             addToCache(group)
@@ -452,7 +452,7 @@ private[core] class SegmentCache(id: String,
           case someFloor @ Some(floorEntry) =>
             floorEntry match {
               case floor: Persistent.Range if floor contains key =>
-                IO.Success(Some(floor))
+                IO.Right(Some(floor))
 
               case floor: Persistent.Group if floor containsHigher key =>
                 floor.segment.higher(key)
@@ -460,7 +460,7 @@ private[core] class SegmentCache(id: String,
               case _ =>
                 skipList.higher(key) match {
                   case Some(higherRange: Persistent.Range) if higherRange contains key =>
-                    IO.Success(Some(higherRange))
+                    IO.Right(Some(higherRange))
 
                   case Some(higherGroup: Persistent.Group) if higherGroup containsHigher key =>
                     higherGroup.segment.higher(key)
@@ -469,7 +469,7 @@ private[core] class SegmentCache(id: String,
                     if (floorEntry.nextIndexOffset == higherKeyValue.indexOffset)
                       higherKeyValue match {
                         case response: Persistent.SegmentResponse =>
-                          IO.Success(Some(response))
+                          IO.Right(Some(response))
 
                         case group: Persistent.Group =>
                           group.segment.higher(key)
@@ -516,7 +516,7 @@ private[core] class SegmentCache(id: String,
                     valuesReader = valuesReader,
                     addTo = addTo
                   )
-                  .onFailureSideEffect {
+                  .onLeftSideEffect {
                     _ =>
                       logger.trace("{}: Reading sorted index block failed.", id)
                   }

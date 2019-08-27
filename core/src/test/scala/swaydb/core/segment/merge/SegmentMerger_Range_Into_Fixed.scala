@@ -43,7 +43,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
   implicit val testTimer = TestTimer.Empty
 
   "Range into Single" when {
-    "Left - when Single key-value matches Range's fromKey" in {
+    "scala.util.Left - when Single key-value matches Range's fromKey" in {
       runThis(10000.times) {
         val newKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val oldKeyValue = randomFixedKeyValue(1)
@@ -123,7 +123,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
       }
     }
 
-    "Right - When Single's key does not belong to the Range" in {
+    "scala.util.Right - When Single's key does not belong to the Range" in {
       runThis(10000.times) {
         val newKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val oldKeyValue = randomFixedKeyValue(10)

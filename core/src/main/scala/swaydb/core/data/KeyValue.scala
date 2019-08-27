@@ -226,10 +226,10 @@ private[swaydb] object Memory {
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
     override def getOrFetchValue: IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
-      IO.Success(value)
+      IO.Right(value)
 
     override def toFromValue(): IO[swaydb.Error.Segment, Value.Put] =
-      IO.Success(Value.Put(value, deadline, time))
+      IO.Right(Value.Put(value, deadline, time))
 
     override def copyWithDeadlineAndTime(deadline: Option[Deadline],
                                          time: Time): Put =
@@ -240,7 +240,7 @@ private[swaydb] object Memory {
 
     //ahh not very type-safe.
     override def toRangeValue(): IO[swaydb.Error.Segment, Value.RangeValue] =
-      IO.failed("Put cannot be converted to RangeValue")
+      IO.left("Put cannot be converted to RangeValue")
   }
 
   case class Update(key: Slice[Byte],
@@ -257,10 +257,10 @@ private[swaydb] object Memory {
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
     override def getOrFetchValue: IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
-      IO.Success(value)
+      IO.Right(value)
 
     override def toFromValue(): IO[swaydb.Error.Segment, Value.Update] =
-      IO.Success(Value.Update(value, deadline, time))
+      IO.Right(Value.Update(value, deadline, time))
 
     override def copyWithDeadlineAndTime(deadline: Option[Deadline],
                                          time: Time): Update =
@@ -299,10 +299,10 @@ private[swaydb] object Memory {
     override def indexEntryDeadline: Option[Deadline] = None
 
     override def getOrFetchFunction: IO[swaydb.Error.Segment, Slice[Byte]] =
-      IO.Success(function)
+      IO.Right(function)
 
     override def toFromValue(): IO[swaydb.Error.Segment, Value.Function] =
-      IO.Success(Value.Function(function, time))
+      IO.Right(Value.Function(function, time))
 
     override def copyWithTime(time: Time): Function =
       copy(time = time)
@@ -322,10 +322,10 @@ private[swaydb] object Memory {
     def time = Time.fromApplies(applies)
 
     override def getOrFetchApplies: IO[swaydb.Error.Segment, Slice[Value.Apply]] =
-      IO.Success(applies)
+      IO.Right(applies)
 
     override def toFromValue(): IO[swaydb.Error.Segment, Value.PendingApply] =
-      IO.Success(Value.PendingApply(applies))
+      IO.Right(Value.PendingApply(applies))
 
     override def toRangeValue(): IO[swaydb.Error.Segment, Value.PendingApply] =
       toFromValue()
@@ -350,7 +350,7 @@ private[swaydb] object Memory {
       copy(time = time)
 
     override def toFromValue(): IO[swaydb.Error.Segment, Value.Remove] =
-      IO.Success(toRemoveValue())
+      IO.Right(toRemoveValue())
 
     override def toRangeValue(): IO[swaydb.Error.Segment, Value.Remove] =
       toFromValue()
@@ -374,13 +374,13 @@ private[swaydb] object Memory {
     override def indexEntryDeadline: Option[Deadline] = None
 
     override def fetchFromValue: IO[swaydb.Error.Segment, Option[Value.FromValue]] =
-      IO.Success(fromValue)
+      IO.Right(fromValue)
 
     override def fetchRangeValue: IO[swaydb.Error.Segment, Value.RangeValue] =
-      IO.Success(rangeValue)
+      IO.Right(rangeValue)
 
     override def fetchFromAndRangeValue: IO[swaydb.Error.Segment, (Option[Value.FromValue], Value.RangeValue)] =
-      IO.Success(fromValue, rangeValue)
+      IO.Right(fromValue, rangeValue)
   }
 
   object Group {
@@ -1402,7 +1402,7 @@ private[core] object Persistent {
       deadline.exists(deadline => (deadline - minus).hasTimeLeft())
 
     override def toMemory(): IO[swaydb.Error.Segment, Memory.Remove] =
-      IO.Success {
+      IO.Right {
         Memory.Remove(
           key = key,
           deadline = deadline,
@@ -1414,7 +1414,7 @@ private[core] object Persistent {
       copy(_time = time)
 
     override def toFromValue(): IO[swaydb.Error.Segment, Value.Remove] =
-      IO.Success(toRemoveValue())
+      IO.Right(toRemoveValue())
 
     override def toRangeValue(): IO[swaydb.Error.Segment, Value.Remove] =
       toFromValue()
@@ -1500,7 +1500,7 @@ private[core] object Persistent {
       }
 
     override def toRangeValue(): IO[swaydb.Error.Segment, Value.RangeValue] =
-      IO.failed("Put cannot be converted to RangeValue")
+      IO.left("Put cannot be converted to RangeValue")
 
     override def toMemory(): IO[swaydb.Error.Segment, Memory.Put] =
       getOrFetchValue map {

@@ -49,7 +49,7 @@ object ValueLengthReader {
             Bytes.decompress(Slice.writeInt(previousValueLength), valueLengthBytes, commonBytes).readInt()
         }
     } getOrElse {
-      IO.failed(EntryReaderFailure.NoPreviousKeyValue)
+      IO.left(EntryReaderFailure.NoPreviousKeyValue)
     }
 
   implicit object ValueLengthOneCompressed extends ValueLengthReader[BaseEntryId.ValueLength.OneCompressed] {
@@ -83,8 +83,8 @@ object ValueLengthReader {
                       previous: Option[Persistent]): IO[swaydb.Error.Segment, Int] =
       previous map {
         previous =>
-          IO.Success(previous.valueLength)
-      } getOrElse IO.failed(EntryReaderFailure.NoPreviousKeyValue)
+          IO.Right(previous.valueLength)
+      } getOrElse IO.left(EntryReaderFailure.NoPreviousKeyValue)
   }
 
   implicit object ValueLengthUncompressed extends ValueLengthReader[BaseEntryId.ValueLength.Uncompressed] {

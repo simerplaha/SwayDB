@@ -104,7 +104,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         (thisLevel.removeSegments(_: Iterable[Segment])) expects * onCall {
           putSegments: Iterable[Segment] =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
-            IO.Success(segments.size)
+            IO.Right(segments.size)
         }
 
         Compaction.putForward(segments, thisLevel, nextLevel).right.value.value shouldBe segments.size
@@ -130,7 +130,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         (thisLevel.removeSegments(_: Iterable[Segment])) expects * onCall {
           putSegments: Iterable[Segment] =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
-            IO.failed("Failed!")
+            IO.left("Failed!")
         }
 
         Compaction.putForward(segments, thisLevel, nextLevel).right.value.value shouldBe segments.size
@@ -222,7 +222,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val level = mock[NextLevel]("level")
         level.hasNextLevel _ expects() returns true
 
-        Compaction.runLastLevelCompaction(level, true, remainingCompactions = 0, 10) shouldBe IO.Success(10)
+        Compaction.runLastLevelCompaction(level, true, remainingCompactions = 0, 10) shouldBe IO.Right(10)
       }
     }
 
@@ -252,7 +252,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           (segment: Segment, _) =>
             segments find (_.path == segment.path) shouldBe defined
             segments -= segment
-            Right(segment.delete)
+            scala.util.Right(segment.delete)
         } repeat 5.times
 
         Compaction.runLastLevelCompaction(
@@ -260,7 +260,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           checkExpired = true,
           remainingCompactions = 5,
           segmentsCompacted = 0
-        ) shouldBe IO.Success(5)
+        ) shouldBe IO.Right(5)
       }
     }
 
@@ -293,7 +293,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           (segmentsToCollapse: Iterable[Segment], _) =>
             segmentsToCollapse foreach (segment => segments find (_.path == segment.path) shouldBe defined)
             segments --= segmentsToCollapse
-            Right(IO(segmentsToCollapse.size))
+            scala.util.Right(IO(segmentsToCollapse.size))
         } repeat 2.times
 
         Compaction.runLastLevelCompaction(
@@ -301,7 +301,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           checkExpired = false,
           remainingCompactions = 5,
           segmentsCompacted = 0
-        ) shouldBe IO.Success(5)
+        ) shouldBe IO.Right(5)
       }
     }
   }

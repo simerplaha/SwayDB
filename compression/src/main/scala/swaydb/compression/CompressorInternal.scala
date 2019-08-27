@@ -132,7 +132,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
 
     override def compress(slice: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] = {
       logger.debug(s"Grouped {}.bytes with {}", slice.size, compressionName)
-      IO.Success(Some(slice))
+      IO.Right(Some(slice))
     }
   }
 

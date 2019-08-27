@@ -119,7 +119,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def delete: IO[swaydb.Error.Segment, Unit] = {
     logger.trace(s"{}: DELETING FILE", path)
-    file.delete() onFailureSideEffect {
+    file.delete() onLeftSideEffect {
       failure =>
         logger.error(s"{}: Failed to delete Segment file.", path, failure)
     } map {
@@ -176,10 +176,10 @@ private[segment] case class PersistentSegment(file: DBFile,
                   ),
 
               recover =
-                (segments: Slice[Segment], _: IO.Failure[swaydb.Error.Segment, Slice[Segment]]) =>
+                (segments: Slice[Segment], _: IO.Left[swaydb.Error.Segment, Slice[Segment]]) =>
                   segments foreach {
                     segmentToDelete =>
-                      segmentToDelete.delete onFailureSideEffect {
+                      segmentToDelete.delete onLeftSideEffect {
                         exception =>
                           logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
                       }
@@ -228,10 +228,10 @@ private[segment] case class PersistentSegment(file: DBFile,
                   ),
 
               recover =
-                (segments: Slice[Segment], _: IO.Failure[swaydb.Error.Segment, Slice[Segment]]) =>
+                (segments: Slice[Segment], _: IO.Left[swaydb.Error.Segment, Slice[Segment]]) =>
                   segments foreach {
                     segmentToDelete =>
-                      segmentToDelete.delete onFailureSideEffect {
+                      segmentToDelete.delete onLeftSideEffect {
                         exception =>
                           logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed refresh", path, segmentToDelete.path, exception)
                       }

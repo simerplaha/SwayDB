@@ -76,7 +76,7 @@ class GroupCompressorSpec extends TestBase {
         hashIndexConfig = HashIndexBlock.Config.random,
         bloomFilterConfig = BloomFilterBlock.Config.random,
         createdInLevel = randomIntMax()
-      ).failed.get.exception.getMessage shouldBe GroupCompressor.cannotGroupEmptyValues.exception.getMessage
+      ).left.get.exception.getMessage shouldBe GroupCompressor.cannotGroupEmptyValues.exception.getMessage
     }
 
     "create a group" when {

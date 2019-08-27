@@ -119,5 +119,5 @@ private[core] trait Map[K, V] {
   def close(): IO[swaydb.Error.Map, Unit]
 
   def fileId: IO[swaydb.Error.Map, Long] =
-    IO.Success[swaydb.Error.Map, Long](0)
+    IO.Right[swaydb.Error.Map, Long](0)
 }

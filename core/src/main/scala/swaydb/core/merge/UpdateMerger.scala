@@ -97,7 +97,7 @@ private[core] object UpdateMerger {
         Memory.PendingApply(newKeyValue.key, Slice(oldValue, newValue))
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.Update,
             oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]],
@@ -128,7 +128,7 @@ private[core] object UpdateMerger {
           )
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.Update,
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],

@@ -292,9 +292,9 @@ private[core] object BinarySearchIndexBlock {
           isHigher =>
             //if higher got a successful match return the result with knowLost.
             if (isHigher)
-              IO.Success(SearchResult.Some(knownLowest, knownMatch))
+              IO.Right(SearchResult.Some(knownLowest, knownMatch))
             else //if it's lower seek then match is the lower match.
-              IO.Success(SearchResult.Some(None, knownMatch))
+              IO.Right(SearchResult.Some(None, knownMatch))
         }
     } getOrElse {
       //if there was not match create a response from known collected seeks.
@@ -304,14 +304,14 @@ private[core] object BinarySearchIndexBlock {
             higher =>
               //if it was higher and knownMatch is none means there was no successful higher but lower might be know.
               if (higher)
-                IO.Success(SearchResult.None(knownLowest))
+                IO.Right(SearchResult.None(knownLowest))
               else //if it was lower then send the best known lower as the response.
-                IO.Success(SearchResult.Some(None, knowLowest))
+                IO.Right(SearchResult.Some(None, knowLowest))
           }
       } getOrElse {
         //if no data return None response with lower set.
         val lowestMax = MinMax.maxFavourLeft(knownLowest, startKeyValue)
-        IO.Success(SearchResult.None(lowestMax))
+        IO.Right(SearchResult.None(lowestMax))
       }
     }
 
@@ -333,23 +333,23 @@ private[core] object BinarySearchIndexBlock {
         )
       else
         context.seek(valueOffset) match {
-          case IO.Success(entry) =>
+          case IO.Right(entry) =>
             entry match {
               case matched: KeyMatcher.Result.Matched =>
                 context.higherOrLower match {
                   case None =>
-                    IO.Success(SearchResult.Some(matched.previous orElse knownLowest, matched.result))
+                    IO.Right(SearchResult.Some(matched.previous orElse knownLowest, matched.result))
 
                   case Some(higher) =>
                     if (higher)
                       if (matched.previous.isDefined)
-                        IO.Success(SearchResult.Some(matched.previous, matched.result))
+                        IO.Right(SearchResult.Some(matched.previous, matched.result))
                       else
                         hop(start = start, end = mid - 1, knownLowest, knownMatch = Some(matched.result))
                     else if (matched.next.isDefined)
                     //Is lower! Don't need to compare knownLowest because a successful match would've fetch the nearest lowest.
                     //Here most times knownLowest would be the same as matched.result.
-                      IO.Success(SearchResult.Some(matched.previous, matched.result))
+                      IO.Right(SearchResult.Some(matched.previous, matched.result))
                     else
                       hop(start = mid + 1, end = end, matched.previous orElse knownLowest, knownMatch = Some(matched.result))
                 }
@@ -369,8 +369,8 @@ private[core] object BinarySearchIndexBlock {
               case KeyMatcher.Result.AheadOrNoneOrEnd =>
                 hop(start = start, end = mid - 1, knownLowest, knownMatch = knownMatch)
             }
-          case IO.Failure(error) =>
-            IO.Failure(error)
+          case IO.Left(error) =>
+            IO.Left(error)
         }
     }
 
@@ -408,7 +408,7 @@ private[core] object BinarySearchIndexBlock {
       if (context.endKeyValue.exists(_.accessPosition > 0))
         hop(start = (endPosition - 1) max 0, end = endPosition, None, None) flatMap {
           case some @ SearchResult.Some(_, _) =>
-            IO.Success(some)
+            IO.Right(some)
 
           case none @ SearchResult.None(lower) =>
             if (endPosition > 1)
@@ -426,17 +426,17 @@ private[core] object BinarySearchIndexBlock {
                   context.startKeyValue map {
                     startKeyValue =>
                       if (lower.hashCode() != startKeyValue.hashCode())
-                        IO.failed("Lower was defined.")
+                        IO.left("Lower was defined.")
                       else
-                        IO.Success(SearchResult.None(None))
+                        IO.Right(SearchResult.None(None))
                   }
-              } getOrElse IO.Success(none)
+              } getOrElse IO.Right(none)
         }
       else if (context.startKeyValue.exists(_.accessPosition > 0)) //end should not be larger than the number of entries.
         hop(start = startPosition, end = (startPosition + 1) min (context.valuesCount - 1), None, None) flatMap {
           case some @ SearchResult.Some(_, lower) =>
             if (context.startKeyValue exists (order.equiv(_, lower)))
-              IO.Success(some)
+              IO.Right(some)
             else
               hop(start = getStartPosition(Some(lower)), end = endPosition, Some(lower), None)
 

@@ -151,17 +151,17 @@ private[core] object TrashLevel extends NextLevel {
   override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     (segments, Iterable.empty)
 
-  override def put(segment: Segment)(implicit ec: ExecutionContext): Either[Nothing, IO.Success[Nothing, Unit]] =
+  override def put(segment: Segment)(implicit ec: ExecutionContext): Either[Nothing, IO.Right[Nothing, Unit]] =
     IO.eitherUnit
 
   override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
-    Right(IO.unit)
+    scala.util.Right(IO.unit)
 
   override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
-    Right(IO.unit)
+    scala.util.Right(IO.unit)
 
   override def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Int] =
-    IO.Success(segments.size)
+    IO.Right(segments.size)
 
   override val meter: LevelMeter =
     new LevelMeter {
@@ -172,11 +172,11 @@ private[core] object TrashLevel extends NextLevel {
       override def nextLevelMeter: Option[LevelMeter] = None
     }
 
-  override def refresh(segment: Segment)(implicit ec: ExecutionContext): Either[Nothing, IO.Success[Nothing, Unit]] =
+  override def refresh(segment: Segment)(implicit ec: ExecutionContext): Either[Nothing, IO.Right[Nothing, Unit]] =
     IO.eitherUnit
 
   override def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Nothing, IO[Error.Segment, Int]] =
-    Right(IO(segments.size))
+    scala.util.Right(IO(segments.size))
 
   override def isZero: Boolean =
     false

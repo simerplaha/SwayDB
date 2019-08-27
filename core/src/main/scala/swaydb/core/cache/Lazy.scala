@@ -39,10 +39,10 @@ private[swaydb] object Lazy {
                              initial: Option[A]): LazyIO[E, A] =
     new LazyIO[E, A](
       lazyValue =
-        Lazy.value[IO.Success[E, A]](
+        Lazy.value[IO.Right[E, A]](
           synchronised = synchronised,
           stored = stored,
-          initial = initial.map(IO.Success(_))
+          initial = initial.map(IO.Right(_))
         )
     )
 }
@@ -116,25 +116,25 @@ private[swaydb] class LazyValue[A](synchronised: Boolean, stored: Boolean) exten
     this.cache = None
 }
 
-private[swaydb] class LazyIO[E: ErrorHandler, A](lazyValue: LazyValue[IO.Success[E, A]]) extends Lazy[IO[E, A]] {
+private[swaydb] class LazyIO[E: ErrorHandler, A](lazyValue: LazyValue[IO.Right[E, A]]) extends Lazy[IO[E, A]] {
 
   def set(value: => IO[E, A]): IO[E, A] =
     try
-      lazyValue set IO.Success(value.get)
+      lazyValue set IO.Right(value.get)
     catch {
       case exception: Exception =>
-        IO.failed[E, A](exception)
+        IO.left[E, A](exception)
     }
 
-  override def get(): Option[IO.Success[E, A]] =
+  override def get(): Option[IO.Right[E, A]] =
     lazyValue.get()
 
   override def getOrSet(value: => IO[E, A]): IO[E, A] =
     try
-      lazyValue getOrSet IO.Success(value.get)
+      lazyValue getOrSet IO.Right(value.get)
     catch {
       case exception: Exception =>
-        IO.failed[E, A](exception)
+        IO.left[E, A](exception)
     }
 
   override def getOrElse[B >: IO[E, A]](f: => B): B =

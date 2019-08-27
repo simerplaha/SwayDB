@@ -170,7 +170,7 @@ private[core] object BlockCache {
             bytes ++ cachedBytes
 
         if (cachedBytes.isEmpty || cachedBytes.size == size)
-          IO.Success(mergedBytes)
+          IO.Right(mergedBytes)
         else
           doSeek(
             position = position + cachedBytes.size,
@@ -188,15 +188,15 @@ private[core] object BlockCache {
           size = position - keyPosition + size,
           state = state
         ) match {
-          case IO.Success(seekedBytes) =>
+          case IO.Right(seekedBytes) =>
             val bytesToReturn = seekedBytes.take(position - keyPosition, size)
             if (bytes.isEmpty)
-              IO.Success(bytesToReturn)
+              IO.Right(bytesToReturn)
             else
-              IO.Success(bytes ++ bytesToReturn)
+              IO.Right(bytes ++ bytesToReturn)
 
-          case IO.Failure(error) =>
-            IO.Failure(error)
+          case IO.Left(error) =>
+            IO.Left(error)
         }
     }
   }

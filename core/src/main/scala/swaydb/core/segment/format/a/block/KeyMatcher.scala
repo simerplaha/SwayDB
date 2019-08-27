@@ -46,34 +46,34 @@ private[core] sealed trait KeyMatcher {
 private[core] object KeyMatcher {
 
   sealed trait Result {
-    def asIO: IO.Success[swaydb.Error.Segment, Result]
+    def asIO: IO.Right[swaydb.Error.Segment, Result]
   }
 
   object Result {
 
     sealed trait Complete extends Result {
-      def asIO: IO.Success[swaydb.Error.Segment, Complete]
+      def asIO: IO.Right[swaydb.Error.Segment, Complete]
     }
 
     sealed trait InComplete extends Result {
-      def asIO: IO.Success[swaydb.Error.Segment, InComplete]
+      def asIO: IO.Right[swaydb.Error.Segment, InComplete]
     }
 
     case class Matched(previous: Option[Persistent], result: Persistent, next: Option[Persistent]) extends Complete {
-      override def asIO: IO.Success[swaydb.Error.Segment, Complete] =
-        IO.Success(this)
+      override def asIO: IO.Right[swaydb.Error.Segment, Complete] =
+        IO.Right(this)
     }
     sealed trait Behind {
       def previous: Persistent
     }
     case class BehindFetchNext(previous: Persistent) extends InComplete with Behind {
-      val asIO = IO.Success(this)
+      val asIO = IO.Right(this)
     }
     case class BehindStopped(previous: Persistent) extends Complete with Behind {
-      val asIO = IO.Success(this)
+      val asIO = IO.Right(this)
     }
     case object AheadOrNoneOrEnd extends Complete {
-      val asIO = IO.Success(this)
+      val asIO = IO.Right(this)
     }
   }
 

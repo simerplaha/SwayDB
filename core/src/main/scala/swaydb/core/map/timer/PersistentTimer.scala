@@ -30,7 +30,6 @@ import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.util.SkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -86,7 +85,7 @@ private[core] object PersistentTimer extends LazyLogging {
                     )
                   }
                 else
-                  IO.Failure(swaydb.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
+                  IO.Left(swaydb.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
             }
 
           case None =>
@@ -101,7 +100,7 @@ private[core] object PersistentTimer extends LazyLogging {
                     )
                   }
                 else
-                  IO.Failure(swaydb.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
+                  IO.Left(swaydb.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
             }
         }
     }
@@ -124,7 +123,7 @@ private[core] object PersistentTimer extends LazyLogging {
   private[timer] def checkpoint(nextTime: Long,
                                 mod: Long,
                                 map: PersistentMap[Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) =
-    map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(nextTime + mod))) onFailureSideEffect {
+    map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(nextTime + mod))) onLeftSideEffect {
       failed =>
         val message = s"Failed to write timer entry: $nextTime"
         logger.error(message, failed.exception)

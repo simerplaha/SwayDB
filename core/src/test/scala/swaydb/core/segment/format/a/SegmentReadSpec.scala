@@ -835,7 +835,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
       segment3.delete.runRandomIO.value //delete a segment so that there is a failure.
 
-      Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runRandomIO.value.exception shouldBe a[NoSuchFileException]
+      Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).left.runRandomIO.value.exception shouldBe a[NoSuchFileException]
     }
 
     "fail read if reading any one Segment file is corrupted" in {
@@ -861,19 +861,19 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
           Files.write(segment2.path, bytes.drop(1))
           clearAll()
-          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runRandomIO.get shouldBe a[swaydb.Error]
+          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).left.runRandomIO.get shouldBe a[swaydb.Error]
 
           Files.write(segment2.path, bytes.dropRight(1))
           clearAll()
-          Segment.getAllKeyValues(Seq(segment2)).failed.runRandomIO.get shouldBe a[swaydb.Error]
+          Segment.getAllKeyValues(Seq(segment2)).left.runRandomIO.get shouldBe a[swaydb.Error]
 
           Files.write(segment2.path, bytes.drop(10))
           clearAll()
-          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runRandomIO.get shouldBe a[swaydb.Error]
+          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).left.runRandomIO.get shouldBe a[swaydb.Error]
 
           Files.write(segment2.path, bytes.dropRight(1))
           clearAll()
-          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.runRandomIO.get shouldBe a[swaydb.Error]
+          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).left.runRandomIO.get shouldBe a[swaydb.Error]
         }
       } else {
         //memory files do not require this test

@@ -49,7 +49,7 @@ object ValueOffsetReader {
             Bytes.decompress(Slice.writeInt(previousValueOffset), valueOffsetBytes, commonBytes).readInt()
         }
     } getOrElse {
-      IO.failed(EntryReaderFailure.NoPreviousKeyValue)
+      IO.left(EntryReaderFailure.NoPreviousKeyValue)
     }
 
   implicit object ValueOffsetOneCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.OneCompressed] {
@@ -91,8 +91,8 @@ object ValueOffsetReader {
                       previous: Option[Persistent]): IO[swaydb.Error.Segment, Int] =
       previous map {
         previous =>
-          IO.Success(previous.valueOffset)
-      } getOrElse IO.Failure(swaydb.Error.Fatal(EntryReaderFailure.NoPreviousKeyValue))
+          IO.Right(previous.valueOffset)
+      } getOrElse IO.Left(swaydb.Error.Fatal(EntryReaderFailure.NoPreviousKeyValue))
   }
 
   implicit object ValueOffsetReaderNoValue extends ValueOffsetReader[BaseEntryId.Value.NoValue] {

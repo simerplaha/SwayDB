@@ -90,7 +90,7 @@ private[core] object BufferCleaner extends LazyLogging {
         logger.info("Initialised Java 8 ByteBuffer cleaner.")
         state
       }
-    } onFailureSideEffect {
+    } onLeftSideEffect {
       error =>
         val errorMessage = s"ByteBuffer cleaner not initialised. Failed to clean MMAP file: ${path.toString}."
         val exception = error.exception
@@ -107,7 +107,7 @@ private[core] object BufferCleaner extends LazyLogging {
         IO {
           cleaner.clean(buffer)
           state
-        } onFailureSideEffect {
+        } onLeftSideEffect {
           error =>
             val errorMessage = s"Failed to clean MappedByteBuffer at path '${path.toString}'."
             val exception = error.exception

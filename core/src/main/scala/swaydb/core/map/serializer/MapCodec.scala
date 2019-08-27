@@ -67,14 +67,14 @@ private[core] object MapCodec extends LazyLogging {
     Reader[swaydb.Error.Map](bytes).foldLeftIO(RecoveryResult(Option.empty[MapEntry[K, V]], IO.unit)) {
       case (recovery, reader) =>
         reader.hasAtLeast(ByteSizeOf.long) match {
-          case IO.Success(hasMore) =>
+          case IO.Right(hasMore) =>
             if (hasMore) {
               val result =
                 reader.readLong() match {
-                  case IO.Success(crc) =>
+                  case IO.Right(crc) =>
                     // An unfilled MemoryMapped file can have trailing empty bytes which indicates EOF.
                     if (crc == 0)
-                      return IO.Success(recovery)
+                      return IO.Right(recovery)
                     else
                       try {
                         val length = reader.readInt().get
@@ -94,37 +94,37 @@ private[core] object MapCodec extends LazyLogging {
                           val failureMessage =
                             s"File corruption! Failed to match CRC check for entry at position ${reader.getPosition}. CRC expected = $crc actual = $checkCRC. Skip on corruption = $dropCorruptedTailEntries."
                           logger.error(failureMessage)
-                          IO.failed(new IllegalStateException(failureMessage))
+                          IO.left(new IllegalStateException(failureMessage))
                         }
                       } catch {
                         case ex: Throwable =>
                           logger.error("File corruption! Unable to read entry at position {}. dropCorruptedTailEntries = {}.", reader.getPosition, dropCorruptedTailEntries, ex)
-                          IO.failed(new IllegalStateException(s"File corruption! Unable to read entry at position ${reader.getPosition}. dropCorruptedTailEntries = $dropCorruptedTailEntries.", ex))
+                          IO.left(new IllegalStateException(s"File corruption! Unable to read entry at position ${reader.getPosition}. dropCorruptedTailEntries = $dropCorruptedTailEntries.", ex))
                       }
 
-                  case IO.Failure(failure) =>
-                    IO.Failure(failure)
+                  case IO.Left(failure) =>
+                    IO.Left(failure)
                 }
 
               result match {
-                case IO.Success(value) =>
-                  IO.Success(value)
+                case IO.Right(value) =>
+                  IO.Right(value)
 
-                case IO.Failure(failure) =>
+                case IO.Left(failure) =>
                   if (dropCorruptedTailEntries) {
                     logger.error("Skipping WAL on failure at position {}", reader.getPosition)
-                    return IO.Success(RecoveryResult(recovery.item, IO.Failure(failure)))
+                    return IO.Right(RecoveryResult(recovery.item, IO.Left(failure)))
                   } else {
-                    IO.Failure(failure)
+                    IO.Left(failure)
                   }
               }
             } else {
               //MMAP files can be closed with empty bytes with < 8 bytes.
-              return IO.Success(recovery)
+              return IO.Right(recovery)
             }
 
-          case IO.Failure(error) =>
-            IO.Failure(error)
+          case IO.Left(error) =>
+            IO.Left(error)
         }
     }
 }

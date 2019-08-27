@@ -316,7 +316,7 @@ class MapSpec extends TestBase {
         flushOnOverflow = false,
         initialWriteCount = 0,
         fileSize = 1.mb
-      ).failed.runRandomIO.value.exception shouldBe a[FileAlreadyExistsException]
+      ).left.runRandomIO.value.exception shouldBe a[FileAlreadyExistsException]
 
       //recovers because the recovery is provided
       Map.persistent[Slice[Byte], Memory.SegmentResponse](map.path, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.value
@@ -510,7 +510,7 @@ class MapSpec extends TestBase {
           fileSize = 4.mb,
           initialWriteCount = 0,
           dropCorruptedTailEntries = false
-        ).failed.runRandomIO.value.exception shouldBe a[IllegalStateException]
+        ).left.runRandomIO.value.exception shouldBe a[IllegalStateException]
 
       //drop last byte
       Files.write(map.currentFilePath, allBytes.dropRight(1))
@@ -575,7 +575,7 @@ class MapSpec extends TestBase {
       //fail recovery if first map is corrupted
       //corrupt 0.log bytes
       Files.write(log0, log0Bytes.drop(1))
-      Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).failed.runRandomIO.value.exception shouldBe a[IllegalStateException]
+      Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).left.runRandomIO.value.exception shouldBe a[IllegalStateException]
       Files.write(log0, log0Bytes) //fix log0 bytes
 
       //successfully recover Map by reading both WAL files if the first WAL file is corrupted
@@ -583,7 +583,7 @@ class MapSpec extends TestBase {
       Files.write(log0, log0Bytes.dropRight(1))
       val recoveredMapWith0LogCorrupted = Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = true).runRandomIO.value
       //recovery state contains failure because the WAL file is partially recovered.
-      recoveredMapWith0LogCorrupted.result.failed.runRandomIO.value.exception shouldBe a[IllegalStateException]
+      recoveredMapWith0LogCorrupted.result.left.runRandomIO.value.exception shouldBe a[IllegalStateException]
       recoveredMapWith0LogCorrupted.item.size shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
 
       //checking the recovered entries
@@ -625,7 +625,7 @@ class MapSpec extends TestBase {
       //fail recovery if one of two WAL files of the map is corrupted
       //corrupt 1.log bytes
       Files.write(log1, log1Bytes.drop(1))
-      Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).failed.runRandomIO.value.exception shouldBe a[IllegalStateException]
+      Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).left.runRandomIO.value.exception shouldBe a[IllegalStateException]
       Files.write(log1, log1Bytes) //fix log1 bytes
 
       //successfully recover Map by reading both WAL files if the second WAL file is corrupted
@@ -633,7 +633,7 @@ class MapSpec extends TestBase {
       Files.write(log1, log1Bytes.dropRight(1))
       val recoveredMapWith0LogCorrupted = Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = true).runRandomIO.value
       //recovery state contains failure because the WAL file is partially recovered.
-      recoveredMapWith0LogCorrupted.result.failed.runRandomIO.value.exception shouldBe a[IllegalStateException]
+      recoveredMapWith0LogCorrupted.result.left.runRandomIO.value.exception shouldBe a[IllegalStateException]
       recoveredMapWith0LogCorrupted.item.size shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
 
       //checking the recovered entries

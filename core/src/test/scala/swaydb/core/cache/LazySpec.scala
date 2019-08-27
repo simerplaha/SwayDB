@@ -152,7 +152,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
             initialValue =>
               lazyValue.isDefined shouldBe true
               lazyValue.get().get.get shouldBe initialValue
-              lazyValue.getOrElse(fail()) shouldBe IO.Success(initialValue)
+              lazyValue.getOrElse(fail()) shouldBe IO.Right(initialValue)
               lazyValue.clear()
           }
 
@@ -185,18 +185,18 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
           initialValue =>
             lazyValue.isDefined shouldBe true
             lazyValue.get().get.get shouldBe initialValue
-            lazyValue.getOrElse(fail()) shouldBe IO.Success(initialValue)
+            lazyValue.getOrElse(fail()) shouldBe IO.Right(initialValue)
             lazyValue.clear()
         }
 
-        lazyValue.getOrSet(IO(20)) shouldBe IO.Success(20)
-        lazyValue.getOrElse(fail()) shouldBe IO.Success(20)
+        lazyValue.getOrSet(IO(20)) shouldBe IO.Right(20)
+        lazyValue.getOrElse(fail()) shouldBe IO.Right(20)
         lazyValue.isDefined shouldBe true
 
         //but overwrites when set is invoked
-        lazyValue set IO.Success(100)
-        lazyValue.getOrSet(fail()) shouldBe IO.Success(100)
-        lazyValue.getOrElse(fail()) shouldBe IO.Success(100)
+        lazyValue set IO.Right(100)
+        lazyValue.getOrSet(fail()) shouldBe IO.Right(100)
+        lazyValue.getOrElse(fail()) shouldBe IO.Right(100)
 
         lazyValue.clear()
         lazyValue.isDefined shouldBe false
@@ -222,7 +222,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
           initialValue =>
             lazyValue.isDefined shouldBe true
             lazyValue.get().get.get shouldBe initialValue
-            lazyValue.getOrElse(fail()) shouldBe IO.Success(initialValue)
+            lazyValue.getOrElse(fail()) shouldBe IO.Right(initialValue)
             lazyValue.clear()
         }
 
@@ -231,11 +231,11 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
             lazyValue getOrSet IO(mockValueFunction.apply())
         }
 
-        lazyValue.get() should contain(IO.Success(value))
+        lazyValue.get() should contain(IO.Right(value))
 
         //map and flatMap should return value
-        lazyValue map (value => value + 1) shouldBe IO.Success(Some(value + 1))
-        lazyValue flatMap (value => IO.Success(value + 2)) shouldBe IO.Success(Some(value + 2))
+        lazyValue map (value => value + 1) shouldBe IO.Right(Some(value + 1))
+        lazyValue flatMap (value => IO.Right(value + 2)) shouldBe IO.Right(Some(value + 2))
 
         lazyValue.clear()
         lazyValue.isDefined shouldBe false
@@ -259,7 +259,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
           initialValue =>
             lazyValue.isDefined shouldBe true
             lazyValue.get().get.get shouldBe initialValue
-            lazyValue.getOrElse(fail()) shouldBe IO.Success(initialValue)
+            lazyValue.getOrElse(fail()) shouldBe IO.Right(initialValue)
             lazyValue.clear()
         }
 
@@ -271,11 +271,11 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
             }
         }
 
-        lazyValue.get() should contain(IO.Success(value))
+        lazyValue.get() should contain(IO.Right(value))
 
         //map and flatMap should return value
-        lazyValue map (_ + 1) shouldBe IO.Success(Some(value + 1))
-        lazyValue flatMap (value => IO.Success(value + 1)) shouldBe IO.Success(Some(value + 1))
+        lazyValue map (_ + 1) shouldBe IO.Right(Some(value + 1))
+        lazyValue flatMap (value => IO.Right(value + 1)) shouldBe IO.Right(Some(value + 1))
 
         lazyValue.clear()
         lazyValue.isDefined shouldBe false
@@ -286,12 +286,12 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
       def doTest(isSynchronised: Boolean, stored: Boolean) = {
         val lazyValue = Lazy.io[Throwable, Int](isSynchronised, stored, None)
 
-        lazyValue.getOrSet(throw new Exception("failed")).failed.get.getMessage shouldBe "failed"
+        lazyValue.getOrSet(throw new Exception("failed")).left.get.getMessage shouldBe "failed"
         lazyValue.isEmpty shouldBe true
         lazyValue.isDefined shouldBe false
         lazyValue.get() shouldBe empty
 
-        lazyValue.set(throw new Exception("failed")).failed.get.getMessage shouldBe "failed"
+        lazyValue.set(throw new Exception("failed")).left.get.getMessage shouldBe "failed"
         lazyValue.isEmpty shouldBe true
         lazyValue.isDefined shouldBe false
         lazyValue.get() shouldBe empty

@@ -28,7 +28,7 @@ class ErrorHandlerSpec extends FlatSpec with Matchers {
   it should "Exceptions to Throwable" in {
     val exception = Exception.FailedToWriteAllBytes(0, 10, 10)
 
-    val got: Throwable = IO.failed(exception = exception).failed.get
+    val got: Throwable = IO.left(exception = exception).left.get
     got shouldBe exception
   }
 
@@ -40,7 +40,7 @@ class ErrorHandlerSpec extends FlatSpec with Matchers {
           throw exception
         }
 
-      io.failed.get shouldBe Error.DataAccess(Error.DataAccess.message, exception)
+      io.left.get shouldBe Error.DataAccess(Error.DataAccess.message, exception)
     }
 
     assert(new ArrayIndexOutOfBoundsException)
@@ -53,7 +53,7 @@ class ErrorHandlerSpec extends FlatSpec with Matchers {
     val failure: IO[Throwable, Error.IO] =
       IO[swaydb.Error.IO, Unit] {
         throw failedToWriteAllBytes
-      }.failed
+      }.left
 
     failure.get shouldBe Error.FailedToWriteAllBytes(failedToWriteAllBytes)
   }

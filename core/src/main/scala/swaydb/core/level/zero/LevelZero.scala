@@ -25,7 +25,6 @@ import java.util
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ErrorHandler
-import swaydb.{Error, IO, Tag}
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
@@ -45,6 +44,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.StorageUnits._
+import swaydb.{Error, IO, Tag}
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -112,7 +112,7 @@ private[core] object LevelZero extends LazyLogging {
                 )
 
               case None =>
-                IO.Success(Timer.memory())
+                IO.Right(Timer.memory())
             }
 
           timer map {
@@ -180,7 +180,7 @@ private[core] case class LevelZero(path: Path,
 
   def assertKey(key: Slice[Byte])(block: => IO[swaydb.Error.Level, IO.Done]): IO[swaydb.Error.Level, IO.Done] =
     if (key.isEmpty)
-      IO.failed(new IllegalArgumentException("Input key(s) cannot be empty."))
+      IO.left(new IllegalArgumentException("Input key(s) cannot be empty."))
     else
       block
 
@@ -223,7 +223,7 @@ private[core] case class LevelZero(path: Path,
         if (fromKey equiv toKey)
           remove(fromKey)
         else if (fromKey > toKey)
-          IO.failed("fromKey should be less than or equal to toKey")
+          IO.left("fromKey should be less than or equal to toKey")
         else
           maps.write {
             timer =>
@@ -239,7 +239,7 @@ private[core] case class LevelZero(path: Path,
         if (fromKey equiv toKey)
           remove(fromKey)
         else if (fromKey > toKey)
-          IO.failed("fromKey should be less than or equal to toKey")
+          IO.left("fromKey should be less than or equal to toKey")
         else
           maps.write {
             timer =>
@@ -268,7 +268,7 @@ private[core] case class LevelZero(path: Path,
         if (fromKey equiv toKey)
           update(fromKey, value)
         else if (fromKey >= toKey)
-          IO.failed("fromKey should be less than or equal to toKey")
+          IO.left("fromKey should be less than or equal to toKey")
         else
           maps.write {
             timer =>
@@ -305,7 +305,7 @@ private[core] case class LevelZero(path: Path,
 
   def applyFunction(key: Slice[Byte], function: Slice[Byte]): IO[swaydb.Error.Level, IO.Done] =
     if (!functionStore.exists(function))
-      IO.failed("Function does not exists in function store.")
+      IO.left("Function does not exists in function store.")
     else
       assertKey(key) {
         maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next)))
@@ -313,14 +313,14 @@ private[core] case class LevelZero(path: Path,
 
   def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): IO[swaydb.Error.Level, IO.Done] =
     if (!functionStore.exists(function))
-      IO.failed("Function does not exists in function store.")
+      IO.left("Function does not exists in function store.")
     else
       assertKey(fromKey) {
         assertKey(toKey) {
           if (fromKey equiv toKey)
             applyFunction(fromKey, function)
           else if (fromKey >= toKey)
-            IO.failed("fromKey should be less than or equal to toKey")
+            IO.left("fromKey should be less than or equal to toKey")
           else
             maps.write {
               timer =>
@@ -649,7 +649,7 @@ private[core] case class LevelZero(path: Path,
 
   def bloomFilterKeyValueCount: IO[swaydb.Error.Level, Int] = {
     val keyValueCountInMaps = maps.keyValueCount.getOrElse(0)
-    nextLevel.map(_.bloomFilterKeyValueCount.map(_ + keyValueCountInMaps)) getOrElse IO.Success(keyValueCountInMaps)
+    nextLevel.map(_.bloomFilterKeyValueCount.map(_ + keyValueCountInMaps)) getOrElse IO.Right(keyValueCountInMaps)
   }
 
   def deadline(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[Deadline]] =
@@ -669,7 +669,7 @@ private[core] case class LevelZero(path: Path,
 
   def close: IO[swaydb.Error.Close, Unit] = {
     //    Delay.cancelTimer()
-    maps.close onFailureSideEffect {
+    maps.close onLeftSideEffect {
       exception =>
         logger.error(s"$path: Failed to close maps", exception)
     }
@@ -781,9 +781,9 @@ private[core] case class LevelZero(path: Path,
                 response.getOrFetchValue map {
                   result =>
                     Some(response.key, result)
-                } onFailureSideEffect {
+                } onLeftSideEffect {
                   failure => //if there was an error, store it locally for further processing.
-                    failed = Some(failure.error)
+                    failed = Some(failure.value)
                 }
               }: T[Option[(Slice[Byte], Option[Slice[Byte]])]]
           } getOrElse tag.none

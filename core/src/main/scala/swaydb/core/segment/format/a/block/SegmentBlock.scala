@@ -35,7 +35,6 @@ import swaydb.data.slice.Slice
 import scala.annotation.tailrec
 import scala.concurrent.duration.Deadline
 import scala.util.Try
-import swaydb.core.util.Options._
 
 private[core] object SegmentBlock {
 
@@ -131,7 +130,7 @@ private[core] object SegmentBlock {
         nearestDeadline = None
       )
 
-    def emptyIO = IO.Success(empty)
+    def emptyIO = IO.Right(empty)
 
     def apply(headerBytes: Slice[Byte],
               valuesBlock: Option[Slice[Byte]],
@@ -281,10 +280,10 @@ private[core] object SegmentBlock {
           } match {
             //if it's a hit and binary search is not configured to be full.
             //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
-            case Some(IO.Success(hit)) if keyValue.isPrefixCompressed || binarySearchIndex.forall(!_.isFullIndex) && !keyValue.isRange && hit =>
+            case Some(IO.Right(hit)) if keyValue.isPrefixCompressed || binarySearchIndex.forall(!_.isFullIndex) && !keyValue.isRange && hit =>
               IO.unit
 
-            case None | Some(IO.Success(_)) =>
+            case None | Some(IO.Right(_)) =>
               binarySearchIndex map {
                 state =>
                   BinarySearchIndexBlock.write(
@@ -293,8 +292,8 @@ private[core] object SegmentBlock {
                   )
               } getOrElse IO.unit
 
-            case Some(IO.Failure(error)) =>
-              IO.Failure(error)
+            case Some(IO.Left(error)) =>
+              IO.Left(error)
           }
       }
 
@@ -573,11 +572,11 @@ private[core] object SegmentBlock {
       result =>
         //ensure that all the slices are full.
         if (!sortedIndexBlock.bytes.isFull)
-          IO.failed(s"indexSlice is not full actual: ${sortedIndexBlock.bytes.size} - expected: ${sortedIndexBlock.bytes.allocatedSize}")
+          IO.left(s"indexSlice is not full actual: ${sortedIndexBlock.bytes.size} - expected: ${sortedIndexBlock.bytes.allocatedSize}")
         else if (valuesBlock.exists(!_.bytes.isFull))
-          IO.failed(s"valuesSlice is not full actual: ${valuesBlock.get.bytes.size} - expected: ${valuesBlock.get.bytes.allocatedSize}")
+          IO.left(s"valuesSlice is not full actual: ${valuesBlock.get.bytes.size} - expected: ${valuesBlock.get.bytes.allocatedSize}")
         else
-          IO.Success(result)
+          IO.Right(result)
     }
 
   def writeClosed(keyValues: Iterable[Transient],

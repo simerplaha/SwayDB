@@ -163,7 +163,7 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
    */
   def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.Done] =
     if (entries.isEmpty)
-      tag.fromIO(IO.failed("Cannot write empty batch"))
+      tag.fromIO(IO.left("Cannot write empty batch"))
     else
       tag.fromIO(zero.put(Core.prepareToMapEntry(entries)(_).get)) //Gah .get! hmm.
 

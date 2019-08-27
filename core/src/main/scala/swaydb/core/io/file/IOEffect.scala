@@ -110,7 +110,7 @@ private[core] object IOEffect extends LazyLogging {
       } getOrElse IO.unit
     catch {
       case exception: Exception =>
-        IO.failed(exception)
+        IO.left(exception)
     }
 
   def writeUnclosed(channel: WritableByteChannel,
@@ -122,12 +122,12 @@ private[core] object IOEffect extends LazyLogging {
       // but here the check on written ensures that only the actually written bytes find written.
       // All the client code invoking writes to Disk using Slice should ensure that no Slice contains empty bytes.
       if (written != bytes.size)
-        IO.failed(swaydb.Exception.FailedToWriteAllBytes(written, bytes.size, bytes.size))
+        IO.left(swaydb.Exception.FailedToWriteAllBytes(written, bytes.size, bytes.size))
       else
         IO.unit
     } catch {
       case exception: Exception =>
-        IO.failed(exception)
+        IO.left(exception)
     }
 
   def copy(copyFrom: Path,
@@ -152,7 +152,7 @@ private[core] object IOEffect extends LazyLogging {
 
   def createFileIfAbsent(path: Path): IO[swaydb.Error.IO, Path] =
     if (exists(path))
-      IO.Success(path)
+      IO.Right(path)
     else
       createFile(path)
 
@@ -240,16 +240,16 @@ private[core] object IOEffect extends LazyLogging {
     val extensionIndex = fileName.lastIndexOf(".")
     val extIndex = if (extensionIndex <= 0) fileName.length else extensionIndex
 
-    IO(fileName.substring(0, extIndex).toLong) orElse IO.failed(swaydb.Exception.NotAnIntFile(path)) flatMap {
+    IO(fileName.substring(0, extIndex).toLong) orElse IO.left(swaydb.Exception.NotAnIntFile(path)) flatMap {
       fileId =>
         val ext = fileName.substring(extIndex + 1, fileName.length)
         if (ext == Extension.Log.toString)
-          IO.Success(fileId, Extension.Log)
+          IO.Right(fileId, Extension.Log)
         else if (ext == Extension.Seg.toString)
-          IO.Success(fileId, Extension.Seg)
+          IO.Right(fileId, Extension.Seg)
         else {
           logger.error("Unknown extension for file {}", path)
-          IO.failed(swaydb.Exception.UnknownExtension(path))
+          IO.left(swaydb.Exception.UnknownExtension(path))
         }
     }
   }
@@ -271,7 +271,7 @@ private[core] object IOEffect extends LazyLogging {
     IOEffect.stream(folder) {
       _.iterator()
         .asScala
-        .filter(folder => IO(folderId(folder)).isSuccess)
+        .filter(folder => IO(folderId(folder)).isRight)
         .toList
         .sortBy(folderId)
     }

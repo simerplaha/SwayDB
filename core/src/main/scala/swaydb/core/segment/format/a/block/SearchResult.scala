@@ -30,7 +30,7 @@ object SearchResult {
     SearchResult.None(Option.empty[A])
 
   def noneIO[E: ErrorHandler, A] =
-    IO.Success[E, SearchResult[A]](none)
+    IO.Right[E, SearchResult[A]](none)
 
   case class None[T](lower: Option[T]) extends SearchResult[T] {
     override val toOption: Option[T] = scala.None

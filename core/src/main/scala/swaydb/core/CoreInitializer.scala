@@ -51,19 +51,19 @@ private[core] object CoreInitializer extends LazyLogging {
                               compactor: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]])(implicit compactionStrategy: CompactionStrategy[CompactorState]): Unit =
     sys.addShutdownHook {
       logger.info("Shutting down compaction.")
-      IO(compactor foreach compactionStrategy.terminate) onFailureSideEffect {
+      IO(compactor foreach compactionStrategy.terminate) onLeftSideEffect {
         error =>
           logger.error("Failed compaction shutdown.", error.exception)
       }
 
       logger.info("Closing files.")
-      zero.close onFailureSideEffect {
+      zero.close onLeftSideEffect {
         error =>
           logger.error("Failed to close Levels.", error.exception)
       }
 
       logger.info("Releasing database locks.")
-      zero.releaseLocks onFailureSideEffect {
+      zero.releaseLocks onLeftSideEffect {
         error =>
           logger.error("Failed to release locks.", error.exception)
       }
@@ -89,12 +89,12 @@ private[core] object CoreInitializer extends LazyLogging {
       throttle = config.throttle,
       acceleration = config.acceleration
     ) match {
-      case IO.Success(zero) =>
+      case IO.Right(zero) =>
         addShutdownHook(zero, None)
         IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, () => IO.unit))
 
-      case IO.Failure(error) =>
-        IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
+      case IO.Left(error) =>
+        IO.left[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
     }
   }
 
@@ -222,7 +222,7 @@ private[core] object CoreInitializer extends LazyLogging {
           )
 
         case TrashLevelConfig =>
-          IO.Success(TrashLevel)
+          IO.Right(TrashLevel)
       }
 
     def createLevels(levelConfigs: List[LevelConfig],
@@ -284,11 +284,11 @@ private[core] object CoreInitializer extends LazyLogging {
      * Convert [[swaydb.Error.Level]] to [[swaydb.Error]]
      */
     createLevels(config.otherLevels.reverse, None) match {
-      case IO.Success(core) =>
+      case IO.Right(core) =>
         IO[swaydb.Error.Boot, Core[IO.ApiIO]](core)
 
-      case IO.Failure(error) =>
-        IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
+      case IO.Left(error) =>
+        IO.left[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
     }
   }
 }

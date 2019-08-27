@@ -67,12 +67,12 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
       (timeAfterDeferred - timeBeforeDeferred) should be <= 200.millisecond.toMillis
 
       defer.runBlockingIO match {
-        case IO.Success(value) =>
+        case IO.Right(value) =>
           value shouldBe expectedOutcome.get
 
-        case IO.Failure(error) =>
+        case IO.Left(error) =>
           //on future failure the result Exception is wrapped within another Exception to stop recovery.
-          error.exception.getCause shouldBe expectedOutcome.asInstanceOf[IO.Failure[E, A]].exception
+          error.exception.getCause shouldBe expectedOutcome.asInstanceOf[IO.Left[E, A]].exception
       }
     }
 
@@ -89,7 +89,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
               throw error.exception
             }
 
-          testFuture(future, IO.Failure(error: swaydb.Error.IO))
+          testFuture(future, IO.Left(error: swaydb.Error.IO))
       }
     }
 
@@ -102,7 +102,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
               Int.MaxValue
             }
 
-          testFuture(future, IO.Success(Int.MaxValue))
+          testFuture(future, IO.Right(Int.MaxValue))
       }
     }
 
@@ -146,11 +146,11 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
             }
           }
           if (Random.nextBoolean()) {
-            createDefers.runIO shouldBe IO.Success(5)
-            createDefers.runFutureIO shouldBe IO.Success(5)
+            createDefers.runIO shouldBe IO.Right(5)
+            createDefers.runFutureIO shouldBe IO.Right(5)
           } else {
-            createDefers.runFutureIO shouldBe IO.Success(5)
-            createDefers.runIO shouldBe IO.Success(5)
+            createDefers.runFutureIO shouldBe IO.Right(5)
+            createDefers.runIO shouldBe IO.Right(5)
           }
       }
     }
@@ -178,7 +178,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
         deferred.isComplete shouldBe false
         deferred.isReady shouldBe true
 
-        deferred.runIO shouldBe IO.Failure(unknownError)
+        deferred.runIO shouldBe IO.Left(unknownError)
         deferred.isComplete shouldBe false
         deferred.isReady shouldBe true
       }
@@ -205,13 +205,13 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
       deferred.isReady shouldBe true
       deferred.isComplete shouldBe false
 
-      deferred.runIO shouldBe IO.Success(2)
+      deferred.runIO shouldBe IO.Right(2)
 
       deferred.isReady shouldBe true
       deferred.isComplete shouldBe true
 
       //deferred's value is initialised initialised so the mock function is not invoked again.
-      deferred.runIO shouldBe IO.Success(2)
+      deferred.runIO shouldBe IO.Right(2)
     }
 
     "non-recoverable failure" in {
@@ -228,7 +228,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
       deferred.isReady shouldBe true
       deferred.isComplete shouldBe false
 
-      deferred.runIO shouldBe IO.Failure(unknownError)
+      deferred.runIO shouldBe IO.Left(unknownError)
       timesRun shouldBe 1
     }
 
@@ -251,7 +251,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
       deferred.isReady shouldBe true
       deferred.isComplete shouldBe false
 
-      deferred.runIO shouldBe IO.Failure(unknownError)
+      deferred.runIO shouldBe IO.Left(unknownError)
       timesRecovered shouldBe 10
     }
   }
@@ -284,8 +284,8 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
       deferred.isReady shouldBe true
 
-      deferred.runIO shouldBe IO.Success(4)
-      deferred.runIO shouldBe IO.Success(4)
+      deferred.runIO shouldBe IO.Right(4)
+      deferred.runIO shouldBe IO.Right(4)
     }
 
     "recoverable & non-recoverable failure" in {
@@ -342,12 +342,12 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
       deferred.isReady shouldBe true
 
       throwError = Some(unknownError)
-      deferred.runBlockingIO shouldBe IO.Failure(unknownError)
+      deferred.runBlockingIO shouldBe IO.Left(unknownError)
       throwError = Some(recoverableError)
       //recoverableErrors are never returned
-      deferred.runBlockingIO shouldBe IO.Failure(unknownError)
+      deferred.runBlockingIO shouldBe IO.Left(unknownError)
       throwError = None
-      deferred.runBlockingIO shouldBe IO.Success(5)
+      deferred.runBlockingIO shouldBe IO.Right(5)
     }
   }
 
@@ -362,13 +362,13 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
         deferred flatMapIO {
           result =>
             result shouldBe 10
-            IO.Success[swaydb.Error.Segment, Int](result + 1)
+            IO.Right[swaydb.Error.Segment, Int](result + 1)
         }
 
       ioDeferred.isComplete shouldBe false
       ioDeferred.isReady shouldBe true
 
-      ioDeferred.runBlockingIO shouldBe IO.Success(11)
+      ioDeferred.runBlockingIO shouldBe IO.Right(11)
     }
 
     "successful deferred and failed IO" in {
@@ -377,7 +377,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
       deferred.isComplete shouldBe false
       deferred.isReady shouldBe true
 
-      val failure = IO.failed[Error.Segment, Int]("Kaboom!")
+      val failure = IO.left[Error.Segment, Int]("Kaboom!")
 
       val ioDeferred: Defer[Error.Segment, Int] =
         deferred flatMapIO {
@@ -389,11 +389,11 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
       ioDeferred.isComplete shouldBe false
       ioDeferred.isReady shouldBe true
 
-      ioDeferred.runBlockingIO shouldBe IO.Failure(swaydb.Error.Fatal(failure.exception))
+      ioDeferred.runBlockingIO shouldBe IO.Left(swaydb.Error.Fatal(failure.exception))
     }
 
     "failed non-recoverable deferred and successful IO" in {
-      val failure = IO.failed("Kaboom!")
+      val failure = IO.left("Kaboom!")
       val deferred: Defer[Error.Segment, Int] = IO.Defer[swaydb.Error.Segment, Int](throw failure.exception)
 
       deferred.isComplete shouldBe false
@@ -408,7 +408,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
       ioDeferred.isComplete shouldBe false
       ioDeferred.isReady shouldBe true
 
-      ioDeferred.runBlockingIO shouldBe IO.Failure(swaydb.Error.Fatal(failure.exception))
+      ioDeferred.runBlockingIO shouldBe IO.Left(swaydb.Error.Fatal(failure.exception))
     }
 
     "failed recoverable deferred and successful IO" in {
@@ -435,13 +435,13 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
             deferred flatMapIO {
               int =>
                 int shouldBe 10
-                IO.Success[swaydb.Error.Segment, Int](int + 1)
+                IO.Right[swaydb.Error.Segment, Int](int + 1)
             }
 
           ioDeferred.isComplete shouldBe false
           ioDeferred.isReady shouldBe true
 
-          ioDeferred.runBlockingIO shouldBe IO.Success(11)
+          ioDeferred.runBlockingIO shouldBe IO.Right(11)
       }
     }
   }
@@ -466,7 +466,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
             1
         }
 
-      deferred.runIO shouldBe IO.Success(1)
+      deferred.runIO shouldBe IO.Right(1)
     }
 
     "recoverable failure" in {
@@ -493,10 +493,10 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
             fail("Didn't not expect recovery")
         }
 
-      deferred.runBlockingIO shouldBe IO.Success(4)
+      deferred.runBlockingIO shouldBe IO.Right(4)
       failureCount shouldBe 6
       failureCount = 0
-      deferred.runFutureIO shouldBe IO.Success(4)
+      deferred.runFutureIO shouldBe IO.Right(4)
       failureCount shouldBe 6
     }
 
@@ -525,10 +525,10 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
             Int.MaxValue
         }
 
-      deferred.runBlockingIO shouldBe IO.Success(Int.MaxValue)
+      deferred.runBlockingIO shouldBe IO.Right(Int.MaxValue)
       failureCount shouldBe 6
       failureCount = 0
-      deferred.runFutureIO shouldBe IO.Success(Int.MaxValue)
+      deferred.runFutureIO shouldBe IO.Right(Int.MaxValue)
       failureCount shouldBe 6
     }
   }
@@ -553,8 +553,8 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
             IO.Defer(1)
         }
 
-      deferred.runBlockingIO shouldBe IO.Success(1)
-      deferred.runFutureIO shouldBe IO.Success(1)
+      deferred.runBlockingIO shouldBe IO.Right(1)
+      deferred.runFutureIO shouldBe IO.Right(1)
     }
 
     "non-recoverable failure when recoverWith result in recoverable Failure" in {
@@ -598,8 +598,8 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
             recoveredDeferred
         }
 
-      deferred.runBlockingIO shouldBe IO.Success(4)
-      deferred.runFutureIO shouldBe IO.Success(4)
+      deferred.runBlockingIO shouldBe IO.Right(4)
+      deferred.runFutureIO shouldBe IO.Right(4)
     }
 
     "recoverable failure" in {
@@ -627,10 +627,10 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
             fail("Didn't not expect recovery")
         }
 
-      deferred.runBlockingIO shouldBe IO.Success(4)
+      deferred.runBlockingIO shouldBe IO.Right(4)
       failureCount shouldBe 6
       failureCount = 0
-      deferred.runFutureIO shouldBe IO.Success(4)
+      deferred.runFutureIO shouldBe IO.Right(4)
       failureCount shouldBe 6
     }
 
@@ -659,10 +659,10 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
             IO.Defer(Int.MaxValue)
         }
 
-      deferred.runBlockingIO shouldBe IO.Success(Int.MaxValue)
+      deferred.runBlockingIO shouldBe IO.Right(Int.MaxValue)
       failureCount shouldBe 6
       failureCount = 0
-      deferred.runFutureIO shouldBe IO.Success(Int.MaxValue)
+      deferred.runFutureIO shouldBe IO.Right(Int.MaxValue)
       failureCount shouldBe 6
     }
   }

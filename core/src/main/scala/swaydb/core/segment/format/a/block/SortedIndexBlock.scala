@@ -26,7 +26,6 @@ import swaydb.IO._
 import swaydb.compression.CompressionInternal
 import swaydb.core.cache.Cache
 import swaydb.core.data.{KeyValue, Persistent, Transient}
-import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.KeyMatcher.Result
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
@@ -234,9 +233,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
         state.bytes addBoolean state.isPreNormalised
         state.bytes addIntUnsigned state.segmentMaxIndexEntrySize
         if (state.bytes.currentWritePosition > state.headerSize)
-          IO.Failure(swaydb.Error.Fatal(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}"))
+          IO.Left(swaydb.Error.Fatal(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}"))
         else
-          IO.Success(state)
+          IO.Right(state)
     }
 
   def read(header: Block.Header[SortedIndexBlock.Offset]): IO[swaydb.Error.Segment, SortedIndexBlock] =
@@ -362,7 +361,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       )
     } catch {
       case exception: Exception =>
-        IO.failed(exception)
+        IO.left(exception)
     }
 
   def readAll(keyValueCount: Int,
@@ -399,7 +398,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       } map (_ => entries)
     } catch {
       case exception: Exception =>
-        IO.failed(exception)
+        IO.left(exception)
     }
 
   def search(key: Slice[Byte],
@@ -407,7 +406,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
     if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
-      IO.Failure(swaydb.Error.Fatal("startFrom key is greater than target key."))
+      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
     else
       search(
         matcher = KeyMatcher.Get(key),
@@ -421,7 +420,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                     indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                     valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
     if (order.gt(start.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
-      IO.Failure(swaydb.Error.Fatal("startFrom key is greater than target key."))
+      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
     else
       search(
         matcher = KeyMatcher.Get.SeekOne(key),
@@ -435,7 +434,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
     if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
-      IO.Failure(swaydb.Error.Fatal("startFrom key is greater than target key."))
+      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
     else
       search(
         matcher = KeyMatcher.Higher(key),
@@ -449,7 +448,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                           valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
     if (order.gt(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
-      IO.Failure(swaydb.Error.Fatal("startFrom key is greater than target key."))
+      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
     else
       search(
         matcher = KeyMatcher.Higher.SeekOne(key),
@@ -463,7 +462,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] =
     if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
-      IO.Failure(swaydb.Error.Fatal("startFrom key is greater than target key."))
+      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
     else
       search(
         matcher = KeyMatcher.Lower(key),
@@ -552,7 +551,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           hasMore = hasMore(persistent)
         ) match {
           case Result.Matched(_, result, _) =>
-            IO.Success(Some(result))
+            IO.Right(Some(result))
 
           case Result.BehindStopped(_) | Result.AheadOrNoneOrEnd | Result.BehindFetchNext(_) =>
             IO.none
@@ -598,7 +597,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           indexReader = indexReader,
           valuesReader = valuesReader
         ) match {
-          case IO.Success(nextNextKeyValue) =>
+          case IO.Right(nextNextKeyValue) =>
             matchOrNext(
               previous = readFrom,
               next = Some(nextNextKeyValue),
@@ -607,8 +606,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
               valuesReader = valuesReader
             )
 
-          case IO.Failure(error) =>
-            IO.Failure(error)
+          case IO.Left(error) =>
+            IO.Left(error)
         }
 
       case result: KeyMatcher.Result.Complete =>
@@ -627,14 +626,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
       indexReader = indexReader,
       valuesReader = valuesReader
     ) match {
-      case IO.Success(KeyMatcher.Result.Matched(_, keyValue, _)) =>
-        IO.Success(Some(keyValue))
+      case IO.Right(KeyMatcher.Result.Matched(_, keyValue, _)) =>
+        IO.Right(Some(keyValue))
 
-      case IO.Success(KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped) =>
+      case IO.Right(KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped) =>
         IO.none
 
-      case IO.Failure(error) =>
-        IO.Failure(error)
+      case IO.Left(error) =>
+        IO.Left(error)
     }
 
   /**

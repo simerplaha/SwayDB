@@ -30,41 +30,42 @@ import scala.reflect.ClassTag
 import scala.util.Try
 
 /**
- * [[IO.Success]] and [[IO.Failure]] are similar to types in [[scala.util.Try]].
+ * [[IO.Right]] and [[IO.Left]] are similar to types in [[scala.util.Try]].
  *
  * [[IO.Defer]] is for performing synchronous and asynchronous IO.
  */
-sealed trait IO[+E, +A] {
-  def isFailure: Boolean
-  def isSuccess: Boolean
-  def getOrElse[B >: A](default: => B): B
-  def orElse[F >: E : ErrorHandler, B >: A](default: => IO[F, B]): IO[F, B]
-  def get: A
-  def foreach[B](f: A => B): Unit
-  def map[B](f: A => B): IO[E, B]
-  def flatMap[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO[F, B]
-  def exists(f: A => Boolean): Boolean
-  def filter(p: A => Boolean): IO[E, A]
-  @inline final def withFilter(p: A => Boolean): WithFilter = new WithFilter(p)
-  class WithFilter(p: A => Boolean) {
-    def map[B](f: A => B): IO[E, B] = IO.this filter p map f
-    def flatMap[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO[F, B] = IO.this filter p flatMap f
-    def foreach[B](f: A => B): Unit = IO.this filter p foreach f
-    def withFilter(q: A => Boolean): WithFilter = new WithFilter(x => p(x) && q(x))
+sealed trait IO[+L, +R] {
+  def isLeft: Boolean
+  def isRight: Boolean
+  def getOrElse[B >: R](default: => B): B
+  def orElse[L2 >: L : ErrorHandler, B >: R](default: => IO[L2, B]): IO[L2, B]
+  def get: R
+  def left: IO[Throwable, L]
+  def right: IO[Throwable, R]
+  def foreach[B](f: R => B): Unit
+  def map[B](f: R => B): IO[L, B]
+  def flatMap[L2 >: L : ErrorHandler, B](f: R => IO[L2, B]): IO[L2, B]
+  def exists(f: R => Boolean): Boolean
+  def filter(p: R => Boolean): IO[L, R]
+  @inline final def withFilter(p: R => Boolean): WithFilter = new WithFilter(p)
+  class WithFilter(p: R => Boolean) {
+    def map[B](f: R => B): IO[L, B] = IO.this filter p map f
+    def flatMap[L2 >: L : ErrorHandler, B](f: R => IO[L2, B]): IO[L2, B] = IO.this filter p flatMap f
+    def foreach[B](f: R => B): Unit = IO.this filter p foreach f
+    def withFilter(q: R => Boolean): WithFilter = new WithFilter(x => p(x) && q(x))
   }
-  def onFailureSideEffect(f: IO.Failure[E, A] => Unit): IO[E, A]
-  def onSuccessSideEffect(f: A => Unit): IO[E, A]
-  def onCompleteSideEffect(f: IO[E, A] => Unit): IO[E, A]
-  def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO[F, B]]): IO[F, B]
-  def recover[B >: A](f: PartialFunction[E, B]): IO[E, B]
-  def toOption: Option[A]
-  def flatten[F, B](implicit ev: A <:< IO[F, B]): IO[F, B]
-  def failed: IO[Throwable, E]
-  def toEither: Either[E, A]
-  def toFuture: Future[A]
-  def toTry: scala.util.Try[A]
-  def toDeferred[F >: E : ErrorHandler]: IO.Defer[F, A] =
-    IO.Defer.io[F, A](io = this)
+  def onLeftSideEffect(f: IO.Left[L, R] => Unit): IO[L, R]
+  def onRightSideEffect(f: R => Unit): IO[L, R]
+  def onCompleteSideEffect(f: IO[L, R] => Unit): IO[L, R]
+  def recoverWith[L2 >: L : ErrorHandler, B >: R](f: PartialFunction[L, IO[L2, B]]): IO[L2, B]
+  def recover[B >: R](f: PartialFunction[L, B]): IO[L, B]
+  def toOption: Option[R]
+  def flatten[L2, R2](implicit ev: R <:< IO[L2, R2]): IO[L2, R2]
+  def toEither: Either[L, R]
+  def toFuture: Future[R]
+  def toTry: scala.util.Try[R]
+  def toDeferred[L2 >: L : ErrorHandler]: IO.Defer[L2, R] =
+    IO.Defer.io[L2, R](io = this)
 }
 
 object IO {
@@ -93,27 +94,27 @@ object IO {
   sealed trait Done
   final case object Done extends Done
 
-  val unit: IO.Success[Nothing, Unit] = IO.Success()(ErrorHandler.Nothing)
-  val eitherUnit: Either[Nothing, Success[Nothing, Unit]] = Right(IO.Success()(ErrorHandler.Nothing))
-  val none: IO.Success[Nothing, Option[Nothing]] = IO.Success(None)(ErrorHandler.Nothing)
-  val `false`: Success[Nothing, Boolean] = IO.Success(false)(ErrorHandler.Nothing)
-  val `true`: Success[Nothing, Boolean] = IO.Success(true)(ErrorHandler.Nothing)
-  val someTrue: IO[Nothing, Some[Boolean]] = IO.Success(Some(true))(ErrorHandler.Nothing)
-  val someFalse: IO[Nothing, Some[Boolean]] = IO.Success(Some(false))(ErrorHandler.Nothing)
-  val zero: Success[Nothing, Int] = IO.Success(0)(ErrorHandler.Nothing)
-  val eitherZero: Right[Nothing, Success[Nothing, Int]] = Right(IO.Success(0)(ErrorHandler.Nothing))
-  val emptyBytes: Success[Nothing, Slice[Byte]] = IO.Success(Slice.emptyBytes)(ErrorHandler.Nothing)
-  val emptySeqBytes: Success[Nothing, Seq[Slice[Byte]]] = IO.Success(Seq.empty[Slice[Byte]])(ErrorHandler.Nothing)
-  val done: Success[Nothing, Done] = IO.Success(Done)(ErrorHandler.Nothing)
+  val unit: IO.Right[Nothing, Unit] = IO.Right()(ErrorHandler.Nothing)
+  val eitherUnit: Either[Nothing, IO.Right[Nothing, Unit]] = scala.util.Right(IO.Right()(ErrorHandler.Nothing))
+  val none: IO.Right[Nothing, Option[Nothing]] = IO.Right(None)(ErrorHandler.Nothing)
+  val `false`: IO.Right[Nothing, Boolean] = IO.Right(false)(ErrorHandler.Nothing)
+  val `true`: IO.Right[Nothing, Boolean] = IO.Right(true)(ErrorHandler.Nothing)
+  val someTrue: IO[Nothing, Some[Boolean]] = IO.Right(Some(true))(ErrorHandler.Nothing)
+  val someFalse: IO[Nothing, Some[Boolean]] = IO.Right(Some(false))(ErrorHandler.Nothing)
+  val zero: IO.Right[Nothing, Int] = IO.Right(0)(ErrorHandler.Nothing)
+  val eitherZero: scala.util.Right[Nothing, IO.Right[Nothing, Int]] = scala.util.Right(IO.Right(0)(ErrorHandler.Nothing))
+  val emptyBytes: IO.Right[Nothing, Slice[Byte]] = IO.Right(Slice.emptyBytes)(ErrorHandler.Nothing)
+  val emptySeqBytes: IO.Right[Nothing, Seq[Slice[Byte]]] = IO.Right(Seq.empty[Slice[Byte]])(ErrorHandler.Nothing)
+  val done: IO.Right[Nothing, Done] = IO.Right(Done)(ErrorHandler.Nothing)
 
   implicit class IterableIOImplicit[E: ErrorHandler, A: ClassTag](iterable: Iterable[A]) {
 
-    def foreachIO[R](f: A => IO[E, R], failFast: Boolean = true): Option[IO.Failure[E, R]] = {
+    def foreachIO[R](f: A => IO[E, R], failFast: Boolean = true): Option[IO.Left[E, R]] = {
       val it = iterable.iterator
-      var failure: Option[IO.Failure[E, R]] = None
+      var failure: Option[IO.Left[E, R]] = None
       while (it.hasNext && (failure.isEmpty || !failFast)) {
-        f(it.next()) onFailureSideEffect {
-          case failed @ IO.Failure(_) =>
+        f(it.next()) onLeftSideEffect {
+          case failed @ IO.Left(_) =>
             failure = Some(failed)
         }
       }
@@ -125,16 +126,16 @@ object IO {
       iterable.iterator foreach {
         item =>
           f(item) match {
-            case IO.Success(Some(value)) =>
+            case IO.Right(Some(value)) =>
               //Not a good idea to break out with return. Needs improvement.
-              return IO.Success[E, Option[(R, A)]](Some(value, item))
+              return IO.Right[E, Option[(R, A)]](Some(value, item))
 
-            case IO.Success(None) =>
+            case IO.Right(None) =>
             //continue reading
 
-            case IO.Failure(error) =>
+            case IO.Left(error) =>
               //Not a good idea to break out with return. Needs improvement.
-              return IO.Failure(error)
+              return IO.Left(error)
           }
       }
       IO.none
@@ -144,34 +145,34 @@ object IO {
       iterable.iterator foreach {
         item =>
           f(item) match {
-            case IO.Success(Some(value)) =>
+            case IO.Right(Some(value)) =>
               //Not a good idea to break out with return. Needs improvement.
-              return IO.Success[E, Option[R]](Some(value))
+              return IO.Right[E, Option[R]](Some(value))
 
-            case IO.Success(None) =>
+            case IO.Right(None) =>
             //continue reading
 
-            case IO.Failure(error) =>
+            case IO.Left(error) =>
               //Not a good idea to break out with return. Needs improvement.
-              return IO.Failure(error)
+              return IO.Left(error)
           }
       }
       IO.none
     }
 
     def mapIO[R: ClassTag](block: A => IO[E, R],
-                           recover: (Slice[R], IO.Failure[E, Slice[R]]) => Unit = (_: Slice[R], _: IO.Failure[E, Slice[R]]) => (),
+                           recover: (Slice[R], IO.Left[E, Slice[R]]) => Unit = (_: Slice[R], _: IO.Left[E, Slice[R]]) => (),
                            failFast: Boolean = true): IO[E, Slice[R]] = {
       val it = iterable.iterator
-      var failure: Option[IO.Failure[E, Slice[R]]] = None
+      var failure: Option[IO.Left[E, Slice[R]]] = None
       val results = Slice.create[R](iterable.size)
       while ((!failFast || failure.isEmpty) && it.hasNext) {
         block(it.next()) match {
-          case IO.Success(value) =>
+          case IO.Right(value) =>
             results add value
 
-          case failed @ IO.Failure(_) =>
-            failure = Some(IO.Failure[E, Slice[R]](failed.error))
+          case failed @ IO.Left(_) =>
+            failure = Some(IO.Left[E, Slice[R]](failed.value))
         }
       }
       failure match {
@@ -179,23 +180,23 @@ object IO {
           recover(results, value)
           value
         case None =>
-          IO.Success[E, Slice[R]](results)
+          IO.Right[E, Slice[R]](results)
       }
     }
 
     def flatMapIO[R: ClassTag](ioBlock: A => IO[E, Iterable[R]],
-                               recover: (Iterable[R], IO.Failure[E, Slice[R]]) => Unit = (_: Iterable[R], _: IO.Failure[E, Iterable[R]]) => (),
+                               recover: (Iterable[R], IO.Left[E, Slice[R]]) => Unit = (_: Iterable[R], _: IO.Left[E, Iterable[R]]) => (),
                                failFast: Boolean = true): IO[E, Iterable[R]] = {
       val it = iterable.iterator
-      var failure: Option[IO.Failure[E, Slice[R]]] = None
+      var failure: Option[IO.Left[E, Slice[R]]] = None
       val results = ListBuffer.empty[R]
       while ((!failFast || failure.isEmpty) && it.hasNext) {
         ioBlock(it.next()) match {
-          case IO.Success(value) =>
+          case IO.Right(value) =>
             value foreach (results += _)
 
-          case failed @ IO.Failure(_) =>
-            failure = Some(IO.Failure[E, Slice[R]](failed.error))
+          case failed @ IO.Left(_) =>
+            failure = Some(IO.Left[E, Slice[R]](failed.value))
         }
       }
       failure match {
@@ -204,24 +205,24 @@ object IO {
           value
 
         case None =>
-          IO.Success[E, Iterable[R]](results)
+          IO.Right[E, Iterable[R]](results)
       }
     }
 
     def foldLeftIO[R: ClassTag](r: R,
                                 failFast: Boolean = true,
-                                recover: (R, IO.Failure[E, R]) => Unit = (_: R, _: IO.Failure[E, R]) => ())(f: (R, A) => IO[E, R]): IO[E, R] = {
+                                recover: (R, IO.Left[E, R]) => Unit = (_: R, _: IO.Left[E, R]) => ())(f: (R, A) => IO[E, R]): IO[E, R] = {
       val it = iterable.iterator
-      var failure: Option[IO.Failure[E, R]] = None
+      var failure: Option[IO.Left[E, R]] = None
       var result: R = r
       while ((!failFast || failure.isEmpty) && it.hasNext) {
         f(result, it.next()) match {
-          case IO.Success(value) =>
+          case IO.Right(value) =>
             if (failure.isEmpty)
               result = value
 
-          case failed @ IO.Failure(_) =>
-            failure = Some(IO.Failure[E, R](failed.error))
+          case failed @ IO.Left(_) =>
+            failure = Some(IO.Left[E, R](failed.value))
         }
       }
       failure match {
@@ -230,7 +231,7 @@ object IO {
           failure
 
         case None =>
-          IO.Success[E, R](result)
+          IO.Right[E, R](result)
       }
     }
   }
@@ -244,9 +245,9 @@ object IO {
     }
 
   @inline final def apply[E: ErrorHandler, A](f: => A): IO[E, A] =
-    try IO.Success[E, A](f) catch {
+    try IO.Right[E, A](f) catch {
       case ex: Throwable =>
-        IO.Failure(error = ErrorHandler.fromException[E](ex))
+        IO.Left(value = ErrorHandler.fromException[E](ex))
     }
 
   object Catch {
@@ -255,99 +256,101 @@ object IO {
         f
       catch {
         case ex: Throwable =>
-          IO.Failure(error = ErrorHandler.fromException[E](ex))
+          IO.Left(value = ErrorHandler.fromException[E](ex))
       }
   }
 
   def fromTry[E: ErrorHandler, A](tryBlock: Try[A]): IO[E, A] =
     tryBlock match {
       case scala.util.Success(value) =>
-        IO.Success[E, A](value)
+        IO.Right[E, A](value)
 
       case scala.util.Failure(exception) =>
-        IO.Failure[E, A](error = ErrorHandler.fromException[E](exception))
+        IO.Left[E, A](value = ErrorHandler.fromException[E](exception))
     }
 
-  def successful[E: ErrorHandler, A](value: A): IO.Success[E, A] =
-    new Success[E, A](value)
+  def successful[E: ErrorHandler, A](value: A): IO.Right[E, A] =
+    new IO.Right[E, A](value)
 
-  final case class Success[+E: ErrorHandler, +A](value: A) extends IO[E, A] {
-    override def isFailure: Boolean = false
-    override def isSuccess: Boolean = true
-    override def get: A = value
-    override def exists(f: A => Boolean): Boolean = f(value)
-    override def getOrElse[B >: A](default: => B): B = get
-    override def orElse[F >: E : ErrorHandler, B >: A](default: => IO[F, B]): IO.Success[F, B] = this
-    override def foreach[B](f: A => B): Unit = f(get)
-    override def map[B](f: A => B): IO[E, B] = IO[E, B](f(get))
-    override def flatMap[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO[F, B] = IO.Catch(f(get))
-    override def flatten[F, B](implicit ev: A <:< IO[F, B]): IO[F, B] = get
-    override def recover[B >: A](f: PartialFunction[E, B]): IO[E, B] = this
-    override def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO[F, B]]): IO[F, B] = this
-    override def failed: IO[Throwable, E] = IO.failed[Throwable, E](new UnsupportedOperationException("IO.Success.failed"))(ErrorHandler.Throwable)
-    override def toOption: Option[A] = Some(get)
-    override def toEither: Either[E, A] = Right(get)
-    override def filter(p: A => Boolean): IO[E, A] =
-      IO.Catch(if (p(get)) this else IO.failed[E, A](new NoSuchElementException("Predicate does not hold for " + get)))
-    override def toFuture: Future[A] = Future.successful(get)
-    override def toTry: scala.util.Try[A] = scala.util.Success(get)
-    override def onFailureSideEffect(f: IO.Failure[E, A] => Unit): IO.Success[E, A] = this
-    override def onSuccessSideEffect(f: A => Unit): IO.Success[E, A] = {
+  final case class Right[+L: ErrorHandler, +R](value: R) extends IO[L, R] {
+    override def get: R = value
+    override def isLeft: Boolean = false
+    override def isRight: Boolean = true
+    override def left: IO.Left[Throwable, L] = IO.left[Throwable, L](new UnsupportedOperationException("Value is IO.Right"))(ErrorHandler.Throwable)
+    override def right: IO.Right[Throwable, R] = IO.Right[Throwable, R](get)(ErrorHandler.Throwable)
+    override def exists(f: R => Boolean): Boolean = f(value)
+    override def getOrElse[B >: R](default: => B): B = get
+    override def orElse[F >: L : ErrorHandler, B >: R](default: => IO[F, B]): IO.Right[F, B] = this
+    override def foreach[B](f: R => B): Unit = f(get)
+    override def map[B](f: R => B): IO[L, B] = IO[L, B](f(get))
+    override def flatMap[F >: L : ErrorHandler, B](f: R => IO[F, B]): IO[F, B] = IO.Catch(f(get))
+    override def flatten[F, B](implicit ev: R <:< IO[F, B]): IO[F, B] = get
+    override def recover[B >: R](f: PartialFunction[L, B]): IO[L, B] = this
+    override def recoverWith[F >: L : ErrorHandler, B >: R](f: PartialFunction[L, IO[F, B]]): IO[F, B] = this
+    override def toOption: Option[R] = Some(get)
+    override def toEither: Either[L, R] = scala.util.Right(get)
+    override def filter(p: R => Boolean): IO[L, R] =
+      IO.Catch(if (p(get)) this else IO.left[L, R](new NoSuchElementException("Predicate does not hold for " + get)))
+    override def toFuture: Future[R] = Future.successful(get)
+    override def toTry: scala.util.Try[R] = scala.util.Success(get)
+    override def onLeftSideEffect(f: IO.Left[L, R] => Unit): IO.Right[L, R] = this
+    override def onRightSideEffect(f: R => Unit): IO.Right[L, R] = {
       try f(get) finally {}
       this
     }
-    override def onCompleteSideEffect(f: IO[E, A] => Unit): IO[E, A] = {
+    override def onCompleteSideEffect(f: IO[L, R] => Unit): IO[L, R] = {
       try f(this) finally {}
       this
     }
   }
 
-  @inline final def failed[E: ErrorHandler, A](exception: Throwable): IO.Failure[E, A] =
-    new IO.Failure[E, A](ErrorHandler.fromException[E](exception))
+  @inline final def left[E: ErrorHandler, A](exception: Throwable): IO.Left[E, A] =
+    new IO.Left[E, A](ErrorHandler.fromException[E](exception))
 
-  @inline final def failed[E: ErrorHandler, A](message: String): IO.Failure[E, A] =
-    new IO.Failure[E, A](ErrorHandler.fromException[E](new scala.Exception(message)))
+  @inline final def left[E: ErrorHandler, A](exceptionMessage: String): IO.Left[E, A] =
+    new IO.Left[E, A](ErrorHandler.fromException[E](new scala.Exception(exceptionMessage)))
 
-  final case class Failure[+E: ErrorHandler, +A](error: E) extends IO[E, A] {
-    override def isFailure: Boolean = true
-    override def isSuccess: Boolean = false
-    def isRecoverable = ErrorHandler.reserve(error).isDefined
-    override def get: A = throw exception
-    override def exists(f: A => Boolean): Boolean = false
-    override def getOrElse[B >: A](default: => B): B = default
-    override def orElse[F >: E : ErrorHandler, B >: A](default: => IO[F, B]): IO[F, B] = IO.Catch(default)
-    override def foreach[B](f: A => B): Unit = ()
-    override def map[B](f: A => B): IO.Failure[E, B] = this.asInstanceOf[IO.Failure[E, B]]
-    override def flatMap[F >: E : ErrorHandler, B](f: A => IO[F, B]): IO.Failure[F, B] = this.asInstanceOf[IO.Failure[F, B]]
-    override def flatten[F, B](implicit ev: A <:< IO[F, B]): IO.Failure[F, B] = this.asInstanceOf[IO.Failure[F, B]]
-    override def recover[B >: A](f: PartialFunction[E, B]): IO[E, B] =
-      IO.Catch(if (f isDefinedAt error) IO.Success[E, B](f(error)) else this)
+  final case class Left[+L: ErrorHandler, +R](value: L) extends IO[L, R] {
+    def exception: Throwable = ErrorHandler.toException(value)
+    override def get: R = throw exception
+    override def isLeft: Boolean = true
+    override def isRight: Boolean = false
+    override def left: IO.Right[Throwable, L] = IO.Right[Throwable, L](value)(ErrorHandler.Throwable)
+    override def right: IO.Left[Throwable, R] = IO.Left[Throwable, R](new UnsupportedOperationException("Value is IO.Left"))(ErrorHandler.Throwable)
+    def isRecoverable = ErrorHandler.reserve(value).isDefined
+    override def exists(f: R => Boolean): Boolean = false
+    override def getOrElse[B >: R](default: => B): B = default
+    override def orElse[L2 >: L : ErrorHandler, B >: R](default: => IO[L2, B]): IO[L2, B] = IO.Catch(default)
+    override def foreach[B](f: R => B): Unit = ()
+    override def map[B](f: R => B): IO.Left[L, B] = this.asInstanceOf[IO.Left[L, B]]
+    override def flatMap[F >: L : ErrorHandler, B](f: R => IO[F, B]): IO.Left[F, B] = this.asInstanceOf[IO.Left[F, B]]
+    override def flatten[F, B](implicit ev: R <:< IO[F, B]): IO.Left[F, B] = this.asInstanceOf[IO.Left[F, B]]
+    override def recover[B >: R](f: PartialFunction[L, B]): IO[L, B] =
+      IO.Catch(if (f isDefinedAt value) IO.Right[L, B](f(value)) else this)
 
-    override def recoverWith[F >: E : ErrorHandler, B >: A](f: PartialFunction[E, IO[F, B]]): IO[F, B] =
-      IO.Catch(if (f isDefinedAt error) f(error) else this)
+    override def recoverWith[F >: L : ErrorHandler, B >: R](f: PartialFunction[L, IO[F, B]]): IO[F, B] =
+      IO.Catch(if (f isDefinedAt value) f(value) else this)
 
     def recoverTo[F: ErrorHandler, B](onRecover: => IO.Defer[F, B]): IO.Defer[F, B] =
       if (this.isRecoverable)
         onRecover
       else
-        IO.Defer[F, B](throw ErrorHandler.toException(this.error))
+        IO.Defer[F, B](throw ErrorHandler.toException(this.value))
 
-    override def failed: IO.Success[Throwable, E] = IO.Success[Throwable, E](error)(ErrorHandler.Throwable)
-    override def toOption: Option[A] = None
-    override def toEither: Either[E, A] = Left(error)
-    override def filter(p: A => Boolean): IO.Failure[E, A] = this
-    override def toFuture: Future[A] = Future.failed(exception)
-    override def toTry: scala.util.Try[A] = scala.util.Failure(exception)
-    override def onFailureSideEffect(f: IO.Failure[E, A] => Unit): IO.Failure[E, A] = {
+    override def toOption: Option[R] = None
+    override def toEither: Either[L, R] = scala.util.Left(value)
+    override def filter(p: R => Boolean): IO.Left[L, R] = this
+    override def toFuture: Future[R] = Future.failed(exception)
+    override def toTry: scala.util.Try[R] = scala.util.Failure(exception)
+    override def onLeftSideEffect(f: IO.Left[L, R] => Unit): IO.Left[L, R] = {
       try f(this) finally {}
       this
     }
-    override def onCompleteSideEffect(f: IO[E, A] => Unit): IO[E, A] = onFailureSideEffect(f)
-    override def onSuccessSideEffect(f: A => Unit): IO.Failure[E, A] = this
-    def exception: Throwable = ErrorHandler.toException(error)
+    override def onCompleteSideEffect(f: IO[L, R] => Unit): IO[L, R] = onLeftSideEffect(f)
+    override def onRightSideEffect(f: R => Unit): IO.Left[L, R] = this
   }
 
-  def fromFuture[E: ErrorHandler, A](future: Future[A])(implicit ec: ExecutionContext): IO.Defer[E, A] = {
+  def fromFuture[L: ErrorHandler, R](future: Future[R])(implicit ec: ExecutionContext): IO.Defer[L, R] = {
     val reserve = Reserve[Unit]((), "fromFuture")
     future onComplete {
       _ =>
@@ -380,13 +383,13 @@ object IO {
 
     //Deferred instance that will handle the outcome of the Future
     val recoverableDeferred =
-      IO.Defer[swaydb.Error.Segment, A](
+      IO.Defer[swaydb.Error.Segment, R](
         value = deferredValue,
         error = error
       )
 
     //Deferred that returns the result of the above deferred when completed.
-    IO.Defer[E, A](recoverableDeferred.toIO.get)
+    IO.Defer[L, R](recoverableDeferred.toIO.get)
   }
 
   /** **********************************
@@ -417,14 +420,14 @@ object IO {
 
     @inline private final def runAndRecover[E: ErrorHandler, A](f: IO.Defer[E, A]): Either[IO[E, A], IO.Defer[E, A]] =
       try
-        Left(IO.Success[E, A](f.getUnsafe))
+        scala.util.Left(IO.Right[E, A](f.getUnsafe))
       catch {
         case ex: Throwable =>
           val error = ErrorHandler.fromException[E](ex)
           if (ErrorHandler.reserve(error).isDefined)
-            Right(f.copy(error = Some(error)))
+            scala.util.Right(f.copy(error = Some(error)))
           else
-            Left(IO.Failure(error))
+            scala.util.Left(IO.Left(error))
       }
   }
 
@@ -449,10 +452,10 @@ object IO {
       !isComplete
 
     def isSuccess: Boolean =
-      isComplete || toIO.isSuccess
+      isComplete || toIO.isRight
 
     def isFailure: Boolean =
-      isPending && toIO.isFailure
+      isPending && toIO.isLeft
 
     private[Defer] def getUnsafe: A = {
       //Runs composed functions does not perform any recovery.
@@ -504,13 +507,13 @@ object IO {
       def doRun(deferred: IO.Defer[E, A], tried: Int): IO[E, A] = {
         if (tried > 0) blockIfNeeded(deferred)
         IO.Defer.runAndRecover(deferred) match {
-          case Left(io) =>
+          case scala.util.Left(io) =>
             logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
             io match {
-              case success @ IO.Success(_) =>
+              case success @ IO.Right(_) =>
                 success
 
-              case IO.Failure(error) =>
+              case IO.Left(error) =>
                 logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
                 if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
                   doRun(recovery.get.asInstanceOf[(E) => IO.Defer[E, A]](error), 0)
@@ -518,7 +521,7 @@ object IO {
                   io
             }
 
-          case Right(deferred) =>
+          case scala.util.Right(deferred) =>
             logger.debug(s"Retry! isCached: ${getValue.isDefined}. ${deferred.error}")
             if (tried > 0 && tried % IO.Defer.maxRecoveriesBeforeWarn == 0)
               logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via IO. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => ErrorHandler.reserve(error).map(_.name))}")
@@ -550,13 +553,13 @@ object IO {
       def doRun(deferred: IO.Defer[E, B], tried: Int): T[B] = {
         if (tried > 0) blockIfNeeded(deferred)
         IO.Defer.runAndRecover(deferred) match {
-          case Left(io) =>
+          case scala.util.Left(io) =>
             logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
             io match {
-              case success @ IO.Success(_) =>
+              case success @ IO.Right(_) =>
                 tag.fromIO(success)
 
-              case IO.Failure(error) =>
+              case IO.Left(error) =>
                 logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
                 if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
                   doRun(recovery.get.asInstanceOf[(E) => IO.Defer[E, B]](error), 0)
@@ -564,7 +567,7 @@ object IO {
                   tag.fromIO(io)
             }
 
-          case Right(deferred) =>
+          case scala.util.Right(deferred) =>
             logger.debug(s"Retry! isCached: ${getValue.isDefined}. ${deferred.error}")
             if (tried > 0 && tried % IO.Defer.maxRecoveriesBeforeWarn == 0)
               logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via runSync. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => ErrorHandler.reserve(error).map(_.name))}")
@@ -603,7 +606,7 @@ object IO {
         }
 
       //TO-DO moved Options.scala to data package.
-      def when[B](condition: Boolean)(success: => Option[B]): Option[B] =
+      def when[X](condition: Boolean)(success: => Option[X]): Option[X] =
         if (condition)
           success
         else
@@ -620,19 +623,19 @@ object IO {
             logger.debug(s"Run no delay! isCached: ${getValue.isDefined}")
             //no delay required run in stack safe manner.
             IO.Defer.runAndRecover(deferred) match {
-              case Left(io) =>
+              case scala.util.Left(io) =>
                 io match {
-                  case success @ IO.Success(_) =>
+                  case success @ IO.Right(_) =>
                     tag.fromIO(success)
 
-                  case IO.Failure(error) =>
+                  case IO.Left(error) =>
                     if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
                       runNow(recovery.get.asInstanceOf[(E) => IO.Defer[E, B]](error), 0)
                     else
                       tag.fromIO(io)
                 }
 
-              case Right(deferred) =>
+              case scala.util.Right(deferred) =>
                 if (tried > 0 && tried % IO.Defer.maxRecoveriesBeforeWarn == 0)
                   logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via Async. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => ErrorHandler.reserve(error).map(_.name))}")
                 runNow(deferred, tried + 1)

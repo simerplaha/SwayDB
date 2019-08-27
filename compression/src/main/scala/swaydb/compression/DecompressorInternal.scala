@@ -44,7 +44,7 @@ private[swaydb] object DecompressorInternal {
       id =>
         IO(apply(id))
     } getOrElse {
-      IO.failed(swaydb.Exception.InvalidDecompressorId(id))
+      IO.left(swaydb.Exception.InvalidDecompressorId(id))
     }
 
   def apply(instance: LZ4Instance,
@@ -118,7 +118,7 @@ private[swaydb] object DecompressorInternal {
 
     override def decompress(slice: Slice[Byte],
                             decompressLength: Int): IO[swaydb.Error.Segment, Slice[Byte]] =
-      IO.Success(slice)
+      IO.Right(slice)
   }
 
   private[swaydb] case object Snappy extends DecompressorInternal {

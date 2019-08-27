@@ -105,7 +105,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         }
 
         //trying to lock again should fail
-        Level.acquireLock(storage).failed.runRandomIO.value.exception shouldBe a[OverlappingFileLockException]
+        Level.acquireLock(storage).left.runRandomIO.value.exception shouldBe a[OverlappingFileLockException]
 
         //closing the lock should allow re-locking
         lock.get.close()
@@ -159,12 +159,12 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         //delete the appendix file
         level.paths.headPath.resolve("appendix").files(Extension.Log) map IOEffect.delete
         //expect failure when file does not exists
-        level.tryReopen.failed.get.exception shouldBe a[IllegalStateException]
+        level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
 
         //delete folder
         IOEffect.delete(level.paths.headPath.resolve("appendix")).runRandomIO.value
         //expect failure when folder does not exist
-        level.tryReopen.failed.get.exception shouldBe a[IllegalStateException]
+        level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
 
         level.delete.runRandomIO.value
       }
@@ -327,12 +327,12 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2).map(_.updateStats)
       val segment1 = TestSegment(keyValues.head).runRandomIO.value
       val segment2 = TestSegment(keyValues.last).runRandomIO.value
-      level.reserve(Seq(segment1, segment2)).get shouldBe Right(keyValues.head.head.key)
+      level.reserve(Seq(segment1, segment2)).get shouldBe scala.util.Right(keyValues.head.head.key)
 
       //cannot reserve again
-      level.reserve(Seq(segment1, segment2)).get shouldBe a[Left[_, _]]
-      level.reserve(Seq(segment1)).get shouldBe a[Left[_, _]]
-      level.reserve(Seq(segment2)).get shouldBe a[Left[_, _]]
+      level.reserve(Seq(segment1, segment2)).get shouldBe a[scala.util.Left[_, _]]
+      level.reserve(Seq(segment1)).get shouldBe a[scala.util.Left[_, _]]
+      level.reserve(Seq(segment2)).get shouldBe a[scala.util.Left[_, _]]
 
       level.delete.runRandomIO.value
     }

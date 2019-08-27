@@ -94,9 +94,9 @@ private[core] object Maps extends LazyLogging {
         val (emptyMaps, otherMaps) = recoveredMapsReversed.partition(_.isEmpty)
         if (emptyMaps.nonEmpty) logger.info(s"{}: Deleting empty {} maps {}.", path, emptyMaps.size, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
         emptyMaps foreachIO (_.delete) match {
-          case Some(IO.Failure(error)) =>
+          case Some(IO.Left(error)) =>
             logger.error(s"{}: Failed to delete empty maps {}", path, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
-            IO.Failure(error)
+            IO.Left(error)
 
           case None =>
             logger.debug(s"{}: Creating next map with ID {} maps.", path, nextMapId)
@@ -139,7 +139,7 @@ private[core] object Maps extends LazyLogging {
           recovery match {
             case RecoveryMode.ReportFailure =>
               //return failure immediately without effecting the current state of Level0
-              IO.failed(exception)
+              IO.left(exception)
 
             case RecoveryMode.DropCorruptedTailEntries =>
               //Ignore the corrupted file and jump to to the next Map.
@@ -154,25 +154,25 @@ private[core] object Maps extends LazyLogging {
               otherMapsPaths foreachIO { //delete Maps after the corruption.
                 mapPath =>
                   IOEffect.walkDelete(mapPath) match {
-                    case IO.Success(_) =>
+                    case IO.Right(_) =>
                       logger.info(s"{}: Deleted file after corruption. Recovery mode: {}", mapPath, recovery.name)
                       IO.unit
 
-                    case IO.Failure(error) =>
+                    case IO.Left(error) =>
                       logger.error(s"{}: IO.Failure to delete file after corruption file. Recovery mode: {}", mapPath, recovery.name)
-                      IO.Failure(error)
+                      IO.Left(error)
                   }
               } match {
-                case Some(IO.Failure(error)) =>
-                  IO.Failure(error)
+                case Some(IO.Left(error)) =>
+                  IO.Left(error)
 
                 case None =>
-                  IO.Success(recoveredMaps)
+                  IO.Right(recoveredMaps)
               }
           }
 
         case exception: Throwable =>
-          IO.failed(exception)
+          IO.left(exception)
       }
 
     /**
@@ -183,7 +183,7 @@ private[core] object Maps extends LazyLogging {
                    recoveredMaps: ListBuffer[Map[K, V]]): IO[swaydb.Error.Map, Seq[Map[K, V]]] =
       maps match {
         case Nil =>
-          IO.Success(recoveredMaps)
+          IO.Right(recoveredMaps)
 
         case mapPath :: otherMapsPaths =>
           logger.info(s"{}: Recovering.", mapPath)
@@ -196,22 +196,22 @@ private[core] object Maps extends LazyLogging {
             fileSize = fileSize,
             dropCorruptedTailEntries = recovery.drop
           ) match {
-            case IO.Success(recoveredMap) =>
+            case IO.Right(recoveredMap) =>
               //recovered immutable memory map's files should be closed after load as they are always read from in memory
               // and does not require the files to be opened.
               recoveredMap.item.close() match {
-                case IO.Success(_) =>
+                case IO.Right(_) =>
                   recoveredMaps += recoveredMap.item //recoveredMap.item can also be partially recovered file based on RecoveryMode set.
                   //if the recoveredMap's recovery result is a failure (partially recovered file),
                   //apply corruption handling based on the value set for RecoveryMode.
                   recoveredMap.result match {
-                    case IO.Success(_) => //Recovery was successful. Recover next map.
+                    case IO.Right(_) => //Recovery was successful. Recover next map.
                       doRecovery(
                         maps = otherMapsPaths,
                         recoveredMaps = recoveredMaps
                       )
 
-                    case IO.Failure(error) =>
+                    case IO.Left(error) =>
                       applyRecoveryMode(
                         exception = error.exception,
                         mapPath = mapPath,
@@ -220,11 +220,11 @@ private[core] object Maps extends LazyLogging {
                       )
                   }
 
-                case IO.Failure(error) => //failed to close the file.
-                  IO.Failure(error)
+                case IO.Left(error) => //failed to close the file.
+                  IO.Left(error)
               }
 
-            case IO.Failure(error) =>
+            case IO.Left(error) =>
               //if there was a full failure perform failure handling based on the value set for RecoveryMode.
               applyRecoveryMode(
                 exception = error.exception,
@@ -260,7 +260,7 @@ private[core] object Maps extends LazyLogging {
         }
 
       case _ =>
-        IO.Success(
+        IO.Right(
           Map.memory[K, V](
             fileSize = nextMapSize,
             flushOnOverflow = false
@@ -314,12 +314,12 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   @tailrec
   private def persist(entry: MapEntry[K, V]): IO[swaydb.Error.Map, IO.Done] =
     currentMap.write(entry) match {
-      case IO.Success(writeSuccessful) =>
+      case IO.Right(writeSuccessful) =>
         if (writeSuccessful)
           IO.done
         else
           IO(acceleration(meter)) match {
-            case IO.Success(accelerate) =>
+            case IO.Right(accelerate) =>
               accelerate.brake match {
                 case Some(brake) =>
                   brakePedal = new BrakePedal(brake.brakeFor, brake.releaseRate)
@@ -331,7 +331,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
               val nextMapSize = accelerate.nextMapSize max entry.totalByteSize
               logger.debug(s"Next map size: {}.bytes", nextMapSize)
               Maps.nextMap(nextMapSize, currentMap) match {
-                case IO.Success(nextMap) =>
+                case IO.Right(nextMap) =>
                   maps addFirst currentMap
                   currentMap = nextMap
                   totalMapsCount += 1
@@ -339,30 +339,30 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                   onNextMapListener()
                   persist(entry)
 
-                case IO.Failure(error) =>
-                  IO.Failure(error)
+                case IO.Left(error) =>
+                  IO.Left(error)
               }
-            case IO.Failure(error) =>
-              IO.Failure(error)
+            case IO.Left(error) =>
+              IO.Left(error)
           }
 
       //If there is a failure writing an Entry to the Map. Start a new Map immediately! This ensures that
       //if the failure was due to a corruption in the current Map, all the new Entries do not value submitted
       //to the same Map file. They SHOULD be added to a new Map file that is not already unreadable.
-      case IO.Failure(writeException) =>
+      case IO.Left(writeException) =>
         logger.error("IO.Failure to write Map entry. Starting a new Map.", writeException.exception)
         Maps.nextMap(fileSize, currentMap) match {
-          case IO.Success(nextMap) =>
+          case IO.Right(nextMap) =>
             maps addFirst currentMap
             currentMap = nextMap
             totalMapsCount += 1
             currentMapsCount += 1
             onNextMapListener()
-            IO.Failure(writeException)
+            IO.Left(writeException)
 
-          case IO.Failure(newMapException) =>
+          case IO.Left(newMapException) =>
             logger.error("Failed to create a new map on failure to write", newMapException.exception)
-            IO.Failure(writeException)
+            IO.Left(writeException)
         }
     }
 
@@ -436,14 +436,14 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     Option(maps.pollLast()) map {
       removedMap =>
         removedMap.delete match {
-          case IO.Failure(error) =>
+          case IO.Left(error) =>
             //failed to delete file. Add it back to the queue.
             val mapPath: String = removedMap.pathOption.map(_.toString).getOrElse("No path")
             logger.error(s"Failed to delete map '$mapPath;. Adding it back to the queue.", error.exception)
             maps.addLast(removedMap)
-            IO.Failure(error)
+            IO.Left(error)
 
-          case IO.Success(_) =>
+          case IO.Right(_) =>
             currentMapsCount -= 1
             IO.unit
         }
@@ -465,7 +465,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     currentMap
 
   def close: IO[swaydb.Error.Map, Unit] = {
-    timer.close onFailureSideEffect {
+    timer.close onLeftSideEffect {
       failure =>
         logger.error("Failed to close timer file", failure.exception)
     }

@@ -390,7 +390,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           reader
             .moveTo(index)
             .read(hashIndex.bytesToReadPerIndex) match {
-            case IO.Success(possibleValueBytes) =>
+            case IO.Right(possibleValueBytes) =>
               //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe. sortedIndex bytes: $possibleValueBytes")
               if (possibleValueBytes.isEmpty || possibleValueBytes.head != 0) {
                 //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe = failure - invalid start offset.")
@@ -398,31 +398,31 @@ private[core] object HashIndexBlock extends LazyLogging {
               } else {
                 val possibleValueWithoutHeader = possibleValueBytes.dropHead()
                 possibleValueWithoutHeader.readIntUnsignedWithByteSize() match {
-                  case IO.Success((possibleValue, bytesRead)) =>
+                  case IO.Right((possibleValue, bytesRead)) =>
                     //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe, sortedIndex: ${possibleValue - 1} = reading now!")
                     if (possibleValue == 0 || possibleValueWithoutHeader.take(bytesRead).exists(_ == 0))
                       doFind(probe + 1, checkedHashIndexes)
                     else
                       assertValue(possibleValue - 1) match { //assert value removing the 1 added on write.
-                        case success @ IO.Success(Some(_)) =>
+                        case success @ IO.Right(Some(_)) =>
                           //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe, sortedIndex: ${possibleValue - 1} = success")
                           success
 
-                        case IO.Success(None) =>
+                        case IO.Right(None) =>
                           //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe: sortedIndex: ${possibleValue - 1} = not found")
                           doFind(probe + 1, checkedHashIndexes += index)
 
-                        case IO.Failure(error) =>
-                          IO.Failure(error)
+                        case IO.Left(error) =>
+                          IO.Left(error)
                       }
 
-                  case IO.Failure(error) =>
-                    IO.Failure[swaydb.Error.Segment, Option[R]](error = error)
+                  case IO.Left(error) =>
+                    IO.Left[swaydb.Error.Segment, Option[R]](value = error)
                 }
               }
 
-            case IO.Failure(error) =>
-              IO.Failure(error)
+            case IO.Left(error) =>
+              IO.Left(error)
           }
       }
 
@@ -545,7 +545,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         //it's a reference so there is no accessIndexOffset therefore this value is reference offset.
         if (isReference) {
           val valueBytes = remainingWithoutCRCAndIsReference.take(entrySizeOrAccessIndexOffsetEntryByteSize)
-          IO.Success((valueBytes, isReference, -1)) //it's a reference there will be no accessIndexOffset.
+          IO.Right((valueBytes, isReference, -1)) //it's a reference there will be no accessIndexOffset.
         } else { //else this is accessIndexOffset and remaining is indexEntry bytes.
           remainingWithoutCRCAndIsReference.drop(entrySizeOrAccessIndexOffsetEntryByteSize).readIntUnsignedWithByteSize() map {
             case (entrySize, entryByteSize) =>
@@ -593,7 +593,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         reader
           .moveTo(hashIndex)
           .read(block.writeAbleLargestValueSize) match {
-          case IO.Success(possibleValueBytes: Slice[Byte]) =>
+          case IO.Right(possibleValueBytes: Slice[Byte]) =>
             //println(s"Key: ${key.readInt()}: read hashIndex: ${hashIndex + block.headerSize} probe: $probe. sortedIndex bytes: $possibleValueBytes")
             if (possibleValueBytes.isEmpty || possibleValueBytes.size == 1) {
               //println(s"Key: ${key.readInt()}: read hashIndex: ${hashIndex + block.headerSize} probe: $probe = failure - invalid start offset.")
@@ -602,7 +602,7 @@ private[core] object HashIndexBlock extends LazyLogging {
               //writeAbleLargestValueSize could also read extra tail bytes so fetch only the bytes that are specific to the indexEntry.
               //Read the crc and then read the indexEntry's entrySize and fetch on the indexEntry bytes and then check CRC.
               possibleValueBytes.readUnsignedLongWithByteSize() match {
-                case IO.Success((crc, crcByteSize)) =>
+                case IO.Right((crc, crcByteSize)) =>
                   if (crc < reader.block.minimumCRC)
                     doFind(probe + 1)
                   else
@@ -610,24 +610,24 @@ private[core] object HashIndexBlock extends LazyLogging {
                       valueBytesWithoutCRC = possibleValueBytes drop crcByteSize,
                       copyIndexWithReferences = reader.block.copyIndexWithReferences
                     ) match {
-                      case IO.Success((valueBytes, isReference, accessIndexOffset)) => //valueBytes can either be offset or the indexEntry itself.
+                      case IO.Right((valueBytes, isReference, accessIndexOffset)) => //valueBytes can either be offset or the indexEntry itself.
                         if (crc == CRC32.forBytes(valueBytes))
                           assertValue(valueBytes, accessIndexOffset, isReference) match { //assert value.
-                            case success @ IO.Success(Some(_)) =>
+                            case success @ IO.Right(Some(_)) =>
                               //println(s"Key: ${key.readInt()}: read hashIndex: ${hashIndex + block.headerSize} probe: $probe, entryBytes: $valueBytes = success")
                               success
 
-                            case IO.Success(None) =>
+                            case IO.Right(None) =>
                               //println(s"Key: ${key.readInt()}: read hashIndex: ${hashIndex + block.headerSize} probe: $probe: entryBytes: $valueBytes = not found")
                               doFind(probe + 1)
 
-                            case IO.Failure(error) =>
-                              IO.Failure(error)
+                            case IO.Left(error) =>
+                              IO.Left(error)
                           }
                         else
                           doFind(probe + 1)
 
-                      case IO.Failure(error) =>
+                      case IO.Left(error) =>
                         error.exception match {
                           case _: ArrayIndexOutOfBoundsException =>
                             doFind(probe + 1)
@@ -636,23 +636,23 @@ private[core] object HashIndexBlock extends LazyLogging {
                             doFind(probe + 1)
 
                           case _ =>
-                            IO.Failure(error)
+                            IO.Left(error)
                         }
                     }
 
-                case IO.Failure(error) =>
+                case IO.Left(error) =>
                   error.exception match {
                     case _: ArrayIndexOutOfBoundsException =>
                       doFind(probe + 1)
 
                     case _ =>
-                      IO.Failure(error)
+                      IO.Left(error)
                   }
               }
             }
 
-          case IO.Failure(error) =>
-            IO.Failure(error)
+          case IO.Left(error) =>
+            IO.Left(error)
         }
       }
 

@@ -106,13 +106,13 @@ private[core] object Get {
 
         case current: KeyValue.ReadOnly.Range =>
           (if (current.key equiv key) current.fetchFromOrElseRangeValue else current.fetchRangeValue) match {
-            case IO.Success(currentValue) =>
+            case IO.Right(currentValue) =>
               if (Value.hasTimeLeft(currentValue))
                 returnSegmentResponse(currentValue.toMemory(key))
               else
                 IO.Defer.none
 
-            case failure @ IO.Failure(_) =>
+            case failure @ IO.Left(_) =>
               failure recoverTo Get(key)
           }
 
@@ -123,13 +123,13 @@ private[core] object Get {
                 next =>
                   if (next.hasTimeLeft())
                     FunctionMerger(current, next) match {
-                      case IO.Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
+                      case IO.Right(put: ReadOnly.Put) if put.hasTimeLeft() =>
                         IO.Defer(Some(put))
 
-                      case IO.Success(_: ReadOnly.Fixed) =>
+                      case IO.Right(_: ReadOnly.Fixed) =>
                         IO.Defer.none
 
-                      case failure @ IO.Failure(_) =>
+                      case failure @ IO.Left(_) =>
                         failure recoverTo Get(key)
                     }
                   else
@@ -146,13 +146,13 @@ private[core] object Get {
                 next =>
                   if (next.hasTimeLeft())
                     PendingApplyMerger(current, next) match {
-                      case IO.Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
+                      case IO.Right(put: ReadOnly.Put) if put.hasTimeLeft() =>
                         IO.Defer(Some(put))
 
-                      case IO.Success(_: ReadOnly.Fixed) =>
+                      case IO.Right(_: ReadOnly.Fixed) =>
                         IO.Defer.none
 
-                      case failure @ IO.Failure(_) =>
+                      case failure @ IO.Left(_) =>
                         failure recoverTo Get(key)
                     }
                   else
@@ -164,13 +164,13 @@ private[core] object Get {
       }
 
     currentGetter.get(key) match {
-      case IO.Success(Some(current)) =>
+      case IO.Right(Some(current)) =>
         returnSegmentResponse(current)
 
-      case IO.Success(None) =>
+      case IO.Right(None) =>
         nextGetter.get(key)
 
-      case failure @ IO.Failure(_) =>
+      case failure @ IO.Left(_) =>
         failure recoverTo Get(key)
     }
   }

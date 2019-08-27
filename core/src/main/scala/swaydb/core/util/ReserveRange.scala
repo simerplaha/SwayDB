@@ -70,10 +70,10 @@ object ReserveRange extends LazyLogging {
         toInclusive = toInclusive,
         info = info
       ) match {
-        case Left(range) =>
+        case scala.util.Left(range) =>
           range.reserve.info
 
-        case Right(_) =>
+        case scala.util.Right(_) =>
           None
       }
     }
@@ -90,13 +90,13 @@ object ReserveRange extends LazyLogging {
         toInclusive = toInclusive,
         info = info
       ) match {
-        case Left(range) =>
+        case scala.util.Left(range) =>
           val promise = Promise[Unit]()
           range.reserve.savePromise(promise)
-          Left(promise)
+          scala.util.Left(promise)
 
-        case Right(value) =>
-          Right(value)
+        case scala.util.Right(value) =>
+          scala.util.Right(value)
       }
     }
 
@@ -142,13 +142,13 @@ object ReserveRange extends LazyLogging {
       state
         .ranges
         .find(range => Slice.intersects((from, to, toInclusive), (range.from, range.to, range.toInclusive)))
-        .map(Left(_))
+        .map(scala.util.Left(_))
         .getOrElse {
           state.ranges += ReserveRange.Range(from, to, toInclusive, Reserve(info, "ReserveRange"))
           val waitingCount = state.ranges.size
           //Helps debug situations if too many threads and try to compact into the same Segment.
           if (waitingCount >= 100) logger.warn(s"Too many listeners: $waitingCount")
-          Right(from)
+          scala.util.Right(from)
         }
     }
 }

@@ -103,5 +103,5 @@ private[core] class GroupReader(decompressedValuesSize: Int,
   override def isFile: Boolean = false
 
   override def readRemaining(): IO[swaydb.Error.Segment, Slice[Byte]] =
-    IO.failed(new IllegalStateException(s"Function readRemaining() on ${this.getClass.getSimpleName} is not supported!"))
+    IO.left(new IllegalStateException(s"Function readRemaining() on ${this.getClass.getSimpleName} is not supported!"))
 }

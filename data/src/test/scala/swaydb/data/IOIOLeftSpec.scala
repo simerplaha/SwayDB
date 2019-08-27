@@ -26,103 +26,103 @@ import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.data.Base._
 
-class IOFailureSpec extends WordSpec with Matchers {
+class IOIOLeftSpec extends WordSpec with Matchers {
 
   val error = swaydb.Error.Fatal(this.getClass.getSimpleName + " test exception.")
   val otherError = swaydb.Error.FileNotFound(new FileNotFoundException())
 
   "set booleans" in {
-    val io = IO.Failure(error)
-    io.isFailure shouldBe true
-    io.isSuccess shouldBe false
+    val io = IO.Left(error)
+    io.isLeft shouldBe true
+    io.isRight shouldBe false
   }
 
   "get" in {
     assertThrows[Exception] {
-      IO.Failure(error).get
+      IO.Left(error).get
     }
   }
 
   "exists" in {
-    IO.Failure(error).exists(_ == 1) shouldBe false
+    IO.Left(error).exists(_ == 1) shouldBe false
   }
 
   "getOrElse" in {
-    IO.Failure(error) getOrElse 2 shouldBe 2
-    IO.Failure(swaydb.Error.Fatal("")) getOrElse 3 shouldBe 3
+    IO.Left(error) getOrElse 2 shouldBe 2
+    IO.Left(swaydb.Error.Fatal("")) getOrElse 3 shouldBe 3
   }
 
   "orElse" in {
-    IO.Failure(error) orElse IO.Success(2) shouldBe IO.Success(2)
-    IO.Success(2) orElse IO.Failure(error) shouldBe IO.Success(2)
+    IO.Left(error) orElse IO.Right(2) shouldBe IO.Right(2)
+    IO.Right(2) orElse IO.Left(error) shouldBe IO.Right(2)
   }
 
   "foreach" in {
-    IO.Failure(error) foreach (_ => fail()) shouldBe()
+    IO.Left(error) foreach (_ => fail()) shouldBe()
   }
 
   "map" in {
-    IO.Failure(error) map {
+    IO.Left(error) map {
       _ =>
         fail()
-    } shouldBe IO.Failure(error)
+    } shouldBe IO.Left(error)
   }
 
   "flatMap" in {
-    IO.Failure(error) flatMap {
+    IO.Left(error) flatMap {
       i =>
         fail()
-    } shouldBe IO.Failure(error)
+    } shouldBe IO.Left(error)
   }
 
   "recover" in {
-    IO.Failure(error) recover {
+    IO.Left(error) recover {
       case error =>
         error shouldBe this.error
         1
-    } shouldBe IO.Success(1)
+    } shouldBe IO.Right(1)
   }
 
   "recoverWith success" in {
-    IO.Failure(error) recoverWith {
+    IO.Left(error) recoverWith {
       case error =>
         error shouldBe this.error
-        IO.Success(1)
-    } shouldBe IO.Success(1)
+        IO.Right(1)
+    } shouldBe IO.Right(1)
   }
 
   "recoverWith failure" in {
-    IO.Failure(error: swaydb.Error.IO) recoverWith {
+    IO.Left(error: swaydb.Error.IO) recoverWith {
       case error =>
         error shouldBe this.error
-        IO.Failure(otherError: swaydb.Error.IO)
-    } shouldBe IO.Failure(otherError: swaydb.Error.IO)
+        IO.Left(otherError: swaydb.Error.IO)
+    } shouldBe IO.Left(otherError: swaydb.Error.IO)
 
-    IO.Failure(error) recoverWith {
+    IO.Left(error: swaydb.Error.IO) recoverWith {
       case error =>
         error shouldBe this.error
         throw otherError.exception
-    } shouldBe IO.Failure(otherError: swaydb.Error.IO)
+    } shouldBe IO.Left(otherError: swaydb.Error.IO)
   }
 
   "failed" in {
-    IO.Failure(error).failed.get shouldBe error
+    IO.Left(error).left.get shouldBe error
   }
 
   "toOption" in {
-    IO.Failure(error).toOption shouldBe None
+    IO.Left(error).toOption shouldBe None
   }
 
   "toEither" in {
-    IO.Failure(error).toEither shouldBe Left(error)
+    IO.Left(error).toEither shouldBe scala.util.Left(error)
   }
 
   "filter" in {
-    IO.Failure(error).filter(_ => fail()) shouldBe IO.Failure(error)
+    IO.Left(error).filter(_ => fail()) shouldBe IO.Left(error)
   }
 
   "toFuture" in {
-    val future = IO.Failure(error).toFuture
+    val future = IO.Left(error).toFuture
     future.isCompleted shouldBe true
     assertThrows[Exception] {
       future.await
@@ -130,33 +130,33 @@ class IOFailureSpec extends WordSpec with Matchers {
   }
 
   "toTry" in {
-    IO.Failure(error).toTry shouldBe scala.util.Failure(ErrorHandler.toException(error))
+    IO.Left(error).toTry shouldBe scala.util.Failure(ErrorHandler.toException(error))
   }
 
   "onFailureSideEffect" in {
     var invoked = false
-    IO.Failure(error) onFailureSideEffect {
+    IO.Left(error) onLeftSideEffect {
       failure =>
-        failure.error shouldBe this.error
+        failure.value shouldBe this.error
         invoked = true
-    } shouldBe IO.Failure(error)
+    } shouldBe IO.Left(error)
     invoked shouldBe true
   }
 
   "onSuccessSideEffect" in {
-    IO.Failure(error) onSuccessSideEffect {
+    IO.Left(error) onRightSideEffect {
       _ =>
         fail()
-    } shouldBe IO.Failure(error)
+    } shouldBe IO.Left(error)
   }
 
   "onCompleteSideEffect" in {
     var invoked = false
-    IO.Failure(error) onCompleteSideEffect {
+    IO.Left(error) onCompleteSideEffect {
       io =>
-        io shouldBe IO.Failure(error)
+        io shouldBe IO.Left(error)
         invoked = true
-    } shouldBe IO.Failure(error)
+    } shouldBe IO.Left(error)
     invoked shouldBe true
   }
 }

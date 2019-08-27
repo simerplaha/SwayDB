@@ -157,7 +157,7 @@ object LevelZeroMapEntryReader {
                 Level0RangeReader.read(reader) map (merge(_, previousEntry))
 
               else
-                IO.failed(new IllegalArgumentException(s"Invalid entry type $entryId."))
+                IO.left(new IllegalArgumentException(s"Invalid entry type $entryId."))
           }
       }
   }

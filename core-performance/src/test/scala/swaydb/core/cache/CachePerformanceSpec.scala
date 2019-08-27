@@ -36,7 +36,7 @@ class CachePerformanceSpec extends WordSpec with Matchers {
       runThis(range.size.times) {
         Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](_ => randomIOStrategy(), swaydb.Error.ReservedResource(Reserve(name = "test"))) {
           int =>
-            IO.Success(int)
+            IO.Right(int)
         }
       }
     } should be < 0.13
@@ -44,55 +44,55 @@ class CachePerformanceSpec extends WordSpec with Matchers {
 
   "reading concurrentIO" when {
     "stored & concurrent" in {
-      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](false, true, None)(int => IO.Success(int))
+      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](false, true, None)(int => IO.Right(int))
 
       Benchmark("reading stored") {
         range foreach {
           i =>
-            cache.value(i) shouldBe IO.Success(1)
+            cache.value(i) shouldBe IO.Right(1)
         }
       }
 
       Benchmark("reading stored concurrently") {
         range.par foreach {
           i =>
-            cache.value(i) shouldBe IO.Success(1)
+            cache.value(i) shouldBe IO.Right(1)
         }
       }
     }
 
     "stored & synchronised" in {
-      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](true, true, None)(int => IO.Success(int))
+      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](true, true, None)(int => IO.Right(int))
 
       Benchmark("reading stored") {
         range foreach {
           i =>
-            cache.value(i) shouldBe IO.Success(1)
+            cache.value(i) shouldBe IO.Right(1)
         }
       }
 
       Benchmark("reading stored concurrently") {
         range.par foreach {
           i =>
-            cache.value(i) shouldBe IO.Success(1)
+            cache.value(i) shouldBe IO.Right(1)
         }
       }
     }
 
     "not stored" in {
-      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](false, false, None)(int => IO.Success(int))
+      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](false, false, None)(int => IO.Right(int))
 
       Benchmark("reading not stored") {
         range foreach {
           i =>
-            cache.value(i) shouldBe IO.Success(i)
+            cache.value(i) shouldBe IO.Right(i)
         }
       }
 
       Benchmark("reading not stored concurrently") {
         range.par foreach {
           i =>
-            cache.value(i) shouldBe IO.Success(i)
+            cache.value(i) shouldBe IO.Right(i)
         }
       }
     }

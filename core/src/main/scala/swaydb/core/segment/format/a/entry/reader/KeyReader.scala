@@ -69,7 +69,7 @@ object KeyReader {
             }
         }
     } getOrElse {
-      IO.failed(EntryReaderFailure.NoPreviousKeyValue)
+      IO.left(EntryReaderFailure.NoPreviousKeyValue)
     }
 
   def read(keyValueIdInt: Int,
@@ -96,5 +96,5 @@ object KeyReader {
           (accessPosition, key, false)
       }
     else
-      IO.Failure(swaydb.Error.Fatal(new Exception(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")))
+      IO.Left(swaydb.Error.Fatal(new Exception(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")))
 }

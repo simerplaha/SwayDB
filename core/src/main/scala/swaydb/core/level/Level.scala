@@ -138,7 +138,7 @@ private[core] object Level extends LazyLogging {
               //check if appendix folder/file was deleted.
               if ((!IOEffect.exists(appendixFolder) || appendixFolder.files(Extension.Log).isEmpty) && IOEffect.segmentFilesOnDisk(levelStorage.dirs.pathsSet.toSeq).nonEmpty) {
                 logger.info("{}: Failed to start Level. Appendix file is missing", appendixFolder)
-                IO.failed(new IllegalStateException(s"Failed to start Level. Appendix file is missing '$appendixFolder'."))
+                IO.left(new IllegalStateException(s"Failed to start Level. Appendix file is missing '$appendixFolder'."))
               } else {
                 IOEffect createDirectoriesIfAbsent appendixFolder
                 Map.persistent[Slice[Byte], Segment](
@@ -150,7 +150,7 @@ private[core] object Level extends LazyLogging {
                   dropCorruptedTailEntries = false
                 ).map(_.item) recoverWith {
                   case error =>
-                    IO.Failure(ErrorHandler.fromException(error.exception))
+                    IO.Left(ErrorHandler.fromException(error.exception))
                 }
               }
 
@@ -169,10 +169,10 @@ private[core] object Level extends LazyLogging {
                 if (segment.existsOnDisk)
                   IO.unit
                 else
-                  IO.failed(swaydb.Exception.SegmentFileMissing(segment.path))
+                  IO.left(swaydb.Exception.SegmentFileMissing(segment.path))
             } match {
-              case Some(IO.Failure(error)) =>
-                IO.Failure(error)
+              case Some(IO.Left(error)) =>
+                IO.Left(error)
 
               case None =>
                 logger.info("{}: Starting level.", levelStorage.dir)
@@ -470,7 +470,7 @@ private[core] case class Level(dirs: Seq[Dir],
               toInclusive = toInclusive,
               info = ()
             )
-        } getOrElse Left(Promise.successful())
+        } getOrElse scala.util.Left(Promise.successful())
     }
 
   private[level] implicit def reserve(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Error.Segment, Either[Promise[Unit], Slice[Byte]]] =
@@ -490,7 +490,7 @@ private[core] case class Level(dirs: Seq[Dir],
               toInclusive = toInclusive,
               info = ()
             )
-        } getOrElse Left(Promise.successful())
+        } getOrElse scala.util.Left(Promise.successful())
     }
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
@@ -559,11 +559,11 @@ private[core] case class Level(dirs: Seq[Dir],
               ReserveRange.free(minKey)
         }
     } match {
-      case IO.Success(either) =>
+      case IO.Right(either) =>
         either
 
-      case IO.Failure(error) =>
-        Right(IO.Failure(error))
+      case IO.Left(error) =>
+        scala.util.Right(IO.Left(error))
     }
 
   def put(segment: Segment)(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
@@ -588,7 +588,7 @@ private[core] case class Level(dirs: Seq[Dir],
     else
       copiedSegments foreach {
         segmentToDelete =>
-          segmentToDelete.delete onFailureSideEffect {
+          segmentToDelete.delete onLeftSideEffect {
             failure =>
               logger.error(s"{}: Failed to delete copied Segment '{}'", paths.head, segmentToDelete.path, failure)
           }
@@ -613,7 +613,7 @@ private[core] case class Level(dirs: Seq[Dir],
                   else
                     appendix.write(copiedSegmentsEntry) map (_ => ())
 
-                putResult onFailureSideEffect {
+                putResult onLeftSideEffect {
                   failure =>
                     logFailure(s"${paths.head}: Failed to create a log entry. Deleting ${newlyCopiedSegments.size} copied segments", failure)
                     deleteCopiedSegments(newlyCopiedSegments)
@@ -654,7 +654,7 @@ private[core] case class Level(dirs: Seq[Dir],
               buildNewMapEntry(newSegments, None, None) flatMap {
                 entry =>
                   appendix write entry
-              } onFailureSideEffect {
+              } onLeftSideEffect {
                 failure =>
                   logFailure(s"${paths.head}: Failed to create a log entry.", failure)
                   deleteCopiedSegments(newSegments)
@@ -691,7 +691,7 @@ private[core] case class Level(dirs: Seq[Dir],
       nextLevel =>
         if (!nextLevel.isCopyable(map))
           IO.`false`
-        else if (nextLevel.put(map).exists(_.isSuccess))
+        else if (nextLevel.put(map).exists(_.isRight))
           IO.`true`
         else
           IO.`false`
@@ -749,13 +749,13 @@ private[core] case class Level(dirs: Seq[Dir],
    */
   private def copyForwardOrCopyLocal(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[Segment]] =
     forward(segments) match {
-      case IO.Success(segmentsNotForwarded) =>
+      case IO.Right(segmentsNotForwarded) =>
         if (segmentsNotForwarded.isEmpty)
           Segment.emptyIterableIO
         else
           copy(segmentsNotForwarded)
 
-      case IO.Failure(error) =>
+      case IO.Left(error) =>
         logger.trace(s"{}: Copying forward failed. Trying to copy locally {} Segments", paths.head, segments.map(_.path.toString), error.exception)
         copy(segments)
     }
@@ -769,12 +769,12 @@ private[core] case class Level(dirs: Seq[Dir],
       nextLevel =>
         val (copyable, nonCopyable) = nextLevel partitionUnreservedCopyable segments
         if (copyable.isEmpty)
-          IO.Success(segments)
-        else if (nextLevel.put(copyable).exists(_.isSuccess))
-          IO.Success(nonCopyable)
+          IO.Right(segments)
+        else if (nextLevel.put(copyable).exists(_.isRight))
+          IO.Right(nonCopyable)
         else
-          IO.Success(segments)
-    } getOrElse IO.Success(segments)
+          IO.Right(segments)
+    } getOrElse IO.Right(segments)
   }
 
   private[level] def copy(segments: Iterable[Segment])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
@@ -828,7 +828,7 @@ private[core] case class Level(dirs: Seq[Dir],
           logFailure(s"${paths.head}: Failed to copy Segments. Deleting partially copied Segments ${segments.size} Segments", failure)
           segments foreach {
             segment =>
-              segment.delete onFailureSideEffect {
+              segment.delete onLeftSideEffect {
                 failure =>
                   logger.error(s"{}: Failed to delete copied Segment '{}'", paths.head, segment.path, failure)
               }
@@ -856,21 +856,21 @@ private[core] case class Level(dirs: Seq[Dir],
           logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", paths.head, segment.path, newSegments.map(_.path).mkString(", "))
           buildNewMapEntry(newSegments, Some(segment), None) flatMap {
             entry =>
-              appendix.write(entry).map(_ => ()) onSuccessSideEffect {
+              appendix.write(entry).map(_ => ()) onRightSideEffect {
                 _ =>
                   if (deleteSegmentsEventually)
                     segment.deleteSegmentsEventually
                   else
-                    segment.delete onFailureSideEffect {
+                    segment.delete onLeftSideEffect {
                       failure =>
                         logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segment.path, failure)
                     }
               }
-          } onFailureSideEffect {
+          } onLeftSideEffect {
             _ =>
               newSegments foreach {
                 segment =>
-                  segment.delete onFailureSideEffect {
+                  segment.delete onLeftSideEffect {
                     failure =>
                       logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, failure)
                   }
@@ -913,13 +913,13 @@ private[core] case class Level(dirs: Seq[Dir],
               }
             }
         }
-    } getOrElse IO.Failure[swaydb.Error.Level, Int](swaydb.Error.NoSegmentsRemoved)
+    } getOrElse IO.Left[swaydb.Error.Level, Int](swaydb.Error.NoSegmentsRemoved)
   }
 
   def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): Either[Promise[Unit], IO[swaydb.Error.Level, Int]] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
     if (segments.isEmpty || appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
-      Right(IO.zero)
+      scala.util.Right(IO.zero)
     } else {
       //other segments in the appendix that are not the input segments (segments to collapse).
       val levelSegments = segmentsInLevel()
@@ -960,7 +960,7 @@ private[core] case class Level(dirs: Seq[Dir],
             else
               segmentsToMerge foreach {
                 segment =>
-                  segment.delete onFailureSideEffect {
+                  segment.delete onLeftSideEffect {
                     exception =>
                       logger.warn(s"{}: Failed to delete Segment {} after successful collapse", paths.head, segment.path, exception)
                   }
@@ -997,7 +997,7 @@ private[core] case class Level(dirs: Seq[Dir],
         logger.trace(s"{}: Assigned segments {} for {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
         if (assignments.isEmpty) {
           logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", paths.head, keyValues.size)
-          IO.Failure[swaydb.Error.Level, Unit](swaydb.Error.MergeKeyValuesWithoutTargetSegment(keyValues.size))
+          IO.Left[swaydb.Error.Level, Unit](swaydb.Error.MergeKeyValuesWithoutTargetSegment(keyValues.size))
         } else {
           logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
           putAssignedKeyValues(assignments) flatMap {
@@ -1020,7 +1020,7 @@ private[core] case class Level(dirs: Seq[Dir],
                       else
                         assignments foreach {
                           case (segment, _) =>
-                            segment.delete onFailureSideEffect {
+                            segment.delete onLeftSideEffect {
                               exception =>
                                 logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
                             }
@@ -1028,15 +1028,15 @@ private[core] case class Level(dirs: Seq[Dir],
                   }
 
                 case None =>
-                  IO.failed(s"${paths.head}: Failed to create map entry")
-              } onFailureSideEffect {
+                  IO.left(s"${paths.head}: Failed to create map entry")
+              } onLeftSideEffect {
                 failure =>
                   logFailure(s"${paths.head}: Failed to write key-values. Reverting", failure)
                   targetSegmentAndNewSegments foreach {
                     case (_, newSegments) =>
                       newSegments foreach {
                         segment =>
-                          segment.delete onFailureSideEffect {
+                          segment.delete onLeftSideEffect {
                             exception =>
                               logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
                           }
@@ -1076,7 +1076,7 @@ private[core] case class Level(dirs: Seq[Dir],
             case (_, newSegments) =>
               newSegments foreach {
                 segment =>
-                  segment.delete onFailureSideEffect {
+                  segment.delete onLeftSideEffect {
                     exception =>
                       logger.error(s"{}: Failed to delete Segment '{}' in recovery for putAssignedKeyValues", paths.head, segment.path, exception)
                   }
@@ -1109,10 +1109,10 @@ private[core] case class Level(dirs: Seq[Dir],
         nextLogEntry
     }) match {
       case Some(value) =>
-        IO.Success(value)
+        IO.Right(value)
 
       case None =>
-        IO.failed("Failed to build map entry")
+        IO.left("Failed to build map entry")
     }
   }
 
@@ -1213,7 +1213,7 @@ private[core] case class Level(dirs: Seq[Dir],
     higherFromFloorSegment(key) flatMap {
       fromFloor =>
         if (fromFloor.isDefined)
-          IO.Success(fromFloor)
+          IO.Right(fromFloor)
         else
           higherFromHigherSegment(key)
     }
@@ -1415,15 +1415,15 @@ private[core] case class Level(dirs: Seq[Dir],
   def close: IO[swaydb.Error.Close, Unit] =
     (nextLevel.map(_.close) getOrElse IO.unit) flatMap {
       _ =>
-        appendix.close() onFailureSideEffect {
+        appendix.close() onLeftSideEffect {
           failure =>
             logger.error("{}: Failed to close appendix", paths.head, failure)
         }
-        closeSegments() onFailureSideEffect {
+        closeSegments() onLeftSideEffect {
           failure =>
             logger.error("{}: Failed to close segments", paths.head, failure)
         }
-        releaseLocks onFailureSideEffect {
+        releaseLocks onLeftSideEffect {
           failure =>
             logger.error("{}: Failed to release locks", paths.head, failure)
         }

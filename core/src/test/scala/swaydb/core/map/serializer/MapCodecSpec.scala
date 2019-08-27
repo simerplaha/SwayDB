@@ -160,7 +160,7 @@ class MapCodecSpec extends TestBase {
 
       //corrupt bytes in bytes2 and read the bytes again. keyValues2 should not exist as it's key-values are corrupted.
       val corruptedBytes2: Slice[Byte] = allBytes.dropRight(1)
-      MapCodec.read(corruptedBytes2, dropCorruptedTailEntries = false).failed.runRandomIO.value.exception shouldBe a[IllegalStateException]
+      MapCodec.read(corruptedBytes2, dropCorruptedTailEntries = false).left.runRandomIO.value.exception shouldBe a[IllegalStateException]
       //enable skip corrupt entries.
       val mapEntryWithTailCorruptionSkipOnCorruption = MapCodec.read(corruptedBytes2, dropCorruptedTailEntries = true).runRandomIO.value.item.value
       map.clear()
@@ -175,7 +175,7 @@ class MapCodecSpec extends TestBase {
       //corrupt bytes of bytes1
       val corruptedBytes1: Slice[Byte] = allBytes.drop(1)
       //all bytes are corrupted, failure occurs.
-      MapCodec.read(corruptedBytes1, dropCorruptedTailEntries = false).failed.runRandomIO.value.exception shouldBe a[IllegalStateException]
+      MapCodec.read(corruptedBytes1, dropCorruptedTailEntries = false).left.runRandomIO.value.exception shouldBe a[IllegalStateException]
       MapCodec.read(corruptedBytes1, dropCorruptedTailEntries = true).runRandomIO.value.item shouldBe empty
     }
   }

@@ -19,7 +19,6 @@
 
 package swaydb.core.map.serializer
 
-import swaydb.Error.IO.ErrorHandler
 import swaydb.IO
 import swaydb.macros.SealedList
 
@@ -141,6 +140,6 @@ object RangeValueId {
 
   def apply(id: Int): IO[swaydb.Error.Fatal, RangeValueId] =
     ids.get(id)
-      .map(IO.Success[swaydb.Error.Fatal, RangeValueId](_))
-      .getOrElse(IO.failed[swaydb.Error.Fatal, RangeValueId](s"Invalid ${this.getClass.getSimpleName}: $id"))
+      .map(IO.Right[swaydb.Error.Fatal, RangeValueId](_))
+      .getOrElse(IO.left[swaydb.Error.Fatal, RangeValueId](s"Invalid ${this.getClass.getSimpleName}: $id"))
 }

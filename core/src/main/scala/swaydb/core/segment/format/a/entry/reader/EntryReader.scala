@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
+import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO
 import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
@@ -29,7 +30,6 @@ import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice}
-import swaydb.Error.Segment.ErrorHandler
 
 trait EntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,
@@ -85,7 +85,7 @@ object EntryReader {
           previous = previous,
           reader = entryReader
         )
-    } getOrElse IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+    } getOrElse IO.left(swaydb.Exception.InvalidKeyValueId(baseId))
 
   def read(indexEntry: Slice[Byte],
            mightBeCompressed: Boolean,
@@ -204,7 +204,7 @@ object EntryReader {
             entryReader = PendingApplyReader
           )
         else
-          IO.failed[swaydb.Error.Segment, Persistent](swaydb.Exception.InvalidKeyValueId(keyValueId))
+          IO.left[swaydb.Error.Segment, Persistent](swaydb.Exception.InvalidKeyValueId(keyValueId))
     }
   }
 }

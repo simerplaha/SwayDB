@@ -177,7 +177,7 @@ private[map] object PersistentMap extends LazyLogging {
               //if there was a failure recovering any one of the files, return the recovery with the failure result.
               RecoveryResult(
                 item = file,
-                result = recoveredFiles.find(_.result.isFailure).map(_.result) getOrElse IO.unit
+                result = recoveredFiles.find(_.result.isLeft).map(_.result) getOrElse IO.unit
               ),
               hasRange
             )
@@ -210,11 +210,11 @@ private[map] object PersistentMap extends LazyLogging {
                   nextFile.path,
                   failure.exception
                 )
-                IO.Failure(failure.error)
+                IO.Left(failure.value)
 
               case None =>
                 logger.info(s"Recovery successful")
-                IO.Success(nextFile)
+                IO.Right(nextFile)
             }
         }
     }
@@ -240,7 +240,7 @@ private[map] object PersistentMap extends LazyLogging {
               _ =>
                 currentFile.delete() flatMap {
                   _ =>
-                    IO.Success(newFile)
+                    IO.Right(newFile)
                 }
             }
         }
@@ -303,7 +303,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   override def write(mapEntry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] = {
     lock.writeLock().lock()
     try {
-      persist(mapEntry) onSuccessSideEffect {
+      persist(mapEntry) onRightSideEffect {
         _ =>
           _writeCount += 1
       }
@@ -347,15 +347,15 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
     else {
       val nextFilesSize = entry.totalByteSize.toLong max fileSize
       PersistentMap.nextFile(currentFile, mmap, nextFilesSize, skipList) match {
-        case IO.Success(newFile) =>
+        case IO.Right(newFile) =>
           currentFile = newFile
           actualFileSize = nextFilesSize
           bytesWritten = 0
           persist(entry)
 
-        case IO.Failure(error) =>
+        case IO.Left(error) =>
           logger.error("{}: Failed to replace with new file", currentFile.path, error.exception)
-          IO.Failure(error)
+          IO.Left(error)
       }
     }
 

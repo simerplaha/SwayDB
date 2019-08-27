@@ -76,7 +76,7 @@ private[core] object RemoveMerger {
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue.deadline match {
         case None =>
-          IO.Success(newKeyValue)
+          IO.Right(newKeyValue)
 
         case Some(_) =>
           oldKeyValue.toFromValue() map {
@@ -85,7 +85,7 @@ private[core] object RemoveMerger {
           }
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.Remove,
             oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]]): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
@@ -118,10 +118,10 @@ private[core] object RemoveMerger {
           }
 
         case None =>
-          IO.Success(newer)
+          IO.Right(newer)
       }
     else
-      IO.Success(older)
+      IO.Right(older)
 
   def apply(newKeyValue: ReadOnly.Remove,
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],

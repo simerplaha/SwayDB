@@ -74,7 +74,7 @@ class SegmentBufferSpec extends WordSpec with Matchers {
         buffer.shouldGroupKeyValues(false) shouldBe true
 
         //adding a group when it has ungrouped key-value should fail
-        buffer.addGroup[Throwable](randomGroup()).failed.get.getMessage.contains("unGrouped") shouldBe true
+        buffer.addGroup[Throwable](randomGroup()).left.get.getMessage.contains("unGrouped") shouldBe true
 
         //replaceGroupedKeyValues clear key-values
         buffer replaceGroupedKeyValues randomGroup()

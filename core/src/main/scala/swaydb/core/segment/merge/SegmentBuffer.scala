@@ -19,10 +19,10 @@
 
 package swaydb.core.segment.merge
 
-import swaydb.{ErrorHandler, IO}
 import swaydb.core.data.Transient
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.data.slice.Slice
+import swaydb.{ErrorHandler, IO}
 
 import scala.collection.mutable.ListBuffer
 
@@ -107,7 +107,7 @@ object SegmentBuffer {
 
     def addGroup[T: ErrorHandler](keyValue: Transient.Group): IO[T, Unit] =
       if (_unGrouped.nonEmpty) {
-        IO.failed("Cannot add group. Has unGrouped key-values.")
+        IO.left("Cannot add group. Has unGrouped key-values.")
       } else {
         groups += keyValue
         IO.unit

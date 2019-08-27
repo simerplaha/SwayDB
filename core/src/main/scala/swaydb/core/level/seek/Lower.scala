@@ -94,13 +94,13 @@ private[core] object Lower {
         nextSeek match {
           case Seek.Read =>
             currentWalker.lower(key) match {
-              case IO.Success(Some(lower)) =>
+              case IO.Right(Some(lower)) =>
                 Lower(key, Seek.Current.Stash(lower), nextSeek)
 
-              case IO.Success(None) =>
+              case IO.Right(None) =>
                 Lower(key, Seek.Current.Stop, nextSeek)
 
-              case failure @ IO.Failure(_) =>
+              case failure @ IO.Left(_) =>
                 failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
             }
 
@@ -109,13 +109,13 @@ private[core] object Lower {
               Lower(key, currentSeek, Seek.Read)
             else
               currentWalker.lower(key) match {
-                case IO.Success(Some(current)) =>
+                case IO.Right(Some(current)) =>
                   Lower(key, Seek.Current.Stash(current), nextSeek)
 
-                case IO.Success(None) =>
+                case IO.Right(None) =>
                   Lower(key, Seek.Current.Stop, nextSeek)
 
-                case failure @ IO.Failure(_) =>
+                case failure @ IO.Left(_) =>
                   failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
               }
 
@@ -124,13 +124,13 @@ private[core] object Lower {
               Lower(key, currentSeek, Seek.Read)
             else
               currentWalker.lower(key) match {
-                case IO.Success(Some(current)) =>
+                case IO.Right(Some(current)) =>
                   Lower(key, Seek.Current.Stash(current), nextSeek)
 
-                case IO.Success(None) =>
+                case IO.Right(None) =>
                   Lower(key, Seek.Current.Stop, nextSeek)
 
-                case failure @ IO.Failure(_) =>
+                case failure @ IO.Left(_) =>
                   failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
               }
         }
@@ -144,18 +144,18 @@ private[core] object Lower {
               //10 - 20 (lower range from current Level)
               case currentRange: ReadOnly.Range if key < currentRange.toKey =>
                 currentRange.fetchRangeValue match {
-                  case IO.Success(rangeValue) =>
+                  case IO.Right(rangeValue) =>
                     //if the current range is active fetch the lowest from next Level and return lowest from both Levels.
                     if (Value.hasTimeLeft(rangeValue)) {
                       val nextStateID = nextWalker.stateID
                       nextWalker.lower(key).toIO match {
-                        case IO.Success(Some(next)) =>
+                        case IO.Right(Some(next)) =>
                           Lower(key, currentStash, Seek.Next.Stash(next, nextStateID))
 
-                        case IO.Success(None) =>
+                        case IO.Right(None) =>
                           Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-                        case failure @ IO.Failure(_) =>
+                        case failure @ IO.Left(_) =>
                           failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                       }
                     }
@@ -163,7 +163,7 @@ private[core] object Lower {
                     //if the rangeValue is expired then check if fromValue is valid put else fetch from lower and merge.
                     else
                       currentRange.fetchFromValue match {
-                        case IO.Success(maybeFromValue) =>
+                        case IO.Right(maybeFromValue) =>
                           //check if from value is a put before reading the next Level.
                           lowerFromValue(key, currentRange.fromKey, maybeFromValue) match {
                             case some @ Some(_) => //yes it is!
@@ -173,23 +173,23 @@ private[core] object Lower {
                             case None => {
                               val nextStateID = nextWalker.stateID
                               nextWalker.lower(key).toIO match {
-                                case IO.Success(Some(next)) =>
+                                case IO.Right(Some(next)) =>
                                   Lower(key, currentStash, Seek.Next.Stash(next, nextStateID))
 
-                                case IO.Success(None) =>
+                                case IO.Right(None) =>
                                   Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-                                case failure @ IO.Failure(_) =>
+                                case failure @ IO.Left(_) =>
                                   failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                               }
                             }
                           }
 
-                        case failure @ IO.Failure(_) =>
+                        case failure @ IO.Left(_) =>
                           failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                       }
 
-                  case failure @ IO.Failure(_) =>
+                  case failure @ IO.Left(_) =>
                     failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                 }
 
@@ -199,13 +199,13 @@ private[core] object Lower {
                 val nextStateID = nextWalker.stateID
                 //lower level could also contain a toKey but toKey is exclusive to merge is not required but lower level is read is required.
                 nextWalker.lower(key).toIO match {
-                  case IO.Success(Some(nextFromKey)) =>
+                  case IO.Right(Some(nextFromKey)) =>
                     Lower(key, currentStash, Seek.Next.Stash(nextFromKey, nextStateID))
 
-                  case IO.Success(None) =>
+                  case IO.Right(None) =>
                     Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-                  case failure @ IO.Failure(_) =>
+                  case failure @ IO.Left(_) =>
                     failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                 }
 
@@ -214,26 +214,26 @@ private[core] object Lower {
               case _: KeyValue.ReadOnly.Range =>
                 val nextStateID = nextWalker.stateID
                 nextWalker.lower(key).toIO match {
-                  case IO.Success(Some(next)) =>
+                  case IO.Right(Some(next)) =>
                     Lower(key, currentStash, Seek.Next.Stash(next, nextStateID))
 
-                  case IO.Success(None) =>
+                  case IO.Right(None) =>
                     Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-                  case failure @ IO.Failure(_) =>
+                  case failure @ IO.Left(_) =>
                     failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                 }
 
               case _: ReadOnly.Fixed =>
                 val nextStateID = nextWalker.stateID
                 nextWalker.lower(key).toIO match {
-                  case IO.Success(Some(next)) =>
+                  case IO.Right(Some(next)) =>
                     Lower(key, currentStash, Seek.Next.Stash(next, nextStateID))
 
-                  case IO.Success(None) =>
+                  case IO.Right(None) =>
                     Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-                  case failure @ IO.Failure(_) =>
+                  case failure @ IO.Left(_) =>
                     failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                 }
             }
@@ -255,7 +255,7 @@ private[core] object Lower {
                   //    2
                   if (next.key equiv current.key)
                     FixedMerger(current, next) match {
-                      case IO.Success(merged) =>
+                      case IO.Right(merged) =>
                         merged match {
                           case put: ReadOnly.Put if put.hasTimeLeft() =>
                             IO.Defer(Some(put))
@@ -264,7 +264,7 @@ private[core] object Lower {
                             //if it doesn't result in an unexpired put move forward.
                             Lower(current.key, Seek.Read, Seek.Read)
                         }
-                      case failure @ IO.Failure(_) =>
+                      case failure @ IO.Left(_) =>
                         failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                     }
                   //      3  or  5 (current)
@@ -302,9 +302,9 @@ private[core] object Lower {
                   //  11 -> 19   (lower possible keys from next)
                   else if (next.key > current.fromKey)
                     current.fetchRangeValue match {
-                      case IO.Success(rangeValue) =>
+                      case IO.Right(rangeValue) =>
                         FixedMerger(rangeValue.toMemory(next.key), next) match {
-                          case IO.Success(mergedCurrent) =>
+                          case IO.Right(mergedCurrent) =>
                             mergedCurrent match {
                               case put: ReadOnly.Put if put.hasTimeLeft() =>
                                 IO.Defer(Some(put))
@@ -315,11 +315,11 @@ private[core] object Lower {
                                 Lower(next.key, currentStash, Seek.Read)
                             }
 
-                          case failure @ IO.Failure(_) =>
+                          case failure @ IO.Left(_) =>
                             failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                         }
 
-                      case failure @ IO.Failure(_) =>
+                      case failure @ IO.Left(_) =>
                         failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                     }
 
@@ -329,7 +329,7 @@ private[core] object Lower {
                   else if (next.key equiv current.fromKey) //if the lower in next Level falls within the range.
                     current.fetchFromOrElseRangeValue match {
                       //if fromValue is set check if it qualifies as the next highest orElse return lower of fromKey
-                      case IO.Success(rangeValue) =>
+                      case IO.Right(rangeValue) =>
                         lowerFromValue(key, current.fromKey, Some(rangeValue)) match {
                           case lowerPut @ Some(_) =>
                             IO.Defer(lowerPut)
@@ -337,7 +337,7 @@ private[core] object Lower {
                           //fromValue is not put, check if merging is required else return next.
                           case None =>
                             FixedMerger(rangeValue.toMemory(next.key), next) match {
-                              case IO.Success(mergedValue) =>
+                              case IO.Right(mergedValue) =>
                                 mergedValue match { //return applied value with next key-value as the current value.
                                   case put: Memory.Put if put.hasTimeLeft() =>
                                     IO.Defer(Some(put))
@@ -346,12 +346,12 @@ private[core] object Lower {
                                     Lower(next.key, Seek.Read, Seek.Read)
                                 }
 
-                              case failure @ IO.Failure(_) =>
+                              case failure @ IO.Left(_) =>
                                 failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                             }
                         }
 
-                      case failure @ IO.Failure(_) =>
+                      case failure @ IO.Left(_) =>
                         failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                     }
 
@@ -361,7 +361,7 @@ private[core] object Lower {
                   else //else if the lower in next Level does not fall within the range.
                     current.fetchFromValue match {
                       //if fromValue is set check if it qualifies as the next highest orElse return lower of fromKey
-                      case IO.Success(fromValue) =>
+                      case IO.Right(fromValue) =>
                         lowerFromValue(key, current.fromKey, fromValue) match {
                           case somePut @ Some(_) =>
                             IO.Defer(somePut)
@@ -370,7 +370,7 @@ private[core] object Lower {
                             Lower(current.fromKey, Seek.Read, nextStash)
                         }
 
-                      case failure @ IO.Failure(_) =>
+                      case failure @ IO.Left(_) =>
                         failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                     }
               }
@@ -400,7 +400,7 @@ private[core] object Lower {
 
                 case current: KeyValue.ReadOnly.Range =>
                   current.fetchFromValue match {
-                    case IO.Success(fromValue) =>
+                    case IO.Right(fromValue) =>
                       lowerFromValue(key, current.fromKey, fromValue) match {
                         case somePut @ Some(_) =>
                           IO.Defer(somePut)
@@ -409,7 +409,7 @@ private[core] object Lower {
                           Lower(current.fromKey, Seek.Read, nextSeek)
                       }
 
-                    case failure @ IO.Failure(_) =>
+                    case failure @ IO.Left(_) =>
                       failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                   }
               }
@@ -420,13 +420,13 @@ private[core] object Lower {
           case Seek.Read =>
             val nextStateID = nextWalker.stateID
             nextWalker.lower(key).toIO match {
-              case IO.Success(Some(next)) =>
+              case IO.Right(Some(next)) =>
                 Lower(key, currentSeek, Seek.Next.Stash(next, nextStateID))
 
-              case IO.Success(None) =>
+              case IO.Right(None) =>
                 Lower(key, currentSeek, Seek.Next.Stop(nextStateID))
 
-              case failure @ IO.Failure(_) =>
+              case failure @ IO.Left(_) =>
                 failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
             }
 

@@ -25,18 +25,17 @@ import java.util.concurrent.TimeUnit
 
 import swaydb.Error.Map.ErrorHandler
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.{Error, IO}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.BlockCache
 import swaydb.core.map.MapEntry
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.{Error, IO}
 
 import scala.concurrent.duration.Deadline
 
@@ -89,7 +88,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
         maxKeyBytes <- reader.read(maxKeyLength).map(_.unslice())
         maxKey <- {
           if (maxKeyId == 1)
-            IO.Success(MaxKey.Fixed(maxKeyBytes))
+            IO.Right(MaxKey.Fixed(maxKeyBytes))
           else {
             Bytes.decompressJoin(maxKeyBytes) map {
               case (fromKey, toKey) =>
@@ -144,20 +143,20 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
             nearestExpiryDeadline = nearestExpiryDeadline,
             checkExists = false
           ) match {
-            case IO.Success(value) =>
-              IO.Success(value)
+            case IO.Right(value) =>
+              IO.Right(value)
 
-            case IO.Failure(error) =>
+            case IO.Left(error) =>
               error match {
                 case Error.Fatal(exception) =>
-                  IO.Failure(Error.Fatal(exception))
+                  IO.Left(Error.Fatal(exception))
 
                 case io: Error.IO =>
-                  IO.Failure(io)
+                  IO.Left(io)
 
                 case other: swaydb.Error.Segment =>
                   //convert Segment error to fatal.
-                  IO.Failure(Error.Fatal(other.exception))
+                  IO.Left(Error.Fatal(other.exception))
               }
           }
       } yield {
@@ -203,7 +202,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                     }
                 }
               else
-                IO.failed(new IllegalArgumentException(s"Invalid entry type $entryId."))
+                IO.left(new IllegalArgumentException(s"Invalid entry type $entryId."))
           }
       }
   }

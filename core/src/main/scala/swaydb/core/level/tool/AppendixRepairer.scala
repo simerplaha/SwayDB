@@ -31,7 +31,6 @@ import swaydb.core.io.file.IOEffect
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.Extension
@@ -104,7 +103,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
           segmentKeyValueCount =>
             overlappingSegment.getBloomFilterKeyValueCount() flatMap {
               overlappingSegmentKeyValueCount =>
-                IO.Failure(
+                IO.Left(
                   swaydb.Error.Fatal(
                     OverlappingSegmentsException(
                       segmentInfo =
@@ -146,15 +145,15 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
         } match {
           case Some(overlappingSegment) =>
             applyRecovery(segment, overlappingSegment, strategy) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 return checkOverlappingSegments(segments.drop(position - 1).filter(_.existsOnDisk), strategy)
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
           case None =>
-            IO.Success(position + 1)
+            IO.Right(position + 1)
         }
     }
 
@@ -181,8 +180,8 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
               segment =>
                 appendix.write(MapEntry.Put(segment.minKey, segment))
             } match {
-              case Some(IO.Failure(error)) =>
-                IO.Failure(error)
+              case Some(IO.Left(error)) =>
+                IO.Left(error)
               case None =>
                 IO.unit
             }

@@ -26,7 +26,6 @@ import swaydb.Error.IO.ErrorHandler
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, FileSweeperItem}
 import swaydb.core.cache.Cache
-import swaydb.core.actor.FileSweeperItem
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
 import swaydb.data.slice.Slice
@@ -49,7 +48,7 @@ object DBFile extends LazyLogging {
     val closer: FileSweeperItem =
       new FileSweeperItem {
         override def path: Path = filePath
-        override def delete(): IO[Error.Segment, Unit] = IO.failed("only closable")
+        override def delete(): IO[Error.Segment, Unit] = IO.left("only closable")
         override def close(): IO[Error.Segment, Unit] = {
           self.get() map {
             fileType =>
@@ -128,7 +127,7 @@ object DBFile extends LazyLogging {
                   checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                                blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
     if (checkExists && IOEffect.notExists(path))
-      IO.Failure[swaydb.Error.IO, DBFile](swaydb.Error.NoSuchFile(path))
+      IO.Left[swaydb.Error.IO, DBFile](swaydb.Error.NoSuchFile(path))
     else
       IO {
         new DBFile(
@@ -158,9 +157,9 @@ object DBFile extends LazyLogging {
     bytes.foldLeftIO(0) {
       case (written, bytes) =>
         if (!bytes.isFull)
-          IO.failed(swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size))
+          IO.left(swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size))
         else
-          IO.Success(written + bytes.size)
+          IO.Right(written + bytes.size)
     } flatMap {
       totalWritten =>
         mmapInit(
@@ -186,7 +185,7 @@ object DBFile extends LazyLogging {
                                            blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull)
-      IO.failed(swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size))
+      IO.left(swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size))
     else
       mmapInit(
         path = path,
@@ -209,7 +208,7 @@ object DBFile extends LazyLogging {
                checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                             blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
     if (checkExists && IOEffect.notExists(path))
-      IO.Failure[swaydb.Error.IO, DBFile](swaydb.Error.NoSuchFile(path))
+      IO.Left[swaydb.Error.IO, DBFile](swaydb.Error.NoSuchFile(path))
     else
       IO(
         new DBFile(

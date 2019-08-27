@@ -360,8 +360,8 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
 
       val function = PrivateMethod[IO[swaydb.Error.Segment, Unit]]('putKeyValues)
       val failed = level invokePrivate function(keyValues, Iterable(targetSegment), None)
-      failed.isFailure shouldBe true
-      failed.failed.get.exception shouldBe a[NullPointerException]
+      failed.isLeft shouldBe true
+      failed.left.get.exception shouldBe a[NullPointerException]
 
       level.get(123).runRandomIO.value shouldBe empty
       level.get(1234).runRandomIO.value shouldBe empty

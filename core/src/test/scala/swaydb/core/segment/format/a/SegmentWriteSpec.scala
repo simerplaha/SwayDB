@@ -511,7 +511,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             (keyValues, segment) => {
               val failedKV = randomKeyValues(keyValuesCount, addRemoves = true)
               val reopenedSegment = TestSegment(failedKV, path = segment.path)
-              reopenedSegment.failed.value.exception shouldBe a[FileAlreadyExistsException]
+              reopenedSegment.left.value.exception shouldBe a[FileAlreadyExistsException]
               //data remained unchanged
               assertReads(keyValues, segment)
               failedKV foreach {
@@ -596,7 +596,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         val segment = TestSegment().value
         segment.delete.value
 
-        segment.tryReopen.failed.value.exception shouldBe a[NoSuchFileException]
+        segment.tryReopen.left.value.exception shouldBe a[NoSuchFileException]
       }
     }
   }
@@ -669,7 +669,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       segment.isFileDefined shouldBe false
 
       segment.existsOnDisk shouldBe false
-      segment.get(keyValues.head.key).failed.value.exception shouldBe a[NoSuchFileException]
+      segment.get(keyValues.head.key).left.value.exception shouldBe a[NoSuchFileException]
 
       segment.put(
         newKeyValues = keyValues.toMemory,
@@ -682,7 +682,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         hashIndexConfig = keyValues.last.hashIndexConfig,
         bloomFilterConfig = keyValues.last.bloomFilterConfig,
         segmentConfig = SegmentBlock.Config.random
-      ).failed.value.exception shouldBe a[NoSuchFileException]
+      ).left.value.exception shouldBe a[NoSuchFileException]
 
       segment.refresh(
         minSegmentSize = 1.mb,
@@ -694,7 +694,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         hashIndexConfig = keyValues.last.hashIndexConfig,
         bloomFilterConfig = keyValues.last.bloomFilterConfig,
         segmentConfig = SegmentBlock.Config.random
-      ).failed.value.exception shouldBe a[NoSuchFileException]
+      ).left.value.exception shouldBe a[NoSuchFileException]
 
       segment.isOpen shouldBe false
       segment.isFileDefined shouldBe false
@@ -880,7 +880,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             keyValues.last.stats.segmentSize / 10
           else
             keyValues.last.stats.memorySegmentSize / 10
-      ).failed.value.exception shouldBe a[FileAlreadyExistsException]
+      ).left.value.exception shouldBe a[FileAlreadyExistsException]
 
       IOEffect.size(nextPath).value shouldBe 0
       if (persistent) segment.existsOnDisk shouldBe true //original Segment remains untouched
@@ -922,7 +922,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         hashIndexConfig = keyValues.last.hashIndexConfig,
         bloomFilterConfig = keyValues.last.bloomFilterConfig,
         segmentConfig = SegmentBlock.Config.random
-      ).failed.value.exception shouldBe a[FileAlreadyExistsException]
+      ).left.value.exception shouldBe a[FileAlreadyExistsException]
 
       levelPath.files(Extension.Seg) shouldBe filesBeforeCopy
     }
@@ -1209,7 +1209,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           hashIndexConfig = newKeyValues.last.hashIndexConfig,
           bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
           segmentConfig = SegmentBlock.Config.random
-        ).failed.value.exception shouldBe a[FileAlreadyExistsException]
+        ).left.value.exception shouldBe a[FileAlreadyExistsException]
 
         //the folder should contain only the original segment and the segmentToFailPut
         segment.path.getParent.files(Extension.Seg) should contain only(segment.path, segmentToFailPut.path)

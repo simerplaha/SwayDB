@@ -69,8 +69,8 @@ private[core] object ValuesBlock {
                     blockIO: IOAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
-  def valuesBlockNotInitialised: IO.Failure[swaydb.Error.Segment, Nothing] =
-    IO.Failure(swaydb.Error.Fatal("Value block not initialised."))
+  def valuesBlockNotInitialised: IO.Left[swaydb.Error.Segment, Nothing] =
+    IO.Left(swaydb.Error.Fatal("Value block not initialised."))
 
   case class State(var _bytes: Slice[Byte],
                    headerSize: Int,
@@ -170,7 +170,7 @@ private[core] object ValuesBlock {
     if (length == 0)
       IO.none
     else if (fromOffset < 0)
-      IO.failed(s"Cannot read from negative offset '$fromOffset'.")
+      IO.left(s"Cannot read from negative offset '$fromOffset'.")
     else
       reader
         .moveTo(fromOffset)
@@ -178,9 +178,9 @@ private[core] object ValuesBlock {
         .flatMap {
           slice =>
             if (slice.size != length)
-              IO.failed(s"Read value bytes != expected. ${slice.size} != $length.")
+              IO.left(s"Read value bytes != expected. ${slice.size} != $length.")
             else
-              IO.Success(Some(slice))
+              IO.Right(Some(slice))
         }
 
   implicit object ValuesBlockOps extends BlockOps[ValuesBlock.Offset, ValuesBlock] {
