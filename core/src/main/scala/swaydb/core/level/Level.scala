@@ -24,7 +24,6 @@ import java.nio.file.{Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ErrorHandler
-import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.KeyValue.ReadOnly
@@ -47,6 +46,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
+import swaydb.{Error, IO}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -453,21 +453,27 @@ private[core] case class Level(dirs: Seq[Dir],
     (throttle(stats).segmentsToPush, stats.segmentsCount)
   }
 
-  private[level] def reserve(segments: Iterable[Segment]): IO[swaydb.Error.Level, Either[Promise[Unit], Slice[Byte]]] =
+  private[level] implicit def reserve(segments: Iterable[Segment]): IO[Error.Segment, Either[Promise[Unit], Slice[Byte]]] =
     SegmentAssigner.assignMinMaxOnly(
       inputSegments = segments,
       targetSegments = appendix.skipList.values().asScala
     ) map {
       assigned =>
-        Segment.minMaxKey(assigned, segments)
-          .map {
-            case (minKey, maxKey, toInclusive) =>
-              ReserveRange.reserveOrListen(minKey, maxKey, toInclusive, ())
-          }
-          .getOrElse(Left(Promise.successful()))
+        Segment.minMaxKey(
+          left = assigned,
+          right = segments
+        ) map {
+          case (minKey, maxKey, toInclusive) =>
+            ReserveRange.reserveOrListen(
+              from = minKey,
+              to = maxKey,
+              toInclusive = toInclusive,
+              info = ()
+            )
+        } getOrElse Left(Promise.successful())
     }
 
-  private[level] def reserve(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[swaydb.Error.Level, Either[Promise[Unit], Slice[Byte]]] =
+  private[level] implicit def reserve(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Error.Segment, Either[Promise[Unit], Slice[Byte]]] =
     SegmentAssigner.assignMinMaxOnly(
       map = map,
       targetSegments = appendix.skipList.values().asScala
@@ -478,7 +484,12 @@ private[core] case class Level(dirs: Seq[Dir],
           right = map
         ) map {
           case (minKey, maxKey, toInclusive) =>
-            ReserveRange.reserveOrListen(minKey, maxKey, toInclusive, ())
+            ReserveRange.reserveOrListen(
+              from = minKey,
+              to = maxKey,
+              toInclusive = toInclusive,
+              info = ()
+            )
         } getOrElse Left(Promise.successful())
     }
 
@@ -489,11 +500,12 @@ private[core] case class Level(dirs: Seq[Dir],
           from = segment.minKey,
           to = segment.maxKey.maxKey,
           toInclusive = segment.maxKey.inclusive
-        ) &&
+        ) && {
           !Segment.overlaps(
             segment = segment,
             segments2 = segmentsInLevel()
           )
+        }
     }
 
   def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
@@ -501,13 +513,14 @@ private[core] case class Level(dirs: Seq[Dir],
       from = minKey,
       to = maxKey,
       toInclusive = maxKeyInclusive
-    ) &&
+    ) && {
       !Segment.overlaps(
         minKey = minKey,
         maxKey = maxKey,
         maxKeyInclusive = maxKeyInclusive,
         segments = segmentsInLevel()
       )
+    }
 
   def isCopyable(map: Map[Slice[Byte], Memory.SegmentResponse]): Boolean =
     Segment
@@ -535,26 +548,8 @@ private[core] case class Level(dirs: Seq[Dir],
       maxKeyInclusive = segment.maxKey.inclusive
     )
 
-  def reserveAndRelease[T](segments: Iterable[Segment])(f: => IO[swaydb.Error.Level, T]): Either[Promise[Unit], IO[swaydb.Error.Level, T]] =
-    reserve(segments) map {
-      reserveOutcome =>
-        reserveOutcome map {
-          minKey =>
-            try
-              f
-            finally
-              ReserveRange.free(minKey)
-        }
-    } match {
-      case IO.Success(either) =>
-        either
-
-      case IO.Failure(error) =>
-        Right(IO.Failure(error))
-    }
-
-  def reserveAndRelease[T](map: Map[Slice[Byte], Memory.SegmentResponse])(f: => IO[swaydb.Error.Level, T]): Either[Promise[Unit], IO[swaydb.Error.Level, T]] =
-    reserve(map) map {
+  def reserveAndRelease[I, T](segments: I)(f: => IO[swaydb.Error.Level, T])(implicit tryReserve: I => IO[swaydb.Error.Level, Either[Promise[Unit], Slice[Byte]]]): Either[Promise[Unit], IO[swaydb.Error.Level, T]] =
+    tryReserve(segments) map {
       reserveOutcome =>
         reserveOutcome map {
           minKey =>
