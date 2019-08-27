@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
-import swaydb.{ErrorHandler, IO}
+import swaydb.IO
 
 sealed trait SearchResult[+T] {
   def toOption: Option[T]
@@ -29,7 +29,7 @@ object SearchResult {
   def none[A]: SearchResult.None[A] =
     SearchResult.None(Option.empty[A])
 
-  def noneIO[E: ErrorHandler, A] =
+  def noneIO[E: IO.ErrorHandler, A] =
     IO.Right[E, SearchResult[A]](none)
 
   case class None[T](lower: Option[T]) extends SearchResult[T] {

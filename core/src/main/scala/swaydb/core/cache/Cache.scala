@@ -25,11 +25,11 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.Functions
 import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
-import swaydb.{ErrorHandler, IO}
+import swaydb.IO
 
 private[core] object Cache {
 
-  def valueIO[E: ErrorHandler, I, B](output: B): Cache[E, I, B] =
+  def valueIO[E: IO.ErrorHandler, I, B](output: B): Cache[E, I, B] =
     new Cache[E, I, B] {
       override def value(i: => I): IO[E, B] =
         IO(output)
@@ -43,17 +43,17 @@ private[core] object Cache {
       override def get(): Option[IO.Right[E, B]] =
         Option(IO.Right(output))
 
-      override def getOrElse[F >: E : ErrorHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
+      override def getOrElse[F >: E : IO.ErrorHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
         IO[F, BB](output)
     }
 
-  def emptyValuesBlock[E: ErrorHandler]: Cache[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+  def emptyValuesBlock[E: IO.ErrorHandler]: Cache[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
     Cache.concurrentIO(synchronised = false, initial = None, stored = true) {
       _ =>
         IO(ValuesBlock.emptyUnblocked)
     }
 
-  def concurrentIO[E: ErrorHandler, I, O](synchronised: Boolean,
+  def concurrentIO[E: IO.ErrorHandler, I, O](synchronised: Boolean,
                                           stored: Boolean,
                                           initial: Option[O])(fetch: I => IO[E, O]): Cache[E, I, O] =
     new SynchronisedIO[E, I, O](
@@ -66,7 +66,7 @@ private[core] object Cache {
         )
     )
 
-  def reservedIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable, I, O](stored: Boolean,
+  def reservedIO[E: IO.ErrorHandler, ER <: E with swaydb.Error.Recoverable, I, O](stored: Boolean,
                                                                                reserveError: ER,
                                                                                initial: Option[O])(fetch: I => IO[E, O]): Cache[E, I, O] =
     new ReservedIO[E, ER, I, O](
@@ -93,7 +93,7 @@ private[core] object Cache {
         )
     )
 
-  def io[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable, I, O](strategy: IOStrategy,
+  def io[E: IO.ErrorHandler, ER <: E with swaydb.Error.Recoverable, I, O](strategy: IOStrategy,
                                                                        reserveError: => ER,
                                                                        initial: Option[O])(fetch: I => IO[E, O]): Cache[E, I, O] =
     strategy match {
@@ -119,7 +119,7 @@ private[core] object Cache {
         )(fetch)
     }
 
-  def deferredIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable, I, O](strategy: I => IOStrategy,
+  def deferredIO[E: IO.ErrorHandler, ER <: E with swaydb.Error.Recoverable, I, O](strategy: I => IOStrategy,
                                                                                reserveError: => ER)(fetch: I => IO[E, O]): Cache[E, I, O] =
     new BlockIOCache[E, I, O](
       Cache.noIO[I, Cache[E, I, O]](synchronised = true, stored = true, initial = None) {
@@ -138,14 +138,14 @@ private[core] object Cache {
  * Caches a value on read. Used for IO operations where the output does not change.
  * For example: A file's size.
  */
-private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends LazyLogging { self =>
+private[core] sealed abstract class Cache[+E: IO.ErrorHandler, -I, +O] extends LazyLogging { self =>
   def value(i: => I): IO[E, O]
   def isCached: Boolean
   def clear(): Unit
   def get(): Option[IO.Right[E, O]]
-  def getOrElse[F >: E : ErrorHandler, B >: O](f: => IO[F, B]): IO[F, B]
+  def getOrElse[F >: E : IO.ErrorHandler, B >: O](f: => IO[F, B]): IO[F, B]
 
-  def getSomeOrElse[F >: E : ErrorHandler, B >: O](f: => IO[F, Option[B]]): IO[F, Option[B]] =
+  def getSomeOrElse[F >: E : IO.ErrorHandler, B >: O](f: => IO[F, Option[B]]): IO[F, Option[B]] =
     get().map(_.map(Some(_))) getOrElse f
 
   /**
@@ -154,7 +154,7 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
    *
    * [[mapConcurrentStored]] Or [[flatMap]] functions are used for where storage is required.
    */
-  def map[F >: E : ErrorHandler, B](f: O => IO[F, B]): Cache[F, I, B] =
+  def map[F >: E : IO.ErrorHandler, B](f: O => IO[F, B]): Cache[F, I, B] =
     new Cache[F, I, B] {
       override def value(i: => I): IO[F, B] =
         self.value(i).flatMap(f)
@@ -162,7 +162,7 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
       override def isCached: Boolean =
         self.isCached
 
-      override def getOrElse[FF >: F : ErrorHandler, BB >: B](f: => IO[FF, BB]): IO[FF, BB] =
+      override def getOrElse[FF >: F : IO.ErrorHandler, BB >: B](f: => IO[FF, BB]): IO[FF, BB] =
         get() getOrElse f
 
       override def get(): Option[IO.Right[F, B]] =
@@ -181,10 +181,10 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
         self.clear()
     }
 
-  def mapConcurrentStored[F >: E : ErrorHandler, O2](f: O => IO[F, O2]): Cache[F, I, O2] =
+  def mapConcurrentStored[F >: E : IO.ErrorHandler, O2](f: O => IO[F, O2]): Cache[F, I, O2] =
     flatMap(Cache.concurrentIO(synchronised = false, stored = true, initial = None)(f))
 
-  def flatMap[F >: E : ErrorHandler, B](next: Cache[F, O, B]): Cache[F, I, B] =
+  def flatMap[F >: E : IO.ErrorHandler, B](next: Cache[F, O, B]): Cache[F, I, B] =
     new Cache[F, I, B] {
       override def value(i: => I): IO[F, B] =
         getOrElse(self.value(i).flatMap(next.value(_)))
@@ -192,7 +192,7 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
       override def isCached: Boolean =
         self.isCached || next.isCached
 
-      override def getOrElse[FF >: F : ErrorHandler, BB >: B](f: => IO[FF, BB]): IO[FF, BB] =
+      override def getOrElse[FF >: F : IO.ErrorHandler, BB >: B](f: => IO[FF, BB]): IO[FF, BB] =
         next getOrElse f
 
       /**
@@ -221,7 +221,7 @@ private[core] sealed abstract class Cache[+E: ErrorHandler, -I, +O] extends Lazy
     }
 }
 
-private class BlockIOCache[E: ErrorHandler, -I, +B](cache: NoIO[I, Cache[E, I, B]]) extends Cache[E, I, B] {
+private class BlockIOCache[E: IO.ErrorHandler, -I, +B](cache: NoIO[I, Cache[E, I, B]]) extends Cache[E, I, B] {
 
   override def value(i: => I): IO[E, B] =
     cache.value(i).value(i)
@@ -229,7 +229,7 @@ private class BlockIOCache[E: ErrorHandler, -I, +B](cache: NoIO[I, Cache[E, I, B
   override def isCached: Boolean =
     cache.get() exists (_.isCached)
 
-  override def getOrElse[F >: E : ErrorHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
+  override def getOrElse[F >: E : IO.ErrorHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
     get() getOrElse f
 
   override def clear(): Unit = {
@@ -241,13 +241,13 @@ private class BlockIOCache[E: ErrorHandler, -I, +B](cache: NoIO[I, Cache[E, I, B
     cache.get().flatMap(_.get())
 }
 
-private class SynchronisedIO[E: ErrorHandler, -I, +B](fetch: I => IO[E, B],
+private class SynchronisedIO[E: IO.ErrorHandler, -I, +B](fetch: I => IO[E, B],
                                                       lazyIO: LazyIO[E, B]) extends Cache[E, I, B] {
 
   override def value(i: => I): IO[E, B] =
     lazyIO getOrSet fetch(i)
 
-  override def getOrElse[F >: E : ErrorHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
+  override def getOrElse[F >: E : IO.ErrorHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
     lazyIO getOrElse f
 
   override def isCached: Boolean =
@@ -264,7 +264,7 @@ private class SynchronisedIO[E: ErrorHandler, -I, +B](fetch: I => IO[E, B],
  * Caches a value on read. Used for IO operations where the output does not change.
  * For example: A file's size.
  */
-private class ReservedIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable, -I, +B](fetch: I => IO[E, B],
+private class ReservedIO[E: IO.ErrorHandler, ER <: E with swaydb.Error.Recoverable, -I, +B](fetch: I => IO[E, B],
                                                                                          lazyIO: LazyIO[E, B],
                                                                                          error: ER) extends Cache[E, I, B] {
 
@@ -282,7 +282,7 @@ private class ReservedIO[E: ErrorHandler, ER <: E with swaydb.Error.Recoverable,
   override def isCached: Boolean =
     lazyIO.isDefined
 
-  override def getOrElse[F >: E : ErrorHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
+  override def getOrElse[F >: E : IO.ErrorHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
     lazyIO getOrElse f
 
   override def clear() =
@@ -301,7 +301,7 @@ private[swaydb] class NoIO[-I, +O](fetch: I => O, lazyValue: LazyValue[O]) {
   def value(input: => I): O =
     lazyValue getOrSet fetch(input)
 
-  def applyOrFetchApply[E: ErrorHandler, T](apply: O => IO[E, T], fetch: => IO[E, I]): IO[E, T] =
+  def applyOrFetchApply[E: IO.ErrorHandler, T](apply: O => IO[E, T], fetch: => IO[E, I]): IO[E, T] =
     lazyValue.get() map {
       input =>
         apply(input)

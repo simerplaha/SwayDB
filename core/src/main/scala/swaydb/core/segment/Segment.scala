@@ -49,7 +49,7 @@ import scala.concurrent.duration.Deadline
 private[core] object Segment extends LazyLogging {
 
   val emptyIterable = Iterable.empty[Segment]
-  val emptyIterableIO = IO.Right[Nothing, Iterable[Segment]](emptyIterable)(swaydb.ErrorHandler.Nothing)
+  val emptyIterableIO = IO.Right[Nothing, Iterable[Segment]](emptyIterable)(swaydb.IO.ErrorHandler.Nothing)
 
   def memory(path: Path,
              createdInLevel: Long,

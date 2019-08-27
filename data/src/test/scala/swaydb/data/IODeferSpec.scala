@@ -27,7 +27,7 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.Error.Segment.ErrorHandler
 import swaydb.IO.Defer
 import swaydb.IOValues._
-import swaydb.{Error, ErrorHandler, IO}
+import swaydb.{Error, IO}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -52,7 +52,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
   }
 
   "future" when {
-    def testFuture[E: ErrorHandler, A](future: Future[A], expectedOutcome: IO[E, A]) = {
+    def testFuture[E: IO.ErrorHandler, A](future: Future[A], expectedOutcome: IO[E, A]) = {
       val timeBeforeDeferred = System.currentTimeMillis()
 
       future.isCompleted shouldBe false

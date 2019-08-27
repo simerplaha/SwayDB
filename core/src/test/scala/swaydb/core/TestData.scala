@@ -23,7 +23,7 @@ import java.nio.file.Path
 
 import org.scalatest.Matchers._
 import swaydb.Error.Segment.ErrorHandler
-import swaydb.ErrorHandler.Nothing
+import swaydb.IO.ErrorHandler.Nothing
 import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._

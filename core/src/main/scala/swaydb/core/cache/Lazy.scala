@@ -19,7 +19,7 @@
 
 package swaydb.core.cache
 
-import swaydb.{ErrorHandler, IO}
+import swaydb.IO
 
 private[swaydb] object Lazy {
   def value[A](synchronised: Boolean,
@@ -34,7 +34,7 @@ private[swaydb] object Lazy {
     cache
   }
 
-  def io[E: ErrorHandler, A](synchronised: Boolean,
+  def io[E: IO.ErrorHandler, A](synchronised: Boolean,
                              stored: Boolean,
                              initial: Option[A]): LazyIO[E, A] =
     new LazyIO[E, A](
@@ -116,7 +116,7 @@ private[swaydb] class LazyValue[A](synchronised: Boolean, stored: Boolean) exten
     this.cache = None
 }
 
-private[swaydb] class LazyIO[E: ErrorHandler, A](lazyValue: LazyValue[IO.Right[E, A]]) extends Lazy[IO[E, A]] {
+private[swaydb] class LazyIO[E: IO.ErrorHandler, A](lazyValue: LazyValue[IO.Right[E, A]]) extends Lazy[IO[E, A]] {
 
   def set(value: => IO[E, A]): IO[E, A] =
     try

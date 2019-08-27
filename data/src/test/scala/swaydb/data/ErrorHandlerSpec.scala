@@ -20,7 +20,7 @@
 package swaydb.data
 
 import org.scalatest.{FlatSpec, Matchers}
-import swaydb.ErrorHandler.Throwable
+import swaydb.IO.ErrorHandler.Throwable
 import swaydb._
 
 class ErrorHandlerSpec extends FlatSpec with Matchers {

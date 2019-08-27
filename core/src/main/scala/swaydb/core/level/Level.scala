@@ -150,7 +150,7 @@ private[core] object Level extends LazyLogging {
                   dropCorruptedTailEntries = false
                 ).map(_.item) recoverWith {
                   case error =>
-                    IO.Left(ErrorHandler.fromException(error.exception))
+                    IO.Left(IO.ErrorHandler.fromException(error.exception))
                 }
               }
 

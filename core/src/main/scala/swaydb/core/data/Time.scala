@@ -23,13 +23,13 @@ import java.util.concurrent.atomic.AtomicLong
 
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
-import swaydb.{ErrorHandler, IO}
+import swaydb.IO
 
 private[core] object Time {
 
   val empty = Time(Slice.emptyBytes)
   val someEmpty = Some(empty)
-  val successEmpty = IO.Right[Nothing, Time](empty)(ErrorHandler.Nothing)
+  val successEmpty = IO.Right[Nothing, Time](empty)(IO.ErrorHandler.Nothing)
 
   val long = new AtomicLong(System.nanoTime())
 

@@ -209,7 +209,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
     "synchronised and stored" should {
       "not allow concurrent modifications" in {
         val value = randomInt()
-        implicit val exception = swaydb.ErrorHandler.Throwable
+        implicit val exception = swaydb.IO.ErrorHandler.Throwable
 
         val mockValueFunction = mockFunction[Int]
         mockValueFunction expects() returning value //this function is only invoked once.
@@ -246,7 +246,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
     "synchronised is false" should {
       "allow concurrent modifications" in {
         val value = Random.nextInt()
-        implicit val exception = swaydb.ErrorHandler.Throwable
+        implicit val exception = swaydb.IO.ErrorHandler.Throwable
 
         val mockValueFunction = mockFunction[Int]
         mockValueFunction expects() returning value repeat (2 to 100) //this function is invoked more than once.

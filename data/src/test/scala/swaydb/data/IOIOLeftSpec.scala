@@ -130,7 +130,7 @@ class IOIOLeftSpec extends WordSpec with Matchers {
   }
 
   "toTry" in {
-    IO.Left(error).toTry shouldBe scala.util.Failure(ErrorHandler.toException(error))
+    IO.Left(error).toTry shouldBe scala.util.Failure(IO.ErrorHandler.toException(error))
   }
 
   "onFailureSideEffect" in {

@@ -24,6 +24,7 @@ import java.nio.ReadOnlyBufferException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.{NoSuchFileException, Path}
 
+import swaydb.IO.RecoverableErrorHandler
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
 
@@ -44,7 +45,7 @@ object Error {
   sealed trait API extends Error
 
   object Segment {
-    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.Segment] {
+    implicit object ErrorHandler extends RecoverableErrorHandler[Error.Segment] {
       override def toException(f: Error.Segment): Throwable =
         f.exception
 
@@ -57,7 +58,7 @@ object Error {
             Error.Fatal(error.exception)
         }
 
-      override def reserve(f: Error.Segment): Option[Reserve[Unit]] =
+      override def recoverFrom(f: Error.Segment): Option[Reserve[Unit]] =
         f match {
           case recoverable: Error.Recoverable =>
             Some(recoverable.reserve)
@@ -69,7 +70,7 @@ object Error {
   }
 
   object Level {
-    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.Level] {
+    implicit object ErrorHandler extends RecoverableErrorHandler[Error.Level] {
       override def toException(f: Error.Level): Throwable =
         f.exception
 
@@ -82,7 +83,7 @@ object Error {
             Error.Fatal(error.exception)
         }
 
-      override def reserve(f: Error.Level): Option[Reserve[Unit]] =
+      override def recoverFrom(f: Error.Level): Option[Reserve[Unit]] =
         f match {
           case recoverable: Error.Recoverable =>
             Some(recoverable.reserve)
@@ -94,7 +95,7 @@ object Error {
   }
 
   object Map {
-    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.Map] {
+    implicit object ErrorHandler extends RecoverableErrorHandler[Error.Map] {
       override def toException(f: Error.Map): Throwable =
         f.exception
 
@@ -107,7 +108,7 @@ object Error {
             Error.Fatal(error.exception)
         }
 
-      override def reserve(f: Error.Map): Option[Reserve[Unit]] =
+      override def recoverFrom(f: Error.Map): Option[Reserve[Unit]] =
         f match {
           case recoverable: Error.Recoverable =>
             Some(recoverable.reserve)
@@ -119,7 +120,7 @@ object Error {
   }
 
   object Boot {
-    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.Boot] {
+    implicit object ErrorHandler extends RecoverableErrorHandler[Error.Boot] {
       override def toException(f: Error.Boot): Throwable =
         f.exception
 
@@ -132,7 +133,7 @@ object Error {
             Error.Fatal(error.exception)
         }
 
-      override def reserve(f: Error.Boot): Option[Reserve[Unit]] =
+      override def recoverFrom(f: Error.Boot): Option[Reserve[Unit]] =
         f match {
           case recoverable: Error.Recoverable =>
             Some(recoverable.reserve)
@@ -144,7 +145,7 @@ object Error {
   }
 
   object Close {
-    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.Close] {
+    implicit object ErrorHandler extends RecoverableErrorHandler[Error.Close] {
       override def toException(f: Error.Close): Throwable =
         f.exception
 
@@ -157,7 +158,7 @@ object Error {
             Error.Fatal(error.exception)
         }
 
-      override def reserve(f: Error.Close): Option[Reserve[Unit]] =
+      override def recoverFrom(f: Error.Close): Option[Reserve[Unit]] =
         f match {
           case recoverable: Error.Recoverable =>
             Some(recoverable.reserve)
@@ -169,7 +170,7 @@ object Error {
   }
 
   object Delete {
-    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.Delete] {
+    implicit object ErrorHandler extends RecoverableErrorHandler[Error.Delete] {
       override def toException(f: Error.Delete): Throwable =
         f.exception
 
@@ -182,7 +183,7 @@ object Error {
             Error.Fatal(error.exception)
         }
 
-      override def reserve(f: Error.Delete): Option[Reserve[Unit]] =
+      override def recoverFrom(f: Error.Delete): Option[Reserve[Unit]] =
         f match {
           case recoverable: Error.Recoverable =>
             Some(recoverable.reserve)
@@ -194,7 +195,7 @@ object Error {
   }
 
   object API {
-    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.API] {
+    implicit object ErrorHandler extends RecoverableErrorHandler[Error.API] {
       override def toException(f: Error.API): Throwable =
         f.exception
 
@@ -207,7 +208,7 @@ object Error {
             Error.Fatal(error.exception)
         }
 
-      override def reserve(f: Error.API): Option[Reserve[Unit]] =
+      override def recoverFrom(f: Error.API): Option[Reserve[Unit]] =
         f match {
           case recoverable: Error.Recoverable =>
             Some(recoverable.reserve)
@@ -219,7 +220,7 @@ object Error {
   }
 
   object IO {
-    implicit object ErrorHandler extends swaydb.RecoverableErrorHandler[Error.IO] {
+    implicit object ErrorHandler extends RecoverableErrorHandler[Error.IO] {
       override def toException(f: Error.IO): Throwable =
         f.exception
 
@@ -232,7 +233,7 @@ object Error {
             Error.Fatal(error.exception)
         }
 
-      override def reserve(f: Error.IO): Option[Reserve[Unit]] =
+      override def recoverFrom(f: Error.IO): Option[Reserve[Unit]] =
         f match {
           case recoverable: Error.Recoverable =>
             Some(recoverable.reserve)
@@ -410,7 +411,7 @@ object Error {
     def apply(message: String): Fatal =
       new Fatal(new scala.Exception(message))
 
-    implicit object ErrorHandler extends swaydb.ErrorHandler[Error.Fatal] {
+    implicit object ErrorHandler extends swaydb.IO.ErrorHandler[Error.Fatal] {
       override def toException(f: Error.Fatal): Throwable =
         f.exception
 

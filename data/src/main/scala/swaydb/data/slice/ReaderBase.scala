@@ -22,13 +22,13 @@ package swaydb.data.slice
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.Path
 
+import swaydb.IO
 import swaydb.data.util.ByteUtil
-import swaydb.{ErrorHandler, IO}
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
-private[swaydb] abstract class ReaderBase[E >: swaydb.Error.IO : ErrorHandler] { self =>
+private[swaydb] abstract class ReaderBase[E >: swaydb.Error.IO : IO.ErrorHandler] { self =>
 
   def path: Path
 
