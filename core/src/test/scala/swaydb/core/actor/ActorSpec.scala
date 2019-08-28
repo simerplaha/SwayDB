@@ -25,9 +25,11 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.RunThis._
+import swaydb.core.util.Scheduler
 import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 class ActorSpec extends WordSpec with Matchers {
@@ -58,6 +60,7 @@ class ActorSpec extends WordSpec with Matchers {
         state.processed should contain inOrderElementsOf (1 to messageCount)
         state.processed.distinct should have size messageCount
       }
+      //      sleep(10.seconds)
     }
 
     "process all messages in any order when submitted concurrently" in {
@@ -82,6 +85,7 @@ class ActorSpec extends WordSpec with Matchers {
         state.processed should contain allElementsOf (1 to messageCount).map(_.toString)
         state.processed.distinct should have size messageCount
       }
+      //      sleep(10.seconds)
     }
 
     "continue processing messages if execution of one message fails and has no recovery" in {
@@ -170,11 +174,11 @@ class ActorSpec extends WordSpec with Matchers {
       val state = State(ListBuffer.empty)
 
       val actor =
-        Actor.timer[Int, State](state, 1.second) {
+        Actor.timer[Int, State](state, 100, 1.second) {
           case (int, self) =>
             self.state.processed += int
             //delay sending message to self so that it does value processed in the same batch
-            println(s"Message: $int")
+            println
             if (int >= 6)
               ()
             else
@@ -201,7 +205,7 @@ class ActorSpec extends WordSpec with Matchers {
       val state = State(ListBuffer.empty)
 
       val actor =
-        Actor.timerLoop[Int, State](state, 1.second) {
+        Actor.timerLoop[Int, State](state, stashCapacity = 100, 1.second) {
           case (int, self) =>
             self.state.processed += int
             //after 5 messages decrement time so that it's visible
@@ -317,4 +321,70 @@ class ActorSpec extends WordSpec with Matchers {
       }
     }
   }
+
+  "timerCache" should {
+    "not drop stash" in {
+      implicit val scheduler = Scheduler()
+
+      @volatile var checks = 0
+
+      val stash = randomIntMax(100) max 1
+
+      val actor =
+        Actor.timerCache[Int](stash, _ => 1, 5.second) {
+          (_: Int, self: ActorRef[Int, Unit]) =>
+            self.messageCount shouldBe stash
+            checks += 1
+        }
+
+      (1 to 10000).par foreach {
+        i =>
+          actor ! i
+          Thread.sleep(randomIntMax(10))
+      }
+
+      eventual(5.seconds)(checks should be > 1000)
+    }
+  }
+
+  //  "manual test" in {
+  //    implicit val scheduler = Scheduler()
+  //
+  //    //    val actor =
+  //    //      Actor[Int] {
+  //    //        (int: Int, self: ActorRef[Int, Unit]) =>
+  //    //          println(int)
+  //    //      }
+  //
+  //    val actor =
+  //      Actor.timerLoop[Int](stashCapacity = 10, interval = 5.second) {
+  //        (int: Int, self: ActorRef[Int, Unit]) =>
+  //          println(s"Received: $int")
+  //      }
+  //
+  //    (1 to 20) foreach {
+  //      i =>
+  //        actor ! i
+  //        Thread.sleep(1000)
+  //    }
+  //
+  //    //    val actor =
+  //    //      Actor.timerCache[Int](10, _ => 1, 5.second) {
+  //    //        (int: Int, self: ActorRef[Int, Unit]) =>
+  //    //          self.messageCount shouldBe 10
+  //    //          println(s"Received: $int")
+  //    //      }
+  //
+  //    Future {
+  //      sleep(40.seconds)
+  //      var int = 0
+  //      while (true) {
+  //        scheduler.future(1.second)(actor ! int)
+  //        Thread.sleep(100)
+  //        int = int + 1
+  //      }
+  //    }
+  //
+  //    sleep(100.seconds)
+  //  }
 }

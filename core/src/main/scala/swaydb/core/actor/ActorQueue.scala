@@ -26,6 +26,7 @@ import swaydb.data.config.ActorConfig.QueueOrder
 protected sealed trait ActorQueue[T] {
   def add(item: T): Unit
   def poll(): T
+  def peek(): T
   def terminate(): Unit
   def size: Int
 }
@@ -48,6 +49,9 @@ protected object ActorQueue {
           override def poll(): (T, Int) =
             queue.poll()
 
+          override def peek(): (T, Int) =
+            queue.peek()
+
           override def terminate(): Unit =
             synchronized {
               queue.clear()
@@ -68,6 +72,9 @@ protected object ActorQueue {
 
           override def poll(): (T, Int) =
             skipList.pollFirst()
+
+          override def peek(): (T, Int) =
+            skipList.first()
 
           override def terminate(): Unit =
             synchronized {

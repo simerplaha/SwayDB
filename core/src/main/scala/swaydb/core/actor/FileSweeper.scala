@@ -73,25 +73,28 @@ private[swaydb] object FileSweeper extends LazyLogging {
       actorConfig = fileCache.actorConfig
     )
 
-  def apply(maxOpenSegments: Long, actorConfig: ActorConfig): FileSweeper.Enabled = {
+  def apply(maxOpenSegments: Int, actorConfig: ActorConfig): FileSweeper.Enabled = {
     lazy val queue: ActorRef[Action, Unit] =
-    //      CacheActor[Action](maxOpenSegments, actorConfig, weigher) {
-    //      case Action.Delete(file) =>
-    //        file.delete() onLeftSideEffect {
-    //          error =>
-    //            logger.error(s"Failed to delete file. ${file.path}", error.exception)
-    //        }
-    //
-    //      case Action.Close(file) =>
-    //        file.get foreach {
-    //          file =>
-    //            file.close onLeftSideEffect {
-    //              error =>
-    //                logger.error(s"Failed to close file. ${file.path}", error.exception)
-    //            }
-    //        }
-    //    }
-      ???
+      Actor.cacheFromConfig[Action](
+        config = actorConfig,
+        stashCapacity = maxOpenSegments,
+        weigher = FileSweeper.weigher
+      ) {
+        case (Action.Delete(file), _) =>
+          file.delete() onLeftSideEffect {
+            error =>
+              logger.error(s"Failed to delete file. ${file.path}", error.exception)
+          }
+
+        case (Action.Close(file), _) =>
+          file.get foreach {
+            file =>
+              file.close onLeftSideEffect {
+                error =>
+                  logger.error(s"Failed to close file. ${file.path}", error.exception)
+              }
+          }
+      }
 
     new FileSweeper.Enabled {
 

@@ -36,11 +36,11 @@ import scala.reflect.ClassTag
 //@formatter:off
 case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit](state = (),
                                                                               queue = ActorQueue(QueueOrder.FIFO),
-                                                                              maxWeight = Actor.defaultMaxWeight,
+                                                                              stashCapacity = 0,
                                                                               weigher = _ => 1,
                                                                               cached = false,
                                                                               execution = (_, _) => None,
-                                                                              defaultDelay = None,
+                                                                              interval = None,
                                                                               recovery = None) with Eventually with Matchers with ScalaFutures {
 //@formatter:on
 

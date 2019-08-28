@@ -36,7 +36,7 @@
 //
 //      @volatile var evictedItems = 0
 //      val limitQueue =
-//        CacheActor[Int](maxWeight = 10, 2.second, _ => 1) {
+//        CacheActor[Int](stash = 10, 2.second, _ => 1) {
 //          _ =>
 //            evictedItems += 1
 //        }

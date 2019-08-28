@@ -32,25 +32,34 @@ object WiredActor {
   def apply[T, S](impl: T, state: S)(implicit scheduler: Scheduler): WiredActor[T, S] =
     new WiredActor(impl, None, state)
 
-  def apply[T, S](impl: T, delays: FiniteDuration, state: S)(implicit scheduler: Scheduler): WiredActor[T, S] =
-    new WiredActor(impl, Some(delays), state)
+  def apply[T, S](impl: T, interval: FiniteDuration, stashCapacity: Int, state: S)(implicit scheduler: Scheduler): WiredActor[T, S] =
+    new WiredActor(impl, Some((interval, stashCapacity)), state)
 }
 
-class WiredActor[T, S](impl: T, delays: Option[FiniteDuration], state: S)(implicit val scheduler: Scheduler) {
+class WiredActor[T, S](impl: T, interval: Option[(FiniteDuration, Int)], state: S)(implicit val scheduler: Scheduler) {
 
   implicit val ec = scheduler.ec
   implicit val queueOrder = QueueOrder.FIFO
 
-  private val actor: Actor[() => Unit, S] =
-    delays map {
-      delays =>
+  private val actor: Actor[() => Unit, S] = {
+    interval match {
+      case Some((delays, stashCapacity)) =>
         Actor.timer[() => Unit, S](
           state = state,
-          fixedDelay = delays
-        )((function, _) => function()).asInstanceOf[Actor[() => Unit, S]]
-    } getOrElse {
-      Actor[() => Unit, S](state, 10000)((function, _) => function()).asInstanceOf[Actor[() => Unit, S]]
+          stashCapacity = stashCapacity,
+          interval = delays
+        ) {
+          (function, _) =>
+            function()
+        }
+
+      case None =>
+        Actor[() => Unit, S](state) {
+          (function, _) =>
+            function()
+        }
     }
+    }.asInstanceOf[Actor[() => Unit, S]]
 
   def unsafeGetState: S =
     actor.state
