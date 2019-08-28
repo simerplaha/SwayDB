@@ -44,9 +44,6 @@ case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit](st
 
   private val queue = new ConcurrentLinkedQueue[T]
 
-  override def submit(message: T): Unit =
-    queue offer message
-
   override def schedule(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask =
     scheduler.task(delay)(this ! message)
 

@@ -83,7 +83,7 @@ private[core] class CacheActor[T](maxWeight: Long,
     }
 
   def !(item: T): Unit =
-    actor.submit(item)
+    actor ! item
 
   def hasMessages =
     actor.hasMessages

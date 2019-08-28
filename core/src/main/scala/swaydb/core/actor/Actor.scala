@@ -40,15 +40,6 @@ private[swaydb] sealed trait ActorRef[-T] { self =>
   def !(message: T): Unit
 
   /**
-   * Submits message to Actor's queue but does not trigger the message execution.
-   *
-   * Used when guaranteed submission of the message is the only requirement.
-   *
-   * Used in timer actors where messages value processed after a delay interval.
-   */
-  def submit(message: T): Unit
-
-  /**
    * Sends a message to this actor with delay
    */
   def schedule(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask
@@ -67,16 +58,11 @@ private[swaydb] sealed trait ActorRef[-T] { self =>
    * Currently does not guarantee the order in which the messages will get processed by both actors.
    * Is order guarantee required?
    */
-  def flatMap[B <: T](actor: ActorRef[B]): ActorRef[B] =
+  def merge[B <: T](actor: ActorRef[B]): ActorRef[B] =
     new ActorRef[B] {
       def !(message: B): Unit = {
         self ! message
         actor ! message
-      }
-
-      def submit(message: B): Unit = {
-        self.submit(message)
-        actor.submit(message)
       }
 
       /**
@@ -366,6 +352,12 @@ private[swaydb] class Actor[T, +S](val state: S,
   override def !(message: T): Unit =
     if (terminated) {
       logger.debug("Message not processed. Terminated actor.")
+    } else if (defaultDelay.isDefined) {
+      queue add message
+      if (queueSize.get() >= overflow)
+        processMessages(runNow = false)
+      else
+        queueSize.incrementAndGet()
     } else {
       queue add message
       queueSize.incrementAndGet()
@@ -378,14 +370,6 @@ private[swaydb] class Actor[T, +S](val state: S,
   override def schedule(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask =
     scheduler.task(delay)(this ! message)
 
-  override def submit(message: T): Unit =
-    if (queueSize.get() >= overflow) {
-      self ! message
-    } else {
-      queue add message
-      queueSize.incrementAndGet()
-    }
-
   override def terminate(): Unit = {
     logger.debug(s"${this.getClass.getSimpleName} terminated.")
     terminated = true
@@ -393,19 +377,17 @@ private[swaydb] class Actor[T, +S](val state: S,
     queueSize.set(0)
   }
 
-  private def clearTask(): Unit =
-    task foreach {
-      task =>
-        task.cancel()
-        this.task = None
-    }
-
   /**
    * @param runNow ignores default delays and processes actor.
    */
   private def processMessages(runNow: Boolean): Unit =
     if (!terminated && (isLoop || queueSize.get() > 0) && busy.compareAndSet(false, true)) {
-      clearTask()
+      //clear task
+      task foreach {
+        task =>
+          task.cancel()
+          this.task = None
+      }
 
       if (runNow)
         Future(receive(maxMessagesToProcessAtOnce))
