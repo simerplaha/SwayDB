@@ -136,11 +136,10 @@ private[core] class BufferCleaner(implicit scheduler: Scheduler) extends LazyLog
   logger.debug("Starting buffer cleaner.")
   implicit val queueOrder = QueueOrder.FIFO
 
-  private val actor: ActorRef[(MappedByteBuffer, Path, Boolean)] =
+  private val actor: ActorRef[(MappedByteBuffer, Path, Boolean), State] =
     Actor.timer[(MappedByteBuffer, Path, Boolean), State](
       state = State(None),
-      maxMessagesToProcessAtOnce = 100,
-      overflowAllowed = 100,
+      maxWeight = 100,
       fixedDelay = 5.seconds
     ) {
       case (message @ (buffer, path, isOverdue), self) =>

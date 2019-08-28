@@ -26,37 +26,56 @@ import swaydb.data.config.ActorConfig.QueueOrder
 protected sealed trait ActorQueue[T] {
   def add(item: T): Unit
   def poll(): T
-  def clear(): Unit
+  def terminate(): Unit
+  def size: Int
 }
 
 protected object ActorQueue {
-  def apply[T](queueOrder: QueueOrder[T]): ActorQueue[T] =
+  /**
+   * synchronized around add and clear because after [[Actor.terminate]]
+   * the actor should to queue more messages.
+   */
+  def apply[T](queueOrder: QueueOrder[T]): ActorQueue[(T, Int)] =
     queueOrder match {
       case QueueOrder.FIFO =>
-        new ActorQueue[T] {
-          val queue = new ConcurrentLinkedQueue[T]()
-          override def add(item: T): Unit =
-            queue add item
+        new ActorQueue[(T, Int)] {
+          val queue = new ConcurrentLinkedQueue[(T, Int)]()
+          override def add(item: (T, Int)): Unit =
+            synchronized {
+              queue add item
+            }
 
-          override def poll(): T =
+          override def poll(): (T, Int) =
             queue.poll()
 
-          override def clear(): Unit =
-            queue.clear()
+          override def terminate(): Unit =
+            synchronized {
+              queue.clear()
+            }
+
+          def size: Int =
+            queue.size
         }
 
       case ordered: QueueOrder.Ordered[T] =>
-        new ActorQueue[T] {
-          val skipList: ConcurrentSkipListSet[T] = new ConcurrentSkipListSet[T](ordered.ordering)
+        new ActorQueue[(T, Int)] {
+          val skipList: ConcurrentSkipListSet[(T, Int)] = new ConcurrentSkipListSet[(T, Int)](ordered.ordering.on[(T, Int)](_._1))
 
-          override def add(item: T): Unit =
-            skipList add item
+          override def add(item: (T, Int)): Unit =
+            synchronized {
+              skipList add item
+            }
 
-          override def poll(): T =
+          override def poll(): (T, Int) =
             skipList.pollFirst()
 
-          override def clear(): Unit =
-            skipList.clear()
+          override def terminate(): Unit =
+            synchronized {
+              skipList.clear()
+            }
+
+          def size: Int =
+            skipList.size
         }
     }
 }

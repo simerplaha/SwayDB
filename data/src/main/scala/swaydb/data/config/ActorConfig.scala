@@ -23,25 +23,18 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
 sealed trait ActorConfig {
-  def maxMessagesToProcessAtOnce: Int
   def ec: ExecutionContext
 }
 
 object ActorConfig {
 
-  case class Basic(maxMessagesToProcessAtOnce: Int,
+  case class Basic(ec: ExecutionContext) extends ActorConfig
+
+  case class Timer(delay: FiniteDuration,
                    ec: ExecutionContext) extends ActorConfig
 
-  case class Timer(maxMessagesToProcessAtOnce: Int,
-                   maxOverflow: Int,
-                   delay: FiniteDuration,
-                   ec: ExecutionContext) extends ActorConfig
-
-  case class TimeLoop(maxMessagesToProcessAtOnce: Int,
-                      maxOverflow: Int,
-                      delay: FiniteDuration,
+  case class TimeLoop(delay: FiniteDuration,
                       ec: ExecutionContext) extends ActorConfig
-
 
   sealed trait QueueOrder[+T]
 

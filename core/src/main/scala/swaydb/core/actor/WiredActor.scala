@@ -36,7 +36,7 @@ object WiredActor {
     new WiredActor(impl, Some(delays), state)
 }
 
-class WiredActor[+T, +S](impl: T, delays: Option[FiniteDuration], state: S)(implicit val scheduler: Scheduler) {
+class WiredActor[T, S](impl: T, delays: Option[FiniteDuration], state: S)(implicit val scheduler: Scheduler) {
 
   implicit val ec = scheduler.ec
   implicit val queueOrder = QueueOrder.FIFO

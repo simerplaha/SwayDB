@@ -74,7 +74,7 @@ private[swaydb] object FileSweeper extends LazyLogging {
     )
 
   def apply(maxOpenSegments: Long, actorConfig: ActorConfig): FileSweeper.Enabled = {
-    lazy val queue: ActorRef[Action] =
+    lazy val queue: ActorRef[Action, Unit] =
     //      CacheActor[Action](maxOpenSegments, actorConfig, weigher) {
     //      case Action.Delete(file) =>
     //        file.delete() onLeftSideEffect {

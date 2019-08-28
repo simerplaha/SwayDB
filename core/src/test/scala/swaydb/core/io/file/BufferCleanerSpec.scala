@@ -47,7 +47,7 @@ class BufferCleanerSpec extends TestBase {
   }
 
   "clear a MMAP file" in {
-    implicit val limiter = FileSweeper(0, ActorConfig.Basic(10000, TestExecutionContext.executionContext))
+    implicit val limiter = FileSweeper(0, ActorConfig.Basic(TestExecutionContext.executionContext))
     val file: DBFile =
       DBFile.mmapWriteAndRead(
         path = randomDir,
@@ -76,7 +76,7 @@ class BufferCleanerSpec extends TestBase {
   "it should not fatal terminate" when {
     "concurrently reading a deleted MMAP file" in {
 
-      implicit val limiter = FileSweeper(0, ActorConfig.Timer(1000, 1000, 1.second, TestExecutionContext.executionContext))
+      implicit val limiter = FileSweeper(0, ActorConfig.Timer(1.second, TestExecutionContext.executionContext))
 
       val files =
         (1 to 20) map {

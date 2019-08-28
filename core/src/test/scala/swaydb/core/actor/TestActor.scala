@@ -36,8 +36,7 @@ import scala.reflect.ClassTag
 //@formatter:off
 case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit](state = (),
                                                                               queue = ActorQueue(QueueOrder.FIFO),
-                                                                              minWeight = Actor.defaultMaxMessagesToProcessAtOnce,
-                                                                              maxWeight = Actor.defaultMaxOverflowAllowed,
+                                                                              maxWeight = Actor.defaultMaxWeight,
                                                                               weigher = _ => 1,
                                                                               cached = false,
                                                                               execution = (_, _) => None,

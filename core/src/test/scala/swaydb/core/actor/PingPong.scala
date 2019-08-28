@@ -28,8 +28,8 @@ object PingPong extends App {
 
   implicit val ordering = QueueOrder.FIFO
 
-  case class Pong(replyTo: ActorRef[Ping])
-  case class Ping(replyTo: ActorRef[Pong])
+  case class Pong(replyTo: ActorRef[Ping, State])
+  case class Ping(replyTo: ActorRef[Pong, State])
   case class State(var count: Int)
 
   val ping =

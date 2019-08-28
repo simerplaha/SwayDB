@@ -69,7 +69,7 @@ private[core] object MemorySweeper {
   }
 
   sealed trait Block extends Enabled {
-    def queue: ActorRef[Command]
+    def queue: ActorRef[Command, Unit]
 
     def add(key: BlockCache.Key,
             value: Slice[Byte],
@@ -82,7 +82,7 @@ private[core] object MemorySweeper {
                           actorConfig: ActorConfig) extends MemorySweeperImpl with Block
 
   sealed trait KeyValue extends Enabled {
-    def queue: ActorRef[Command]
+    def queue: ActorRef[Command, Unit]
 
     def add(keyValue: Persistent.SegmentResponse,
             skipList: SkipList[Slice[Byte], _]): Unit =
@@ -168,7 +168,7 @@ trait MemorySweeperImpl extends LazyLogging {
   /**
    * Lazy initialisation because this queue is not require for Memory database that do not use compression.
    */
-  lazy val queue: ActorRef[Command] =
+  lazy val queue: ActorRef[Command, Unit] =
   //    Actor.cache[Command](
   //      maxWeight = cacheSize,
   //      actorConfig = actorConfig,
