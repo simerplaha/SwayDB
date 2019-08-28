@@ -41,7 +41,8 @@ case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit](st
                                                                               weigher = _ => 1,
                                                                               cached = false,
                                                                               execution = (_, _) => None,
-                                                                              defaultDelay = None) with Eventually with Matchers with ScalaFutures {
+                                                                              defaultDelay = None,
+                                                                              recovery = None) with Eventually with Matchers with ScalaFutures {
 //@formatter:on
 
   private val queue = new ConcurrentLinkedQueue[T]

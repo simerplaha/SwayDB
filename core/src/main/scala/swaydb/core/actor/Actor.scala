@@ -51,6 +51,8 @@ private[swaydb] sealed trait ActorRef[-T] { self =>
 
   def terminate(): Unit
 
+  def recover[X <: T](f: (X, ActorRef[T]) => Unit): ActorRef[T]
+
   /**
    * Returns an Actor that merges both Actor and sends messages
    * to both Actors.
@@ -83,6 +85,9 @@ private[swaydb] sealed trait ActorRef[-T] { self =>
           self.terminate()
           actor.terminate()
         }
+
+      override def recover[X <: B](f: (X, ActorRef[B]) => Unit): ActorRef[B] =
+        ???
     }
 }
 
@@ -91,6 +96,8 @@ private[swaydb] object Actor {
   private[actor] val defaultMaxMessagesToProcessAtOnce = 10000
   private[actor] val defaultMaxOverflowAllowed = defaultMaxMessagesToProcessAtOnce * 10
   private[actor] val incrementDelayBy = 100.millisecond
+
+  class TerminatedActorException extends Exception("Terminated Actor.")
 
   def fromConfig[T](config: ActorConfig)(execution: (T, Actor[T, Unit]) => Unit): ActorRef[T] =
     config match {
@@ -174,7 +181,8 @@ private[swaydb] object Actor {
       cached = true,
       weigher = Functions.safe((_: T) => 1, weigher),
       queue = ActorQueue(queueOrder),
-      defaultDelay = None
+      defaultDelay = None,
+      recovery = None
     )
 
   def cache[T, S](state: S,
@@ -190,7 +198,8 @@ private[swaydb] object Actor {
       cached = true,
       weigher = Functions.safe((_: T) => 1, weigher),
       queue = ActorQueue(queueOrder),
-      defaultDelay = None
+      defaultDelay = None,
+      recovery = None
     )
 
   /**
@@ -209,7 +218,8 @@ private[swaydb] object Actor {
       cached = false,
       weigher = _ => 1,
       queue = ActorQueue(queueOrder),
-      defaultDelay = None
+      defaultDelay = None,
+      recovery = None
     )
 
   /**
@@ -257,7 +267,8 @@ private[swaydb] object Actor {
       cached = false,
       weigher = _ => 1,
       queue = ActorQueue(queueOrder),
-      defaultDelay = Some(fixedDelay, false, scheduler)
+      defaultDelay = Some(fixedDelay, false, scheduler),
+      recovery = None
     )(scheduler.ec)
 
   /**
@@ -277,7 +288,8 @@ private[swaydb] object Actor {
       cached = false,
       weigher = _ => 1,
       queue = ActorQueue(queueOrder),
-      defaultDelay = Some(fixedDelay, false, scheduler)
+      defaultDelay = Some(fixedDelay, false, scheduler),
+      recovery = None
     )(scheduler.ec)
 
   /**
@@ -323,7 +335,8 @@ private[swaydb] object Actor {
       cached = false,
       weigher = _ => 1,
       queue = ActorQueue(queueOrder),
-      defaultDelay = Some(initialDelay, true, scheduler)
+      defaultDelay = Some(initialDelay, true, scheduler),
+      recovery = None
     )(scheduler.ec)
 
   /**
@@ -345,7 +358,8 @@ private[swaydb] object Actor {
       cached = false,
       weigher = _ => 1,
       queue = ActorQueue(queueOrder),
-      defaultDelay = Some(initialDelay, true, scheduler)
+      defaultDelay = Some(initialDelay, true, scheduler),
+      recovery = None
     )(scheduler.ec)
 
   /**
@@ -382,7 +396,8 @@ private[swaydb] class Actor[T, +S](val state: S,
                                    weigher: T => Int,
                                    cached: Boolean,
                                    execution: (T, Actor[T, S]) => Unit,
-                                   defaultDelay: Option[(FiniteDuration, Boolean, Scheduler)])(implicit ec: ExecutionContext) extends ActorRef[T] with LazyLogging { self =>
+                                   defaultDelay: Option[(FiniteDuration, Boolean, Scheduler)],
+                                   recovery: Option[(T, ActorRef[T]) => Unit])(implicit ec: ExecutionContext) extends ActorRef[T] with LazyLogging { self =>
 
   private val busy = new AtomicBoolean(false)
   private val queueSize = new AtomicInteger(0)
@@ -397,7 +412,10 @@ private[swaydb] class Actor[T, +S](val state: S,
 
   override def !(message: T): Unit =
     if (terminated) {
-      logger.debug("Message not processed. Terminated actor.")
+      recovery foreach {
+        f =>
+          f(message, this)
+      }
     } else {
       queue add message
       val currentWeight =
@@ -426,7 +444,6 @@ private[swaydb] class Actor[T, +S](val state: S,
     scheduler.task(delay)(this ! message)
 
   override def terminate(): Unit = {
-    logger.debug(s"${this.getClass.getSimpleName} terminated.")
     terminated = true
     queue.clear()
     queueSize.set(0)
@@ -477,8 +494,11 @@ private[swaydb] class Actor[T, +S](val state: S,
           try
             execution(message, self)
           catch {
-            case exception: Throwable =>
-              logger.error("Failed to process message. Continuing!", exception)
+            case _: Throwable =>
+              recovery foreach {
+                f =>
+                  f(message, this)
+              }
           } finally {
             processed += weigher(message)
           }
@@ -497,4 +517,32 @@ private[swaydb] class Actor[T, +S](val state: S,
       processMessages(runNow = false)
     }
   }
+
+  override def recover[X <: T](f: (X, ActorRef[T]) => Unit): ActorRef[T] =
+    new Actor[T, S](
+      state = state,
+      queue = queue,
+      minWeight = minWeight,
+      maxWeight = maxWeight,
+      weigher = weigher,
+      cached = cached,
+      execution = {
+        case (message, actor) =>
+          execution(message, actor)
+      },
+      defaultDelay = defaultDelay,
+      recovery =
+        Some {
+          case (message: X, actor) =>
+            try
+              Some(f(message, actor))
+            catch {
+              case exception: Exception =>
+                logger.debug("Failed to recover failed message.", exception)
+            }
+
+          case _ =>
+            logger.debug("No recovery for failed message.")
+        }
+    )
 }
