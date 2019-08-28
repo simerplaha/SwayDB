@@ -25,6 +25,8 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import java.util.function.IntUnaryOperator
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
+import swaydb.IO.ErrorHandler
 import swaydb.core.util.{Functions, Scheduler}
 import swaydb.data.config.ActorConfig
 import swaydb.data.config.ActorConfig.QueueOrder
@@ -51,7 +53,7 @@ private[swaydb] sealed trait ActorRef[-T] { self =>
 
   def terminate(): Unit
 
-  def recover[X <: T](f: (X, ActorRef[T]) => Unit): ActorRef[T]
+  def recover[X <: T, E: ErrorHandler](f: (X, IO[E, Actor.Error], ActorRef[T]) => Unit): ActorRef[T]
 
   /**
    * Returns an Actor that merges both Actor and sends messages
@@ -86,8 +88,8 @@ private[swaydb] sealed trait ActorRef[-T] { self =>
           actor.terminate()
         }
 
-      override def recover[X <: B](f: (X, ActorRef[B]) => Unit): ActorRef[B] =
-        ???
+      override def recover[X <: B, E: ErrorHandler](f: (X, IO[E, Actor.Error], ActorRef[B]) => Unit): ActorRef[B] =
+        throw new NotImplementedError("Recovery on merged Actors is currently not supported.")
     }
 }
 
@@ -97,7 +99,10 @@ private[swaydb] object Actor {
   private[actor] val defaultMaxOverflowAllowed = defaultMaxMessagesToProcessAtOnce * 10
   private[actor] val incrementDelayBy = 100.millisecond
 
-  class TerminatedActorException extends Exception("Terminated Actor.")
+  sealed trait Error
+  object Error {
+    case object TerminatedActor extends Actor.Error
+  }
 
   def fromConfig[T](config: ActorConfig)(execution: (T, Actor[T, Unit]) => Unit): ActorRef[T] =
     config match {
@@ -397,7 +402,7 @@ private[swaydb] class Actor[T, +S](val state: S,
                                    cached: Boolean,
                                    execution: (T, Actor[T, S]) => Unit,
                                    defaultDelay: Option[(FiniteDuration, Boolean, Scheduler)],
-                                   recovery: Option[(T, ActorRef[T]) => Unit])(implicit ec: ExecutionContext) extends ActorRef[T] with LazyLogging { self =>
+                                   recovery: Option[(T, IO[Throwable, Actor.Error], ActorRef[T]) => Unit])(implicit ec: ExecutionContext) extends ActorRef[T] with LazyLogging { self =>
 
   private val busy = new AtomicBoolean(false)
   private val queueSize = new AtomicInteger(0)
@@ -414,7 +419,7 @@ private[swaydb] class Actor[T, +S](val state: S,
     if (terminated) {
       recovery foreach {
         f =>
-          f(message, this)
+          f(message, IO.Right(Actor.Error.TerminatedActor), this)
       }
     } else {
       queue add message
@@ -494,10 +499,10 @@ private[swaydb] class Actor[T, +S](val state: S,
           try
             execution(message, self)
           catch {
-            case _: Throwable =>
+            case throwable: Throwable =>
               recovery foreach {
                 f =>
-                  f(message, this)
+                  f(message, IO.Left(throwable), this)
               }
           } finally {
             processed += weigher(message)
@@ -518,7 +523,7 @@ private[swaydb] class Actor[T, +S](val state: S,
     }
   }
 
-  override def recover[X <: T](f: (X, ActorRef[T]) => Unit): ActorRef[T] =
+  override def recover[X <: T, E: ErrorHandler](f: (X, IO[E, Actor.Error], ActorRef[T]) => Unit): ActorRef[T] =
     new Actor[T, S](
       state = state,
       queue = queue,
@@ -526,16 +531,19 @@ private[swaydb] class Actor[T, +S](val state: S,
       maxWeight = maxWeight,
       weigher = weigher,
       cached = cached,
-      execution = {
-        case (message, actor) =>
-          execution(message, actor)
-      },
+      execution = execution,
       defaultDelay = defaultDelay,
       recovery =
         Some {
-          case (message: X, actor) =>
+          case (message: X, error, actor) =>
             try
-              Some(f(message, actor))
+              error match {
+                case IO.Right(actorError) =>
+                  Some(f(message, IO.Right(actorError), actor))
+
+                case IO.Left(throwable) =>
+                  Some(f(message, IO.Left(ErrorHandler.fromException(throwable)), actor))
+              }
             catch {
               case exception: Exception =>
                 logger.debug("Failed to recover failed message.", exception)
