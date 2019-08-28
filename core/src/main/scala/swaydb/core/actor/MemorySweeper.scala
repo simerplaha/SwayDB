@@ -69,7 +69,7 @@ private[core] object MemorySweeper {
   }
 
   sealed trait Block extends Enabled {
-    def queue: CacheActor[Command]
+    def queue: ActorRef[Command]
 
     def add(key: BlockCache.Key,
             value: Slice[Byte],
@@ -82,7 +82,7 @@ private[core] object MemorySweeper {
                           actorConfig: ActorConfig) extends MemorySweeperImpl with Block
 
   sealed trait KeyValue extends Enabled {
-    def queue: CacheActor[Command]
+    def queue: ActorRef[Command]
 
     def add(keyValue: Persistent.SegmentResponse,
             skipList: SkipList[Slice[Byte], _]): Unit =
@@ -168,49 +168,50 @@ trait MemorySweeperImpl extends LazyLogging {
   /**
    * Lazy initialisation because this queue is not require for Memory database that do not use compression.
    */
-  lazy val queue: CacheActor[Command] =
-    CacheActor[Command](
-      maxWeight = cacheSize,
-      actorConfig = actorConfig,
-      weigher = MemorySweeper.keyValueWeigher
-    ) {
-      case Command.Block(key, _, map) =>
-        map remove key
-
-      case command: Command.KeyValueCommand =>
-        for {
-          skipList <- command.skipListRef.get
-          keyValue <- command.keyValueRef.get
-        } yield {
-          keyValue match {
-            case group: swaydb.core.data.KeyValue.ReadOnly.Group =>
-
-              /**
-               * Before removing Group, check if removes cache key-values it is enough,
-               * if it's already clear only then remove.
-               */
-              if (!group.isBlockCacheEmpty) {
-                group.clearBlockCache()
-                queue ! Command.WeighedKeyValue(new WeakReference(group), new WeakReference[SkipList[Slice[Byte], _]](skipList), keyValue.valueLength)
-              } else if (!group.isKeyValuesCacheEmpty) {
-                group.clearCachedKeyValues()
-                queue ! Command.WeighedKeyValue(new WeakReference(group), new WeakReference[SkipList[Slice[Byte], _]](skipList), keyValue.valueLength)
-              } else {
-                group match {
-                  case group: Memory.Group =>
-                    //Memory.Group key-values are only uncompressed. DO NOT REMOVE THEM!
-                    skipList.asInstanceOf[SkipList[Slice[Byte], Memory]].put(group.key, group.uncompress())
-
-                  case group: Persistent.Group =>
-                    skipList remove group.key
-                }
-              }
-
-            case _: Persistent.SegmentResponse =>
-              skipList remove keyValue.key
-          }
-        }
-    }
+  lazy val queue: ActorRef[Command] =
+  //    Actor.cache[Command](
+  //      maxWeight = cacheSize,
+  //      actorConfig = actorConfig,
+  //      weigher = MemorySweeper.keyValueWeigher
+  //    ) {
+  //      case Command.Block(key, _, map) =>
+  //        map remove key
+  //
+  //      case command: Command.KeyValueCommand =>
+  //        for {
+  //          skipList <- command.skipListRef.get
+  //          keyValue <- command.keyValueRef.get
+  //        } yield {
+  //          keyValue match {
+  //            case group: swaydb.core.data.KeyValue.ReadOnly.Group =>
+  //
+  //              /**
+  //               * Before removing Group, check if removes cache key-values it is enough,
+  //               * if it's already clear only then remove.
+  //               */
+  //              if (!group.isBlockCacheEmpty) {
+  //                group.clearBlockCache()
+  //                queue ! Command.WeighedKeyValue(new WeakReference(group), new WeakReference[SkipList[Slice[Byte], _]](skipList), keyValue.valueLength)
+  //              } else if (!group.isKeyValuesCacheEmpty) {
+  //                group.clearCachedKeyValues()
+  //                queue ! Command.WeighedKeyValue(new WeakReference(group), new WeakReference[SkipList[Slice[Byte], _]](skipList), keyValue.valueLength)
+  //              } else {
+  //                group match {
+  //                  case group: Memory.Group =>
+  //                    //Memory.Group key-values are only uncompressed. DO NOT REMOVE THEM!
+  //                    skipList.asInstanceOf[SkipList[Slice[Byte], Memory]].put(group.key, group.uncompress())
+  //
+  //                  case group: Persistent.Group =>
+  //                    skipList remove group.key
+  //                }
+  //              }
+  //
+  //            case _: Persistent.SegmentResponse =>
+  //              skipList remove keyValue.key
+  //          }
+  //        }
+  //    }
+    ???
 
   def terminate() =
     queue.terminate()

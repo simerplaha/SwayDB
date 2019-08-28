@@ -35,10 +35,12 @@ import scala.reflect.ClassTag
 
 //@formatter:off
 case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit](state = (),
-                                                                              maxMessagesToProcessAtOnce = Actor.defaultMaxMessagesToProcessAtOnce,
-                                                                              overflow = Actor.defaultMaxOverflowAllowed,
-                                                                              execution = (_, _) => None,
                                                                               queue = ActorQueue(QueueOrder.FIFO),
+                                                                              minWeight = Actor.defaultMaxMessagesToProcessAtOnce,
+                                                                              maxWeight = Actor.defaultMaxOverflowAllowed,
+                                                                              weigher = _ => 1,
+                                                                              cached = false,
+                                                                              execution = (_, _) => None,
                                                                               defaultDelay = None) with Eventually with Matchers with ScalaFutures {
 //@formatter:on
 

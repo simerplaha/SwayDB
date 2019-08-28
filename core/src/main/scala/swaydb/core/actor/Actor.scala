@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import java.util.function.IntUnaryOperator
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.util.Scheduler
+import swaydb.core.util.{Functions, Scheduler}
 import swaydb.data.config.ActorConfig
 import swaydb.data.config.ActorConfig.QueueOrder
 
@@ -60,26 +60,29 @@ private[swaydb] sealed trait ActorRef[-T] { self =>
    */
   def merge[B <: T](actor: ActorRef[B]): ActorRef[B] =
     new ActorRef[B] {
-      def !(message: B): Unit = {
-        self ! message
-        actor ! message
-      }
+      def !(message: B): Unit =
+        this.synchronized {
+          self ! message
+          actor ! message
+        }
 
       /**
        * Sends a message to this actor with delay
        */
-      def schedule(message: B, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask = {
-        self.schedule(message, delay)
-        actor.schedule(message, delay)
-      }
+      def schedule(message: B, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask =
+        this.synchronized {
+          self.schedule(message, delay)
+          actor.schedule(message, delay)
+        }
 
       def messageCount: Int =
         self.messageCount + actor.messageCount
 
-      def terminate(): Unit = {
-        self.terminate()
-        actor.terminate()
-      }
+      def terminate(): Unit =
+        this.synchronized {
+          self.terminate()
+          actor.terminate()
+        }
     }
 }
 
@@ -159,6 +162,37 @@ private[swaydb] object Actor {
                                                                  queueOrder: QueueOrder[T]): ActorRef[T] =
     apply(state, defaultMaxMessagesToProcessAtOnce)(execution)
 
+  def cache[T](maxMessagesToProcessAtOnce: Int,
+               maxWeight: Int,
+               weigher: T => Int)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,
+                                                                          queueOrder: QueueOrder[T]): ActorRef[T] =
+    new Actor[T, Unit](
+      state = Unit,
+      minWeight = maxMessagesToProcessAtOnce,
+      maxWeight = maxWeight,
+      execution = execution,
+      cached = true,
+      weigher = Functions.safe((_: T) => 1, weigher),
+      queue = ActorQueue(queueOrder),
+      defaultDelay = None
+    )
+
+  def cache[T, S](state: S,
+                  maxMessagesToProcessAtOnce: Int,
+                  maxWeight: Int,
+                  weigher: T => Int)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
+                                                                          queueOrder: QueueOrder[T]): ActorRef[T] =
+    new Actor[T, S](
+      state = state,
+      minWeight = maxMessagesToProcessAtOnce,
+      maxWeight = maxWeight,
+      execution = execution,
+      cached = true,
+      weigher = Functions.safe((_: T) => 1, weigher),
+      queue = ActorQueue(queueOrder),
+      defaultDelay = None
+    )
+
   /**
    * Basic stateful Actor that processes all incoming messages sequentially.
    *
@@ -169,9 +203,11 @@ private[swaydb] object Actor {
                                                                                         queueOrder: QueueOrder[T]): ActorRef[T] =
     new Actor[T, S](
       state = state,
-      maxMessagesToProcessAtOnce = maxMessagesToProcessAtOnce,
-      overflow = maxMessagesToProcessAtOnce,
+      minWeight = maxMessagesToProcessAtOnce,
+      maxWeight = maxMessagesToProcessAtOnce,
       execution = execution,
+      cached = false,
+      weigher = _ => 1,
       queue = ActorQueue(queueOrder),
       defaultDelay = None
     )
@@ -215,9 +251,11 @@ private[swaydb] object Actor {
                                                                                    queueOrder: QueueOrder[T]): ActorRef[T] =
     new Actor[T, S](
       state = state,
-      maxMessagesToProcessAtOnce = maxMessagesToProcessAtOnce,
-      overflow = overflowAllowed,
+      minWeight = maxMessagesToProcessAtOnce,
+      maxWeight = overflowAllowed,
       execution = execution,
+      cached = false,
+      weigher = _ => 1,
       queue = ActorQueue(queueOrder),
       defaultDelay = Some(fixedDelay, false, scheduler)
     )(scheduler.ec)
@@ -233,9 +271,11 @@ private[swaydb] object Actor {
                                                                                    queueOrder: QueueOrder[T]): ActorRef[T] =
     new Actor[T, S](
       state = state,
-      maxMessagesToProcessAtOnce = defaultMaxMessagesToProcessAtOnce,
-      overflow = defaultMaxOverflowAllowed,
+      minWeight = defaultMaxMessagesToProcessAtOnce,
+      maxWeight = defaultMaxOverflowAllowed,
       execution = execution,
+      cached = false,
+      weigher = _ => 1,
       queue = ActorQueue(queueOrder),
       defaultDelay = Some(fixedDelay, false, scheduler)
     )(scheduler.ec)
@@ -278,8 +318,10 @@ private[swaydb] object Actor {
     new Actor[T, S](
       state = state,
       execution = execution,
-      overflow = defaultMaxOverflowAllowed,
-      maxMessagesToProcessAtOnce = defaultMaxMessagesToProcessAtOnce,
+      maxWeight = defaultMaxOverflowAllowed,
+      minWeight = defaultMaxMessagesToProcessAtOnce,
+      cached = false,
+      weigher = _ => 1,
       queue = ActorQueue(queueOrder),
       defaultDelay = Some(initialDelay, true, scheduler)
     )(scheduler.ec)
@@ -298,8 +340,10 @@ private[swaydb] object Actor {
     new Actor[T, S](
       state = state,
       execution = execution,
-      overflow = overflowAllowed,
-      maxMessagesToProcessAtOnce = maxMessagesToProcessAtOnce,
+      maxWeight = overflowAllowed,
+      minWeight = maxMessagesToProcessAtOnce,
+      cached = false,
+      weigher = _ => 1,
       queue = ActorQueue(queueOrder),
       defaultDelay = Some(initialDelay, true, scheduler)
     )(scheduler.ec)
@@ -332,9 +376,11 @@ private[swaydb] object Actor {
 }
 
 private[swaydb] class Actor[T, +S](val state: S,
-                                   maxMessagesToProcessAtOnce: Int,
                                    queue: ActorQueue[T],
-                                   overflow: Int,
+                                   minWeight: Int,
+                                   maxWeight: Int,
+                                   weigher: T => Int,
+                                   cached: Boolean,
                                    execution: (T, Actor[T, S]) => Unit,
                                    defaultDelay: Option[(FiniteDuration, Boolean, Scheduler)])(implicit ec: ExecutionContext) extends ActorRef[T] with LazyLogging { self =>
 
@@ -352,16 +398,25 @@ private[swaydb] class Actor[T, +S](val state: S,
   override def !(message: T): Unit =
     if (terminated) {
       logger.debug("Message not processed. Terminated actor.")
-    } else if (defaultDelay.isDefined) {
-      queue add message
-      if (queueSize.get() >= overflow)
-        processMessages(runNow = false)
-      else
-        queueSize.incrementAndGet()
     } else {
       queue add message
-      queueSize.incrementAndGet()
-      processMessages(runNow = false)
+      val currentWeight =
+        queueSize updateAndGet {
+          new IntUnaryOperator {
+            override def applyAsInt(operand: Int): Int =
+              operand + weigher(message)
+          }
+        }
+
+      if (defaultDelay.isDefined) {
+        if (currentWeight >= maxWeight)
+          processMessages(runNow = false)
+      } else if (cached) {
+        if (currentWeight >= maxWeight)
+          processMessages(runNow = false)
+      } else {
+        processMessages(runNow = false)
+      }
     }
 
   override def messageCount: Int =
@@ -377,11 +432,19 @@ private[swaydb] class Actor[T, +S](val state: S,
     queueSize.set(0)
   }
 
+  def isOverflown() =
+    queueSize.get() > {
+      if (cached)
+        minWeight
+      else
+        0
+    }
+
   /**
    * @param runNow ignores default delays and processes actor.
    */
   private def processMessages(runNow: Boolean): Unit =
-    if (!terminated && (isLoop || queueSize.get() > 0) && busy.compareAndSet(false, true)) {
+    if (!terminated && (isLoop || isOverflown()) && busy.compareAndSet(false, true)) {
       //clear task
       task foreach {
         task =>
@@ -390,14 +453,14 @@ private[swaydb] class Actor[T, +S](val state: S,
       }
 
       if (runNow)
-        Future(receive(maxMessagesToProcessAtOnce))
+        Future(receive())
       else
         defaultDelay match {
           case None =>
-            Future(receive(maxMessagesToProcessAtOnce))
+            Future(receive())
 
           case Some((interval, _, _)) if interval.fromNow.isOverdue() =>
-            Future(receive(maxMessagesToProcessAtOnce))
+            Future(receive())
 
           case Some((delay, _, scheduler)) =>
             busy.set(false) //cancel so that task can be overwritten if there is a message overflow.
@@ -405,10 +468,10 @@ private[swaydb] class Actor[T, +S](val state: S,
         }
     }
 
-  private def receive(max: Int): Unit = {
+  private def receive(): Unit = {
     var processed = 0
     try
-      while (!terminated && processed < max) {
+      while (!terminated && processed < minWeight) {
         val message = queue.poll()
         if (message != null) {
           try
@@ -416,8 +479,9 @@ private[swaydb] class Actor[T, +S](val state: S,
           catch {
             case exception: Throwable =>
               logger.error("Failed to process message. Continuing!", exception)
+          } finally {
+            processed += weigher(message)
           }
-          processed += 1
         } else {
           queueSize getAndUpdate {
             new IntUnaryOperator {
@@ -425,7 +489,7 @@ private[swaydb] class Actor[T, +S](val state: S,
                 operand - processed
             }
           }
-          processed = max
+          processed = minWeight
         }
       }
     finally {
