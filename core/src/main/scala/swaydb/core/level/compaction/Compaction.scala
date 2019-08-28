@@ -20,7 +20,7 @@
 package swaydb.core.level.compaction
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Level.ErrorHandler
+import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZero
@@ -277,7 +277,7 @@ private[level] object Compaction extends LazyLogging {
         ).flatMap {
           case IO.Right(copied) =>
             if (copied >= segmentsToPush)
-              IO.Right(IO.Right(copied))(IO.ErrorHandler.PromiseUnit)
+              IO.Right(IO.Right(copied))(IO.ExceptionHandler.PromiseUnit)
             else
               putForward(
                 segments = mergeable take segmentsToPush,
@@ -286,8 +286,8 @@ private[level] object Compaction extends LazyLogging {
               ).map(_.map(_ + copied))
 
           case IO.Left(error) =>
-            IO.Right(IO.Left(error))(IO.ErrorHandler.PromiseUnit)
-        }(IO.ErrorHandler.PromiseUnit)
+            IO.Right(IO.Left(error))(IO.ExceptionHandler.PromiseUnit)
+        }(IO.ExceptionHandler.PromiseUnit)
     } getOrElse {
       IO.Right[Promise[Unit], IO[swaydb.Error.Level, Int]](
         runLastLevelCompaction(
@@ -296,7 +296,7 @@ private[level] object Compaction extends LazyLogging {
           remainingCompactions = segmentsToPush,
           segmentsCompacted = 0
         )
-      )(IO.ErrorHandler.PromiseUnit)
+      )(IO.ExceptionHandler.PromiseUnit)
     }
 
   @tailrec

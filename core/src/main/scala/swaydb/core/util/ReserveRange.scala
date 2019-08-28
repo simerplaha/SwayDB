@@ -43,9 +43,9 @@ object ReserveRange extends LazyLogging {
                       reserve: Reserve[T])
 
   object Range {
-    implicit def ErrorHandler[T] = new IO.ErrorHandler[Range[T]] {
+    implicit def ErrorHandler[T] = new IO.ExceptionHandler[Range[T]] {
       override def toException(f: Range[T]): Throwable = throw new UnsupportedOperationException("Exception on Range")
-      override def fromException(e: Throwable): Range[T] = throw e
+      override def toError(e: Throwable): Range[T] = throw e
     }
   }
 
@@ -101,10 +101,10 @@ object ReserveRange extends LazyLogging {
         case IO.Left(range) =>
           val promise = Promise[Unit]()
           range.reserve.savePromise(promise)
-          IO.Left[Promise[Unit], Slice[Byte]](promise)(IO.ErrorHandler.PromiseUnit)
+          IO.Left[Promise[Unit], Slice[Byte]](promise)(IO.ExceptionHandler.PromiseUnit)
 
         case IO.Right(value) =>
-          IO.Right[Promise[Unit], Slice[Byte]](value)(IO.ErrorHandler.PromiseUnit)
+          IO.Right[Promise[Unit], Slice[Byte]](value)(IO.ExceptionHandler.PromiseUnit)
       }
     }
 

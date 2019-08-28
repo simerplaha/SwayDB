@@ -23,7 +23,7 @@ import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicLong
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Map.ErrorHandler
+import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Time

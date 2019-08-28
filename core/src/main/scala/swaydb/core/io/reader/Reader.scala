@@ -25,11 +25,11 @@ import swaydb.data.slice.{Slice, SliceReader}
 
 private[swaydb] object Reader {
 
-  def empty[E >: swaydb.Error.IO : IO.ErrorHandler] = Reader[E](Slice.emptyBytes)
+  def empty[E >: swaydb.Error.IO : IO.ExceptionHandler] = Reader[E](Slice.emptyBytes)
 
   def apply(file: DBFile): FileReader =
     new FileReader(file)
 
-  def apply[E >: swaydb.Error.IO : IO.ErrorHandler](slice: Slice[Byte]): SliceReader[E] =
+  def apply[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): SliceReader[E] =
     SliceReader(slice)
 }

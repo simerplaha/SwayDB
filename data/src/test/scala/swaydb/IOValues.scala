@@ -26,7 +26,7 @@ import scala.util.Random
 
 trait IOValues {
 
-  implicit class IOIncompleteImplicits[L: IO.ErrorHandler, R](io: => IO[L, R]) {
+  implicit class IOIncompleteImplicits[L: IO.ExceptionHandler, R](io: => IO[L, R]) {
     def runBlockingIO: IO[L, R] =
       IO.Defer(io.get).runBlockingIO
 
@@ -47,7 +47,7 @@ trait IOValues {
       }
   }
 
-  implicit class DeferredIOImplicits[L: IO.ErrorHandler, R](io: => IO.Defer[L, R]) {
+  implicit class DeferredIOImplicits[L: IO.ExceptionHandler, R](io: => IO.Defer[L, R]) {
 
     def runBlockingIO: IO[L, R] =
       io.runIO

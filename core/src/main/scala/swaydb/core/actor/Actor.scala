@@ -26,7 +26,7 @@ import java.util.function.IntUnaryOperator
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
-import swaydb.IO.ErrorHandler
+import swaydb.IO.ExceptionHandler
 import swaydb.core.util.{Functions, Scheduler}
 import swaydb.data.config.ActorConfig
 import swaydb.data.config.ActorConfig.QueueOrder
@@ -53,7 +53,7 @@ private[swaydb] sealed trait ActorRef[-T] { self =>
 
   def terminate(): Unit
 
-  def recover[X <: T, E: ErrorHandler](f: (X, IO[E, Actor.Error], ActorRef[T]) => Unit): ActorRef[T]
+  def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], ActorRef[T]) => Unit): ActorRef[T]
 
   /**
    * Returns an Actor that merges both Actor and sends messages
@@ -62,9 +62,9 @@ private[swaydb] sealed trait ActorRef[-T] { self =>
    * Currently does not guarantee the order in which the messages will get processed by both actors.
    * Is order guarantee required?
    */
-  def merge[B <: T](actor: ActorRef[B]): ActorRef[B] =
-    new ActorRef[B] {
-      def !(message: B): Unit =
+  def merge[TT <: T](actor: ActorRef[TT]): ActorRef[TT] =
+    new ActorRef[TT] {
+      def !(message: TT): Unit =
         this.synchronized {
           self ! message
           actor ! message
@@ -73,7 +73,7 @@ private[swaydb] sealed trait ActorRef[-T] { self =>
       /**
        * Sends a message to this actor with delay
        */
-      def schedule(message: B, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask =
+      def schedule(message: TT, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask =
         this.synchronized {
           self.schedule(message, delay)
           actor.schedule(message, delay)
@@ -88,7 +88,7 @@ private[swaydb] sealed trait ActorRef[-T] { self =>
           actor.terminate()
         }
 
-      override def recover[X <: B, E: ErrorHandler](f: (X, IO[E, Actor.Error], ActorRef[B]) => Unit): ActorRef[B] =
+      override def recover[M <: TT, E: ExceptionHandler](f: (M, IO[E, Actor.Error], ActorRef[TT]) => Unit): ActorRef[TT] =
         throw new NotImplementedError("Recovery on merged Actors is currently not supported.")
     }
 }
@@ -523,7 +523,7 @@ private[swaydb] class Actor[T, +S](val state: S,
     }
   }
 
-  override def recover[X <: T, E: ErrorHandler](f: (X, IO[E, Actor.Error], ActorRef[T]) => Unit): ActorRef[T] =
+  override def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], ActorRef[T]) => Unit): ActorRef[T] =
     new Actor[T, S](
       state = state,
       queue = queue,
@@ -535,22 +535,28 @@ private[swaydb] class Actor[T, +S](val state: S,
       defaultDelay = defaultDelay,
       recovery =
         Some {
-          case (message: X, error, actor) =>
+          case (message: M@unchecked, error, actor) =>
             try
               error match {
                 case IO.Right(actorError) =>
                   Some(f(message, IO.Right(actorError), actor))
 
                 case IO.Left(throwable) =>
-                  Some(f(message, IO.Left(ErrorHandler.fromException(throwable)), actor))
+                  Some(f(message, IO.Left(ExceptionHandler.toError(throwable)), actor))
               }
             catch {
               case exception: Exception =>
                 logger.debug("Failed to recover failed message.", exception)
             }
 
-          case _ =>
-            logger.debug("No recovery for failed message.")
+          case (_, error, _) =>
+            error match {
+              case IO.Right(Actor.Error.TerminatedActor) =>
+                logger.debug("Failed to process message.", new Exception("Cause: Terminated Actor"))
+
+              case IO.Left(exception: Throwable) =>
+                logger.debug("Failed to process message.", exception)
+            }
         }
     )
 }

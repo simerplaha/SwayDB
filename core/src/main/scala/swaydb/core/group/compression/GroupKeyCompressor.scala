@@ -19,7 +19,7 @@
 
 package swaydb.core.group.compression
 
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.Transient
 import swaydb.core.util.Bytes

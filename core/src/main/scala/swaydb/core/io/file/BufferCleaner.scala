@@ -24,7 +24,7 @@ import java.nio.file.Path
 import java.nio.{ByteBuffer, MappedByteBuffer}
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.IO.ErrorHandler
+import swaydb.Error.IO.ExceptionHandler
 import swaydb.IO
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.core.io.file.BufferCleaner.State

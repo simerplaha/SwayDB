@@ -21,7 +21,7 @@ package swaydb.core.cache
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._

@@ -256,7 +256,7 @@ object Slice {
       slice
     }
 
-    def readIntSigned[E >: swaydb.Error.IO : IO.ErrorHandler](): IO[E, Int] =
+    def readIntSigned[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Int] =
       ByteUtil.readSignedInt(slice)
 
     def addIntUnsigned(int: Int): Slice[Byte] = {
@@ -264,10 +264,10 @@ object Slice {
       slice
     }
 
-    def readIntUnsigned[E >: swaydb.Error.IO : IO.ErrorHandler](): IO[E, Int] =
+    def readIntUnsigned[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Int] =
       ByteUtil.readUnsignedInt(slice)
 
-    def readIntUnsignedWithByteSize[E >: swaydb.Error.IO : IO.ErrorHandler](): IO[E, (Int, Int)] =
+    def readIntUnsignedWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, (Int, Int)] =
       ByteUtil.readUnsignedIntWithByteSize(slice)
 
     def addLong(long: Long): Slice[Byte] = {
@@ -283,10 +283,10 @@ object Slice {
       slice
     }
 
-    def readLongUnsigned[E >: swaydb.Error.IO : IO.ErrorHandler](): IO[E, Long] =
+    def readLongUnsigned[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Long] =
       ByteUtil.readUnsignedLong(slice)
 
-    def readUnsignedLongWithByteSize[E >: swaydb.Error.IO : IO.ErrorHandler](): IO[E, (Long, Int)] =
+    def readUnsignedLongWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, (Long, Int)] =
       ByteUtil.readUnsignedLongWithByteSize(slice)
 
     def addLongSigned(long: Long): Slice[Byte] = {
@@ -294,7 +294,7 @@ object Slice {
       slice
     }
 
-    def readLongSigned[E >: swaydb.Error.IO : IO.ErrorHandler](): IO[E, Long] =
+    def readLongSigned[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Long] =
       ByteUtil.readSignedLong(slice)
 
     def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] = {
@@ -317,7 +317,7 @@ object Slice {
     def createReaderUnsafe() =
       new SliceReaderUnsafe(slice)
 
-    def createReaderSafe[E >: swaydb.Error.IO : IO.ErrorHandler]() =
+    def createReaderSafe[E >: swaydb.Error.IO : IO.ExceptionHandler]() =
       SliceReader(slice)
   }
 

@@ -22,7 +22,7 @@ package swaydb.core.map
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Map.ErrorHandler
+import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.MapEntryWriter

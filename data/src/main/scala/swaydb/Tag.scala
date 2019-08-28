@@ -39,7 +39,7 @@ sealed trait Tag[T[_]] {
   def none[A]: T[Option[A]]
   def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, T], drop: Int, take: Option[Int])(operation: (U, A) => U): T[U]
   def collectFirst[A](previous: A, stream: swaydb.Stream[A, T])(condition: A => Boolean): T[Option[A]]
-  def fromIO[E: IO.ErrorHandler, A](a: IO[E, A]): T[A]
+  def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): T[A]
   def toTag[X[_]](implicit converter: Tag.Converter[T, X]): Tag[X]
 
   /**
@@ -149,7 +149,7 @@ object Tag {
 
     implicit val throwableToUnit = new Tag.Converter[IO.ThrowableIO, IO.UnitIO] {
       override def to[T](a: IO.ThrowableIO[T]): IO.UnitIO[T] =
-        IO[Unit, T](a.get)(IO.ErrorHandler.Unit)
+        IO[Unit, T](a.get)(IO.ExceptionHandler.Unit)
 
       override def from[T](a: IO.UnitIO[T]): IO.ThrowableIO[T] =
         IO(a.get)
@@ -157,7 +157,7 @@ object Tag {
 
     implicit val throwableToNothing = new Tag.Converter[IO.ThrowableIO, IO.NothingIO] {
       override def to[T](a: IO.ThrowableIO[T]): IO.NothingIO[T] =
-        IO[Nothing, T](a.get)(IO.ErrorHandler.Nothing)
+        IO[Nothing, T](a.get)(IO.ExceptionHandler.Nothing)
 
       override def from[T](a: IO.NothingIO[T]): IO.ThrowableIO[T] =
         IO(a.get)
@@ -210,7 +210,7 @@ object Tag {
     def collectFirst[A](previous: A, stream: Stream[A, X])(condition: A => Boolean): X[Option[A]] =
       baseConverter.to(base.collectFirst(previous, stream.to[T](base, flipConverter))(condition))
 
-    def fromIO[E: IO.ErrorHandler, A](a: IO[E, A]): X[A] =
+    def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): X[A] =
       baseConverter.to(base.fromIO(a))
   }
 
@@ -372,7 +372,7 @@ object Tag {
           case failure @ IO.Left(_) =>
             failure
         }
-      override def fromIO[E: IO.ErrorHandler, A](a: IO[E, A]): IO.ThrowableIO[A] =
+      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): IO.ThrowableIO[A] =
         IO[Throwable, A](a.get)
     }
 
@@ -464,7 +464,7 @@ object Tag {
             Future.successful(None)
         }
 
-      override def fromIO[E: IO.ErrorHandler, A](a: IO[E, A]): Future[A] = a.toFuture
+      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Future[A] = a.toFuture
     }
 
   implicit val apiIO: Tag.Sync[IO.ApiIO] = throwableIO.toTag[IO.ApiIO]

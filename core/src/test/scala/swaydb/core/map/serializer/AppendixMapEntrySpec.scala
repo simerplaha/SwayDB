@@ -57,7 +57,7 @@ class AppendixMapEntrySpec extends TestBase {
 
     "write Add segment" in {
       import AppendixMapEntryWriter.AppendixPutWriter
-      import swaydb.Error.Map.ErrorHandler
+      import swaydb.Error.Map.ExceptionHandler
       val entry = MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
 
       val slice = Slice.create[Byte](entry.entryBytesSize)
@@ -83,7 +83,7 @@ class AppendixMapEntrySpec extends TestBase {
 
     "write Remove Segment" in {
       import AppendixMapEntryWriter.AppendixRemoveWriter
-      import swaydb.Error.Map.ErrorHandler
+      import swaydb.Error.Map.ExceptionHandler
       val entry = MapEntry.Remove[Slice[Byte]](1)
 
       val slice = Slice.create[Byte](entry.entryBytesSize)
@@ -104,7 +104,7 @@ class AppendixMapEntrySpec extends TestBase {
 
     "write and remove key-value" in {
       import AppendixMapEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
-      import swaydb.Error.Map.ErrorHandler
+      import swaydb.Error.Map.ExceptionHandler
 
       val segment1 = TestSegment().runRandomIO.right.value
       val segment2 = TestSegment().runRandomIO.right.value

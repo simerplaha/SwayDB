@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 
 import org.scalatest.OptionValues._
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._

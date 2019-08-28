@@ -19,7 +19,7 @@
 
 package swaydb.core.level.seek
 
-import swaydb.Error.Level.ErrorHandler
+import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Memory, Value}

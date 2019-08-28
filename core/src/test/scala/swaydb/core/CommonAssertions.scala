@@ -24,7 +24,7 @@ import java.nio.file.{Path, Paths}
 import org.scalatest.Matchers._
 import org.scalatest.OptionValues._
 import org.scalatest.exceptions.TestFailedException
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.RunThis._

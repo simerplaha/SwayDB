@@ -19,7 +19,7 @@
 
 package swaydb.core.data
 
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.cache.{Cache, NoIO}

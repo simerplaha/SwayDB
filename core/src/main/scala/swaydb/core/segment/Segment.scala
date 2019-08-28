@@ -22,7 +22,7 @@ package swaydb.core.segment
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, FileSweeperItem, MemorySweeper}
@@ -49,7 +49,7 @@ import scala.concurrent.duration.Deadline
 private[core] object Segment extends LazyLogging {
 
   val emptyIterable = Iterable.empty[Segment]
-  val emptyIterableIO = IO.Right[Nothing, Iterable[Segment]](emptyIterable)(swaydb.IO.ErrorHandler.Nothing)
+  val emptyIterableIO = IO.Right[Nothing, Iterable[Segment]](emptyIterable)(swaydb.IO.ExceptionHandler.Nothing)
 
   def memory(path: Path,
              createdInLevel: Long,

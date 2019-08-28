@@ -26,7 +26,7 @@ import java.nio.{BufferOverflowException, MappedByteBuffer}
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.IO.ErrorHandler
+import swaydb.Error.IO.ExceptionHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.data.Reserve

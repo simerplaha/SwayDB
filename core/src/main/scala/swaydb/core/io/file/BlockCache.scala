@@ -19,7 +19,7 @@
 
 package swaydb.core.io.file
 
-import swaydb.Error.IO.ErrorHandler
+import swaydb.Error.IO.ExceptionHandler
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.util.HashedMap
 import swaydb.data.slice.Slice

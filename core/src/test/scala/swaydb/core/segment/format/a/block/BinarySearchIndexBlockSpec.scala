@@ -19,7 +19,7 @@
 package swaydb.core.segment.format.a.block
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.{Error, IO}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._

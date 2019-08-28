@@ -22,7 +22,7 @@ package swaydb.core.level.tool
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Level.ErrorHandler
+import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}

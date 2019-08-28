@@ -19,7 +19,7 @@
 
 package swaydb.core
 
-import swaydb.Error.Level.ErrorHandler
+import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.{Memory, SwayFunction, Time, Value}
 import swaydb.core.function.FunctionStore

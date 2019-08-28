@@ -22,12 +22,14 @@ package swaydb.core.actor
 import java.util.concurrent.ConcurrentSkipListSet
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.IO
 import swaydb.core.RunThis._
 import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import swaydb.IOValues._
 
 class ActorSpec extends WordSpec with Matchers {
 
@@ -80,7 +82,7 @@ class ActorSpec extends WordSpec with Matchers {
       }
     }
 
-    "continue processing messages if execution of one message fails" in {
+    "continue processing messages if execution of one message fails and has no recovery" in {
       case class State(processed: ListBuffer[Int])
       val state = State(ListBuffer.empty)
 
@@ -89,6 +91,30 @@ class ActorSpec extends WordSpec with Matchers {
           case (int, self) =>
             if (int == 2) throw new Exception(s"Oh no! Failed at $int")
             self.state.processed += int
+        }
+
+      (1 to 3) foreach (actor ! _)
+      //
+      eventual {
+        state.processed.size shouldBe 2
+        //2nd message failed
+        state.processed should contain only(1, 3)
+      }
+    }
+
+    "continue processing messages if execution of one message fails and has recovery" in {
+      case class State(processed: ListBuffer[Int], recovered: ListBuffer[Int])
+      val state = State(ListBuffer.empty, ListBuffer.empty)
+
+      val actor =
+        Actor[Int, State](state) {
+          case (int, self) =>
+            if (int == 2) throw new Exception(s"Oh no! Failed at $int")
+            self.state.processed += int
+        } recover[Int, Throwable] {
+          case (message, error: IO[Throwable, Actor.Error], actor) =>
+            message shouldBe 2
+//            error.left.value shouldBe a[Exception]
         }
 
       (1 to 3) foreach (actor ! _)

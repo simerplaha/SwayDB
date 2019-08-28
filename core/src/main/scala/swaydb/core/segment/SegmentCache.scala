@@ -20,7 +20,7 @@
 package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}

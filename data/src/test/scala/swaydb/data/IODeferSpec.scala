@@ -24,7 +24,7 @@ import java.io.FileNotFoundException
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.{Eventually, Futures}
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.Defer
 import swaydb.IOValues._
 import swaydb.{Error, IO}
@@ -52,7 +52,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
   }
 
   "future" when {
-    def testFuture[E: IO.ErrorHandler, A](future: Future[A], expectedOutcome: IO[E, A]) = {
+    def testFuture[E: IO.ExceptionHandler, A](future: Future[A], expectedOutcome: IO[E, A]) = {
       val timeBeforeDeferred = System.currentTimeMillis()
 
       future.isCompleted shouldBe false
@@ -448,7 +448,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
   "recover" when {
     "non-recoverable failure" in {
-      import swaydb.Error.Segment.ErrorHandler
+      import swaydb.Error.Segment.ExceptionHandler
 
       val deferred =
         IO.Defer[Error.Segment, Int](1) flatMap {
@@ -471,7 +471,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
     "recoverable failure" in {
       @volatile var failureCount = 0
-      import swaydb.Error.Segment.ErrorHandler
+      import swaydb.Error.Segment.ExceptionHandler
 
       def deferred =
         IO.Defer[Error.Segment, Int](1) flatMap {
@@ -502,7 +502,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
     "recoverable failure with non-recoverable failure result" in {
       @volatile var failureCount = 0
-      import swaydb.Error.Segment.ErrorHandler
+      import swaydb.Error.Segment.ExceptionHandler
 
       def deferred =
         IO.Defer[Error.Segment, Int](1) flatMap {
@@ -535,7 +535,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
   "recoverWith" when {
     "non-recoverable failure" in {
-      import swaydb.Error.Segment.ErrorHandler
+      import swaydb.Error.Segment.ExceptionHandler
 
       def deferred =
         IO.Defer[Error.Segment, Int](1) flatMap {
@@ -558,7 +558,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
     }
 
     "non-recoverable failure when recoverWith result in recoverable Failure" in {
-      import swaydb.Error.Segment.ErrorHandler
+      import swaydb.Error.Segment.ExceptionHandler
 
       @volatile var failureCount = 0
 
@@ -603,7 +603,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
     }
 
     "recoverable failure" in {
-      import swaydb.Error.Segment.ErrorHandler
+      import swaydb.Error.Segment.ExceptionHandler
 
       @volatile var failureCount = 0
 
@@ -636,7 +636,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
     "recoverable failure with non-recoverable failure result" in {
       @volatile var failureCount = 0
-      import swaydb.Error.Segment.ErrorHandler
+      import swaydb.Error.Segment.ExceptionHandler
 
       def deferred =
         IO.Defer[Error.Segment, Int](1) flatMap {
@@ -668,7 +668,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
   }
 
   "concurrent randomly releases" in {
-    import swaydb.Error.Segment.ErrorHandler
+    import swaydb.Error.Segment.ExceptionHandler
 
     val defers: Seq[IO.Defer[Error.Segment, Int]] =
       (1 to 100) map {

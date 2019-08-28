@@ -21,7 +21,7 @@ package swaydb.core.util
 
 import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._

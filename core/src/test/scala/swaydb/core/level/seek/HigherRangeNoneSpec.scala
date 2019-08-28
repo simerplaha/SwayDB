@@ -22,7 +22,7 @@ package swaydb.core.level.seek
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.RunThis._

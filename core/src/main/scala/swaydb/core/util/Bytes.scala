@@ -19,7 +19,7 @@
 
 package swaydb.core.util
 
-import swaydb.Error.IO.ErrorHandler
+import swaydb.Error.IO.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader

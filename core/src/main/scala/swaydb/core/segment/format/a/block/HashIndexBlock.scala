@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader

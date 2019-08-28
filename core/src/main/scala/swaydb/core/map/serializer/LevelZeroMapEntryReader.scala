@@ -21,7 +21,7 @@ package swaydb.core.map.serializer
 
 import java.util.concurrent.TimeUnit
 
-import swaydb.Error.Map.ErrorHandler
+import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.map.MapEntry

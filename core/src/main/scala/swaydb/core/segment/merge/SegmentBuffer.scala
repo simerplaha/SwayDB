@@ -105,7 +105,7 @@ object SegmentBuffer {
     def add(keyValue: Transient.SegmentResponse): Unit =
       _unGrouped add keyValue
 
-    def addGroup[T: IO.ErrorHandler](keyValue: Transient.Group): IO[T, Unit] =
+    def addGroup[T: IO.ExceptionHandler](keyValue: Transient.Group): IO[T, Unit] =
       if (_unGrouped.nonEmpty) {
         IO.failed("Cannot add group. Has unGrouped key-values.")
       } else {

@@ -19,7 +19,7 @@
 
 package swaydb.core.map.serializer
 
-import swaydb.Error.IO.ErrorHandler
+import swaydb.Error.IO.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.Value
 import swaydb.core.data.Value.{Put, Remove, Update}

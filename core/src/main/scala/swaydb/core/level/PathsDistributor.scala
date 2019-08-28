@@ -24,7 +24,7 @@ import java.util
 import java.util.concurrent.ConcurrentLinkedDeque
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.segment.Segment
 import swaydb.data.config.Dir

@@ -21,7 +21,7 @@ package swaydb.data.slice
 
 import swaydb.IO
 
-abstract class Reader[E >: swaydb.Error.IO : IO.ErrorHandler] extends ReaderBase[E] {
+abstract class Reader[E >: swaydb.Error.IO : IO.ExceptionHandler] extends ReaderBase[E] {
 
   def moveTo(position: Long): Reader[E]
 

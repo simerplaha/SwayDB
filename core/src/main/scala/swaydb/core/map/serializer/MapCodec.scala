@@ -20,7 +20,7 @@
 package swaydb.core.map.serializer
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Map.ErrorHandler
+import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.{MapEntry, RecoveryResult}

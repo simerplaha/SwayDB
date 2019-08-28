@@ -22,8 +22,8 @@ package swaydb.core
 import java.nio.file.Path
 
 import org.scalatest.Matchers._
-import swaydb.Error.Segment.ErrorHandler
-import swaydb.IO.ErrorHandler.Nothing
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
@@ -163,7 +163,7 @@ object TestData {
                                            compression: Option[GroupByInternal.KeyValues] = randomGroupByOption(randomNextInt(1000)),
                                            segmentIO: SegmentIO = SegmentIO.random) {
 
-    import swaydb.Error.Level.ErrorHandler
+    import swaydb.Error.Level.ExceptionHandler
     import swaydb.IO._
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write

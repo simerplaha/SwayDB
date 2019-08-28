@@ -21,7 +21,7 @@ package swaydb.core.level.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.RunThis._
@@ -33,7 +33,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.Error.Level.ErrorHandler
+import swaydb.Error.Level.ExceptionHandler
 
 class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with OptionValues {
 
@@ -43,7 +43,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
   "return Some" when {
     implicit val testTimer = TestTimer.Decremental()
-    import swaydb.Error.Level.ErrorHandler
+    import swaydb.Error.Level.ExceptionHandler
 
     //   0
     //     1

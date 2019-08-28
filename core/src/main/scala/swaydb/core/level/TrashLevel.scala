@@ -21,7 +21,7 @@ package swaydb.core.level
 
 import java.nio.file.{Path, Paths}
 
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.segment.Segment
@@ -176,7 +176,7 @@ private[core] object TrashLevel extends NextLevel {
     IO.unitUnit
 
   override def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Nothing, IO[Error.Segment, Int]] =
-    IO.Right[Nothing, IO[Error.Segment, Int]](IO.Right(segments.size))(IO.ErrorHandler.Nothing)
+    IO.Right[Nothing, IO[Error.Segment, Int]](IO.Right(segments.size))(IO.ExceptionHandler.Nothing)
 
   override def isZero: Boolean =
     false

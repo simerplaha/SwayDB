@@ -20,10 +20,10 @@
 package swaydb.data
 
 import org.scalatest.{FlatSpec, Matchers}
-import swaydb.IO.ErrorHandler.Throwable
+import swaydb.IO.ExceptionHandler.Throwable
 import swaydb._
 
-class ErrorHandlerSpec extends FlatSpec with Matchers {
+class ExceptionHandlerSpec extends FlatSpec with Matchers {
 
   it should "Exceptions to Throwable" in {
     val exception = Exception.FailedToWriteAllBytes(0, 10, 10)

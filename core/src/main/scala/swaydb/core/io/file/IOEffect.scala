@@ -25,7 +25,7 @@ import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.IO.ErrorHandler
+import swaydb.Error.IO.ExceptionHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.util.Extension

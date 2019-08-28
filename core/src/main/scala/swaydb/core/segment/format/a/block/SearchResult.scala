@@ -29,7 +29,7 @@ object SearchResult {
   def none[A]: SearchResult.None[A] =
     SearchResult.None(Option.empty[A])
 
-  def noneIO[E: IO.ErrorHandler, A] =
+  def noneIO[E: IO.ExceptionHandler, A] =
     IO.Right[E, SearchResult[A]](none)
 
   case class None[T](lower: Option[T]) extends SearchResult[T] {

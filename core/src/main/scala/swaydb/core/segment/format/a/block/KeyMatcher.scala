@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.KeyMatcher.Result.{AheadOrNoneOrEnd, BehindFetchNext, BehindStopped, Matched}

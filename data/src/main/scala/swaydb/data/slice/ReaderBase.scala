@@ -28,7 +28,7 @@ import swaydb.data.util.ByteUtil
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
-private[swaydb] abstract class ReaderBase[E >: swaydb.Error.IO : IO.ErrorHandler] { self =>
+private[swaydb] abstract class ReaderBase[E >: swaydb.Error.IO : IO.ExceptionHandler] { self =>
 
   def path: Path
 

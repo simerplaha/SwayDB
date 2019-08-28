@@ -23,7 +23,7 @@ import java.nio.file.{Files, NoSuchFileException}
 
 import org.scalatest.OptionValues._
 import org.scalatest.concurrent.ScalaFutures
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.RunThis._

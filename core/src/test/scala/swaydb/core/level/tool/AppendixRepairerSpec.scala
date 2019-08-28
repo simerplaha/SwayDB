@@ -21,7 +21,7 @@ package swaydb.core.level.tool
 
 import java.nio.file.NoSuchFileException
 
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.RunThis._

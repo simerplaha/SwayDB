@@ -21,8 +21,8 @@ package swaydb.core.map
 
 
 import org.scalatest.OptionValues._
-import swaydb.Error.Map.ErrorHandler
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Map.ExceptionHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.TestData._
@@ -354,7 +354,7 @@ class MapEntrySpec extends TestBase {
     "be written and read for Level0" in {
       import LevelZeroMapEntryReader._
       import LevelZeroMapEntryWriter._
-      import swaydb.Error.Map.ErrorHandler
+      import swaydb.Error.Map.ExceptionHandler
 
       val initialEntry: MapEntry[Slice[Byte], Memory.SegmentResponse] = MapEntry.Put(0, Memory.put(0, Some(0)))
       var entry =
@@ -388,7 +388,7 @@ class MapEntrySpec extends TestBase {
     "be written and read for Appendix" in {
       import AppendixMapEntryWriter._
       import appendixReader._
-      import swaydb.Error.Map.ErrorHandler
+      import swaydb.Error.Map.ExceptionHandler
 
       val segment = TestSegment(keyValues).runRandomIO.right.value
 

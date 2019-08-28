@@ -22,7 +22,7 @@ package swaydb.data
 import java.io.FileNotFoundException
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.data.Base._
 
@@ -130,7 +130,7 @@ class IOIOLeftSpec extends WordSpec with Matchers {
   }
 
   "toTry" in {
-    IO.Left(error).toTry shouldBe scala.util.Failure(IO.ErrorHandler.toException(error))
+    IO.Left(error).toTry shouldBe scala.util.Failure(IO.ExceptionHandler.toException(error))
   }
 
   "onFailureSideEffect" in {

@@ -20,7 +20,7 @@
 package swaydb.core.level.compaction
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
@@ -251,7 +251,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           (segment: Segment, _) =>
             segments find (_.path == segment.path) shouldBe defined
             segments -= segment
-            IO.Right(segment.delete)(IO.ErrorHandler.PromiseUnit)
+            IO.Right(segment.delete)(IO.ExceptionHandler.PromiseUnit)
         } repeat 5.times
 
         Compaction.runLastLevelCompaction(
@@ -292,7 +292,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           (segmentsToCollapse: Iterable[Segment], _) =>
             segmentsToCollapse foreach (segment => segments find (_.path == segment.path) shouldBe defined)
             segments --= segmentsToCollapse
-            IO.Right(IO(segmentsToCollapse.size))(IO.ErrorHandler.PromiseUnit)
+            IO.Right(IO(segmentsToCollapse.size))(IO.ExceptionHandler.PromiseUnit)
         } repeat 2.times
 
         Compaction.runLastLevelCompaction(

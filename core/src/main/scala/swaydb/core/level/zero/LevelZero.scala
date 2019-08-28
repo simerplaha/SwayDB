@@ -24,7 +24,7 @@ import java.nio.file.{Path, Paths, StandardOpenOption}
 import java.util
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Level.ErrorHandler
+import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._

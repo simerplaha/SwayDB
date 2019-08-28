@@ -23,7 +23,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Path, Paths}
 import java.util.concurrent.TimeUnit
 
-import swaydb.Error.Map.ErrorHandler
+import swaydb.Error.Map.ExceptionHandler
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal

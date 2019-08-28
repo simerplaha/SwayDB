@@ -23,7 +23,7 @@ import java.nio.file.{FileAlreadyExistsException, Files, NoSuchFileException}
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.EitherValues._
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
@@ -458,7 +458,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment.path
-            IO.Right[Promise[Unit], IO[swaydb.Error.Level, Unit]](IO(throw new Exception("Kaboom!!")))(IO.ErrorHandler.PromiseUnit)
+            IO.Right[Promise[Unit], IO[swaydb.Error.Level, Unit]](IO(throw new Exception("Kaboom!!")))(IO.ExceptionHandler.PromiseUnit)
         }
 
         level.put(segment).right.right.value.right.value

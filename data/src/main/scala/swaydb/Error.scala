@@ -24,7 +24,7 @@ import java.nio.ReadOnlyBufferException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.{NoSuchFileException, Path}
 
-import swaydb.IO.RecoverableErrorHandler
+import swaydb.IO.RecoverableExceptionHandler
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
 
@@ -45,11 +45,11 @@ object Error {
   sealed trait API extends Error
 
   object Segment {
-    implicit object ErrorHandler extends RecoverableErrorHandler[Error.Segment] {
+    implicit object ExceptionHandler extends RecoverableExceptionHandler[Error.Segment] {
       override def toException(f: Error.Segment): Throwable =
         f.exception
 
-      override def fromException(e: Throwable): Error.Segment =
+      override def toError(e: Throwable): Error.Segment =
         Error(e) match {
           case segment: Error.Segment =>
             segment
@@ -70,11 +70,11 @@ object Error {
   }
 
   object Level {
-    implicit object ErrorHandler extends RecoverableErrorHandler[Error.Level] {
+    implicit object ExceptionHandler extends RecoverableExceptionHandler[Error.Level] {
       override def toException(f: Error.Level): Throwable =
         f.exception
 
-      override def fromException(e: Throwable): Error.Level =
+      override def toError(e: Throwable): Error.Level =
         Error(e) match {
           case segment: Error.Level =>
             segment
@@ -95,11 +95,11 @@ object Error {
   }
 
   object Map {
-    implicit object ErrorHandler extends RecoverableErrorHandler[Error.Map] {
+    implicit object ExceptionHandler extends RecoverableExceptionHandler[Error.Map] {
       override def toException(f: Error.Map): Throwable =
         f.exception
 
-      override def fromException(e: Throwable): Error.Map =
+      override def toError(e: Throwable): Error.Map =
         Error(e) match {
           case segment: Error.Map =>
             segment
@@ -120,11 +120,11 @@ object Error {
   }
 
   object Boot {
-    implicit object ErrorHandler extends RecoverableErrorHandler[Error.Boot] {
+    implicit object ExceptionHandler extends RecoverableExceptionHandler[Error.Boot] {
       override def toException(f: Error.Boot): Throwable =
         f.exception
 
-      override def fromException(e: Throwable): Error.Boot =
+      override def toError(e: Throwable): Error.Boot =
         Error(e) match {
           case segment: Error.Boot =>
             segment
@@ -145,11 +145,11 @@ object Error {
   }
 
   object Close {
-    implicit object ErrorHandler extends RecoverableErrorHandler[Error.Close] {
+    implicit object ExceptionHandler extends RecoverableExceptionHandler[Error.Close] {
       override def toException(f: Error.Close): Throwable =
         f.exception
 
-      override def fromException(e: Throwable): Error.Close =
+      override def toError(e: Throwable): Error.Close =
         Error(e) match {
           case segment: Error.Close =>
             segment
@@ -170,11 +170,11 @@ object Error {
   }
 
   object Delete {
-    implicit object ErrorHandler extends RecoverableErrorHandler[Error.Delete] {
+    implicit object ExceptionHandler extends RecoverableExceptionHandler[Error.Delete] {
       override def toException(f: Error.Delete): Throwable =
         f.exception
 
-      override def fromException(e: Throwable): Error.Delete =
+      override def toError(e: Throwable): Error.Delete =
         Error(e) match {
           case segment: Error.Delete =>
             segment
@@ -195,11 +195,11 @@ object Error {
   }
 
   object API {
-    implicit object ErrorHandler extends RecoverableErrorHandler[Error.API] {
+    implicit object ExceptionHandler extends RecoverableExceptionHandler[Error.API] {
       override def toException(f: Error.API): Throwable =
         f.exception
 
-      override def fromException(e: Throwable): Error.API =
+      override def toError(e: Throwable): Error.API =
         Error(e) match {
           case segment: Error.API =>
             segment
@@ -220,11 +220,11 @@ object Error {
   }
 
   object IO {
-    implicit object ErrorHandler extends RecoverableErrorHandler[Error.IO] {
+    implicit object ExceptionHandler extends RecoverableExceptionHandler[Error.IO] {
       override def toException(f: Error.IO): Throwable =
         f.exception
 
-      override def fromException(e: Throwable): Error.IO =
+      override def toError(e: Throwable): Error.IO =
         Error(e) match {
           case segment: Error.IO =>
             segment
@@ -411,11 +411,11 @@ object Error {
     def apply(message: String): Fatal =
       new Fatal(new scala.Exception(message))
 
-    implicit object ErrorHandler extends swaydb.IO.ErrorHandler[Error.Fatal] {
+    implicit object ExceptionHandler extends swaydb.IO.ExceptionHandler[Error.Fatal] {
       override def toException(f: Error.Fatal): Throwable =
         f.exception
 
-      override def fromException(e: Throwable): Error.Fatal =
+      override def toError(e: Throwable): Error.Fatal =
         Error.Fatal(e)
     }
   }

@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.block
 
 
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.compression.CompressionInternal

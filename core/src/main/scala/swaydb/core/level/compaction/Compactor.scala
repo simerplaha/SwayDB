@@ -20,7 +20,7 @@
 package swaydb.core.level.compaction
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Level.ErrorHandler
+import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.WiredActor

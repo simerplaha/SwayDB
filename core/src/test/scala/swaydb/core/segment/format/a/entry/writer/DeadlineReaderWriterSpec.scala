@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.entry.writer
 import java.util.concurrent.TimeUnit
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader

@@ -330,7 +330,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2).map(_.updateStats)
       val segment1 = TestSegment(keyValues.head).runRandomIO.right.value
       val segment2 = TestSegment(keyValues.last).runRandomIO.right.value
-      level.reserve(Seq(segment1, segment2)).get shouldBe IO.Right[Promise[Unit], Slice[Byte]](keyValues.head.head.key)(IO.ErrorHandler.PromiseUnit)
+      level.reserve(Seq(segment1, segment2)).get shouldBe IO.Right[Promise[Unit], Slice[Byte]](keyValues.head.head.key)(IO.ExceptionHandler.PromiseUnit)
 
       //cannot reserve again
       level.reserve(Seq(segment1, segment2)).get shouldBe a[IO.Left[_, _]]

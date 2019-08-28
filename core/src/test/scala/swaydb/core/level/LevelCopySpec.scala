@@ -24,7 +24,7 @@ import java.nio.file.NoSuchFileException
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.EitherValues._
 import org.scalatest.PrivateMethodTester
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._

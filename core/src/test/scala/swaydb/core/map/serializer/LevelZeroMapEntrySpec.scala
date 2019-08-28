@@ -20,7 +20,7 @@
 package swaydb.core.map.serializer
 
 import org.scalatest.OptionValues._
-import swaydb.Error.Map.ErrorHandler
+import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._

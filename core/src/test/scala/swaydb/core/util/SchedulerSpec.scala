@@ -21,7 +21,7 @@ package swaydb.core.util
 
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 
 import scala.concurrent.ExecutionContext.Implicits.global

@@ -23,7 +23,7 @@ import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Level.ErrorHandler
+import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.KeyValue.ReadOnly
@@ -150,7 +150,7 @@ private[core] object Level extends LazyLogging {
                   dropCorruptedTailEntries = false
                 ).map(_.item) recoverWith {
                   case error =>
-                    IO.Left(IO.ErrorHandler.fromException(error.exception))
+                    IO.Left(IO.ExceptionHandler.toError(error.exception))
                 }
               }
 
@@ -309,7 +309,7 @@ private[core] object Level extends LazyLogging {
   def delete(level: NextLevel): IO[swaydb.Error.Delete, Unit] =
     level.close flatMap {
       _ =>
-        import swaydb.Error.Delete.ErrorHandler
+        import swaydb.Error.Delete.ExceptionHandler
         level
           .nextLevel
           .map(_.delete)
@@ -470,7 +470,7 @@ private[core] case class Level(dirs: Seq[Dir],
               toInclusive = toInclusive,
               info = ()
             )
-        } getOrElse IO.Left(Promise.successful())(IO.ErrorHandler.PromiseUnit)
+        } getOrElse IO.Left(Promise.successful())(IO.ExceptionHandler.PromiseUnit)
     }
 
   private[level] implicit def reserve(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Error.Segment, IO[Promise[Unit], Slice[Byte]]] =
@@ -490,7 +490,7 @@ private[core] case class Level(dirs: Seq[Dir],
               toInclusive = toInclusive,
               info = ()
             )
-        } getOrElse IO.Left(Promise.successful())(IO.ErrorHandler.PromiseUnit)
+        } getOrElse IO.Left(Promise.successful())(IO.ExceptionHandler.PromiseUnit)
     }
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
@@ -563,7 +563,7 @@ private[core] case class Level(dirs: Seq[Dir],
         either
 
       case IO.Left(error) =>
-        IO.Right[Promise[Unit], IO[swaydb.Error.Level, T]](IO.Left[swaydb.Error.Level, T](error))(IO.ErrorHandler.PromiseUnit)
+        IO.Right[Promise[Unit], IO[swaydb.Error.Level, T]](IO.Left[swaydb.Error.Level, T](error))(IO.ExceptionHandler.PromiseUnit)
     }
 
   def put(segment: Segment)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
@@ -919,7 +919,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
     if (segments.isEmpty || appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
-      IO.Right[Promise[Unit], IO[swaydb.Error.Level, Int]](IO.zero)(IO.ErrorHandler.PromiseUnit)
+      IO.Right[Promise[Unit], IO[swaydb.Error.Level, Int]](IO.zero)(IO.ExceptionHandler.PromiseUnit)
     } else {
       //other segments in the appendix that are not the input segments (segments to collapse).
       val levelSegments = segmentsInLevel()

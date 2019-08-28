@@ -26,7 +26,7 @@ import swaydb.IO
 /**
  * http://www.swaydb.io/slice/byte-slice
  */
-private[swaydb] case class SliceReader[E >: swaydb.Error.IO : IO.ErrorHandler](slice: Slice[Byte]) extends Reader[E] {
+private[swaydb] case class SliceReader[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]) extends Reader[E] {
 
   private var position: Int = 0
 

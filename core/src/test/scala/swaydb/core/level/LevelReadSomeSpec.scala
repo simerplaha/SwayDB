@@ -21,7 +21,7 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.exceptions.TestFailedException
-import swaydb.Error.Segment.ErrorHandler
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
