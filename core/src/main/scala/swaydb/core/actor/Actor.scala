@@ -41,6 +41,9 @@ private[swaydb] sealed trait ActorRef[-T, S] { self =>
    */
   def !(message: T): Unit
 
+  def send(message: T): Unit =
+    this ! message
+
   /**
    * Sends a message to this actor with delay
    */
@@ -54,6 +57,10 @@ private[swaydb] sealed trait ActorRef[-T, S] { self =>
     totalWeight > 0
 
   def terminate(): Unit
+
+  def clear(): Unit
+
+  def terminateAndClear(): Unit
 
   def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S]
 
@@ -88,6 +95,20 @@ private[swaydb] sealed trait ActorRef[-T, S] { self =>
         this.synchronized {
           self.terminate()
           actor.terminate()
+        }
+
+      def clear(): Unit =
+        this.synchronized {
+          self.clear()
+          actor.clear()
+        }
+
+      def terminateAndClear(): Unit =
+        this.synchronized {
+          self.terminate()
+          actor.terminate()
+          self.clear()
+          actor.clear()
         }
 
       def messageCount: Int =
@@ -195,8 +216,7 @@ private[swaydb] object Actor {
   def cache[T, S](state: S,
                   stashCapacity: Int,
                   weigher: T => Int)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
-                                                                          queueOrder: QueueOrder[T]): ActorRef[T, S] = {
-    assert(stashCapacity > 0, "stashCapacity should be greater than 0. Or else use a basic actor")
+                                                                          queueOrder: QueueOrder[T]): ActorRef[T, S] =
     new Actor[T, S](
       state = state,
       stashCapacity = stashCapacity,
@@ -207,7 +227,6 @@ private[swaydb] object Actor {
       interval = None,
       recovery = None
     )
-  }
 
   def timer[T](stashCapacity: Int,
                interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit scheduler: Scheduler,
@@ -227,8 +246,7 @@ private[swaydb] object Actor {
   def timer[T, S](state: S,
                   stashCapacity: Int,
                   interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler,
-                                                                                 queueOrder: QueueOrder[T]): ActorRef[T, S] = {
-    assert(stashCapacity > 0, "stashCapacity should be greater than 0. Or else use a basic actor")
+                                                                                 queueOrder: QueueOrder[T]): ActorRef[T, S] =
     new Actor[T, S](
       state = state,
       stashCapacity = stashCapacity,
@@ -236,10 +254,9 @@ private[swaydb] object Actor {
       cached = false,
       weigher = _ => 1,
       queue = ActorQueue(queueOrder),
-      interval = Some(interval, scheduler, false),
+      interval = Some(new Interval(interval, scheduler, false)),
       recovery = None
     )(scheduler.ec)
-  }
 
   def timerCache[T](stashCapacity: Int,
                     weigher: T => Int,
@@ -256,8 +273,7 @@ private[swaydb] object Actor {
                        stashCapacity: Int,
                        weigher: T => Int,
                        interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler,
-                                                                                      queueOrder: QueueOrder[T]): ActorRef[T, S] = {
-    assert(stashCapacity > 0, "stashCapacity should be greater than 0. Or else use a basic actor")
+                                                                                      queueOrder: QueueOrder[T]): ActorRef[T, S] =
     new Actor[T, S](
       state = state,
       stashCapacity = stashCapacity,
@@ -265,10 +281,9 @@ private[swaydb] object Actor {
       cached = true,
       weigher = weigher,
       queue = ActorQueue(queueOrder),
-      interval = Some(interval, scheduler, false),
+      interval = Some(new Interval(interval, scheduler, false)),
       recovery = None
     )(scheduler.ec)
-  }
 
   /**
    * Stateless [[timerLoop]]
@@ -291,8 +306,7 @@ private[swaydb] object Actor {
   def timerLoop[T, S](state: S,
                       stashCapacity: Int,
                       interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler,
-                                                                                     queueOrder: QueueOrder[T]): ActorRef[T, S] = {
-    assert(stashCapacity > 0, "stashCapacity should be greater than 0. Or else use a basic actor")
+                                                                                     queueOrder: QueueOrder[T]): ActorRef[T, S] =
     new Actor[T, S](
       state = state,
       execution = execution,
@@ -300,30 +314,26 @@ private[swaydb] object Actor {
       cached = false,
       weigher = _ => 1,
       queue = ActorQueue(queueOrder),
-      interval = Some(interval, scheduler, true),
+      interval = Some(new Interval(interval, scheduler, true)),
       recovery = None
     )(scheduler.ec)
-  }
 
   def timerLoopCache[T](stashCapacity: Int,
                         weigher: T => Int,
                         interval: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit scheduler: Scheduler,
-                                                                                          queueOrder: QueueOrder[T]): ActorRef[T, Unit] = {
-    assert(stashCapacity > 0, "stashCapacity should be greater than 0. Or else use a basic actor")
+                                                                                          queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
     timerLoopCache[T, Unit](
       state = (),
       stashCapacity = stashCapacity,
       weigher = weigher,
       interval = interval
     )(execution)
-  }
 
   def timerLoopCache[T, S](state: S,
                            stashCapacity: Int,
                            weigher: T => Int,
                            interval: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit scheduler: Scheduler,
-                                                                                          queueOrder: QueueOrder[T]): ActorRef[T, S] = {
-    assert(stashCapacity > 0, "stashCapacity should be greater than 0. Or else use a basic actor")
+                                                                                          queueOrder: QueueOrder[T]): ActorRef[T, S] =
     new Actor[T, S](
       state = state,
       queue = ActorQueue(queueOrder),
@@ -331,10 +341,9 @@ private[swaydb] object Actor {
       weigher = weigher,
       cached = true,
       execution = execution,
-      interval = Some(interval, scheduler, true),
+      interval = Some(new Interval(interval, scheduler, true)),
       recovery = None
     )(scheduler.ec)
-  }
 
   def wire[T](impl: T)(implicit scheduler: Scheduler): WiredActor[T, Unit] =
     WiredActor[T, Unit](
@@ -373,20 +382,22 @@ private[swaydb] object Actor {
     }
 }
 
+class Interval(val delay: FiniteDuration, val scheduler: Scheduler, val isLoop: Boolean)
+
 private[swaydb] class Actor[-T, S](val state: S,
                                    queue: ActorQueue[(T, Int)],
                                    stashCapacity: Int,
                                    weigher: T => Int,
                                    cached: Boolean,
                                    execution: (T, Actor[T, S]) => Unit,
-                                   interval: Option[(FiniteDuration, Scheduler, Boolean)],
+                                   interval: Option[Interval],
                                    recovery: Option[(T, IO[Throwable, Actor.Error], Actor[T, S]) => Unit])(implicit ec: ExecutionContext) extends ActorRef[T, S] with LazyLogging { self =>
 
   private val busy = new AtomicBoolean(false)
   private val weight = new AtomicInteger(0)
   private val isBasic = interval.isEmpty
-  private val isTimerLoop = interval.exists(_._3)
-  val isTimer = interval.isDefined
+  private val isTimerLoop = interval.exists(_.isLoop)
+  private val isTimerNoLoop = interval.exists(!_.isLoop)
 
   //minimum number of message to leave if the Actor is cached.
   private val fixedStashSize =
@@ -425,62 +436,91 @@ private[swaydb] class Actor[-T, S](val state: S,
           }
         }
 
-      wakeUp(currentStashed = currentStashed)
+      //skip wakeUp if it's a timerLoop. Run only if no task is scheduled for the task.
+      //if eager wakeUp on overflow is required using timer instead of timerLoop.
+      if (isTimerLoop && task.nonEmpty)
+        ()
+      else
+        wakeUp(currentStashed = currentStashed)
     }
 
-  private def wakeUp(currentStashed: Int): Unit =
+  @inline private def wakeUp(currentStashed: Int): Unit =
     if (isBasic)
       basicWakeUp(currentStashed)
     else
-      timerWakeUp(currentStashed, stashCapacity)
+      timerWakeUp(currentStashed, this.stashCapacity)
 
-  private def basicWakeUp(currentStashed: Int) = {
+  @inline private def basicWakeUp(currentStashed: Int) = {
     val overflow = currentStashed - fixedStashSize
     val isOverflown = overflow > 0
-    if (!terminated && isOverflown && busy.compareAndSet(false, true))
+    //do not check for terminated actor here for receive to apply recovery.
+    if (isOverflown && busy.compareAndSet(false, true))
       Future(receive(overflow))
   }
 
+  /**
+   * @param stashCapacity will mostly be >= [[Actor.stashCapacity]].
+   *                      It can be < [[Actor.stashCapacity]] if the [[weigher]]
+   *                      results in an item with weight > current overflow.
+   *                      For example: if item's weight is 10 but overflow is 1. This
+   *                      will result in the cached messages to be [[Actor.stashCapacity]] - 10.
+   */
   private def timerWakeUp(currentStashed: Int, stashCapacity: Int): Unit = {
     val overflow = currentStashed - stashCapacity
     val isOverflown = overflow > 0
     val hasMessages = currentStashed > 0
-    //    println(s"timerWakeUp: currentStashed = $currentStashed, stashCapacity = $stashCapacity")
 
-    if ((isOverflown || (hasMessages && isTimer && task.isEmpty) || (isTimerLoop && task.isEmpty)) && busy.compareAndSet(false, true)) {
-      if (isOverflown)
-        Future(receive(overflow))
+    //run timer if it's an overflow or if task is empty and there is work to do.
+    if ((isOverflown || (task.isEmpty && (isTimerLoop || (isTimerNoLoop && hasMessages)))) && busy.compareAndSet(false, true)) {
 
-      interval foreach {
-        case (interval, scheduler, _) =>
-          try {
-            //cancel any existing task.
-            task foreach {
-              task =>
-                task.cancel()
-                this.task = None
-            }
+      //if it's overflown then wakeUp Actor now!
+      try {
+        if (isOverflown)
+          Future(receive(overflow))
 
-            //schedule a task is there are messages to process or if the Actor is a looper.
-            if (currentStashed > 0 || isTimerLoop) {
-              //reduce stash capacity to eventually processed stashed messages.
-              val nextStashCapacity =
-                if (stashCapacity <= 0)
-                  this.stashCapacity
-                else
-                  currentStashed / 2
-
-              val nextTask =
-                scheduler.task(interval) {
+        //if there is no task schedule based on current stash so that eventually all messages get dropped without hammering.
+        if (task.isEmpty)
+          interval foreach {
+            interval =>
+              //cancel any existing task.
+              task foreach {
+                task =>
+                  task.cancel()
                   this.task = None
-                  timerWakeUp(currentStashed = weight.get, nextStashCapacity)
-                }
+              }
 
-              task = Some(nextTask)
-            }
-          } finally {
-            busy.set(false)
+              //schedule a task is there are messages to process or if the Actor is a looper.
+              if (currentStashed > 0 || isTimerLoop) {
+                //reduce stash capacity to eventually processed stashed messages.
+
+                val nextTask =
+                  interval.scheduler.task(interval.delay) {
+                    //clear the existing task so that next one gets scheduled/
+                    this.task = None
+                    //get the current weight during the schedule.
+                    val currentStashedAtSchedule = weight.get
+
+                    //adjust the stash capacity so that eventually all messages get processed.
+                    val adjustedStashCapacity =
+                      if (stashCapacity <= 0)
+                        this.stashCapacity
+                      else
+                        (currentStashedAtSchedule / 2) max fixedStashSize //if cached stashCapacity cannot be lower than this.stashCapacity.
+
+                    //schedule wakeUp.
+                    timerWakeUp(
+                      currentStashed = currentStashedAtSchedule,
+                      stashCapacity = adjustedStashCapacity
+                    )
+                  }
+
+                task = Some(nextTask)
+              }
           }
+      } finally {
+        //if receive was not executed set free after a task is scheduled.
+        if (!isOverflown)
+          busy.set(false)
       }
     }
   }
@@ -489,16 +529,25 @@ private[swaydb] class Actor[-T, S](val state: S,
     var processedWeight = 0
     var break = false
     try
-      while (!terminated && !break && processedWeight < overflow) {
+      while (!break && processedWeight < overflow) {
         val (message, messageWeight) = queue.poll()
-        //        println(s"Receive: $message. overflow: ${overflow - processedWeight}")
         if (message == null)
           break = true
+        else if (terminated) //apply recovery if actor is terminated.
+          try
+            recovery foreach {
+              f =>
+                f(message, IO.Right(Actor.Error.TerminatedActor), this)
+            }
+          finally {
+            processedWeight += messageWeight
+          }
         else
           try
             execution(message, self)
           catch {
             case throwable: Throwable =>
+              //apply recovery if failed to process messages.
               recovery foreach {
                 f =>
                   f(message, IO.Left(throwable), this)
@@ -508,15 +557,14 @@ private[swaydb] class Actor[-T, S](val state: S,
           }
       }
     finally {
-      busy.set(false)
       val currentStashed =
         weight updateAndGet {
           new IntUnaryOperator {
-            override def applyAsInt(operand: Int): Int =
-              operand - processedWeight
+            override def applyAsInt(currentWeight: Int): Int =
+              currentWeight - processedWeight
           }
         }
-
+      busy.set(false)
       wakeUp(currentStashed = currentStashed)
     }
   }
@@ -533,33 +581,33 @@ private[swaydb] class Actor[-T, S](val state: S,
       recovery =
         Some {
           case (message: M@unchecked, error, actor) =>
-            try
-              error match {
-                case IO.Right(actorError) =>
-                  Some(f(message, IO.Right(actorError), actor))
+            error match {
+              case IO.Right(actorError) =>
+                Some(f(message, IO.Right(actorError), actor))
 
-                case IO.Left(throwable) =>
-                  Some(f(message, IO.Left(ExceptionHandler.toError(throwable)), actor))
-              }
-            catch {
-              case exception: Exception =>
-                logger.debug("Failed to recover failed message.", exception)
+              case IO.Left(throwable) =>
+                Some(f(message, IO.Left(ExceptionHandler.toError(throwable)), actor))
             }
 
           case (_, error, _) =>
             error match {
               case IO.Right(Actor.Error.TerminatedActor) =>
-                logger.debug("Failed to process message.", new Exception("Cause: Terminated Actor"))
+                logger.error("Failed to process message.", new Exception("Cause: Terminated Actor"))
 
               case IO.Left(exception: Throwable) =>
-                logger.debug("Failed to process message.", exception)
+                logger.error("Failed to process message.", exception)
             }
         }
     )
 
-  override def terminate(): Unit = {
+  override def clear(): Unit =
+    queue.clear()
+
+  override def terminate(): Unit =
     terminated = true
-    queue.terminate()
-    weight.set(0)
+
+  override def terminateAndClear(): Unit = {
+    terminate()
+    clear()
   }
 }

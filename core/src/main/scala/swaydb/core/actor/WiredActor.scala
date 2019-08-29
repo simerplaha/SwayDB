@@ -126,6 +126,6 @@ class WiredActor[T, S](impl: T, interval: Option[(FiniteDuration, Int)], state: 
 
   def terminate(): Unit = {
     scheduler.terminate()
-    actor.terminate()
+    actor.terminateAndClear()
   }
 }

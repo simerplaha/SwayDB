@@ -162,7 +162,7 @@ private[core] object MemorySweeper {
       }
 
     def terminate() =
-      actor.terminate()
+      actor.terminateAndClear()
   }
 
   case object Disabled extends MemorySweeper

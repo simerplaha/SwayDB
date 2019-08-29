@@ -27,7 +27,7 @@ protected sealed trait ActorQueue[T] {
   def add(item: T): Unit
   def poll(): T
   def peek(): T
-  def terminate(): Unit
+  def clear(): Unit
   def size: Int
 }
 
@@ -52,7 +52,7 @@ protected object ActorQueue {
           override def peek(): (T, Int) =
             queue.peek()
 
-          override def terminate(): Unit =
+          override def clear(): Unit =
             synchronized {
               queue.clear()
             }
@@ -76,7 +76,7 @@ protected object ActorQueue {
           override def peek(): (T, Int) =
             skipList.first()
 
-          override def terminate(): Unit =
+          override def clear(): Unit =
             synchronized {
               skipList.clear()
             }

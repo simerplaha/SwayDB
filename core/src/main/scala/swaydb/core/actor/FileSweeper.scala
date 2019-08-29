@@ -111,7 +111,7 @@ private[swaydb] object FileSweeper extends LazyLogging {
         queue ! Action.Delete(file)
 
       override def terminate(): Unit =
-        queue.terminate()
+        queue.terminateAndClear()
     }
   }
 }
