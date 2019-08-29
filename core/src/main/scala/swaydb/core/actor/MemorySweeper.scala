@@ -19,8 +19,6 @@
 
 package swaydb.core.actor
 
-import com.typesafe.scalalogging.LazyLogging
-import swaydb.Tagged
 import swaydb.core.actor.Command.WeighedKeyValue
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.io.file.BlockCache
@@ -51,61 +49,13 @@ private[core] object Command {
                    map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]) extends Command
 }
 
-private[core] sealed trait MemorySweeper extends Tagged[MemorySweeper.Enabled, Option]
+private[core] sealed trait MemorySweeper
 
 /**
  * Cleared all cached data. [[MemorySweeper]] is not required for Memory only databases
  * and zero databases.
  */
 private[core] object MemorySweeper {
-
-  case object Disabled extends MemorySweeper {
-    override def get: Option[MemorySweeper.Enabled] = None
-  }
-
-  sealed trait Enabled extends MemorySweeper {
-    override def get: Option[MemorySweeper.Enabled] = Some(this)
-    def terminate(): Unit
-  }
-
-  sealed trait Block extends Enabled {
-    def queue: ActorRef[Command, Unit]
-
-    def add(key: BlockCache.Key,
-            value: Slice[Byte],
-            map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]): Unit =
-      queue ! Command.Block(key, value.size, map)
-  }
-
-  case class BlockSweeper(blockSize: Int,
-                          cacheSize: Int,
-                          actorConfig: ActorConfig) extends MemorySweeperImpl with Block
-
-  sealed trait KeyValue extends Enabled {
-    def queue: ActorRef[Command, Unit]
-
-    def add(keyValue: Persistent.SegmentResponse,
-            skipList: SkipList[Slice[Byte], _]): Unit =
-      queue ! Command.WeighKeyValue(new WeakReference(keyValue), new WeakReference[SkipList[Slice[Byte], _]](skipList))
-
-    /**
-     * If there was failure reading the Group's header guess it's weight. Successful reads are priority over 100% cache's accuracy.
-     * The cache's will eventually adjust to be accurate but until then guessed weights should be used. The accuracy of guessed
-     * weights can also be used.
-     */
-    def add(keyValue: swaydb.core.data.KeyValue.ReadOnly.Group,
-            skipList: SkipList[Slice[Byte], _]): Unit = {
-      val weight = keyValue.valueLength
-      queue ! Command.WeighedKeyValue(new WeakReference(keyValue), new WeakReference[SkipList[Slice[Byte], _]](skipList), weight)
-    }
-  }
-
-  case class KeyValueSweeper(cacheSize: Int,
-                             actorConfig: ActorConfig) extends MemorySweeperImpl with KeyValue
-
-  case class Both(blockSize: Int,
-                  cacheSize: Int,
-                  actorConfig: ActorConfig) extends MemorySweeperImpl with Block with KeyValue
 
   def apply(memoryCache: MemoryCache): Option[MemorySweeper.Enabled] =
     memoryCache match {
@@ -138,7 +88,7 @@ private[core] object MemorySweeper {
         )
     }
 
-  def keyValueWeigher(entry: Command): Int =
+  def weigher(entry: Command): Int =
     entry match {
       case command: Command.Block =>
         ByteSizeOf.long + command.valueSize + 264
@@ -158,60 +108,114 @@ private[core] object MemorySweeper {
     //        if (keyValue.hasRemoveMayBe) (168 + otherBytes).toLong else (264 + otherBytes).toLong
     (264 * 2) + otherBytes
   }
-}
 
-trait MemorySweeperImpl extends LazyLogging {
-  def cacheSize: Int
+  protected sealed trait SweeperImplementation {
+    def cacheSize: Int
 
-  def actorConfig: ActorConfig
+    def actorConfig: ActorConfig
 
-  /**
-   * Lazy initialisation because this queue is not require for Memory database that do not use compression.
-   */
-  lazy val queue: ActorRef[Command, Unit] =
-    Actor.cacheFromConfig[Command](
-      stashCapacity = cacheSize,
-      config = actorConfig,
-      weigher = MemorySweeper.keyValueWeigher
-    ) {
-      case (Command.Block(key, _, map), _) =>
-        map remove key
+    /**
+     * Lazy initialisation because this actor is not require for Memory database that do not use compression.
+     */
+    val actor: ActorRef[Command, Unit] =
+      Actor.cacheFromConfig[Command](
+        stashCapacity = cacheSize,
+        config = actorConfig,
+        weigher = MemorySweeper.weigher
+      ) {
+        case (Command.Block(key, _, map), _) =>
+          map remove key
 
-      case (command: Command.KeyValueCommand, self) =>
-        for {
-          skipList <- command.skipListRef.get
-          keyValue <- command.keyValueRef.get
-        } yield {
-          keyValue match {
-            case group: swaydb.core.data.KeyValue.ReadOnly.Group =>
+        case (command: Command.KeyValueCommand, self) =>
+          for {
+            skipList <- command.skipListRef.get
+            keyValue <- command.keyValueRef.get
+          } yield {
+            keyValue match {
+              case group: swaydb.core.data.KeyValue.ReadOnly.Group =>
 
-              /**
-               * Before removing Group, check if removes cache key-values it is enough,
-               * if it's already clear only then remove.
-               */
-              if (!group.isBlockCacheEmpty) {
-                group.clearBlockCache()
-                self ! Command.WeighedKeyValue(new WeakReference(group), new WeakReference[SkipList[Slice[Byte], _]](skipList), keyValue.valueLength)
-              } else if (!group.isKeyValuesCacheEmpty) {
-                group.clearCachedKeyValues()
-                self ! Command.WeighedKeyValue(new WeakReference(group), new WeakReference[SkipList[Slice[Byte], _]](skipList), keyValue.valueLength)
-              } else {
-                group match {
-                  case group: Memory.Group =>
-                    //Memory.Group key-values are only uncompressed. DO NOT REMOVE THEM!
-                    skipList.asInstanceOf[SkipList[Slice[Byte], Memory]].put(group.key, group.uncompress())
+                /**
+                 * Before removing Group, check if removes cache key-values it is enough,
+                 * if it's already clear only then remove.
+                 */
+                if (!group.isBlockCacheEmpty) {
+                  group.clearBlockCache()
+                  self ! Command.WeighedKeyValue(new WeakReference(group), new WeakReference[SkipList[Slice[Byte], _]](skipList), keyValue.valueLength)
+                } else if (!group.isKeyValuesCacheEmpty) {
+                  group.clearCachedKeyValues()
+                  self ! Command.WeighedKeyValue(new WeakReference(group), new WeakReference[SkipList[Slice[Byte], _]](skipList), keyValue.valueLength)
+                } else {
+                  group match {
+                    case group: Memory.Group =>
+                      //Memory.Group key-values are only uncompressed. DO NOT REMOVE THEM!
+                      skipList.asInstanceOf[SkipList[Slice[Byte], Memory]].put(group.key, group.uncompress())
 
-                  case group: Persistent.Group =>
-                    skipList remove group.key
+                    case group: Persistent.Group =>
+                      skipList remove group.key
+                  }
                 }
-              }
 
-            case _: Persistent.SegmentResponse =>
-              skipList remove keyValue.key
+              case _: Persistent.SegmentResponse =>
+                skipList remove keyValue.key
+            }
           }
-        }
-    }
+      }
 
-  def terminate() =
-    queue.terminate()
+    def terminate() =
+      actor.terminate()
+  }
+
+  case object Disabled extends MemorySweeper
+
+  sealed trait Enabled extends MemorySweeper {
+    def terminate(): Unit
+  }
+
+  sealed trait Block extends Enabled {
+    def actor: ActorRef[Command, Unit]
+
+    def add(key: BlockCache.Key,
+            value: Slice[Byte],
+            map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]): Unit =
+      actor ! Command.Block(
+        key = key,
+        valueSize = value.size,
+        map = map
+      )
+  }
+
+  case class BlockSweeper(blockSize: Int,
+                          cacheSize: Int,
+                          actorConfig: ActorConfig) extends SweeperImplementation with Block
+
+  sealed trait KeyValue extends Enabled {
+    def actor: ActorRef[Command, Unit]
+
+    def add(keyValue: Persistent.SegmentResponse,
+            skipList: SkipList[Slice[Byte], _]): Unit =
+      actor ! Command.WeighKeyValue(
+        keyValueRef = new WeakReference(keyValue),
+        skipListRef = new WeakReference[SkipList[Slice[Byte], _]](skipList)
+      )
+
+    /**
+     * If there was failure reading the Group's header guess it's weight. Successful reads are priority over 100% cache's accuracy.
+     * The cache's will eventually adjust to be accurate but until then guessed weights should be used. The accuracy of guessed
+     * weights can also be used.
+     */
+    def add(keyValue: swaydb.core.data.KeyValue.ReadOnly.Group,
+            skipList: SkipList[Slice[Byte], _]): Unit =
+      actor ! Command.WeighedKeyValue(
+        keyValueRef = new WeakReference(keyValue),
+        skipListRef = new WeakReference[SkipList[Slice[Byte], _]](skipList),
+        weight = keyValue.valueLength
+      )
+  }
+
+  case class KeyValueSweeper(cacheSize: Int,
+                             actorConfig: ActorConfig) extends SweeperImplementation with KeyValue
+
+  case class Both(blockSize: Int,
+                  cacheSize: Int,
+                  actorConfig: ActorConfig) extends SweeperImplementation with Block with KeyValue
 }

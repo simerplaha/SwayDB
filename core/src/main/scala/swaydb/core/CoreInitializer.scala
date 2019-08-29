@@ -144,6 +144,7 @@ private[core] object CoreInitializer extends LazyLogging {
     implicit val fileSweeper: FileSweeper.Enabled =
       FileSweeper(fileCache)
 
+    //TODO - do not initialise for in-memory no grouping databases.
     implicit val memorySweeper: Option[MemorySweeper.Enabled] =
       MemorySweeper(memoryCache)
 
