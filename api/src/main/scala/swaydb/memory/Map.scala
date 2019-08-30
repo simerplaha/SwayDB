@@ -25,6 +25,7 @@ import swaydb.core.Core
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.GroupBy
+import swaydb.data.config.{ActorConfig, FileCache, MemoryCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -50,7 +51,6 @@ object Map extends LazyLogging {
    * @param keySerializer   Converts keys to Bytes
    * @param valueSerializer Converts values to Bytes
    * @param keyOrder        Sort order for keys
-   * @param ec
    * @tparam K
    * @tparam V
    *
@@ -59,12 +59,13 @@ object Map extends LazyLogging {
 
   def apply[K, V](mapSize: Int = 4.mb,
                   segmentSize: Int = 2.mb,
-                  keyValueCacheSize: Int = 500.mb,
-                  keyValueCacheCheckDelay: FiniteDuration = 10.seconds,
-                  blockCacheSize: Option[Int] = Some(4098),
+                  memoryCacheSize: Int = 500.mb,
+                  maxOpenSegments: Int = 100,
+                  memorySweeperPollInterval: FiniteDuration = 10.seconds,
+                  fileSweeperPollInterval: FiniteDuration = 10.seconds,
                   mightContainFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = false,
-                  deleteSegmentsEventually: Boolean = false,
+                  deleteSegmentsEventually: Boolean = true,
                   groupBy: Option[GroupBy.KeyValues] = None,
                   acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                         valueSerializer: Serializer[V],
@@ -81,14 +82,20 @@ object Map extends LazyLogging {
         keyValueGroupBy = groupBy,
         acceleration = acceleration
       ),
-      maxOpenSegments = 0,
-      cacheSize = keyValueCacheSize,
-      cacheCheckDelay = keyValueCacheCheckDelay,
-      blockCacheSize = blockCacheSize,
-      //memory Segments are never closed.
-      segmentsOpenCheckDelay = Duration.Zero,
-      fileSweeperEC = fileSweeperEC,
-      memorySweeperEC = memorySweeperEC
+      fileCache =
+        FileCache.Enable.default(
+          maxOpen = maxOpenSegments,
+          interval = fileSweeperPollInterval,
+          ec = fileSweeperEC
+        ),
+      memoryCache =
+        MemoryCache.EnableKeyValueCache(
+          capacity = memoryCacheSize,
+          actorConfig = ActorConfig.Timer(
+            delay = memorySweeperPollInterval,
+            ec = memorySweeperEC
+          )
+        )
     ) map {
       db =>
         swaydb.Map[K, V, IO.ApiIO](db)

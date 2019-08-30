@@ -21,11 +21,28 @@ package swaydb.data.config
 
 import swaydb.Tagged
 
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
+
 sealed trait FileCache extends Tagged[FileCache.Enable, Option]
 
 object FileCache {
+
   case object Disable extends FileCache {
     override def get: Option[Enable] = None
+  }
+
+  object Enable {
+    def default(maxOpen: Int,
+                interval: FiniteDuration,
+                ec: ExecutionContext) =
+      FileCache.Enable(
+        maxOpen = maxOpen,
+        actorConfig = ActorConfig.TimeLoop(
+          delay = interval,
+          ec = ec
+        )
+      )
   }
 
   case class Enable(maxOpen: Int,

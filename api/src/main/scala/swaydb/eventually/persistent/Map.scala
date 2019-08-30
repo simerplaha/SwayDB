@@ -47,29 +47,22 @@ object Map extends LazyLogging {
    *
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    *
-   * @param dir                        Root directory for all Level where appendix folder & files are created
-   * @param otherDirs                  Secondary directories for all Levels where Segments get distributed.
-   * @param maxOpenSegments            Number of concurrent Segments opened
-   * @param mapSize                    Size of LevelZero's maps (WAL)
-   * @param maxMemoryLevelSize         Total size of in-memory Level (Level1) before Segments gets pushed to persistent Level (Level2)
-   * @param maxSegmentsToPush          Numbers of Segments to push from in-memory Level (Level1) to persistent Level (Level2)
-   * @param memoryLevelSegmentSize     Size of Level1's Segments
-   * @param persistentLevelSegmentSize Size of Level2's Segments
-   * @param mmapPersistentSegments     Memory-maps Level2 Segments
-   * @param mmapPersistentAppendix     Memory-maps Level2's appendix file
-   * @param keyValueCacheSize                  Size of
-   * @param keyValueCacheCheckDelay            Sets the max interval at which key-values get dropped from the cache. The delays
-   *                                   are dynamically adjusted based on the current size of the cache to stay close the set
-   *                                   cacheSize.
-   * @param segmentsOpenCheckDelay     Sets the max interval at which Segments get closed. The delays
-   *                                   are dynamically adjusted based on the current number of open Segments.
-   * @param acceleration               Controls the write speed.
-   * @param keySerializer              Converts keys to Bytes
-   * @param valueSerializer            Converts values to Bytes
-   * @param keyOrder                   Sort order for keys
-   * @param ec                         ExecutionContext
+   * @param dir                                Root directory for all Level where appendix folder & files are created
+   * @param otherDirs                          Secondary directories for all Levels where Segments get distributed.
+   * @param mapSize                            Size of LevelZero's maps (WAL)
+   * @param maxMemoryLevelSize                 Total size of in-memory Level (Level1) before Segments gets pushed to persistent Level (Level2)
+   * @param maxSegmentsToPush                  Numbers of Segments to push from in-memory Level (Level1) to persistent Level (Level2)
+   * @param memoryLevelSegmentSize             Size of Level1's Segments
+   * @param persistentLevelSegmentSize         Size of Level2's Segments
+   * @param mmapPersistentSegments             Memory-maps Level2 Segments
+   * @param mmapPersistentAppendix             Memory-maps Level2's appendix file
+   * @param acceleration                       Controls the write speed.
+   * @param keySerializer                      Converts keys to Bytes
+   * @param valueSerializer                    Converts values to Bytes
+   * @param keyOrder                           Sort order for keys
    * @tparam K Type of key
    * @tparam V Type of value
+   *
    * @return Database instance
    */
   def apply[K, V](dir: Path,
@@ -82,11 +75,11 @@ object Map extends LazyLogging {
                   persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                   mmapPersistentSegments: MMAP = MMAP.WriteAndRead,
                   mmapPersistentAppendix: Boolean = true,
-                  keyValueCacheSize: Int = 100.mb, //cacheSize for memory database is used for evicting decompressed key-values & persistent key-values in-memory
                   otherDirs: Seq[Dir] = Seq.empty,
-                  keyValueCacheCheckDelay: FiniteDuration = 5.seconds,
-                  segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
-                  blockCacheSize: Option[Int] = Some(4098),
+                  blockSize: Int = 4098.bytes,
+                  memoryCacheSize: Int = 100.mb,
+                  memorySweeperPollInterval: FiniteDuration = 10.seconds,
+                  fileSweeperPollInterval: FiniteDuration = 10.seconds,
                   mightContainFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = true,
                   deleteSegmentsEventually: Boolean = false,
@@ -115,13 +108,19 @@ object Map extends LazyLogging {
           groupBy = groupBy,
           acceleration = acceleration
         ),
-      maxOpenSegments = maxOpenSegments,
-      keyValueCacheSize = Some(keyValueCacheSize),
-      keyValueCacheCheckDelay = keyValueCacheCheckDelay,
-      blockCacheSize = blockCacheSize,
-      segmentsOpenCheckDelay = segmentsOpenCheckDelay,
-      fileSweeperEC = fileSweeperEC,
-      memorySweeperEC = memorySweeperEC
+      fileCache =
+        FileCache.Enable.default(
+          maxOpen = maxOpenSegments,
+          interval = fileSweeperPollInterval,
+          ec = fileSweeperEC
+        ),
+      memoryCache =
+        MemoryCache.Enabled.default(
+          blockSize = blockSize,
+          memorySize = memoryCacheSize,
+          interval = memorySweeperPollInterval,
+          ec = memorySweeperEC
+        )
     ) map {
       db =>
         swaydb.Map[K, V, IO.ApiIO](db)

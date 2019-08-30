@@ -85,98 +85,75 @@ object SwayDB extends LazyLogging {
    * @return Database instance
    */
   def apply[K, V](config: SwayDBPersistentConfig,
-                  maxOpenSegments: Int,
-                  keyValueCacheSize: Option[Int],
-                  keyValueCacheCheckDelay: FiniteDuration,
-                  segmentsOpenCheckDelay: FiniteDuration,
-                  blockCacheSize: Option[Int])(implicit keySerializer: Serializer[K],
-                                               valueSerializer: Serializer[V],
-                                               keyOrder: KeyOrder[Slice[Byte]],
-                                               fileSweeperEC: ExecutionContext,
-                                               memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
+                  fileCache: FileCache.Enable,
+                  memoryCache: MemoryCache)(implicit keySerializer: Serializer[K],
+                                            valueSerializer: Serializer[V],
+                                            keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
     Core(
       config = config,
-      maxOpenSegments = maxOpenSegments,
-      keyValueCacheSize = keyValueCacheSize,
-      blockCacheSize = blockCacheSize,
-      keyValueCacheCheckDelay = keyValueCacheCheckDelay,
-      segmentsOpenCheckDelay = segmentsOpenCheckDelay,
-      fileSweeperEC = fileSweeperEC,
-      memorySweeperEC = memorySweeperEC
+      fileCache = fileCache,
+      memoryCache = memoryCache
     ) map {
       db =>
         swaydb.Map[K, V, IO.ApiIO](db)
     }
 
   def apply[T](config: SwayDBPersistentConfig,
-               maxOpenSegments: Int,
-               cacheSize: Option[Int],
-               cacheCheckDelay: FiniteDuration,
-               segmentsOpenCheckDelay: FiniteDuration,
-               blockCacheSize: Option[Int])(implicit serializer: Serializer[T],
-                                            keyOrder: KeyOrder[Slice[Byte]],
-                                            fileSweeperEC: ExecutionContext,
-                                            memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+               fileCache: FileCache.Enable,
+               memoryCache: MemoryCache)(implicit serializer: Serializer[T],
+                                         keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     Core(
       config = config,
-      maxOpenSegments = maxOpenSegments,
-      keyValueCacheSize = cacheSize,
-      keyValueCacheCheckDelay = cacheCheckDelay,
-      blockCacheSize = blockCacheSize,
-      segmentsOpenCheckDelay = segmentsOpenCheckDelay,
-      fileSweeperEC = fileSweeperEC,
-      memorySweeperEC = memorySweeperEC
+      fileCache = fileCache,
+      memoryCache = memoryCache
     ) map {
       db =>
         swaydb.Set[T](db)
     }
 
   def apply[K, V](config: SwayDBMemoryConfig,
-                  cacheSize: Int,
-                  cacheCheckDelay: FiniteDuration,
-                  blockCacheSize: Option[Int])(implicit keySerializer: Serializer[K],
-                                               valueSerializer: Serializer[V],
-                                               keyOrder: KeyOrder[Slice[Byte]],
-                                               fileSweeperEC: ExecutionContext,
-                                               memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
+                  fileCache: FileCache.Enable,
+                  memoryCache: MemoryCache)(implicit keySerializer: Serializer[K],
+                                            valueSerializer: Serializer[V],
+                                            keyOrder: KeyOrder[Slice[Byte]],
+                                            fileSweeperEC: ExecutionContext,
+                                            memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
     Core(
       config = config,
-      maxOpenSegments = 0,
-      cacheSize = cacheSize,
-      cacheCheckDelay = cacheCheckDelay,
-      segmentsOpenCheckDelay = Duration.Zero,
-      blockCacheSize = blockCacheSize,
-      fileSweeperEC = fileSweeperEC,
-      memorySweeperEC = memorySweeperEC
+      fileCache = fileCache,
+      memoryCache = memoryCache
     ) map {
       db =>
         swaydb.Map[K, V, IO.ApiIO](db)
     }
 
   def apply[T](config: SwayDBMemoryConfig,
-               cacheSize: Int,
-               cacheCheckDelay: FiniteDuration,
-               blockCacheSize: Option[Int])(implicit serializer: Serializer[T],
-                                            keyOrder: KeyOrder[Slice[Byte]],
-                                            fileSweeperEC: ExecutionContext,
-                                            memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+               fileCache: FileCache.Enable,
+               memoryCache: MemoryCache)(implicit serializer: Serializer[T],
+                                         keyOrder: KeyOrder[Slice[Byte]],
+                                         fileSweeperEC: ExecutionContext,
+                                         memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     Core(
       config = config,
-      maxOpenSegments = 0,
-      cacheSize = cacheSize,
-      cacheCheckDelay = cacheCheckDelay,
-      segmentsOpenCheckDelay = Duration.Zero,
-      blockCacheSize = blockCacheSize,
-      fileSweeperEC = fileSweeperEC,
-      memorySweeperEC = memorySweeperEC
+      fileCache = fileCache,
+      memoryCache = memoryCache
     ) map {
       db =>
         swaydb.Set[T](db)
     }
 
-  def apply[T](config: LevelZeroConfig)(implicit serializer: Serializer[T],
-                                        keyOrder: KeyOrder[Slice[Byte]],
-                                        ec: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+  def apply[T](config: LevelZeroPersistentConfig)(implicit serializer: Serializer[T],
+                                                  keyOrder: KeyOrder[Slice[Byte]],
+                                                  mmapCleanerEC: Option[ExecutionContext]): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+    Core(
+      config = config
+    ) map {
+      db =>
+        swaydb.Set[T](db)
+    }
+
+  def apply[T](config: LevelZeroMemoryConfig)(implicit serializer: Serializer[T],
+                                              keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     Core(
       config = config
     ) map {

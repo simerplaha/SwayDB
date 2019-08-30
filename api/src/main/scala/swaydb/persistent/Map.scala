@@ -48,27 +48,27 @@ object Map extends LazyLogging {
    *
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    *
-   * @param dir                         Root directory for all Level where appendix folder & files are created
-   * @param otherDirs                   Secondary directories for all Levels where Segments value distributed.
-   * @param maxOpenSegments             Number of concurrent Segments opened
-   * @param keyValueCacheSize                   Size of in-memory key-values
-   * @param mapSize                     Size of LevelZero's maps (WAL)
-   * @param mmapMaps                    Memory-maps LevelZero maps files if set to true else reverts java.nio.FileChannel
-   * @param mmapAppendix                Memory-maps Levels appendix files if set to true else reverts java.nio.FileChannel
-   * @param mmapSegments                Memory-maps Levels Segment files if set to true else reverts java.nio.FileChannel
-   * @param segmentSize                 Minimum size of Segment files in each Level
-   * @param appendixFlushCheckpointSize Size of the appendix file before it's flushed. Appendix files are append only log files.
-   *                                    Flushing removes deleted entries in the file hence reducing the size of the file.
-   * @param keyValueCacheCheckDelay             Sets the max interval at which key-values value dropped from the cache. The delays
-   *                                    are dynamically adjusted based on the current size of the cache to stay close the set
-   *                                    cacheSize.
-   * @param segmentsOpenCheckDelay      Sets the max interval at which Segments value closed. The delays
-   *                                    are dynamically adjusted based on the current number of open Segments.
-   * @param acceleration                Controls the write speed.
-   * @param keySerializer               Converts keys to Bytes
-   * @param valueSerializer             Converts values to Bytes
-   * @param keyOrder                    Sort order for keys
-   * @param fileSweeperEC           ExecutionContext
+   * @param dir                                   Root directory for all Level where appendix folder & files are created
+   * @param otherDirs                             Secondary directories for all Levels where Segments value distributed.
+   * @param maxOpenSegments                       Number of concurrent Segments opened
+   * @param memoryCacheSize                       Size of in-memory key-values
+   * @param mapSize                               Size of LevelZero's maps (WAL)
+   * @param mmapMaps                              Memory-maps LevelZero maps files if set to true else reverts java.nio.FileChannel
+   * @param mmapAppendix                          Memory-maps Levels appendix files if set to true else reverts java.nio.FileChannel
+   * @param mmapSegments                          Memory-maps Levels Segment files if set to true else reverts java.nio.FileChannel
+   * @param segmentSize                           Minimum size of Segment files in each Level
+   * @param appendixFlushCheckpointSize           Size of the appendix file before it's flushed. Appendix files are append only log files.
+   *                                              Flushing removes deleted entries in the file hence reducing the size of the file.
+   * @param memorySweeperPollInterval             Sets the max interval at which key-values value dropped from the cache. The delays
+   *                                              are dynamically adjusted based on the current size of the cache to stay close the set
+   *                                              cacheSize.
+   * @param fileSweeperPollInterval               Sets the max interval at which Segments value closed. The delays
+   *                                              are dynamically adjusted based on the current number of open Segments.
+   * @param acceleration                          Controls the write speed.
+   * @param keySerializer                         Converts keys to Bytes
+   * @param valueSerializer                       Converts values to Bytes
+   * @param keyOrder                              Sort order for keys
+   * @param fileSweeperEC                         ExecutionContext
    * @tparam K Type of key
    * @tparam V Type of value
    *
@@ -77,8 +77,8 @@ object Map extends LazyLogging {
 
   def apply[K, V](dir: Path,
                   maxOpenSegments: Int = 1000,
-                  keyValueCacheSize: Int = 100.mb,
-                  blockCacheSize: Option[Int] = Some(4098),
+                  memoryCacheSize: Int = 100.mb,
+                  blockSize: Int = 4098,
                   mapSize: Int = 4.mb,
                   mmapMaps: Boolean = true,
                   recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
@@ -87,8 +87,8 @@ object Map extends LazyLogging {
                   segmentSize: Int = 2.mb,
                   appendixFlushCheckpointSize: Int = 2.mb,
                   otherDirs: Seq[Dir] = Seq.empty,
-                  keyValueCacheCheckDelay: FiniteDuration = 10.seconds,
-                  segmentsOpenCheckDelay: FiniteDuration = 10.seconds,
+                  memorySweeperPollInterval: FiniteDuration = 10.seconds,
+                  fileSweeperPollInterval: FiniteDuration = 10.seconds,
                   mightContainFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = true,
                   deleteSegmentsEventually: Boolean = false,
@@ -114,13 +114,19 @@ object Map extends LazyLogging {
         groupBy = lastLevelGroupBy,
         acceleration = acceleration
       ),
-      maxOpenSegments = maxOpenSegments,
-      keyValueCacheSize = Some(keyValueCacheSize),
-      keyValueCacheCheckDelay = keyValueCacheCheckDelay,
-      blockCacheSize = blockCacheSize,
-      segmentsOpenCheckDelay = segmentsOpenCheckDelay,
-      fileSweeperEC = fileSweeperEC,
-      memorySweeperEC = memorySweeperEC
+      fileCache =
+        FileCache.Enable.default(
+          maxOpen = maxOpenSegments,
+          interval = fileSweeperPollInterval,
+          ec = fileSweeperEC
+        ),
+      memoryCache =
+        MemoryCache.Enabled.default(
+          blockSize = blockSize,
+          memorySize = memoryCacheSize,
+          interval = memorySweeperPollInterval,
+          ec = memorySweeperEC
+        )
     ) map {
       db =>
         swaydb.Map[K, V, IO.ApiIO](db)

@@ -76,7 +76,7 @@ private[core] object CoreInitializer extends LazyLogging {
 
     implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
     if (config.storage.isMMAP && bufferCleanerEC.isEmpty)
-      IO.failed("ExecutionContext for ByteBuffer is required for memory-mapped configured databases.") //FIXME - create a LevelZeroPersistentMMAPConfig type to remove this error check.
+      IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]]("ExecutionContext for ByteBuffer is required for memory-mapped configured databases.") //FIXME - create a LevelZeroPersistentMMAPConfig type to remove this error check.
     else
       LevelZero(
         mapSize = config.mapSize,

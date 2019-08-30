@@ -25,6 +25,7 @@ import swaydb.core.Core
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.GroupBy
+import swaydb.data.config.{ActorConfig, FileCache, MemoryCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -43,13 +44,14 @@ object Set extends LazyLogging {
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
   def apply[T](mapSize: Int = 4.mb,
+               maxOpenSegments: Int = 100,
                segmentSize: Int = 2.mb,
-               cacheSize: Int = 500.mb, //cacheSize for memory database is used for evicting decompressed key-values
-               cacheCheckDelay: FiniteDuration = 10.seconds,
-               blockCacheSize: Option[Int] = Some(4098),
+               memoryCacheSize: Int = 500.mb, //cacheSize for memory database is used for evicting decompressed key-values
+               memorySweeperPollInterval: FiniteDuration = 10.seconds,
+               fileSweeperPollInterval: FiniteDuration = 10.seconds,
                mightContainFalsePositiveRate: Double = 0.01,
                compressDuplicateValues: Boolean = false,
-               deleteSegmentsEventually: Boolean = false,
+               deleteSegmentsEventually: Boolean = true,
                groupBy: Option[GroupBy.KeyValues] = None,
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -65,14 +67,20 @@ object Set extends LazyLogging {
         keyValueGroupBy = groupBy,
         acceleration = acceleration
       ),
-      maxOpenSegments = 0,
-      cacheSize = cacheSize,
-      cacheCheckDelay = cacheCheckDelay,
-      blockCacheSize = blockCacheSize,
-      //memory Segments are never closed.
-      segmentsOpenCheckDelay = Duration.Zero,
-      fileSweeperEC = fileSweeperEC,
-      memorySweeperEC = memorySweeperEC
+      fileCache =
+        FileCache.Enable.default(
+          maxOpen = maxOpenSegments,
+          interval = fileSweeperPollInterval,
+          ec = fileSweeperEC,
+        ),
+      memoryCache =
+        MemoryCache.EnableKeyValueCache(
+          capacity = memoryCacheSize,
+          actorConfig = ActorConfig.Timer(
+            delay = memorySweeperPollInterval,
+            ec = memorySweeperEC
+          )
+        )
     ) map {
       db =>
         swaydb.Set[T](db)

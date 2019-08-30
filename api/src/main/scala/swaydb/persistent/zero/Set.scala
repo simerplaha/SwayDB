@@ -47,7 +47,7 @@ object Set extends LazyLogging {
                otherDirs: Seq[Dir] = Seq.empty,
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                     ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+                                                                                     ec: Option[ExecutionContext] = Some(SwayDB.defaultExecutionContext)): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     Core(
       config = DefaultPersistentZeroConfig(
         dir = dir,

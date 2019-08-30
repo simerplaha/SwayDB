@@ -29,69 +29,48 @@ import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.map.timer.Timer
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.config.{LevelZeroConfig, SwayDBMemoryConfig, SwayDBPersistentConfig}
+import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.{IO, Prepare, Tag}
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.concurrent.duration.Deadline
 
 private[swaydb] object Core {
 
   def apply(config: SwayDBPersistentConfig,
-            maxOpenSegments: Int,
-            keyValueCacheSize: Option[Int],
-            keyValueCacheCheckDelay: FiniteDuration,
-            segmentsOpenCheckDelay: FiniteDuration,
-            blockCacheSize: Option[Int],
-            fileSweeperEC: ExecutionContext,
-            memorySweeperEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                               timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
-  //    CoreInitializer(
-  //      config = config,
-  //      maxOpenSegments = maxOpenSegments,
-  //      keyValueCacheSize = keyValueCacheSize.map(_.toLong),
-  //      blockCacheSize = blockCacheSize,
-  //      keyValueQueueDelay = keyValueCacheCheckDelay,
-  //      segmentCloserDelay = segmentsOpenCheckDelay,
-  //      fileSweeperEC = fileSweeperEC,
-  //      memorySweeperEC = memorySweeperEC
-  //    )
-    ???
+            fileCache: FileCache.Enable,
+            memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                      timeOrder: TimeOrder[Slice[Byte]],
+                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+    CoreInitializer(
+      config = config,
+      fileCache = fileCache,
+      memoryCache = memoryCache
+    )
 
   def apply(config: SwayDBMemoryConfig,
-            maxOpenSegments: Int,
-            cacheSize: Int,
-            cacheCheckDelay: FiniteDuration,
-            blockCacheSize: Option[Int],
-            segmentsOpenCheckDelay: FiniteDuration,
-            fileSweeperEC: ExecutionContext,
-            memorySweeperEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            fileCache: FileCache.Enable,
+            memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                      timeOrder: TimeOrder[Slice[Byte]],
+                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+    CoreInitializer(
+      config = config,
+      fileCache = fileCache,
+      memoryCache = memoryCache
+    )
+
+  def apply(config: LevelZeroPersistentConfig)(implicit mmapCleanerEC: Option[ExecutionContext],
+                                               keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
-  //    CoreInitializer(
-  //      config = config,
-  //      maxOpenSegments = maxOpenSegments,
-  //      keyValueCacheSize = Some(cacheSize),
-  //      blockCacheSize = blockCacheSize,
-  //      keyValueQueueDelay = cacheCheckDelay,
-  //      segmentCloserDelay = segmentsOpenCheckDelay,
-  //      fileSweeperEC = fileSweeperEC,
-  //      memorySweeperEC = memorySweeperEC
-  //    )
-    ???
+    CoreInitializer(config = config)
 
-  def apply(config: LevelZeroConfig)(implicit mmapCleanerEC: ExecutionContext,
-                                     keyOrder: KeyOrder[Slice[Byte]],
-                                     timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
-  //    CoreInitializer(
-  //      config = config,
-  //      bufferCleanerEC = mmapCleanerEC
-  //    )
-    ???
+  def apply(config: LevelZeroMemoryConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                           timeOrder: TimeOrder[Slice[Byte]],
+                                           functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+    CoreInitializer(config = config)
 
   private def prepareToMapEntry(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory.SegmentResponse]] =
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {

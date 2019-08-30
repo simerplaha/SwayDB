@@ -21,12 +21,32 @@ package swaydb.data.config
 
 import swaydb.Tagged
 
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
+import swaydb.data.util.StorageUnits._
+
 sealed trait MemoryCache extends Tagged[MemoryCache.Enabled, Option]
 
 object MemoryCache {
 
   case object Disable extends MemoryCache {
     override def get: Option[MemoryCache.Enabled] = None
+  }
+
+  object Enabled {
+    def default(blockSize: Int,
+                memorySize: Int,
+                interval: FiniteDuration,
+                ec: ExecutionContext) =
+      EnableBlockCache(
+        blockSize = blockSize,
+        capacity = memorySize,
+        actorConfig =
+          ActorConfig.TimeLoop(
+            delay = interval,
+            ec = ec
+          )
+      )
   }
 
   sealed trait Enabled extends MemoryCache {

@@ -46,7 +46,7 @@ object Set extends LazyLogging {
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
   def apply[T](dir: Path,
-               maxOpenSegments: Int = 1000,
+               maxSegmentsOpen: Int = 1000,
                mapSize: Int = 4.mb,
                maxMemoryLevelSize: Int = 100.mb,
                maxSegmentsToPush: Int = 5,
@@ -55,11 +55,13 @@ object Set extends LazyLogging {
                persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                mmapPersistentSegments: MMAP = MMAP.WriteAndRead,
                mmapPersistentAppendix: Boolean = true,
-               keyValueCacheSize: Int = 100.mb,
                otherDirs: Seq[Dir] = Seq.empty,
                keyValueCacheCheckDelay: FiniteDuration = 5.seconds,
                segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
-               blockCacheSize: Option[Int] = Some(4098),
+               blockSize: Int = 4098.bytes,
+               memoryCacheSize: Int = 100.mb,
+               memorySweeperPollInterval: FiniteDuration = 10.seconds,
+               fileSweeperPollInterval: FiniteDuration = 10.seconds,
                mightContainFalsePositiveRate: Double = 0.01,
                compressDuplicateValues: Boolean = true,
                deleteSegmentsEventually: Boolean = false,
@@ -87,13 +89,19 @@ object Set extends LazyLogging {
           groupBy = groupBy,
           acceleration = acceleration
         ),
-      maxOpenSegments = maxOpenSegments,
-      keyValueCacheSize = Some(keyValueCacheSize),
-      keyValueCacheCheckDelay = keyValueCacheCheckDelay,
-      segmentsOpenCheckDelay = segmentsOpenCheckDelay,
-      blockCacheSize = blockCacheSize,
-      fileSweeperEC = fileSweeperEC,
-      memorySweeperEC = memorySweeperEC
+      fileCache =
+        FileCache.Enable.default(
+          maxOpen = maxSegmentsOpen,
+          interval = fileSweeperPollInterval,
+          ec = fileSweeperEC
+        ),
+      memoryCache =
+        MemoryCache.Enabled.default(
+          blockSize = blockSize,
+          memorySize = memoryCacheSize,
+          interval = memorySweeperPollInterval,
+          ec = memorySweeperEC
+        )
     ) map {
       db =>
         swaydb.Set[T](db)

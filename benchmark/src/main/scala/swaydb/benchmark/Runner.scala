@@ -97,26 +97,26 @@ case class Runner(test: Test) extends LazyLogging {
     else {
       val readKeys = if (randomRead) shuffledKeys else keys
       Benchmark("Read benchmark during compaction") {
-        (1 to 5).par foreach {
-          _ =>
-            readKeys foreach {
-              key =>
-                try {
-                  //            db.get(key)
-                  val value = map.get(key).get.get
-                  val longKey = key.readLong()
-                  if (longKey % 10000 == 0) {
-                    val valueString = value.map(_.readString())
-                    println(longKey + " -> " + valueString)
-                    assert(valueString.contains(stringValue))
-                  }
-                } catch {
-                  case ex: Exception =>
-                    println("Key not found 1:" + key.readLong())
-                    ex.printStackTrace()
-                    System.exit(0)
-                }
-            }
+        //        (1 to 5).par foreach {
+        //          _ =>
+        readKeys foreach {
+          key =>
+            //                try {
+            map.get(key)
+          //                  val value = map.get(key).get.get
+          //                  val longKey = key.readLong()
+          //                  if (longKey % 10000 == 0) {
+          //                    val valueString = value.map(_.readString())
+          //                    println(longKey + " -> " + valueString)
+          //                    assert(valueString.contains(stringValue))
+          //                  }
+          //                } catch {
+          //                  case ex: Exception =>
+          //                    println("Key not found 1:" + key.readLong())
+          //                    ex.printStackTrace()
+          //                    System.exit(0)
+          //                }
+          //        }
         }
       }
     }
@@ -163,18 +163,18 @@ case class Runner(test: Test) extends LazyLogging {
       Benchmark("Read benchmark after compaction") {
         readKeys foreach {
           key =>
-            try {
-              //            db.get(key)
-              val value = map.get(key).get.get
-              val longKey = key.readLong()
-              if (longKey % 10000 == 0)
-                println(longKey + " -> " + value.map(_.readString()))
-            } catch {
-              case ex: Exception =>
-                println("Key not found 2:" + key.readLong())
-                ex.printStackTrace()
-                System.exit(0)
-            }
+            //            try {
+            map.get(key)
+          //              val value = map.get(key).get.get
+          //              val longKey = key.readLong()
+          //              if (longKey % 10000 == 0)
+          //                println(longKey + " -> " + value.map(_.readString()))
+          //            } catch {
+          //              case ex: Exception =>
+          //                println("Key not found 2:" + key.readLong())
+          //                ex.printStackTrace()
+          //                System.exit(0)
+          //            }
         }
       }
     }

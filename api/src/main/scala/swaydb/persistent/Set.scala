@@ -47,7 +47,7 @@ object Set extends LazyLogging {
    */
   def apply[T](dir: Path,
                maxOpenSegments: Int = 1000,
-               cacheSize: Int = 100.mb,
+               memoryCacheSize: Int = 100.mb,
                mapSize: Int = 4.mb,
                mmapMaps: Boolean = true,
                recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
@@ -56,10 +56,10 @@ object Set extends LazyLogging {
                segmentSize: Int = 2.mb,
                appendixFlushCheckpointSize: Int = 2.mb,
                otherDirs: Seq[Dir] = Seq.empty,
-               cacheCheckDelay: FiniteDuration = 10.seconds,
-               segmentsOpenCheckDelay: FiniteDuration = 10.seconds,
+               memorySweeperPollInterval: FiniteDuration = 10.seconds,
+               fileSweeperPollInterval: FiniteDuration = 10.seconds,
                mightContainFalsePositiveRate: Double = 0.01,
-               blockCacheSize: Option[Int] = Some(4098),
+               blockSize: Int = 4098,
                compressDuplicateValues: Boolean = true,
                deleteSegmentsEventually: Boolean = false,
                lastLevelGroupBy: Option[GroupBy.KeyValues] = Some(DefaultGroupBy()),
@@ -84,13 +84,19 @@ object Set extends LazyLogging {
         groupBy = lastLevelGroupBy,
         acceleration = acceleration
       ),
-      maxOpenSegments = maxOpenSegments,
-      keyValueCacheSize = Some(cacheSize),
-      keyValueCacheCheckDelay = cacheCheckDelay,
-      blockCacheSize = blockCacheSize,
-      segmentsOpenCheckDelay = segmentsOpenCheckDelay,
-      fileSweeperEC = fileSweeperEC,
-      memorySweeperEC = memorySweeperEC
+      fileCache =
+        FileCache.Enable.default(
+          maxOpen = maxOpenSegments,
+          interval = fileSweeperPollInterval,
+          ec = fileSweeperEC
+        ),
+      memoryCache =
+        MemoryCache.Enabled.default(
+          blockSize = blockSize,
+          memorySize = memoryCacheSize,
+          interval = memorySweeperPollInterval,
+          ec = memorySweeperEC
+        )
     ) map {
       db =>
         swaydb.Set[T](db)
