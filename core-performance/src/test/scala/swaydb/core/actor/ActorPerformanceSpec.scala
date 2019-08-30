@@ -22,8 +22,9 @@ package swaydb.core.actor
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.{Actor, ActorRef, Scheduler}
 import swaydb.core.TestExecutionContext
-import swaydb.core.util.{Benchmark, Scheduler}
+import swaydb.core.util.Benchmark
 import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.concurrent.duration._

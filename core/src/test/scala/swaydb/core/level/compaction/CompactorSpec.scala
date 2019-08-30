@@ -20,9 +20,9 @@
 package swaydb.core.level.compaction
 
 import org.scalamock.scalatest.MockFactory
+import swaydb.{Scheduler, WiredActor}
 import swaydb.core.RunThis._
-import swaydb.core.actor.{FileSweeper, MemorySweeper, WiredActor}
-import swaydb.core.util.Scheduler
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.order.{KeyOrder, TimeOrder}

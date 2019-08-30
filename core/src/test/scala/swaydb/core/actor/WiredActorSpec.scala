@@ -20,6 +20,7 @@
 package swaydb.core.actor
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.{Actor, WiredActor}
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._

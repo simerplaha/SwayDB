@@ -29,11 +29,11 @@ import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.segment.format.a.block.KeyMatcher.Result
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.util.{Bytes, Functions}
+import swaydb.core.util.Bytes
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
+import swaydb.data.util.{ByteSizeOf, Functions}
 
 import scala.annotation.tailrec
 

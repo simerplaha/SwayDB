@@ -22,7 +22,7 @@ package swaydb.core.util
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
+import swaydb.{IO, Scheduler}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._

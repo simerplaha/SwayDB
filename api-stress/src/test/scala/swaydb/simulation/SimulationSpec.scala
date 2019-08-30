@@ -26,7 +26,7 @@ import org.scalatest.WordSpec
 import swaydb.configs.level.DefaultGroupBy
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.actor.{Actor, ActorRef}
+import swaydb.ActorRef
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.config.MMAP
@@ -34,7 +34,7 @@ import swaydb.serializers.Default._
 import swaydb.simulation.Domain._
 import swaydb.simulation.ProductCommand._
 import swaydb.simulation.RemoveAsserted._
-import swaydb.{Apply, IO}
+import swaydb.{Actor, ActorRef, Apply, IO}
 
 import scala.collection.mutable
 import scala.concurrent.duration._

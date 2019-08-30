@@ -17,16 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.util
+package swaydb
 
 import java.util.{Timer, TimerTask}
-
-import swaydb.IO
 
 import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
 
-private[core] object Scheduler {
+object Scheduler {
 
   /**
    * Creates a Scheduler.

@@ -22,10 +22,9 @@ package swaydb.core.actor
 import java.util.concurrent.ConcurrentSkipListSet
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.IO
+import swaydb.{Actor, ActorRef, IO, Scheduler}
 import swaydb.IOValues._
 import swaydb.core.RunThis._
-import swaydb.core.util.Scheduler
 import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.collection.mutable.ListBuffer

@@ -22,9 +22,9 @@ package swaydb.core.level.compaction
 import java.util.TimerTask
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.WiredActor
+import swaydb.{Scheduler, WiredActor}
 import swaydb.core.level.LevelRef
-import swaydb.core.util.{FiniteDurations, Scheduler}
+import swaydb.core.util.FiniteDurations
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable

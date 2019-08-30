@@ -21,9 +21,8 @@ package swaydb.core.level.compaction
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.IO
+import swaydb.{IO, WiredActor}
 import swaydb.IO._
-import swaydb.core.actor.WiredActor
 import swaydb.core.level.LevelRef
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.util.FiniteDurations

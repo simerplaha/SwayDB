@@ -25,8 +25,8 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import org.scalatest.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.Span._
+import swaydb.{Actor, ActorQueue, Scheduler}
 import swaydb.core.RunThis._
-import swaydb.core.util.Scheduler
 import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.concurrent.ExecutionContext

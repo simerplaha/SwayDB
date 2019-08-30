@@ -24,9 +24,10 @@ import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.{Bytes, Functions}
+import swaydb.core.util.Bytes
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
+import swaydb.data.util.Functions
 
 private[core] object ValuesBlock {
 

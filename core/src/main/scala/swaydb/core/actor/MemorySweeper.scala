@@ -19,6 +19,7 @@
 
 package swaydb.core.actor
 
+import swaydb.{Actor, ActorRef}
 import swaydb.core.actor.Command.WeighedKeyValue
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.io.file.BlockCache

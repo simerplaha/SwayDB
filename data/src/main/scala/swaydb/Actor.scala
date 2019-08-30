@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.actor
+package swaydb
 
 import java.util.TimerTask
 import java.util.concurrent.TimeUnit
@@ -25,16 +25,15 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import java.util.function.IntUnaryOperator
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
 import swaydb.IO.ExceptionHandler
-import swaydb.core.util.{Functions, Scheduler}
 import swaydb.data.config.ActorConfig
 import swaydb.data.config.ActorConfig.QueueOrder
+import swaydb.data.util.Functions
 
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future}
 
-private[swaydb] sealed trait ActorRef[-T, S] { self =>
+sealed trait ActorRef[-T, S] { self =>
 
   /**
    * Submits message to Actor's queue and starts message execution if not already running.
@@ -122,9 +121,9 @@ private[swaydb] sealed trait ActorRef[-T, S] { self =>
     }
 }
 
-private[swaydb] object Actor {
+object Actor {
 
-  private[actor] val incrementDelayBy = 100.millisecond
+  private[swaydb] val incrementDelayBy = 100.millisecond
 
   sealed trait Error
   object Error {
@@ -371,7 +370,7 @@ private[swaydb] object Actor {
    * message overflow as quickly without hogging the thread for too long and without
    * keep messages in-memory for too long.
    */
-  private[actor] def adjustDelay(currentQueueSize: Int,
+  private[swaydb] def adjustDelay(currentQueueSize: Int,
                                  defaultQueueSize: Int,
                                  previousDelay: FiniteDuration,
                                  defaultDelay: FiniteDuration): FiniteDuration =
@@ -385,16 +384,16 @@ private[swaydb] object Actor {
     }
 }
 
-class Interval(val delay: FiniteDuration, val scheduler: Scheduler, val isLoop: Boolean)
+private class Interval(val delay: FiniteDuration, val scheduler: Scheduler, val isLoop: Boolean)
 
-private[swaydb] class Actor[-T, S](val state: S,
-                                   queue: ActorQueue[(T, Int)],
-                                   stashCapacity: Int,
-                                   weigher: T => Int,
-                                   cached: Boolean,
-                                   execution: (T, Actor[T, S]) => Unit,
-                                   interval: Option[Interval],
-                                   recovery: Option[(T, IO[Throwable, Actor.Error], Actor[T, S]) => Unit])(implicit ec: ExecutionContext) extends ActorRef[T, S] with LazyLogging { self =>
+class Actor[-T, S](val state: S,
+                   queue: ActorQueue[(T, Int)],
+                   stashCapacity: Int,
+                   weigher: T => Int,
+                   cached: Boolean,
+                   execution: (T, Actor[T, S]) => Unit,
+                   interval: Option[Interval],
+                   recovery: Option[(T, IO[Throwable, Actor.Error], Actor[T, S]) => Unit])(implicit ec: ExecutionContext) extends ActorRef[T, S] with LazyLogging { self =>
 
   private val busy = new AtomicBoolean(false)
   private val weight = new AtomicInteger(0)

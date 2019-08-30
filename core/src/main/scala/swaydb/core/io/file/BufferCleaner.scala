@@ -25,11 +25,9 @@ import java.nio.{ByteBuffer, MappedByteBuffer}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.IO.ExceptionHandler
-import swaydb.IO
-import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.core.io.file.BufferCleaner.State
-import swaydb.core.util.Scheduler
 import swaydb.data.config.ActorConfig.QueueOrder
+import swaydb.{Actor, ActorRef, IO, Scheduler}
 
 import scala.concurrent.duration._
 

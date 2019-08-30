@@ -24,7 +24,7 @@ import java.nio.file.Path
 import org.scalatest.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.ExceptionHandler.Nothing
-import swaydb.IO
+import swaydb.{IO, Scheduler}
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
@@ -47,7 +47,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
-import swaydb.core.util.{BlockCacheFileIDGenerator, Scheduler, UUIDs}
+import swaydb.core.util.{BlockCacheFileIDGenerator, UUIDs}
 import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}

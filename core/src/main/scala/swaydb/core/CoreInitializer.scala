@@ -23,8 +23,8 @@ import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.IO
-import swaydb.core.actor.{FileSweeper, MemorySweeper, WiredActor}
+import swaydb.{IO, Scheduler, WiredActor}
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.IOEffect._
@@ -33,7 +33,6 @@ import swaydb.core.level.compaction._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
 import swaydb.core.segment.format.a.block
-import swaydb.core.util.Scheduler
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}

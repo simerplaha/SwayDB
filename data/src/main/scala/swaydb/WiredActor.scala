@@ -17,11 +17,10 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.actor
+package swaydb
 
 import java.util.TimerTask
 
-import swaydb.core.util.Scheduler
 import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.concurrent.duration.FiniteDuration

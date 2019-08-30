@@ -24,11 +24,11 @@ import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.{Bytes, Functions, MinMax, Options}
+import swaydb.core.util.{Bytes, MinMax, Options}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
+import swaydb.data.util.{ByteSizeOf, Functions}
 
 import scala.annotation.tailrec
 
