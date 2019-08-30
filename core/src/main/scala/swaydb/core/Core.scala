@@ -141,16 +141,16 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
   import Tag.Implicits._
 
   def put(key: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(zero.put(key))
+    tag.point(tag.fromIO(zero.put(key)))
 
   def put(key: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(zero.put(key, value))
+    tag.point(tag.fromIO(zero.put(key, value)))
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
-    tag.fromIO(zero.put(key, value))
+    tag.point(tag.fromIO(zero.put(key, value)))
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.Done] =
-    tag.fromIO(zero.put(key, value, removeAt))
+    tag.point(tag.fromIO(zero.put(key, value, removeAt)))
 
   /**
    * Each [[Prepare]] requires a new next [[Time]] for cases where a batch contains overriding keys.
@@ -163,39 +163,39 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
    */
   def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.Done] =
     if (entries.isEmpty)
-      tag.fromIO(IO.failed("Cannot write empty batch"))
+      tag.point(tag.fromIO(IO.failed("Cannot write empty batch")))
     else
-      tag.fromIO(zero.put(Core.prepareToMapEntry(entries)(_).get)) //Gah .get! hmm.
+      tag.point(tag.fromIO(zero.put(Core.prepareToMapEntry(entries)(_).get))) //Gah .get! hmm.
 
   def remove(key: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(zero.remove(key))
+    tag.point(tag.fromIO(zero.remove(key)))
 
   def remove(key: Slice[Byte], at: Deadline): T[IO.Done] =
-    tag.fromIO(zero.remove(key, at))
+    tag.point(tag.fromIO(zero.remove(key, at)))
 
   def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(zero.remove(from, to))
+    tag.point(tag.fromIO(zero.remove(from, to)))
 
   def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.Done] =
-    tag.fromIO(zero.remove(from, to, at))
+    tag.point(tag.fromIO(zero.remove(from, to, at)))
 
   def update(key: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(zero.update(key, value))
+    tag.point(tag.fromIO(zero.update(key, value)))
 
   def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
-    tag.fromIO(zero.update(key, value))
+    tag.point(tag.fromIO(zero.update(key, value)))
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(zero.update(fromKey, to, value))
+    tag.point(tag.fromIO(zero.update(fromKey, to, value)))
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
-    tag.fromIO(zero.update(fromKey, to, value))
+    tag.point(tag.fromIO(zero.update(fromKey, to, value)))
 
   def function(key: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(zero.applyFunction(key, function))
+    tag.point(tag.fromIO(zero.applyFunction(key, function)))
 
   def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
-    tag.fromIO(zero.applyFunction(from, to, function))
+    tag.point(tag.fromIO(zero.applyFunction(from, to, function)))
 
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
     zero.registerFunction(functionID, function)
@@ -261,10 +261,10 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
     zero.meterFor(levelNumber)
 
   def close(): T[Unit] =
-    tag.fromIO(onClose().flatMap(_ => zero.close))
+    tag.point(tag.fromIO(onClose().flatMap(_ => zero.close)))
 
   def delete(): T[Unit] =
-    tag.fromIO(onClose().flatMap(_ => zero.delete))
+    tag.point(tag.fromIO(onClose().flatMap(_ => zero.delete)))
 
   def clear(): T[IO.Done] =
     zero.clear().run
