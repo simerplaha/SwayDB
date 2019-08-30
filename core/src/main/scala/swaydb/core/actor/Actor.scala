@@ -425,7 +425,8 @@ private[swaydb] class Actor[-T, S](val state: S,
           f(message, IO.Right(Actor.Error.TerminatedActor), this)
       }
     } else {
-      val messageWeight = weigher(message)
+      //message weight cannot be <= 0
+      val messageWeight = weigher(message) max 1
       queue.add(message, messageWeight)
 
       val currentStashed =

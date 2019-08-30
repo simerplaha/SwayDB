@@ -916,8 +916,31 @@ object CommonAssertions {
   }
 
   def assertGet(keyValues: Iterable[KeyValue],
-                segment: Segment) =
-    unzipGroups(keyValues).par foreach {
+                segment: Segment): Unit =
+    runAssertGet(
+      keyValues = keyValues,
+      segment = segment,
+      parallel = true
+    )
+
+  def assertGetSequential(keyValues: Iterable[KeyValue],
+                          segment: Segment): Unit =
+    runAssertGet(
+      keyValues = keyValues,
+      segment = segment,
+      parallel = false
+    )
+
+  private def runAssertGet(keyValues: Iterable[KeyValue],
+                           segment: Segment,
+                           parallel: Boolean = true) = {
+    val unzippedKeyValues =
+      if (parallel)
+        unzipGroups(keyValues).par
+      else
+        unzipGroups(keyValues)
+
+    unzippedKeyValues foreach {
       keyValue =>
         //        val intKey = keyValue.key.readInt()
         //        if (intKey % 1000 == 0)
@@ -930,6 +953,7 @@ object CommonAssertions {
             throw exception
         }
     }
+  }
 
   def dump(segments: Iterable[Segment]): Iterable[String] =
     Seq(s"Segments: ${segments.size}") ++ {

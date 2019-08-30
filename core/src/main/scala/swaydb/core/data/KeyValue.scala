@@ -441,10 +441,13 @@ private[swaydb] object Memory {
         segmentCache.value(keyOrder, memorySweeper, config)
       }
 
-    def uncompress(): Memory.Group = {
-      segmentCache.clear()
-      this
-    }
+    /**
+     * Simply clearing the [[segmentCache]] will not work. A new group is required because
+     * while [[MemorySweeper]] puts the Group back into it's cache some other thread might've
+     * read the [[segmentCache]] and therefore missing the [[SegmentCache.addToCache]] check.
+     */
+    def uncompress(): Memory.Group =
+      copy()
   }
 }
 

@@ -148,7 +148,8 @@ private[core] object MemorySweeper {
                   group match {
                     case group: Memory.Group =>
                       //Memory.Group key-values are only uncompressed. DO NOT REMOVE THEM!
-                      skipList.asInstanceOf[SkipList[Slice[Byte], Memory]].put(group.key, group.uncompress())
+                      val uncompressedGroup = group.uncompress()
+                      skipList.asInstanceOf[SkipList[Slice[Byte], Memory]].put(uncompressedGroup.key, uncompressedGroup)
 
                     case group: Persistent.Group =>
                       skipList remove group.key
