@@ -116,11 +116,11 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
     }
 
     "level is non empty but the searched key do not exist" in {
-      runThis(times) {
+      runThis(10) {
         assertLevel(
           level0KeyValues =
             (_, _, testTimer) =>
-              randomizedKeyValues(keyValuesCount)(testTimer).toMemory,
+              randomizedKeyValues(keyValuesCount, startId = Some(1))(testTimer).toMemory,
 
           assertLevel0 =
             (level0KeyValues, _, _, level) => {
@@ -147,7 +147,14 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
                   nonExistingKeys foreach {
                     nonExistentKey =>
                       val expectedLower = existing.reverse.find(put => put.hasTimeLeft() && put.key.readInt() < nonExistentKey).map(_.key.readInt())
-                      level.lower(nonExistentKey).runRandomIO.right.value.map(_.key.readInt()) shouldBe expectedLower
+                      try
+                        level.lower(nonExistentKey).runRandomIO.right.value.map(_.key.readInt()) shouldBe expectedLower
+                      catch {
+                        case exception: Exception =>
+                          //TODO - debug.
+                          val lower = level.lower(nonExistentKey).runRandomIO.right.value.map(_.key.readInt())
+                          throw exception
+                      }
                   }
               ).runThisRandomlyInParallel
             }

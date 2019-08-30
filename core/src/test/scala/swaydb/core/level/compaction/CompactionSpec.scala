@@ -189,8 +189,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
 
         val level5 = TestLevel(keyValues = Slice(keyValues(3).last) ++ keyValues(4), segmentSize = 2.kb)
         val level4 = TestLevel(nextLevel = Some(level5), keyValues = Slice(keyValues(2).last) ++ keyValues(3), segmentSize = 2.kb)
-        val level3 = TestLevel(nextLevel = Some(level4), keyValues = Slice(keyValues(1).last) ++ keyValues(2), segmentSize = 2.kb)
-        val level2 = TestLevel(nextLevel = Some(level3), keyValues = Slice(keyValues(0).last) ++ keyValues(1), segmentSize = 2.kb)
+        val level3 = TestLevel(nextLevel = Some(level4), keyValues = keyValues(2), segmentSize = 2.kb)
+        val level2 = TestLevel(nextLevel = Some(level3), keyValues = keyValues(1), segmentSize = 2.kb)
         val level1 = TestLevel(nextLevel = Some(level2), keyValues = keyValues(0), segmentSize = 2.kb)
 
         Compaction.copyForwardForEach(level1.reverseLevels.toSlice)
@@ -198,7 +198,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         //top levels are level, second last level value all overlapping Segments, last Level gets the rest.
         level1.isEmpty shouldBe true
         level2.isEmpty shouldBe true
-        level3.isEmpty shouldBe true
+        level3.isEmpty shouldBe false
         level4.isEmpty shouldBe false
         level5.isEmpty shouldBe false
 
@@ -225,7 +225,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
       }
     }
 
-    "invoke keep invoking refresh" when {
+    "keep invoking refresh" when {
       "remaining compactions are non zero" in {
         val segments: ListBuffer[Segment] =
           (1 to 10).flatMap({
@@ -244,7 +244,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           })(collection.breakOut)
 
         val level = mock[NextLevel]("level")
-        level.hasNextLevel _ expects() returns true repeat 6.times
+        level.hasNextLevel _ expects() returns false repeat 6.times
         level.segmentsInLevel _ expects() returning segments repeat 5.times
 
         (level.refresh(_: Segment)(_: ExecutionContext)) expects(*, *) onCall {
@@ -282,8 +282,9 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           })(collection.breakOut)
 
         val level = mock[NextLevel]("level")
-        level.hasNextLevel _ expects() returns true repeat 3.times
-        level.takeSmallSegments _ expects * onCall {
+        level.hasNextLevel _ expects() returns false repeated 3.times
+
+        level.optimalSegmentsToCollapse _ expects * onCall {
           count: Int =>
             segments.take(count)
         } repeat 2.times
@@ -294,6 +295,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             segments --= segmentsToCollapse
             IO.Right(IO(segmentsToCollapse.size))(IO.ExceptionHandler.PromiseUnit)
         } repeat 2.times
+
+//        level.levelNumber _ expects() returns 1 repeat 3.times
 
         Compaction.runLastLevelCompaction(
           level = level,

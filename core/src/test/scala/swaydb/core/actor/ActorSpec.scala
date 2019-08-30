@@ -118,7 +118,7 @@ class ActorSpec extends WordSpec with Matchers {
           case (int, self) =>
             if (int == 2) throw new Exception(s"Oh no! Failed at $int")
             self.state.processed += int
-        } recover[Int, Throwable] {
+        } recoverException[Int] {
           case (message, error: IO[Throwable, Actor.Error], actor) =>
             message shouldBe 2
             actor.state.recovered += message
@@ -143,7 +143,7 @@ class ActorSpec extends WordSpec with Matchers {
           case (int, self) =>
             if (int == 2) throw new Exception(s"Oh no! Failed at $int")
             self.state.processed += int
-        } recover[Int, Throwable] {
+        } recoverException[Int] {
           case (message, error: IO[Throwable, Actor.Error], actor) =>
             actor.state.errors += message
             if (message == 2)
@@ -169,7 +169,7 @@ class ActorSpec extends WordSpec with Matchers {
         Actor[Int, State](state) {
           case (int, self) =>
             self.state.processed add int
-        } recover[Int, Throwable] {
+        } recoverError[Int, Throwable] {
           case (message, error, actor) =>
             actor.state.failed add message
         }
