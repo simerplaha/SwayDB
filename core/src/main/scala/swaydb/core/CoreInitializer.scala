@@ -70,14 +70,11 @@ private[core] object CoreInitializer extends LazyLogging {
     }
 
   def apply(config: LevelZeroConfig,
-            fileCache: FileCache.Enable,
             bufferCleanerEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
-    implicit val fileSweeper: FileSweeper.Enabled =
-      FileSweeper(fileCache)
-
-    implicit val memorySweeper = MemorySweeper.Disabled
+    implicit val fileSweeper: FileSweeper =
+      FileSweeper.Disabled
 
     implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
     if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(Scheduler()(bufferCleanerEC))
