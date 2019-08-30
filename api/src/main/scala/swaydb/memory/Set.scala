@@ -71,7 +71,7 @@ object Set extends LazyLogging {
         FileCache.Enable.default(
           maxOpen = maxOpenSegments,
           interval = fileSweeperPollInterval,
-          ec = fileSweeperEC,
+          ec = fileSweeperEC
         ),
       memoryCache =
         MemoryCache.EnableKeyValueCache(
