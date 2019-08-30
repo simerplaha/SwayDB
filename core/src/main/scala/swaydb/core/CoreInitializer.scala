@@ -69,15 +69,37 @@ private[core] object CoreInitializer extends LazyLogging {
       }
     }
 
-  def apply(config: LevelZeroConfig,
-            bufferCleanerEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
+  def apply(config: LevelZeroPersistentConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
-    implicit val fileSweeper: FileSweeper =
-      FileSweeper.Disabled
+                                               functionStore: FunctionStore,
+                                               bufferCleanerEC: Option[ExecutionContext] = None): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
 
     implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
-    if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(Scheduler()(bufferCleanerEC))
+    if (config.storage.isMMAP && bufferCleanerEC.isEmpty)
+      IO.failed("ExecutionContext for ByteBuffer is required for memory-mapped configured databases.") //FIXME - create a LevelZeroPersistentMMAPConfig type to remove this error check.
+    else
+      LevelZero(
+        mapSize = config.mapSize,
+        storage = config.storage,
+        nextLevel = None,
+        throttle = config.throttle,
+        acceleration = config.acceleration
+      ) match {
+        case IO.Right(zero) =>
+          bufferCleanerEC foreach (ec => BufferCleaner.initialiseCleaner(Scheduler()(ec)))
+          addShutdownHook(zero, None)
+          IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, () => IO.unit))
+
+        case IO.Left(error) =>
+          IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
+      }
+  }
+
+  def apply(config: LevelZeroMemoryConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                           timeOrder: TimeOrder[Slice[Byte]],
+                                           functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
+
+    implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
 
     LevelZero(
       mapSize = config.mapSize,
@@ -169,9 +191,8 @@ private[core] object CoreInitializer extends LazyLogging {
     implicit val compactionOrdering: CompactionOrdering =
       DefaultCompactionOrdering
 
-    //TODO - only initialise if MMAP
-    BufferCleaner.initialiseCleaner(Scheduler()(fileSweeper.ec))
-    //    if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(bufferCleanerEC)
+    if (config.hasMMAP)
+      BufferCleaner.initialiseCleaner(Scheduler()(fileSweeper.ec))
 
     def createLevel(id: Long,
                     nextLevel: Option[NextLevel],

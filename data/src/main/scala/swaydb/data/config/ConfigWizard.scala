@@ -250,6 +250,20 @@ sealed trait SwayDBConfig {
   def persistent: Boolean
 
   def memory: Boolean = !persistent
+
+  def hasMMAP(levelConfig: LevelConfig) =
+    levelConfig match {
+      case TrashLevelConfig =>
+        false
+      case config: MemoryLevelConfig =>
+        false
+
+      case config: PersistentLevelConfig =>
+        config.mmapAppendix || config.mmapSegment.mmapRead || config.mmapSegment.mmapWrite
+    }
+
+  def hasMMAP: Boolean =
+    level0.storage.isMMAP || hasMMAP(level1) || otherLevels.exists(hasMMAP)
 }
 
 case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,

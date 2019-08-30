@@ -139,7 +139,7 @@ private[core] class BufferCleaner(implicit scheduler: Scheduler) extends LazyLog
   private val actor: ActorRef[(MappedByteBuffer, Path, Boolean), State] =
     Actor.timerCache[(MappedByteBuffer, Path, Boolean), State](
       state = State(None),
-      stashCapacity = 200,
+      stashCapacity = 100,
       interval = 5.seconds,
       weigher = _ => 1
     ) {
