@@ -88,17 +88,14 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedKeyIndex =
           SortedKeyIndex.Enable(
-            prefixCompression =
-              PrefixCompression.Enable(
-                resetCount = 10
-              ),
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = true),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compressions = _ => Seq.empty
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            tries = 2,
+            maxProbe = 2,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
             copyKeys = true,
@@ -152,17 +149,14 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedKeyIndex =
           SortedKeyIndex.Enable(
-            prefixCompression =
-              PrefixCompression.Enable(
-                resetCount = 10
-              ),
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = true),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compressions = _ => Seq.empty
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            tries = 2,
+            maxProbe = 2,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
             copyKeys = true,
@@ -216,17 +210,14 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedKeyIndex =
           SortedKeyIndex.Enable(
-            prefixCompression =
-              PrefixCompression.Enable(
-                resetCount = 10
-              ),
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = true),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compressions = _ => Seq.empty
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            tries = 2,
+            maxProbe = 2,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
             copyKeys = true,
@@ -280,17 +271,14 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedKeyIndex =
           SortedKeyIndex.Enable(
-            prefixCompression =
-              PrefixCompression.Enable(
-                resetCount = 10
-              ),
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = true),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compressions = _ => Seq.empty
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            tries = 2,
+            maxProbe = 2,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
             copyKeys = true,
@@ -344,17 +332,14 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedKeyIndex =
           SortedKeyIndex.Enable(
-            prefixCompression =
-              PrefixCompression.Enable(
-                resetCount = 10
-              ),
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = true),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compressions = _ => Seq.empty
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            tries = 2,
+            maxProbe = 2,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
             copyKeys = true,
@@ -410,17 +395,14 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedKeyIndex =
           SortedKeyIndex.Enable(
-            prefixCompression =
-              PrefixCompression.Enable(
-                resetCount = 10
-              ),
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = true),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
             compressions = _ => Seq.empty
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            tries = 2,
+            maxProbe = 2,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
             copyKeys = true,

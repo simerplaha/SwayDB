@@ -70,7 +70,7 @@ private[core] object HashIndexBlock extends LazyLogging {
 
         case enable: swaydb.data.config.RandomKeyIndex.Enable =>
           Config(
-            maxProbe = enable.tries,
+            maxProbe = enable.maxProbe,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             minimumNumberOfHits = enable.minimumNumberOfHits,
             copyIndex = enable.copyKeys,

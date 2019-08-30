@@ -48,17 +48,14 @@ object DefaultGroupBy {
       count = 10,
       sortedIndex =
         SortedKeyIndex.Enable(
-          prefixCompression =
-            PrefixCompression.Enable(
-              resetCount = 10
-            ),
+          prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = true),
           enablePositionIndex = true,
           ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
           compressions = _ => Seq.empty
         ),
       hashIndex =
         RandomKeyIndex.Enable(
-          tries = 2,
+          maxProbe = 2,
           minimumNumberOfKeys = 2,
           minimumNumberOfHits = 2,
           copyKeys = true,

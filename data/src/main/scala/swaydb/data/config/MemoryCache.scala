@@ -23,7 +23,6 @@ import swaydb.Tagged
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import swaydb.data.util.StorageUnits._
 
 sealed trait MemoryCache extends Tagged[MemoryCache.Enabled, Option]
 
