@@ -58,7 +58,7 @@ object DefaultGroupBy {
         ),
       hashIndex =
         RandomKeyIndex.Enable(
-          tries = 5,
+          tries = 2,
           minimumNumberOfKeys = 2,
           minimumNumberOfHits = 2,
           copyKeys = true,

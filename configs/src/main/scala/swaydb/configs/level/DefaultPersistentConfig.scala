@@ -98,7 +98,7 @@ object DefaultPersistentConfig {
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            tries = 5,
+            tries = 2,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
             copyKeys = true,
@@ -162,7 +162,7 @@ object DefaultPersistentConfig {
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            tries = 5,
+            tries = 2,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
             copyKeys = true,
@@ -226,7 +226,7 @@ object DefaultPersistentConfig {
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            tries = 5,
+            tries = 2,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
             copyKeys = true,
@@ -290,7 +290,7 @@ object DefaultPersistentConfig {
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            tries = 5,
+            tries = 2,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
             copyKeys = true,
@@ -354,7 +354,7 @@ object DefaultPersistentConfig {
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            tries = 5,
+            tries = 2,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
             copyKeys = true,
@@ -420,7 +420,7 @@ object DefaultPersistentConfig {
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            tries = 5,
+            tries = 2,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
             copyKeys = true,

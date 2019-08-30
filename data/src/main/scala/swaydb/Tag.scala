@@ -20,6 +20,7 @@
 package swaydb
 
 import swaydb.IO.ApiIO
+import swaydb.data.util.Futures
 
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -30,13 +31,14 @@ import scala.util.Try
  * used to build custom Sync and Async wrappers.
  */
 sealed trait Tag[T[_]] {
+  def unit: T[Unit]
+  def none[A]: T[Option[A]]
   def apply[A](a: => A): T[A]
   def foreach[A, B](a: A)(f: A => B): Unit
   def map[A, B](a: A)(f: A => B): T[B]
   def flatMap[A, B](fa: T[A])(f: A => T[B]): T[B]
   def success[A](value: A): T[A]
   def failure[A](exception: Throwable): T[A]
-  def none[A]: T[Option[A]]
   def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, T], drop: Int, take: Option[Int])(operation: (U, A) => U): T[U]
   def collectFirst[A](previous: A, stream: swaydb.Stream[A, T])(condition: A => Boolean): T[Option[A]]
   def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): T[A]
@@ -50,8 +52,8 @@ sealed trait Tag[T[_]] {
    *          will have a performance cost. [[point]] is used to cover these cases and [[IO]]
    *          types that are complete are directly converted to Future in current thread.
    */
-  def point[B](f: => T[B]): T[B] =
-    flatMap[Unit, B](success(()))(_ => f)
+  @inline def point[B](f: => T[B]): T[B] =
+    flatMap[Unit, B](unit)(_ => f)
 }
 
 object Tag {
@@ -169,6 +171,12 @@ object Tag {
 
     def baseConverter: Tag.Converter[T, X]
 
+    def unit: X[Unit] =
+      baseConverter.to(base.unit)
+
+    def none[A]: X[Option[A]] =
+      baseConverter.to(base.none)
+
     val flipConverter =
       new Tag.Converter[X, T] {
         override def to[A](a: X[A]): T[A] =
@@ -200,9 +208,6 @@ object Tag {
 
     def failure[A](exception: Throwable): X[A] =
       baseConverter.to(base.failure(exception))
-
-    def none[A]: X[Option[A]] =
-      baseConverter.to(base.none)
 
     def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, X], drop: Int, take: Option[Int])(operation: (U, A) => U): X[U] =
       baseConverter.to(base.foldLeft(initial, after, stream.to[T](base, flipConverter), drop, take)(operation))
@@ -266,6 +271,11 @@ object Tag {
 
   implicit val throwableIO: Tag.Sync[IO.ThrowableIO] =
     new Tag.Sync[IO.ThrowableIO] {
+      override val unit: IO.ThrowableIO[Unit] =
+        IO.unit
+
+      override def none[A]: IO.ThrowableIO[Option[A]] =
+        IO.none
 
       override def apply[A](a: => A): IO.ThrowableIO[A] =
         IO(a)
@@ -299,9 +309,6 @@ object Tag {
 
       override def orElse[A, B >: A](a: IO.ThrowableIO[A])(b: IO.ThrowableIO[B]): IO.ThrowableIO[B] =
         a.orElse(b)
-
-      override def none[A]: IO.ThrowableIO[Option[A]] =
-        IO.none
 
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, IO.ThrowableIO], drop: Int, take: Option[Int])(operation: (U, A) => U): IO.ThrowableIO[U] = {
         @tailrec
@@ -378,6 +385,12 @@ object Tag {
 
   implicit def future(implicit ec: ExecutionContext): Tag.Async[Future] =
     new Async[Future] {
+      override val unit: Future[Unit] =
+        Futures.unit
+
+      override def none[A]: Future[Option[A]] =
+        Future.successful(None)
+
       override def apply[A](a: => A): Future[A] =
         Future(a)
 
@@ -392,9 +405,6 @@ object Tag {
 
       override def failure[A](exception: Throwable): Future[A] =
         Future.failed(exception)
-
-      override def none[A]: Future[Option[A]] =
-        Future.successful(None)
 
       override def foreach[A, B](a: A)(f: A => B): Unit =
         f(a)
