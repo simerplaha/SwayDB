@@ -82,7 +82,7 @@ private[core] object Maps extends LazyLogging {
           recoveredMapsReversed.headOption match {
             case Some(lastMaps) =>
               lastMaps match {
-                case PersistentMap(path, _, _, _, _, _, _, _) =>
+                case PersistentMap(path, _, _, _, _, _, _) =>
                   path.incrementFolderId
                 case _ =>
                   path.resolve(0.toFolderId)
@@ -106,7 +106,6 @@ private[core] object Maps extends LazyLogging {
               mmap = mmap,
               flushOnOverflow = false,
               fileSize = fileSize,
-              initialWriteCount = 0,
               dropCorruptedTailEntries = recovery.drop
             ) map {
               nextMap =>
@@ -192,7 +191,6 @@ private[core] object Maps extends LazyLogging {
             folder = mapPath,
             mmap = mmap,
             flushOnOverflow = false,
-            initialWriteCount = 0,
             fileSize = fileSize,
             dropCorruptedTailEntries = recovery.drop
           ) match {
@@ -247,14 +245,13 @@ private[core] object Maps extends LazyLogging {
                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                      skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, Map[K, V]] =
     currentMap match {
-      case currentMap @ PersistentMap(_, _, _, _, _, _, _, _) =>
+      case currentMap @ PersistentMap(_, _, _, _, _, _, _) =>
         currentMap.close() flatMap {
           _ =>
             Map.persistent[K, V](
               folder = currentMap.path.incrementFolderId,
               mmap = currentMap.mmap,
               flushOnOverflow = false,
-              initialWriteCount = currentMap.writeCountStateId + 1,
               fileSize = nextMapSize
             )
         }
@@ -286,14 +283,11 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   // This is crucial for write performance use null instead of Option.
   private var brakePedal: BrakePedal = _
 
-  @volatile private var totalMapsCount: Int = maps.size() + 1
-  @volatile private var currentMapsCount: Int = maps.size() + 1
-
   val meter =
     new LevelZeroMeter {
       override def defaultMapSize: Long = fileSize
       override def currentMapSize: Long = currentMap.fileSize
-      override def mapsCount: Int = self.currentMapsCount
+      override def mapsCount: Int = maps.size() + 1
     }
 
   private[core] def onNextMapCallback(event: () => Unit): Unit =
@@ -334,8 +328,6 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                 case IO.Right(nextMap) =>
                   maps addFirst currentMap
                   currentMap = nextMap
-                  totalMapsCount += 1
-                  currentMapsCount += 1
                   onNextMapListener()
                   persist(entry)
 
@@ -355,8 +347,6 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
           case IO.Right(nextMap) =>
             maps addFirst currentMap
             currentMap = nextMap
-            totalMapsCount += 1
-            currentMapsCount += 1
             onNextMapListener()
             IO.Left(writeException)
 
@@ -444,7 +434,6 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             IO.Left(error)
 
           case IO.Right(_) =>
-            currentMapsCount -= 1
             IO.unit
         }
     }
@@ -476,9 +465,6 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
 
   def iterator =
     maps.iterator()
-
-  def stateID: Long =
-    totalMapsCount
 
   def queuedMaps =
     maps.asScala

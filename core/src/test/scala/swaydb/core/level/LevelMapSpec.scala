@@ -91,7 +91,6 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
           mmap = true,
           flushOnOverflow = true,
           fileSize = 1.mb,
-          initialWriteCount = 0,
           dropCorruptedTailEntries = false
         ).runRandomIO.right.value.item
       else
@@ -158,7 +157,6 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
           mmap = true,
           flushOnOverflow = true,
           fileSize = 1.mb,
-          initialWriteCount = 0,
           dropCorruptedTailEntries = false).runRandomIO.right.value.item
       else
         Map.memory[Slice[Byte], Memory.SegmentResponse]()

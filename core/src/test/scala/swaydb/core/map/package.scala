@@ -50,7 +50,6 @@ package object map {
         mmap = Random.nextBoolean(),
         flushOnOverflow = Random.nextBoolean(),
         fileSize = 10.mb,
-        initialWriteCount = 0,
         dropCorruptedTailEntries = false
       ).runRandomIO.right.value.item
     }

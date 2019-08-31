@@ -123,11 +123,11 @@ class MapSpec extends TestBase {
       import LevelZeroMapEntryReader._
       import LevelZeroMapEntryWriter._
 
-      val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map.isEmpty shouldBe true
       map.close().runRandomIO.right.value
       //recover from an empty map
-      val recovered = Map.persistent[Slice[Byte], Memory.SegmentResponse](map.path, mmap = true, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val recovered = Map.persistent[Slice[Byte], Memory.SegmentResponse](map.path, mmap = true, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       recovered.isEmpty shouldBe true
       recovered.close().runRandomIO.right.value
     }
@@ -136,11 +136,11 @@ class MapSpec extends TestBase {
       import AppendixMapEntryWriter._
       import appendixReader._
 
-      val map = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map.isEmpty shouldBe true
       map.close().runRandomIO.right.value
       //recover from an empty map
-      val recovered = Map.persistent[Slice[Byte], Segment](map.path, mmap = true, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val recovered = Map.persistent[Slice[Byte], Segment](map.path, mmap = true, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       recovered.isEmpty shouldBe true
       recovered.close().runRandomIO.right.value
     }
@@ -149,7 +149,7 @@ class MapSpec extends TestBase {
       import LevelZeroMapEntryReader._
       import LevelZeroMapEntryWriter._
 
-      val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map.write(MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, Some(1)))).runRandomIO.right.value shouldBe true
       map.write(MapEntry.Put[Slice[Byte], Memory.Put](2, Memory.put(2, Some(2)))).runRandomIO.right.value shouldBe true
       map.write(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))).runRandomIO.right.value shouldBe true
@@ -162,7 +162,7 @@ class MapSpec extends TestBase {
       map.skipList.get(15).value shouldBe Memory.Range(15, 20, None, Value.update(20))
 
       def doRecover(path: Path): PersistentMap[Slice[Byte], Memory.SegmentResponse] = {
-        val recovered = Map.persistent[Slice[Byte], Memory.SegmentResponse](map.path, mmap = Random.nextBoolean(), flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+        val recovered = Map.persistent[Slice[Byte], Memory.SegmentResponse](map.path, mmap = Random.nextBoolean(), flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
         recovered.skipList.get(1).value shouldBe Memory.put(1, Some(1))
         recovered.skipList.get(2).value shouldBe Memory.remove(2)
         recovered.skipList.get(10).value shouldBe Memory.Range(10, 15, None, Value.remove(None))
@@ -187,7 +187,7 @@ class MapSpec extends TestBase {
       val segment1 = TestSegment(Slice(Transient.put(1, Some(1), None), Transient.put(2, Some(2), None)).updateStats).runRandomIO.right.value
       val segment2 = TestSegment(Slice(Transient.put(3, Some(3), None), Transient.put(4, Some(4), None)).updateStats).runRandomIO.right.value
 
-      val map = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map.write(MapEntry.Put[Slice[Byte], Segment](1, segment1)).runRandomIO.right.value shouldBe true
       map.write(MapEntry.Put[Slice[Byte], Segment](2, segment2)).runRandomIO.right.value shouldBe true
       map.write(MapEntry.Remove[Slice[Byte]](2)).runRandomIO.right.value shouldBe true
@@ -195,7 +195,7 @@ class MapSpec extends TestBase {
       map.skipList.get(2) shouldBe empty
 
       def doRecover(path: Path): PersistentMap[Slice[Byte], Segment] = {
-        val recovered = Map.persistent[Slice[Byte], Segment](map.path, mmap = Random.nextBoolean(), flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+        val recovered = Map.persistent[Slice[Byte], Segment](map.path, mmap = Random.nextBoolean(), flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
         recovered.skipList.get(1).value shouldBe segment1
         recovered.skipList.get(2) shouldBe empty
         recovered.close().runRandomIO.right.value
@@ -214,13 +214,13 @@ class MapSpec extends TestBase {
       import LevelZeroMapEntryReader._
       import LevelZeroMapEntryWriter._
 
-      val map1 = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map1 = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map1.write(MapEntry.Put(1, Memory.put(1, Some(1)))).runRandomIO.right.value shouldBe true
       map1.write(MapEntry.Put(2, Memory.put(2, Some(2)))).runRandomIO.right.value shouldBe true
       map1.write(MapEntry.Put(3, Memory.put(3, Some(3)))).runRandomIO.right.value shouldBe true
       map1.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, None, Value.update(20)))).runRandomIO.right.value shouldBe true
 
-      val map2 = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map2 = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map2.write(MapEntry.Put(4, Memory.put(4, Some(4)))).runRandomIO.right.value shouldBe true
       map2.write(MapEntry.Put(5, Memory.put(5, Some(5)))).runRandomIO.right.value shouldBe true
       map2.write(MapEntry.Put(2, Memory.put(2, Some(22)))).runRandomIO.right.value shouldBe true //second file will override 2's value to be 22
@@ -231,7 +231,7 @@ class MapSpec extends TestBase {
       Files.copy(map2sLogFile, map1.path.resolve(1.toLogFileId))
 
       //recover map 1 and it should contain all entries of map1 and map2
-      val map1Recovered = Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map1Recovered = Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map1Recovered.skipList.get(1).value shouldBe Memory.put(1, Some(1))
       map1Recovered.skipList.get(2).value shouldBe Memory.put(2, Some(22)) //second file overrides 2's value to be 22
       map1Recovered.skipList.get(3).value shouldBe Memory.put(3, Some(3))
@@ -260,12 +260,12 @@ class MapSpec extends TestBase {
       val segment5 = TestSegment(Slice(Transient.put(5, Some(5), None), Transient.put(10, Some(10), None)).updateStats).runRandomIO.right.value
       val segment2Updated = TestSegment(Slice(Transient.put(2, Some(2), None), Transient.put(12, Some(12), None)).updateStats).runRandomIO.right.value
 
-      val map1 = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map1 = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map1.write(MapEntry.Put(1, segment1)).runRandomIO.right.value shouldBe true
       map1.write(MapEntry.Put(2, segment2)).runRandomIO.right.value shouldBe true
       map1.write(MapEntry.Put(3, segment3)).runRandomIO.right.value shouldBe true
 
-      val map2 = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map2 = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map2.write(MapEntry.Put(4, segment4)).runRandomIO.right.value shouldBe true
       map2.write(MapEntry.Put(5, segment5)).runRandomIO.right.value shouldBe true
       map2.write(MapEntry.Put(2, segment2Updated)).runRandomIO.right.value shouldBe true //second file will override 2's value to be segment2Updated
@@ -275,7 +275,7 @@ class MapSpec extends TestBase {
       Files.copy(map2sLogFile, map1.path.resolve(1.toLogFileId))
 
       //recover map 1 and it should contain all entries of map1 and map2
-      val map1Recovered = Map.persistent[Slice[Byte], Segment](map1.path, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map1Recovered = Map.persistent[Slice[Byte], Segment](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map1Recovered.skipList.get(1).value shouldBe segment1
       map1Recovered.skipList.get(2).value shouldBe segment2Updated //second file overrides 2's value to be segment2Updated
       map1Recovered.skipList.get(3).value shouldBe segment3
@@ -305,8 +305,7 @@ class MapSpec extends TestBase {
         folder = createRandomDir,
         mmap = false,
         flushOnOverflow = false,
-        fileSize = 1.mb,
-        initialWriteCount = 0
+        fileSize = 1.mb
       ).runRandomIO.right.value
 
       //fails because the file already exists.
@@ -314,12 +313,11 @@ class MapSpec extends TestBase {
         folder = map.path,
         mmap = false,
         flushOnOverflow = false,
-        initialWriteCount = 0,
         fileSize = 1.mb
       ).left.runRandomIO.right.value.exception shouldBe a[FileAlreadyExistsException]
 
       //recovers because the recovery is provided
-      Map.persistent[Slice[Byte], Memory.SegmentResponse](map.path, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value
+      Map.persistent[Slice[Byte], Memory.SegmentResponse](map.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value
 
       map.close().runRandomIO.right.value
     }
@@ -348,7 +346,7 @@ class MapSpec extends TestBase {
       import LevelZeroMapEntryWriter._
 
       //create a map
-      val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 4.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map.write(MapEntry.Put(1, Memory.put(1, 1))).runRandomIO.right.value shouldBe true
       map.write(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))).runRandomIO.right.value shouldBe true
       map.write(MapEntry.Put(3, Memory.put(3, 3))).runRandomIO.right.value shouldBe true
@@ -382,7 +380,7 @@ class MapSpec extends TestBase {
       import LevelZeroMapEntryWriter._
 
       //create a map
-      val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = true, flushOnOverflow = true, fileSize = 1.byte, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = true, flushOnOverflow = true, fileSize = 1.byte, dropCorruptedTailEntries = false).runRandomIO.right.value.item
 
       map.write(MapEntry.Put(1, Memory.put(1, 1))).runRandomIO.right.value shouldBe true
       map.write(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))).runRandomIO.right.value shouldBe true
@@ -439,7 +437,7 @@ class MapSpec extends TestBase {
       import LevelZeroMapEntryWriter._
 
       //create a map
-      val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 4.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map.currentFilePath.fileId.runRandomIO.right.value shouldBe(0, Extension.Log)
       map.close().runRandomIO.right.value
 
@@ -494,7 +492,7 @@ class MapSpec extends TestBase {
     import LevelZeroMapEntryWriter._
 
     "fail if the WAL file is corrupted and and when dropCorruptedTailEntries = false" in {
-      val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, fileSize = 4.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       (1 to 100) foreach {
         i =>
           map.write(MapEntry.Put(i, Memory.put(i, i))).runRandomIO.right.value shouldBe true
@@ -508,7 +506,6 @@ class MapSpec extends TestBase {
           mmap = false,
           flushOnOverflow = false,
           fileSize = 4.mb,
-          initialWriteCount = 0,
           dropCorruptedTailEntries = false
         ).left.runRandomIO.right.value.exception shouldBe a[IllegalStateException]
 
@@ -522,7 +519,7 @@ class MapSpec extends TestBase {
     }
 
     "successfully recover partial data if WAL file is corrupted and when dropCorruptedTailEntries = true" in {
-      val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, fileSize = 4.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       (1 to 100) foreach {
         i =>
           map.write(MapEntry.Put(i, Memory.put(i, i))).runRandomIO.right.value shouldBe true
@@ -532,7 +529,7 @@ class MapSpec extends TestBase {
 
       //recover again with SkipLogOnCorruption, since the last entry is corrupted, the first two entries will still value read
       Files.write(map.currentFilePath, allBytes.dropRight(1))
-      val recoveredMap = Map.persistent[Slice[Byte], Memory.SegmentResponse](map.currentFilePath.getParent, mmap = false, flushOnOverflow = false, fileSize = 4.mb, initialWriteCount = 0, dropCorruptedTailEntries = true).runRandomIO.right.value.item
+      val recoveredMap = Map.persistent[Slice[Byte], Memory.SegmentResponse](map.currentFilePath.getParent, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = true).runRandomIO.right.value.item
       (1 to 99) foreach {
         i =>
           recoveredMap.skipList.get(i).value shouldBe Memory.put(i, i)
@@ -541,7 +538,7 @@ class MapSpec extends TestBase {
 
       //if the top entry is corrupted.
       Files.write(recoveredMap.currentFilePath, allBytes.drop(1))
-      val recoveredMap2 = Map.persistent[Slice[Byte], Memory.SegmentResponse](recoveredMap.currentFilePath.getParent, mmap = false, flushOnOverflow = false, fileSize = 4.mb, initialWriteCount = 0, dropCorruptedTailEntries = true).runRandomIO.right.value.item
+      val recoveredMap2 = Map.persistent[Slice[Byte], Memory.SegmentResponse](recoveredMap.currentFilePath.getParent, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = true).runRandomIO.right.value.item
       recoveredMap2.isEmpty shouldBe true
     }
   }
@@ -551,12 +548,12 @@ class MapSpec extends TestBase {
       import LevelZeroMapEntryReader._
       import LevelZeroMapEntryWriter._
 
-      val map1 = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map1 = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map1.write(MapEntry.Put(1, Memory.put(1, 1))).runRandomIO.right.value shouldBe true
       map1.write(MapEntry.Put(2, Memory.put(2, 2))).runRandomIO.right.value shouldBe true
       map1.write(MapEntry.Put(3, Memory.put(3, 3))).runRandomIO.right.value shouldBe true
 
-      val map2 = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map2 = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map2.write(MapEntry.Put(4, Memory.put(4, 4))).runRandomIO.right.value shouldBe true
       map2.write(MapEntry.Put(5, Memory.put(5, 5))).runRandomIO.right.value shouldBe true
       map2.write(MapEntry.Put(6, Memory.put(6, 6))).runRandomIO.right.value shouldBe true
@@ -575,13 +572,13 @@ class MapSpec extends TestBase {
       //fail recovery if first map is corrupted
       //corrupt 0.log bytes
       Files.write(log0, log0Bytes.drop(1))
-      Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).left.runRandomIO.right.value.exception shouldBe a[IllegalStateException]
+      Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).left.runRandomIO.right.value.exception shouldBe a[IllegalStateException]
       Files.write(log0, log0Bytes) //fix log0 bytes
 
       //successfully recover Map by reading both WAL files if the first WAL file is corrupted
       //corrupt 0.log bytes
       Files.write(log0, log0Bytes.dropRight(1))
-      val recoveredMapWith0LogCorrupted = Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = true).runRandomIO.right.value
+      val recoveredMapWith0LogCorrupted = Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = true).runRandomIO.right.value
       //recovery state contains failure because the WAL file is partially recovered.
       recoveredMapWith0LogCorrupted.result.left.runRandomIO.right.value.exception shouldBe a[IllegalStateException]
       recoveredMapWith0LogCorrupted.item.size shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
@@ -602,12 +599,12 @@ class MapSpec extends TestBase {
       import LevelZeroMapEntryReader._
       import LevelZeroMapEntryWriter._
 
-      val map1 = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map1 = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map1.write(MapEntry.Put(1, Memory.put(1, 1))).runRandomIO.right.value shouldBe true
       map1.write(MapEntry.Put(2, Memory.put(2))).runRandomIO.right.value shouldBe true
       map1.write(MapEntry.Put(3, Memory.put(3, 3))).runRandomIO.right.value shouldBe true
 
-      val map2 = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).runRandomIO.right.value.item
+      val map2 = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).runRandomIO.right.value.item
       map2.write(MapEntry.Put(4, Memory.put(4, 4))).runRandomIO.right.value shouldBe true
       map2.write(MapEntry.Put(5, Memory.put(5, 5))).runRandomIO.right.value shouldBe true
       map2.write(MapEntry.Put(6, Memory.put(6, 6))).runRandomIO.right.value shouldBe true
@@ -625,13 +622,13 @@ class MapSpec extends TestBase {
       //fail recovery if one of two WAL files of the map is corrupted
       //corrupt 1.log bytes
       Files.write(log1, log1Bytes.drop(1))
-      Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = false).left.runRandomIO.right.value.exception shouldBe a[IllegalStateException]
+      Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).left.runRandomIO.right.value.exception shouldBe a[IllegalStateException]
       Files.write(log1, log1Bytes) //fix log1 bytes
 
       //successfully recover Map by reading both WAL files if the second WAL file is corrupted
       //corrupt 1.log bytes
       Files.write(log1, log1Bytes.dropRight(1))
-      val recoveredMapWith0LogCorrupted = Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, initialWriteCount = 0, dropCorruptedTailEntries = true).runRandomIO.right.value
+      val recoveredMapWith0LogCorrupted = Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = true).runRandomIO.right.value
       //recovery state contains failure because the WAL file is partially recovered.
       recoveredMapWith0LogCorrupted.result.left.runRandomIO.right.value.exception shouldBe a[IllegalStateException]
       recoveredMapWith0LogCorrupted.item.size shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
@@ -662,7 +659,6 @@ class MapSpec extends TestBase {
               mmap = Random.nextBoolean(),
               flushOnOverflow = true,
               fileSize = randomIntMax(1.mb),
-              initialWriteCount = 0,
               dropCorruptedTailEntries = false
             ).runRandomIO.right.value.item
 

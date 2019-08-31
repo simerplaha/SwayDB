@@ -43,29 +43,10 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: SkipList.Concurrent[K
   private var currentBytesWritten: Long = 0
 
   @volatile private var _hasRange: Boolean = false
-  @volatile private var _writeCountStateId: Long = 0L
 
   override def hasRange: Boolean = _hasRange
 
   private val lock = new ReentrantReadWriteLock()
-
-  def writeCountStateId: Long = {
-    lock.readLock().lock()
-    try
-      _writeCountStateId
-    finally
-      lock.readLock().unlock()
-  }
-
-  def incrementWriteCountStateId: Long = {
-    lock.writeLock().lock()
-    try {
-      _writeCountStateId += 1
-      _writeCountStateId
-    } finally {
-      lock.writeLock().unlock()
-    }
-  }
 
   def delete: IO[swaydb.Error.Map, Unit] =
     IO(skipList.clear())
@@ -83,7 +64,6 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: SkipList.Concurrent[K
           entry applyTo skipList
         }
         currentBytesWritten += entry.totalByteSize
-        _writeCountStateId += 1
         IO.`true`
       } else {
         IO.`false`

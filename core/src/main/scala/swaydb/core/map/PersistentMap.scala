@@ -46,7 +46,6 @@ private[map] object PersistentMap extends LazyLogging {
                                          mmap: Boolean,
                                          flushOnOverflow: Boolean,
                                          fileSize: Long,
-                                         initialWriteCount: Long,
                                          dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
                                                                             timeOrder: TimeOrder[Slice[Byte]],
                                                                             functionStore: FunctionStore,
@@ -65,7 +64,6 @@ private[map] object PersistentMap extends LazyLogging {
             mmap = mmap,
             fileSize = fileSize,
             flushOnOverflow = flushOnOverflow,
-            initialWriteCount = initialWriteCount,
             skipList = skipList,
             currentFile = fileRecoveryResult.item,
             hasRangeInitial = hasRange
@@ -78,8 +76,7 @@ private[map] object PersistentMap extends LazyLogging {
   private[map] def apply[K, V: ClassTag](folder: Path,
                                          mmap: Boolean,
                                          flushOnOverflow: Boolean,
-                                         fileSize: Long,
-                                         initialWriteCount: Long)(implicit keyOrder: KeyOrder[K],
+                                         fileSize: Long)(implicit keyOrder: KeyOrder[K],
                                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                                   fileSweeper: FileSweeper,
                                                                   functionStore: FunctionStore,
@@ -96,7 +93,6 @@ private[map] object PersistentMap extends LazyLogging {
           mmap = mmap,
           fileSize = fileSize,
           flushOnOverflow = flushOnOverflow,
-          initialWriteCount = initialWriteCount,
           currentFile = file,
           skipList = skipList,
           hasRangeInitial = false
@@ -251,7 +247,6 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
                                                       mmap: Boolean,
                                                       fileSize: Long,
                                                       flushOnOverflow: Boolean,
-                                                      initialWriteCount: Long,
                                                       skipList: SkipList.Concurrent[K, V],
                                                       private var currentFile: DBFile,
                                                       private val hasRangeInitial: Boolean)(implicit keyOrder: KeyOrder[K],
@@ -273,8 +268,6 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   //_hasRange is not a case class input parameters because 2.11 throws compilation error 'values cannot be volatile'
   @volatile private var _hasRange: Boolean = hasRangeInitial
 
-  @volatile private var _writeCount: Long = initialWriteCount
-
   override def hasRange: Boolean = _hasRange
 
   private val lock = new ReentrantReadWriteLock()
@@ -282,34 +275,12 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   def currentFilePath =
     currentFile.path
 
-  def writeCountStateId: Long = {
-    lock.readLock().lock()
-    try
-      _writeCount
-    finally
-      lock.readLock().unlock()
-  }
-
-  def incrementWriteCountStateId: Long = {
-    lock.writeLock().lock()
-    try {
-      _writeCount += 1
-      _writeCount
-    } finally {
-      lock.writeLock().unlock()
-    }
-  }
-
   override def write(mapEntry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] = {
     lock.writeLock().lock()
-    try {
-      persist(mapEntry) onRightSideEffect {
-        _ =>
-          _writeCount += 1
-      }
-    } finally {
+    try
+      persist(mapEntry)
+    finally
       lock.writeLock().unlock()
-    }
   }
 
   /**

@@ -713,7 +713,7 @@ private[core] case class LevelZero(path: Path,
     } getOrElse false
 
   def mightContainFunctionInMaps(functionId: Slice[Byte]): Boolean =
-    maps.iterator.asScala.foldLeft(maps.map.writeCountStateId)(_ + _.writeCountStateId) >= 10000 ||
+    maps.queuedMapsCountWithCurrent >= 2 ||
       findFunctionInMaps(functionId)
 
   def mightContainFunction(functionId: Slice[Byte]): IO[swaydb.Error.Level, Boolean] =
@@ -762,9 +762,6 @@ private[core] case class LevelZero(path: Path,
   override def levelNumber: Int = 0
 
   override def isZero: Boolean = true
-
-  override def stateID: Long =
-    maps.stateID
 
   override def nextCompactionDelay: FiniteDuration =
     throttle(levelZeroMeter)

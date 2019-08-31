@@ -145,7 +145,6 @@ private[core] object Level extends LazyLogging {
                   folder = appendixFolder,
                   mmap = mmap,
                   flushOnOverflow = true,
-                  initialWriteCount = 0,
                   fileSize = appendixFlushCheckpointSize,
                   dropCorruptedTailEntries = false
                 ).map(_.item) recoverWith {
@@ -619,10 +618,8 @@ private[core] case class Level(dirs: Seq[Dir],
               targetSegments = targetSegments,
               appendEntry = None
             )
-          else { //all Segments were forward copied, increment the stateID so reads can reset.
-            appendix.incrementWriteCountStateId
+          else
             IO.unit
-          }
       }
     else
       merge(
@@ -653,10 +650,8 @@ private[core] case class Level(dirs: Seq[Dir],
                   logFailure(s"${paths.head}: Failed to create a log entry.", failure)
                   deleteCopiedSegments(newSegments)
               }
-            else {
-              appendix.incrementWriteCountStateId
+            else
               Segment.emptyIterableIO
-            }
         } map {
           _ =>
             ()
@@ -1474,9 +1469,6 @@ private[core] case class Level(dirs: Seq[Dir],
 
   override def isZero: Boolean =
     false
-
-  override def stateID: Long =
-    appendix.writeCountStateId
 
   override def nextCompactionDelay: FiniteDuration =
     throttle(meter).pushDelay

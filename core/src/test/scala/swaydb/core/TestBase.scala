@@ -229,7 +229,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
             folder = path,
             mmap = mmap,
             flushOnOverflow = flushOnOverflow,
-            initialWriteCount = 0,
             fileSize = fileSize
           ).runRandomIO.right.value
 
