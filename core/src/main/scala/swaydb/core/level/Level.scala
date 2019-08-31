@@ -367,10 +367,10 @@ private[core] case class Level(dirs: Seq[Dir],
       override def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         self get key
 
-      override def higher(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
+      override def higher(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
         higherInThisLevel(key)
 
-      override def lower(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
+      override def lower(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
         self lowerInThisLevel key
 
       override def levelNumber: String =
@@ -400,7 +400,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private implicit val currentGetter =
     new CurrentGetter {
-      override def get(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
+      override def get(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
         getFromThisLevel(key)
     }
 
@@ -1180,7 +1180,7 @@ private[core] case class Level(dirs: Seq[Dir],
           nextLevel.map(_.mightContainFunction(functionId)) getOrElse IO.`false`
     }
 
-  private def lowerInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
+  private def lowerInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
     appendix
       .skipList
       .lower(key)
@@ -1205,13 +1205,13 @@ private[core] case class Level(dirs: Seq[Dir],
       nextSeek = Seek.Read
     )
 
-  private def higherFromFloorSegment(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
+  private def higherFromFloorSegment(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
     appendix
       .skipList
       .floor(key)
       .map(_.higher(key)) getOrElse IO.none
 
-  private def higherFromHigherSegment(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
+  private def higherFromHigherSegment(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
     appendix
       .skipList
       .higher(key)
