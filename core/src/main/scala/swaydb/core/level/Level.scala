@@ -563,7 +563,7 @@ private[core] case class Level(dirs: Seq[Dir],
         either
 
       case IO.Left(error) =>
-        IO.Right[Promise[Unit], IO[swaydb.Error.Level, T]](IO.Left[swaydb.Error.Level, T](error))(IO.ExceptionHandler.PromiseUnit)
+        IO.Right(IO.Left[swaydb.Error.Level, T](error))(IO.ExceptionHandler.PromiseUnit)
     }
 
   def put(segment: Segment)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
