@@ -77,12 +77,12 @@ private[map] object PersistentMap extends LazyLogging {
                                          mmap: Boolean,
                                          flushOnOverflow: Boolean,
                                          fileSize: Long)(implicit keyOrder: KeyOrder[K],
-                                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                                  fileSweeper: FileSweeper,
-                                                                  functionStore: FunctionStore,
-                                                                  reader: MapEntryReader[MapEntry[K, V]],
-                                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                  skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, PersistentMap[K, V]] = {
+                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                         fileSweeper: FileSweeper,
+                                                         functionStore: FunctionStore,
+                                                         reader: MapEntryReader[MapEntry[K, V]],
+                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                         skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, PersistentMap[K, V]] = {
     IOEffect.createDirectoryIfAbsent(folder)
     val skipList: SkipList.Concurrent[K, V] = SkipList.concurrent[K, V]()(keyOrder)
 
@@ -270,18 +270,11 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
 
   override def hasRange: Boolean = _hasRange
 
-  private val lock = new ReentrantReadWriteLock()
-
   def currentFilePath =
     currentFile.path
 
-  override def write(mapEntry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] = {
-    lock.writeLock().lock()
-    try
-      persist(mapEntry)
-    finally
-      lock.writeLock().unlock()
-  }
+  override def write(mapEntry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] =
+    synchronized(persist(mapEntry))
 
   /**
    * Before writing the Entry, check to ensure if the current [[MapEntry]] requires a merge write or direct write.

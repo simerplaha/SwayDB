@@ -19,8 +19,6 @@
 
 package swaydb.core.map
 
-import java.util.concurrent.locks.ReentrantReadWriteLock
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
@@ -46,14 +44,11 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: SkipList.Concurrent[K
 
   override def hasRange: Boolean = _hasRange
 
-  private val lock = new ReentrantReadWriteLock()
-
   def delete: IO[swaydb.Error.Map, Unit] =
     IO(skipList.clear())
 
-  override def write(entry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] = {
-    lock.writeLock().lock()
-    try
+  override def write(entry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] =
+    synchronized {
       if (flushOnOverflow || currentBytesWritten == 0 || ((currentBytesWritten + entry.totalByteSize) <= fileSize)) {
         if (entry.hasRange) {
           _hasRange = true //set hasRange to true before inserting so that reads start looking for floor key-values as the inserts are occurring.
@@ -68,9 +63,7 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: SkipList.Concurrent[K
       } else {
         IO.`false`
       }
-    finally
-      lock.writeLock().unlock()
-  }
+    }
 
   override def close(): IO[swaydb.Error.Map, Unit] =
     IO.unit
