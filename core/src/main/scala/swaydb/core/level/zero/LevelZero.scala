@@ -559,7 +559,7 @@ private[core] case class LevelZero(path: Path,
                  otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Higher.seek(
       key = key,
-      currentSeek = Seek.Current.Read.none,
+      currentSeek = Seek.Current.Read(Int.MinValue),
       nextSeek = Seek.Next.Read,
       currentWalker = currentWalker(currentMap, otherMaps),
       nextWalker = nextWalker(otherMaps),
@@ -619,7 +619,7 @@ private[core] case class LevelZero(path: Path,
                 otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Lower.seek(
       key = key,
-      currentSeek = Seek.Current.Read.none,
+      currentSeek = Seek.Current.Read(Int.MinValue),
       nextSeek = Seek.Next.Read,
       currentWalker = currentWalker(currentMap, otherMaps),
       nextWalker = nextWalker(otherMaps),

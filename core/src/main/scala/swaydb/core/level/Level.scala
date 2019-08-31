@@ -1199,7 +1199,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def lower(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
     Lower(
       key = key,
-      currentSeek = Seek.Current.Read.none,
+      currentSeek = Seek.Current.Read(Int.MinValue),
       nextSeek = Seek.Next.Read
     )
 
@@ -1257,7 +1257,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def higher(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Higher(
       key = key,
-      currentSeek = Seek.Current.Read.none,
+      currentSeek = Seek.Current.Read(Int.MinValue),
       nextSeek = Seek.Next.Read
     )
 

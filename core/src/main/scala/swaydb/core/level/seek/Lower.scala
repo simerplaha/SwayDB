@@ -94,7 +94,7 @@ private[core] object Lower {
       case Seek.Current.Read(previousSegmentId) =>
         currentWalker.lower(key) match {
           case IO.Right(LevelSeek.Some(segmentId, lower)) =>
-            if (previousSegmentId.forall(_ == segmentId))
+            if (previousSegmentId == segmentId)
               Higher(key, Seek.Current.Stash(segmentId, lower), nextSeek)
             else
               Higher(key, Seek.Current.Stash(segmentId, lower), Seek.Next.Read)
@@ -224,7 +224,7 @@ private[core] object Lower {
 
                         case _ =>
                           //if it doesn't result in an unexpired put move forward.
-                          Lower(current.key, Seek.Current.Read(Some(segmentId)), Seek.Next.Read)
+                          Lower(current.key, Seek.Current.Read(segmentId), Seek.Next.Read)
                       }
                     case failure @ IO.Left(_) =>
                       failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
@@ -238,7 +238,7 @@ private[core] object Lower {
 
                     //if it doesn't result in an unexpired put move forward.
                     case _ =>
-                      Lower(current.key, Seek.Current.Read(Some(segmentId)), nextStash)
+                      Lower(current.key, Seek.Current.Read(segmentId), nextStash)
                   }
                 //0
                 //    2
@@ -305,7 +305,7 @@ private[core] object Lower {
                                   IO.Defer(Some(put))
 
                                 case _ =>
-                                  Lower(next.key, Seek.Current.Read(Some(segmentId)), Seek.Next.Read)
+                                  Lower(next.key, Seek.Current.Read(segmentId), Seek.Next.Read)
                               }
 
                             case failure @ IO.Left(_) =>
@@ -329,7 +329,7 @@ private[core] object Lower {
                           IO.Defer(somePut)
 
                         case None =>
-                          Lower(current.fromKey, Seek.Current.Read(Some(segmentId)), nextStash)
+                          Lower(current.fromKey, Seek.Current.Read(segmentId), nextStash)
                       }
 
                     case failure @ IO.Left(_) =>
@@ -343,19 +343,19 @@ private[core] object Lower {
                 if (current.hasTimeLeft())
                   IO.Defer(Some(current))
                 else
-                  Lower(current.key, Seek.Current.Read(Some(segmentId)), nextSeek)
+                  Lower(current.key, Seek.Current.Read(segmentId), nextSeek)
 
               case _: KeyValue.ReadOnly.Remove =>
-                Lower(current.key, Seek.Current.Read(Some(segmentId)), nextSeek)
+                Lower(current.key, Seek.Current.Read(segmentId), nextSeek)
 
               case _: KeyValue.ReadOnly.Update =>
-                Lower(current.key, Seek.Current.Read(Some(segmentId)), nextSeek)
+                Lower(current.key, Seek.Current.Read(segmentId), nextSeek)
 
               case _: KeyValue.ReadOnly.Function =>
-                Lower(current.key, Seek.Current.Read(Some(segmentId)), nextSeek)
+                Lower(current.key, Seek.Current.Read(segmentId), nextSeek)
 
               case _: KeyValue.ReadOnly.PendingApply =>
-                Lower(current.key, Seek.Current.Read(Some(segmentId)), nextSeek)
+                Lower(current.key, Seek.Current.Read(segmentId), nextSeek)
 
               case current: KeyValue.ReadOnly.Range =>
                 current.fetchFromValue match {
@@ -365,7 +365,7 @@ private[core] object Lower {
                         IO.Defer(somePut)
 
                       case None =>
-                        Lower(current.fromKey, Seek.Current.Read(Some(segmentId)), nextSeek)
+                        Lower(current.fromKey, Seek.Current.Read(segmentId), nextSeek)
                     }
 
                   case failure @ IO.Left(_) =>

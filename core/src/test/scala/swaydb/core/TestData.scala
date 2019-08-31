@@ -2627,7 +2627,7 @@ object TestData {
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
                                 functionStore: FunctionStore): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-      Higher(key, Seek.Current.Read.none, Seek.Next.Read).runIO
+      Higher(key, Seek.Current.Read(Int.MinValue), Seek.Next.Read).runIO
   }
 
   implicit class LowerImplicits(higher: Lower.type) {
@@ -2636,7 +2636,7 @@ object TestData {
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
                                 functionStore: FunctionStore): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-      Lower(key, Seek.Current.Read.none, Seek.Next.Read).runIO
+      Lower(key, Seek.Current.Read(Int.MinValue), Seek.Next.Read).runIO
   }
 
   def randomStats(keySize: Int = randomIntMax(10000000),
