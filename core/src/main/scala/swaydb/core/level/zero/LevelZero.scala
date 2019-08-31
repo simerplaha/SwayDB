@@ -31,7 +31,7 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect
 import swaydb.core.level.seek._
-import swaydb.core.level.{LevelRef, NextLevel}
+import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
 import swaydb.core.map
 import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.core.map.timer.Timer
@@ -519,11 +519,21 @@ private[core] case class LevelZero(path: Path,
       override def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         find(key, currentMap, otherMaps.asJava.iterator())
 
-      override def higher(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
-        IO(higherFromMap(key, currentMap))
+      override def higher(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[ReadOnly.SegmentResponse]] =
+        IO {
+          LevelSeek(
+            segmentId = 0,
+            result = higherFromMap(key, currentMap)
+          )
+        }
 
-      override def lower(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly.SegmentResponse]] =
-        IO(lowerFromMap(key, currentMap))
+      override def lower(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[ReadOnly.SegmentResponse]] =
+        IO {
+          LevelSeek(
+            segmentId = 0,
+            result = lowerFromMap(key, currentMap)
+          )
+        }
 
       override def levelNumber: String =
         "current"
@@ -540,12 +550,6 @@ private[core] case class LevelZero(path: Path,
       override def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         getFromNextLevel(key, otherMaps.iterator.asJava)
 
-      override def hasStateChanged(previousState: Long): Boolean =
-        false
-
-      override def stateID: Long =
-        -1
-
       override def levelNumber: String =
         "map"
     }
@@ -555,8 +559,8 @@ private[core] case class LevelZero(path: Path,
                  otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Higher.seek(
       key = key,
-      currentSeek = Seek.Read,
-      nextSeek = Seek.Read,
+      currentSeek = Seek.Current.Read.none,
+      nextSeek = Seek.Next.Read,
       currentWalker = currentWalker(currentMap, otherMaps),
       nextWalker = nextWalker(otherMaps),
       keyOrder = keyOrder,
@@ -615,8 +619,8 @@ private[core] case class LevelZero(path: Path,
                 otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Lower.seek(
       key = key,
-      currentSeek = Seek.Read,
-      nextSeek = Seek.Read,
+      currentSeek = Seek.Current.Read.none,
+      nextSeek = Seek.Next.Read,
       currentWalker = currentWalker(currentMap, otherMaps),
       nextWalker = nextWalker(otherMaps),
       keyOrder = keyOrder,

@@ -858,7 +858,7 @@ object CommonAssertions {
 
   def assertReads(keyValues: Iterable[KeyValue],
                   level: LevelRef) = {
-    val asserts = Seq(() => assertGet(keyValues, level), () => assertHigher(keyValues, level), () => assertLower(keyValues, level))
+    val asserts = Seq(() => assertGet(keyValues, level), () => assertHigher(keyValues, level))
     Random.shuffle(asserts).par.foreach(_ ())
   }
 

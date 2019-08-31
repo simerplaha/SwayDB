@@ -33,7 +33,4 @@ trait NextWalker extends NextGetter {
 
   def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def hasStateChanged(previousState: Long): Boolean
-
-  def stateID: Long
 }

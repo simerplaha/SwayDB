@@ -19,10 +19,49 @@
 
 package swaydb.core.level
 
-private[level] object LevelSeek {
-  def apply[T](segmentId: Long, result: T): LevelSeek[T] =
-    new LevelSeek[T](segmentId, result)
+import swaydb.IO
+
+private[level] sealed trait LevelSeek[+A] {
+  def isDefined: Boolean
+  def isEmpty: Boolean
+
+  def map[B](f: A => B): LevelSeek[B]
+
+  def flatMap[B](f: A => LevelSeek[B]): LevelSeek[B]
 }
 
-private[level] class LevelSeek[T](val segmentId: Long,
-                                  val result: T)
+private[level] object LevelSeek {
+
+  val none = IO.Right[Nothing, LevelSeek.None.type](LevelSeek.None)(IO.ExceptionHandler.Nothing)
+
+  def apply[T](segmentId: Long,
+               result: Option[T]): LevelSeek[T] =
+    if (result.isDefined)
+      LevelSeek.Some(
+        segmentId = segmentId,
+        result = result.get
+      )
+    else
+      LevelSeek.None
+
+  case class Some[T](segmentId: Long,
+                     result: T) extends LevelSeek[T] {
+    override def isDefined: Boolean = true
+    override def isEmpty: Boolean = false
+    override def map[B](f: T => B): LevelSeek[B] =
+      copy(
+        segmentId = segmentId,
+        result = f(result)
+      )
+
+    override def flatMap[B](f: T => LevelSeek[B]): LevelSeek[B] =
+      f(result)
+  }
+
+  case object None extends LevelSeek[Nothing] {
+    override def isDefined: Boolean = false
+    override def isEmpty: Boolean = true
+    override def map[B](f: Nothing => B): LevelSeek[B] = this
+    override def flatMap[B](f: Nothing => LevelSeek[B]): LevelSeek[B] = this
+  }
+}

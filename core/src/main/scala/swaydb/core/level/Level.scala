@@ -367,10 +367,10 @@ private[core] case class Level(dirs: Seq[Dir],
       override def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         self get key
 
-      override def higher(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
+      override def higher(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly.SegmentResponse]] =
         higherInThisLevel(key)
 
-      override def lower(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
+      override def lower(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly.SegmentResponse]] =
         self lowerInThisLevel key
 
       override def levelNumber: String =
@@ -387,12 +387,6 @@ private[core] case class Level(dirs: Seq[Dir],
 
       override def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         getFromNextLevel(key)
-
-      override def hasStateChanged(previousState: Long): Boolean =
-        appendix.writeCountStateId != previousState
-
-      override def stateID: Long =
-        appendix.writeCountStateId
 
       override def levelNumber: String =
         "Level: " + self.levelNumber
@@ -1180,11 +1174,20 @@ private[core] case class Level(dirs: Seq[Dir],
           nextLevel.map(_.mightContainFunction(functionId)) getOrElse IO.`false`
     }
 
-  private def lowerInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
+  private def lowerInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly.SegmentResponse]] =
     appendix
       .skipList
       .lower(key)
-      .map(_.lower(key)) getOrElse IO.none
+      .map {
+        segment =>
+          segment.lower(key) map {
+            result =>
+              LevelSeek(
+                segmentId = segment.segmentId,
+                result = result
+              )
+          }
+      } getOrElse LevelSeek.none
 
   private def lowerFromNextLevel(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
     nextLevel.map(_.lower(key)) getOrElse IO.Defer.none
@@ -1201,23 +1204,41 @@ private[core] case class Level(dirs: Seq[Dir],
   override def lower(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
     Lower(
       key = key,
-      currentSeek = Seek.Read,
-      nextSeek = Seek.Read
+      currentSeek = Seek.Current.Read.none,
+      nextSeek = Seek.Next.Read
     )
 
-  private def higherFromFloorSegment(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
+  private def higherFromFloorSegment(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly.SegmentResponse]] =
     appendix
       .skipList
       .floor(key)
-      .map(_.higher(key)) getOrElse IO.none
+      .map {
+        segment =>
+          segment.higher(key) map {
+            result =>
+              LevelSeek(
+                segmentId = segment.segmentId,
+                result = result
+              )
+          }
+      } getOrElse LevelSeek.none
 
-  private def higherFromHigherSegment(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
+  private def higherFromHigherSegment(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly.SegmentResponse]] =
     appendix
       .skipList
       .higher(key)
-      .map(_.higher(key)) getOrElse IO.none
+      .map {
+        segment =>
+          segment.higher(key) map {
+            result =>
+              LevelSeek(
+                segmentId = segment.segmentId,
+                result = result,
+              )
+          }
+      } getOrElse LevelSeek.none
 
-  private[core] def higherInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
+  private[core] def higherInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly.SegmentResponse]] =
     higherFromFloorSegment(key) flatMap {
       fromFloor =>
         if (fromFloor.isDefined)
@@ -1241,8 +1262,8 @@ private[core] case class Level(dirs: Seq[Dir],
   override def higher(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Higher(
       key = key,
-      currentSeek = Seek.Read,
-      nextSeek = Seek.Read
+      currentSeek = Seek.Current.Read.none,
+      nextSeek = Seek.Next.Read
     )
 
   /**
