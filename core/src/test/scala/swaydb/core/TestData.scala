@@ -37,7 +37,7 @@ import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.BlockCache
+import swaydb.core.io.file.{BlockCache, IOEffect}
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
@@ -47,7 +47,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
-import swaydb.core.util.{BlockCacheFileIDGenerator, UUIDs}
+import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator, UUIDs}
 import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -133,6 +133,7 @@ object TestData {
     def tryReopen(path: Path): IO[swaydb.Error.Segment, Segment] =
       Segment(
         path = path,
+        segmentId = IOEffect.fileId(path).get._1,
         mmapReads = randomBoolean(),
         mmapWrites = randomBoolean(),
         blockCacheFileId = BlockCacheFileIDGenerator.nextID,
@@ -169,7 +170,13 @@ object TestData {
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
     def putKeyValuesTest(keyValues: Slice[KeyValue.ReadOnly])(implicit fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper,
-                                                              blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): IO[swaydb.Error.Level, Unit] =
+                                                              blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): IO[swaydb.Error.Level, Unit] = {
+      def fetchNextPath = {
+        val segmentId = level.segmentIDGenerator.nextID
+        val path = level.paths.next.resolve(IDGenerator.segmentId(segmentId))
+        (segmentId, path)
+      }
+
       if (keyValues.isEmpty)
         IO.unit
       else if (!level.isEmpty)
@@ -177,7 +184,7 @@ object TestData {
       else if (level.inMemory)
         Segment.copyToMemory(
           keyValues = keyValues,
-          fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
+          fetchNextPath = fetchNextPath,
           removeDeletes = false,
           minSegmentSize = 1000.mb,
           createdInLevel = level.levelNumber,
@@ -200,7 +207,7 @@ object TestData {
         Segment.copyToPersist(
           keyValues = keyValues.toTransient(),
           createdInLevel = level.levelNumber,
-          fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
+          fetchNextPath = fetchNextPath,
           mmapSegmentsOnRead = randomBoolean(),
           mmapSegmentsOnWrite = randomBoolean(),
           removeDeletes = false,
@@ -221,6 +228,7 @@ object TestData {
               _ => ()
             }
         }
+    }
 
     def reopen: Level =
       reopen()

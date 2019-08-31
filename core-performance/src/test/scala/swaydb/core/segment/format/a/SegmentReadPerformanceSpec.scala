@@ -393,6 +393,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     segment.clearAllCaches()
     segment = Segment(
       path = segment.path,
+      segmentId = segment.segmentId,
       mmapReads = levelStorage.mmapSegmentsOnRead,
       mmapWrites = levelStorage.mmapSegmentsOnWrite,
       blockCacheFileId = BlockCacheFileIDGenerator.nextID,

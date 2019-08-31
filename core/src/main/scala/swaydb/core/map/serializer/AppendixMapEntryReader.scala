@@ -27,11 +27,11 @@ import swaydb.Error.Map.ExceptionHandler
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.io.file.BlockCache
+import swaydb.core.io.file.{BlockCache, IOEffect}
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
-import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, MinMax}
+import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, Extension, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{ReaderBase, Slice}
@@ -118,6 +118,15 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                 } yield Some(MinMax(minId, maxId))
           }
         }
+
+        segmentId <-
+          IOEffect.fileId(segmentPath) flatMap {
+            case (segmentId, Extension.Seg) =>
+              IO.Right(segmentId)
+            case (segmentId, Extension.Log) =>
+              IO.failed(s"Invalid segment extension: $segmentPath")
+          }
+
         segment <-
 
           /**
@@ -133,6 +142,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
            */
           Segment(
             path = segmentPath,
+            segmentId = segmentId,
             mmapReads = mmapSegmentsOnRead,
             mmapWrites = mmapSegmentsOnWrite,
             blockCacheFileId = BlockCacheFileIDGenerator.nextID,

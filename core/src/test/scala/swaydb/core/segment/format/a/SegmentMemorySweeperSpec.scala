@@ -89,6 +89,7 @@ class SegmentMemorySweeperSpec extends TestBase {
         val segment =
           Segment.memory(
             path = Paths.get("/test"),
+            segmentId = 0,
             createdInLevel = 0,
             keyValues = mergedKeyValues
           )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileSweeper, None, Some(memorySweeper), SegmentIO.random).runRandomIO.right.value

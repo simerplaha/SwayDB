@@ -254,12 +254,14 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       if (levelStorage.memory)
         Segment.memory(
           path = path,
+          segmentId = IOEffect.fileId(path).get._1,
           keyValues = keyValues,
           createdInLevel = 0
         )
       else
         Segment.persistent(
           path = path,
+          segmentId = IOEffect.fileId(path).get._1,
           createdInLevel = 0,
           segmentConfig = segmentConfig,
           mmapReads = levelStorage.mmapSegmentsOnRead,

@@ -106,6 +106,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           assert =
             (keyValues, segment) => {
               assertReads(keyValues, segment)
+              segment.segmentId shouldBe IOEffect.fileId(segment.path).get._1
               segment.minKey shouldBe keyValues.head.key
               segment.maxKey shouldBe {
                 keyValues.last match {
@@ -577,6 +578,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 val readSegment =
                   Segment(
                     path = segment.path,
+                    segmentId = segment.segmentId,
                     mmapReads = randomBoolean(),
                     mmapWrites = randomBoolean(),
                     checkExists = false
@@ -785,11 +787,18 @@ sealed trait SegmentWriteSpec extends TestBase {
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).right.value
       val levelPath = createNextLevelPath
+
+      def fetchNextPath = {
+        val segmentId = nextId
+        val path = levelPath.resolve(IDGenerator.segmentId(segmentId))
+        (segmentId, path)
+      }
+
       val segments =
         Segment.copyToPersist(
           segment = segment,
           createdInLevel = 0,
-          fetchNextPath = levelPath.resolve(nextSegmentId),
+          fetchNextPath = fetchNextPath,
           mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
           mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
           valuesConfig = keyValues.last.valuesConfig,
@@ -818,11 +827,17 @@ sealed trait SegmentWriteSpec extends TestBase {
         val segment = TestSegment(keyValues).right.value
         val levelPath = createNextLevelPath
 
+        def fetchNextPath = {
+          val segmentId = nextId
+          val path = levelPath.resolve(IDGenerator.segmentId(segmentId))
+          (segmentId, path)
+        }
+
         val segments =
           Segment.copyToPersist(
             segment = segment,
             createdInLevel = 0,
-            fetchNextPath = levelPath.resolve(nextSegmentId),
+            fetchNextPath = fetchNextPath,
             mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
             mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
             removeDeletes = true,
@@ -858,14 +873,19 @@ sealed trait SegmentWriteSpec extends TestBase {
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).right.value
       val levelPath = createNextLevelPath
-      val nextPath = levelPath.resolve(nextSegmentId)
+
+      val (segmentId, nextPath) = {
+        val segmentId = nextId
+        val path = levelPath.resolve(IDGenerator.segmentId(segmentId))
+        (segmentId, path)
+      }
 
       IOEffect.createFile(nextPath).right.value //path already taken.
 
       Segment.copyToPersist(
         segment = segment,
         createdInLevel = 0,
-        fetchNextPath = nextPath,
+        fetchNextPath = (segmentId, nextPath),
         mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
         mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
         removeDeletes = true,
@@ -895,7 +915,11 @@ sealed trait SegmentWriteSpec extends TestBase {
 
       implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
-      def nextPath = levelPath.resolve(IDGenerator.segmentId(nextId))
+      def nextPath = {
+        val segmentId = nextId
+        val path = levelPath.resolve(IDGenerator.segmentId(segmentId))
+        (segmentId, path)
+      }
 
       IOEffect.createFile(levelPath.resolve(IDGenerator.segmentId(nextSegmentId + 4))).right.value //path already taken.
 
@@ -936,10 +960,17 @@ sealed trait SegmentWriteSpec extends TestBase {
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues).right.value
         val levelPath = createNextLevelPath
+
+        def nextPath = {
+          val segmentId = nextId
+          val path = levelPath.resolve(IDGenerator.segmentId(segmentId))
+          (segmentId, path)
+        }
+
         val segments =
           Segment.copyToMemory(
             segment = segment,
-            fetchNextPath = levelPath.resolve(nextSegmentId),
+            fetchNextPath = nextPath,
             createdInLevel = 0,
             removeDeletes = false,
             valuesConfig = keyValues.last.valuesConfig,
@@ -970,11 +1001,17 @@ sealed trait SegmentWriteSpec extends TestBase {
         val segment = TestSegment(keyValues).right.value
         val levelPath = createNextLevelPath
 
+        def nextPath = {
+          val segmentId = nextId
+          val path = levelPath.resolve(IDGenerator.segmentId(segmentId))
+          (segmentId, path)
+        }
+
         val segments =
           Segment.copyToMemory(
             segment = segment,
             createdInLevel = 0,
-            fetchNextPath = levelPath.resolve(nextSegmentId),
+            fetchNextPath = nextPath,
             removeDeletes = true,
             minSegmentSize = keyValues.last.stats.segmentSize / 1000,
             valuesConfig = keyValues.last.valuesConfig,

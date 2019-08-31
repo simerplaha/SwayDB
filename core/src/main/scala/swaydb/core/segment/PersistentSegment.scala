@@ -44,6 +44,7 @@ import scala.concurrent.duration.Deadline
 
 object PersistentSegment {
   def apply(file: DBFile,
+            segmentId: Long,
             mmapReads: Boolean,
             mmapWrites: Boolean,
             minKey: Slice[Byte],
@@ -69,6 +70,7 @@ object PersistentSegment {
 
     new PersistentSegment(
       file = file,
+      segmentId = segmentId,
       mmapReads = mmapReads,
       mmapWrites = mmapWrites,
       minKey = minKey,
@@ -82,6 +84,7 @@ object PersistentSegment {
 }
 
 private[segment] case class PersistentSegment(file: DBFile,
+                                              segmentId: Long,
                                               mmapReads: Boolean,
                                               mmapWrites: Boolean,
                                               minKey: Slice[Byte],
@@ -165,15 +168,18 @@ private[segment] case class PersistentSegment(file: DBFile,
           splits =>
             splits.mapIO(
               block =
-                keyValues =>
+                keyValues => {
+                  val segmentId = idGenerator.nextID
                   Segment.persistent(
-                    path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                    path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
+                    segmentId = segmentId,
                     segmentConfig = segmentConfig,
                     createdInLevel = createdInLevel,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
                     keyValues = keyValues
-                  ),
+                  )
+                },
 
               recover =
                 (segments: Slice[Segment], _: IO.Left[swaydb.Error.Segment, Slice[Segment]]) =>
@@ -217,15 +223,18 @@ private[segment] case class PersistentSegment(file: DBFile,
           splits =>
             splits.mapIO(
               block =
-                keyValues =>
+                keyValues => {
+                  val segmentId = idGenerator.nextID
                   Segment.persistent(
-                    path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                    path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
+                    segmentId = segmentId,
                     createdInLevel = createdInLevel,
                     segmentConfig = segmentConfig,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
                     keyValues = keyValues
-                  ),
+                  )
+                },
 
               recover =
                 (segments: Slice[Segment], _: IO.Left[swaydb.Error.Segment, Slice[Segment]]) =>

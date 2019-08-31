@@ -52,6 +52,7 @@ private[core] object Segment extends LazyLogging {
   val emptyIterableIO = IO.Right[Nothing, Iterable[Segment]](emptyIterable)(swaydb.IO.ExceptionHandler.Nothing)
 
   def memory(path: Path,
+             segmentId: Long,
              createdInLevel: Long,
              keyValues: Iterable[Transient])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                              timeOrder: TimeOrder[Slice[Byte]],
@@ -89,6 +90,7 @@ private[core] object Segment extends LazyLogging {
               bloomFilter =>
                 MemorySegment(
                   path = path,
+                  segmentId = segmentId,
                   minKey = keyValues.head.key.unslice(),
                   maxKey =
                     keyValues.last match {
@@ -117,6 +119,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def persistent(path: Path,
+                 segmentId: Long,
                  createdInLevel: Int,
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
@@ -196,6 +199,7 @@ private[core] object Segment extends LazyLogging {
             file =>
               PersistentSegment(
                 file = file,
+                segmentId = segmentId,
                 mmapReads = mmapReads,
                 mmapWrites = mmapWrites,
                 minKey = keyValues.head.key.unslice(),
@@ -221,7 +225,7 @@ private[core] object Segment extends LazyLogging {
   def copyToPersist(segment: Segment,
                     segmentConfig: SegmentBlock.Config,
                     createdInLevel: Int,
-                    fetchNextPath: => Path,
+                    fetchNextPath: => (Long, Path),
                     mmapSegmentsOnRead: Boolean,
                     mmapSegmentsOnWrite: Boolean,
                     removeDeletes: Boolean,
@@ -240,11 +244,12 @@ private[core] object Segment extends LazyLogging {
                                                                 segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     segment match {
       case segment: PersistentSegment =>
-        val nextPath = fetchNextPath
+        val (segmentId, nextPath) = fetchNextPath
         segment.copyTo(nextPath) flatMap {
           _ =>
             Segment(
               path = nextPath,
+              segmentId = segmentId,
               blockCacheFileId = segment.file.blockCacheFileId,
               mmapReads = mmapSegmentsOnRead,
               mmapWrites = mmapSegmentsOnWrite,
@@ -287,7 +292,7 @@ private[core] object Segment extends LazyLogging {
   def copyToPersist(keyValues: Iterable[KeyValue.ReadOnly],
                     segmentConfig: SegmentBlock.Config,
                     createdInLevel: Int,
-                    fetchNextPath: => Path,
+                    fetchNextPath: => (Long, Path),
                     mmapSegmentsOnRead: Boolean,
                     mmapSegmentsOnWrite: Boolean,
                     removeDeletes: Boolean,
@@ -320,15 +325,18 @@ private[core] object Segment extends LazyLogging {
       splits =>
         splits.mapIO(
           block =
-            keyValues =>
+            keyValues => {
+              val (segmentId, path) = fetchNextPath
               Segment.persistent(
-                path = fetchNextPath,
+                path = path,
+                segmentId = segmentId,
                 createdInLevel = createdInLevel,
                 segmentConfig = segmentConfig,
                 mmapReads = mmapSegmentsOnRead,
                 mmapWrites = mmapSegmentsOnWrite,
                 keyValues = keyValues
-              ),
+              )
+            },
 
           recover =
             (segments: Slice[Segment], _: IO.Left[swaydb.Error.Segment, Slice[Segment]]) =>
@@ -344,7 +352,7 @@ private[core] object Segment extends LazyLogging {
 
   def copyToMemory(segment: Segment,
                    createdInLevel: Int,
-                   fetchNextPath: => Path,
+                   fetchNextPath: => (Long, Path),
                    removeDeletes: Boolean,
                    minSegmentSize: Long,
                    valuesConfig: ValuesBlock.Config,
@@ -375,7 +383,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def copyToMemory(keyValues: Iterable[KeyValue.ReadOnly],
-                   fetchNextPath: => Path,
+                   fetchNextPath: => (Long, Path),
                    removeDeletes: Boolean,
                    minSegmentSize: Long,
                    createdInLevel: Int,
@@ -406,8 +414,10 @@ private[core] object Segment extends LazyLogging {
       keyValues =>
         keyValues mapIO {
           keyValues =>
+            val (segmentId, path) = fetchNextPath
             Segment.memory(
-              path = fetchNextPath,
+              path = path,
+              segmentId = segmentId,
               createdInLevel = createdInLevel,
               keyValues = keyValues
             )
@@ -415,6 +425,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def apply(path: Path,
+            segmentId: Long,
             blockCacheFileId: Long,
             mmapReads: Boolean,
             mmapWrites: Boolean,
@@ -453,6 +464,7 @@ private[core] object Segment extends LazyLogging {
       file =>
         PersistentSegment(
           file = file,
+          segmentId = segmentId,
           mmapReads = mmapReads,
           mmapWrites = mmapWrites,
           minKey = minKey,
@@ -473,6 +485,7 @@ private[core] object Segment extends LazyLogging {
    * This function is only used for Appendix file recovery initialization.
    */
   def apply(path: Path,
+            segmentId: Long,
             mmapReads: Boolean,
             mmapWrites: Boolean,
             checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -531,6 +544,7 @@ private[core] object Segment extends LazyLogging {
                                   deadlineMinMaxFunctionId =>
                                     PersistentSegment(
                                       file = file,
+                                      segmentId = segmentId,
                                       mmapReads = mmapReads,
                                       mmapWrites = mmapWrites,
                                       minKey = keyValues.head.key.unslice(),
@@ -902,6 +916,7 @@ private[core] object Segment extends LazyLogging {
 }
 
 private[core] trait Segment extends FileSweeperItem {
+  val segmentId: Long
   val minKey: Slice[Byte]
   val maxKey: MaxKey[Slice[Byte]]
   val segmentSize: Int

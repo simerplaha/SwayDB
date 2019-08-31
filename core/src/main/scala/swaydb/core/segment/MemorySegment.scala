@@ -45,6 +45,7 @@ import scala.concurrent.duration.Deadline
 
 
 private[segment] case class MemorySegment(path: Path,
+                                          segmentId: Long,
                                           minKey: Slice[Byte],
                                           maxKey: MaxKey[Slice[Byte]],
                                           minMaxFunctionId: Option[MinMax[Slice[Byte]]],
@@ -118,12 +119,15 @@ private[segment] case class MemorySegment(path: Path,
             splits =>
               splits.mapIO[Segment](
                 block =
-                  keyValues =>
+                  keyValues => {
+                    val segmentId = idGenerator.nextID
                     Segment.memory(
-                      path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                      path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
+                      segmentId = segmentId,
                       createdInLevel = createdInLevel,
                       keyValues = keyValues
-                    ),
+                    )
+                  },
 
                 recover =
                   (segments: Slice[Segment], _: IO.Left[swaydb.Error.Segment, Iterable[Segment]]) =>
@@ -170,12 +174,15 @@ private[segment] case class MemorySegment(path: Path,
             splits =>
               splits.mapIO[Segment](
                 block =
-                  keyValues =>
+                  keyValues => {
+                    val segmentId = idGenerator.nextID
                     Segment.memory(
-                      path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                      path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
+                      segmentId = segmentId,
                       createdInLevel = createdInLevel,
                       keyValues = keyValues
-                    ),
+                    )
+                  },
 
                 recover =
                   (segments: Slice[Segment], _: IO.Left[swaydb.Error.Segment, Iterable[Segment]]) =>

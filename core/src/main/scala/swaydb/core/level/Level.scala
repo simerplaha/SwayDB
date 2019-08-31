@@ -701,7 +701,11 @@ private[core] case class Level(dirs: Seq[Dir],
   private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Map", paths.head, map.pathOption)
 
-    def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
+    def targetSegmentPath: (Long, Path) = {
+      val segmentId = segmentIDGenerator.nextID
+      val path = paths.next.resolve(IDGenerator.segmentId(segmentId))
+      (segmentId, path)
+    }
 
     implicit val groupBy =
       self.groupBy flatMap {
@@ -782,7 +786,11 @@ private[core] case class Level(dirs: Seq[Dir],
     segments.flatMapIO[Segment](
       ioBlock =
         segment => {
-          def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
+          def targetSegmentPath: (Long, Path) = {
+            val segmentId = segmentIDGenerator.nextID
+            val path = paths.next.resolve(IDGenerator.segmentId(segmentId))
+            (segmentId, path)
+          }
 
           implicit val groupBy =
             self.groupBy flatMap {
