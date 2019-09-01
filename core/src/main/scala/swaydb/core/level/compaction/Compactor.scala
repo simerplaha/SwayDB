@@ -118,10 +118,10 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
       .compactionStates
       .values
       .foldLeft(Option.empty[Deadline]) {
-        case (nearestDeadline, waiting @ LevelCompactionState.AwaitingPull(ioAync, timeout, _, _)) =>
+        case (nearestDeadline, waiting @ LevelCompactionState.AwaitingPull(promise, timeout, _)) =>
           //do not create another hook if a future was already initialised to invoke wakeUp.
           if (!waiting.listenerInitialised) {
-            ioAync.future.foreach {
+            promise.future.foreach {
               _ =>
                 logger.debug(s"${state.id}: received pull request. Sending wakeUp now.")
                 waiting.isReady = true

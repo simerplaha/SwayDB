@@ -419,10 +419,12 @@ private[level] object Compaction extends LazyLogging {
     else
       nextLevel.put(segments) map {
         case IO.Right(_) =>
-          thisLevel.removeSegments(segments) recoverWith[swaydb.Error.Level, Int] {
-            case _ =>
-              IO.Right(segments.size)
-          }
+          thisLevel
+            .removeSegments(segments)
+            .recoverWith {
+              case _ =>
+                IO.Right(segments.size)
+            }
 
         case IO.Left(error) =>
           IO.Left(error)
