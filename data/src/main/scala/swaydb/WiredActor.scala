@@ -60,7 +60,7 @@ class WiredActor[T, S](impl: T, interval: Option[(FiniteDuration, Int)], state: 
     }
     }.asInstanceOf[Actor[() => Unit, S]]
 
-  def unsafeGetState: S =
+  private[swaydb] def unsafeGetState: S =
     actor.state
 
   def unsafeGetImpl: T =

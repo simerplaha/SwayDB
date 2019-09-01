@@ -200,6 +200,9 @@ private[core] object TrashLevel extends NextLevel {
   def lastSegmentId: Option[Long] =
     None
 
+  override def stateId: Long =
+    0
+
   override def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
     true
 

@@ -229,6 +229,8 @@ private[core] trait LevelRef {
 
   def isZero: Boolean
 
+  def stateId: Long
+
   def nextCompactionDelay: FiniteDuration
 
   def delete: IO[swaydb.Error.Delete, Unit]

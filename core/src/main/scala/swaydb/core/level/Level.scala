@@ -1473,6 +1473,9 @@ private[core] case class Level(dirs: Seq[Dir],
   def lastSegmentId: Option[Long] =
     appendix.skipList.last().map(_.segmentId)
 
+  override def stateId: Long =
+    segmentIDGenerator.currentId
+
   override def nextCompactionDelay: FiniteDuration =
     throttle(meter).pushDelay
 

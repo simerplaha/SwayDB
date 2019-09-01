@@ -23,7 +23,8 @@ import scala.concurrent.Promise
 import scala.concurrent.duration.{Deadline, _}
 
 private[level] sealed trait LevelCompactionState {
-  def lastSegmentId: Long
+  def stateId: Long
+  def previousStateID: Long
 }
 private[level] object LevelCompactionState {
   val failureSleepDuration = 5.second.fromNow
@@ -32,7 +33,8 @@ private[level] object LevelCompactionState {
 
   case class AwaitingPull(promise: Promise[Unit],
                           timeout: Deadline,
-                          lastSegmentId: Long) extends LevelCompactionState {
+                          stateId: Long,
+                          previousStateID: Long) extends LevelCompactionState {
     @volatile var isReady: Boolean = false
     @volatile var listenerInitialised: Boolean = false
 
@@ -44,9 +46,9 @@ private[level] object LevelCompactionState {
     //        s"previousStateID: $previousStateID"
   }
 
-  case class Sleep(sleepDeadline: Deadline,
-                   lastSegmentId: Long,
-                   previousStateID: Long) extends LevelCompactionState {
+  case class Sleeping(sleepDeadline: Deadline,
+                      stateId: Long,
+                      previousStateID: Long) extends LevelCompactionState {
     //    override def toString: String =
     //      this.getClass.getSimpleName +
     //        s" - sleepDeadline: ${sleepDeadline.timeLeft.asString}, " +

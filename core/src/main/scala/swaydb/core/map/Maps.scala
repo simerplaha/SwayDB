@@ -283,11 +283,14 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   // This is crucial for write performance use null instead of Option.
   private var brakePedal: BrakePedal = _
 
+  @volatile private var totalMapsCount: Int = maps.size() + 1
+  @volatile private var currentMapsCount: Int = maps.size() + 1
+
   val meter =
     new LevelZeroMeter {
       override def defaultMapSize: Long = fileSize
       override def currentMapSize: Long = currentMap.fileSize
-      override def mapsCount: Int = maps.size() + 1
+      override def mapsCount: Int = self.currentMapsCount
     }
 
   private[core] def onNextMapCallback(event: () => Unit): Unit =
@@ -328,6 +331,8 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                 case IO.Right(nextMap) =>
                   maps addFirst currentMap
                   currentMap = nextMap
+                  totalMapsCount += 1
+                  currentMapsCount += 1
                   onNextMapListener()
                   persist(entry)
 
@@ -347,6 +352,8 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
           case IO.Right(nextMap) =>
             maps addFirst currentMap
             currentMap = nextMap
+            totalMapsCount += 1
+            currentMapsCount += 1
             onNextMapListener()
             IO.Left(writeException)
 
@@ -426,15 +433,16 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     Option(maps.pollLast()) map {
       removedMap =>
         removedMap.delete match {
+          case IO.Right(_) =>
+            currentMapsCount -= 1
+            IO.unit
+
           case IO.Left(error) =>
             //failed to delete file. Add it back to the queue.
             val mapPath: String = removedMap.pathOption.map(_.toString).getOrElse("No path")
             logger.error(s"Failed to delete map '$mapPath;. Adding it back to the queue.", error.exception)
             maps.addLast(removedMap)
             IO.Left(error)
-
-          case IO.Right(_) =>
-            IO.unit
         }
     }
 
@@ -465,6 +473,9 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
 
   def iterator =
     maps.iterator()
+
+  def stateId: Long =
+    totalMapsCount
 
   def queuedMaps =
     maps.asScala

@@ -68,4 +68,10 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
 
   def terminateCompaction() =
     terminate = true
+
+  def updatedLevels: mutable.Iterable[LevelCompactionState] =
+    compactionStates collect {
+      case (_, levelState) if levelState.stateId != levelState.previousStateID =>
+        levelState
+    }
 }

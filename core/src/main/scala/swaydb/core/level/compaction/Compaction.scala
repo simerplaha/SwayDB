@@ -72,11 +72,11 @@ private[level] object Compaction extends LazyLogging {
 
   def shouldRun(levelNumber: Long, newStateID: Long, state: LevelCompactionState): Boolean =
     state match {
-      case awaitingPull @ LevelCompactionState.AwaitingPull(_, timeout, stateID) =>
+      case awaitingPull @ LevelCompactionState.AwaitingPull(_, timeout, stateID, previousStateID) =>
         logger.debug(s"Level($levelNumber): $state")
         awaitingPull.isReady || timeout.isOverdue() || newStateID != stateID
 
-      case LevelCompactionState.Sleep(sleepDeadline, stateID, _) =>
+      case LevelCompactionState.Sleeping(sleepDeadline, stateID, _) =>
         logger.debug(s"Level($levelNumber): $state")
         sleepDeadline.isOverdue() || newStateID != stateID
     }
@@ -91,11 +91,11 @@ private[level] object Compaction extends LazyLogging {
         case Some(level) =>
           logger.debug(s"${state.id}: Running compaction.")
           val currentState = state.compactionStates.get(level)
-          if (currentState.forall(state => shouldRun(level.levelNumber, ???, state))) {
+          if (currentState.forall(state => shouldRun(level.levelNumber, level.stateId, state))) {
             logger.debug(s"${state.id}: shouldRun = true.")
-            val nextState = runJob(level, currentState.map(_.lastSegmentId).getOrElse(0))(state.executionContext)
+            val nextState = runJob(level, currentState.map(_.stateId).getOrElse(0))(state.executionContext)
             logger.debug(s"${state.id}: next state $nextState.")
-            val willRun = shouldRun(level.levelNumber, ???, nextState)
+            val willRun = shouldRun(level.levelNumber, level.stateId, nextState)
             logger.debug(s"${state.id}: shouldRun on nextState: $willRun. nextState: $nextState.")
             if (willRun)
               runJobs(state, currentJobs)
@@ -132,9 +132,9 @@ private[level] object Compaction extends LazyLogging {
       case TrashLevel =>
         logger.error(s"Level(${level.levelNumber}):Received job for ${TrashLevel.getClass.getSimpleName}.")
         //trash Levels should never error submitted for compaction anyway. Give it a long delay.
-        LevelCompactionState.Sleep(
+        LevelCompactionState.Sleeping(
           sleepDeadline = LevelCompactionState.longSleep,
-          lastSegmentId = ???, //level.stateID
+          stateId = level.stateId,
           previousStateID = stateID
         )
     }
@@ -144,20 +144,20 @@ private[level] object Compaction extends LazyLogging {
     pushForward(level, throttle.segmentsToPush max 1) match {
       case IO.Right(IO.Right(pushed)) =>
         logger.debug(s"Level(${level.levelNumber}): pushed $pushed Segments.")
-        LevelCompactionState.Sleep(
+        LevelCompactionState.Sleeping(
           sleepDeadline = level.nextCompactionDelay.fromNow,
-          lastSegmentId = ???, //level.stateID
+          stateId = level.stateId,
           previousStateID = stateID
         )
 
       case IO.Right(IO.Left(_)) =>
-        LevelCompactionState.Sleep(
+        LevelCompactionState.Sleeping(
           sleepDeadline =
             if (LevelCompactionState.failureSleepDuration.timeLeft < throttle.pushDelay)
               LevelCompactionState.failureSleepDuration
             else
               throttle.pushDelay.fromNow,
-          lastSegmentId = ???, //level.stateID
+          stateId = level.stateId,
           previousStateID = stateID
         )
 
@@ -165,7 +165,8 @@ private[level] object Compaction extends LazyLogging {
         LevelCompactionState.AwaitingPull(
           promise = promise,
           timeout = awaitPullTimeout,
-          lastSegmentId = ???, //level.stateID
+          stateId = level.stateId,
+          previousStateID = stateID
         )
     }
   }
@@ -179,9 +180,9 @@ private[level] object Compaction extends LazyLogging {
           stateID = stateID
         )
     } getOrElse {
-      LevelCompactionState.Sleep(
+      LevelCompactionState.Sleeping(
         sleepDeadline = LevelCompactionState.longSleep,
-        lastSegmentId = ???, //zero.stateID
+        stateId = zero.stateId,
         previousStateID = stateID
       )
     } //no nextLevel, no compaction!
@@ -201,9 +202,9 @@ private[level] object Compaction extends LazyLogging {
 
       case None =>
         logger.debug(s"Level(${zero.levelNumber}): NO LAST MAP. No more maps to merge.")
-        LevelCompactionState.Sleep(
+        LevelCompactionState.Sleeping(
           sleepDeadline = zero.nextCompactionDelay.fromNow,
-          lastSegmentId = ???, //zero.stateID
+          stateId = zero.stateId,
           previousStateID = stateID
         )
     }
@@ -234,9 +235,9 @@ private[level] object Compaction extends LazyLogging {
                 )
             }
         }
-        LevelCompactionState.Sleep(
+        LevelCompactionState.Sleeping(
           sleepDeadline = zero.nextCompactionDelay.fromNow,
-          lastSegmentId = ???, //zero.stateID
+          stateId = zero.stateId,
           previousStateID = stateID
         )
 
@@ -248,9 +249,9 @@ private[level] object Compaction extends LazyLogging {
           case _ =>
             logger.error(s"Level(${zero.levelNumber}): Failed to push", error.exception)
         }
-        LevelCompactionState.Sleep(
+        LevelCompactionState.Sleeping(
           sleepDeadline = LevelCompactionState.failureSleepDuration,
-          lastSegmentId = ???, //zero.stateID
+          stateId = zero.stateId,
           previousStateID = stateID
         )
 
@@ -258,7 +259,8 @@ private[level] object Compaction extends LazyLogging {
         LevelCompactionState.AwaitingPull(
           promise = promise,
           timeout = awaitPullTimeout,
-          lastSegmentId = ??? //zero.stateID
+          stateId = zero.stateId,
+          previousStateID = stateID
         )
     }
 
