@@ -31,6 +31,7 @@ import swaydb.data.slice.Slice
 import scala.collection.mutable
 import scala.concurrent.Promise
 import scala.concurrent.duration._
+import org.scalatest.OptionValues._
 
 class CompactorSpec0 extends CompactorSpec
 
@@ -173,7 +174,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
       CompactorState(
         levels = Slice(level, nextLevel),
         child = None,
-        ordering = DefaultCompactionOrdering.ordering(_ => LevelCompactionState.Sleeping(1.day.fromNow, 0, 0)),
+        ordering = DefaultCompactionOrdering.ordering(_ => LevelCompactionState.Sleeping(1.day.fromNow, 0)),
         executionContext = TestExecutionContext.executionContext,
         compactionStates = mutable.Map.empty
       )
@@ -205,8 +206,8 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         //create IO.Later that is busy
         val promise = Promise[Unit]()
 
-        val awaitingPull = LevelCompactionState.AwaitingPull(promise, 1.minute.fromNow, 0, 0)
-        awaitingPull.isReady shouldBe false
+        val awaitingPull = LevelCompactionState.AwaitingPull(promise, 1.minute.fromNow, 0)
+        awaitingPull.listenerInvoked shouldBe false
         //set the state to be awaiting pull
         val state =
           testState.copy(
@@ -243,11 +244,9 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
 
         eventual(3.seconds) {
           //eventually is set to be ready.
-          awaitingPull.isReady shouldBe true
-          //next sleep task is initialised
-          state.sleepTask shouldBe defined
-          //it's the await's timeout.
-          state.sleepTask.get._2 shouldBe awaitingPull.timeout
+          awaitingPull.listenerInvoked shouldBe true
+          //next sleep task is initialised & it's the await's timeout.
+          state.sleepTask.value._2 shouldBe awaitingPull.timeout
         }
       }
 
@@ -256,11 +255,11 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
 
         val promise = Promise[Unit]()
 
-        val level1AwaitingPull = LevelCompactionState.AwaitingPull(promise, 1.minute.fromNow, 0, 0)
-        level1AwaitingPull.isReady shouldBe false
+        val level1AwaitingPull = LevelCompactionState.AwaitingPull(promise, 1.minute.fromNow, 0)
+        level1AwaitingPull.listenerInvoked shouldBe false
 
         //level 2's sleep is shorter than level1's awaitPull timeout sleep.
-        val level2Sleep = LevelCompactionState.Sleeping(5.seconds.fromNow, 0, 0)
+        val level2Sleep = LevelCompactionState.Sleeping(5.seconds.fromNow, 0)
         //set the state to be awaiting pull
         val state =
           testState.copy(

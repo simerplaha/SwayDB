@@ -70,15 +70,15 @@ private[level] object Compaction extends LazyLogging {
     )
   }
 
-  def shouldRun(levelNumber: Long, newStateID: Long, state: LevelCompactionState): Boolean =
+  def shouldRun(levelNumber: Long, newStateId: Long, state: LevelCompactionState): Boolean =
     state match {
-      case awaitingPull @ LevelCompactionState.AwaitingPull(_, timeout, stateID, previousStateID) =>
+      case awaitingPull @ LevelCompactionState.AwaitingPull(_, timeout, stateId) =>
         logger.debug(s"Level($levelNumber): $state")
-        awaitingPull.isReady || timeout.isOverdue() || newStateID != stateID
+        awaitingPull.listenerInvoked || timeout.isOverdue() || newStateId != stateId
 
-      case LevelCompactionState.Sleeping(sleepDeadline, stateID, _) =>
+      case LevelCompactionState.Sleeping(sleepDeadline, stateId) =>
         logger.debug(s"Level($levelNumber): $state")
-        sleepDeadline.isOverdue() || newStateID != stateID
+        sleepDeadline.isOverdue() || newStateId != stateId
     }
 
   @tailrec
@@ -95,17 +95,16 @@ private[level] object Compaction extends LazyLogging {
             logger.debug(s"${state.id}: shouldRun = true.")
             val nextState = runJob(level, currentState.map(_.stateId).getOrElse(0))(state.executionContext)
             logger.debug(s"${state.id}: next state $nextState.")
-            val willRun = shouldRun(level.levelNumber, level.stateId, nextState)
-            logger.debug(s"${state.id}: shouldRun on nextState: $willRun. nextState: $nextState.")
-            if (willRun)
+            val shouldRunNow = shouldRun(level.levelNumber, level.stateId, nextState)
+            logger.debug(s"${state.id}: shouldRun on nextState: $shouldRunNow. nextState: $nextState.")
+            if (shouldRunNow)
               runJobs(state, currentJobs)
             else
               state.compactionStates.put(
                 key = level,
                 value = nextState
               )
-          }
-          else {
+          } else {
             logger.debug(s"${state.id}: shouldRun = false.")
             runJobs(state, currentJobs.dropHead())
           }
@@ -115,103 +114,70 @@ private[level] object Compaction extends LazyLogging {
           logger.debug(s"${state.id}: Compaction round complete.")
       }
 
-  private[compaction] def runJob(level: LevelRef, stateID: Long)(implicit ec: ExecutionContext): LevelCompactionState =
+  private[compaction] def runJob(level: LevelRef, stateId: Long)(implicit ec: ExecutionContext): LevelCompactionState =
     level match {
       case zero: LevelZero =>
         pushForward(
           zero = zero,
-          stateID = stateID
+          stateId = stateId
         )
 
       case level: NextLevel =>
         pushForward(
           level = level,
-          stateID = stateID
+          stateId = stateId
         )
 
       case TrashLevel =>
         logger.error(s"Level(${level.levelNumber}):Received job for ${TrashLevel.getClass.getSimpleName}.")
-        //trash Levels should never error submitted for compaction anyway. Give it a long delay.
+        //trash Levels should are never submitted for compaction anyway. Give it a long delay.
         LevelCompactionState.Sleeping(
           sleepDeadline = LevelCompactionState.longSleep,
-          stateId = level.stateId,
-          previousStateID = stateID
+          stateId = stateId
         )
     }
 
-  private[compaction] def pushForward(level: NextLevel, stateID: Long)(implicit ec: ExecutionContext): LevelCompactionState = {
-    val throttle = level.throttle(level.meter)
-    pushForward(level, throttle.segmentsToPush max 1) match {
-      case IO.Right(IO.Right(pushed)) =>
-        logger.debug(s"Level(${level.levelNumber}): pushed $pushed Segments.")
-        LevelCompactionState.Sleeping(
-          sleepDeadline = level.nextCompactionDelay.fromNow,
-          stateId = level.stateId,
-          previousStateID = stateID
-        )
-
-      case IO.Right(IO.Left(_)) =>
-        LevelCompactionState.Sleeping(
-          sleepDeadline =
-            if (LevelCompactionState.failureSleepDuration.timeLeft < throttle.pushDelay)
-              LevelCompactionState.failureSleepDuration
-            else
-              throttle.pushDelay.fromNow,
-          stateId = level.stateId,
-          previousStateID = stateID
-        )
-
-      case IO.Left(promise) =>
-        LevelCompactionState.AwaitingPull(
-          promise = promise,
-          timeout = awaitPullTimeout,
-          stateId = level.stateId,
-          previousStateID = stateID
-        )
-    }
-  }
-
-  private[compaction] def pushForward(zero: LevelZero, stateID: Long)(implicit ec: ExecutionContext): LevelCompactionState =
-    zero.nextLevel map {
-      nextLevel =>
+  private[compaction] def pushForward(zero: LevelZero, stateId: Long)(implicit ec: ExecutionContext): LevelCompactionState =
+    zero.nextLevel match {
+      case Some(nextLevel) =>
         pushForward(
           zero = zero,
           nextLevel = nextLevel,
-          stateID = stateID
+          stateId = stateId
         )
-    } getOrElse {
-      LevelCompactionState.Sleeping(
-        sleepDeadline = LevelCompactionState.longSleep,
-        stateId = zero.stateId,
-        previousStateID = stateID
-      )
-    } //no nextLevel, no compaction!
+
+      case None =>
+        //no nextLevel, no compaction!
+        LevelCompactionState.Sleeping(
+          sleepDeadline = LevelCompactionState.longSleep,
+          stateId = stateId
+        )
+    }
 
   private[compaction] def pushForward(zero: LevelZero,
                                       nextLevel: NextLevel,
-                                      stateID: Long)(implicit ec: ExecutionContext): LevelCompactionState =
+                                      stateId: Long)(implicit ec: ExecutionContext): LevelCompactionState =
     zero.maps.last() match {
       case Some(map) =>
         logger.debug(s"Level(${zero.levelNumber}): Pushing LevelZero map :${map.pathOption} ")
         pushForward(
           zero = zero,
           nextLevel = nextLevel,
-          map = map,
-          stateID = stateID
+          stateId = stateId,
+          map = map
         )
 
       case None =>
         logger.debug(s"Level(${zero.levelNumber}): NO LAST MAP. No more maps to merge.")
         LevelCompactionState.Sleeping(
           sleepDeadline = zero.nextCompactionDelay.fromNow,
-          stateId = zero.stateId,
-          previousStateID = stateID
+          stateId = stateId
         )
     }
 
   private[compaction] def pushForward(zero: LevelZero,
                                       nextLevel: NextLevel,
-                                      stateID: Long,
+                                      stateId: Long,
                                       map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): LevelCompactionState =
     nextLevel.put(map) match {
       case IO.Right(IO.Right(_)) =>
@@ -220,12 +186,17 @@ private[level] object Compaction extends LazyLogging {
         // error message to be handled by the User.
         // Do not trigger another Push. This will stop LevelZero from pushing new memory maps to Level1.
         // Maps are ALWAYS required to be processed sequentially in the order of write.
-        // Un order merging of maps should NOT be allowed.
+        // Un-order merging of maps should NOT be allowed.
         zero.maps.removeLast() foreach {
           result =>
             result onLeftSideEffect {
               error =>
-                val mapPath: String = zero.maps.last().map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
+                val mapPath: String =
+                  zero
+                    .maps
+                    .last()
+                    .map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
+
                 logger.error(
                   s"Failed to delete the oldest memory map '$mapPath'. The map is added back to the memory-maps queue." +
                     "No more maps will be pushed to Level1 until this error is fixed " +
@@ -235,10 +206,10 @@ private[level] object Compaction extends LazyLogging {
                 )
             }
         }
+
         LevelCompactionState.Sleeping(
           sleepDeadline = zero.nextCompactionDelay.fromNow,
-          stateId = zero.stateId,
-          previousStateID = stateID
+          stateId = stateId
         )
 
       case IO.Right(IO.Left(error)) =>
@@ -249,27 +220,50 @@ private[level] object Compaction extends LazyLogging {
           case _ =>
             logger.error(s"Level(${zero.levelNumber}): Failed to push", error.exception)
         }
+
         LevelCompactionState.Sleeping(
-          sleepDeadline = LevelCompactionState.failureSleepDuration,
-          stateId = zero.stateId,
-          previousStateID = stateID
+          sleepDeadline = LevelCompactionState.failureSleepDuration.fromNow,
+          stateId = stateId
         )
 
       case IO.Left(promise) =>
         LevelCompactionState.AwaitingPull(
           promise = promise,
           timeout = awaitPullTimeout,
-          stateId = zero.stateId,
-          previousStateID = stateID
+          stateId = stateId
         )
     }
 
-  private[compaction] def pushForward(level: NextLevel,
-                                      segmentsToPush: Int)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
-    level.nextLevel map {
-      nextLevel =>
+  private[compaction] def pushForward(level: NextLevel, stateId: Long)(implicit ec: ExecutionContext): LevelCompactionState =
+    pushForward(level, level.nextThrottlePushCount max 1) match {
+      case IO.Right(IO.Right(pushed)) =>
+        logger.debug(s"Level(${level.levelNumber}): pushed $pushed Segments.")
+        LevelCompactionState.Sleeping(
+          sleepDeadline = level.nextCompactionDelay.fromNow,
+          stateId = stateId
+        )
+
+      case IO.Right(IO.Left(_)) =>
+        LevelCompactionState.Sleeping(
+          sleepDeadline = (LevelCompactionState.failureSleepDuration min level.nextCompactionDelay).fromNow,
+          stateId = stateId
+        )
+
+      case IO.Left(promise) =>
+        LevelCompactionState.AwaitingPull(
+          promise = promise,
+          timeout = awaitPullTimeout,
+          stateId = stateId
+        )
+    }
+
+  private def pushForward(level: NextLevel,
+                          segmentsToPush: Int)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
+    level.nextLevel match {
+      case Some(nextLevel) =>
         val (copyable, mergeable) = level.optimalSegmentsPushForward(take = segmentsToPush)
         logger.debug(s"Level(${level.levelNumber}): copyable: ${copyable.size}, mergeable: ${mergeable.size} ")
+
         putForward(
           segments = copyable,
           thisLevel = level,
@@ -288,15 +282,16 @@ private[level] object Compaction extends LazyLogging {
           case IO.Left(error) =>
             IO.Right(IO.Left(error))(IO.ExceptionHandler.PromiseUnit)
         }(IO.ExceptionHandler.PromiseUnit)
-    } getOrElse {
-      IO.Right[Promise[Unit], IO[swaydb.Error.Level, Int]](
-        runLastLevelCompaction(
-          level = level,
-          checkExpired = true,
-          remainingCompactions = segmentsToPush,
-          segmentsCompacted = 0
-        )
-      )(IO.ExceptionHandler.PromiseUnit)
+
+      case None =>
+        IO.Right(
+          runLastLevelCompaction(
+            level = level,
+            checkExpired = true,
+            remainingCompactions = segmentsToPush,
+            segmentsCompacted = 0
+          )
+        )(IO.ExceptionHandler.PromiseUnit)
     }
 
   @tailrec

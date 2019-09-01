@@ -31,6 +31,7 @@ import swaydb.core.data.Memory
 import swaydb.core.level.NextLevel
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -212,16 +213,30 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
     "not run compaction" when {
       "level is not the last Level" in {
         val level = mock[NextLevel]("level")
-        level.hasNextLevel _ expects() returns false
+        level.hasNextLevel _ expects() returns true repeat 20.times
 
-        Compaction.runLastLevelCompaction(level, true, 100, 0) shouldBe IO.zero
+        runThis(20.times) {
+          Compaction.runLastLevelCompaction(
+            level = level,
+            checkExpired = randomBoolean(),
+            remainingCompactions = randomIntMax(10),
+            segmentsCompacted = 0
+          ) shouldBe IO.zero
+        }
       }
 
       "remaining compactions are 0" in {
         val level = mock[NextLevel]("level")
-        level.hasNextLevel _ expects() returns true
+        level.hasNextLevel _ expects() returns true repeat 20.times
 
-        Compaction.runLastLevelCompaction(level, true, remainingCompactions = 0, 10) shouldBe IO.Right(10)
+        runThis(20.times) {
+          Compaction.runLastLevelCompaction(
+            level = level,
+            checkExpired = randomBoolean(),
+            remainingCompactions = randomIntMax(10),
+            segmentsCompacted = 10
+          ) shouldBe IO.Right(10)
+        }
       }
     }
 
@@ -282,21 +297,21 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
           })(collection.breakOut)
 
         val level = mock[NextLevel]("level")
-        level.hasNextLevel _ expects() returns false repeated 3.times
+        level.hasNextLevel _ expects() returns false repeated 2.times
 
         level.optimalSegmentsToCollapse _ expects * onCall {
           count: Int =>
             segments.take(count)
-        } repeat 2.times
+        }
 
         (level.collapse(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
           (segmentsToCollapse: Iterable[Segment], _) =>
             segmentsToCollapse foreach (segment => segments find (_.path == segment.path) shouldBe defined)
             segments --= segmentsToCollapse
             IO.Right(IO(segmentsToCollapse.size))(IO.ExceptionHandler.PromiseUnit)
-        } repeat 2.times
+        }
 
-//        level.levelNumber _ expects() returns 1 repeat 3.times
+        //        level.levelNumber _ expects() returns 1 repeat 3.times
 
         Compaction.runLastLevelCompaction(
           level = level,
@@ -307,4 +322,57 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
       }
     }
   }
+
+//  "pushForward" when {
+//    "NextLevel" should {
+//      "copy segments first" in {
+//        val segments: ListBuffer[Segment] =
+//          (1 to 10).flatMap({
+//            i =>
+//              if (i % 2 == 0)
+//                Some(
+//                  TestSegment(
+//                    Slice(
+//                      Memory.put(i, i, Some(expiredDeadline())),
+//                      Memory.put(i + 1, i + 1, Some(expiredDeadline()))
+//                    ).toTransient
+//                  ).get
+//                )
+//              else
+//                None
+//          })(collection.breakOut)
+//
+//        val lowerLevel = mock[NextLevel]("level")
+//        lowerLevel.hasNextLevel _ expects() returns false repeated 2.times
+//
+//        val throttleFunction = mockFunction[LevelMeter, Throttle]("throttleFunction")
+//
+//        val upperLevel = TestLevel(nextLevel = Some(lowerLevel), throttle = throttleFunction)
+//        upperLevel.put(segments).right.value.right.value
+//
+//        lowerLevel.optimalSegmentsToCollapse _ expects * onCall {
+//          count: Int =>
+//            segments.take(count)
+//        }
+//
+//        (lowerLevel.collapse(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
+//          (segmentsToCollapse: Iterable[Segment], _) =>
+//            segmentsToCollapse foreach (segment => segments find (_.path == segment.path) shouldBe defined)
+//            segments --= segmentsToCollapse
+//            IO.Right(IO(segmentsToCollapse.size))(IO.ExceptionHandler.PromiseUnit)
+//        }
+//
+//        //        level.levelNumber _ expects() returns 1 repeat 3.times
+//
+//        Compaction.pushForward(
+//          lowerLevel = lowerLevel,
+//          checkExpired = false,
+//          remainingCompactions = 5,
+//          segmentsCompacted = 0
+//        ) shouldBe IO.Right(5)
+//
+//
+//      }
+//    }
+//  }
 }

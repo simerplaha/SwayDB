@@ -86,8 +86,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
                           default =
                             LevelCompactionState.Sleeping(
                               sleepDeadline = level.nextCompactionDelay.fromNow,
-                              stateId = -1,
-                              previousStateID = -2
+                              stateId = -1
                             )
                         )
                     )
@@ -115,20 +114,20 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
     logger.debug(s"${state.id}: scheduling next wakeup for updated state: ${state.levels.size}. Current scheduled: ${state.sleepTask.map(_._2.timeLeft.asString)}")
 
     state
-      .updatedLevels
+      .compactionStates
       .foldLeft(Option.empty[Deadline]) {
-        case (nearestDeadline, waiting @ LevelCompactionState.AwaitingPull(promise, timeout, _, _)) =>
+        case (nearestDeadline, (_, waiting @ LevelCompactionState.AwaitingPull(promise, timeout, _))) =>
           //do not create another hook if a future was already initialised to invoke wakeUp.
           if (!waiting.listenerInitialised) {
             promise.future.foreach {
               _ =>
                 logger.debug(s"${state.id}: received pull request. Sending wakeUp now.")
-                waiting.isReady = true
+                waiting.listenerInvoked = true
                 self send {
                   (impl, state, self) =>
                     impl.wakeUp(
                       state = state,
-                      forwardCopyOnAllLevels = true,
+                      forwardCopyOnAllLevels = false,
                       self = self
                     )
                 }
@@ -141,7 +140,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
             next = Some(timeout)
           )
 
-        case (nearestDeadline, LevelCompactionState.Sleeping(sleepDeadline, _, _)) =>
+        case (nearestDeadline, (_, LevelCompactionState.Sleeping(sleepDeadline, _))) =>
           FiniteDurations.getNearestDeadline(
             deadline = nearestDeadline,
             next = Some(sleepDeadline)
@@ -151,16 +150,18 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
         newWakeUpDeadline =>
           //if the wakeUp deadlines are the same do not trigger another wakeUp.
           if (state.sleepTask.forall(_._2 > newWakeUpDeadline)) {
+            state.sleepTask foreach (_._1.cancel())
+
             val newTask =
               self.scheduleSend(newWakeUpDeadline.timeLeft) {
                 (impl, state) =>
                   impl.wakeUp(
                     state = state,
-                    forwardCopyOnAllLevels = true,
+                    forwardCopyOnAllLevels = false,
                     self = self
                   )
               }
-            state.sleepTask foreach (_._1.cancel())
+
             state.sleepTask = Some(newTask, newWakeUpDeadline)
             logger.debug(s"${state.id}: Next wakeup scheduled!. Current scheduled: ${newWakeUpDeadline.timeLeft.asString}")
           } else {
@@ -175,7 +176,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
       .foreach {
         child =>
           sendWakeUp(
-            forwardCopyOnAllLevels = true,
+            forwardCopyOnAllLevels = false,
             compactor = child
           )
       }
