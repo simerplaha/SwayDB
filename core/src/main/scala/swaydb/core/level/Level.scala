@@ -1228,7 +1228,7 @@ private[core] case class Level(dirs: Seq[Dir],
             result =>
               LevelSeek(
                 segmentId = segment.segmentId,
-                result = result,
+                result = result
               )
           }
       } getOrElse LevelSeek.none
