@@ -197,6 +197,9 @@ private[core] object TrashLevel extends NextLevel {
   override def groupBy: Option[GroupByInternal.KeyValues] =
     None
 
+  def lastSegmentId: Option[Long] =
+    None
+
   override def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
     true
 

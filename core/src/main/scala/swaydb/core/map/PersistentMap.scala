@@ -20,7 +20,6 @@
 package swaydb.core.map
 
 import java.nio.file.Path
-import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler

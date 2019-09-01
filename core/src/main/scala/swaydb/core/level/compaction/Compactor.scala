@@ -86,7 +86,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
                           default =
                             LevelCompactionState.Sleep(
                               sleepDeadline = level.nextCompactionDelay.fromNow,
-                              stateID = ???, //level.stateID
+                              lastSegmentId = ???, //level.stateID
                               previousStateID = 0
                             )
                         )

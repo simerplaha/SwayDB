@@ -100,6 +100,8 @@ trait NextLevel extends LevelRef {
 
   def segmentSize: Long
 
+  def lastSegmentId: Option[Long]
+
   def take(count: Int): Slice[Segment]
 
   def takeSmallSegments(size: Int): Iterable[Segment]
