@@ -41,9 +41,9 @@ import scala.concurrent.{ExecutionContext, Promise}
  *
  * State mutation is necessary to avoid unnecessary garbage during compaction. Functions returning Unit mutate the state.
  */
-object ThrottleCompaction extends Compaction[ThrottleState] with LazyLogging {
-  val awaitPullTimeout = 6.seconds
+private[core] object ThrottleCompaction extends Compaction[ThrottleState] with LazyLogging {
 
+  val awaitPullTimeout = 6.seconds
 
   override def run(state: ThrottleState,
                    forwardCopyOnAllLevels: Boolean): Unit =
