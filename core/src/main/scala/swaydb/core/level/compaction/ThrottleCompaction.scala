@@ -35,16 +35,16 @@ import scala.concurrent.{ExecutionContext, Promise}
 /**
  * This object does not implement any concurrency which should be handled by an Actor.
  *
- * It just implements functions that given a Level and it's [[CompactorState]] mutates the state
+ * It just implements functions that given a Level and it's [[ThrottleState]] mutates the state
  * such to reflect it's current compaction state. This state can then used to determine
  * how the next compaction should occur.
  *
  * State mutation is necessary to avoid unnecessary garbage during compaction. Functions returning Unit mutate the state.
  */
-object DefaultCompaction extends Compaction with LazyLogging {
+object ThrottleCompaction extends Compaction with LazyLogging {
   val awaitPullTimeout = 6.seconds
 
-  override def run(state: CompactorState,
+  override def run(state: ThrottleState,
                    forwardCopyOnAllLevels: Boolean): Unit =
     if (state.terminate)
       logger.debug(s"${state.name}: Ignoring wakeUp call. Compaction is terminated!")
@@ -54,7 +54,7 @@ object DefaultCompaction extends Compaction with LazyLogging {
         forwardCopyOnAllLevels = forwardCopyOnAllLevels
       )
 
-  private[compaction] def runNow(state: CompactorState,
+  private[compaction] def runNow(state: ThrottleState,
                                  forwardCopyOnAllLevels: Boolean): Unit = {
     logger.debug(s"${state.name}: Running compaction now! forwardCopyOnAllLevels = $forwardCopyOnAllLevels!")
     if (forwardCopyOnAllLevels) {
@@ -68,19 +68,19 @@ object DefaultCompaction extends Compaction with LazyLogging {
     )
   }
 
-  def shouldRun(levelNumber: Long, newStateId: Long, state: LevelCompactionState): Boolean =
+  def shouldRun(levelNumber: Long, newStateId: Long, state: ThrottleLevelState): Boolean =
     state match {
-      case awaitingPull @ LevelCompactionState.AwaitingPull(_, timeout, stateId) =>
+      case awaitingPull @ ThrottleLevelState.AwaitingPull(_, timeout, stateId) =>
         logger.debug(s"Level($levelNumber): $state")
         awaitingPull.listenerInvoked || timeout.isOverdue() || newStateId != stateId
 
-      case LevelCompactionState.Sleeping(sleepDeadline, stateId) =>
+      case ThrottleLevelState.Sleeping(sleepDeadline, stateId) =>
         logger.debug(s"Level($levelNumber): $state")
         sleepDeadline.isOverdue() || newStateId != stateId
     }
 
   @tailrec
-  private[compaction] def runJobs(state: CompactorState,
+  private[compaction] def runJobs(state: ThrottleState,
                                   currentJobs: Slice[LevelRef]): Unit =
     if (state.terminate)
       logger.warn(s"${state.name}: Cannot run jobs. Compaction is terminated.")
@@ -115,7 +115,7 @@ object DefaultCompaction extends Compaction with LazyLogging {
    *
    * It should be be re-fetched for the same compaction.
    */
-  private[compaction] def runJob(level: LevelRef, stateId: Long)(implicit ec: ExecutionContext): LevelCompactionState =
+  private[compaction] def runJob(level: LevelRef, stateId: Long)(implicit ec: ExecutionContext): ThrottleLevelState =
     level match {
       case zero: LevelZero =>
         pushForward(
@@ -132,13 +132,13 @@ object DefaultCompaction extends Compaction with LazyLogging {
       case TrashLevel =>
         logger.error(s"Level(${level.levelNumber}):Received job for ${TrashLevel.getClass.getSimpleName}.")
         //trash Levels should are never submitted for compaction anyway. Give it a long delay.
-        LevelCompactionState.Sleeping(
-          sleepDeadline = LevelCompactionState.longSleep,
+        ThrottleLevelState.Sleeping(
+          sleepDeadline = ThrottleLevelState.longSleep,
           stateId = stateId
         )
     }
 
-  private[compaction] def pushForward(zero: LevelZero, stateId: Long)(implicit ec: ExecutionContext): LevelCompactionState =
+  private[compaction] def pushForward(zero: LevelZero, stateId: Long)(implicit ec: ExecutionContext): ThrottleLevelState =
     zero.nextLevel match {
       case Some(nextLevel) =>
         pushForward(
@@ -149,15 +149,15 @@ object DefaultCompaction extends Compaction with LazyLogging {
 
       case None =>
         //no nextLevel, no compaction!
-        LevelCompactionState.Sleeping(
-          sleepDeadline = LevelCompactionState.longSleep,
+        ThrottleLevelState.Sleeping(
+          sleepDeadline = ThrottleLevelState.longSleep,
           stateId = stateId
         )
     }
 
   private[compaction] def pushForward(zero: LevelZero,
                                       nextLevel: NextLevel,
-                                      stateId: Long)(implicit ec: ExecutionContext): LevelCompactionState =
+                                      stateId: Long)(implicit ec: ExecutionContext): ThrottleLevelState =
     zero.maps.last() match {
       case Some(map) =>
         logger.debug(s"Level(${zero.levelNumber}): Pushing LevelZero map :${map.pathOption} ")
@@ -170,7 +170,7 @@ object DefaultCompaction extends Compaction with LazyLogging {
 
       case None =>
         logger.debug(s"Level(${zero.levelNumber}): NO LAST MAP. No more maps to merge.")
-        LevelCompactionState.Sleeping(
+        ThrottleLevelState.Sleeping(
           sleepDeadline = zero.nextCompactionDelay.fromNow,
           stateId = stateId
         )
@@ -179,7 +179,7 @@ object DefaultCompaction extends Compaction with LazyLogging {
   private[compaction] def pushForward(zero: LevelZero,
                                       nextLevel: NextLevel,
                                       stateId: Long,
-                                      map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): LevelCompactionState =
+                                      map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): ThrottleLevelState =
     nextLevel.put(map) match {
       case IO.Right(IO.Right(_)) =>
         logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
@@ -208,7 +208,7 @@ object DefaultCompaction extends Compaction with LazyLogging {
             }
         }
 
-        LevelCompactionState.Sleeping(
+        ThrottleLevelState.Sleeping(
           sleepDeadline = zero.nextCompactionDelay.fromNow,
           stateId = stateId
         )
@@ -222,36 +222,36 @@ object DefaultCompaction extends Compaction with LazyLogging {
             logger.error(s"Level(${zero.levelNumber}): Failed to push", error.exception)
         }
 
-        LevelCompactionState.Sleeping(
-          sleepDeadline = LevelCompactionState.failureSleepDuration.fromNow,
+        ThrottleLevelState.Sleeping(
+          sleepDeadline = ThrottleLevelState.failureSleepDuration.fromNow,
           stateId = stateId
         )
 
       case IO.Left(promise) =>
-        LevelCompactionState.AwaitingPull(
+        ThrottleLevelState.AwaitingPull(
           promise = promise,
           timeout = awaitPullTimeout.fromNow,
           stateId = stateId
         )
     }
 
-  private[compaction] def pushForward(level: NextLevel, stateId: Long)(implicit ec: ExecutionContext): LevelCompactionState =
+  private[compaction] def pushForward(level: NextLevel, stateId: Long)(implicit ec: ExecutionContext): ThrottleLevelState =
     pushForward(level, level.nextThrottlePushCount max 1) match {
       case IO.Right(IO.Right(pushed)) =>
         logger.debug(s"Level(${level.levelNumber}): pushed $pushed Segments.")
-        LevelCompactionState.Sleeping(
+        ThrottleLevelState.Sleeping(
           sleepDeadline = level.nextCompactionDelay.fromNow,
           stateId = stateId
         )
 
       case IO.Right(IO.Left(_)) =>
-        LevelCompactionState.Sleeping(
-          sleepDeadline = (LevelCompactionState.failureSleepDuration min level.nextCompactionDelay).fromNow,
+        ThrottleLevelState.Sleeping(
+          sleepDeadline = (ThrottleLevelState.failureSleepDuration min level.nextCompactionDelay).fromNow,
           stateId = stateId
         )
 
       case IO.Left(promise) =>
-        LevelCompactionState.AwaitingPull(
+        ThrottleLevelState.AwaitingPull(
           promise = promise,
           timeout = awaitPullTimeout.fromNow,
           stateId = stateId

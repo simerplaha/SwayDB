@@ -418,8 +418,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     def iterationMessage =
       s"Thread: ${Thread.currentThread().getId} - throttleOn: $throttleOn"
 
-    implicit val compactionStrategy: CompactionStrategy[CompactorState] =
-      Compactor
+    implicit val compactionStrategy: Compactor[ThrottleState] =
+      ThrottleCompactor
 
     implicit val compactionOrdering: CompactionOrdering =
       DefaultCompactionOrdering
@@ -446,7 +446,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     val level1 = TestLevel(nextLevel = Some(level2), throttle = levelThrottle)
     val level0 = TestLevelZero(nextLevel = Some(level1), throttle = levelZeroThrottle)
 
-    val compaction: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+    val compaction: Option[WiredActor[Compactor[ThrottleState], ThrottleState]] =
       if (throttleOn)
         CoreInitializer.startCompaction(
           zero = level0,
@@ -565,7 +565,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     runAsserts(asserts)
 
     level0.delete.runRandomIO.right.value
-    compaction foreach Compactor.terminate
+    compaction foreach ThrottleCompactor.terminate
 
     if (!throttleOn)
       assertLevel(

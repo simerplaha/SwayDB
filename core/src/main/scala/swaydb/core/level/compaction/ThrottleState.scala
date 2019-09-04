@@ -34,11 +34,11 @@ import scala.concurrent.duration._
 /**
  * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
  */
-private[core] case class CompactorState(levels: Slice[LevelRef],
-                                        child: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]],
-                                        ordering: Ordering[LevelRef],
-                                        executionContext: ExecutionContext,
-                                        compactionStates: mutable.Map[LevelRef, LevelCompactionState]) extends LazyLogging {
+private[core] case class ThrottleState(levels: Slice[LevelRef],
+                                       child: Option[WiredActor[Compactor[ThrottleState], ThrottleState]],
+                                       ordering: Ordering[LevelRef],
+                                       executionContext: ExecutionContext,
+                                       compactionStates: mutable.Map[LevelRef, ThrottleLevelState]) extends LazyLogging {
   @volatile private[compaction] var terminate: Boolean = false
   private[compaction] var sleepTask: Option[(TimerTask, Deadline)] = None
   val hasLevelZero: Boolean = levels.exists(_.isZero)
@@ -58,7 +58,7 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
     //empty levels in CompactorState.
       throw new Exception("CompactorState created without Levels.")
     else
-      levels.foldLeft(LevelCompactionState.longSleep) {
+      levels.foldLeft(ThrottleLevelState.longSleep) {
         case (deadline, level) =>
           FiniteDurations.getNearestDeadline(
             deadline = Some(deadline),

@@ -19,15 +19,7 @@
 
 package swaydb.core.level.compaction
 
-import com.typesafe.scalalogging.LazyLogging
-
 private[swaydb] trait Compaction {
-  def run(state: CompactorState,
+  def run(state: ThrottleState,
           forwardCopyOnAllLevels: Boolean): Unit
-}
-
-private[swaydb] object Compaction extends LazyLogging {
-
-  val default: Compaction = DefaultCompaction
-
 }

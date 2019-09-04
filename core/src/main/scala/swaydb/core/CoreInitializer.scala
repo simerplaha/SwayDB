@@ -43,13 +43,13 @@ import scala.concurrent.ExecutionContext
 
 private[core] object CoreInitializer extends LazyLogging {
 
-  implicit val compaction: Compaction = Compaction.default
+  implicit val compaction: Compaction = ThrottleCompaction
 
   /**
    * Closes all the open files and releases the locks on database folders.
    */
   private def addShutdownHook(zero: LevelZero,
-                              compactor: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]])(implicit compactionStrategy: CompactionStrategy[CompactorState]): Unit =
+                              compactor: Option[WiredActor[Compactor[ThrottleState], ThrottleState]])(implicit compactionStrategy: Compactor[ThrottleState]): Unit =
     sys.addShutdownHook {
       logger.info("Shutting down compaction.")
       IO(compactor foreach compactionStrategy.terminate) onLeftSideEffect {
@@ -75,7 +75,7 @@ private[core] object CoreInitializer extends LazyLogging {
                                                functionStore: FunctionStore,
                                                bufferCleanerEC: Option[ExecutionContext] = None): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
 
-    implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
+    implicit val compactionStrategy: Compactor[ThrottleState] = ThrottleCompactor
     if (config.storage.isMMAP && bufferCleanerEC.isEmpty)
       IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]]("ExecutionContext for ByteBuffer is required for memory-mapped configured databases.") //FIXME - create a LevelZeroPersistentMMAPConfig type to remove this error check.
     else
@@ -100,7 +100,7 @@ private[core] object CoreInitializer extends LazyLogging {
                                            timeOrder: TimeOrder[Slice[Byte]],
                                            functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
 
-    implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
+    implicit val compactionStrategy: Compactor[ThrottleState] = ThrottleCompactor
 
     LevelZero(
       mapSize = config.mapSize,
@@ -137,15 +137,15 @@ private[core] object CoreInitializer extends LazyLogging {
 
   def startCompaction(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext],
-                      copyForwardAllOnStart: Boolean)(implicit compactionStrategy: CompactionStrategy[CompactorState],
-                                                      compactionOrdering: CompactionOrdering): IO[swaydb.Error.Level, Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]]] =
+                      copyForwardAllOnStart: Boolean)(implicit compactionStrategy: Compactor[ThrottleState],
+                                                      compactionOrdering: CompactionOrdering): IO[swaydb.Error.Level, Option[WiredActor[Compactor[ThrottleState], ThrottleState]]] =
     compactionStrategy.createAndListen(
       zero = zero,
       executionContexts = executionContexts,
       copyForwardAllOnStart = copyForwardAllOnStart
     ) map (Some(_))
 
-  def sendInitialWakeUp(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
+  def sendInitialWakeUp(compactor: WiredActor[Compactor[ThrottleState], ThrottleState]): Unit =
     compactor send {
       (impl, state, self) =>
         impl.wakeUp(
@@ -186,8 +186,8 @@ private[core] object CoreInitializer extends LazyLogging {
           }
       }
 
-    implicit val compactionStrategy: CompactionStrategy[CompactorState] =
-      Compactor
+    implicit val compactionStrategy: Compactor[ThrottleState] =
+      ThrottleCompactor
 
     implicit val compactionOrdering: CompactionOrdering =
       DefaultCompactionOrdering

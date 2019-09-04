@@ -23,17 +23,17 @@ import scala.concurrent.Promise
 import scala.concurrent.duration.{Deadline, _}
 import swaydb.core.util.FiniteDurations._
 
-private[level] sealed trait LevelCompactionState {
+private[level] sealed trait ThrottleLevelState {
   def stateId: Long
 }
-private[level] object LevelCompactionState {
+private[level] object ThrottleLevelState {
   val failureSleepDuration = 5.second
 
   def longSleep = 365.days.fromNow
 
   case class AwaitingPull(promise: Promise[Unit],
                           timeout: Deadline,
-                          stateId: Long) extends LevelCompactionState {
+                          stateId: Long) extends ThrottleLevelState {
     @volatile var listenerInvoked: Boolean = false
     @volatile var listenerInitialised: Boolean = false
 
@@ -46,7 +46,7 @@ private[level] object LevelCompactionState {
   }
 
   case class Sleeping(sleepDeadline: Deadline,
-                      stateId: Long) extends LevelCompactionState {
+                      stateId: Long) extends ThrottleLevelState {
     override def toString: String =
       this.getClass.getSimpleName +
         s" - sleepDeadline: ${sleepDeadline.timeLeft.asString}, " +

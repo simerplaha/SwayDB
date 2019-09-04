@@ -81,7 +81,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val thisLevel = mock[NextLevel]("thisLevel")
         val nextLevel = mock[NextLevel]("nextLevel")
 
-        DefaultCompaction.putForward(Iterable.empty, thisLevel, nextLevel).right.right.value shouldBe IO.zero
+        ThrottleCompaction.putForward(Iterable.empty, thisLevel, nextLevel).right.right.value shouldBe IO.zero
       }
     }
 
@@ -107,7 +107,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             IO.Right(segments.size)
         }
 
-        DefaultCompaction.putForward(segments, thisLevel, nextLevel).right.right.value.right.value shouldBe segments.size
+        ThrottleCompaction.putForward(segments, thisLevel, nextLevel).right.right.value.right.value shouldBe segments.size
       }
     }
 
@@ -133,7 +133,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             IO.failed("Failed!")
         }
 
-        DefaultCompaction.putForward(segments, thisLevel, nextLevel).right.right.value.right.value shouldBe segments.size
+        ThrottleCompaction.putForward(segments, thisLevel, nextLevel).right.right.value.right.value shouldBe segments.size
       }
     }
   }
@@ -141,14 +141,14 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
   "copyForwardForEach" should {
     "not copy" when {
       "it's the last Level and is empty" in {
-        DefaultCompaction.copyForwardForEach(Slice(TestLevel())) shouldBe 0
+        ThrottleCompaction.copyForwardForEach(Slice(TestLevel())) shouldBe 0
       }
 
       "it's the last Level and is non empty" in {
         val keyValues = randomPutKeyValues(keyValueCount).toMemory
         val level = TestLevel(keyValues = keyValues)
         level.isEmpty shouldBe false
-        DefaultCompaction.copyForwardForEach(level.reverseLevels.toSlice) shouldBe 0
+        ThrottleCompaction.copyForwardForEach(level.reverseLevels.toSlice) shouldBe 0
         if (persistent)
           assertGet(keyValues, level.reopen)
       }
@@ -168,7 +168,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         //        level1.foreachLevel(_.segmentsCount() should be > 1)
 
         val expectedCopiedSegments = level1.foldLeftLevels(0)(_ + _.segmentsCount()) - level5.segmentsCount()
-        DefaultCompaction.copyForwardForEach(level1.reverseLevels.toSlice) shouldBe expectedCopiedSegments
+        ThrottleCompaction.copyForwardForEach(level1.reverseLevels.toSlice) shouldBe expectedCopiedSegments
         //all top levels shouldBe empty
         level1.mapLevels(level => level).dropRight(1).foreach(_.isEmpty shouldBe true)
 
@@ -194,7 +194,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val level2 = TestLevel(nextLevel = Some(level3), keyValues = keyValues(1), segmentSize = 2.kb)
         val level1 = TestLevel(nextLevel = Some(level2), keyValues = keyValues(0), segmentSize = 2.kb)
 
-        DefaultCompaction.copyForwardForEach(level1.reverseLevels.toSlice)
+        ThrottleCompaction.copyForwardForEach(level1.reverseLevels.toSlice)
 
         //top levels are level, second last level value all overlapping Segments, last Level gets the rest.
         level1.isEmpty shouldBe true
@@ -216,7 +216,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         level.hasNextLevel _ expects() returns true repeat 20.times
 
         runThis(20.times) {
-          DefaultCompaction.runLastLevelCompaction(
+          ThrottleCompaction.runLastLevelCompaction(
             level = level,
             checkExpired = randomBoolean(),
             remainingCompactions = randomIntMax(10),
@@ -230,7 +230,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         level.hasNextLevel _ expects() returns true repeat 20.times
 
         runThis(20.times) {
-          DefaultCompaction.runLastLevelCompaction(
+          ThrottleCompaction.runLastLevelCompaction(
             level = level,
             checkExpired = randomBoolean(),
             remainingCompactions = randomIntMax(10),
@@ -269,7 +269,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             IO.Right(segment.delete)(IO.ExceptionHandler.PromiseUnit)
         } repeat 5.times
 
-        DefaultCompaction.runLastLevelCompaction(
+        ThrottleCompaction.runLastLevelCompaction(
           level = level,
           checkExpired = true,
           remainingCompactions = 5,
@@ -313,7 +313,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
 
         //        level.levelNumber _ expects() returns 1 repeat 3.times
 
-        DefaultCompaction.runLastLevelCompaction(
+        ThrottleCompaction.runLastLevelCompaction(
           level = level,
           checkExpired = false,
           remainingCompactions = 5,

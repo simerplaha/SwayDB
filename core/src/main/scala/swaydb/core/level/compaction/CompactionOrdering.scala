@@ -23,7 +23,7 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, TrashLevel}
 
 private[swaydb] sealed trait CompactionOrdering {
-  def ordering(levelState: LevelRef => LevelCompactionState): Ordering[LevelRef]
+  def ordering(levelState: LevelRef => ThrottleLevelState): Ordering[LevelRef]
 }
 
 private[swaydb] object DefaultCompactionOrdering extends CompactionOrdering {
@@ -31,7 +31,7 @@ private[swaydb] object DefaultCompactionOrdering extends CompactionOrdering {
   /**
    * Given the Level returns the ordering for [[LevelRef]].
    */
-  def ordering(levelState: LevelRef => LevelCompactionState) =
+  def ordering(levelState: LevelRef => ThrottleLevelState) =
     new Ordering[LevelRef] {
       override def compare(left: LevelRef, right: LevelRef): Int = {
         (left, right) match {
@@ -53,14 +53,14 @@ private[swaydb] object DefaultCompactionOrdering extends CompactionOrdering {
 
   def order(left: LevelZero,
             right: Level,
-            leftState: LevelCompactionState,
-            rightState: LevelCompactionState): Int =
+            leftState: ThrottleLevelState,
+            rightState: ThrottleLevelState): Int =
     left.throttle(left.levelZeroMeter) compare right.throttle(right.meter).pushDelay
 
   def order(left: Level,
             right: Level,
-            leftState: LevelCompactionState,
-            rightState: LevelCompactionState): Int =
+            leftState: ThrottleLevelState,
+            rightState: ThrottleLevelState): Int =
     left.throttle(left.meter).pushDelay compare right.throttle(right.meter).pushDelay
 }
 

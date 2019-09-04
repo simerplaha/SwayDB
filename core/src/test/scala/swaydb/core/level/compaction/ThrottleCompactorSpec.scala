@@ -33,9 +33,9 @@ import scala.concurrent.Promise
 import scala.concurrent.duration._
 import org.scalatest.OptionValues._
 
-class CompactorSpec0 extends CompactorSpec
+class ThrottleCompactorSpec0 extends ThrottleCompactorSpec
 
-class CompactorSpec1 extends CompactorSpec {
+class ThrottleCompactorSpec1 extends ThrottleCompactorSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -43,7 +43,7 @@ class CompactorSpec1 extends CompactorSpec {
   override def appendixStorageMMAP = true
 }
 
-class CompactorSpec2 extends CompactorSpec {
+class ThrottleCompactorSpec2 extends ThrottleCompactorSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -51,11 +51,11 @@ class CompactorSpec2 extends CompactorSpec {
   override def appendixStorageMMAP = false
 }
 
-class CompactorSpec3 extends CompactorSpec {
+class ThrottleCompactorSpec3 extends ThrottleCompactorSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait CompactorSpec extends TestBase with MockFactory {
+sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
 
   val keyValueCount = 1000
 
@@ -68,7 +68,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
 
   implicit val compactionOrdering = DefaultCompactionOrdering
 
-  implicit val compaction: Compaction = Compaction.default
+  implicit val compaction: Compaction = ThrottleCompaction
 
   override def deleteFiles = false
 
@@ -79,7 +79,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
         val actor =
-          Compactor.createActor(
+          ThrottleCompactor.createActor(
             List(zero, nextLevel),
             List(
               CompactionExecutionContext.Create(TestExecutionContext.executionContext),
@@ -99,7 +99,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
         val actor =
-          Compactor.createActor(
+          ThrottleCompactor.createActor(
             List(zero, nextLevel),
             List(
               CompactionExecutionContext.Create(TestExecutionContext.executionContext),
@@ -124,7 +124,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
         val actor =
-          Compactor.createActor(
+          ThrottleCompactor.createActor(
             List(zero, nextLevel, nextLevel2),
             List(
               CompactionExecutionContext.Create(TestExecutionContext.executionContext),
@@ -146,7 +146,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
         val actor =
-          Compactor.createActor(
+          ThrottleCompactor.createActor(
             List(zero, nextLevel, nextLevel2),
             List(
               CompactionExecutionContext.Create(TestExecutionContext.executionContext),
@@ -173,26 +173,26 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
     val level = TestLevel(nextLevel = Some(nextLevel))
 
     val testState =
-      CompactorState(
+      ThrottleState(
         levels = Slice(level, nextLevel),
         child = None,
-        ordering = DefaultCompactionOrdering.ordering(_ => LevelCompactionState.Sleeping(1.day.fromNow, 0)),
+        ordering = DefaultCompactionOrdering.ordering(_ => ThrottleLevelState.Sleeping(1.day.fromNow, 0)),
         executionContext = TestExecutionContext.executionContext,
         compactionStates = mutable.Map.empty
       )
 
     "not trigger wakeUp" when {
       "level states were empty" in {
-        val compactor = mock[CompactionStrategy[CompactorState]]
+        val compactor = mock[Compactor[ThrottleState]]
         implicit val scheduler = Scheduler()
 
         val actor =
-          WiredActor[CompactionStrategy[CompactorState], CompactorState](
+          WiredActor[Compactor[ThrottleState], ThrottleState](
             impl = compactor,
             state = testState
           )
 
-        Compactor.scheduleNextWakeUp(
+        ThrottleCompactor.scheduleNextWakeUp(
           state = testState,
           self = actor
         )
@@ -208,7 +208,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         //create IO.Later that is busy
         val promise = Promise[Unit]()
 
-        val awaitingPull = LevelCompactionState.AwaitingPull(promise, 1.minute.fromNow, 0)
+        val awaitingPull = ThrottleLevelState.AwaitingPull(promise, 1.minute.fromNow, 0)
         awaitingPull.listenerInvoked shouldBe false
         //set the state to be awaiting pull
         val state =
@@ -219,7 +219,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
               )
           )
         //mock the compaction that should expect a wakeUp call
-        val compactor = mock[CompactionStrategy[CompactorState]]
+        val compactor = mock[Compactor[ThrottleState]]
         compactor.wakeUp _ expects(*, *, *) onCall {
           (callState, doCopy, _) =>
             callState shouldBe state
@@ -228,12 +228,12 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
 
         //initialise Compactor with the mocked class
         val actor =
-          WiredActor[CompactionStrategy[CompactorState], CompactorState](
+          WiredActor[Compactor[ThrottleState], ThrottleState](
             impl = compactor,
             state = state
           )
 
-        Compactor.scheduleNextWakeUp(
+        ThrottleCompactor.scheduleNextWakeUp(
           state = state,
           self = actor
         )
@@ -257,11 +257,11 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
 
         val promise = Promise[Unit]()
 
-        val level1AwaitingPull = LevelCompactionState.AwaitingPull(promise, 1.minute.fromNow, 0)
+        val level1AwaitingPull = ThrottleLevelState.AwaitingPull(promise, 1.minute.fromNow, 0)
         level1AwaitingPull.listenerInvoked shouldBe false
 
         //level 2's sleep is shorter than level1's awaitPull timeout sleep.
-        val level2Sleep = LevelCompactionState.Sleeping(5.seconds.fromNow, 0)
+        val level2Sleep = ThrottleLevelState.Sleeping(5.seconds.fromNow, 0)
         //set the state to be awaiting pull
         val state =
           testState.copy(
@@ -272,7 +272,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
               )
           )
         //mock the compaction that should expect a wakeUp call
-        val compactor = mock[CompactionStrategy[CompactorState]]
+        val compactor = mock[Compactor[ThrottleState]]
         compactor.wakeUp _ expects(*, *, *) onCall {
           (callState, doCopy, _) =>
             callState shouldBe state
@@ -281,12 +281,12 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
 
         //initialise Compactor with the mocked class
         val actor =
-          WiredActor[CompactionStrategy[CompactorState], CompactorState](
+          WiredActor[Compactor[ThrottleState], ThrottleState](
             impl = compactor,
             state = state
           )
 
-        Compactor.scheduleNextWakeUp(
+        ThrottleCompactor.scheduleNextWakeUp(
           state = state,
           self = actor
         )
