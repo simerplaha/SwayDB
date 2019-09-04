@@ -551,7 +551,7 @@ private[core] case class LevelZero(path: Path,
         getFromNextLevel(key, otherMaps.iterator.asJava)
 
       override def levelNumber: String =
-        "map"
+        s"Map - Remaining maps: ${otherMaps.size}."
     }
 
   def findHigher(key: Slice[Byte],
@@ -780,19 +780,19 @@ private[core] case class LevelZero(path: Path,
 
     val result: T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
       apply(this).run flatMap {
-        result =>
-          result map {
-            response =>
-              tag.fromIO {
-                response.getOrFetchValue map {
-                  result =>
-                    Some(response.key, result)
-                } onLeftSideEffect {
-                  failure => //if there was an error, store it locally for further processing.
-                    failed = Some(failure.value)
-                }
-              }: T[Option[(Slice[Byte], Option[Slice[Byte]])]]
-          } getOrElse tag.none
+        case Some(put) =>
+          tag fromIO {
+            put.getOrFetchValue map {
+              value =>
+                Some(put.key, value)
+            } onLeftSideEffect {
+              failure => //if there was an error, store it locally for further processing.
+                failed = Some(failure.value)
+            }
+          }: T[Option[(Slice[Byte], Option[Slice[Byte]])]]
+
+        case None =>
+          tag.none
       }
 
     //if fetching value failed perform read again.

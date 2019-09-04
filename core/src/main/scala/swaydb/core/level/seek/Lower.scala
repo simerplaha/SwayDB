@@ -139,7 +139,7 @@ private[core] object Lower {
                               IO.Defer(some)
 
                             //if not, then fetch lower of key in next Level.
-                            case None => {
+                            case None =>
                               nextWalker.lower(key).toIO match {
                                 case IO.Right(Some(next)) =>
                                   Lower(key, currentStash, Seek.Next.Stash(next))
@@ -150,7 +150,6 @@ private[core] object Lower {
                                 case failure @ IO.Left(_) =>
                                   failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
                               }
-                            }
                           }
 
                         case failure @ IO.Left(_) =>

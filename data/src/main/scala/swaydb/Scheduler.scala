@@ -57,7 +57,7 @@ class Scheduler(timer: Timer)(implicit val ec: ExecutionContext) {
           )
         }
       }
-    timer.schedule(task, delayFor.toMillis)
+    timer.schedule(task, delayFor.toMillis max 0)
     promise.future
   }
 
@@ -73,7 +73,7 @@ class Scheduler(timer: Timer)(implicit val ec: ExecutionContext) {
         def run() =
           block
       }
-    timer.schedule(task, delayFor.toMillis)
+    timer.schedule(task, delayFor.toMillis max 0)
     task
   }
 

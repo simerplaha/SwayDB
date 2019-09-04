@@ -176,18 +176,16 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
   }
 
   def postCompaction[T](state: ThrottleState,
-                        self: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction[ThrottleState]): Unit = {
-    //schedule the next compaction for current Compaction group levels
-    scheduleNextWakeUp(
-      state = state,
-      self = self
-    )
-
-    //wake up child compaction.
-    wakeUpChild(
-      state = state
-    )
-  }
+                        self: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction[ThrottleState]): Unit =
+    try
+      scheduleNextWakeUp( //schedule the next compaction for current Compaction group levels
+        state = state,
+        self = self
+      )
+    finally
+      wakeUpChild( //wake up child compaction.
+        state = state
+      )
 
   def sendWakeUp(forwardCopyOnAllLevels: Boolean,
                  compactor: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction[ThrottleState]): Unit =
