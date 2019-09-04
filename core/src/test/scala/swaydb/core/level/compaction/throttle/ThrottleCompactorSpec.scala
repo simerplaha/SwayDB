@@ -23,7 +23,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
 import swaydb.core.RunThis._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.level.compaction.{Compaction, Compactor}
+import swaydb.core.level.compaction.Compactor
 import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.order.{KeyOrder, TimeOrder}

@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
-import swaydb.{IO, WiredActor}
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
@@ -37,7 +36,7 @@ import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.{BlockCache, BufferCleaner, DBFile, IOEffect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
-import swaydb.core.level.compaction.throttle.{CompactionOrdering, ThrottleCompactor, ThrottleState}
+import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
@@ -51,6 +50,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
+import swaydb.{IO, WiredActor}
 
 import scala.concurrent.duration._
 import scala.util.Random

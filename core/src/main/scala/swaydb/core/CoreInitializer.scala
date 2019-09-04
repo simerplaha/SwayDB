@@ -44,8 +44,6 @@ import scala.concurrent.ExecutionContext
 
 private[core] object CoreInitializer extends LazyLogging {
 
-  implicit val compaction: Compaction[ThrottleState] = ThrottleCompaction
-
   /**
    * Closes all the open files and releases the locks on database folders.
    */

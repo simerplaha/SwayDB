@@ -175,6 +175,7 @@ object IO {
             failure = Some(IO.Left[E, Slice[R]](failed.value))
         }
       }
+
       failure match {
         case Some(value) =>
           recover(results, value)
@@ -199,6 +200,7 @@ object IO {
             failure = Some(IO.Left[E, Slice[R]](failed.value))
         }
       }
+
       failure match {
         case Some(value) =>
           recover(results, value)
@@ -225,6 +227,7 @@ object IO {
             failure = Some(IO.Left[E, R](failed.value))
         }
       }
+
       failure match {
         case Some(failure) =>
           recover(result, failure)

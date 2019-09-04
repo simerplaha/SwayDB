@@ -243,7 +243,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
 
   def createAndListen(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext],
-                      copyForwardAllOnStart: Boolean)(implicit compaction: Compaction[ThrottleState]): IO[swaydb.Error.Level, WiredActor[Compactor[ThrottleState], ThrottleState]] =
+                      copyForwardAllOnStart: Boolean): IO[swaydb.Error.Level, WiredActor[Compactor[ThrottleState], ThrottleState]] =
     createCompactor(
       zero = zero,
       executionContexts = executionContexts
@@ -254,15 +254,16 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
         listen(
           zero = zero,
           actor = compactor
-        )
+        )(ThrottleCompaction)
+
         compactor
     }
 
   override def wakeUp(state: ThrottleState,
                       forwardCopyOnAllLevels: Boolean,
-                      self: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction[ThrottleState]): Unit =
+                      self: WiredActor[Compactor[ThrottleState], ThrottleState]): Unit =
     try
-      compaction.run(
+      ThrottleCompaction.run(
         state = state,
         forwardCopyOnAllLevels = forwardCopyOnAllLevels
       )
@@ -270,5 +271,5 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
       postCompaction(
         state = state,
         self = self
-      )
+      )(ThrottleCompaction)
 }

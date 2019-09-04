@@ -27,8 +27,8 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
-import scala.concurrent.duration._
 
+import scala.concurrent.duration._
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Promise}
 
@@ -41,7 +41,7 @@ import scala.concurrent.{ExecutionContext, Promise}
  *
  * State mutation is necessary to avoid unnecessary garbage during compaction. Functions returning Unit mutate the state.
  */
-private[core] object ThrottleCompaction extends Compaction[ThrottleState] with LazyLogging {
+private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] with LazyLogging {
 
   val awaitPullTimeout = 6.seconds
 

@@ -19,7 +19,7 @@
 
 package swaydb.core.level.compaction
 
-private[swaydb] trait Compaction[S] {
+protected trait Compaction[S] {
   def run(state: S,
           forwardCopyOnAllLevels: Boolean): Unit
 }

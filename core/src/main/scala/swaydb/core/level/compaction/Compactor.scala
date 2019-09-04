@@ -27,11 +27,11 @@ private[core] trait Compactor[S] {
 
   def createAndListen(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext],
-                      copyForwardAllOnStart: Boolean)(implicit compaction: Compaction[S]): IO[swaydb.Error.Level, WiredActor[Compactor[S], S]]
+                      copyForwardAllOnStart: Boolean): IO[swaydb.Error.Level, WiredActor[Compactor[S], S]]
 
   def wakeUp(state: S,
              forwardCopyOnAllLevels: Boolean,
-             self: WiredActor[Compactor[S], S])(implicit compaction: Compaction[S]): Unit
+             self: WiredActor[Compactor[S], S]): Unit
 
   def terminate(self: WiredActor[Compactor[S], S]): Unit
 }
