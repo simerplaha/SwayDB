@@ -332,37 +332,15 @@ private[core] case class LevelZero(path: Path,
         }
       }
 
-  @tailrec
   private def getFromMap(key: Slice[Byte],
-                         currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-                         preFetched: Option[Memory.SegmentResponse] = None): Option[Memory.SegmentResponse] =
+                         currentMap: map.Map[Slice[Byte], Memory.SegmentResponse]): Option[Memory.SegmentResponse] =
     if (currentMap.hasRange)
-      preFetched orElse currentMap.skipList.floor(key) match {
+      currentMap.skipList.floor(key) match {
         case floor @ Some(floorRange: Memory.Range) if key < floorRange.toKey =>
           floor
 
         case floor @ Some(keyValue) if keyValue.key equiv key =>
           floor
-
-        case Some(range: Memory.Range) => //if it's still a range then check if the Map is performing concurrent updates and retry.
-          //This is a temporary solution to atomic writes issue in LevelZero.
-          //If a Map contains a Range key-value, inserting new Fixed key-values for the Range
-          //is not returning the previously inserted Range key-value (on floor) and is returning an invalid floor entry. This could be
-          //due to concurrent changes to the Map are also concurrently changing the level hierarchy of this skipList which is routing
-          //searching to key-values to invalid range entry or there is an issue with skipList merger.
-          //Temporary solution is to retry read. If the retried read returns a different result to existing that means that
-          //the current map is going through concurrent range updates and the read is retried.
-          val reFetched = currentMap.skipList.floor(key)
-          //          val fetchedRange = reFetched.map(_.asInstanceOf[Memory.Range])
-          //          println(s"Key: ${key.readInt()}")
-          //          println(s"Existing floor: fromKey : ${range.fromKey.readInt()} -> fromKey: ${range.toKey.readInt()}")
-          //          println(s"Re-fetch floor: fromKey : ${fetchedRange.map(_.fromKey.readInt())} -> fromKey: ${fetchedRange.map(_.toKey.readInt())}")
-          //          println
-          //if the re-fetched key-value is different to existing key-value retry else return None.
-          if (!reFetched.exists(_.key equiv range.key))
-            getFromMap(key, currentMap, reFetched)
-          else
-            None
 
         case _ =>
           None
@@ -480,21 +458,12 @@ private[core] case class LevelZero(path: Path,
           findLower(key, currentMap, otherMaps)
     }
 
-  @tailrec
   private def higherFromMap(key: Slice[Byte],
-                            currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-                            preFetched: Option[Memory] = None): Option[Memory.SegmentResponse] =
+                            currentMap: map.Map[Slice[Byte], Memory.SegmentResponse]): Option[Memory.SegmentResponse] =
     if (currentMap.hasRange)
-      preFetched orElse currentMap.skipList.floor(key) match {
+      currentMap.skipList.floor(key) match {
         case Some(floorRange: Memory.Range) if key >= floorRange.fromKey && key < floorRange.toKey =>
           Some(floorRange)
-
-        case Some(range: Memory.Range) =>
-          val reFetched = currentMap.skipList.floor(key)
-          if (!reFetched.exists(_.key equiv range.key))
-            higherFromMap(key, currentMap, reFetched)
-          else
-            currentMap.skipList.higher(key)
 
         case _ =>
           currentMap.skipList.higher(key)
@@ -581,21 +550,12 @@ private[core] case class LevelZero(path: Path,
       otherMaps = maps.queuedMaps.toList
     )
 
-  @tailrec
   private def lowerFromMap(key: Slice[Byte],
-                           currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-                           preFetched: Option[Memory] = None): Option[Memory.SegmentResponse] =
+                           currentMap: map.Map[Slice[Byte], Memory.SegmentResponse]): Option[Memory.SegmentResponse] =
     if (currentMap.hasRange)
-      preFetched orElse currentMap.skipList.floor(key) match {
+      currentMap.skipList.floor(key) match {
         case Some(floorRange: Memory.Range) if key > floorRange.fromKey && key <= floorRange.toKey =>
           Some(floorRange)
-
-        case Some(range: Memory.Range) =>
-          val reFetched = currentMap.skipList.floor(key)
-          if (!reFetched.exists(_.key equiv range.key))
-            lowerFromMap(key, currentMap, reFetched)
-          else
-            currentMap.skipList.lower(key)
 
         case _ =>
           currentMap.skipList.lower(key)

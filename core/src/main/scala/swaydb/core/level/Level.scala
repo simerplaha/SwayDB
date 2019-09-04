@@ -21,6 +21,7 @@ package swaydb.core.level
 
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, StandardOpenOption}
+import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
@@ -634,7 +635,7 @@ private[core] case class Level(dirs: Seq[Dir],
       val appendixValues = appendix.skipList.values().asScala
       if (Segment.overlaps(map, appendixValues))
         putKeyValues(
-          keyValues = Slice(map.skipList.values().toArray(new Array[Memory](map.skipList.size))),
+          keyValues = map.skipList.toSlice(),
           targetSegments = appendixValues,
           appendEntry = None
         )
@@ -705,7 +706,8 @@ private[core] case class Level(dirs: Seq[Dir],
             None
       }
 
-    val keyValues = Slice(map.skipList.values().asScala.toArray)
+    val keyValues = map.skipList.toSlice()
+
     if (inMemory)
       Segment.copyToMemory(
         keyValues = keyValues,

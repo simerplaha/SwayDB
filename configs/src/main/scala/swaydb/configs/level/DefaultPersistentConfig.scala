@@ -387,9 +387,7 @@ object DefaultPersistentConfig {
       .addPersistentLevel( //level6
         dir = dir,
         otherDirs = otherDirs,
-        //double the size in last Levels so that if merge is not triggered(copied Segment),
-        // small Segment check will merge the segment into one of the other Segments and apply compression
-        segmentSize = segmentSize * 2,
+        segmentSize = segmentSize,
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,

@@ -227,11 +227,12 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
         }
 
         ThrottleLevelState.Sleeping(
-          sleepDeadline = ThrottleLevelState.failureSleepDuration.fromNow,
+          sleepDeadline = zero.nextCompactionDelay.fromNow,
           stateId = stateId
         )
 
       case IO.Left(promise) =>
+        logger.debug(s"Level(${zero.levelNumber}): Awaiting pull. stateId: $stateId.")
         ThrottleLevelState.AwaitingPull(
           promise = promise,
           timeout = awaitPullTimeout.fromNow,

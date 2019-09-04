@@ -21,7 +21,7 @@ package swaydb.core.util
 
 import java.util
 import java.util.concurrent.ConcurrentSkipListMap
-import java.util.function.BiConsumer
+import java.util.function.{BiConsumer, Consumer}
 
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -307,6 +307,17 @@ private[core] object SkipList {
             f(key, value)
         }
       }
+
+    def toSlice[V2 >: V : ClassTag](): Slice[V2] = {
+      val slice = Slice.create[V2](size)
+      skipList.values() forEach {
+        new Consumer[V] {
+          def accept(keyValue: V): Unit =
+            slice add keyValue
+        }
+      }
+      slice
+    }
 
     override def asScala: mutable.Map[K, V] =
       skipList.asScala

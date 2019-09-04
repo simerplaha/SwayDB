@@ -66,16 +66,6 @@ object SwayDB extends LazyLogging {
    * Creates a database based on the input config.
    *
    * @param config                         Configuration to use to create the database
-   * @param maxOpenSegments                Number of concurrent opened Segments
-   * @param keyValueCacheSize              Size of in-memory key-values. For Memory database this set the size of uncompressed key-values.
-   *                                       If compression is used for memory database the this field can be ignored.
-   * @param keyValueCacheCheckDelay        Sets the max interval at which key-values value dropped from the cache. The delays
-   *                                       are dynamically adjusted based on the current size of the cache to stay close the set
-   *                                       cacheSize.
-   *                                       If compression is not used for memory database the this field can be ignored.
-   * @param segmentsOpenCheckDelay         For persistent Levels only. This can property is not used for databases.
-   *                                       Sets the max interval at which Segments value closed. The delays
-   *                                       are dynamically adjusted based on the current number of open Segments.
    * @param keySerializer                  Converts keys to Bytes
    * @param valueSerializer                Converts values to Bytes
    * @param keyOrder                       Sort order for keys
