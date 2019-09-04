@@ -17,16 +17,12 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.level.compaction.throttle
 
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, TrashLevel}
 
-private[swaydb] sealed trait CompactionOrdering {
-  def ordering(levelState: LevelRef => ThrottleLevelState): Ordering[LevelRef]
-}
-
-private[swaydb] object DefaultCompactionOrdering extends CompactionOrdering {
+private[throttle] object ThrottleLevelOrdering {
 
   /**
    * Given the Level returns the ordering for [[LevelRef]].

@@ -17,21 +17,22 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.level.compaction.throttle
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.{Scheduler, WiredActor}
+import org.scalatest.OptionValues._
 import swaydb.core.RunThis._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
+import swaydb.core.level.compaction.{Compaction, Compactor}
 import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.{Scheduler, WiredActor}
 
 import scala.collection.mutable
 import scala.concurrent.Promise
 import scala.concurrent.duration._
-import org.scalatest.OptionValues._
 
 class ThrottleCompactorSpec0 extends ThrottleCompactorSpec
 
@@ -66,9 +67,9 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
   implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeper
 
-  implicit val compactionOrdering = DefaultCompactionOrdering
+  implicit val compactionOrdering = ThrottleLevelOrdering
 
-  implicit val compaction: Compaction = ThrottleCompaction
+  implicit val compaction = ThrottleCompaction
 
   override def deleteFiles = false
 
@@ -176,7 +177,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
       ThrottleState(
         levels = Slice(level, nextLevel),
         child = None,
-        ordering = DefaultCompactionOrdering.ordering(_ => ThrottleLevelState.Sleeping(1.day.fromNow, 0)),
+//        ordering = CompactionOrdering.ordering(_ => ThrottleLevelState.Sleeping(1.day.fromNow, 0)),
         executionContext = TestExecutionContext.executionContext,
         compactionStates = mutable.Map.empty
       )

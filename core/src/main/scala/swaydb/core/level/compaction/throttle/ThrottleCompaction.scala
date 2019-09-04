@@ -17,20 +17,20 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.data.Memory
+import swaydb.core.level.compaction.Compaction
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
+import scala.concurrent.duration._
 
 import scala.annotation.tailrec
-import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Promise}
-
 
 /**
  * This object does not implement any concurrency which should be handled by an Actor.
@@ -41,8 +41,9 @@ import scala.concurrent.{ExecutionContext, Promise}
  *
  * State mutation is necessary to avoid unnecessary garbage during compaction. Functions returning Unit mutate the state.
  */
-object ThrottleCompaction extends Compaction with LazyLogging {
+object ThrottleCompaction extends Compaction[ThrottleState] with LazyLogging {
   val awaitPullTimeout = 6.seconds
+
 
   override def run(state: ThrottleState,
                    forwardCopyOnAllLevels: Boolean): Unit =
@@ -61,6 +62,7 @@ object ThrottleCompaction extends Compaction with LazyLogging {
       val totalCopies = copyForwardForEach(state.levelsReversed)(state.executionContext)
       logger.debug(s"${state.name}: Copies $totalCopies compacted. Continuing compaction.")
     }
+
     //run compaction jobs
     runJobs(
       state = state,

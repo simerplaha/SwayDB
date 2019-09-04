@@ -37,6 +37,7 @@ import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.{BlockCache, BufferCleaner, DBFile, IOEffect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
+import swaydb.core.level.compaction.throttle.{CompactionOrdering, ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
@@ -420,9 +421,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
     implicit val compactionStrategy: Compactor[ThrottleState] =
       ThrottleCompactor
-
-    implicit val compactionOrdering: CompactionOrdering =
-      DefaultCompactionOrdering
 
     println(iterationMessage)
 

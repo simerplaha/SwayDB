@@ -19,20 +19,19 @@
 
 package swaydb.core.level.compaction
 
-import swaydb.{IO, WiredActor}
 import swaydb.core.level.zero.LevelZero
 import swaydb.data.compaction.CompactionExecutionContext
+import swaydb.{IO, WiredActor}
 
 private[core] trait Compactor[S] {
 
   def createAndListen(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext],
-                      copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering,
-                                                      compaction: Compaction): IO[swaydb.Error.Level, WiredActor[Compactor[ThrottleState], ThrottleState]]
+                      copyForwardAllOnStart: Boolean)(implicit compaction: Compaction[S]): IO[swaydb.Error.Level, WiredActor[Compactor[S], S]]
 
   def wakeUp(state: S,
              forwardCopyOnAllLevels: Boolean,
-             self: WiredActor[Compactor[S], S])(implicit compaction: Compaction): Unit
+             self: WiredActor[Compactor[S], S])(implicit compaction: Compaction[S]): Unit
 
-  def terminate(self: WiredActor[Compactor[ThrottleState], ThrottleState]): Unit
+  def terminate(self: WiredActor[Compactor[S], S]): Unit
 }

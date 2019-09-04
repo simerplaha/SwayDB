@@ -17,18 +17,19 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.{IO, WiredActor}
 import swaydb.IO._
 import swaydb.core.level.LevelRef
+import swaydb.core.level.compaction.{Compaction, Compactor}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.util.FiniteDurations
 import swaydb.core.util.FiniteDurations._
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
+import swaydb.{IO, WiredActor}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -49,7 +50,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
    * @return return the root parent Actor with child Actors.
    */
   def createActor(levels: List[LevelRef],
-                  executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering): IO[swaydb.Error.Level, WiredActor[Compactor[ThrottleState], ThrottleState]] =
+                  executionContexts: List[CompactionExecutionContext]): IO[swaydb.Error.Level, WiredActor[Compactor[ThrottleState], ThrottleState]] =
     if (levels.size != executionContexts.size)
       IO.Left(swaydb.Error.Fatal(new IllegalStateException(s"Number of ExecutionContexts(${executionContexts.size}) is not the same as number of Levels(${levels.size}).")))
     else
@@ -78,26 +79,13 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
               .foldRight(Option.empty[WiredActor[Compactor[ThrottleState], ThrottleState]]) {
                 case ((jobs, executionContext), child) =>
                   val statesMap = mutable.Map.empty[LevelRef, ThrottleLevelState]
-                  val levelOrdering: Ordering[LevelRef] =
-                    ordering.ordering(
-                      level =>
-                        statesMap.getOrElse(
-                          key = level,
-                          default =
-                            ThrottleLevelState.Sleeping(
-                              sleepDeadline = level.nextCompactionDelay.fromNow,
-                              stateId = -1
-                            )
-                        )
-                    )
 
                   val compaction =
                     ThrottleState(
                       levels = Slice(jobs.toArray),
                       compactionStates = statesMap,
                       executionContext = executionContext,
-                      child = child,
-                      ordering = levelOrdering
+                      child = child
                     )
 
                   Some(
@@ -110,7 +98,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
         }
 
   def scheduleNextWakeUp(state: ThrottleState,
-                         self: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction): Unit = {
+                         self: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction[ThrottleState]): Unit = {
     logger.debug(s"${state.name}: scheduling next wakeup for updated state: ${state.levels.size}. Current scheduled: ${state.sleepTask.map(_._2.timeLeft.asString)}")
 
     state
@@ -174,7 +162,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
       }
   }
 
-  def wakeUpChild(state: ThrottleState)(implicit compaction: Compaction): Unit = {
+  def wakeUpChild(state: ThrottleState)(implicit compaction: Compaction[ThrottleState]): Unit = {
     logger.debug(s"${state.name}: Waking up child: ${state.child.map(_ => "child")}.")
     state
       .child
@@ -188,7 +176,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
   }
 
   def postCompaction[T](state: ThrottleState,
-                        self: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction): Unit = {
+                        self: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction[ThrottleState]): Unit = {
     //schedule the next compaction for current Compaction group levels
     scheduleNextWakeUp(
       state = state,
@@ -207,7 +195,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
   }
 
   def sendWakeUp(forwardCopyOnAllLevels: Boolean,
-                 compactor: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction): Unit =
+                 compactor: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction[ThrottleState]): Unit =
     compactor send {
       (impl, state, self) =>
         impl.wakeUp(
@@ -228,7 +216,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
   }
 
   def createCompactor(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext])(implicit compactionOrdering: CompactionOrdering): IO[swaydb.Error.Level, WiredActor[Compactor[ThrottleState], ThrottleState]] =
+                      executionContexts: List[CompactionExecutionContext]): IO[swaydb.Error.Level, WiredActor[Compactor[ThrottleState], ThrottleState]] =
     zero.nextLevel map {
       nextLevel =>
         logger.debug(s"Level(${zero.levelNumber}): Creating actor.")
@@ -243,7 +231,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
    * called on the same thread as LevelZero's initialisation thread.
    */
   def listen(zero: LevelZero,
-             actor: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction): Unit =
+             actor: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction[ThrottleState]): Unit =
     zero onNextMapCallback (
       event =
         () =>
@@ -255,8 +243,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
 
   def createAndListen(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext],
-                      copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering,
-                                                      compaction: Compaction): IO[swaydb.Error.Level, WiredActor[Compactor[ThrottleState], ThrottleState]] =
+                      copyForwardAllOnStart: Boolean)(implicit compaction: Compaction[ThrottleState]): IO[swaydb.Error.Level, WiredActor[Compactor[ThrottleState], ThrottleState]] =
     createCompactor(
       zero = zero,
       executionContexts = executionContexts
@@ -273,7 +260,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
 
   override def wakeUp(state: ThrottleState,
                       forwardCopyOnAllLevels: Boolean,
-                      self: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction): Unit =
+                      self: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction[ThrottleState]): Unit =
     try
       compaction.run(
         state = state,

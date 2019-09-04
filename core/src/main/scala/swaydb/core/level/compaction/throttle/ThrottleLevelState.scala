@@ -17,15 +17,17 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.level.compaction.throttle
+
+import swaydb.core.util.FiniteDurations._
 
 import scala.concurrent.Promise
 import scala.concurrent.duration.{Deadline, _}
-import swaydb.core.util.FiniteDurations._
 
 private[level] sealed trait ThrottleLevelState {
   def stateId: Long
 }
+
 private[level] object ThrottleLevelState {
   val failureSleepDuration = 5.second
 

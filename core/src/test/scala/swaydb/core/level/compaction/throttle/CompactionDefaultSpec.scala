@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.level.compaction.throttle
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.Error.Segment.ExceptionHandler
@@ -31,7 +31,6 @@ import swaydb.core.data.Memory
 import swaydb.core.level.NextLevel
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
-import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

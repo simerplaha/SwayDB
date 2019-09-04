@@ -17,11 +17,11 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.level.compaction.throttle
 
 import org.scalatest.{FlatSpec, Matchers}
 
-class CompactionOrderingSpec extends FlatSpec with Matchers {
+class ThrottleLevelOrderingSpec extends FlatSpec with Matchers {
 
 }
 

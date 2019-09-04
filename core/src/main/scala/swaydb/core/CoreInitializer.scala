@@ -23,13 +23,13 @@ import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.{IO, Scheduler, WiredActor}
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.io.file.{BlockCache, BufferCleaner}
 import swaydb.core.level.compaction._
+import swaydb.core.level.compaction.throttle.{ThrottleCompaction, ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
 import swaydb.core.segment.format.a.block
@@ -38,12 +38,13 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
+import swaydb.{IO, Scheduler, WiredActor}
 
 import scala.concurrent.ExecutionContext
 
 private[core] object CoreInitializer extends LazyLogging {
 
-  implicit val compaction: Compaction = ThrottleCompaction
+  implicit val compaction: Compaction[ThrottleState] = ThrottleCompaction
 
   /**
    * Closes all the open files and releases the locks on database folders.
@@ -137,8 +138,7 @@ private[core] object CoreInitializer extends LazyLogging {
 
   def startCompaction(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext],
-                      copyForwardAllOnStart: Boolean)(implicit compactionStrategy: Compactor[ThrottleState],
-                                                      compactionOrdering: CompactionOrdering): IO[swaydb.Error.Level, Option[WiredActor[Compactor[ThrottleState], ThrottleState]]] =
+                      copyForwardAllOnStart: Boolean)(implicit compactionStrategy: Compactor[ThrottleState]): IO[swaydb.Error.Level, Option[WiredActor[Compactor[ThrottleState], ThrottleState]]] =
     compactionStrategy.createAndListen(
       zero = zero,
       executionContexts = executionContexts,
@@ -188,9 +188,6 @@ private[core] object CoreInitializer extends LazyLogging {
 
     implicit val compactionStrategy: Compactor[ThrottleState] =
       ThrottleCompactor
-
-    implicit val compactionOrdering: CompactionOrdering =
-      DefaultCompactionOrdering
 
     if (config.hasMMAP)
       BufferCleaner.initialiseCleaner(Scheduler()(fileSweeper.ec))

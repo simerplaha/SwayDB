@@ -17,26 +17,26 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.level.compaction
+package swaydb.core.level.compaction.throttle
 
 import java.util.TimerTask
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{Scheduler, WiredActor}
 import swaydb.core.level.LevelRef
+import swaydb.core.level.compaction.Compactor
 import swaydb.core.util.FiniteDurations
 import swaydb.data.slice.Slice
+import swaydb.{Scheduler, WiredActor}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.Deadline
 
 /**
  * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
  */
 private[core] case class ThrottleState(levels: Slice[LevelRef],
                                        child: Option[WiredActor[Compactor[ThrottleState], ThrottleState]],
-                                       ordering: Ordering[LevelRef],
                                        executionContext: ExecutionContext,
                                        compactionStates: mutable.Map[LevelRef, ThrottleLevelState]) extends LazyLogging {
   @volatile private[compaction] var terminate: Boolean = false
@@ -44,6 +44,19 @@ private[core] case class ThrottleState(levels: Slice[LevelRef],
   val hasLevelZero: Boolean = levels.exists(_.isZero)
   val levelsReversed = Slice(levels.reverse.toArray)
   val scheduler = Scheduler(Some(s"Scheduler for Level: ${levels.map(_.levelNumber).mkString(", ")}."))(executionContext)
+
+  val ordering: Ordering[LevelRef] =
+    ThrottleLevelOrdering.ordering(
+      level =>
+        compactionStates.getOrElse(
+          key = level,
+          default =
+            ThrottleLevelState.Sleeping(
+              sleepDeadline = level.nextCompactionDelay.fromNow,
+              stateId = -1
+            )
+        )
+    )
 
   def name =
     if (levels.size == 1)
