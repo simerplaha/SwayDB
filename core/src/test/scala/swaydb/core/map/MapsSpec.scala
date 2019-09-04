@@ -202,18 +202,18 @@ class MapsSpec extends TestBase {
       maps.queuedMapsCountWithCurrent shouldBe 5
       //maps value added
       maps.maps.asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(3, 2, 1, 0)
-      maps.last().value.pathOption.value.folderId shouldBe 0
+      maps.lastOption().value.pathOption.value.folderId shouldBe 0
 
       val recovered1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](path, mmap = true, fileSize = 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
       recovered1.maps.asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
       recovered1.map.pathOption.value.folderId shouldBe 5
       recovered1.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](6, Memory.remove(6)))
-      recovered1.last().value.pathOption.value.folderId shouldBe 0
+      recovered1.lastOption().value.pathOption.value.folderId shouldBe 0
 
       val recovered2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](path, mmap = true, fileSize = 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
       recovered2.maps.asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
       recovered2.map.pathOption.value.folderId shouldBe 6
-      recovered2.last().value.pathOption.value.folderId shouldBe 0
+      recovered2.lastOption().value.pathOption.value.folderId shouldBe 0
     }
 
     "recover from existing maps" in {

@@ -1088,6 +1088,7 @@ private[core] case class Level(dirs: Seq[Dir],
     import keyOrder._
 
     var removeOriginalSegments = true
+
     val nextLogEntry =
       newSegments.foldLeft(initialMapEntry) {
         case (logEntry, newSegment) =>
@@ -1098,13 +1099,18 @@ private[core] case class Level(dirs: Seq[Dir],
           val nextLogEntry = MapEntry.Put(newSegment.minKey, newSegment)
           logEntry.map(_ ++ nextLogEntry) orElse Some(nextLogEntry)
       }
-    (originalSegmentMayBe match {
-      case Some(originalMap) if removeOriginalSegments =>
-        val removeLogEntry = MapEntry.Remove[Slice[Byte]](originalMap.minKey)
-        nextLogEntry.map(_ ++ removeLogEntry) orElse Some(removeLogEntry)
-      case _ =>
-        nextLogEntry
-    }) match {
+
+    val entryWithRemove =
+      originalSegmentMayBe match {
+        case Some(originalMap) if removeOriginalSegments =>
+          val removeLogEntry = MapEntry.Remove[Slice[Byte]](originalMap.minKey)
+          nextLogEntry.map(_ ++ removeLogEntry) orElse Some(removeLogEntry)
+
+        case _ =>
+          nextLogEntry
+      }
+
+    entryWithRemove match {
       case Some(value) =>
         IO.Right(value)
 

@@ -84,9 +84,10 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   @tailrec
   private[compaction] def runJobs(state: ThrottleState,
                                   currentJobs: Slice[LevelRef]): Unit =
-    if (state.terminate)
+    if (state.terminate) {
       logger.warn(s"${state.name}: Cannot run jobs. Compaction is terminated.")
-    else
+    } else {
+      logger.debug(s"${state.name}: Compaction order: ${currentJobs.map(_.levelNumber).mkString(", ")}")
       currentJobs.headOption match {
         case Some(level) =>
           logger.debug(s"Level(${level.levelNumber}): ${state.name}: Running compaction.")
@@ -111,6 +112,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
           //all jobs complete.
           logger.debug(s"${state.name}: Compaction round complete.")
       }
+    }
 
   /**
    *
@@ -160,7 +162,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   private[compaction] def pushForward(zero: LevelZero,
                                       nextLevel: NextLevel,
                                       stateId: Long)(implicit ec: ExecutionContext): ThrottleLevelState =
-    zero.maps.last() match {
+    zero.maps.lastOption() match {
       case Some(map) =>
         logger.debug(s"Level(${zero.levelNumber}): Pushing LevelZero map :${map.pathOption} ")
         pushForward(
@@ -197,7 +199,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                 val mapPath: String =
                   zero
                     .maps
-                    .last()
+                    .lastOption()
                     .map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
 
                 logger.error(
@@ -382,7 +384,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     levels.foldLeft(0) {
       case (totalCopies, level: NextLevel) =>
         val copied = copyForward(level)
-        logger.debug(s"Level(${level.levelNumber}): Compaction copied $copied. Starting compaction!")
+        logger.debug(s"Level(${level.levelNumber}): Compaction copied $copied.")
         totalCopies + copied
 
       case (copies, TrashLevel | _: LevelZero) =>

@@ -25,16 +25,16 @@ import swaydb.IO._
 import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.{Compaction, Compactor}
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.util.{FiniteDurations, Futures}
 import swaydb.core.util.FiniteDurations._
+import swaydb.core.util.{FiniteDurations, Futures}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
 import swaydb.{IO, WiredActor}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.Deadline
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Compactor = Compaction Actor.
@@ -246,7 +246,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
                forwardCopyOnAllLevels: Boolean,
                self: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction[ThrottleState]): Unit =
     try
-      ThrottleCompaction.run(
+      compaction.run(
         state = state,
         forwardCopyOnAllLevels = forwardCopyOnAllLevels
       )

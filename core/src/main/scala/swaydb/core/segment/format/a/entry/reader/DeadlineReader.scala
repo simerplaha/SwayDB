@@ -108,6 +108,7 @@ object DeadlineReader {
                       previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 2, previous = previous)
   }
+
   implicit object DeadlineThreeCompressedReader extends DeadlineReader[BaseEntryId.Deadline.ThreeCompressed] {
     override def isPrefixCompressed: Boolean = true
 
@@ -115,6 +116,7 @@ object DeadlineReader {
                       previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 3, previous = previous)
   }
+
   implicit object DeadlineFourCompressedReader extends DeadlineReader[BaseEntryId.Deadline.FourCompressed] {
     override def isPrefixCompressed: Boolean = true
 
@@ -122,6 +124,7 @@ object DeadlineReader {
                       previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 4, previous = previous)
   }
+
   implicit object DeadlineFiveCompressedReader extends DeadlineReader[BaseEntryId.Deadline.FiveCompressed] {
     override def isPrefixCompressed: Boolean = true
 

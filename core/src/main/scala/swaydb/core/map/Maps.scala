@@ -426,7 +426,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                 reduce: (Option[R], Option[R]) => Option[R]): Option[R] =
     reduce(matcher(currentMap), findAndReduce(matcher, reduce))
 
-  def last(): Option[Map[K, V]] =
+  def lastOption(): Option[Map[K, V]] =
     IO.tryOrNone(maps.getLast)
 
   def removeLast(): Option[IO[swaydb.Error.Map, Unit]] =
