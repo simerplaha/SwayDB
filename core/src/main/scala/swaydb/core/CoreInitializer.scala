@@ -29,44 +29,76 @@ import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.io.file.{BlockCache, BufferCleaner}
 import swaydb.core.level.compaction._
-import swaydb.core.level.compaction.throttle.{ThrottleCompaction, ThrottleCompactor, ThrottleState}
+import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
 import swaydb.core.segment.format.a.block
+import swaydb.core.util.Futures
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-import swaydb.{IO, Scheduler, WiredActor}
+import swaydb.{Error, IO, Scheduler, WiredActor}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
 
 private[core] object CoreInitializer extends LazyLogging {
+
+  private def closeLevels(zero: LevelZero) = {
+    logger.info("Closing files.")
+    zero.close onLeftSideEffect {
+      error =>
+        logger.error("Failed to close Levels.", error.exception)
+    } onRightSideEffect {
+      _ =>
+        logger.error("Files closed!")
+    }
+
+    logger.info("Releasing database locks.")
+    zero.releaseLocks onLeftSideEffect {
+      error =>
+        logger.error("Failed to release locks.", error.exception)
+    } onRightSideEffect {
+      _ =>
+        logger.error("Locks released!")
+    }
+  }
 
   /**
    * Closes all the open files and releases the locks on database folders.
    */
   private def addShutdownHook(zero: LevelZero,
-                              compactor: Option[WiredActor[Compactor[ThrottleState], ThrottleState]])(implicit compactionStrategy: Compactor[ThrottleState]): Unit =
+                              compactor: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compactionStrategy: Compactor[ThrottleState],
+                                                                                              executionContext: ExecutionContext): Unit =
     sys.addShutdownHook {
       logger.info("Shutting down compaction.")
-      IO(compactor foreach compactionStrategy.terminate) onLeftSideEffect {
+      val compactionShutdown =
+        compactor askFlatMap {
+          (impl, state, self) =>
+            impl.terminate(state, self)
+        }
+
+      IO {
+        Await.result(compactionShutdown, 30.seconds)
+      } onLeftSideEffect {
         error =>
           logger.error("Failed compaction shutdown.", error.exception)
+      } onRightSideEffect {
+        _ =>
+          logger.error("Compaction stopped!")
       }
 
-      logger.info("Closing files.")
-      zero.close onLeftSideEffect {
-        error =>
-          logger.error("Failed to close Levels.", error.exception)
-      }
+      closeLevels(zero)
+    }
 
-      logger.info("Releasing database locks.")
-      zero.releaseLocks onLeftSideEffect {
-        error =>
-          logger.error("Failed to release locks.", error.exception)
-      }
+  /**
+   * Closes all the open files and releases the locks on database folders.
+   */
+  private def addShutdownHookNoCompaction(zero: LevelZero)(implicit compactionStrategy: Compactor[ThrottleState]): Unit =
+    sys.addShutdownHook {
+      closeLevels(zero)
     }
 
   def apply(config: LevelZeroPersistentConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -87,8 +119,8 @@ private[core] object CoreInitializer extends LazyLogging {
       ) match {
         case IO.Right(zero) =>
           bufferCleanerEC foreach (ec => BufferCleaner.initialiseCleaner(Scheduler()(ec)))
-          addShutdownHook(zero, None)
-          IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, () => IO.unit))
+          addShutdownHookNoCompaction(zero)
+          IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, IO.Defer.unit))
 
         case IO.Left(error) =>
           IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
@@ -109,8 +141,8 @@ private[core] object CoreInitializer extends LazyLogging {
       acceleration = config.acceleration
     ) match {
       case IO.Right(zero) =>
-        addShutdownHook(zero, None)
-        IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, () => IO.unit))
+        addShutdownHookNoCompaction(zero)
+        IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, IO.Defer.unit))
 
       case IO.Left(error) =>
         IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
@@ -134,13 +166,11 @@ private[core] object CoreInitializer extends LazyLogging {
       executionContext(config.level1).toList ++
       config.otherLevels.flatMap(executionContext)
 
-  def startCompaction(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext],
-                      copyForwardAllOnStart: Boolean)(implicit compactionStrategy: Compactor[ThrottleState]): IO[swaydb.Error.Level, Option[WiredActor[Compactor[ThrottleState], ThrottleState]]] =
+  def initialiseCompaction(zero: LevelZero,
+                           executionContexts: List[CompactionExecutionContext])(implicit compactionStrategy: Compactor[ThrottleState]): IO[swaydb.Error.Level, Option[WiredActor[Compactor[ThrottleState], ThrottleState]]] =
     compactionStrategy.createAndListen(
       zero = zero,
-      executionContexts = executionContexts,
-      copyForwardAllOnStart = copyForwardAllOnStart
+      executionContexts = executionContexts
     ) map (Some(_))
 
   def sendInitialWakeUp(compactor: WiredActor[Compactor[ThrottleState], ThrottleState]): Unit =
@@ -258,24 +288,52 @@ private[core] object CoreInitializer extends LazyLogging {
                 acceleration = config.level0.acceleration
               ) flatMap {
                 zero =>
-                  startCompaction(
+                  val contexts = executionContexts(config)
+
+                  initialiseCompaction(
                     zero = zero,
-                    executionContexts = executionContexts(config),
-                    copyForwardAllOnStart = true
-                  ) map {
+                    executionContexts = contexts
+                  ) flatMap {
                     compactor =>
-                      addShutdownHook(
-                        zero = zero,
-                        compactor = compactor
-                      )
+                      compactor map {
+                        compactor =>
 
-                      //trigger initial wakeUp.
-                      compactor foreach sendInitialWakeUp
+                          implicit val shutdownEC =
+                            contexts collectFirst {
+                              case CompactionExecutionContext.Create(executionContext) =>
+                                executionContext
+                            } getOrElse scala.concurrent.ExecutionContext.Implicits.global
 
-                      new Core(
-                        zero = zero,
-                        onClose = () => IO[swaydb.Error.Close, Unit](compactor foreach compactionStrategy.terminate)
-                      )
+                          addShutdownHook(
+                            zero = zero,
+                            compactor = compactor
+                          )
+
+                          //trigger initial wakeUp.
+                          sendInitialWakeUp(compactor)
+
+                          def onClose =
+                            IO.fromFuture[swaydb.Error.Close, Unit] {
+                              compactor askFlatMap {
+                                (impl, state, actor) =>
+                                  impl.terminate(state, actor)
+                              }
+                            }
+
+                          IO {
+                            new Core[IO.ApiIO](
+                              zero = zero,
+                              onClose = onClose
+                            )
+                          }
+                      } getOrElse {
+                        IO {
+                          new Core[IO.ApiIO](
+                            zero = zero,
+                            onClose = IO.Defer.unit
+                          )
+                        }
+                      }
                   }
               }
           }

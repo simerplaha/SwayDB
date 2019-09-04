@@ -23,15 +23,16 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.{IO, WiredActor}
 
+import scala.concurrent.Future
+
 private[core] trait Compactor[S] {
 
   def createAndListen(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext],
-                      copyForwardAllOnStart: Boolean): IO[swaydb.Error.Level, WiredActor[Compactor[S], S]]
+                      executionContexts: List[CompactionExecutionContext]): IO[swaydb.Error.Level, WiredActor[Compactor[S], S]]
 
   def wakeUp(state: S,
              forwardCopyOnAllLevels: Boolean,
              self: WiredActor[Compactor[S], S]): Unit
 
-  def terminate(self: WiredActor[Compactor[S], S]): Unit
+  def terminate(state: S, self: WiredActor[Compactor[S], S]): Future[Unit]
 }

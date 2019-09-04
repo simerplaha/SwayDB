@@ -42,7 +42,7 @@ import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
-import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
+import swaydb.core.util.{BlockCacheFileIDGenerator, Futures, IDGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
@@ -446,10 +446,9 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
     val compaction: Option[WiredActor[Compactor[ThrottleState], ThrottleState]] =
       if (throttleOn)
-        CoreInitializer.startCompaction(
+        CoreInitializer.initialiseCompaction(
           zero = level0,
-          executionContexts = CompactionExecutionContext.Create(TestExecutionContext.executionContext) +: List.fill(4)(CompactionExecutionContext.Shared),
-          copyForwardAllOnStart = randomBoolean()
+          executionContexts = CompactionExecutionContext.Create(TestExecutionContext.executionContext) +: List.fill(4)(CompactionExecutionContext.Shared)
         ) get
       else
         None
@@ -563,7 +562,18 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     runAsserts(asserts)
 
     level0.delete.runRandomIO.right.value
-    compaction foreach ThrottleCompactor.terminate
+
+    val terminate =
+      compaction map {
+        compaction =>
+          compaction.askFlatMap {
+            (impl, state, actor) =>
+              impl.terminate(state, actor)
+          }
+      } getOrElse Futures.unit
+
+    import RunThis._
+    terminate.await
 
     if (!throttleOn)
       assertLevel(

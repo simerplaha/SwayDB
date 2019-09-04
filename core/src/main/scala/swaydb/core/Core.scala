@@ -115,7 +115,7 @@ private[swaydb] object Core {
 }
 
 private[swaydb] class Core[T[_]](zero: LevelZero,
-                                 onClose: () => IO[swaydb.Error.Close, Unit])(implicit tag: Tag[T]) {
+                                 onClose: => IO.Defer[swaydb.Error.Close, Unit])(implicit tag: Tag[T]) {
 
   import Tag.Implicits._
 
@@ -240,10 +240,10 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
     zero.meterFor(levelNumber)
 
   def close(): T[Unit] =
-    tag.point(tag.fromIO(onClose().flatMap(_ => zero.close)))
+    onClose.run
 
   def delete(): T[Unit] =
-    tag.point(tag.fromIO(onClose().flatMap(_ => zero.delete)))
+    onClose.flatMapIO(_ => zero.delete).run
 
   def clear(): T[IO.Done] =
     zero.clear().run

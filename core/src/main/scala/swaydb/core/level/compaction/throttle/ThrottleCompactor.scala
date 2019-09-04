@@ -25,7 +25,7 @@ import swaydb.IO._
 import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.{Compaction, Compactor}
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.util.FiniteDurations
+import swaydb.core.util.{FiniteDurations, Futures}
 import swaydb.core.util.FiniteDurations._
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
@@ -33,7 +33,7 @@ import swaydb.{IO, WiredActor}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.Deadline
 
 /**
@@ -189,11 +189,6 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
     )
   }
 
-  def terminateActor(compactor: WiredActor[Compactor[ThrottleState], ThrottleState]): Unit = {
-    compactor.terminate() //terminate actor
-    compactor.unsafeGetState.terminateCompaction() //terminate currently processed compactions.
-  }
-
   def sendWakeUp(forwardCopyOnAllLevels: Boolean,
                  compactor: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction[ThrottleState]): Unit =
     compactor send {
@@ -204,16 +199,6 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
           self = self
         )
     }
-
-  def terminate(compactor: WiredActor[Compactor[ThrottleState], ThrottleState]): Unit = {
-    terminateActor(compactor) //terminate root compaction
-
-    //terminate all child compactions.
-    compactor
-      .unsafeGetState //do unsafeGet to also terminate currently in progress compactions jobs.
-      .child
-      .foreach(terminateActor)
-  }
 
   def createCompactor(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext]): IO[swaydb.Error.Level, WiredActor[Compactor[ThrottleState], ThrottleState]] =
@@ -241,9 +226,8 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
           )
       )
 
-  def createAndListen(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext],
-                      copyForwardAllOnStart: Boolean): IO[swaydb.Error.Level, WiredActor[Compactor[ThrottleState], ThrottleState]] =
+  def doCreateAndListen(zero: LevelZero,
+                        executionContexts: List[CompactionExecutionContext])(implicit compaction: Compaction[ThrottleState]): IO[swaydb.Error.Level, WiredActor[Compactor[ThrottleState], ThrottleState]] =
     createCompactor(
       zero = zero,
       executionContexts = executionContexts
@@ -254,14 +238,13 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
         listen(
           zero = zero,
           actor = compactor
-        )(ThrottleCompaction)
-
+        )
         compactor
     }
 
-  override def wakeUp(state: ThrottleState,
-                      forwardCopyOnAllLevels: Boolean,
-                      self: WiredActor[Compactor[ThrottleState], ThrottleState]): Unit =
+  def doWakeUp(state: ThrottleState,
+               forwardCopyOnAllLevels: Boolean,
+               self: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compaction: Compaction[ThrottleState]): Unit =
     try
       ThrottleCompaction.run(
         state = state,
@@ -271,5 +254,34 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
       postCompaction(
         state = state,
         self = self
-      )(ThrottleCompaction)
+      )
+
+  def createAndListen(zero: LevelZero,
+                      executionContexts: List[CompactionExecutionContext]): IO[swaydb.Error.Level, WiredActor[Compactor[ThrottleState], ThrottleState]] =
+    doCreateAndListen(
+      zero = zero,
+      executionContexts = executionContexts
+    )(ThrottleCompaction)
+
+  override def wakeUp(state: ThrottleState,
+                      forwardCopyOnAllLevels: Boolean,
+                      self: WiredActor[Compactor[ThrottleState], ThrottleState]): Unit =
+    doWakeUp(
+      state = state,
+      forwardCopyOnAllLevels = forwardCopyOnAllLevels,
+      self = self
+    )(ThrottleCompaction)
+
+  override def terminate(state: ThrottleState, compactor: WiredActor[Compactor[ThrottleState], ThrottleState]): Future[Unit] = {
+    compactor.terminateAndClear() //terminate actor
+    state.terminateCompaction() //terminate currently processed compactions.
+
+    state.child map {
+      child =>
+        child askFlatMap {
+          (impl, childState, childActor) =>
+            impl.terminate(childState, childActor)
+        }
+    } getOrElse Futures.unit
+  }
 }
