@@ -676,16 +676,19 @@ private[core] case class Level(dirs: Seq[Dir],
    * Returns segments that were not forwarded.
    */
   private def forward(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Boolean] = {
-    logger.trace(s"{}: forwarding {} Map", paths.head, map.pathOption)
-    nextLevel map {
-      nextLevel =>
-        if (!nextLevel.isCopyable(map))
-          IO.`false`
-        else if (nextLevel.put(map).exists(_.isRight))
-          IO.`true`
-        else
-          IO.`false`
-    } getOrElse IO.`false`
+    logger.trace(s"{}: forwarding {} Map. pushForward = $pushForward", paths.head, map.pathOption)
+    if (pushForward)
+      nextLevel map {
+        nextLevel =>
+          if (!nextLevel.isCopyable(map))
+            IO.`false`
+          else if (nextLevel.put(map).exists(_.isRight))
+            IO.`true`
+          else
+            IO.`false`
+      } getOrElse IO.`false`
+    else
+      IO.`false`
   }
 
   private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
@@ -759,17 +762,20 @@ private[core] case class Level(dirs: Seq[Dir],
    * Returns segments that were not forwarded.
    */
   private def forward(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[Segment]] = {
-    logger.trace(s"{}: Copying forward {} Segments", paths.head, segments.map(_.path.toString))
-    nextLevel map {
-      nextLevel =>
-        val (copyable, nonCopyable) = nextLevel partitionUnreservedCopyable segments
-        if (copyable.isEmpty)
-          IO.Right(segments)
-        else if (nextLevel.put(copyable).exists(_.isRight))
-          IO.Right(nonCopyable)
-        else
-          IO.Right(segments)
-    } getOrElse IO.Right(segments)
+    logger.trace(s"{}: Copying forward {} Segments. pushForward = $pushForward", paths.head, segments.map(_.path.toString))
+    if (pushForward)
+      nextLevel map {
+        nextLevel =>
+          val (copyable, nonCopyable) = nextLevel partitionUnreservedCopyable segments
+          if (copyable.isEmpty)
+            IO.Right(segments)
+          else if (nextLevel.put(copyable).exists(_.isRight))
+            IO.Right(nonCopyable)
+          else
+            IO.Right(segments)
+      } getOrElse IO.Right(segments)
+    else
+      IO.Right(segments)
   }
 
   private[level] def copy(segments: Iterable[Segment])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
