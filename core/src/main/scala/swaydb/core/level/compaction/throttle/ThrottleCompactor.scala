@@ -271,15 +271,24 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
     )(ThrottleCompaction)
 
   override def terminate(state: ThrottleState, compactor: WiredActor[Compactor[ThrottleState], ThrottleState]): Future[Unit] = {
-    compactor.terminateAndClear() //terminate actor
-    state.terminateCompaction() //terminate currently processed compactions.
+    val terminated =
+      state.child match {
+        case Some(child) =>
+          child askFlatMap {
+            (impl, childState, childActor: WiredActor[Compactor[ThrottleState], ThrottleState]) =>
+              impl.terminate(childState, childActor)
+          }
 
-    state.child map {
-      child =>
-        child askFlatMap {
-          (impl, childState, childActor) =>
-            impl.terminate(childState, childActor)
-        }
-    } getOrElse Futures.unit
+        case None =>
+          Futures.unit
+      }
+
+    implicit val ec = compactor.ec
+
+    terminated map {
+      _ =>
+        compactor.clear()
+        state.terminateCompaction() //terminate currently processed compactions.
+    }
   }
 }

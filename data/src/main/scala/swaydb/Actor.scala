@@ -62,6 +62,8 @@ sealed trait ActorRef[-T, S] { self =>
 
   def terminate(): Unit
 
+  def isTerminated: Boolean
+
   def clear(): Unit
 
   def terminateAndClear(): Unit
@@ -85,6 +87,9 @@ sealed trait ActorRef[-T, S] { self =>
           self ! message
           actor ! message
         }
+
+      def isTerminated: Boolean =
+        self.isTerminated && actor.isTerminated
 
       override def ?[R, X[_]](message: ActorRef[R, Unit] => T2)(implicit tag: Tag.Async[X]): X[R] =
         tag.failure(new NotImplementedError("Ask not implemented for merged actors."))
@@ -627,6 +632,9 @@ class Actor[-T, S](val state: S,
 
   override def terminate(): Unit =
     terminated = true
+
+  def isTerminated: Boolean =
+    terminated
 
   override def terminateAndClear(): Unit = {
     terminate()
