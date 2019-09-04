@@ -111,7 +111,7 @@ private[core] object Block extends LazyLogging {
         }
 
       case None =>
-        logger.debug {
+        logger.trace {
           if (compressions.isEmpty)
             s"No compression strategies provided for $blockName. Storing ${bytes.size}.bytes uncompressed."
           else
@@ -140,7 +140,7 @@ private[core] object Block extends LazyLogging {
             compressions: Seq[CompressionInternal],
             blockName: String): IO[swaydb.Error.Segment, SegmentBlock.Closed] =
     if (compressions.isEmpty) {
-      logger.debug(s"No compression strategies provided for Segment level compression for $blockName. Storing ${openSegment.segmentSize}.bytes uncompressed.")
+      logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${openSegment.segmentSize}.bytes uncompressed.")
       IO {
         openSegment.headerBytes moveWritePosition 0
         openSegment.headerBytes addIntUnsigned openSegment.headerBytes.size

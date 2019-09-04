@@ -1293,7 +1293,7 @@ private[core] case class Level(dirs: Seq[Dir],
         firstKey.map(ceiling) getOrElse IO.Defer.none
     }
 
-  override def last =
+  override def last: IO.Defer[Error.Level, Option[ReadOnly.Put]] =
     lastKey flatMap {
       lastKey =>
         lastKey.map(floor) getOrElse IO.Defer.none

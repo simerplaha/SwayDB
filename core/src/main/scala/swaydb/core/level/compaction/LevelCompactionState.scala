@@ -21,6 +21,7 @@ package swaydb.core.level.compaction
 
 import scala.concurrent.Promise
 import scala.concurrent.duration.{Deadline, _}
+import swaydb.core.util.FiniteDurations._
 
 private[level] sealed trait LevelCompactionState {
   def stateId: Long
@@ -36,21 +37,19 @@ private[level] object LevelCompactionState {
     @volatile var listenerInvoked: Boolean = false
     @volatile var listenerInitialised: Boolean = false
 
-    //    override def toString: String =
-    //      this.getClass.getSimpleName +
-    //        s" - later: ${later.getClass.getSimpleName}, " +
-    //        s"timeout: ${timeout.timeLeft.asString}, " +
-    //        s"stateID: $stateID, " +
-    //        s"previousStateID: $previousStateID"
+    override def toString: String =
+      this.getClass.getSimpleName +
+        s"timeout: ${timeout.timeLeft.asString}, " +
+        s"stateId: $stateId, " +
+        s"listenerInvoked: $listenerInvoked, " +
+        s"listenerInitialised: $listenerInitialised"
   }
 
   case class Sleeping(sleepDeadline: Deadline,
                       stateId: Long) extends LevelCompactionState {
-    //    override def toString: String =
-    //      this.getClass.getSimpleName +
-    //        s" - sleepDeadline: ${sleepDeadline.timeLeft.asString}, " +
-    //        s"stateID: $stateID, " +
-    //        s"previousStateID: $previousStateID"
+    override def toString: String =
+      this.getClass.getSimpleName +
+        s" - sleepDeadline: ${sleepDeadline.timeLeft.asString}, " +
+        s"stateId: $stateId "
   }
-
 }

@@ -1,18 +1,18 @@
 <configuration>
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{0} {%class %method} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{0} {%class %method} - %msg%n</pattern>
         </encoder>
     </appender>
 
     <appender name="file" class="ch.qos.logback.core.FileAppender">
         <file>${log-file:-swaydb-api-stress-test.log}</file>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{0} {%class %method} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{0} {%class %method} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <root level="ERROR">
+    <root level="DEBUG">
         <appender-ref ref="console"/>
         <appender-ref ref="file"/>
     </root>

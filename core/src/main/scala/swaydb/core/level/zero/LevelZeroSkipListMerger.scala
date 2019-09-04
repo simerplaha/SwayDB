@@ -65,8 +65,6 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.Segmen
 
           //if the floor entry is a range try to do a merge.
           case floorRange: Memory.Range if insert.key < floorRange.toKey =>
-            //Gah! performing a .get here. Although .get should never fail in this case because both the input key-values are in-memory and do not perform IO.
-            //This should still be done properly.
             SegmentMerger.merge(insert, floorRange).reverse foreach {
               transient: Transient.SegmentResponse =>
                 skipList.put(transient.key, transient.toMemoryResponse)

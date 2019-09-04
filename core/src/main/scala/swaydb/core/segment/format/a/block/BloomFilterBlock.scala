@@ -206,7 +206,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
             if (state.bytes.currentWritePosition > state.headerSize) {
               throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
             } else {
-              logger.debug(s"BloomFilter stats: allocatedSpace: ${state.numberOfBits}. actualSpace: ${state.bytes.size}. maxProbe: ${state.maxProbe}")
+              logger.trace(s"BloomFilter stats: allocatedSpace: ${state.numberOfBits}. actualSpace: ${state.bytes.size}. maxProbe: ${state.maxProbe}")
               Some(state)
             }
           }

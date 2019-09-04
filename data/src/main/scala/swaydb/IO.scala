@@ -556,9 +556,9 @@ object IO {
           error =>
             ExceptionHandler.recover(error) foreach {
               reserve =>
-                logger.debug(s"Blocking. ${reserve.name}")
+                logger.trace(s"Blocking. ${reserve.name}")
                 Reserve.blockUntilFree(reserve)
-                logger.debug(s"Freed. ${reserve.name}")
+                logger.trace(s"Freed. ${reserve.name}")
             }
         }
 
@@ -567,13 +567,13 @@ object IO {
         if (tried > 0) blockIfNeeded(deferred)
         IO.Defer.runAndRecover(deferred) match {
           case scala.util.Left(io) =>
-            logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
+            logger.trace(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
             io match {
               case success @ IO.Right(_) =>
                 success
 
               case IO.Left(error) =>
-                logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
+                logger.trace(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
                 if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
                   doRun(recovery.get.asInstanceOf[E => IO.Defer[E, A]](error), 0)
                 else
@@ -581,7 +581,7 @@ object IO {
             }
 
           case scala.util.Right(deferred) =>
-            logger.debug(s"Retry! isCached: ${getValue.isDefined}. ${deferred.error}")
+            logger.trace(s"Retry! isCached: ${getValue.isDefined}. ${deferred.error}")
             if (tried > 0 && tried % IO.Defer.maxRecoveriesBeforeWarn == 0)
               logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via IO. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => IO.ExceptionHandler.recover(error).map(_.name))}")
             doRun(deferred, tried + 1)
@@ -602,9 +602,9 @@ object IO {
           error =>
             ExceptionHandler.recover(error) foreach {
               reserve =>
-                logger.debug(s"Blocking. ${reserve.name}")
+                logger.trace(s"Blocking. ${reserve.name}")
                 Reserve.blockUntilFree(reserve)
-                logger.debug(s"Freed. ${reserve.name}")
+                logger.trace(s"Freed. ${reserve.name}")
             }
         }
 
@@ -613,13 +613,13 @@ object IO {
         if (tried > 0) blockIfNeeded(deferred)
         IO.Defer.runAndRecover(deferred) match {
           case scala.util.Left(io) =>
-            logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
+            logger.trace(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
             io match {
               case success @ IO.Right(_) =>
                 tag.fromIO(success)
 
               case IO.Left(error) =>
-                logger.debug(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
+                logger.trace(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
                 if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
                   doRun(recovery.get.asInstanceOf[E => IO.Defer[E, B]](error), 0)
                 else
@@ -627,7 +627,7 @@ object IO {
             }
 
           case scala.util.Right(deferred) =>
-            logger.debug(s"Retry! isCached: ${getValue.isDefined}. ${deferred.error}")
+            logger.trace(s"Retry! isCached: ${getValue.isDefined}. ${deferred.error}")
             if (tried > 0 && tried % IO.Defer.maxRecoveriesBeforeWarn == 0)
               logger.warn(s"${Thread.currentThread().getName}: Competing reserved resource accessed via runSync. Times accessed: $tried. Reserve: ${deferred.error.flatMap(error => IO.ExceptionHandler.recover(error).map(_.name))}")
             doRun(deferred, tried + 1)
@@ -675,11 +675,11 @@ object IO {
       def runNow(deferred: IO.Defer[E, B], tried: Int): T[B] =
         when(tried > 0)(delayedRun(deferred)) match {
           case Some(async) if tag.isIncomplete(async) =>
-            logger.debug(s"Run delayed! isCached: ${getValue.isDefined}.")
+            logger.trace(s"Run delayed! isCached: ${getValue.isDefined}.")
             runDelayed(deferred, tried, async)
 
           case Some(_) | None =>
-            logger.debug(s"Run no delay! isCached: ${getValue.isDefined}")
+            logger.trace(s"Run no delay! isCached: ${getValue.isDefined}")
             //no delay required run in stack safe manner.
             IO.Defer.runAndRecover(deferred) match {
               case scala.util.Left(io) =>

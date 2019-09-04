@@ -55,18 +55,12 @@ private[swaydb] object DefaultCompactionOrdering extends CompactionOrdering {
             right: Level,
             leftState: LevelCompactionState,
             rightState: LevelCompactionState): Int =
-    if (left.levelZeroMeter.mapsCount >= 4)
-      1
-    else
-      -1
+    left.throttle(left.levelZeroMeter) compare right.throttle(right.meter).pushDelay
 
   def order(left: Level,
             right: Level,
             leftState: LevelCompactionState,
             rightState: LevelCompactionState): Int =
-    if (right.nextLevel.isEmpty) //last Level is always the lowest priority.
-      1
-    else
-      left.throttle(left.meter).pushDelay compareTo right.throttle(right.meter).pushDelay
+    left.throttle(left.meter).pushDelay compare right.throttle(right.meter).pushDelay
 }
 

@@ -33,8 +33,6 @@ import scala.collection.mutable
 import scala.reflect.ClassTag
 
 private[core] sealed trait SkipList[K, V] {
-  def put(keyValues: Iterable[(K, V)]): Unit
-  def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit
   def put(key: K, value: V): Unit
   def putIfAbsent(key: K, value: V): Boolean
   def get(key: K): Option[V]
@@ -139,7 +137,7 @@ private[core] object SkipList {
   def minMax[K, V: ClassTag]()(implicit ordering: KeyOrder[K]): SkipList.MinMaxSkipList[K, V] =
     new MinMaxSkipList[K, V](None)
 
-  private[core] class Concurrent[K, V](skipList: ConcurrentSkipListMap[K, V]) extends SkipList[K, V] {
+  private[core] class Concurrent[K, V](@volatile var skipList: ConcurrentSkipListMap[K, V]) extends SkipList[K, V] {
 
     def isConcurrent: Boolean = true
 
@@ -149,17 +147,47 @@ private[core] object SkipList {
     override def remove(key: K): Unit =
       skipList.remove(key)
 
-    def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit =
+    /**
+     * Does not support concurrent batch writes since it's only being used by [[swaydb.core.level.Level]] which
+     * write to appendix concurrently.
+     */
+    def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit = {
+      var cloned = false
+      val targetSkipList =
+        if (batches.size > 1) {
+          cloned = true
+          new Concurrent(skipList.clone())
+        } else {
+          this
+        }
+
       batches foreach {
         batch =>
-          batch.apply(this)
+          batch apply targetSkipList
       }
 
-    override def put(keyValues: Iterable[(K, V)]): Unit =
+      if (cloned)
+        this.skipList = targetSkipList.skipList
+    }
+
+    def put(keyValues: Iterable[(K, V)]): Unit = {
+      var cloned = false
+      val targetSkipList =
+        if (keyValues.size > 1) {
+          cloned = true
+          skipList.clone()
+        } else {
+          skipList
+        }
+
       keyValues foreach {
         case (key, value) =>
-          put(key, value)
+          targetSkipList.put(key, value)
       }
+
+      if (cloned)
+        this.skipList = targetSkipList
+    }
 
     override def put(key: K, value: V): Unit =
       skipList.put(key, value)
@@ -291,18 +319,6 @@ private[core] object SkipList {
     implicit val minMaxOrder = order.on[SkipList.KeyValue.Some[K, V]](_.key)
 
     def isConcurrent: Boolean = false
-
-    def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit =
-      batches foreach {
-        batch =>
-          batch.apply(this)
-      }
-
-    override def put(keyValues: Iterable[(K, V)]): Unit =
-      keyValues foreach {
-        case (key, value) =>
-          put(key, value)
-      }
 
     override def put(key: K, value: V): Unit =
       this.minMax =

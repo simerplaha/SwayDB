@@ -68,6 +68,8 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
 
   implicit val compactionOrdering = DefaultCompactionOrdering
 
+  implicit val compaction: Compaction = Compaction.default
+
   override def deleteFiles = false
 
   "createActor" should {

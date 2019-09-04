@@ -134,8 +134,21 @@ private[swaydb] object MapEntry {
         override val entryBytesSize =
           left.entryBytesSize + right.entryBytesSize
 
-        override def applyTo[T >: V](skipList: SkipList.Concurrent[K, T]): Unit =
-          _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] foreach (_.applyTo(skipList))
+        //        override def applyTo[T >: V](skipList: SkipList.Concurrent[K, T]): Unit =
+        //          _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] foreach (_.applyTo(skipList))
+
+        override def applyTo[T >: V](skipList: SkipList.Concurrent[K, T]): Unit = {
+          val batches: Seq[SkipList.Batch[K, V]] =
+            _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] map {
+              case MapEntry.Put(key, value) =>
+                SkipList.Batch.Put[K, V](key, value)
+
+              case MapEntry.Remove(key) =>
+                SkipList.Batch.Remove[K](key)
+            }
+
+          skipList batch batches
+        }
 
         override val hasRange: Boolean =
           left.hasRange || right.hasRange

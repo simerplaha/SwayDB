@@ -45,7 +45,7 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
   val levelsReversed = Slice(levels.reverse.toArray)
   val scheduler = Scheduler(Some(s"Scheduler for Level: ${levels.map(_.levelNumber).mkString(", ")}."))(executionContext)
 
-  def id =
+  def name =
     if (levels.size == 1)
       "Level(" + levels.map(_.levelNumber).mkString(", ") + ")"
     else

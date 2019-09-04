@@ -19,6 +19,9 @@
 
 package swaydb.core.util
 
+import java.util.concurrent.ConcurrentSkipListMap
+import java.util.concurrent.locks.ReentrantReadWriteLock
+
 import org.scalatest.{FlatSpec, Matchers}
 import swaydb.data.order.KeyOrder
 
@@ -34,6 +37,71 @@ sealed trait SkipListSpec extends FlatSpec with Matchers {
   def isMinMax: Boolean
 
   implicit val ordering = KeyOrder(Ordering.Int)
+
+  it should "Dsdss" in {
+    @volatile var skipList = new ConcurrentSkipListMap[Int, Int]()
+
+    val lock = new ReentrantReadWriteLock()
+
+    def get(key: Int) = {
+      lock.readLock().lock()
+      skipList.get(key)
+      lock.readLock().unlock()
+    }
+
+    def write(key: Int) = {
+      lock.writeLock().lock()
+      skipList.put(key, key)
+      lock.writeLock().unlock()
+    }
+
+    Benchmark("") {
+      (1 to 10000).par foreach {
+        i =>
+          write(i)
+      }
+    }
+
+    Benchmark("") {
+      (1 to 1000000).par foreach {
+        i =>
+          get(i)
+      }
+      //      skipList.clone()
+    }
+  }
+
+  it should "dsds" in {
+    val skipList = new ConcurrentSkipListMap[Int, Int]()
+    skipList.put(1, 1)
+    skipList.put(2, 2)
+    skipList.put(3, 3)
+
+    val skipList2 = skipList.clone()
+
+    def printlnOne() = {
+      println("slipList1")
+      skipList.forEach {
+        case (key, value) =>
+          println(key, value)
+      }
+    }
+
+    def printlnTwo() = {
+      println("slipList2")
+      skipList2.forEach {
+        case (key, value) =>
+          println(key, value)
+      }
+    }
+
+    printlnOne()
+    printlnTwo()
+    println("put")
+    skipList2.put(3, 33)
+    printlnOne()
+    printlnTwo()
+  }
 
   it should "put key-values and adjust existing minMax to the nearest keys" in {
     val skipList = SkipList.minMax[Int, Int]()

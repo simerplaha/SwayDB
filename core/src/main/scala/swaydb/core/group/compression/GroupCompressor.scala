@@ -59,7 +59,7 @@ private[core] object GroupCompressor extends LazyLogging {
       logger.error(message.getMessage)
       IO.failed(message)
     } else {
-      logger.debug(s"Compressing ${keyValues.size} key-values with previous key-value as ${previous.map(_.getClass.getSimpleName)}.")
+      logger.trace(s"Compressing ${keyValues.size} key-values with previous key-value as ${previous.map(_.getClass.getSimpleName)}.")
       SegmentBlock.writeClosed(
         keyValues = keyValues,
         createdInLevel = createdInLevel,
@@ -68,7 +68,7 @@ private[core] object GroupCompressor extends LazyLogging {
         blockedSegment =>
           IO {
             val (minKey, maxKey, mergedKey) = buildCompressedKey(keyValues)
-            logger.debug(s"Compressed ${keyValues.size} key-values to ${blockedSegment.segmentSize}.bytes.")
+            logger.trace(s"Compressed ${keyValues.size} key-values to ${blockedSegment.segmentSize}.bytes.")
             Transient.Group(
               minKey = minKey,
               maxKey = maxKey,

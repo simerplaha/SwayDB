@@ -34,7 +34,7 @@ object DefaultPersistentConfig {
 
   private lazy val executionContext =
     new ExecutionContext {
-      val threadPool = new ForkJoinPool(3)
+      val threadPool = new ForkJoinPool(2)
 
       def execute(runnable: Runnable) =
         threadPool execute runnable
@@ -69,13 +69,15 @@ object DefaultPersistentConfig {
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         acceleration = acceleration,
         throttle =
-          meter =>
-            if (meter.mapsCount > 3)
+          meter => {
+            val mapsCount = meter.mapsCount
+            if (mapsCount > 3)
               Duration.Zero
-            else if (meter.mapsCount > 2)
+            else if (mapsCount > 2)
               1.second
             else
               30.seconds
+          }
       )
       .addPersistentLevel1( //level1
         dir = dir,
@@ -190,8 +192,8 @@ object DefaultPersistentConfig {
           ioAction =>
             IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
         segmentCompressions = _ => Seq.empty,
-        groupBy = groupBy,
-        compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
+        groupBy = None,
+        compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
             val delay = (10 - levelMeter.segmentsCount).seconds
@@ -441,7 +443,7 @@ object DefaultPersistentConfig {
         throttle =
           levelMeter =>
             if (levelMeter.requiresCleanUp)
-              Throttle(20.seconds, 2)
+              Throttle(10.seconds, 2)
             else
               Throttle(1.hour, 5)
       )

@@ -110,18 +110,22 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
         }
 
   def scheduleNextWakeUp(state: CompactorState,
-                         self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit = {
-    logger.debug(s"${state.id}: scheduling next wakeup for updated state: ${state.levels.size}. Current scheduled: ${state.sleepTask.map(_._2.timeLeft.asString)}")
+                         self: WiredActor[CompactionStrategy[CompactorState], CompactorState])(implicit compaction: Compaction): Unit = {
+    logger.debug(s"${state.name}: scheduling next wakeup for updated state: ${state.levels.size}. Current scheduled: ${state.sleepTask.map(_._2.timeLeft.asString)}")
 
     state
       .compactionStates
+      .collect {
+        case (level, levelState) if levelState.stateId != level.stateId || state.sleepTask.isEmpty =>
+          (level, levelState)
+      }
       .foldLeft(Option.empty[Deadline]) {
         case (nearestDeadline, (_, waiting @ LevelCompactionState.AwaitingPull(promise, timeout, _))) =>
           //do not create another hook if a future was already initialised to invoke wakeUp.
           if (!waiting.listenerInitialised) {
             promise.future.foreach {
               _ =>
-                logger.debug(s"${state.id}: received pull request. Sending wakeUp now.")
+                logger.debug(s"${state.name}: received pull request. Sending wakeUp now.")
                 waiting.listenerInvoked = true
                 self send {
                   (impl, state, self) =>
@@ -163,14 +167,15 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
               }
 
             state.sleepTask = Some(newTask, newWakeUpDeadline)
-            logger.debug(s"${state.id}: Next wakeup scheduled!. Current scheduled: ${newWakeUpDeadline.timeLeft.asString}")
+            logger.debug(s"${state.name}: Next wakeup scheduled!. Current scheduled: ${newWakeUpDeadline.timeLeft.asString}")
           } else {
-            logger.debug(s"${state.id}: Same deadline. Ignoring re-scheduling.")
+            logger.debug(s"${state.name}: Same deadline. Ignoring re-scheduling.")
           }
       }
   }
 
-  def wakeUpChild(state: CompactorState): Unit =
+  def wakeUpChild(state: CompactorState)(implicit compaction: Compaction): Unit = {
+    logger.debug(s"${state.name}: Waking up child: ${state.child.map(_ => "child")}.")
     state
       .child
       .foreach {
@@ -180,9 +185,10 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
             compactor = child
           )
       }
+  }
 
   def postCompaction[T](state: CompactorState,
-                        self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit = {
+                        self: WiredActor[CompactionStrategy[CompactorState], CompactorState])(implicit compaction: Compaction): Unit = {
     //schedule the next compaction for current Compaction group levels
     scheduleNextWakeUp(
       state = state,
@@ -201,7 +207,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
   }
 
   def sendWakeUp(forwardCopyOnAllLevels: Boolean,
-                 compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
+                 compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState])(implicit compaction: Compaction): Unit =
     compactor send {
       (impl, state, self) =>
         impl.wakeUp(
@@ -237,7 +243,7 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
    * called on the same thread as LevelZero's initialisation thread.
    */
   def listen(zero: LevelZero,
-             actor: WiredActor[CompactionStrategy[CompactorState], CompactorState]) =
+             actor: WiredActor[CompactionStrategy[CompactorState], CompactorState])(implicit compaction: Compaction): Unit =
     zero onNextMapCallback (
       event =
         () =>
@@ -249,7 +255,8 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
 
   def createAndListen(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext],
-                      copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[swaydb.Error.Level, WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+                      copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering,
+                                                      compaction: Compaction): IO[swaydb.Error.Level, WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     createCompactor(
       zero = zero,
       executionContexts = executionContexts
@@ -266,9 +273,9 @@ private[core] object Compactor extends CompactionStrategy[CompactorState] with L
 
   override def wakeUp(state: CompactorState,
                       forwardCopyOnAllLevels: Boolean,
-                      self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
+                      self: WiredActor[CompactionStrategy[CompactorState], CompactorState])(implicit compaction: Compaction): Unit =
     try
-      Compaction.run(
+      compaction.run(
         state = state,
         forwardCopyOnAllLevels = forwardCopyOnAllLevels
       )
