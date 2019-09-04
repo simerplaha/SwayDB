@@ -22,13 +22,15 @@ package swaydb.core.actor
 import java.util.concurrent.ConcurrentSkipListSet
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.{Actor, ActorRef, IO, Scheduler}
 import swaydb.IOValues._
 import swaydb.core.RunThis._
+import swaydb.core.TestExecutionContext
 import swaydb.data.config.ActorConfig.QueueOrder
+import swaydb._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 class ActorSpec extends WordSpec with Matchers {
 
@@ -110,7 +112,6 @@ class ActorSpec extends WordSpec with Matchers {
     "continue processing messages if execution of one message fails and has recovery" in {
       case class State(processed: ListBuffer[Int], recovered: ListBuffer[Int])
       val state = State(ListBuffer.empty, ListBuffer.empty)
-      import swaydb.IO.ExceptionHandler.Throwable
 
       val actor =
         Actor[Int, State](state) {
@@ -135,7 +136,6 @@ class ActorSpec extends WordSpec with Matchers {
     "terminate actor in recovery" in {
       case class State(processed: ListBuffer[Int], errors: ListBuffer[Int])
       val state = State(ListBuffer.empty, ListBuffer.empty)
-      import swaydb.IO.ExceptionHandler.Throwable
 
       val actor =
         Actor[Int, State](state) {
@@ -405,6 +405,39 @@ class ActorSpec extends WordSpec with Matchers {
       }
 
       actor.terminate()
+    }
+  }
+
+  "ask" should {
+    case class ToInt(string: String)(val replyTo: ActorRef[Int, Unit])
+    implicit val futureTag = Tag.future(ec)
+
+    "ask" in {
+      val actor =
+        Actor[ToInt] {
+          (message, _) =>
+            message.replyTo ! message.string.toInt
+        }
+
+      import scala.concurrent.duration._
+
+      val futures =
+        Future.sequence {
+          (1 to 100) map {
+            request =>
+              actor ask ToInt(request.toString) map {
+                response =>
+                  (request, response)
+              }
+          }
+        }
+
+      val responses = Await.result(futures, 10.second)
+      responses should have size 100
+      responses foreach {
+        case (request, response) =>
+          response shouldBe request
+      }
     }
   }
 

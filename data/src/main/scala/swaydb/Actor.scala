@@ -31,7 +31,7 @@ import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.util.Functions
 
 import scala.concurrent.duration.{FiniteDuration, _}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 
 sealed trait ActorRef[-T, S] { self =>
 
@@ -40,8 +40,13 @@ sealed trait ActorRef[-T, S] { self =>
    */
   def !(message: T): Unit
 
+  def ?[R, X[_]](message: ActorRef[R, Unit] => T)(implicit tag: Tag.Async[X]): X[R]
+
   def send(message: T): Unit =
     this ! message
+
+  def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit tag: Tag.Async[X]): X[R] =
+    this ? message
 
   /**
    * Sends a message to this actor with delay
@@ -80,6 +85,9 @@ sealed trait ActorRef[-T, S] { self =>
           self ! message
           actor ! message
         }
+
+      override def ?[R, X[_]](message: ActorRef[R, Unit] => T2)(implicit tag: Tag.Async[X]): X[R] =
+        tag.failure(new NotImplementedError("Ask not implemented for merged actors."))
 
       /**
        * Sends a message to this actor with delay
@@ -371,9 +379,9 @@ object Actor {
    * keep messages in-memory for too long.
    */
   private[swaydb] def adjustDelay(currentQueueSize: Int,
-                                 defaultQueueSize: Int,
-                                 previousDelay: FiniteDuration,
-                                 defaultDelay: FiniteDuration): FiniteDuration =
+                                  defaultQueueSize: Int,
+                                  previousDelay: FiniteDuration,
+                                  defaultDelay: FiniteDuration): FiniteDuration =
   //if there is no overflow increment previous delay or return the default it's overflow is controlled.
     if (currentQueueSize <= defaultQueueSize)
       (previousDelay + incrementDelayBy) min defaultDelay
@@ -446,6 +454,17 @@ class Actor[-T, S](val state: S,
       else
         wakeUp(currentStashed = currentStashed)
     }
+
+  override def ?[R, X[_]](message: ActorRef[R, Unit] => T)(implicit tag: Tag.Async[X]): X[R] = {
+    val promise = Promise[R]()
+
+    implicit val queueOrder = QueueOrder.FIFO
+
+    val replyTo: ActorRef[R, Unit] = Actor[R]((response, _) => promise.success(response))
+    this ! message(replyTo)
+
+    tag fromPromise promise
+  }
 
   @inline private def wakeUp(currentStashed: Int): Unit =
     if (isBasic)

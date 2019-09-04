@@ -334,7 +334,7 @@ object Error {
     override def reserve: Reserve[Unit] = Reserve.free(name = s"${this.getClass.getSimpleName}")
   }
 
-  case class ReservedResource(reserve: Reserve[Unit]) extends Recoverable {
+  case class ReservedResource(reserve: Reserve[Unit]) extends Recoverable with Error.Close with Error.Delete with Error.Boot with Error.API {
     override def exception: Exception.ReservedResource = Exception.ReservedResource(reserve)
   }
 

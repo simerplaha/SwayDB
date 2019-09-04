@@ -42,7 +42,7 @@ import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import swaydb.{Error, IO, Scheduler, WiredActor}
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 private[core] object CoreInitializer extends LazyLogging {
 
@@ -74,7 +74,7 @@ private[core] object CoreInitializer extends LazyLogging {
                                                                                               executionContext: ExecutionContext): Unit =
     sys.addShutdownHook {
       logger.info("Shutting down compaction.")
-      val compactionShutdown =
+      def compactionShutdown: Future[Unit] =
         compactor askFlatMap {
           (impl, state, self) =>
             impl.terminate(state, self)

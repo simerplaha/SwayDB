@@ -90,9 +90,9 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             )
           ).get
 
-        actor.unsafeGetState.compactionStates shouldBe empty
-        actor.unsafeGetState.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
-        actor.unsafeGetState.child shouldBe empty
+        actor.state.await.compactionStates shouldBe empty
+        actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
+        actor.state.await.child shouldBe empty
 
         zero.delete.get
       }
@@ -110,11 +110,11 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             )
           ).get
 
-        actor.unsafeGetState.compactionStates shouldBe empty
-        actor.unsafeGetState.levels.map(_.rootPath) should contain only zero.rootPath
-        actor.unsafeGetState.child shouldBe defined
+        actor.state.await.compactionStates shouldBe empty
+        actor.state.await.levels.map(_.rootPath) should contain only zero.rootPath
+        actor.state.await.child shouldBe defined
 
-        val childActor = actor.unsafeGetState.child.get.unsafeGetState
+        val childActor = actor.state.await.child.get.state.await
         childActor.child shouldBe empty
         childActor.levels.map(_.rootPath) should contain only nextLevel.rootPath
 
@@ -136,9 +136,9 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             )
           ).get
 
-        actor.unsafeGetState.compactionStates shouldBe empty
-        actor.unsafeGetState.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath, nextLevel2.rootPath)
-        actor.unsafeGetState.child shouldBe empty
+        actor.state.await.compactionStates shouldBe empty
+        actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath, nextLevel2.rootPath)
+        actor.state.await.child shouldBe empty
 
         zero.delete.get
       }
@@ -158,11 +158,11 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
             )
           ).get
 
-        actor.unsafeGetState.compactionStates shouldBe empty
-        actor.unsafeGetState.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
-        actor.unsafeGetState.child shouldBe defined
+        actor.state.await.compactionStates shouldBe empty
+        actor.state.await.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
+        actor.state.await.child shouldBe defined
 
-        val childActor = actor.unsafeGetState.child.get.unsafeGetState
+        val childActor = actor.state.await.child.get.state.await
         childActor.child shouldBe empty
         childActor.levels.map(_.rootPath) should contain only nextLevel2.rootPath
 
