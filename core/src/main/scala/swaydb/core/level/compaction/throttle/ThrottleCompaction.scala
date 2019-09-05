@@ -311,7 +311,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
       IO.Right[swaydb.Error.Level, Int](segmentsCompacted)
     else if (checkExpired)
       Segment.getNearestDeadlineSegment(level.segmentsInLevel()) match {
-        case Some(segment) =>
+        case Some(segment) if segment.nearestExpiryDeadline.exists(!_.hasTimeLeft()) =>
           level.refresh(segment) match {
             case IO.Right(IO.Right(_)) =>
               logger.debug(s"Level(${level.levelNumber}): Refresh successful.")
@@ -340,7 +340,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
               )
           }
 
-        case None =>
+        case None | Some(_) =>
           runLastLevelCompaction(
             level = level,
             checkExpired = false,

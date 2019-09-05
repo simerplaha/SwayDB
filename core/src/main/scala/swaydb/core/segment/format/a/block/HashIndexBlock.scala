@@ -314,7 +314,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     val valuePlusOne = value + 1
     val valuePlusOneBytes = Slice.writeIntUnsigned(valuePlusOne)
 
-    val hash = key.##
+    val hash = key.hashCode()
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
 
@@ -365,7 +365,7 @@ private[core] object HashIndexBlock extends LazyLogging {
                                reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                                assertValue: Int => IO[swaydb.Error.Segment, Option[R]]): IO[swaydb.Error.Segment, Option[R]] = {
 
-    val hash = key.##
+    val hash = key.hashCode()
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
 
@@ -464,7 +464,7 @@ private[core] object HashIndexBlock extends LazyLogging {
                           isReference: Boolean,
                           state: State): IO[swaydb.Error.Segment, Boolean] = {
 
-    val hash = key.##
+    val hash = key.hashCode()
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
 
@@ -569,7 +569,7 @@ private[core] object HashIndexBlock extends LazyLogging {
                                      reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                                      assertValue: (Slice[Byte], Int, Boolean) => IO[swaydb.Error.Segment, Option[R]]): IO[swaydb.Error.Segment, Option[R]] = {
 
-    val hash = key.##
+    val hash = key.hashCode()
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
 

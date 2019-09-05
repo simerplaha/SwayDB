@@ -527,7 +527,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
     }
 
     "concurrently Create, Update, Read & Delete (CRUD) Products" in {
-      val maxUsers: Int = 10
+      val maxUsers: Int = 30
       val runFor = 10.minutes
       implicit val queue = QueueOrder.FIFO
 

@@ -23,11 +23,10 @@ import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption
 
 import swaydb.IOValues._
-import swaydb.core.CommonAssertions.{randomBlockSize, randomIOStrategy}
+import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.config.IOStrategy
@@ -45,26 +44,28 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
 
     implicit val blockCache: Option[BlockCache.State] = TestLimitQueues.blockCache
 
-    val file = DBFile.mmapInit(randomFilePath, randomIOStrategy(cacheOnAccess = true), bytes.size, autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
-    file.append(bytes).runRandomIO.right.value
-    file.isFull.runRandomIO.right.value shouldBe true
+    val mmapFile = DBFile.mmapInit(randomFilePath, randomIOStrategy(cacheOnAccess = true), bytes.size, autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+    mmapFile.append(bytes).runRandomIO.right.value
+    mmapFile.isFull.runRandomIO.right.value shouldBe true
 
-    file.forceSave().get
-    file.close.get
+    mmapFile.forceSave().get
+    mmapFile.close.get
 
-    import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
+    val channelFile = DBFile.channelRead(mmapFile.path, randomIOStrategy(cacheOnAccess = true), true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).get
 
-    val readerFile = DBFile.channelRead(file.path, randomIOStrategy(cacheOnAccess = true), true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).get
+    //    val reader = BlockRefReader(channelFile).get
+    val reader = Reader(channelFile)
 
-    //        val reader = BlockRefReader(readerFile).get
-    val reader = Reader(readerFile)
+    val bytesToRead = 100
 
     Benchmark("") {
       (1 to 10000000) foreach {
         i =>
-          val index = randomIntMax(bytes.size - 5)
-          reader.moveTo(index).read(4).get
-        //                  file.read(index, 4).get
+          val index = randomIntMax(bytes.size - bytesToRead + 1)
+          reader.moveTo(index).read(bytesToRead).get
+        //                  channelFile.read(index, bytesToRead).get
+
+        //                                  mmapFile.read(index, bytesToRead).get
 
         //          reader.moveTo(i * 4).read(4).get
       }
@@ -73,6 +74,25 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
     //    println("reader.totalMiss: " + reader.totalMissed)
     //    println("reader.totalHit: " + reader.totalHit)
   }
+
+  //  "hash test" in {
+  //    val bytes = (1 to 10000000) map {
+  //      i =>
+  //        //        val buff = ByteBuffer.allocate(4).putInt(i)
+  //        //        buff.array()
+  //        Slice.writeLong(i)
+  //    }
+  //
+  //    Benchmark("") {
+  //      bytes foreach {
+  //        bytes =>
+  //          bytes.hashCode()
+  //
+  //        //          MurmurHash3.arrayHash(bytes)
+  //        //          MurmurHash3.orderedHash(bytes)
+  //      }
+  //    }
+  //  }
 
   "DBFile" should {
     //use larger chunkSize to test on larger data-set

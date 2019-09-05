@@ -863,4 +863,39 @@ class SliceSpec extends WordSpec with Matchers {
       bytes.dropUntil(6) shouldBe empty
     }
   }
+
+  "hashCode" should {
+    "be same for partially and fully written slice" in {
+      val partiallyWritten = Slice.create[Int](100)
+      partiallyWritten.add(1)
+      partiallyWritten.add(2)
+      partiallyWritten.add(3)
+      partiallyWritten.add(4)
+      partiallyWritten.add(5)
+
+      val bytes =
+        Seq(
+          Slice(1, 2, 3, 4, 5),
+          partiallyWritten
+        )
+
+      partiallyWritten.underlyingArraySize shouldBe 100
+
+      bytes foreach {
+        bytes =>
+          bytes.hashCode() shouldBe bytes.##
+          bytes.drop(1).hashCode() shouldBe Slice(2, 3, 4, 5).##
+          bytes.drop(2).hashCode() shouldBe Slice(3, 4, 5).##
+          bytes.drop(3).hashCode() shouldBe Slice(4, 5).##
+          bytes.drop(4).hashCode() shouldBe Slice(5).##
+          bytes.drop(5).hashCode() shouldBe Slice[Int]().##
+
+          bytes.dropRight(1).hashCode() shouldBe Slice(1, 2, 3, 4).##
+          bytes.dropRight(2).hashCode() shouldBe Slice(1, 2, 3).##
+          bytes.dropRight(3).hashCode() shouldBe Slice(1, 2).##
+          bytes.dropRight(4).hashCode() shouldBe Slice(1).##
+          bytes.dropRight(5).hashCode() shouldBe Slice[Int]().##
+      }
+    }
+  }
 }

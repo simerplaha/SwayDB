@@ -29,11 +29,23 @@ import scala.annotation.tailrec
 
 private[core] object BlockCache {
 
-  case class Key(fileId: Long, position: Int)
+  class Key(val fileId: Long, val position: Int) {
+    override def equals(that: Any): Boolean =
+      that match {
+        case other: Key =>
+          this.fileId == other.fileId &&
+            this.position == other.position
 
-  //TODO - need a faster way to unique keys.
+        case _ =>
+          false
+      }
+
+    override def hashCode(): Int =
+      (fileId ^ (fileId >>> 32)).toInt + position
+  }
+
   def buildKey(fileType: DBFileType, position: Int): Key =
-    Key(fileType.blockCacheFileId, position)
+    new Key(fileType.blockCacheFileId, position)
 
   def init(memorySweeper: MemorySweeper): Option[BlockCache.State] =
     memorySweeper match {

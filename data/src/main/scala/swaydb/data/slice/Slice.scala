@@ -784,6 +784,14 @@ class Slice[+T: ClassTag] private(array: Array[T],
         false
     }
 
-  override def hashCode(): Int =
-    MurmurHash3.orderedHash(this)
+  override def hashCode(): Int = {
+    var seed = MurmurHash3.arraySeed
+    var i = fromOffset
+    val end = fromOffset + self.size
+    while (i < end) {
+      seed = MurmurHash3.mix(seed, array(i).##)
+      i += 1
+    }
+    MurmurHash3.finalizeHash(seed, size)
+  }
 }

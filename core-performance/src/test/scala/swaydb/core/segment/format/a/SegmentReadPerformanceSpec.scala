@@ -236,7 +236,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
           prefixCompressionResetCount = 0,
           enableAccessPositionIndex = true,
-          normaliseIndex = true,
+          normaliseIndex = false,
           compressions = _ => Seq.empty
         ),
       binarySearchIndexConfig =
@@ -258,7 +258,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       hashIndexConfig =
         HashIndexBlock.Config(
           maxProbe = 2,
-          copyIndex = true,
+          copyIndex = false,
           minimumNumberOfKeys = 5,
           minimumNumberOfHits = 5,
           allocateSpace = _.requiredSpace * 2,
@@ -329,7 +329,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 //  val unGroupedKeyValuesZipped = unGroupedKeyValues.zipWithIndex
 
   def assertGet(segment: Segment) = {
-    unGroupedKeyValues foreach {
+    shuffledUnGroupedKeyValues foreach {
       keyValue =>
         //        if (index % 1000 == 0)
         //          segment.get(shuffledUnGroupedKeyValues.head.key)
