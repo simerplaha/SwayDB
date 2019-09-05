@@ -83,7 +83,7 @@
 //          //@formatter:off
 //          current.lower         _ expects (1: Slice[Byte])  returning IO.none
 //          next.stateID          _ expects ()                returning 1
-//          next.lower            _ expects (1: Slice[Byte])  returning IO(Some(put)).toDeferred
+//          next.lower            _ expects (1: Slice[Byte])  returning IO(Some(put)).toDefer
 //          next.hasStateChanged  _ expects 1                 returning false
 //          //@formatter:on
 //        }
@@ -110,7 +110,7 @@
 //          //@formatter:off
 //          current.lower         _ expects (1: Slice[Byte])  returning IO(Some(upperKeyValue))
 //          next.stateID          _ expects ()                returning 1
-//          next.lower            _ expects (1: Slice[Byte])  returning IO(Some(lowerKeyValue)).toDeferred
+//          next.lower            _ expects (1: Slice[Byte])  returning IO(Some(lowerKeyValue)).toDefer
 //          next.hasStateChanged  _ expects 1                 returning false
 //          //@formatter:on
 //        }
@@ -147,7 +147,7 @@
 //          //@formatter:off
 //          current.lower         _ expects (2: Slice[Byte])  returning IO(Some(upperKeyValue))
 //          next.stateID          _ expects ()                returning 1
-//          next.lower            _ expects (2: Slice[Byte])  returning IO(Some(lowerKeyValue)).toDeferred
+//          next.lower            _ expects (2: Slice[Byte])  returning IO(Some(lowerKeyValue)).toDefer
 //          next.hasStateChanged  _ expects 1                 returning false
 //          if(!isUpperExpected) {
 //            next.hasStateChanged  _ expects 1                 returning false
@@ -176,7 +176,7 @@
 //          //@formatter:off
 //          current.lower         _ expects (2: Slice[Byte]) returning IO(Some(upperKeyValue))
 //          next.stateID          _ expects ()                returning 1
-//          next.lower            _ expects (2: Slice[Byte]) returning IO(Some(lowerKeyValue)).toDeferred
+//          next.lower            _ expects (2: Slice[Byte]) returning IO(Some(lowerKeyValue)).toDefer
 //          next.hasStateChanged  _ expects 1                 returning false
 //          //@formatter:on
 //        }

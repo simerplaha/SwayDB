@@ -112,7 +112,7 @@ private[core] object Higher {
               Higher(key, Seek.Current.Stash(segmentId, higher), Seek.Next.Read)
 
           case IO.Right(LevelSeek.None) =>
-            Higher(key, Seek.Current.Stop, Seek.Next.Read)
+            Higher(key, Seek.Current.Stop, nextSeek)
 
           case failure @ IO.Left(_) =>
             failure recoverTo Higher.seeker(key, currentSeek, nextSeek)

@@ -33,15 +33,15 @@ private[swaydb] sealed trait CompressionInternal {
 
 private[swaydb] object CompressionInternal extends LazyLogging {
 
-  def apply(compressionInstance: grouping.Compression): CompressionInternal =
-    compressionInstance match {
+  def apply(compression: grouping.Compression): CompressionInternal =
+    compression match {
       case lz4: grouping.Compression.LZ4 =>
         CompressionInternal(lz4)
 
       case grouping.Compression.Snappy(minCompressionPercentage) =>
         CompressionInternal.Snappy(minCompressionPercentage)
 
-      case grouping.Compression.UnCompressedGroup =>
+      case grouping.Compression.None =>
         CompressionInternal.UnCompressedGroup
     }
 

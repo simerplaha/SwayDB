@@ -39,7 +39,7 @@ import swaydb.data.util.StorageUnits._
 import scala.util.Random
 
 class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = true
+  val testGroupedKeyValues: Boolean = false
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
 }
@@ -233,10 +233,10 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       startId = Some(1),
       sortedIndexConfig =
         SortedIndexBlock.Config(
-          ioStrategy = _ => IOStrategy.SynchronisedIO(cacheOnAccess = false),
-          prefixCompressionResetCount = 10,
+          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+          prefixCompressionResetCount = 0,
           enableAccessPositionIndex = true,
-          normaliseIndex = false,
+          normaliseIndex = true,
           compressions = _ => Seq.empty
         ),
       binarySearchIndexConfig =
@@ -258,11 +258,11 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       hashIndexConfig =
         HashIndexBlock.Config(
           maxProbe = 2,
-          copyIndex = false,
+          copyIndex = true,
           minimumNumberOfKeys = 5,
           minimumNumberOfHits = 5,
-          allocateSpace = _.requiredSpace * 10,
-          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = false),
+          allocateSpace = _.requiredSpace * 2,
+          blockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
           compressions = _ => Seq.empty
         ),
       //      hashIndexConfig = HashIndexBlock.Config.disabled,
@@ -326,10 +326,10 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   def keyValues = if (testGroupedKeyValues) groupedKeyValues else unGroupedKeyValues
 
   val shuffledUnGroupedKeyValues = Random.shuffle(unGroupedKeyValues)
-  val unGroupedKeyValuesZipped = unGroupedKeyValues.zipWithIndex
+//  val unGroupedKeyValuesZipped = unGroupedKeyValues.zipWithIndex
 
   def assertGet(segment: Segment) = {
-    shuffledUnGroupedKeyValues foreach {
+    unGroupedKeyValues foreach {
       keyValue =>
         //        if (index % 1000 == 0)
         //          segment.get(shuffledUnGroupedKeyValues.head.key)

@@ -68,7 +68,7 @@
 //              //@formatter:off
 //              current.lower         _ expects (key: Slice[Byte])  returning IO(Some(upperLevel))
 //              next.stateID          _ expects ()                  returning 1
-//              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).toDeferred
+//              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).toDefer
 //              next.hasStateChanged  _ expects 1                   returning false
 //              //@formatter:on
 //            }
@@ -102,7 +102,7 @@
 //          //@formatter:off
 //          current.lower         _ expects (1: Slice[Byte])    returning IO(Some(upperLevel))
 //          next.stateID          _ expects ()                  returning 1
-//          next.lower            _ expects (1: Slice[Byte])    returning IO(Some(lowerLevel)).toDeferred
+//          next.lower            _ expects (1: Slice[Byte])    returning IO(Some(lowerLevel)).toDefer
 //          next.hasStateChanged  _ expects 1                   returning false
 //          //@formatter:on
 //        }
@@ -129,7 +129,7 @@
 //              //@formatter:off
 //              current.lower         _ expects (key: Slice[Byte])  returning IO(Some(randomRangeKeyValue(0, 10)))
 //              next.stateID          _ expects ()                  returning 1
-//              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).toDeferred
+//              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).toDefer
 //              next.hasStateChanged  _ expects 1                   returning false
 //              //@formatter:on
 //            }
@@ -160,7 +160,7 @@
 //              //@formatter:off
 //              current.lower         _ expects (key: Slice[Byte])  returning IO(Some(randomRangeKeyValue(0, 10, rangeValue = currentRangeValue)))
 //              next.stateID          _ expects ()                  returning 1
-//              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).toDeferred
+//              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).toDefer
 //              next.hasStateChanged  _ expects 1                   returning false
 //              //@formatter:on
 //            }
@@ -192,7 +192,7 @@
 //              //@formatter:off
 //              current.lower         _ expects (key: Slice[Byte])  returning IO(Some(randomRangeKeyValue(1, 10, fromValue = None, rangeValue)))
 //              next.stateID          _ expects ()                  returning 1
-//              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).toDeferred
+//              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).toDefer
 //              next.hasStateChanged  _ expects 1                   returning false
 //              //@formatter:on
 //            }
@@ -220,7 +220,7 @@
 //              //@formatter:off
 //              current.lower         _ expects (key: Slice[Byte])  returning IO(Some(randomRangeKeyValue(1, 10, fromValue = Some(put))))
 //              next.stateID          _ expects ()                  returning 1
-//              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(randomPutKeyValue(eitherOne[Int](0, 1), deadline = None))).toDeferred
+//              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(randomPutKeyValue(eitherOne[Int](0, 1), deadline = None))).toDefer
 //              next.hasStateChanged  _ expects 1                   returning false
 //              //@formatter:on
 //            }

@@ -64,7 +64,7 @@ sealed trait IO[+L, +R] {
   def toEither: Either[L, R]
   def toFuture: Future[R]
   def toTry: scala.util.Try[R]
-  def toDeferred[L2 >: L : IO.ExceptionHandler]: IO.Defer[L2, R] =
+  def toDefer[L2 >: L : IO.ExceptionHandler]: IO.Defer[L2, R] =
     IO.Defer.io[L2, R](io = this)
 }
 

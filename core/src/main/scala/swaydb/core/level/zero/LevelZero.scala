@@ -292,7 +292,7 @@ private[core] case class LevelZero(path: Path,
       case Some(headKey) =>
         lastKey flatMap {
           case Some(lastKey) =>
-            remove(headKey, lastKey).toDeferred
+            remove(headKey, lastKey).toDefer
 
           case None =>
             IO.Defer.done //might have been removed by another thread?
