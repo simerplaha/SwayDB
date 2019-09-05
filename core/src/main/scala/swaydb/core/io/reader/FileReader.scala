@@ -20,35 +20,35 @@
 package swaydb.core.io.reader
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.IO
 import swaydb.core.io.file.DBFile
-import swaydb.data.IO
+import swaydb.data.slice.{Reader, Slice}
 
-private[core] class FileReader(file: DBFile) extends Reader with LazyLogging {
+private[core] class FileReader(val file: DBFile) extends Reader[swaydb.Error.Segment] with LazyLogging {
 
   private var position: Int = 0
 
-  def isLoaded: IO[Boolean] =
+  def isLoaded: IO[swaydb.Error.IO, Boolean] =
     file.isLoaded
 
-  override def size: IO[Long] =
+  override def size: IO[swaydb.Error.IO, Long] =
     file.fileSize
 
-  def moveTo(newPosition: Long): Reader = {
-    position = newPosition.toInt
+  def moveTo(newPosition: Long): FileReader = {
+    position = newPosition.toInt max 0
     this
   }
 
-  def hasMore: IO[Boolean] =
-    file.fileSize.map(position <= _)
+  def hasMore: IO[swaydb.Error.IO, Boolean] =
+    size.map(position < _)
 
-  def hasAtLeast(size: Long): IO[Boolean] =
+  def hasAtLeast(size: Long): IO[swaydb.Error.IO, Boolean] =
     file.fileSize map {
       fileSize =>
         (fileSize - position) >= size
     }
 
-  override def copy(): Reader =
+  override def copy(): FileReader =
     new FileReader(file)
 
   override def getPosition: Int = position
@@ -61,12 +61,21 @@ private[core] class FileReader(file: DBFile) extends Reader with LazyLogging {
     }
 
   override def read(size: Int) =
-    file.read(position, size) map {
-      bytes =>
-        position += size
-        bytes
-    }
+    if (size == 0)
+      IO.emptyBytes
+    else
+      file.read(position, size) map {
+        bytes =>
+          position += size
+          bytes
+      }
 
-  override def readRemaining(): IO[Slice[Byte]] =
+  def path =
+    file.path
+
+  override def readRemaining(): IO[swaydb.Error.Segment, Slice[Byte]] =
     remaining flatMap read
+
+  final override val isFile: Boolean =
+    true
 }

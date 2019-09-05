@@ -20,13 +20,13 @@
 package swaydb.core.map.serializer
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Map.ExceptionHandler
+import swaydb.IO
+import swaydb.core.io.reader.Reader
 import swaydb.core.map.{MapEntry, RecoveryResult}
-import swaydb.core.util.CRC32
+import swaydb.core.util.{CRC32, SkipList}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import scala.collection.JavaConverters._
-import swaydb.core.io.reader.Reader
-import swaydb.data.IO
 
 private[core] object MapCodec extends LazyLogging {
 
@@ -34,47 +34,47 @@ private[core] object MapCodec extends LazyLogging {
   //    crc         +     length
     ByteSizeOf.long + ByteSizeOf.int
 
-  def toMapEntry[K, V](map: java.util.Map[K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]]): Option[MapEntry[K, V]] =
-    map.entrySet().asScala.foldLeft(Option.empty[MapEntry[K, V]]) {
-      case (mapEntry, skipListEntry) =>
-        val nextEntry = MapEntry.Put(skipListEntry.getKey, skipListEntry.getValue)
+  def toMapEntry[K, V](map: SkipList[K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]]): Option[MapEntry[K, V]] =
+    map.asScala.foldLeft(Option.empty[MapEntry[K, V]]) {
+      case (mapEntry, (key, value)) =>
+        val nextEntry = MapEntry.Put(key, value)
         mapEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
     }
 
-  def write[K, V](map: java.util.Map[K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]]): Slice[Byte] =
+  def write[K, V](map: SkipList[K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]]): Slice[Byte] =
     toMapEntry(map).map(write[K, V]) getOrElse Slice.emptyBytes
 
   def write[K, V](mapEntries: MapEntry[K, V]): Slice[Byte] = {
     val totalSize = headerSize + mapEntries.entryBytesSize
 
     val slice = Slice.create[Byte](totalSize.toInt)
-    val (headerSlice, payloadSlice) = slice splitAt headerSize
+    val (headerSlice, payloadSlice) = slice splitInnerArrayAt headerSize
     mapEntries writeTo payloadSlice
 
     headerSlice addLong (CRC32 forBytes payloadSlice)
     headerSlice addInt payloadSlice.size
 
-    val finalSlice = Slice(slice.toArray) //this is because the split does not update the written for slice. This is to ensure that written is updated.
-    assert(finalSlice.isFull, "Slice is not full")
-    finalSlice
+    slice moveWritePosition slice.allocatedSize
+    assert(headerSlice.size + payloadSlice.size == slice.allocatedSize, s"Slice is not full. Actual size: ${headerSlice.size + payloadSlice.size}, allocatedSize: ${slice.allocatedSize}")
+    slice
   }
 
   /**
-    * THIS FUNCTION NEED REFACTORING.
-    */
+   * THIS FUNCTION NEED REFACTORING.
+   */
   def read[K, V](bytes: Slice[Byte],
-                 dropCorruptedTailEntries: Boolean)(implicit mapReader: MapEntryReader[MapEntry[K, V]]): IO[RecoveryResult[Option[MapEntry[K, V]]]] =
-    Reader(bytes).foldLeftIO(RecoveryResult(Option.empty[MapEntry[K, V]], IO.unit)) {
+                 dropCorruptedTailEntries: Boolean)(implicit mapReader: MapEntryReader[MapEntry[K, V]]): IO[swaydb.Error.Map, RecoveryResult[Option[MapEntry[K, V]]]] =
+    Reader[swaydb.Error.Map](bytes).foldLeftIO(RecoveryResult(Option.empty[MapEntry[K, V]], IO.unit)) {
       case (recovery, reader) =>
         reader.hasAtLeast(ByteSizeOf.long) match {
-          case IO.Success(hasMore) =>
+          case IO.Right(hasMore) =>
             if (hasMore) {
               val result =
                 reader.readLong() match {
-                  case IO.Success(crc) =>
+                  case IO.Right(crc) =>
                     // An unfilled MemoryMapped file can have trailing empty bytes which indicates EOF.
                     if (crc == 0)
-                      return IO.Success(recovery)
+                      return IO.Right(recovery)
                     else
                       try {
                         val length = reader.readInt().get
@@ -94,37 +94,37 @@ private[core] object MapCodec extends LazyLogging {
                           val failureMessage =
                             s"File corruption! Failed to match CRC check for entry at position ${reader.getPosition}. CRC expected = $crc actual = $checkCRC. Skip on corruption = $dropCorruptedTailEntries."
                           logger.error(failureMessage)
-                          IO.Failure(new IllegalStateException(failureMessage))
+                          IO.failed(new IllegalStateException(failureMessage))
                         }
                       } catch {
                         case ex: Throwable =>
                           logger.error("File corruption! Unable to read entry at position {}. dropCorruptedTailEntries = {}.", reader.getPosition, dropCorruptedTailEntries, ex)
-                          IO.Failure(new IllegalStateException(s"File corruption! Unable to read entry at position ${reader.getPosition}. dropCorruptedTailEntries = $dropCorruptedTailEntries.", ex))
+                          IO.failed(new IllegalStateException(s"File corruption! Unable to read entry at position ${reader.getPosition}. dropCorruptedTailEntries = $dropCorruptedTailEntries.", ex))
                       }
 
-                  case IO.Failure(failure) =>
-                    IO.Failure(failure)
+                  case IO.Left(failure) =>
+                    IO.Left(failure)
                 }
 
               result match {
-                case IO.Success(value) =>
-                  IO.Success(value)
+                case IO.Right(value) =>
+                  IO.Right(value)
 
-                case IO.Failure(failure) =>
+                case IO.Left(failure) =>
                   if (dropCorruptedTailEntries) {
                     logger.error("Skipping WAL on failure at position {}", reader.getPosition)
-                    return IO.Success(RecoveryResult(recovery.item, IO.Failure(failure)))
+                    return IO.Right(RecoveryResult(recovery.item, IO.Left(failure)))
                   } else {
-                    IO.Failure(failure)
+                    IO.Left(failure)
                   }
               }
             } else {
               //MMAP files can be closed with empty bytes with < 8 bytes.
-              return IO.Success(recovery)
+              return IO.Right(recovery)
             }
 
-          case IO.Failure(error) =>
-            IO.Failure(error)
+          case IO.Left(error) =>
+            IO.Left(error)
         }
     }
 }

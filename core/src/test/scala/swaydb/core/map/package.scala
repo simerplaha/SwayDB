@@ -19,16 +19,18 @@
 
 package swaydb.core
 
+import swaydb.IOValues._
+import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Memory
-import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
-import swaydb.data.slice.Slice
-import scala.util.Random
-import swaydb.data.util.StorageUnits._
-import scala.concurrent.ExecutionContext
 import swaydb.core.function.FunctionStore
+import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
+import swaydb.core.actor.MemorySweeper
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import IOAssert._
-import swaydb.core.queue.FileLimiter
+import swaydb.data.slice.Slice
+import swaydb.data.util.StorageUnits._
+
+import scala.concurrent.ExecutionContext
+import scala.util.Random
 
 package object map {
 
@@ -37,20 +39,19 @@ package object map {
     def reopen(implicit keyOrder: KeyOrder[Slice[Byte]],
                timeOrder: TimeOrder[Slice[Byte]],
                functionStore: FunctionStore,
-               fileLimiter: FileLimiter,
+               fileSweeper: FileSweeper,
                ec: ExecutionContext,
                writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]],
                reader: MapEntryReader[MapEntry[Slice[Byte], Memory.SegmentResponse]],
                skipListMerge: SkipListMerger[Slice[Byte], Memory.SegmentResponse]) = {
-      map.close().assertGet
+      map.close().runRandomIO.right.value
       Map.persistent[Slice[Byte], Memory.SegmentResponse](
         folder = map.path,
         mmap = Random.nextBoolean(),
         flushOnOverflow = Random.nextBoolean(),
         fileSize = 10.mb,
-        initialWriteCount = 0,
         dropCorruptedTailEntries = false
-      ).assertGet.item
+      ).runRandomIO.right.value.item
     }
   }
 }

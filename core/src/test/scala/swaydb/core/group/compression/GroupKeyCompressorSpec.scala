@@ -20,16 +20,14 @@
 package swaydb.core.group.compression
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.{CommonAssertions, IOAssert, TestLimitQueues}
+import swaydb.IOValues._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
 import swaydb.core.data.Transient
+import swaydb.data.MaxKey
+import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.data.order.KeyOrder
-import swaydb.core.IOAssert._
-import swaydb.data.MaxKey
 
 class GroupKeyCompressorSpec extends WordSpec with Matchers {
 
@@ -47,7 +45,7 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       minKey shouldBe last.key
       maxKey shouldBe MaxKey.Fixed(last.key)
 
-      GroupKeyCompressor.decompress(compressedKey).assertGet shouldBe ((last.key, MaxKey.Fixed(last.key)))
+      GroupKeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((last.key, MaxKey.Fixed(last.key)))
     }
   }
 
@@ -64,7 +62,7 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       minKey shouldBe head.key
       maxKey shouldBe MaxKey.Fixed(last.key)
 
-      GroupKeyCompressor.decompress(compressedKey).assertGet shouldBe ((head.key, MaxKey.Fixed(last.key)))
+      GroupKeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((head.key, MaxKey.Fixed(last.key)))
     }
   }
 
@@ -80,7 +78,7 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       minKey shouldBe last.key
       maxKey shouldBe MaxKey.Range(last.fromKey, last.toKey)
 
-      GroupKeyCompressor.decompress(compressedKey).assertGet shouldBe ((last.key, MaxKey.Range(last.fromKey, last.toKey)))
+      GroupKeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((last.key, MaxKey.Range(last.fromKey, last.toKey)))
     }
   }
 
@@ -97,7 +95,7 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       minKey shouldBe head.key
       maxKey shouldBe MaxKey.Range(last.fromKey, last.toKey)
 
-      GroupKeyCompressor.decompress(compressedKey).assertGet shouldBe ((head.key, MaxKey.Range(last.fromKey, last.toKey)))
+      GroupKeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((head.key, MaxKey.Range(last.fromKey, last.toKey)))
     }
   }
 
@@ -113,7 +111,7 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       minKey shouldBe last.key
       maxKey shouldBe last.maxKey
 
-      GroupKeyCompressor.decompress(compressedKey).assertGet shouldBe ((last.key, last.maxKey))
+      GroupKeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((last.key, last.maxKey))
     }
   }
 
@@ -130,8 +128,7 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       minKey shouldBe head.key
       maxKey shouldBe last.maxKey
 
-      GroupKeyCompressor.decompress(compressedKey).assertGet shouldBe ((head.key, last.maxKey))
+      GroupKeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((head.key, last.maxKey))
     }
   }
-
 }

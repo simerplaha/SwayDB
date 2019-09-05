@@ -22,12 +22,15 @@ package swaydb.core.level
 import java.nio.file.Path
 import java.util
 import java.util.concurrent.ConcurrentLinkedDeque
+
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
 import swaydb.core.segment.Segment
 import swaydb.data.config.Dir
+
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
-import swaydb.data.IO
 
 private[core] case class Distribution(path: Path,
                                       distributionRatio: Int,
@@ -97,8 +100,8 @@ private[core] object PathsDistributor {
   }
 
   /**
-    * Given the current size of the Level returns the distributions expected.
-    */
+   * Given the current size of the Level returns the distributions expected.
+   */
   def distribute(size: Int,
                  distributions: Array[Distribution])(implicit order: Ordering[Distribution] = order): Array[Distribution] = {
 
@@ -125,7 +128,6 @@ private[core] object PathsDistributor {
 
     doDistribute(size, 0).sorted
   }
-
 }
 
 private[core] class PathsDistributor(var dirs: Seq[Dir],

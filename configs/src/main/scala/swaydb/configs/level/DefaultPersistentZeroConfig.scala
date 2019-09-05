@@ -43,8 +43,8 @@ object DefaultPersistentZeroConfig {
     }
 
   /**
-    * Default configuration for a single persistent level zero only database.
-    */
+   * Default configuration for a single persistent level zero only database.
+   */
   def apply(dir: Path,
             otherDirs: Seq[Dir],
             mapSize: Int,

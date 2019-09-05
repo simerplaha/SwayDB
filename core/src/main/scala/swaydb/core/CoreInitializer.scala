@@ -22,59 +22,116 @@ package swaydb.core
 import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.WiredActor
+import swaydb.Error.Level.ExceptionHandler
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.BufferCleaner
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.IOEffect._
+import swaydb.core.io.file.{BlockCache, BufferCleaner}
 import swaydb.core.level.compaction._
+import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.data.IO
+import swaydb.core.segment.format.a.block
+import swaydb.core.util.Futures
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
+import swaydb.{Error, IO, Scheduler, WiredActor}
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 private[core] object CoreInitializer extends LazyLogging {
 
-  /**
-    * Closes all the open files and releases the locks on database folders.
-    */
-  private def addShutdownHook(zero: LevelZero,
-                              compactor: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]])(implicit compactionStrategy: CompactionStrategy[CompactorState]): Unit =
-    sys.addShutdownHook {
-      logger.info("Shutting down compaction.")
-      IO(compactor foreach compactionStrategy.terminate) onFailureSideEffect {
-        error =>
-          logger.error("Failed compaction shutdown.", error.exception)
-      }
-
-      logger.info("Closing files.")
-      zero.close onFailureSideEffect {
-        error =>
-          logger.error("Failed to close Levels.", error.exception)
-      }
-
-      logger.info("Releasing database locks.")
-      zero.releaseLocks onFailureSideEffect {
-        error =>
-          logger.error("Failed to release locks.", error.exception)
-      }
+  private def closeLevels(zero: LevelZero) = {
+    logger.info("Closing files.")
+    zero.close onLeftSideEffect {
+      error =>
+        logger.error("Failed to close files.", error.exception)
+    } onRightSideEffect {
+      _ =>
+        logger.info("Files closed!")
     }
 
-  def apply(config: LevelZeroConfig,
-            bufferCleanerEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
+    logger.info("Releasing locks.")
+    zero.releaseLocks onLeftSideEffect {
+      error =>
+        logger.error("Failed to release locks.", error.exception)
+    } onRightSideEffect {
+      _ =>
+        logger.info("Locks released!")
+    }
+  }
+
+  /**
+   * Closes all the open files and releases the locks on database folders.
+   */
+  private def addShutdownHook(zero: LevelZero,
+                              compactor: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compactionStrategy: Compactor[ThrottleState],
+                                                                                              executionContext: ExecutionContext): Unit =
+    sys.addShutdownHook {
+      logger.info("Shutting down compaction.")
+      def compactionShutdown: Future[Unit] =
+        compactor askFlatMap {
+          (impl, state, self) =>
+            impl.terminate(state, self)
+        }
+
+      IO {
+        Await.result(compactionShutdown, 30.seconds)
+      } onLeftSideEffect {
+        error =>
+          logger.error("Failed compaction shutdown.", error.exception)
+      } onRightSideEffect {
+        _ =>
+          logger.info("Compaction stopped!")
+      }
+
+      closeLevels(zero)
+    }
+
+  /**
+   * Closes all the open files and releases the locks on database folders.
+   */
+  private def addShutdownHookNoCompaction(zero: LevelZero)(implicit compactionStrategy: Compactor[ThrottleState]): Unit =
+    sys.addShutdownHook {
+      closeLevels(zero)
+    }
+
+  def apply(config: LevelZeroPersistentConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore): IO[BlockingCore[IO]] = {
-    implicit val fileLimiter = FileLimiter.empty
-    implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
-    if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(bufferCleanerEC)
+                                               functionStore: FunctionStore,
+                                               bufferCleanerEC: Option[ExecutionContext] = None): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
+
+    implicit val compactionStrategy: Compactor[ThrottleState] = ThrottleCompactor
+    if (config.storage.isMMAP && bufferCleanerEC.isEmpty)
+      IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]]("ExecutionContext for ByteBuffer is required for memory-mapped configured databases.") //FIXME - create a LevelZeroPersistentMMAPConfig type to remove this error check.
+    else
+      LevelZero(
+        mapSize = config.mapSize,
+        storage = config.storage,
+        nextLevel = None,
+        throttle = config.throttle,
+        acceleration = config.acceleration
+      ) match {
+        case IO.Right(zero) =>
+          bufferCleanerEC foreach (ec => BufferCleaner.initialiseCleaner(Scheduler()(ec)))
+          addShutdownHookNoCompaction(zero)
+          IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, IO.Defer.unit))
+
+        case IO.Left(error) =>
+          IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
+      }
+  }
+
+  def apply(config: LevelZeroMemoryConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                           timeOrder: TimeOrder[Slice[Byte]],
+                                           functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
+
+    implicit val compactionStrategy: Compactor[ThrottleState] = ThrottleCompactor
 
     LevelZero(
       mapSize = config.mapSize,
@@ -82,10 +139,13 @@ private[core] object CoreInitializer extends LazyLogging {
       nextLevel = None,
       throttle = config.throttle,
       acceleration = config.acceleration
-    ) map {
-      zero =>
-        addShutdownHook(zero, None)
-        BlockingCore[IO](zero, () => IO.unit)
+    ) match {
+      case IO.Right(zero) =>
+        addShutdownHookNoCompaction(zero)
+        IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, IO.Defer.unit))
+
+      case IO.Left(error) =>
+        IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
     }
   }
 
@@ -106,17 +166,14 @@ private[core] object CoreInitializer extends LazyLogging {
       executionContext(config.level1).toList ++
       config.otherLevels.flatMap(executionContext)
 
-  def startCompaction(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext],
-                      copyForwardAllOnStart: Boolean)(implicit compactionStrategy: CompactionStrategy[CompactorState],
-                                                      compactionOrdering: CompactionOrdering): IO[Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]]] =
+  def initialiseCompaction(zero: LevelZero,
+                           executionContexts: List[CompactionExecutionContext])(implicit compactionStrategy: Compactor[ThrottleState]): IO[swaydb.Error.Level, Option[WiredActor[Compactor[ThrottleState], ThrottleState]]] =
     compactionStrategy.createAndListen(
       zero = zero,
-      executionContexts = executionContexts,
-      copyForwardAllOnStart = copyForwardAllOnStart
+      executionContexts = executionContexts
     ) map (Some(_))
 
-  def sendInitialWakeUp(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
+  def sendInitialWakeUp(compactor: WiredActor[Compactor[ThrottleState], ThrottleState]): Unit =
     compactor send {
       (impl, state, self) =>
         impl.wakeUp(
@@ -127,55 +184,74 @@ private[core] object CoreInitializer extends LazyLogging {
     }
 
   def apply(config: SwayDBConfig,
-            maxSegmentsOpen: Int,
-            cacheSize: Long,
-            keyValueQueueDelay: FiniteDuration,
-            segmentCloserDelay: FiniteDuration,
-            fileOpenLimiterEC: ExecutionContext,
-            cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                              timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): IO[BlockingCore[IO]] = {
-    implicit val fileOpenLimiter: FileLimiter =
-      FileLimiter(maxSegmentsOpen, segmentCloserDelay)(fileOpenLimiterEC)
+            fileCache: FileCache.Enable,
+            memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                      timeOrder: TimeOrder[Slice[Byte]],
+                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
 
-    implicit val keyValueLimiter: KeyValueLimiter =
-      KeyValueLimiter(cacheSize, keyValueQueueDelay)(cacheLimiterEC)
+    implicit val fileSweeper: FileSweeper.Enabled =
+      FileSweeper(fileCache)
 
-    implicit val compactionStrategy: CompactionStrategy[CompactorState] =
-      Compactor
+    //TODO - do not initialise for in-memory no grouping databases.
+    implicit val memorySweeper: Option[MemorySweeper.Enabled] =
+      MemorySweeper(memoryCache)
 
-    implicit val compactionOrdering: CompactionOrdering =
-      DefaultCompactionOrdering
+    implicit val blockCache: Option[BlockCache.State] =
+      memorySweeper flatMap BlockCache.init
 
-    BufferCleaner.initialiseCleaner(fileOpenLimiterEC)
+    implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] =
+      memorySweeper flatMap {
+        enabled: MemorySweeper.Enabled =>
+          enabled match {
+            case both: MemorySweeper.Both =>
+              Some(both)
+
+            case value: MemorySweeper.KeyValueSweeper =>
+              Some(value)
+
+            case _: MemorySweeper.BlockSweeper =>
+              None
+          }
+      }
+
+    implicit val compactionStrategy: Compactor[ThrottleState] =
+      ThrottleCompactor
+
+    if (config.hasMMAP)
+      BufferCleaner.initialiseCleaner(Scheduler()(fileSweeper.ec))
 
     def createLevel(id: Long,
                     nextLevel: Option[NextLevel],
-                    config: LevelConfig): IO[NextLevel] =
+                    config: LevelConfig): IO[swaydb.Error.Level, NextLevel] =
       config match {
         case config: MemoryLevelConfig =>
-          implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
+          implicit val compression: Option[GroupByInternal.KeyValues] = config.groupBy map GroupByInternal.apply
           Level(
-            levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
             segmentSize = config.segmentSize,
-            nextLevel = nextLevel,
-            pushForward = config.pushForward,
+            bloomFilterConfig = block.BloomFilterBlock.Config.disabled,
+            hashIndexConfig = block.HashIndexBlock.Config.disabled,
+            binarySearchIndexConfig = block.BinarySearchIndexBlock.Config.disabled,
+            sortedIndexConfig = block.SortedIndexBlock.Config.disabled,
+            valuesConfig = block.ValuesBlock.Config.disabled,
+            segmentConfig = block.SegmentBlock.Config.default,
+            levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
             appendixStorage = AppendixStorage.Memory,
-            maxProbe = 5, // todo make a config
-            bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
-            resetPrefixCompressionEvery = 100,
-            minimumNumberOfKeyForHashIndex = 50,
-            hashIndexCompensation = _ => 0,
-            enableRangeFilterAndIndex = true,
+            nextLevel = nextLevel,
+            pushForward = config.copyForward,
             throttle = config.throttle,
-            compressDuplicateValues = config.compressDuplicateValues,
-            deleteSegmentsEventually = config.deleteSegmentsEventually,
-            applyGroupingOnCopy = config.applyGroupingOnCopy
+            deleteSegmentsEventually = config.deleteSegmentsEventually
           )
 
         case config: PersistentLevelConfig =>
-          implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
+          implicit val compression: Option[GroupByInternal.KeyValues] = config.groupBy map GroupByInternal.apply
           Level(
+            segmentSize = config.segmentSize,
+            bloomFilterConfig = block.BloomFilterBlock.Config(config = config.mightContainKey),
+            hashIndexConfig = block.HashIndexBlock.Config(config = config.hashIndex),
+            binarySearchIndexConfig = block.BinarySearchIndexBlock.Config(config = config.binarySearchIndex),
+            sortedIndexConfig = block.SortedIndexBlock.Config(config.sortedIndex),
+            valuesConfig = block.ValuesBlock.Config(config.values),
+            segmentConfig = block.SegmentBlock.Config(config.segmentIO, config.segmentCompressions),
             levelStorage =
               LevelStorage.Persistent(
                 mmapSegmentsOnWrite = config.mmapSegment.mmapWrite,
@@ -183,31 +259,26 @@ private[core] object CoreInitializer extends LazyLogging {
                 dir = config.dir.resolve(id.toString),
                 otherDirs = config.otherDirs.map(dir => dir.copy(path = dir.path.resolve(id.toString)))
               ),
-            segmentSize = config.segmentSize,
-            maxProbe = 5, //todo make a config
-            nextLevel = nextLevel,
-            resetPrefixCompressionEvery = 100,
-            minimumNumberOfKeyForHashIndex = 50,
-            hashIndexCompensation = _ => 0,
-            enableRangeFilterAndIndex = true,
-            pushForward = config.pushForward,
             appendixStorage = AppendixStorage.Persistent(config.mmapAppendix, config.appendixFlushCheckpointSize),
-            bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
+            nextLevel = nextLevel,
+            pushForward = config.copyForward,
             throttle = config.throttle,
-            compressDuplicateValues = config.compressDuplicateValues,
-            deleteSegmentsEventually = config.deleteSegmentsEventually,
-            applyGroupingOnCopy = config.applyGroupingOnCopy
+            deleteSegmentsEventually = config.deleteSegmentsEventually
           )
 
         case TrashLevelConfig =>
-          IO.Success(TrashLevel)
+          IO.Right(TrashLevel)
       }
 
     def createLevels(levelConfigs: List[LevelConfig],
-                     previousLowerLevel: Option[NextLevel]): IO[BlockingCore[IO]] =
+                     previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, Core[IO.ApiIO]] =
       levelConfigs match {
         case Nil =>
-          createLevel(1, previousLowerLevel, config.level1) flatMap {
+          createLevel(
+            id = 1,
+            nextLevel = previousLowerLevel,
+            config = config.level1
+          ) flatMap {
             level1 =>
               LevelZero(
                 mapSize = config.level0.mapSize,
@@ -217,24 +288,52 @@ private[core] object CoreInitializer extends LazyLogging {
                 acceleration = config.level0.acceleration
               ) flatMap {
                 zero =>
-                  startCompaction(
+                  val contexts = executionContexts(config)
+
+                  initialiseCompaction(
                     zero = zero,
-                    executionContexts = executionContexts(config),
-                    copyForwardAllOnStart = true
-                  ) map {
+                    executionContexts = contexts
+                  ) flatMap {
                     compactor =>
-                      addShutdownHook(
-                        zero = zero,
-                        compactor = compactor
-                      )
+                      compactor map {
+                        compactor =>
 
-                      //trigger initial wakeUp.
-                      compactor foreach sendInitialWakeUp
+                          implicit val shutdownEC =
+                            contexts collectFirst {
+                              case CompactionExecutionContext.Create(executionContext) =>
+                                executionContext
+                            } getOrElse scala.concurrent.ExecutionContext.Implicits.global
 
-                      BlockingCore(
-                        zero = zero,
-                        onClose = () => IO(compactor foreach compactionStrategy.terminate)
-                      )
+                          addShutdownHook(
+                            zero = zero,
+                            compactor = compactor
+                          )
+
+                          //trigger initial wakeUp.
+                          sendInitialWakeUp(compactor)
+
+                          def onClose =
+                            IO.fromFuture[swaydb.Error.Close, Unit] {
+                              compactor askFlatMap {
+                                (impl, state, actor) =>
+                                  impl.terminate(state, actor)
+                              }
+                            }
+
+                          IO {
+                            new Core[IO.ApiIO](
+                              zero = zero,
+                              onClose = onClose
+                            )
+                          }
+                      } getOrElse {
+                        IO {
+                          new Core[IO.ApiIO](
+                            zero = zero,
+                            onClose = IO.Defer.unit
+                          )
+                        }
+                      }
                   }
               }
           }
@@ -252,7 +351,17 @@ private[core] object CoreInitializer extends LazyLogging {
           }
       }
 
-    logger.info(s"Starting ${config.otherLevels.size} configured Levels.")
-    createLevels(config.otherLevels.reverse, None)
+    logger.info(s"Booting ${config.otherLevels.size + 2} Levels.")
+
+    /**
+     * Convert [[swaydb.Error.Level]] to [[swaydb.Error]]
+     */
+    createLevels(config.otherLevels.reverse, None) match {
+      case IO.Right(core) =>
+        IO[swaydb.Error.Boot, Core[IO.ApiIO]](core)
+
+      case IO.Left(error) =>
+        IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
+    }
   }
 }

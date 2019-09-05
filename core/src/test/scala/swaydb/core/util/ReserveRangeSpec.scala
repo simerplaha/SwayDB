@@ -77,7 +77,7 @@ class ReserveRangeSpec extends TestBase {
       val futures =
         (0 to 10) map {
           i =>
-            ReserveRange.reserveOrListen(1, 10, Random.nextBoolean(), "does not register").left.get map {
+            ReserveRange.reserveOrListen(1, 10, Random.nextBoolean(), "does not register").left.get.future map {
               _ =>
                 i
             }

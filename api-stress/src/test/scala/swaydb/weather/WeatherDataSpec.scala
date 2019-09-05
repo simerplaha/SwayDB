@@ -21,37 +21,39 @@ package swaydb.weather
 
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.BeforeAndAfterAll
-import scala.concurrent.Future
-import scala.concurrent.duration._
-import swaydb.configs.level.DefaultGroupingStrategy
+import swaydb.IO
+import swaydb.IOValues._
+import swaydb.configs.level.DefaultGroupBy
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.util.Benchmark
-import swaydb.data.IO
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
+
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class Memory_WeatherDataSpec extends WeatherDataSpec {
   override val db = swaydb.memory.Map[Int, WeatherData]().get
 }
 
-class Memory_WeatherDataGroupingStrategySpec extends WeatherDataSpec {
-  override val db = swaydb.memory.Map[Int, WeatherData](groupingStrategy = Some(DefaultGroupingStrategy())).get
+class Memory_WeatherDataGroupBySpec extends WeatherDataSpec {
+  override val db = swaydb.memory.Map[Int, WeatherData](groupBy = Some(DefaultGroupBy())).get
 }
 
 class Persistent_WeatherDataSpec extends WeatherDataSpec {
-  override val db = swaydb.persistent.Map[Int, WeatherData](randomDir, cacheSize = 10.mb, acceleration = Accelerator.brake()).get
+  override val db = swaydb.persistent.Map[Int, WeatherData](randomDir, memoryCacheSize = 10.mb, acceleration = Accelerator.brake()).get
 }
 
 class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
-  override val db = swaydb.eventually.persistent.Map[Int, WeatherData](randomDir, maxOpenSegments = 10, cacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
+  override val db = swaydb.eventually.persistent.Map[Int, WeatherData](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
 }
 
-sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark with BeforeAndAfterAll {
+sealed trait WeatherDataSpec extends TestBase with LazyLogging with BeforeAndAfterAll {
 
-  val db: swaydb.Map[Int, WeatherData, IO]
+  val db: swaydb.Map[Int, WeatherData, IO.ApiIO]
 
   override protected def afterAll(): Unit = {
     db.close().get
@@ -143,7 +145,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
             key < (startFrom + 100)
         }
 
-    took.materialize.get should have size 100
+    took.materialize.runRandomIO.right.value should have size 100
     took.headOption.get.get._1 shouldBe startFrom
     took.lastOption.get.get._1 shouldBe (startFrom + 99)
   }
@@ -176,7 +178,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
             if (key % 10000 == 0)
               println(s"mapRight: key = $key")
             key
-        }.materialize.get
+        }.materialize.runRandomIO.right.value
 
     val expected = (0 until 100) map (startFrom - _)
     took should have size 100
@@ -191,7 +193,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.materialize.get shouldBe (1 to 100)
+      }.materialize.runRandomIO.right.value shouldBe (1 to 100)
 
     db
       .fromOrAfter(0)
@@ -201,7 +203,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.materialize.get shouldBe (1 to 100)
+      }.materialize.runRandomIO.right.value shouldBe (1 to 100)
   }
 
   def doDrop =
@@ -213,7 +215,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.materialize.get shouldBe (keyValueCount - 100 to keyValueCount)
+      }.materialize.runRandomIO.right.value shouldBe (keyValueCount - 100 to keyValueCount)
 
   def doTakeRight =
     db
@@ -225,7 +227,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.materialize.get shouldBe (keyValueCount - 99 to keyValueCount).reverse
+      }.materialize.runRandomIO.right.value shouldBe (keyValueCount - 99 to keyValueCount).reverse
 
   def doCount =
     db.size.get should be >= keyValueCount
@@ -279,13 +281,13 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
     putRequest runThis 4.times
     batchRandomRequest runThis 2.times
     batchRequest(inBatchesOf = 10000 min keyValueCount)
-//    Future {
-//      while (true) {
-//        println("db.level0Meter.mapsCount:     " + db.level0Meter.mapsCount)
-//        println("db.level1Meter.segmentsCount: " + db.level1Meter.segmentsCount)
-//        sleep(5.seconds)
-//      }
-//    }
+    //    Future {
+    //      while (true) {
+    //        println("db.level0Meter.mapsCount:     " + db.level0Meter.mapsCount)
+    //        println("db.level1Meter.segmentsCount: " + db.level1Meter.segmentsCount)
+    //        sleep(5.seconds)
+    //      }
+    //    }
 
     readRequests runThis 10.times await 10.minutes
     //    doDeleteAll

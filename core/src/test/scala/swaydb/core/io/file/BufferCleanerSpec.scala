@@ -22,15 +22,24 @@ package swaydb.core.io.file
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.{NoSuchFileException, StandardOpenOption}
+
+import swaydb.IO
+import swaydb.core.CommonAssertions.randomIOStrategy
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.actor.FileSweeper
+import swaydb.core.util.BlockCacheFileIDGenerator
+import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues}
+import swaydb.data.config.ActorConfig
+import swaydb.data.slice.Slice
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import swaydb.core.RunThis._
-import swaydb.core.TestBase
-import swaydb.core.TestData._
-import swaydb.core.queue.FileLimiter
-import swaydb.data.IO
 
 class BufferCleanerSpec extends TestBase {
+
+  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
+  implicit val memorySweeper = TestLimitQueues.memorySweeper
 
   override def beforeEach(): Unit = {
     BufferCleaner.initialiseCleaner
@@ -38,14 +47,28 @@ class BufferCleanerSpec extends TestBase {
   }
 
   "clear a MMAP file" in {
-    implicit val limiter: FileLimiter = FileLimiter(0, 1.second)
-    val file: DBFile = DBFile.mmapWriteAndRead(randomBytesSlice(), randomDir, autoClose = true).get
+    implicit val limiter = FileSweeper(0, ActorConfig.Basic(TestExecutionContext.executionContext))
+    val file: DBFile =
+      DBFile.mmapWriteAndRead(
+        path = randomDir,
+        ioStrategy = randomIOStrategy(cacheOnAccess = true),
+        autoClose = true,
+        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+        bytes = Slice(randomBytesSlice())
+      ).get
 
     eventual(10.seconds) {
-      file.file.get.asInstanceOf[MMAPFile].isBufferEmpty shouldBe true
-    }
+      file.file match {
+        case IO.Right(file: MMAPFile) =>
+          file.isBufferEmpty shouldBe true
 
-    sleep(2.second)
+        case IO.Right(file) =>
+          fail(s"Didn't expect file type: ${file.getClass.getSimpleName}")
+
+        case IO.Left(_) =>
+        //success it was null and removed.
+      }
+    }
 
     limiter.terminate()
   }
@@ -53,12 +76,20 @@ class BufferCleanerSpec extends TestBase {
   "it should not fatal terminate" when {
     "concurrently reading a deleted MMAP file" in {
 
-      implicit val limiter: FileLimiter = FileLimiter(0, 1.seconds)
+      implicit val limiter = FileSweeper(0, ActorConfig.Timer(1.second, TestExecutionContext.executionContext))
 
       val files =
         (1 to 20) map {
           _ =>
-            val file = DBFile.mmapWriteAndRead(randomBytesSlice(), randomDir, autoClose = true).get
+            val file =
+              DBFile.mmapWriteAndRead(
+                path = randomDir,
+                ioStrategy = randomIOStrategy(cacheOnAccess = true),
+                autoClose = true,
+                blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+                bytes = Slice(randomBytesSlice())
+              ).get
+
             file.delete().get
             file
         }
@@ -69,7 +100,7 @@ class BufferCleanerSpec extends TestBase {
         file =>
           Future {
             while (true)
-              file.get(0).failed.get.exception shouldBe a[NoSuchFileException]
+              file.get(0).left.get.exception shouldBe a[NoSuchFileException]
           }
       }
 
@@ -85,7 +116,7 @@ class BufferCleanerSpec extends TestBase {
     val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
     val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
     val result = BufferCleaner.clean(BufferCleaner.State(None), buffer, path)
-    result shouldBe a[IO.Success[_]]
+    result shouldBe a[IO.Right[_, _]]
     result.get.cleaner shouldBe defined
   }
 }

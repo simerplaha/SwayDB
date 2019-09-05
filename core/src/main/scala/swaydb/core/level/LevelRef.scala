@@ -21,10 +21,10 @@ package swaydb.core.level
 
 import java.nio.file.Path
 
+import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.Segment
-import swaydb.data.IO
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 
@@ -141,7 +141,7 @@ private[core] trait LevelRef {
 
   def inMemory: Boolean
 
-  def releaseLocks: IO[Unit]
+  def releaseLocks: IO[swaydb.Error.Close, Unit]
 
   def nextLevel: Option[NextLevel]
 
@@ -151,27 +151,27 @@ private[core] trait LevelRef {
 
   def rootPath: Path
 
-  def head: IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def head: IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def last: IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def last: IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def get(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def ceiling(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def ceiling(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def floor(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def floor(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def mightContain(key: Slice[Byte]): IO[Boolean]
+  def mightContainKey(key: Slice[Byte]): IO[swaydb.Error.Level, Boolean]
 
-  def lower(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def lower(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def higher(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
+  def higher(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def headKey: IO.Async[Option[Slice[Byte]]]
+  def headKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]]
 
-  def lastKey: IO.Async[Option[Slice[Byte]]]
+  def lastKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]]
 
-  def bloomFilterKeyValueCount: IO[Int]
+  def bloomFilterKeyValueCount: IO[swaydb.Error.Level, Int]
 
   def isEmpty: Boolean
 
@@ -217,9 +217,9 @@ private[core] trait LevelRef {
 
   def sizeOfSegments: Long
 
-  def close: IO[Unit]
+  def close: IO[swaydb.Error.Close, Unit]
 
-  def closeSegments(): IO[Unit]
+  def closeSegments(): IO[swaydb.Error.Level, Unit]
 
   def meterFor(levelNumber: Int): Option[LevelMeter]
 
@@ -229,9 +229,9 @@ private[core] trait LevelRef {
 
   def isZero: Boolean
 
-  def stateID: Long
+  def stateId: Long
 
   def nextCompactionDelay: FiniteDuration
 
-  def delete: IO[Unit]
+  def delete: IO[swaydb.Error.Delete, Unit]
 }

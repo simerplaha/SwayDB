@@ -22,6 +22,9 @@ package swaydb.data
 import java.io.FileNotFoundException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.Paths
+
+import swaydb.Exception.NullMappedByteBuffer
+
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
@@ -33,20 +36,17 @@ object Base {
       Await.result(f, 10.seconds)
   }
 
-  def busyErrors(busyBoolean: Reserve[Unit] = Reserve()): List[IO.Error.Busy] =
+  def busyErrors(busyBoolean: Reserve[Unit] = Reserve.free(name = "busyError")): List[swaydb.Error.Recoverable] =
     List(
-      IO.Error.OpeningFile(Paths.get("/some/path"), busyBoolean),
-      IO.Error.NoSuchFile(Some(Paths.get("/some/path")), None),
-      IO.Error.FileNotFound(new FileNotFoundException("")),
-      IO.Error.AsynchronousClose(new AsynchronousCloseException()),
-      IO.Error.ClosedChannel(new ClosedChannelException),
-      IO.Error.NullPointer(new NullPointerException("")),
-      IO.Error.DecompressingIndex(busyBoolean),
-      IO.Error.DecompressingValues(busyBoolean),
-      IO.Error.ReadingHeader(busyBoolean),
-      IO.Error.FetchingValue(busyBoolean)
+      swaydb.Error.OpeningFile(Paths.get("/some/path"), busyBoolean),
+      swaydb.Error.NoSuchFile(Some(Paths.get("/some/path")), None),
+      swaydb.Error.FileNotFound(new FileNotFoundException("")),
+      swaydb.Error.AsynchronousClose(new AsynchronousCloseException()),
+      swaydb.Error.ClosedChannel(new ClosedChannelException),
+      swaydb.Error.NullMappedByteBuffer(NullMappedByteBuffer(new NullPointerException, busyBoolean)),
+      swaydb.Error.ReservedResource(busyBoolean)
     )
 
-  def randomBusyException(busyBoolean: Reserve[Unit] = Reserve()): IO.Error.Busy =
+  def randomBusyError(busyBoolean: Reserve[Unit] = Reserve.free(name = "randomBusyError")): swaydb.Error.Recoverable =
     Random.shuffle(busyErrors(busyBoolean)).head
 }

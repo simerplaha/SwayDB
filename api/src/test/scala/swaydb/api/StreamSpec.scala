@@ -20,28 +20,27 @@
 package swaydb.api
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.Tag._
+import swaydb.core.RunThis._
+import swaydb.{IO, Stream, Tag}
+
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Try
-import swaydb.core.RunThis._
-import swaydb.data._
-import swaydb.data.io.Tag
-import swaydb.data.io.Tag._
-import swaydb.Stream
 
 class StreamFutureSpec extends StreamSpec[Future] {
   override def get[A](a: Future[A]): A = Await.result(a, 60.seconds)
 }
 
-class StreamIOSpec extends StreamSpec[IO] {
-  override def get[A](a: IO[A]): A = a.get
+class StreamIOSpec extends StreamSpec[IO.ApiIO] {
+  override def get[A](a: IO.ApiIO[A]): A = a.get
 }
 
 class StreamTrySpec extends StreamSpec[Try] {
   override def get[A](a: Try[A]): A = a.get
 }
 
-sealed abstract class StreamSpec[T[_]](implicit wrap: Tag[T]) extends WordSpec with Matchers {
+sealed abstract class StreamSpec[T[_]](implicit tag: Tag[T]) extends WordSpec with Matchers {
 
   def get[A](a: T[A]): A
 

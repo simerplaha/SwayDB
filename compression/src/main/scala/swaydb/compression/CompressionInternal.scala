@@ -33,15 +33,15 @@ private[swaydb] sealed trait CompressionInternal {
 
 private[swaydb] object CompressionInternal extends LazyLogging {
 
-  def apply(compressionInstance: grouping.Compression): CompressionInternal =
-    compressionInstance match {
+  def apply(compression: grouping.Compression): CompressionInternal =
+    compression match {
       case lz4: grouping.Compression.LZ4 =>
         CompressionInternal(lz4)
 
       case grouping.Compression.Snappy(minCompressionPercentage) =>
         CompressionInternal.Snappy(minCompressionPercentage)
 
-      case grouping.Compression.UnCompressedGroup =>
+      case grouping.Compression.None =>
         CompressionInternal.UnCompressedGroup
     }
 
@@ -67,7 +67,7 @@ private[swaydb] object CompressionInternal extends LazyLogging {
 
   def random(minCompressionPercentage: Double = Double.MinValue) =
     if (Random.nextBoolean())
-      LZ4(CompressorInternal.randomLZ4(minCompressionPercentage = minCompressionPercentage), DecompressorInternal.randomLZ4())
+      LZ4(CompressorInternal.randomLZ4(minCompressionSavingsPercent = minCompressionPercentage), DecompressorInternal.randomLZ4())
     else if (Random.nextBoolean())
       Snappy(minCompressionPercentage = minCompressionPercentage)
     else
@@ -77,9 +77,11 @@ private[swaydb] object CompressionInternal extends LazyLogging {
     if (Random.nextBoolean())
       randomLZ4(minCompressionPercentage = minCompressionPercentage)
     else
-      Snappy(minCompressionPercentage = minCompressionPercentage)
+      randomSnappy(minCompressionPercentage = minCompressionPercentage)
+
+  def randomSnappy(minCompressionPercentage: Double = Double.MinValue) =
+    Snappy(minCompressionPercentage = minCompressionPercentage)
 
   def randomLZ4(minCompressionPercentage: Double = Double.MinValue) =
-    LZ4(CompressorInternal.randomLZ4(minCompressionPercentage = minCompressionPercentage), DecompressorInternal.randomLZ4())
-
+    LZ4(CompressorInternal.randomLZ4(minCompressionSavingsPercent = minCompressionPercentage), DecompressorInternal.randomLZ4())
 }

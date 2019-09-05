@@ -20,17 +20,18 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.EitherValues._
 import org.scalatest.PrivateMethodTester
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.level.compaction.{Compaction, Compactor, CompactorState, DefaultCompactionOrdering}
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -71,28 +72,28 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
-  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
+  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
+  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeper
+  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "refresh" should {
     "remove expired key-values" in {
-      val level = TestLevel(segmentSize = 1.kb)
+      val level = TestLevel(segmentSize = 1.byte)
       val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0))(TestTimer.Empty)
-      level.putKeyValuesTest(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).runRandomIO.right.value
       //dispatch another put request so that existing Segment gets split
-      level.putKeyValuesTest(Slice(keyValues.head)).assertGet
-      level.segmentsCount() should be > 1
+      level.putKeyValuesTest(Slice(keyValues.head)).runRandomIO.right.value
+      level.segmentsCount() should be >= 1
 
       //expire all key-values
-      level.putKeyValuesTest(Slice(Memory.Range(0, Int.MaxValue, None, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).assertGet
+      level.putKeyValuesTest(Slice(Memory.Range(0, Int.MaxValue, None, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).runRandomIO.right.value
       level.segmentFilesInAppendix should be > 1
 
       sleep(3.seconds)
       level.segmentsInLevel() foreach {
         segment =>
-          level.refresh(segment).assertGet
+          level.refresh(segment).right.right.value
       }
 
       level.segmentFilesInAppendix shouldBe 0
@@ -101,16 +102,16 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
     "update createdInLevel" in {
       val level = TestLevel(segmentSize = 1.kb)
 
-      val keyValues = randomPutKeyValues(keyValuesCount, addRandomExpiredPutDeadlines = false)
+      val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
       val maps = TestMap(keyValues.toTransient.toMemoryResponse)
-      level.put(maps).assertGet
+      level.put(maps).right.right.value
 
       val nextLevel = TestLevel()
-      nextLevel.put(level.segmentsInLevel()).assertGet
+      nextLevel.put(level.segmentsInLevel()).right.right.value
 
-      nextLevel.segmentsInLevel() foreach (_.createdInLevel.assertGet shouldBe level.levelNumber)
-      nextLevel.segmentsInLevel() foreach (segment => nextLevel.refresh(segment).assertGet)
-      nextLevel.segmentsInLevel() foreach (_.createdInLevel.assertGet shouldBe nextLevel.levelNumber)
+      nextLevel.segmentsInLevel() foreach (_.createdInLevel.runRandomIO.right.value shouldBe level.levelNumber)
+      nextLevel.segmentsInLevel() foreach (segment => nextLevel.refresh(segment).right.right.value)
+      nextLevel.segmentsInLevel() foreach (_.createdInLevel.runRandomIO.right.value shouldBe nextLevel.levelNumber)
     }
   }
 }

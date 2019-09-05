@@ -20,22 +20,22 @@
 package swaydb.core.merge
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.CommonAssertions._
+import swaydb.IOValues._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.TestTimer
 import swaydb.core.data._
-import swaydb.core.{CommonAssertions, TestTimer, IOAssert}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
 
 class FunctionMerger_Remove_Spec extends WordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
+  implicit def groupBy = randomGroupByOption(randomNextInt(1000))
 
   "Merging a key function into Remove" when {
     "times are in order" should {
@@ -111,7 +111,7 @@ class FunctionMerger_Remove_Spec extends WordSpec with Matchers {
             if (oldKeyValue.deadline.isEmpty)
               oldKeyValue.copy(time = newKeyValue.time)
             else //else the result should be merged because value is unknown from Remove key-value.
-              Memory.PendingApply(key, Slice(oldKeyValue.toFromValue().assertGet, newKeyValue.toFromValue().assertGet))
+              Memory.PendingApply(key, Slice(oldKeyValue.toFromValue().runRandomIO.right.value, newKeyValue.toFromValue().runRandomIO.right.value))
 
           assertMerge(
             newKeyValue = newKeyValue,

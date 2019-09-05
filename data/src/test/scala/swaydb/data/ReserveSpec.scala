@@ -20,7 +20,7 @@
 package swaydb.data
 
 import org.scalatest.{FlatSpec, Matchers}
-import Base._
+import swaydb.data.Base._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -29,22 +29,23 @@ import scala.util.Random
 class ReserveSpec extends FlatSpec with Matchers {
 
   it should "complete futures if not already busy" in {
-    val busy = Reserve()
+    val busy = Reserve.free[Unit](name = "test")
+    busy.isBusy shouldBe false
     val futures =
       (1 to 100) map {
         i =>
-          Reserve.future(busy) map { _ => i }
+          Reserve.promise(busy).future map { _ => i }
       }
 
     Future.sequence(futures).await should contain theSameElementsInOrderAs (1 to 100)
   }
 
   it should "complete futures when freed" in {
-    val busy = Reserve(info = ())
+    val busy = Reserve.busy(info = (), name = "test")
     val futures =
       (1 to 10000) map {
         i =>
-          Reserve.future(busy) map { _ => i }
+          Reserve.promise(busy).future map { _ => i }
       }
 
     Future {

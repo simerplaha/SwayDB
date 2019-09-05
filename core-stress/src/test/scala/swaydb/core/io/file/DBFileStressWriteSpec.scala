@@ -19,19 +19,22 @@
 
 package swaydb.core.io.file
 
-import scala.concurrent.Future
-import scala.concurrent.duration._
-import swaydb.core.IOAssert._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.TestLimitQueues.fileOpenLimiter
-import swaydb.core.util.Benchmark
+import swaydb.core.TestLimitQueues.fileSweeper
+import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
+import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.util.StorageUnits._
 
-class DBFileStressWriteSpec extends TestBase with Benchmark {
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
-  implicit val limiter = fileOpenLimiter
+class DBFileStressWriteSpec extends TestBase {
+
+  implicit val limiter = fileSweeper
+  implicit val memorySweeper = TestLimitQueues.memorySweeper
+  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   "DBFile" should {
     //use a larger size (200000) to test on larger data-set.
@@ -40,57 +43,57 @@ class DBFileStressWriteSpec extends TestBase with Benchmark {
     "write key values to a ChannelFile" in {
       val path = randomFilePath
 
-      val file = DBFile.channelWrite(path, autoClose = false).assertGet
-      benchmark("write 1 million key values to a ChannelFile") {
+      val file = DBFile.channelWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+      Benchmark("write 1 million key values to a ChannelFile") {
         bytes foreach {
           byteChunk =>
-            file.append(byteChunk).assertGet
+            file.append(byteChunk).runRandomIO.right.value
         }
       }
-      file.close.assertGet
+      file.close.runRandomIO.right.value
     }
 
     "write key values to a ChannelFile concurrently" in {
       val path = randomFilePath
 
-      val file = DBFile.channelWrite(path, autoClose = false).assertGet
-      benchmark("write 1 million key values to a ChannelFile concurrently") {
+      val file = DBFile.channelWrite(path, randomIOAccess(true), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+      Benchmark("write 1 million key values to a ChannelFile concurrently") {
         Future.sequence {
           bytes map {
             chunk =>
-              Future(file.append(chunk).assertGet)
+              Future(file.append(chunk).runRandomIO.right.value)
           }
         } await 20.seconds
       }
-      file.close.assertGet
+      file.close.runRandomIO.right.value
     }
 
     "write key values to a MMAPlFile" in {
       val path = randomFilePath
 
-      val file = DBFile.mmapInit(path, bytes.size * 50, autoClose = false).assertGet
-      benchmark("write 1 million key values to a MMAPlFile") {
+      val file = DBFile.mmapInit(path, randomIOAccess(true), bytes.size * 50, autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+      Benchmark("write 1 million key values to a MMAPlFile") {
         bytes foreach {
           chunk =>
-            file.append(chunk).assertGet
+            file.append(chunk).runRandomIO.right.value
         }
       }
-      file.close.assertGet
+      file.close.runRandomIO.right.value
     }
 
     "write key values to a MMAPlFile concurrently" in {
       val path = randomFilePath
 
-      val file = DBFile.mmapInit(path, bytes.size * 50, autoClose = false).assertGet
-      benchmark("write 1 million key values to a MMAPlFile concurrently") {
+      val file = DBFile.mmapInit(path, randomIOAccess(true), bytes.size * 50, autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+      Benchmark("write 1 million key values to a MMAPlFile concurrently") {
         Future.sequence {
           bytes map {
             chunk =>
-              Future(file.append(chunk).assertGet)
+              Future(file.append(chunk).runRandomIO.right.value)
           }
         } await 20.seconds
       }
-      file.close.assertGet
+      file.close.runRandomIO.right.value
     }
   }
 }

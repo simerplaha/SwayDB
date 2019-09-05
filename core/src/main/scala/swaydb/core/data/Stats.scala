@@ -19,58 +19,42 @@
 
 package swaydb.core.data
 
-import swaydb.core.segment.format.a.{SegmentHashIndex, SegmentWriter}
-import swaydb.core.util.{BloomFilter, Bytes}
+import swaydb.core.segment.format.a.block._
+import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
 
-import scala.collection.{SortedSet, immutable}
 import scala.concurrent.duration.Deadline
 
 private[core] object Stats {
 
-  def createRangeCommonPrefixesCount(int: Int) =
-    immutable.SortedSet[Int](int)(Ordering.Int.reverse)
-
-  val emptyRangeCommonPrefixesCount =
-    immutable.SortedSet.empty[Int](Ordering.Int.reverse)
-
-  def apply(indexEntry: Slice[Byte],
-            value: Option[Slice[Byte]],
-            falsePositiveRate: Double,
+  def apply(keySize: Int,
+            indexEntry: Slice[Byte],
+            value: Slice[Slice[Byte]],
             isRemoveRange: Boolean,
             isRange: Boolean,
             isGroup: Boolean,
             isPut: Boolean,
-            position: Int,
-            hashIndexItemsCount: Int, //position accounting for Groups.
-            numberOfRanges: Int,
-            bloomFiltersItemCount: Int,
-            usePreviousHashIndexOffset: Boolean,
-            minimumNumberOfKeysForHashIndex: Int,
-            hashIndexCompensation: Int => Int,
-            rangeCommonPrefixesCount: SortedSet[Int],
-            enableRangeFilterAndIndex: Boolean,
-            previous: Option[KeyValue.WriteOnly],
+            isPrefixCompressed: Boolean,
+            previousKeyValueAccessIndexPosition: Option[Int],
+            thisKeyValueAccessIndexPosition: Int,
+            thisKeyValuesNumberOfRanges: Int,
+            thisKeyValuesUniqueKeys: Int,
+            sortedIndex: SortedIndexBlock.Config,
+            bloomFilter: BloomFilterBlock.Config,
+            hashIndex: HashIndexBlock.Config,
+            binarySearch: BinarySearchIndexBlock.Config,
+            values: ValuesBlock.Config,
+            previousStats: Option[Stats],
             deadline: Option[Deadline]): Stats = {
 
     val valueLength =
-      value.map(_.size).getOrElse(0)
+      value.foldLeft(0)(_ + _.size)
 
     val hasRemoveRange =
-      previous.exists(_.stats.hasRemoveRange) || isRemoveRange
+      previousStats.exists(_.segmentHasRemoveRange) || isRemoveRange
 
-    val hasPut =
-      previous.exists(_.stats.hasPut) || isPut
-
-    val hasRange =
-      previous.exists(_.stats.hasRange) || isRemoveRange || isRange
-
-    val previousStats =
-      previous.map(_.stats)
-
-    val totalNumberOfRanges =
-      previousStats.map(_.totalNumberOfRanges + numberOfRanges) getOrElse numberOfRanges
+    val chainPosition =
+      previousStats.map(_.chainPosition + 1) getOrElse 1
 
     val groupsCount =
       if (isGroup)
@@ -78,155 +62,247 @@ private[core] object Stats {
       else
         previousStats.map(_.groupsCount) getOrElse 0
 
-    val thisKeyValuesIndexSizeWithoutFooter =
-      Bytes.sizeOf(indexEntry.size) + indexEntry.size
+    val hasPrefixCompressed =
+      isPrefixCompressed || previousStats.exists(_.hasPrefixCompression)
 
-    val thisKeyValueIndexOffset =
+    val thisKeyValuesSortedIndexSize =
+      indexEntry.size
+
+    val segmentMaxSortedIndexEntrySize =
+      previousStats.map(_.segmentMaxSortedIndexEntrySize max thisKeyValuesSortedIndexSize) getOrElse thisKeyValuesSortedIndexSize
+
+    val segmentMinSortedIndexEntrySize =
+      previousStats.map(_.segmentMinSortedIndexEntrySize min thisKeyValuesSortedIndexSize) getOrElse thisKeyValuesSortedIndexSize
+
+    val thisKeyValuesSortedIndexSizeWithoutFooter =
+      SortedIndexBlock.headerSize(false) +
+        thisKeyValuesSortedIndexSize
+
+    val thisKeyValuesRealIndexOffset =
       previousStats map {
         previous =>
-          previous.thisKeyValueIndexOffset + previous.thisKeyValuesIndexSizeWithoutFooter
+          previous.thisKeyValueRealIndexOffset + previous.thisKeyValuesSortedIndexSize
       } getOrElse 0
 
     //starts from 0. Do not need the actual index offset for space efficiency. The actual indexOffset can be adjust during read.
-    val thisKeyValuesHashIndexesSortedIndexOffset =
-      if (usePreviousHashIndexOffset)
-        previousStats.map(_.thisKeyValuesHashIndexesSortedIndexOffset) getOrElse thisKeyValueIndexOffset
+    val thisKeyValuesAccessIndexOffset =
+      if (isPrefixCompressed)
+        previousStats.map(_.thisKeyValuesAccessIndexOffset) getOrElse thisKeyValuesRealIndexOffset
       else
-        thisKeyValueIndexOffset
+        thisKeyValuesRealIndexOffset
+
+    val thisKeyValuesSegmentValueSize =
+      if (valueLength == 0)
+        0
+      else
+        ValuesBlock.headerSize(false) +
+          valueLength
+
+    val thisKeyValuesSegmentSortedIndexAndValueSize =
+      thisKeyValuesSegmentValueSize +
+        thisKeyValuesSortedIndexSizeWithoutFooter
+
+    val segmentHasRange =
+      hasRemoveRange || previousStats.exists(_.segmentHasRange) || isRange
+
+    val segmentHasPut =
+      previousStats.exists(_.segmentHasPut) || isPut
+
+    val segmentTotalNumberOfRanges =
+      previousStats.map(_.segmentTotalNumberOfRanges + thisKeyValuesNumberOfRanges) getOrElse thisKeyValuesNumberOfRanges
 
     //Items to add to BloomFilters is different to the position because a Group can contain
     //multiple inner key-values but the Group's key itself does not get added to the BloomFilter.
-    val totalBloomFiltersItemsCount =
-    previousStats.map(_.totalBloomFiltersItemsCount + bloomFiltersItemCount) getOrElse bloomFiltersItemCount
+    val segmentUniqueKeysCount =
+    previousStats.map(_.segmentUniqueKeysCount + thisKeyValuesUniqueKeys) getOrElse thisKeyValuesUniqueKeys
 
-    val thisKeyValuesSegmentSizeWithoutFooterAndHashIndex: Int =
-      thisKeyValuesIndexSizeWithoutFooter +
-        valueLength
+    //unique keys that do not have prefix compressed keys.
+    val segmentUniqueAccessIndexKeyCounts =
+      previousStats map {
+        previous =>
+          if (previous.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessIndexOffset)
+            previousKeyValueAccessIndexPosition.get
+          else
+            previousKeyValueAccessIndexPosition.get + 1
+      } getOrElse 1
 
     val segmentHashIndexSize =
-      SegmentHashIndex.optimalBytesRequired(
-        hashIndexItemsCount = hashIndexItemsCount,
-        largestSortedIndexOffset = thisKeyValuesHashIndexesSortedIndexOffset,
-        minimumNumberOfKeyValues = minimumNumberOfKeysForHashIndex,
-        compensate = hashIndexCompensation
-      )
+      if (segmentUniqueKeysCount < hashIndex.minimumNumberOfKeys)
+        0
+      else
+        HashIndexBlock.optimalBytesRequired( //just a rough calculation. This does not need to be accurate but needs to be lower than the actual
+          keyCounts = segmentUniqueKeysCount,
+          minimumNumberOfKeys = hashIndex.minimumNumberOfKeys,
+          writeAbleLargestValueSize =
+            if (hashIndex.copyIndex)
+              thisKeyValuesSortedIndexSize //this does not compute the size of crc long but it's ok since it's just an estimate.
+            else
+              1, //some low number for calculating approximate hashIndexSize does not have to be accurate.
+          allocateSpace = hashIndex.allocateSpace,
+          copyIndex = hashIndex.copyIndex,
+          hasCompression = false
+        )
+
+    val segmentBinarySearchIndexSize =
+      if (binarySearch.enabled && !sortedIndex.normaliseIndex)
+        previousStats flatMap {
+          previousStats =>
+            if (previousStats.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessIndexOffset)
+              Some(previousStats.segmentBinarySearchIndexSize)
+            else
+              None
+        } getOrElse {
+          BinarySearchIndexBlock.optimalBytesRequired(
+            largestValue = thisKeyValuesAccessIndexOffset,
+            hasCompression = false,
+            minimNumberOfKeysForBinarySearchIndex = binarySearch.minimumNumberOfKeys,
+            //binary search indexes are only created for non-prefix compressed or reset point keys.
+            //size calculation should only account for those entries because duplicates are not allowed.
+            valuesCount = segmentUniqueAccessIndexKeyCounts
+          )
+        }
+      else
+        0
+
+    val segmentValuesSizeWithoutHeader: Int =
+      previousStats.map(_.segmentValuesSizeWithoutHeader).getOrElse(0) +
+        valueLength
+
+    val segmentValuesSize: Int =
+      if (segmentValuesSizeWithoutHeader != 0)
+        ValuesBlock.headerSize(false) +
+          segmentValuesSizeWithoutHeader
+      else if (valueLength != 0)
+        ValuesBlock.headerSize(false) +
+          segmentValuesSizeWithoutHeader
+      else
+        0
+
+    val segmentSortedIndexSizeWithoutHeader =
+      previousStats.map(_.segmentSortedIndexSizeWithoutHeader).getOrElse(0) +
+        thisKeyValuesSortedIndexSize
+
+    val segmentSortedIndexSize =
+      SortedIndexBlock.headerSize(false) +
+        segmentSortedIndexSizeWithoutHeader
+
+    val segmentValueAndSortedIndexEntrySize =
+      if (segmentValuesSizeWithoutHeader == 0)
+        segmentSortedIndexSizeWithoutHeader +
+          SortedIndexBlock.headerSize(false)
+      else
+        segmentValuesSizeWithoutHeader +
+          segmentSortedIndexSizeWithoutHeader +
+          SortedIndexBlock.headerSize(false) +
+          ValuesBlock.headerSize(false)
+
+    val segmentBloomFilterSize =
+      if (bloomFilter.falsePositiveRate <= 0.0 || hasRemoveRange || segmentUniqueKeysCount < bloomFilter.minimumNumberOfKeys)
+        0
+      else
+        BloomFilterBlock.optimalSize(
+          numberOfKeys = segmentUniqueKeysCount,
+          falsePositiveRate = bloomFilter.falsePositiveRate,
+          hasCompression = false,
+          minimumNumberOfKeys = bloomFilter.minimumNumberOfKeys,
+          updateMaxProbe = _ => 1
+        )
 
     val segmentSizeWithoutFooter: Int =
-      previousStats.map(previous => previous.segmentSizeWithoutFooter - previous.segmentHashIndexSize).getOrElse(0) +
-        thisKeyValuesSegmentSizeWithoutFooterAndHashIndex +
-        segmentHashIndexSize
+      segmentValuesSize +
+        segmentSortedIndexSize +
+        segmentHashIndexSize +
+        segmentBinarySearchIndexSize +
+        segmentBloomFilterSize
 
     //calculates the size of Segment after the last Group. This is used for size based grouping/compression.
     val segmentSizeWithoutFooterForNextGroup: Int =
-      if (previous.exists(_.isGroup)) //if previous is a group, restart the size calculation
-        thisKeyValuesSegmentSizeWithoutFooterAndHashIndex + segmentHashIndexSize
+      if (previousStats.exists(_.isGroup)) //if previous is a group, restart the size calculation
+        segmentSizeWithoutFooter
       else //if previous is not a group, add previous key-values set segment size since the last group to this key-values Segment size.
         previousStats.map(_.segmentSizeWithoutFooterForNextGroup).getOrElse(0) +
-          thisKeyValuesSegmentSizeWithoutFooterAndHashIndex +
-          segmentHashIndexSize
-
-    val segmentValuesSize: Int =
-      previousStats.map(_.segmentValuesSize).getOrElse(0) + valueLength
-
-    val segmentIndexSize =
-      previousStats.map(_.segmentIndexSize).getOrElse(0) + thisKeyValuesIndexSizeWithoutFooter
-
-    val optimalRangeFilterSize = BloomFilter.optimalRangeFilterByteSize(enableRangeFilterAndIndex, totalNumberOfRanges, rangeCommonPrefixesCount)
-    val optimalBloomFilterSize = BloomFilter.optimalSegmentBloomFilterByteSize(totalBloomFiltersItemsCount, falsePositiveRate)
-
-    val footerHeaderSize =
-      Bytes.sizeOf(SegmentWriter.formatId) + //1 byte for format
-        1 + //created in level
-        1 + //isGrouped
-        1 + //hasRange
-        1 + //hasPut
-        ByteSizeOf.long + //for CRC. This cannot be unsignedLong because the size of the crc long bytes is not fixed.
-        Bytes.sizeOf(segmentValuesSize max 0) + //index offset.
-        Bytes.sizeOf((segmentValuesSize + segmentIndexSize) max 1) + //hash index offset. HashIndex offset will never be 0 since that's reserved for index is values are none..
-        Bytes.sizeOf(position) + //key-values count
-        Bytes.sizeOf(totalBloomFiltersItemsCount) +
-        ByteSizeOf.int + //Size of optimalBloomFilterSize. Cannot be an unsigned int because optimalBloomFilterSize can be larger than actual.
-        optimalBloomFilterSize +
-        Bytes.sizeOf(optimalRangeFilterSize) +
-        optimalRangeFilterSize
+          segmentSizeWithoutFooter
 
     val segmentSize: Int =
       segmentSizeWithoutFooter +
-        footerHeaderSize +
-        ByteSizeOf.int //to store footer offset.
+        SegmentFooterBlock.optimalBytesRequired
 
     val segmentUncompressedKeysSize: Int =
-      previousStats.map(_.segmentUncompressedKeysSize).getOrElse(0) + indexEntry.size
+      previousStats.map(_.segmentUncompressedKeysSize).getOrElse(0) + keySize
 
     new Stats(
       valueLength = valueLength,
       segmentSize = segmentSize,
-      position = position,
-      hashIndexItemsCount = hashIndexItemsCount,
+      chainPosition = chainPosition,
+      segmentValueAndSortedIndexEntrySize = segmentValueAndSortedIndexEntrySize,
+      segmentSortedIndexSizeWithoutHeader = segmentSortedIndexSizeWithoutHeader,
       groupsCount = groupsCount,
-      totalBloomFiltersItemsCount = totalBloomFiltersItemsCount,
+      segmentUniqueKeysCount = segmentUniqueKeysCount,
       segmentValuesSize = segmentValuesSize,
-      segmentIndexSize = segmentIndexSize,
+      segmentValuesSizeWithoutHeader = segmentValuesSizeWithoutHeader,
+      segmentSortedIndexSize = segmentSortedIndexSize,
       segmentUncompressedKeysSize = segmentUncompressedKeysSize,
       segmentSizeWithoutFooter = segmentSizeWithoutFooter,
       segmentSizeWithoutFooterForNextGroup = segmentSizeWithoutFooterForNextGroup,
-      keySize = indexEntry.size,
-      thisKeyValuesSegmentSizeWithoutFooterAndHashIndex = thisKeyValuesSegmentSizeWithoutFooterAndHashIndex,
-      thisKeyValuesIndexSizeWithoutFooter = thisKeyValuesIndexSizeWithoutFooter,
-      thisKeyValuesHashIndexesSortedIndexOffset = thisKeyValuesHashIndexesSortedIndexOffset,
-      thisKeyValueIndexOffset = thisKeyValueIndexOffset,
+      segmentUniqueAccessIndexKeyCounts = segmentUniqueAccessIndexKeyCounts,
+      thisKeyValuesSegmentKeyAndValueSize = thisKeyValuesSegmentSortedIndexAndValueSize,
+      thisKeyValuesSortedIndexSize = thisKeyValuesSortedIndexSize,
+      thisKeyValuesAccessIndexOffset = thisKeyValuesAccessIndexOffset,
+      thisKeyValueRealIndexOffset = thisKeyValuesRealIndexOffset,
+      segmentMaxSortedIndexEntrySize = segmentMaxSortedIndexEntrySize,
+      segmentMinSortedIndexEntrySize = segmentMinSortedIndexEntrySize,
       segmentHashIndexSize = segmentHashIndexSize,
-      bloomFilterSize = optimalBloomFilterSize,
-      rangeFilterSize = optimalRangeFilterSize,
-      footerHeaderSize = footerHeaderSize,
-      totalNumberOfRanges = totalNumberOfRanges,
-      hasRemoveRange = hasRemoveRange,
-      hasRange = hasRange,
-      hasPut = hasPut,
-      isGroup = isGroup,
-      rangeCommonPrefixesCount = rangeCommonPrefixesCount
+      segmentBloomFilterSize = segmentBloomFilterSize,
+      segmentBinarySearchIndexSize = segmentBinarySearchIndexSize,
+      segmentTotalNumberOfRanges = segmentTotalNumberOfRanges,
+      segmentHasRemoveRange = hasRemoveRange,
+      segmentHasRange = segmentHasRange,
+      segmentHasPut = segmentHasPut,
+      hasPrefixCompression = hasPrefixCompressed,
+      isGroup = isGroup
     )
   }
 }
 
 private[core] case class Stats(valueLength: Int,
                                segmentSize: Int,
-                               position: Int,
-                               hashIndexItemsCount: Int,
+                               chainPosition: Int,
+                               segmentValueAndSortedIndexEntrySize: Int,
+                               segmentSortedIndexSizeWithoutHeader: Int,
                                groupsCount: Int,
-                               totalBloomFiltersItemsCount: Int,
+                               segmentUniqueKeysCount: Int,
                                segmentValuesSize: Int,
-                               segmentIndexSize: Int,
+                               segmentValuesSizeWithoutHeader: Int,
+                               segmentSortedIndexSize: Int,
                                segmentUncompressedKeysSize: Int,
                                segmentSizeWithoutFooter: Int,
                                segmentSizeWithoutFooterForNextGroup: Int,
-                               keySize: Int,
-                               thisKeyValuesSegmentSizeWithoutFooterAndHashIndex: Int,
-                               thisKeyValuesIndexSizeWithoutFooter: Int,
-                               thisKeyValuesHashIndexesSortedIndexOffset: Int,
-                               thisKeyValueIndexOffset: Int,
+                               segmentUniqueAccessIndexKeyCounts: Int,
+                               thisKeyValuesSegmentKeyAndValueSize: Int,
+                               thisKeyValuesSortedIndexSize: Int,
+                               thisKeyValuesAccessIndexOffset: Int,
+                               //do not access this from outside, used in stats only.
+                               private[Stats] val thisKeyValueRealIndexOffset: Int,
                                segmentHashIndexSize: Int,
-                               bloomFilterSize: Int,
-                               rangeFilterSize: Int,
-                               footerHeaderSize: Int,
-                               totalNumberOfRanges: Int,
-                               hasRemoveRange: Boolean,
-                               hasRange: Boolean,
-                               hasPut: Boolean,
-                               isGroup: Boolean,
-                               rangeCommonPrefixesCount: SortedSet[Int]) {
-  def isNoneValue: Boolean =
-    valueLength == 0
-
-  def hasGroup: Boolean =
+                               segmentBloomFilterSize: Int,
+                               segmentBinarySearchIndexSize: Int,
+                               segmentTotalNumberOfRanges: Int,
+                               segmentHasRemoveRange: Boolean,
+                               segmentHasRange: Boolean,
+                               segmentHasPut: Boolean,
+                               segmentMaxSortedIndexEntrySize: Int,
+                               segmentMinSortedIndexEntrySize: Int,
+                               hasPrefixCompression: Boolean,
+                               isGroup: Boolean) {
+  def segmentHasGroup: Boolean =
     groupsCount > 0
 
   def memorySegmentSize =
     segmentUncompressedKeysSize + segmentValuesSize
 
   def thisKeyValueMemorySize =
-    keySize + valueLength
+    thisKeyValuesSortedIndexSize + valueLength
 
-  def sortedIndexSize =
-    segmentSizeWithoutFooter - segmentHashIndexSize - segmentValuesSize
+  def hasSameIndexSizes(): Boolean =
+    segmentMinSortedIndexEntrySize == segmentMaxSortedIndexEntrySize
 }

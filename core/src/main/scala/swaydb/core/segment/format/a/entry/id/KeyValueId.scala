@@ -4,9 +4,9 @@
  * This file is a part of SwayDB.
  *
  * SwayDB is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * SwayDB is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -40,8 +40,8 @@ sealed trait KeyValueId {
     keyValueId >= minKey_Uncompressed_KeyValueId && keyValueId <= maxKey_Uncompressed_KeyValueId
 
   /**
-    * Given persisted entryID convert it to
-    */
+   * Given persisted entryID convert it to [[BaseEntryId]].
+   */
   def adjustKeyValueIdToBaseId(keyValueId: Int): Int =
     if (isKeyValueId_CompressedKey(keyValueId))
       if (minKey_Compressed_KeyValueId == KeyValueId.Put.minKey_Compressed_KeyValueId)
@@ -57,8 +57,8 @@ sealed trait KeyValueId {
   //instead of wrapping in IO for performance throw exception as this is not expected to occur.
   //if it does then it will be caught higher up in SegmentReader before responding the user.
 
-  def adjustBaseIdToKeyValueIdKey(baseId: Int, keyCompressed: Boolean) =
-    if (keyCompressed)
+  def adjustBaseIdToKeyValueIdKey(baseId: Int, isKeyCompressed: Boolean) =
+    if (isKeyCompressed)
       adjustBaseIdToKeyValueIdKey_Compressed(baseId)
     else
       adjustBaseIdToKeyValueIdKey_UnCompressed(baseId)
@@ -102,9 +102,9 @@ object KeyValueId {
   }
 
   /**
-    * Reserve 1 & 2 bytes ids for Put and Group. All the following key-values
-    * disappear in last Level but [[Put]] and [[Group]] are kept unless deleted.
-    */
+   * Reserve 1 & 2 bytes ids for Put and Group. All the following key-values
+   * disappear in last Level but [[Put]] and [[Group]] are kept unless deleted.
+   */
   object Range extends KeyValueId {
     override val minKey_Compressed_KeyValueId: Int = 16384
     override val maxKey_Compressed_KeyValueId: Int = minKey_Compressed_KeyValueId + reservedKeysPerGroup

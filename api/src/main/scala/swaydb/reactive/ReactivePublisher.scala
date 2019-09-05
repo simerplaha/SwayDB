@@ -22,6 +22,6 @@ package swaydb.reactive
 import org.reactivestreams.{Publisher, Subscriber}
 
 //make private as they are unimplemented
-private[swaydb] class ReactivePublisher[T] extends Publisher[T]{
+private[swaydb] class ReactivePublisher[T] extends Publisher[T] {
   override def subscribe(s: Subscriber[_ >: T]): Unit = ???
 }

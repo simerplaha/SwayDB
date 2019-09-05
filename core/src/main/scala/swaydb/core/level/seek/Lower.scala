@@ -1,0 +1,401 @@
+/*
+ * Copyright (c) 2019 Simer Plaha (@simerplaha)
+ *
+ * This file is a part of SwayDB.
+ *
+ * SwayDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * SwayDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package swaydb.core.level.seek
+
+import swaydb.Error.Level.ExceptionHandler
+import swaydb.IO
+import swaydb.core.data.KeyValue.ReadOnly
+import swaydb.core.data.{KeyValue, Memory, Value}
+import swaydb.core.function.FunctionStore
+import swaydb.core.level.LevelSeek
+import swaydb.core.merge._
+import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice
+
+import scala.annotation.tailrec
+
+private[core] object Lower {
+
+  /**
+   * Check and returns the FromValue if it's a valid lower key-value for the input key.
+   */
+  def lowerFromValue(key: Slice[Byte],
+                     fromKey: Slice[Byte],
+                     fromValue: Option[Value.FromValue])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Memory.Put] = {
+    import keyOrder._
+    fromValue flatMap {
+      fromValue =>
+        if (fromKey < key)
+          fromValue.toMemory(fromKey) match {
+            case put: Memory.Put if put.hasTimeLeft() =>
+              Some(put)
+
+            case _ =>
+              None
+          }
+        else
+          None
+    }
+  }
+
+  def seek(key: Slice[Byte],
+           currentSeek: Seek.Current,
+           nextSeek: Seek.Next,
+           keyOrder: KeyOrder[Slice[Byte]],
+           timeOrder: TimeOrder[Slice[Byte]],
+           currentWalker: CurrentWalker,
+           nextWalker: NextWalker,
+           functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+    Lower(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
+
+  def seeker(key: Slice[Byte],
+             currentSeek: Seek.Current,
+             nextSeek: Seek.Next)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  timeOrder: TimeOrder[Slice[Byte]],
+                                  currentWalker: CurrentWalker,
+                                  nextWalker: NextWalker,
+                                  functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+    Lower(key, currentSeek, nextSeek)
+
+  /**
+   * May be use trampolining instead and split the matches into their own functions to reduce
+   * repeated boilerplate code & if does not effect read performance or adds to GC workload.
+   *
+   * This and [[Higher]] share a lot of the same code for certain [[Seek]] steps. Again trampolining
+   * could help share this code and removing duplicates but only if there is no performance penalty.
+   */
+  @tailrec
+  def apply(key: Slice[Byte],
+            currentSeek: Seek.Current,
+            nextSeek: Seek.Next)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                 timeOrder: TimeOrder[Slice[Byte]],
+                                 currentWalker: CurrentWalker,
+                                 nextWalker: NextWalker,
+                                 functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
+    import keyOrder._
+    currentSeek match {
+      case Seek.Current.Read(previousSegmentId) =>
+        currentWalker.lower(key) match {
+          case IO.Right(LevelSeek.Some(segmentId, lower)) =>
+            if (previousSegmentId == segmentId)
+              Lower(key, Seek.Current.Stash(segmentId, lower), nextSeek)
+            else
+              Lower(key, Seek.Current.Stash(segmentId, lower), Seek.Next.Read)
+
+          case IO.Right(LevelSeek.None) =>
+            Lower(key, Seek.Current.Stop, nextSeek)
+
+          case failure @ IO.Left(_) =>
+            failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+        }
+
+      case currentStash @ Seek.Current.Stash(segmentId, current) =>
+        nextSeek match {
+          case Seek.Next.Read =>
+            //decide if it's necessary to read the next Level or not.
+            current match {
+              //   19   (input key - exclusive)
+              //10 - 20 (lower range from current Level)
+              case currentRange: ReadOnly.Range if key < currentRange.toKey =>
+                currentRange.fetchRangeValue match {
+                  case IO.Right(rangeValue) =>
+                    //if the current range is active fetch the lowest from next Level and return lowest from both Levels.
+                    if (Value.hasTimeLeft(rangeValue))
+                      nextWalker.lower(key).toIO match {
+                        case IO.Right(Some(next)) =>
+                          Lower(key, currentStash, Seek.Next.Stash(next))
+
+                        case IO.Right(None) =>
+                          Lower(key, currentStash, Seek.Next.Stop)
+
+                        case failure @ IO.Left(_) =>
+                          failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+                      }
+
+                    //if the rangeValue is expired then check if fromValue is valid put else fetch from lower and merge.
+                    else
+                      currentRange.fetchFromValue match {
+                        case IO.Right(maybeFromValue) =>
+                          //check if from value is a put before reading the next Level.
+                          lowerFromValue(key, currentRange.fromKey, maybeFromValue) match {
+                            case some @ Some(_) => //yes it is!
+                              IO.Defer(some)
+
+                            //if not, then fetch lower of key in next Level.
+                            case None =>
+                              nextWalker.lower(key).toIO match {
+                                case IO.Right(Some(next)) =>
+                                  Lower(key, currentStash, Seek.Next.Stash(next))
+
+                                case IO.Right(None) =>
+                                  Lower(key, currentStash, Seek.Next.Stop)
+
+                                case failure @ IO.Left(_) =>
+                                  failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+                              }
+                          }
+
+                        case failure @ IO.Left(_) =>
+                          failure recoverTo Lower.seeker(key, Seek.Current.Read(segmentId), nextSeek)
+                      }
+
+                  case failure @ IO.Left(_) =>
+                    failure recoverTo Lower.seeker(key, Seek.Current.Read(segmentId), nextSeek)
+                }
+
+              //     20 (input key - inclusive)
+              //10 - 20 (lower range from current Level)
+              case currentRange: ReadOnly.Range if key equiv currentRange.toKey =>
+                //lower level could also contain a toKey but toKey is exclusive to merge is not required but lower level is read is required.
+                nextWalker.lower(key).toIO match {
+                  case IO.Right(Some(nextFromKey)) =>
+                    Lower(key, currentStash, Seek.Next.Stash(nextFromKey))
+
+                  case IO.Right(None) =>
+                    Lower(key, currentStash, Seek.Next.Stop)
+
+                  case failure @ IO.Left(_) =>
+                    failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+                }
+
+              //             22 (input key)
+              //    10 - 20     (lower range)
+              case _: KeyValue.ReadOnly.Range =>
+                nextWalker.lower(key).toIO match {
+                  case IO.Right(Some(next)) =>
+                    Lower(key, currentStash, Seek.Next.Stash(next))
+
+                  case IO.Right(None) =>
+                    Lower(key, currentStash, Seek.Next.Stop)
+
+                  case failure @ IO.Left(_) =>
+                    failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+                }
+
+              case _: ReadOnly.Fixed =>
+                nextWalker.lower(key).toIO match {
+                  case IO.Right(Some(next)) =>
+                    Lower(key, currentStash, Seek.Next.Stash(next))
+
+                  case IO.Right(None) =>
+                    Lower(key, currentStash, Seek.Next.Stop)
+
+                  case failure @ IO.Left(_) =>
+                    failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+                }
+            }
+
+          case nextStash @ Seek.Next.Stash(next) =>
+            (current, next) match {
+
+              /** **********************************************
+               * ******************         *******************
+               * ******************  Fixed  *******************
+               * ******************         *******************
+               * **********************************************/
+
+              case (current: KeyValue.ReadOnly.Fixed, next: KeyValue.ReadOnly.Fixed) =>
+                //    2
+                //    2
+                if (next.key equiv current.key)
+                  FixedMerger(current, next) match {
+                    case IO.Right(merged) =>
+                      merged match {
+                        case put: ReadOnly.Put if put.hasTimeLeft() =>
+                          IO.Defer(Some(put))
+
+                        case _ =>
+                          //if it doesn't result in an unexpired put move forward.
+                          Lower(current.key, Seek.Current.Read(segmentId), Seek.Next.Read)
+                      }
+                    case failure @ IO.Left(_) =>
+                      failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+                  }
+                //      3  or  5 (current)
+                //    1          (next)
+                else if (current.key > next.key)
+                  current match {
+                    case put: ReadOnly.Put if put.hasTimeLeft() =>
+                      IO.Defer(Some(put))
+
+                    //if it doesn't result in an unexpired put move forward.
+                    case _ =>
+                      Lower(current.key, Seek.Current.Read(segmentId), nextStash)
+                  }
+                //0
+                //    2
+                else //else lower from next is the lowest.
+                  IO.Defer(Some(next))
+
+              /** *********************************************
+               * *********************************************
+               * ******************       ********************
+               * ****************** RANGE ********************
+               * ******************       ********************
+               * *********************************************
+               * *********************************************/
+              case (current: KeyValue.ReadOnly.Range, next: KeyValue.ReadOnly.Fixed) =>
+                //             22 (input)
+                //10 - 20         (current)
+                //     20 - 21    (next)
+                if (next.key >= current.toKey)
+                  IO.Defer(Some(next))
+
+                //  11 ->   20 (input keys)
+                //10   -    20 (lower range)
+                //  11 -> 19   (lower possible keys from next)
+                else if (next.key > current.fromKey)
+                  current.fetchRangeValue match {
+                    case IO.Right(rangeValue) =>
+                      FixedMerger(rangeValue.toMemory(next.key), next) match {
+                        case IO.Right(mergedCurrent) =>
+                          mergedCurrent match {
+                            case put: ReadOnly.Put if put.hasTimeLeft() =>
+                              IO.Defer(Some(put))
+
+                            case _ =>
+                              //do need to check if range is expired because if it was then
+                              //next would not have been read from next level in the first place.
+                              Lower(next.key, currentStash, Seek.Next.Read)
+                          }
+
+                        case failure @ IO.Left(_) =>
+                          failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+                      }
+
+                    case failure @ IO.Left(_) =>
+                      failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+                  }
+
+                //  11 ->   20 (input keys)
+                //10   -    20 (lower range)
+                //10
+                else if (next.key equiv current.fromKey) //if the lower in next Level falls within the range.
+                  current.fetchFromOrElseRangeValue match {
+                    //if fromValue is set check if it qualifies as the next highest orElse return lower of fromKey
+                    case IO.Right(rangeValue) =>
+                      lowerFromValue(key, current.fromKey, Some(rangeValue)) match {
+                        case lowerPut @ Some(_) =>
+                          IO.Defer(lowerPut)
+
+                        //fromValue is not put, check if merging is required else return next.
+                        case None =>
+                          FixedMerger(rangeValue.toMemory(next.key), next) match {
+                            case IO.Right(mergedValue) =>
+                              mergedValue match { //return applied value with next key-value as the current value.
+                                case put: Memory.Put if put.hasTimeLeft() =>
+                                  IO.Defer(Some(put))
+
+                                case _ =>
+                                  Lower(next.key, Seek.Current.Read(segmentId), Seek.Next.Read)
+                              }
+
+                            case failure @ IO.Left(_) =>
+                              failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+                          }
+                      }
+
+                    case failure @ IO.Left(_) =>
+                      failure recoverTo Lower.seeker(key, Seek.Current.Read(segmentId), nextSeek)
+                  }
+
+                //       11 ->   20 (input keys)
+                //     10   -    20 (lower range)
+                //0->9
+                else //else if the lower in next Level does not fall within the range.
+                  current.fetchFromValue match {
+                    //if fromValue is set check if it qualifies as the next highest orElse return lower of fromKey
+                    case IO.Right(fromValue) =>
+                      lowerFromValue(key, current.fromKey, fromValue) match {
+                        case somePut @ Some(_) =>
+                          IO.Defer(somePut)
+
+                        case None =>
+                          Lower(current.fromKey, Seek.Current.Read(segmentId), nextStash)
+                      }
+
+                    case failure @ IO.Left(_) =>
+                      failure recoverTo Lower.seeker(key, Seek.Current.Read(segmentId), nextSeek)
+                  }
+            }
+
+          case Seek.Next.Stop =>
+            current match {
+              case current: KeyValue.ReadOnly.Put =>
+                if (current.hasTimeLeft())
+                  IO.Defer(Some(current))
+                else
+                  Lower(current.key, Seek.Current.Read(segmentId), nextSeek)
+
+              case _: KeyValue.ReadOnly.Remove =>
+                Lower(current.key, Seek.Current.Read(segmentId), nextSeek)
+
+              case _: KeyValue.ReadOnly.Update =>
+                Lower(current.key, Seek.Current.Read(segmentId), nextSeek)
+
+              case _: KeyValue.ReadOnly.Function =>
+                Lower(current.key, Seek.Current.Read(segmentId), nextSeek)
+
+              case _: KeyValue.ReadOnly.PendingApply =>
+                Lower(current.key, Seek.Current.Read(segmentId), nextSeek)
+
+              case current: KeyValue.ReadOnly.Range =>
+                current.fetchFromValue match {
+                  case IO.Right(fromValue) =>
+                    lowerFromValue(key, current.fromKey, fromValue) match {
+                      case somePut @ Some(_) =>
+                        IO.Defer(somePut)
+
+                      case None =>
+                        Lower(current.fromKey, Seek.Current.Read(segmentId), nextSeek)
+                    }
+
+                  case failure @ IO.Left(_) =>
+                    failure recoverTo Lower.seeker(key, Seek.Current.Read(segmentId), nextSeek)
+                }
+            }
+        }
+
+      case Seek.Current.Stop =>
+        nextSeek match {
+          case Seek.Next.Read =>
+            nextWalker.lower(key).toIO match {
+              case IO.Right(Some(next)) =>
+                Lower(key, currentSeek, Seek.Next.Stash(next))
+
+              case IO.Right(None) =>
+                Lower(key, currentSeek, Seek.Next.Stop)
+
+              case failure @ IO.Left(_) =>
+                failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+            }
+
+          case Seek.Next.Stash(next) =>
+            if (next.hasTimeLeft())
+              IO.Defer(Some(next))
+            else
+              Lower(next.key, currentSeek, Seek.Next.Read)
+
+          case Seek.Next.Stop =>
+            IO.Defer.none
+        }
+    }
+  }
+}

@@ -19,20 +19,28 @@
 
 package swaydb.core.util
 
-trait Benchmark {
 
-  def benchmark[R](message: String)(benchmarkThis: => R): R = {
-    println(s"Started benchmark: $message.")
+object Benchmark {
+  private def run[R](message: String, inlinePrint: Boolean = false)(benchmarkThis: => R): (R, Double) = {
+    if (inlinePrint)
+      print(s"Benchmarking: $message: ")
+    else
+      println(s"Benchmarking: $message")
     val startTime = System.nanoTime()
     val result = benchmarkThis
     val endTime = System.nanoTime()
-    println(((endTime - startTime) / 1000000000.0: Double) + " seconds.")
+    val timeTaken = ((endTime - startTime) / 1000000000.0: Double)
+    if (inlinePrint)
+      print(timeTaken + " seconds.")
+    else
+      println(timeTaken + " seconds.")
     println
-    result
+    (result, timeTaken)
   }
-}
 
-object Benchmark extends Benchmark {
-  def apply[R](message: String)(benchmarkThis: => R): R =
-    benchmark[R](message)(benchmarkThis)
+  def apply[R](message: String, inlinePrint: Boolean = false)(benchmarkThis: => R): R =
+    run(message, inlinePrint)(benchmarkThis)._1
+
+  def time(message: String, inlinePrint: Boolean = false)(benchmarkThis: => Unit): Double =
+    run(message, inlinePrint)(benchmarkThis)._2
 }

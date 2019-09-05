@@ -19,61 +19,62 @@
 
 package swaydb.core.segment.merge
 
-import scala.collection.mutable.ListBuffer
 import swaydb.core.CommonAssertions._
+import swaydb.IOValues._
+import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.IOAssert._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.util.Benchmark
-import swaydb.core.{TestBase, TestData, TestTimer}
+import swaydb.core.group.compression.GroupByInternal
+import swaydb.core.segment.format.a.block._
+import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.RunThis._
+
+import scala.collection.mutable.ListBuffer
 
 class SegmentMergeSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val testTimer: TestTimer = TestTimer.Empty
-  implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(10)
+  implicit def groupBy = randomGroupByOption(randomNextInt(1000) max 1)
 
   val keyValueCount = 100
 
   import keyOrder._
 
-  "completeMerge" should {
-
+  "transfer - tested via close for coverage" should {
     "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for persistent key-values" in {
-      runThisParallel(10.times) {
+      def doTest(inMemory: Boolean) = {
         implicit val testTimer: TestTimer = TestTimer.Empty
 
-        val segment1 = ListBuffer.empty[KeyValue.WriteOnly]
-        segment1.+=(Transient.put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true))
-        segment1.+=(Transient.put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 70.bytes
+        val segment1 = SegmentBuffer(None)
+        segment1 add Transient.put(key = 1, value = Some(1), previous = segment1.lastOption)
+        segment1 add Transient.put(key = 2, value = Some(2), previous = segment1.lastOption) //total segmentSize is 144.bytes
 
-        val smallerLastSegment = ListBuffer.empty[KeyValue.WriteOnly]
-        smallerLastSegment.+=(Transient.put(key = 1, value = 1, previous = None, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 60.bytes
+        val smallerLastSegment = SegmentBuffer(groupBy)
+        smallerLastSegment add Transient.put(key = 3, value = Some(3), previous = None) //total segmentSize is 105.bytes
 
-        val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](segment1, smallerLastSegment)
+        val segments = ListBuffer[SegmentBuffer](segment1, smallerLastSegment)
 
-        //minSegmentSize is 70.bytes but lastSegment size is 60.bytes. Expected result should move lastSegment's KeyValues to previous segment
+        //minSegmentSize is 144.bytes but lastSegment size is 105.bytes. Expected result should move lastSegment's KeyValues to previous segment
         val newSegments =
-          SegmentMerger.completeMerge(
-            segments = segments,
-            minSegmentSize = 70.bytes,
-            maxProbe = TestData.maxProbe,
-            forMemory = false,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation
-          ).assertGet
+          SegmentMerger.close(
+            buffers = segments,
+            minSegmentSize = if (inMemory) smallerLastSegment.last.stats.memorySegmentSize + 1 else smallerLastSegment.last.stats.segmentSize + 1,
+            forMemory = inMemory,
+            valuesConfig = ValuesBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            createdInLevel = randomIntMax()
+          ).runRandomIO.right.value
+
         newSegments.size shouldBe 1
 
         val newSegmentsUnzipped = unzipGroups(newSegments.head)
@@ -81,80 +82,57 @@ class SegmentMergeSpec extends TestBase {
         newSegmentsUnzipped(1).key equiv segment1.last.key
         newSegmentsUnzipped(2).key equiv smallerLastSegment.head.key
       }
-    }
 
-    "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for memory key-values" in {
-      runThisParallel(10.times) {
-        val segment1 = ListBuffer.empty[KeyValue.WriteOnly]
-        segment1.+=(Transient.put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true))
-        segment1.+=(Transient.put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 21.bytes
-
-        val smallerLastSegment = ListBuffer.empty[KeyValue.WriteOnly]
-        smallerLastSegment.+=(Transient.put(key = 1, value = 1, previous = None, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 12.bytes
-
-        val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](segment1, smallerLastSegment)
-
-        //minSegmentSize is 21.bytes but lastSegment size is 12.bytes. Expected result should move lastSegment's KeyValues to previous segment
-        val newSegments =
-          SegmentMerger.completeMerge(
-            segments = segments,
-            minSegmentSize = 21.bytes,
-            maxProbe = TestData.maxProbe,
-            forMemory = true,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation
-          ).assertGet
-
-        newSegments.size shouldBe 1
-
-        val newSegmentsUnzipped = unzipGroups(newSegments.head)
-        newSegmentsUnzipped(0).key equiv segment1.head.key
-        newSegmentsUnzipped(1).key equiv segment1.last.key
-        newSegmentsUnzipped(2).key equiv smallerLastSegment.head.key
+      runThis(50.times) {
+        doTest(inMemory = false)
+        doTest(inMemory = true)
       }
     }
 
     "make no change if there is only one segment" in {
       runThisParallel(100.times) {
-        val segment: ListBuffer[KeyValue.WriteOnly] = ListBuffer(randomizedKeyValues(randomIntMax(5) max 1, addRandomGroups = false).toList: _*)
+        val buffer = SegmentBuffer(None)
+        (1 to 100) foreach {
+          i =>
+            buffer add randomFixedTransientKeyValue(i)
+        }
 
-        SegmentMerger.completeMerge(
-          segments = ListBuffer(segment),
-          minSegmentSize = randomIntMax(segment.last.stats.segmentSize),
-          maxProbe = TestData.maxProbe,
-          forMemory = false,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation
-        ).assertGet.size shouldBe 1
-
-        SegmentMerger.completeMerge(
-          segments = ListBuffer(segment),
-          minSegmentSize = randomIntMax(segment.last.stats.memorySegmentSize),
-          maxProbe = TestData.maxProbe,
+        SegmentMerger.close(
+          buffers = ListBuffer(buffer),
+          minSegmentSize = buffer.last.stats.memorySegmentSize * 2,
           forMemory = true,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation
-        ).assertGet.size shouldBe 1
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          createdInLevel = randomIntMax()
+        ).runRandomIO.right.value.size shouldBe 1
+
+        SegmentMerger.close(
+          buffers = ListBuffer(buffer),
+          minSegmentSize = buffer.last.stats.segmentSize * 2,
+          forMemory = false,
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          createdInLevel = randomIntMax()
+        ).runRandomIO.right.value.size shouldBe 1
       }
     }
+  }
 
+  "close" should {
     "split KeyValues into equal chunks" in {
 
-      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
       val oldKeyValues: Slice[Memory] = Slice(Memory.put(1, 1), Memory.put(2, 2), Memory.put(3, 3), Memory.put(4, 4))
       val newKeyValues: Slice[Memory] = Slice(Memory.put(1, 22), Memory.put(2, 22), Memory.put(3, 22), Memory.put(4, 22))
 
-      def assert(segments: Array[Iterable[KeyValue.WriteOnly]]) = {
+      def assert(segments: Array[Iterable[Transient]]) = {
         segments.length shouldBe 4
 
         segments(0).size shouldBe 1
@@ -175,16 +153,16 @@ class SegmentMergeSpec extends TestBase {
           newKeyValues = newKeyValues,
           oldKeyValues = oldKeyValues,
           minSegmentSize = 1.byte,
-          maxProbe = TestData.maxProbe,
           isLastLevel = false,
           forInMemory = false,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true
-        ).assertGet.toArray
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
+        ).runRandomIO.right.value.toArray
       )
 
       assert(
@@ -192,16 +170,16 @@ class SegmentMergeSpec extends TestBase {
           newKeyValues = newKeyValues,
           oldKeyValues = oldKeyValues,
           minSegmentSize = 1.byte,
-          maxProbe = TestData.maxProbe,
           isLastLevel = false,
           forInMemory = true,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true
-        ).assertGet.toArray
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
+        ).runRandomIO.right.value.toArray
       )
     }
   }
@@ -209,32 +187,32 @@ class SegmentMergeSpec extends TestBase {
   "split" should {
     "split key-values" in {
 
-      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
       val keyValues: Slice[Memory] = Slice(Memory.put(1, 1), Memory.remove(2), Memory.put(3, 3), Memory.put(4, 4), Memory.Range(5, 10, Some(Value.remove(None)), Value.update(5)))
 
-      val split1 =
+      val splits =
         SegmentMerger.split(
           keyValues = keyValues,
           minSegmentSize = 1.byte,
           isLastLevel = false,
           forInMemory = false,
-          maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true
-        ).assertGet
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
+        ).runRandomIO.right.value
 
-      split1 should have size 5
-      split1 should contain only
-        (ListBuffer(Transient.put(1, 1)),
-          ListBuffer(Transient.remove(2)),
-          ListBuffer(Transient.put(3, 3)),
-          ListBuffer(Transient.put(4, 4)), //51.byte Segment size
-          ListBuffer(Transient.Range.create[FromValue, RangeValue](5, 10, Some(Value.remove(None)), Value.update(5))) //56.bytes (segment size)
+      splits should have size 5
+      splits.map(_.toMemory) should contain only
+        (Slice(Memory.put(1, 1)),
+          Slice(Memory.remove(2)),
+          Slice(Memory.put(3, 3)),
+          Slice(Memory.put(4, 4)), //51.byte Segment size
+          Slice(Memory.Range(5, 10, Some(Value.remove(None)), Value.update(5))) //56.bytes (segment size)
         )
 
       val persistentSplit =
@@ -243,14 +221,14 @@ class SegmentMergeSpec extends TestBase {
           minSegmentSize = keyValues.toTransient.last.stats.segmentSize,
           isLastLevel = false,
           forInMemory = false,
-          maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true
-        ).assertGet
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
+        ).runRandomIO.right.value
 
       persistentSplit should have size 1
 
@@ -271,14 +249,14 @@ class SegmentMergeSpec extends TestBase {
           minSegmentSize = keyValues.toTransient.last.stats.memorySegmentSize,
           isLastLevel = false,
           forInMemory = true,
-          maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true
-        ).assertGet
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
+        ).runRandomIO.right.value
 
       memorySplit should have size 1
 
@@ -289,56 +267,55 @@ class SegmentMergeSpec extends TestBase {
   "Merging fixed into Group" should {
     "return the same result as merging a list of Fixed key-values into Fixed" in {
       runThisParallel(10.times) {
-        val fixedKeyValues = randomKeyValues(count = keyValueCount, addRandomRemoves = true, startId = Some(1))
-        val oldKeyValues = randomKeyValues(count = keyValueCount, startId = Some(fixedKeyValues.head.key.readInt()), addRandomRemoves = true, addRandomRanges = true)
+        val fixedKeyValues = randomKeyValues(count = keyValueCount, addRemoves = true, startId = Some(1))
+        val oldKeyValues = randomKeyValues(count = keyValueCount, startId = Some(fixedKeyValues.head.key.readInt()), addRemoves = true, addRanges = true)
 
         val mergeResultWithoutGroup =
           SegmentMerger.merge(
             newKeyValues = fixedKeyValues,
             oldKeyValues = oldKeyValues,
             minSegmentSize = 100.mb,
-            maxProbe = TestData.maxProbe,
             isLastLevel = false,
             forInMemory = false,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
-            compressDuplicateValues = true
-          ).assertGet
+            valuesConfig = ValuesBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            segmentIO = SegmentIO.random,
+            createdInLevel = randomIntMax()
+          ).runRandomIO.right.value
 
         mergeResultWithoutGroup should have size 1
 
         val group =
           Transient.Group(
             keyValues = oldKeyValues,
-            indexCompression = randomCompression(),
-            valueCompression = randomCompression(),
-            falsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
             previous = None,
-            maxProbe = TestData.maxProbe
-          ).assertGet.toMemory
+            valuesConfig = ValuesBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            groupConfig = SegmentBlock.Config.random,
+            createdInLevel = randomIntMax()
+          ).runRandomIO.right.value.toMemory
 
         val mergeResultWithGroup =
           SegmentMerger.merge(
             newKeyValues = fixedKeyValues,
             oldKeyValues = Slice(group),
             minSegmentSize = 100.mb,
-            maxProbe = TestData.maxProbe,
             isLastLevel = false,
             forInMemory = false,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
-            compressDuplicateValues = true
-          ).assertGet
+            valuesConfig = ValuesBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            segmentIO = SegmentIO.random,
+            createdInLevel = randomIntMax()
+          ).runRandomIO.right.value
 
         mergeResultWithGroup should have size 1
 

@@ -20,53 +20,89 @@
 package swaydb.core.segment.format.a.entry
 
 import org.scalatest.WordSpec
-import swaydb.core.{CommonAssertions, TestData, TestTimer}
-import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.data.slice.Slice
-import swaydb.data.order.KeyOrder
-import swaydb.core.TestData._
+import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
+import swaydb.core.TestData._
+import swaydb.core.TestTimer
+import swaydb.core.segment.format.a.entry.reader.EntryReader
+import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
 
 class GroupEntryReaderWriterSpec extends WordSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
   "write and read single Group entry" in {
-    runThisParallel(1000.times) {
+    runThis(100.times, log = true) {
       implicit val testTimer = TestTimer.random
-      val entry = randomGroup()
+      val entry = randomGroup(keyValues = randomizedKeyValues(count = 10, addPut = true))
       //      println("write: " + entry)
 
-      val read = EntryReader.read(Reader(entry.indexEntryBytes), entry.valueEntryBytes.map(Reader(_)).getOrElse(Reader.empty), 0, 0, 0, None).assertGet
+      val read =
+        EntryReader.read(
+          indexEntry = entry.indexEntryBytes.dropIntUnsigned().right.value,
+          mightBeCompressed = entry.stats.hasPrefixCompression,
+          valueCache = Some(buildSingleValueCache(entry.valueEntryBytes.flatten.toSlice)),
+          indexOffset = 0,
+          nextIndexOffset = 0,
+          nextIndexSize = 0,
+          isNormalised = false,
+          hasAccessPositionIndex = entry.sortedIndexConfig.enableAccessPositionIndex,
+          previous = None
+        ).runRandomIO.right.value
+
       //      println("read:  " + read)
       read shouldBe entry
     }
   }
 
   "write and read Group entries with other entries" in {
-    runThisParallel(1000.times) {
+    runThis(1000.times, log = true) {
       implicit val testTimer = TestTimer.random
 
-      val keyValues = randomizedKeyValues(count = 1, addRandomGroups = false)
+      val keyValues = randomizedKeyValues(count = 1, addPut = true)
       val previous = keyValues.head
 
-      val next = randomGroup().updateStats(TestData.falsePositiveRate, previous = Some(previous))
+      val next = randomGroup(randomizedKeyValues(count = 100, addPut = true), previous = Some(previous))
 
       //      println("previous: " + previous)
       //      println("next: " + next)
 
       val valueBytes = Slice((previous.valueEntryBytes ++ next.valueEntryBytes).flatten.toArray)
 
-      val previousRead = EntryReader.read(Reader(previous.indexEntryBytes), Reader(valueBytes), 0, 0, 0, None).assertGet
+      val previousRead =
+        EntryReader.read(
+          indexEntry = previous.indexEntryBytes.dropIntUnsigned().right.value,
+          mightBeCompressed = false,
+          valueCache = Some(buildSingleValueCache(valueBytes)),
+          indexOffset = 0,
+          nextIndexOffset = 0,
+          nextIndexSize = 0,
+          isNormalised = false,
+          hasAccessPositionIndex = previous.sortedIndexConfig.enableAccessPositionIndex,
+          previous = None
+        ).runRandomIO.right.value
+
+      //      val previousRead = EntryReader.read(Reader(previous.indexEntryBytes), Reader(valueBytes), 0, 0, 0, None).runIO
       previousRead shouldBe previous
 
-      val read = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).assertGet
+      //      val read = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).runIO
+      val nextRead =
+        EntryReader.read(
+          indexEntry = next.indexEntryBytes.dropIntUnsigned().right.value,
+          mightBeCompressed = next.stats.hasPrefixCompression,
+          valueCache = Some(buildSingleValueCache(valueBytes)),
+          indexOffset = 0,
+          nextIndexOffset = 0,
+          nextIndexSize = 0,
+          isNormalised = false,
+          hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
+          previous = Some(previousRead)
+        ).runRandomIO.right.value
       //      println("read:  " + read)
       //      println
-      read shouldBe next
+      nextRead shouldBe next
     }
   }
 }

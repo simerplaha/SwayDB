@@ -19,32 +19,12 @@
 
 package swaydb
 
-private[swaydb] trait Streamer[A, T[_]] {
-
-  def map[B](f: A => B): Stream[B, T]
-
-  def flatMap[B](f: A => Stream[B, T]): Stream[B, T]
-
-  def drop(count: Int): Stream[A, T]
-
-  def dropWhile(f: A => Boolean): Stream[A, T]
-
-  def take(count: Int): Stream[A, T]
-
-  def takeWhile(f: A => Boolean): Stream[A, T]
-
-  def foreach[U](f: A => U): Stream[Unit, T]
-
-  def filter(f: A => Boolean): Stream[A, T]
-
-  def filterNot(f: A => Boolean): Stream[A, T]
-
-  def foldLeft[B](initial: B)(f: (B, A) => B): T[B]
-
-  def size: T[Int]
-
-  def lastOption: T[Option[A]]
-
-  def headOption: T[Option[A]]
-
+/**
+ * Iterator that can be used to build [[Stream]]s from other streaming libraries.
+ *
+ * This trait can be used to create async or sync streams.
+ */
+trait Streamer[A, T[_]] {
+  def head: T[Option[A]]
+  def next(previous: A): T[Option[A]]
 }

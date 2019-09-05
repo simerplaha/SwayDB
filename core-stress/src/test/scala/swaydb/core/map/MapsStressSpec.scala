@@ -19,15 +19,15 @@
 
 package swaydb.core.map
 
+import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
-import swaydb.core.RunThis._
+import swaydb.IOValues._
 import swaydb.core.TestData._
+import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Memory
 import swaydb.core.io.file.IOEffect
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.queue.FileLimiter
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.RecoveryMode
@@ -40,7 +40,8 @@ class MapsStressSpec extends TestBase {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def testTimer: TestTimer = TestTimer.Empty
-  implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
+  implicit val fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper
+  implicit val memorySweeper = TestLimitQueues.memorySweeper
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
@@ -62,14 +63,14 @@ class MapsStressSpec extends TestBase {
       def testWrite(maps: Maps[Slice[Byte], Memory.SegmentResponse]) = {
         keyValues foreach {
           keyValue =>
-            maps.write(time => MapEntry.Put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))).assertGet
+            maps.write(time => MapEntry.Put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))).runRandomIO.right.value
         }
       }
 
       def testRead(maps: Maps[Slice[Byte], Memory.SegmentResponse]) = {
         keyValues foreach {
           keyValue =>
-            val got = maps.get(keyValue.key).assertGet
+            val got = maps.get(keyValue.key).value
             got.isInstanceOf[Memory.Put] shouldBe true
             got.key shouldBe keyValue.key
             got.getOrFetchValue shouldBe keyValue.getOrFetchValue
@@ -79,11 +80,11 @@ class MapsStressSpec extends TestBase {
       val dir1 = IOEffect.createDirectoryIfAbsent(testDir.resolve(1.toString))
       val dir2 = IOEffect.createDirectoryIfAbsent(testDir.resolve(2.toString))
 
-      val map1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).assertGet
+      val map1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).runRandomIO.right.value
       testWrite(map1)
       testRead(map1)
 
-      val map2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).assertGet
+      val map2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).runRandomIO.right.value
       testWrite(map2)
       testRead(map2)
 
@@ -92,24 +93,23 @@ class MapsStressSpec extends TestBase {
       testRead(map3)
 
       def reopen = {
-        val open1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = false, 1.byte, acceleration, RecoveryMode.ReportFailure).assertGet
+        val open1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = false, 1.byte, acceleration, RecoveryMode.ReportFailure).runRandomIO.right.value
         testRead(open1)
-        val open2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).assertGet
+        val open2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).runRandomIO.right.value
         testRead(open2)
 
-        open1.close.assertGet
-        open2.close.assertGet
+        open1.close.runRandomIO.right.value
+        open2.close.runRandomIO.right.value
       }
 
       reopen
       reopen //reopen again
 
-      map1.close.assertGet
-      map2.close.assertGet
-      map2.close.assertGet
+      map1.close.runRandomIO.right.value
+      map2.close.runRandomIO.right.value
+      map2.close.runRandomIO.right.value
 
       println("total number of maps recovered: " + dir1.folders.size)
     }
-
   }
 }

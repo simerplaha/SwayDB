@@ -20,15 +20,16 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.EitherValues._
+import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.IOEffect._
-import swaydb.core.util.Benchmark
-import swaydb.core.{TestBase, TestData, TestTimer}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.core.segment.format.a.block._
+import swaydb.core.{TestBase, TestTimer}
+import swaydb.data.compaction.Throttle
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -59,28 +60,28 @@ class LevelReadSpec3 extends LevelReadSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
+sealed trait LevelReadSpec extends TestBase with MockFactory {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
-  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
+  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
   val keyValuesCount = 100
 
-  "Level.mightContain" should {
+  "Level.mightContainKey" should {
     "return true for key-values that exists or else false (bloom filter test on reboot)" in {
-      val keyValues = randomPutKeyValues(keyValuesCount, addRandomPutDeadlines = false)
+      val keyValues = randomPutKeyValues(keyValuesCount, addPutDeadlines = false)
 
       def assert(level: Level) = {
         keyValues foreach {
           keyValue =>
-            level.mightContain(keyValue.key).assertGet shouldBe true
+            level.mightContainKey(keyValue.key).runRandomIO.right.value shouldBe true
         }
 
-        level.mightContain("THIS KEY DOES NOT EXISTS").assertGet shouldBe false
+        level.mightContainKey("THIS KEY DOES NOT EXISTS").runRandomIO.right.value shouldBe false
       }
 
       val level = TestLevel()
-      level.putKeyValuesTest(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
       assert(level)
       if (persistent) assert(level.reopen)
@@ -92,10 +93,10 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       //disable throttling so small segment compaction does not occur
       val level = TestLevel(segmentSize = 1.kb, nextLevel = None, throttle = (_) => Throttle(Duration.Zero, 0))
 
-      val keyValues = randomPutKeyValues(1000, addRandomPutDeadlines = false)
-      level.putKeyValuesTest(keyValues).assertGet
+      val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)
+      level.putKeyValuesTest(keyValues).runRandomIO.right.value
       //do another put so split occurs.
-      level.putKeyValuesTest(keyValues.headSlice).assertGet
+      level.putKeyValuesTest(keyValues.headSlice).runRandomIO.right.value
       level.segmentsCount() > 1 shouldBe true //ensure there are Segments in this Level
 
       if (persistent) {
@@ -119,24 +120,24 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       //refresh so that if there is a compression running, this Segment will compressed.
       val segments =
         TestSegment(putKeyValues)
-          .assertGet
+          .runRandomIO
+          .right.value
           .refresh(
             minSegmentSize = 100.mb,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            compressDuplicateValues = true,
             removeDeletes = false,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe
-          ).assertGet
+            valuesConfig = ValuesBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            segmentConfig = SegmentBlock.Config.random
+          ).runRandomIO.right.value
 
       segments should have size 1
       val segment = segments.head
 
-      level.put(Seq(segment)).assertGet
+      level.put(Seq(segment)).right.right.value.right.value
 
       level.meter.segmentsCount shouldBe 1
       level.meter.levelSize shouldBe segment.segmentSize
@@ -152,23 +153,23 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       //refresh so that if there is a compression running, this Segment will compressed.
       val segments =
         TestSegment(putKeyValues)
-          .assertGet
+          .runRandomIO.right.value
           .refresh(
             minSegmentSize = 100.mb,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            compressDuplicateValues = true,
             removeDeletes = false,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe).assertGet
+            valuesConfig = ValuesBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            segmentConfig = SegmentBlock.Config.random
+          ).runRandomIO.right.value
 
       segments should have size 1
       val segment = segments.head
 
-      level2.put(Seq(segment)).assertGet
+      level2.put(Seq(segment)).right.right.value.right.value
 
       level1.meter.levelSize shouldBe 0
       level1.meter.segmentsCount shouldBe 0
@@ -190,8 +191,8 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       val level1 = TestLevel(nextLevel = Some(level2))
 
       val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
-      val segment = TestSegment(putKeyValues).assertGet
-      level2.put(Seq(segment)).assertGet
+      val segment = TestSegment(putKeyValues).runRandomIO.right.value
+      level2.put(Seq(segment)).right.right.value.right.value
 
       level1.meterFor(3) shouldBe empty
     }

@@ -26,10 +26,10 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 /**
-  * Default serializers.
-  *
-  * Documentation for custom serializers: http://www.swaydb.io/custom-serializers
-  */
+ * Default serializers.
+ *
+ * Documentation for custom serializers: http://www.swaydb.io/custom-serializers
+ */
 object Default {
 
   implicit object IntSerializer extends Serializer[Int] {
@@ -54,7 +54,7 @@ object Default {
     }
 
     override def read(data: Slice[Byte]): Char =
-      data.toByteBuffer.getChar
+      data.toByteBufferWrap.getChar
   }
 
   implicit object DoubleSerializer extends Serializer[Double] {
@@ -63,7 +63,7 @@ object Default {
     }
 
     override def read(data: Slice[Byte]): Double =
-      data.toByteBuffer.getDouble
+      data.toByteBufferWrap.getDouble
   }
 
   implicit object FloatSerializer extends Serializer[Float] {
@@ -72,7 +72,7 @@ object Default {
     }
 
     override def read(data: Slice[Byte]): Float =
-      data.toByteBuffer.getFloat
+      data.toByteBufferWrap.getFloat
   }
 
   implicit object ShortSerializer extends Serializer[Short] {
@@ -81,7 +81,7 @@ object Default {
     }
 
     override def read(data: Slice[Byte]): Short =
-      data.toByteBuffer.getShort
+      data.toByteBufferWrap.getShort
   }
 
   implicit object StringSerializer extends Serializer[String] {

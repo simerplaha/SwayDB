@@ -19,57 +19,69 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
+import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
+import swaydb.core.segment.format.a.block.ValuesBlock
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
-import swaydb.core.segment.format.a.entry.reader.value.LazyFunctionReader
-import swaydb.data.IO
-import swaydb.data.slice.Reader
+import swaydb.data.slice.ReaderBase
 
 object FunctionReader extends EntryReader[Persistent.Function] {
 
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
-                              indexReader: Reader,
-                              valueReader: Reader,
+                              indexReader: ReaderBase[swaydb.Error.Segment],
+                              valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
+                              hasAccessPositionIndex: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
-                                                        deadlineReader: DeadlineReader[T],
-                                                        valueOffsetReader: ValueOffsetReader[T],
-                                                        valueLengthReader: ValueLengthReader[T],
-                                                        valueBytesReader: ValueReader[T]): IO[Persistent.Function] =
+                                                            deadlineReader: DeadlineReader[T],
+                                                            valueOffsetReader: ValueOffsetReader[T],
+                                                            valueLengthReader: ValueLengthReader[T],
+                                                            valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Function] =
     valueBytesReader.read(indexReader, previous) flatMap {
       valueOffsetAndLength =>
         timeReader.read(indexReader, previous) flatMap {
           time =>
-            KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Function) map {
-              case (key, isKeyPrefixCompressed) =>
+            KeyReader.read(
+              keyValueIdInt = keyValueId,
+              indexReader = indexReader,
+              previous = previous,
+              hasAccessPositionIndex = hasAccessPositionIndex,
+              keyValueId = KeyValueId.Function
+            ) flatMap {
+              case (accessPosition, key, isKeyPrefixCompressed) =>
                 val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                 val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
-
-                Persistent.Function(
-                  _key = key,
-                  lazyFunctionReader =
-                    LazyFunctionReader(
-                      reader = valueReader,
-                      offset = valueOffset,
-                      length = valueLength
-                    ),
-                  _time = time,
-                  nextIndexOffset = nextIndexOffset,
-                  nextIndexSize = nextIndexSize,
-                  indexOffset = indexOffset,
-                  valueOffset = valueOffset,
-                  valueLength = valueLength,
-                  isPrefixCompressed =
-                    isKeyPrefixCompressed ||
-                      timeReader.isPrefixCompressed ||
-                      deadlineReader.isPrefixCompressed ||
-                      valueOffsetReader.isPrefixCompressed ||
-                      valueLengthReader.isPrefixCompressed ||
-                      valueBytesReader.isPrefixCompressed
-                )
+                valueCache map {
+                  valueCache =>
+                    IO {
+                      Persistent.Function.fromCache(
+                        key = key,
+                        valueCache = valueCache,
+                        time = time,
+                        nextIndexOffset = nextIndexOffset,
+                        nextIndexSize = nextIndexSize,
+                        indexOffset = indexOffset,
+                        valueOffset = valueOffset,
+                        valueLength = valueLength,
+                        accessPosition = accessPosition,
+                        isPrefixCompressed =
+                          isKeyPrefixCompressed ||
+                            timeReader.isPrefixCompressed ||
+                            deadlineReader.isPrefixCompressed ||
+                            valueOffsetReader.isPrefixCompressed ||
+                            valueLengthReader.isPrefixCompressed ||
+                            valueBytesReader.isPrefixCompressed
+                      )
+                    }
+                } getOrElse {
+                  ValuesBlock.valuesBlockNotInitialised
+                }
             }
         }
     }

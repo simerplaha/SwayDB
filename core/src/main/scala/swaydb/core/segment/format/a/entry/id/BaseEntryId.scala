@@ -51,7 +51,7 @@ private[segment] object BaseEntryId {
     trait NoTime extends Time
   }
 
-  sealed trait GetDeadlineId {
+  sealed trait DeadlineId {
     def deadlineOneCompressed: Deadline.OneCompressed
     def deadlineTwoCompressed: Deadline.TwoCompressed
     def deadlineThreeCompressed: Deadline.ThreeCompressed
@@ -66,7 +66,7 @@ private[segment] object BaseEntryId {
 
   trait Value
   object Value {
-    trait NoValue extends Value with GetDeadlineId
+    trait NoValue extends Value with DeadlineId
     trait FullyCompressed extends Value {
       def valueOffsetOneCompressed: ValueOffset.OneCompressed
       def valueOffsetTwoCompressed: ValueOffset.TwoCompressed
@@ -97,7 +97,7 @@ private[segment] object BaseEntryId {
     trait FullyCompressed extends ValueOffset
   }
 
-  trait ValueLength extends GetDeadlineId
+  trait ValueLength extends DeadlineId
   object ValueLength {
     trait OneCompressed extends ValueLength
     trait TwoCompressed extends ValueLength

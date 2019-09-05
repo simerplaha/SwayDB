@@ -21,24 +21,20 @@ package swaydb.core.merge
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
 import swaydb.core.TestData._
-import swaydb.core.{TestTimer, IOAssert}
+import swaydb.core.TestTimer
 import swaydb.core.data.Memory
-import swaydb.data.slice.Slice
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice
 
 class FunctionMerger_PendingApply_Spec extends WordSpec with Matchers {
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
-  implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
+  implicit def groupBy = randomGroupByOption(randomNextInt(1000))
 
   "Merging Function into PendingApply with a single apply" when {
 
@@ -58,7 +54,7 @@ class FunctionMerger_PendingApply_Spec extends WordSpec with Matchers {
           //new but has older time than oldKeyValue
           val newKeyValue = randomFunctionKeyValue(key = key)
 
-          val expected = FixedMerger(newKeyValue, apply.toMemory(key)).assertGet
+          val expected = FixedMerger(newKeyValue, apply.toMemory(key)).runRandomIO.right.value
 
           //          println(s"newKeyValue: $newKeyValue")
           //          println(s"old apply: $apply")

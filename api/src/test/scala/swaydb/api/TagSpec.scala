@@ -20,21 +20,19 @@
 package swaydb.api
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.Tag
+
 import scala.util.Try
-import swaydb.data.io.Tag
-import swaydb.data._
 
 class TagSpec extends WordSpec with Matchers {
 
   "tryMap" should {
     "" in {
-      implicit val wrap = Tag.tryTag
+      implicit val tag = Tag.tryTag
 
       val result: swaydb.Stream[Int, Try] = swaydb.Stream(1 to 100)
 
       result.foreach(println)
-
     }
   }
-
 }

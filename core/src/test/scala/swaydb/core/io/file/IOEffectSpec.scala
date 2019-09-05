@@ -20,32 +20,36 @@
 package swaydb.core.io.file
 
 import java.nio.file.Paths
-import swaydb.core.IOAssert._
+
+import swaydb.IOValues._
 import swaydb.core.TestBase
-import swaydb.core.util.Extension
+import swaydb.core.TestData._
+import swaydb.core.util.{Benchmark, Extension}
+import swaydb.data.util.StorageUnits._
 
 class IOEffectSpec extends TestBase {
 
   "fileId" should {
-    "get the file id" in {
-      IOEffect.fileId(Paths.get("/one/1.log")).assertGet shouldBe(1, Extension.Log)
-      IOEffect.fileId(Paths.get("/one/two/10.log")).assertGet shouldBe(10, Extension.Log)
-      IOEffect.fileId(Paths.get("/one/two/three/1000.seg")).assertGet shouldBe(1000, Extension.Seg)
+
+    "value the file id" in {
+      IOEffect.fileId(Paths.get("/one/1.log")).runRandomIO.right.value shouldBe(1, Extension.Log)
+      IOEffect.fileId(Paths.get("/one/two/10.log")).runRandomIO.right.value shouldBe(10, Extension.Log)
+      IOEffect.fileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.right.value shouldBe(1000, Extension.Seg)
     }
 
     "fail if the file's name is not an integer" in {
       val path = Paths.get("/one/notInt.log")
-      IOEffect.fileId(path).failed.assertGet.exception shouldBe NotAnIntFile(path)
+      IOEffect.fileId(path).left.runRandomIO.right.value.exception shouldBe swaydb.Exception.NotAnIntFile(path)
     }
 
     "fail if the file has invalid extension" in {
       val path = Paths.get("/one/1.txt")
-      IOEffect.fileId(path).failed.assertGet.exception shouldBe UnknownExtension(path)
+      IOEffect.fileId(path).left.runRandomIO.right.value.exception shouldBe swaydb.Exception.UnknownExtension(path)
     }
   }
 
   "folderId" should {
-    "get the folderId" in {
+    "value the folderId" in {
       IOEffect.folderId(Paths.get("/one/1")) shouldBe 1
       IOEffect.folderId(Paths.get("/one/two/10")) shouldBe 10
       IOEffect.folderId(Paths.get("/one/two/three/1000")) shouldBe 1000
@@ -54,9 +58,9 @@ class IOEffectSpec extends TestBase {
 
   "incrementFileId" should {
     "return a new file path with incremented file id" in {
-      IOEffect.incrementFileId(Paths.get("/one/1.log")).assertGet shouldBe Paths.get("/one/2.log")
-      IOEffect.incrementFileId(Paths.get("/one/two/10.log")).assertGet shouldBe Paths.get("/one/two/11.log")
-      IOEffect.incrementFileId(Paths.get("/one/two/three/1000.seg")).assertGet shouldBe Paths.get("/one/two/three/1001.seg")
+      IOEffect.incrementFileId(Paths.get("/one/1.log")).runRandomIO.right.value shouldBe Paths.get("/one/2.log")
+      IOEffect.incrementFileId(Paths.get("/one/two/10.log")).runRandomIO.right.value shouldBe Paths.get("/one/two/11.log")
+      IOEffect.incrementFileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.right.value shouldBe Paths.get("/one/two/three/1001.seg")
     }
   }
 
@@ -84,7 +88,7 @@ class IOEffectSpec extends TestBase {
         )
       actual.foreach {
         path =>
-          IOEffect.createFile(path).assertGet
+          IOEffect.createFile(path).runRandomIO.right.value
       }
 
       val expect =
@@ -194,5 +198,25 @@ class IOEffectSpec extends TestBase {
 
       IOEffect.segmentFilesOnDisk(dirs) shouldBe expect
     }
+  }
+
+  "benchmark" in {
+    val fileSize = 4.mb
+    val flattenBytes = randomBytesSlice(fileSize)
+    val groupBytes = flattenBytes.groupedSlice(8)
+
+    //20.mb
+    //0.067924621 seconds
+    //4.mb
+    //0.057647201 seconds & 0.047565694 seconds
+    val groupedPath = Benchmark("groupBytes")(IOEffect.write(randomFilePath, groupBytes)).get
+    IOEffect.readAll(groupedPath).get shouldBe flattenBytes
+
+    //20.mb
+    //0.077162871 seconds
+    //4.mb
+    //0.05330862 seconds & 0.045989919 seconds
+    val flattenedPath = Benchmark("flattenBytes")(IOEffect.write(randomFilePath, flattenBytes)).get
+    IOEffect.readAll(flattenedPath).get shouldBe flattenBytes
   }
 }

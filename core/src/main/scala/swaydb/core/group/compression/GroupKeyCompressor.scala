@@ -19,29 +19,31 @@
 
 package swaydb.core.group.compression
 
-import swaydb.core.data.KeyValue
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
+import swaydb.core.data.Transient
 import swaydb.core.util.Bytes
-import swaydb.data.{IO, MaxKey}
+import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
 
 private[core] object GroupKeyCompressor {
 
   /**
-    * @return (minKey, maxKey, fullKey)
-    */
-  def compress(head: Option[KeyValue.WriteOnly],
-               last: KeyValue.WriteOnly): (Slice[Byte], MaxKey[Slice[Byte]], Slice[Byte]) =
+   * @return (minKey, maxKey, fullKey)
+   */
+  def compress(head: Option[Transient],
+               last: Transient): (Slice[Byte], MaxKey[Slice[Byte]], Slice[Byte]) =
     (head, last) match {
-      case (Some(keyValue), fixed: KeyValue.WriteOnly.Fixed) =>
+      case (Some(keyValue), fixed: Transient.Fixed) =>
         val fullKey = Bytes.compressJoin(keyValue.key, fixed.key, 0.toByte)
         (keyValue.key, MaxKey.Fixed(fixed.key), fullKey)
 
-      case (Some(keyValue), range: KeyValue.WriteOnly.Range) =>
+      case (Some(keyValue), range: Transient.Range) =>
         val maxKey = Bytes.compressJoin(range.fromKey, range.toKey)
         val fullKey = Bytes.compressJoin(keyValue.key, maxKey, 1.toByte)
         (keyValue.key, MaxKey.Range(range.fromKey, range.toKey), fullKey)
 
-      case (Some(keyValue), group: KeyValue.WriteOnly.Group) =>
+      case (Some(keyValue), group: Transient.Group) =>
         group.maxKey match {
           case fixed @ MaxKey.Fixed(maxKey) =>
             val fullKey = Bytes.compressJoin(keyValue.key, maxKey, 0.toByte)
@@ -53,18 +55,18 @@ private[core] object GroupKeyCompressor {
             (keyValue.key, maxKeyRange, fullKey)
         }
 
-      case (None, fixed: KeyValue.WriteOnly.Fixed) =>
+      case (None, fixed: Transient.Fixed) =>
         (fixed.key, MaxKey.Fixed(fixed.key), fixed.key append 2.toByte)
 
-      case (None, range: KeyValue.WriteOnly.Range) =>
-        val fullKey = Bytes.compressJoin(range.fromKey, range.toKey, 3.toByte)
-        (range.fromKey, MaxKey.Range(range.fromKey, range.toKey), fullKey)
+      case (None, range: Transient.Range) =>
+        val mergedKey = Bytes.compressJoin(range.fromKey, range.toKey, 3.toByte)
+        (range.fromKey, MaxKey.Range(range.fromKey, range.toKey), mergedKey)
 
-      case (None, group: KeyValue.WriteOnly.Group) =>
-        (group.minKey, group.maxKey, group.fullKey)
+      case (None, group: Transient.Group) =>
+        (group.minKey, group.maxKey, group.mergedKey)
     }
 
-  def decompress(key: Slice[Byte]): IO[(Slice[Byte], MaxKey[Slice[Byte]])] =
+  def decompress(key: Slice[Byte]): IO[swaydb.Error.Segment, (Slice[Byte], MaxKey[Slice[Byte]])] =
     key.lastOption map {
       case 0 =>
         Bytes.decompressJoin(key.dropRight(1)) map {
@@ -83,16 +85,14 @@ private[core] object GroupKeyCompressor {
 
       case 2 =>
         val keyWithoutId = key.dropRight(1)
-        IO.Success(keyWithoutId, MaxKey.Fixed(keyWithoutId))
+        IO.Right(keyWithoutId, MaxKey.Fixed(keyWithoutId))
 
       case 3 =>
         Bytes.decompressJoin(key.dropRight(1)) map {
           case (minKey, maxKey) =>
             (minKey, MaxKey.Range(minKey, maxKey))
         }
-
     } getOrElse {
-      IO.Failure(GroupCompressorFailure.GroupKeyIsEmpty)
+      IO.failed(GroupCompressorFailure.GroupKeyIsEmpty)
     }
-
 }

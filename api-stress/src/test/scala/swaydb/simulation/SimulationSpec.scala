@@ -23,18 +23,18 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.WordSpec
-import swaydb.Apply
-import swaydb.configs.level.DefaultGroupingStrategy
+import swaydb.configs.level.DefaultGroupBy
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.actor.{Actor, ActorRef}
-import swaydb.data.IO
+import swaydb.ActorRef
 import swaydb.data.accelerate.Accelerator
+import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.config.MMAP
 import swaydb.serializers.Default._
 import swaydb.simulation.Domain._
 import swaydb.simulation.ProductCommand._
 import swaydb.simulation.RemoveAsserted._
+import swaydb.{Actor, ActorRef, Apply, IO}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -70,9 +70,9 @@ class Memory_SimulationSpec extends SimulationSpec {
   override lazy val db = swaydb.memory.Map[Long, Domain]().get
 }
 
-class Memory_SimulationGroupingStrategySpec extends SimulationSpec {
+class Memory_SimulationGroupBySpec extends SimulationSpec {
 
-  override lazy val db = swaydb.memory.Map[Long, Domain](groupingStrategy = Some(DefaultGroupingStrategy())).get
+  override lazy val db = swaydb.memory.Map[Long, Domain](groupBy = Some(DefaultGroupBy())).get
 }
 
 class Persistent_SimulationSpec extends SimulationSpec {
@@ -87,7 +87,7 @@ class Memory_Persistent_SimulationSpec extends SimulationSpec {
 
 sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
-  def db: swaydb.Map[Long, Domain, IO]
+  def db: swaydb.Map[Long, Domain, IO.ApiIO]
 
   val ids = new AtomicInteger(0)
   val functionIDs = new AtomicInteger(0)
@@ -103,7 +103,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
   def processCommand(state: UserState,
                      command: ProductCommand,
-                     self: ActorRef[ProductCommand]) = {
+                     self: ActorRef[ProductCommand, UserState]) = {
     val userId = state.userId
 
     def genProductId: Long = {
@@ -527,8 +527,9 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
     }
 
     "concurrently Create, Update, Read & Delete (CRUD) Products" in {
-      val maxUsers: Int = 10
+      val maxUsers: Int = 30
       val runFor = 10.minutes
+      implicit val queue = QueueOrder.FIFO
 
       (1 to maxUsers) map { //create Users in the database
         id =>

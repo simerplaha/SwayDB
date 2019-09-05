@@ -20,14 +20,13 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
-import scala.util.Random
 import swaydb.core.CommonAssertions._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.IOAssert._
-import swaydb.core.data.{Memory, Time, Value}
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.data.{Memory, Value}
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.util.Benchmark
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -55,9 +54,9 @@ class LevelReadNoneSpec3 extends LevelReadNoneSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark {
+sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
 
-  implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
+  implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
 
   //  override def deleteFiles = false
 
@@ -76,11 +75,11 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
         assertAllLevels =
           (_, _, _, level) =>
             Seq(
-              () => level.get(randomStringOption).assertGetOpt shouldBe empty,
-              () => level.higher(randomStringOption).assertGetOpt shouldBe empty,
-              () => level.lower(randomStringOption).assertGetOpt shouldBe empty,
-              () => level.head.assertGetOpt shouldBe empty,
-              () => level.last.assertGetOpt shouldBe empty
+              () => level.get(randomStringOption).runRandomIO.right.value shouldBe empty,
+              () => level.higher(randomStringOption).runRandomIO.right.value shouldBe empty,
+              () => level.lower(randomStringOption).runRandomIO.right.value shouldBe empty,
+              () => level.head.runRandomIO.right.value shouldBe empty,
+              () => level.last.runRandomIO.right.value shouldBe empty
             ).runThisRandomly
       )
     }
@@ -117,11 +116,11 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
     }
 
     "level is non empty but the searched key do not exist" in {
-      runThis(times) {
+      runThis(10) {
         assertLevel(
           level0KeyValues =
             (_, _, testTimer) =>
-              randomizedKeyValues(keyValuesCount)(testTimer).toMemory,
+              randomizedKeyValues(keyValuesCount, startId = Some(1))(testTimer).toMemory,
 
           assertLevel0 =
             (level0KeyValues, _, _, level) => {
@@ -142,13 +141,20 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
                   nonExistingKeys foreach {
                     nonExistentKey =>
                       val expectedHigher = existing.find(put => put.hasTimeLeft() && put.key.readInt() > nonExistentKey).map(_.key.readInt())
-                      level.higher(nonExistentKey).assertGetOpt.map(_.key.readInt()) shouldBe expectedHigher
+                      level.higher(nonExistentKey).runRandomIO.right.value.map(_.key.readInt()) shouldBe expectedHigher
                   },
                 () =>
                   nonExistingKeys foreach {
                     nonExistentKey =>
                       val expectedLower = existing.reverse.find(put => put.hasTimeLeft() && put.key.readInt() < nonExistentKey).map(_.key.readInt())
-                      level.lower(nonExistentKey).assertGetOpt.map(_.key.readInt()) shouldBe expectedLower
+                      try
+                        level.lower(nonExistentKey).runRandomIO.right.value.map(_.key.readInt()) shouldBe expectedLower
+                      catch {
+                        case exception: Exception =>
+                          //TODO - debug.
+                          val lower = level.lower(nonExistentKey).runRandomIO.right.value.map(_.key.readInt())
+                          throw exception
+                      }
                   }
               ).runThisRandomlyInParallel
             }
@@ -185,7 +191,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
               eitherOne(
                 //either do a range remove
                 left =
-                  randomRemoveRanges(level1KeyValues).toIterable,
+                  randomRemoveRanges(level1KeyValues).toList.toSlice,
                 //or do fixed removes via function or fixed.
                 right =
                   level1KeyValues map {
@@ -200,7 +206,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
               implicit val time = testTimer
               level2KeyValues should have size 0
 
-              randomPutKeyValues(keyValuesCount, startId = Some(0), addRandomPutDeadlines = false, addRandomExpiredPutDeadlines = false)
+              randomPutKeyValues(keyValuesCount, startId = Some(0), addPutDeadlines = false, addExpiredPutDeadlines = false)
             },
 
           assertLevel0 =

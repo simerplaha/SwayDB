@@ -20,7 +20,7 @@
 package swaydb.core.map.timer
 
 import java.nio.file.Path
-import scala.concurrent.ExecutionContext
+
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.function.FunctionStore
@@ -28,6 +28,8 @@ import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter, TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+
+import scala.concurrent.ExecutionContext
 
 class PersistentTimerSpec extends TimerSpec {
 
@@ -40,7 +42,6 @@ class PersistentTimerSpec extends TimerSpec {
                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer =
     Timer.persistent(path, true, 100, 1000).get
-
 }
 
 class MemoryTimerSpec extends TimerSpec {
@@ -70,8 +71,6 @@ sealed trait TimerSpec extends TestBase {
                            ec: ExecutionContext,
                            writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): Timer
-
-  override def persistent: Boolean
 
   "it" should {
 

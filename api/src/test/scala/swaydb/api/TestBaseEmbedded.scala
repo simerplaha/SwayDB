@@ -19,30 +19,30 @@
 
 package swaydb.api
 
+
+import swaydb.{Tag, _}
+import swaydb.IOValues._
+import swaydb.core.RunThis._
+import swaydb.core.TestBase
+
 import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import swaydb.core.RunThis._
-import swaydb.core.TestBase
-import swaydb.core.IOAssert._
-import swaydb._
-import swaydb.data.IO
 
 trait TestBaseEmbedded extends TestBase {
 
   val keyValueCount: Int
 
-  def doAssertEmpty[V](db: Map[Int, V, IO]) =
+  def doAssertEmpty[V](db: Map[Int, V, IO.ApiIO]) =
     (1 to keyValueCount) foreach {
       i =>
-        db.expiration(i).assertGetOpt match {
+        db.expiration(i).right.value match {
           case Some(value) =>
             value.hasTimeLeft() shouldBe false
 
           case None =>
-
         }
-        db.get(i).assertGetOpt shouldBe empty
+        db.get(i).right.value shouldBe empty
     }
 
   def pluralSegment(count: Int) = if (count == 1) "Segment" else "Segments"
@@ -50,7 +50,7 @@ trait TestBaseEmbedded extends TestBase {
   //recursively go through all levels and assert they do no have any Segments.
   //Note: Could change this test to use Future with delays instead of blocking but the blocking code is probably more easier to read.
 
-  def assertLevelsAreEmpty(db: Map[Int, String, IO], submitUpdates: Boolean) = {
+  def assertLevelsAreEmpty(db: Map[Int, String, IO.ApiIO], submitUpdates: Boolean) = {
     println("Checking levels are empty.")
 
     @tailrec
@@ -73,7 +73,7 @@ trait TestBaseEmbedded extends TestBase {
               println(s"Level $levelNumber. Submitting updated to trigger remove.")
               (1 to 500000) foreach { //submit multiple update range key-values so that a map gets submitted for compaction and to trigger merge on copied Segments in last Level.
                 i =>
-                  db.update(1, 1000000, value = "just triggering update to assert remove").assertGet
+                  db.update(1, 1000000, value = "just triggering update to assert remove").right.value
                   if (i == 100000) sleep(2.seconds)
               }
             }
@@ -95,5 +95,4 @@ trait TestBaseEmbedded extends TestBase {
     //this test might take a while depending on the Compaction speed but it should not run for too long hence the timeout.
     Future(checkEmpty(1, false)).await(10.minutes)
   }
-
 }

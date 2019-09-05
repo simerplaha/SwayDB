@@ -20,12 +20,14 @@
 package swaydb.core
 
 import java.util.concurrent.atomic.AtomicLong
-import scala.util.Random
+
+import swaydb.IO
 import swaydb.core.data.Time
 import swaydb.core.map.timer.Timer
-import swaydb.data.IO
 import swaydb.data.slice.Slice
 import swaydb.macros.SealedList
+
+import scala.util.Random
 
 sealed trait TestTimer extends Timer
 
@@ -34,7 +36,7 @@ object TestTimer {
   def single(time: Time): TestTimer =
     new TestTimer {
       override def next: Time = time
-      override def close: IO[Unit] = IO.unit
+      override def close: IO[swaydb.Error.Map, Unit] = IO.unit
     }
 
   case class Incremental(startTime: Long = 0) extends TestTimer {
@@ -43,7 +45,7 @@ object TestTimer {
     override def next: Time =
       Time(timer.incrementAndGet())
 
-    override def close: IO[Unit] =
+    override def close: IO[swaydb.Error.Map, Unit] =
       IO.unit
   }
 
@@ -57,7 +59,7 @@ object TestTimer {
       else
         Time.empty
 
-    override def close: IO[Unit] =
+    override def close: IO[swaydb.Error.Map, Unit] =
       IO.unit
   }
 
@@ -67,7 +69,7 @@ object TestTimer {
     override def next: Time =
       Time(timer.decrementAndGet())
 
-    override def close: IO[Unit] =
+    override def close: IO[swaydb.Error.Map, Unit] =
       IO.unit
   }
 
@@ -81,7 +83,7 @@ object TestTimer {
       else
         Time.empty
 
-    override def close: IO[Unit] =
+    override def close: IO[swaydb.Error.Map, Unit] =
       IO.unit
   }
 
@@ -91,7 +93,7 @@ object TestTimer {
     override val next: Time =
       Time(Slice.emptyBytes)
 
-    override def close: IO[Unit] =
+    override def close: IO[swaydb.Error.Map, Unit] =
       IO.unit
   }
 

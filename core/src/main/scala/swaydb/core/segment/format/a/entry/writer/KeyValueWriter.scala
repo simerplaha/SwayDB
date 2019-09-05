@@ -4,9 +4,9 @@
  * This file is a part of SwayDB.
  *
  * SwayDB is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * SwayDB is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,51 +19,59 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
-import swaydb.core.data.{KeyValue, Time}
+import swaydb.core.data.{Time, Transient}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId.BaseEntryIdFormat
 import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, TransientToKeyValueIdBinder}
+import swaydb.core.util.Bytes
 import swaydb.core.util.Bytes._
 import swaydb.data.slice.Slice
+import swaydb.data.util.ByteSizeOf
+
+import scala.beans.BeanProperty
 
 private[core] object KeyValueWriter {
 
-  case class Result(indexBytes: Slice[Byte],
-                    valueBytes: Option[Slice[Byte]],
-                    valueStartOffset: Int,
-                    valueEndOffset: Int) {
+  case class WriteResult(@BeanProperty var indexBytes: Slice[Byte],
+                         valueBytes: Slice[Slice[Byte]],
+                         valueStartOffset: Int,
+                         valueEndOffset: Int,
+                         @BeanProperty var thisKeyValueAccessIndexPosition: Int,
+                         isPrefixCompressed: Boolean) {
     //TODO check if companion object function unapply returning an Option[Result] is cheaper than this unapply function.
     def unapply =
-      (indexBytes, valueBytes, valueStartOffset, valueEndOffset)
+      (indexBytes, valueBytes, valueStartOffset, valueEndOffset, thisKeyValueAccessIndexPosition, isPrefixCompressed)
   }
 
   /**
-    * Returns the index bytes and value bytes for the key-value and also the used
-    * value offset information for writing the next key-value.
-    *
-    * Each key also has a meta block which can be used to backward compatibility to store
-    * more information for that key in the future that does not fit the current key format.
-    *
-    * Currently all keys are being stored under EmptyMeta.
-    *
-    * Note: No extra bytes are required to differentiate between a key that has meta or no meta block.
-    *
-    * @param binder                  [[BaseEntryIdFormat]] for this key-value's type.
-    * @param compressDuplicateValues Compresses duplicate values if set to true.
-    * @return indexEntry, valueBytes, valueOffsetBytes, nextValuesOffsetPosition
-    */
-  def write[T <: KeyValue.WriteOnly](current: T,
-                                     currentTime: Time,
-                                     compressDuplicateValues: Boolean,
-                                     enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.Result =
+   * Returns the index bytes and value bytes for the key-value and also the used
+   * value offset information for writing the next key-value.
+   *
+   * Each key also has a meta block which can be used to backward compatibility to store
+   * more information for that key in the future that does not fit the current key format.
+   *
+   * Currently all keys are being stored under EmptyMeta.
+   *
+   * Note: No extra bytes are required to differentiate between a key that has meta or no meta block.
+   *
+   * @param binder                  [[BaseEntryIdFormat]] for this key-value's type.
+   * @param compressDuplicateValues Compresses duplicate values if set to true.
+   *
+   * @return indexEntry, valueBytes, valueOffsetBytes, nextValuesOffsetPosition
+   */
+  def write[T <: Transient](current: T,
+                            currentTime: Time,
+                            normaliseToSize: Option[Int],
+                            compressDuplicateValues: Boolean,
+                            enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.WriteResult =
     current.previous flatMap {
       previous =>
         if (enablePrefixCompression)
           writeCompressed(
             current = current,
             previous = previous,
+            normaliseToSize = normaliseToSize,
             currentTime = currentTime,
-            compressDuplicateValues = compressDuplicateValues,
-            enablePrefixCompression = enablePrefixCompression
+            compressDuplicateValues = compressDuplicateValues
           )
         else
           None
@@ -71,41 +79,55 @@ private[core] object KeyValueWriter {
       writeUncompressed(
         current = current,
         currentTime = currentTime,
+        normaliseToSize = normaliseToSize,
         compressDuplicateValues = compressDuplicateValues,
         enablePrefixCompression = enablePrefixCompression
       )
     }
 
-  private def writeCompressed[T <: KeyValue.WriteOnly](current: T,
-                                                       previous: KeyValue.WriteOnly,
-                                                       currentTime: Time,
-                                                       compressDuplicateValues: Boolean,
-                                                       enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
-    compress(key = current.fullKey, previous = previous, minimumCommonBytes = 2) map {
+  private def writeCompressed[T <: Transient](current: T,
+                                              previous: Transient,
+                                              currentTime: Time,
+                                              normaliseToSize: Option[Int],
+                                              compressDuplicateValues: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
+    compress(key = current.mergedKey, previous = previous, minimumCommonBytes = 2) map {
       case (commonBytes, remainingBytes) =>
+
         val writeResult =
           TimeWriter.write(
             current = current,
             currentTime = currentTime,
             compressDuplicateValues = compressDuplicateValues,
             entryId = BaseEntryIdFormatA.format.start,
-            enablePrefixCompression = enablePrefixCompression,
+            enablePrefixCompression = true,
             isKeyCompressed = true,
-            plusSize = sizeOf(commonBytes) + remainingBytes.size //write the size of keys compressed and also the uncompressed Bytes
+            hasPrefixCompressed = true,
+            plusSize = sizeOf(commonBytes) + remainingBytes.size + (ByteSizeOf.varInt * 2) //write the size of keys compressed and also the uncompressed Bytes
           )
+
+        writeAccessIndexPosition(
+          current = current,
+          writeResult = writeResult
+        )
 
         writeResult
           .indexBytes
           .addIntUnsigned(commonBytes)
           .addAll(remainingBytes)
 
+        normaliseAndClose(
+          normaliseToSize = normaliseToSize,
+          writeResult = writeResult
+        )
+
         writeResult
     }
 
-  private def writeUncompressed[T <: KeyValue.WriteOnly](current: T,
-                                                         currentTime: Time,
-                                                         compressDuplicateValues: Boolean,
-                                                         enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) = {
+  private def writeUncompressed[T <: Transient](current: T,
+                                                currentTime: Time,
+                                                normaliseToSize: Option[Int],
+                                                compressDuplicateValues: Boolean,
+                                                enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): WriteResult = {
     //no common prefixes or no previous write without compression
     val writeResult =
       TimeWriter.write(
@@ -115,13 +137,56 @@ private[core] object KeyValueWriter {
         entryId = BaseEntryIdFormatA.format.start,
         enablePrefixCompression = enablePrefixCompression,
         isKeyCompressed = false,
-        plusSize = current.fullKey.size //write key bytes.
+        hasPrefixCompressed = false,
+        plusSize = current.mergedKey.size + (ByteSizeOf.varInt * 2) //write key bytes.
       )
+
+    writeAccessIndexPosition(
+      current = current,
+      writeResult = writeResult
+    )
 
     writeResult
       .indexBytes
-      .addAll(current.fullKey)
+      .addAll(current.mergedKey)
+
+    normaliseAndClose(
+      normaliseToSize = normaliseToSize,
+      writeResult = writeResult
+    )
 
     writeResult
   }
+
+  def normaliseAndClose[T <: Transient](normaliseToSize: Option[Int], writeResult: WriteResult): Unit = {
+
+    val normalisedBytes =
+      normaliseToSize map {
+        toSize =>
+          Bytes.normalise(
+            appendHeader = Slice.writeIntUnsigned(toSize - Bytes.sizeOf(toSize)),
+            bytes = writeResult.indexBytes,
+            toSize = toSize
+          )
+      } getOrElse {
+        Slice.writeIntUnsigned(writeResult.indexBytes.size) ++ writeResult.indexBytes
+      }
+
+    writeResult setIndexBytes normalisedBytes
+  }
+
+  def writeAccessIndexPosition[T <: Transient](current: T, writeResult: WriteResult) =
+    if (current.sortedIndexConfig.enableAccessPositionIndex) {
+      val accessPosition =
+        if (writeResult.isPrefixCompressed)
+          current.previous.map(_.thisKeyValueAccessIndexPosition) getOrElse 1
+        else
+          current.previous.map(_.thisKeyValueAccessIndexPosition + 1) getOrElse 1
+
+      writeResult setThisKeyValueAccessIndexPosition accessPosition
+
+      writeResult
+        .indexBytes
+        .addIntUnsigned(accessPosition)
+    }
 }

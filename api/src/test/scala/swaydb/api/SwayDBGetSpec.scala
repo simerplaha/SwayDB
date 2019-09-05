@@ -19,69 +19,69 @@
 
 package swaydb.api
 
-import scala.concurrent.duration._
-import swaydb._
-import swaydb.core.IOAssert._
+import org.scalatest.OptionValues._
+import swaydb.{Tag, _}
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
-import swaydb.data.IO
 import swaydb.serializers.Default._
 
+import scala.concurrent.duration._
+
 class SwayDBGetSpec0 extends SwayDBGetSpec {
-  override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.Map[Int, String](randomDir).assertGet
+  override def newDB(): Map[Int, String, IO.ApiIO] =
+    swaydb.persistent.Map[Int, String](randomDir).right.value
 }
 
 class SwayDBGetSpec1 extends SwayDBGetSpec {
 
-  override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
+  override def newDB(): Map[Int, String, IO.ApiIO] =
+    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).right.value
 }
 
 class SwayDBGetSpec2 extends SwayDBGetSpec {
 
-  override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
+  override def newDB(): Map[Int, String, IO.ApiIO] =
+    swaydb.memory.Map[Int, String](mapSize = 1.byte).right.value
 }
 
 class SwayDBGetSpec3 extends SwayDBGetSpec {
-  override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.Map[Int, String]().assertGet
+  override def newDB(): Map[Int, String, IO.ApiIO] =
+    swaydb.memory.Map[Int, String]().right.value
 }
 
 class SwayDBGetSpec4 extends SwayDBGetSpec {
 
-  override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).assertGet
+  override def newDB(): Map[Int, String, IO.ApiIO] =
+    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).right.value
 }
 
 class SwayDBGetSpec5 extends SwayDBGetSpec {
-  override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.zero.Map[Int, String]().assertGet
+  override def newDB(): Map[Int, String, IO.ApiIO] =
+    swaydb.memory.zero.Map[Int, String]().right.value
 }
 
 sealed trait SwayDBGetSpec extends TestBase {
 
-  def newDB(): Map[Int, String, IO]
+  def newDB(): Map[Int, String, IO.ApiIO]
 
   "SwayDB" should {
     "get" in {
-
       val db = newDB()
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).right.value
       }
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).right.value
       }
 
       (1 to 100) foreach {
         i =>
-          db.get(i).assertGet shouldBe i.toString
+          db.get(i).right.value.value shouldBe i.toString
       }
 
       db.close().get
@@ -93,27 +93,27 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).right.value
       }
 
       (10 to 90) foreach {
         i =>
-          db.remove(i).assertGet
+          db.remove(i).right.value
       }
 
       (1 to 9) foreach {
         i =>
-          db.get(i).assertGet shouldBe i.toString
+          db.get(i).right.value.value shouldBe i.toString
       }
 
       (10 to 90) foreach {
         i =>
-          db.get(i).assertGetOpt shouldBe empty
+          db.get(i).right.value shouldBe empty
       }
 
       (91 to 100) foreach {
         i =>
-          db.get(i).assertGet shouldBe i.toString
+          db.get(i).right.value.value shouldBe i.toString
       }
 
       db.close().get
@@ -124,25 +124,25 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).right.value
       }
 
       val expire = 2.second.fromNow
 
       (10 to 90) foreach {
         i =>
-          db.expire(i, expire).assertGet
+          db.expire(i, expire).right.value
       }
 
-      (1 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
+      (1 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
 
       sleep(expire.timeLeft + 10.millisecond)
 
-      (10 to 90) foreach { i => db.get(i).assertGetOpt shouldBe empty }
-      (1 to 9) foreach { i => db.get(i).assertGet shouldBe i.toString }
-      (91 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
+      (10 to 90) foreach { i => db.get(i).right.value shouldBe empty }
+      (1 to 9) foreach { i => db.get(i).right.value.value shouldBe i.toString }
+      (91 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
 
-      db.keys.stream.materialize.get shouldBe ((1 to 9) ++ (91 to 100))
+      db.keys.stream.materialize.runRandomIO.right.value shouldBe ((1 to 9) ++ (91 to 100))
 
       db.close().get
     }
@@ -152,20 +152,20 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 100) foreach {
         i =>
-          db.put(i, i.toString).assertGet
+          db.put(i, i.toString).right.value
       }
 
       val expire = 2.second.fromNow
 
-      db.expire(10, 90, expire).assertGet
+      db.expire(10, 90, expire).right.value
 
-      (1 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
+      (1 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
 
       sleep(expire.timeLeft + 10.millisecond)
 
-      (10 to 90) foreach { i => db.get(i).assertGetOpt shouldBe empty }
-      (1 to 9) foreach { i => db.get(i).assertGet shouldBe i.toString }
-      (91 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
+      (10 to 90) foreach { i => db.get(i).right.value shouldBe empty }
+      (1 to 9) foreach { i => db.get(i).right.value.value shouldBe i.toString }
+      (91 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
 
       db.close().get
     }

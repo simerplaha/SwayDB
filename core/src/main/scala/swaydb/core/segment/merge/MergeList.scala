@@ -20,14 +20,14 @@
 package swaydb.core.segment.merge
 
 /**
-  * Mutable data type to hold the state of currently being merged key-values and provides functions
-  * to mutate it's state.
-  *
-  * This cannot be immutable as it will add a lot to GC workload.
-  *
-  * A Segment can easily have over 100,000 key-values to merge and an immutable
-  * version of this class would create the same number of of MergeList instances in-memory.
-  */
+ * Mutable data type to hold the state of currently being merged key-values and provides functions
+ * to mutate it's state.
+ *
+ * This cannot be immutable as it will add a lot to GC workload.
+ *
+ * A Segment can easily have over 100,000 key-values to merge and an immutable
+ * version of this class would create the same number of of MergeList instances in-memory.
+ */
 private[core] sealed trait MergeList[H <: T, T] extends Iterable[T] {
 
   def headOption: Option[T]
@@ -39,8 +39,6 @@ private[core] sealed trait MergeList[H <: T, T] extends Iterable[T] {
   def dropPrepend(head: H): MergeList[H, T]
 
   def depth: Int
-
-  override def size: Int
 }
 
 private[core] object MergeList {
@@ -115,7 +113,6 @@ private[core] class Single[H <: T, T](private var headRange: Option[H],
 
   override def size =
     tailKeyValues.size + (if (headRange.isDefined) 1 else 0)
-
 }
 
 private[core] class Multiple[H <: T, T](private var left: MergeList[H, T],
@@ -173,5 +170,4 @@ private[core] class Multiple[H <: T, T](private var left: MergeList[H, T],
 
   override def size =
     left.size + right.size
-
 }

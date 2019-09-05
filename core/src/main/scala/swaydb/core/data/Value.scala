@@ -19,9 +19,10 @@
 
 package swaydb.core.data
 
-import scala.concurrent.duration.Deadline
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
+
+import scala.concurrent.duration.Deadline
 
 private[swaydb] sealed trait Value {
   def hasRemoveMayBe: Boolean
@@ -155,8 +156,8 @@ private[swaydb] object Value {
   }
 
   /**
-    * Applies are in ascending order where the head apply is the oldest.
-    */
+   * Applies are in ascending order where the head apply is the oldest.
+   */
   case class PendingApply(applies: Slice[Value.Apply]) extends RangeValue {
     override def hasRemoveMayBe: Boolean = applies.exists(_.hasRemoveMayBe)
 

@@ -24,7 +24,7 @@ import swaydb.core.data.Value
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
-object PutMerger {
+private[core] object PutMerger {
 
   def apply(newKeyValue: ReadOnly.Put,
             oldKeyValue: ReadOnly.Put)(implicit timeOrder: TimeOrder[Slice[Byte]]): ReadOnly.Put =

@@ -19,48 +19,48 @@
 
 package swaydb
 
-import swaydb.core.IOAssert._
+
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
-import swaydb.data.IO
 import swaydb.serializers.Default._
 
 class SwayDBFunctionSpec0 extends SwayDBFunctionSpec {
-  override def newDB(): Map[Int, Int, IO] =
-    swaydb.persistent.Map[Int, Int](randomDir).assertGet
+  override def newDB(): Map[Int, Int, IO.ApiIO] =
+    swaydb.persistent.Map[Int, Int](randomDir).right.value
 }
 
 class SwayDBFunctionSpec1 extends SwayDBFunctionSpec {
 
-  override def newDB(): Map[Int, Int, IO] =
-    swaydb.persistent.Map[Int, Int](randomDir, mapSize = 1.byte).assertGet
+  override def newDB(): Map[Int, Int, IO.ApiIO] =
+    swaydb.persistent.Map[Int, Int](randomDir, mapSize = 1.byte).right.value
 }
 
 class SwayDBFunctionSpec2 extends SwayDBFunctionSpec {
 
-  override def newDB(): Map[Int, Int, IO] =
-    swaydb.memory.Map[Int, Int](mapSize = 1.byte).assertGet
+  override def newDB(): Map[Int, Int, IO.ApiIO] =
+    swaydb.memory.Map[Int, Int](mapSize = 1.byte).right.value
 }
 
 class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
-  override def newDB(): Map[Int, Int, IO] =
-    swaydb.memory.Map[Int, Int]().assertGet
+  override def newDB(): Map[Int, Int, IO.ApiIO] =
+    swaydb.memory.Map[Int, Int]().right.value
 }
 
 class SwayDBFunctionSpec4 extends SwayDBFunctionSpec {
 
-  override def newDB(): Map[Int, Int, IO] =
-    swaydb.memory.zero.Map[Int, Int](mapSize = 1.byte).assertGet
+  override def newDB(): Map[Int, Int, IO.ApiIO] =
+    swaydb.memory.zero.Map[Int, Int](mapSize = 1.byte).right.value
 }
 
 class SwayDBFunctionSpec5 extends SwayDBFunctionSpec {
-  override def newDB(): Map[Int, Int, IO] =
-    swaydb.memory.zero.Map[Int, Int]().assertGet
+  override def newDB(): Map[Int, Int, IO.ApiIO] =
+    swaydb.memory.zero.Map[Int, Int]().right.value
 }
 
 sealed trait SwayDBFunctionSpec extends TestBase {
 
-  def newDB(): Map[Int, Int, IO]
+  def newDB(): Map[Int, Int, IO.ApiIO]
 
   "SwayDB" should {
     "perform concurrent atomic updates to a single key" in {

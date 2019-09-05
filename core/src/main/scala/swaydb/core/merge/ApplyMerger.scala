@@ -19,19 +19,20 @@
 
 package swaydb.core.merge
 
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
+import swaydb.IO._
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.function.FunctionStore
-import swaydb.data.IO
-import swaydb.data.IO._
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
-object ApplyMerger {
+private[core] object ApplyMerger {
 
   def apply(newKeyValue: Value.Apply,
             oldKeyValue: ReadOnly.Put)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                       functionStore: FunctionStore): IO[ReadOnly.Fixed] =
+                                       functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue match {
         case newValue: Value.Remove =>
@@ -44,11 +45,11 @@ object ApplyMerger {
           FunctionMerger(newValue.toMemory(oldKeyValue.key), oldKeyValue)
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newKeyValue: Value.Apply,
             oldKeyValue: ReadOnly.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): IO[ReadOnly.Fixed] =
+                                          functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue match {
         case newValue: Value.Remove =>
@@ -61,11 +62,11 @@ object ApplyMerger {
           FunctionMerger(newValue.toMemory(oldKeyValue.key), oldKeyValue)
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newKeyValue: Value.Apply,
             oldKeyValue: ReadOnly.Update)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): IO[ReadOnly.Fixed] =
+                                          functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue match {
         case newValue: Value.Remove =>
@@ -78,11 +79,11 @@ object ApplyMerger {
           FunctionMerger(newValue.toMemory(oldKeyValue.key), oldKeyValue)
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newKeyValue: Value.Apply,
             oldKeyValue: ReadOnly.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): IO[ReadOnly.Fixed] =
+                                                functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue match {
         case newValue: Value.Remove =>
@@ -95,11 +96,11 @@ object ApplyMerger {
           FunctionMerger(newValue.toMemory(oldKeyValue.key), oldKeyValue)
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newKeyValue: Value.Apply,
             oldKeyValue: ReadOnly.Function)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore): IO[ReadOnly.Fixed] =
+                                            functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue match {
         case newValue: Value.Remove =>
@@ -112,11 +113,11 @@ object ApplyMerger {
           FunctionMerger(newValue.toMemory(oldKeyValue.key), oldKeyValue)
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newApplies: Slice[Value.Apply],
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): IO[ReadOnly.Fixed] =
+                                         functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     newApplies.foldLeftIO((oldKeyValue, 0)) {
       case ((oldMerged, count), newApply) =>
         oldMerged match {

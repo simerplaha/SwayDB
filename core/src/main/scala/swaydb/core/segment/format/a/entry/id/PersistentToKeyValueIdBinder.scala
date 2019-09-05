@@ -19,9 +19,10 @@
 
 package swaydb.core.segment.format.a.entry.id
 
-import scala.annotation.implicitNotFound
 import swaydb.core.data.Persistent
 import swaydb.macros.SealedList
+
+import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for PersistentToKeyValueIdBinder of type ${T}")
 private[core] sealed trait PersistentToKeyValueIdBinder[T] {
@@ -29,8 +30,8 @@ private[core] sealed trait PersistentToKeyValueIdBinder[T] {
 }
 
 /**
-  * Glue objects to map [[Persistent]] key-values to [[KeyValueId]].
-  */
+ * Glue objects to map [[Persistent]] key-values to [[KeyValueId]].
+ */
 private[core] object PersistentToKeyValueIdBinder {
 
   implicit object RemoveBinder extends PersistentToKeyValueIdBinder[Persistent.Remove] {

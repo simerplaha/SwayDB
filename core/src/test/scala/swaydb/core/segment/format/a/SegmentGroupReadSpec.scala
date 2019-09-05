@@ -21,26 +21,23 @@ package swaydb.core.segment.format.a
 
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
-
-import scala.concurrent.duration._
-import swaydb.core.{TestBase, TestData}
 import swaydb.core.CommonAssertions._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
+import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.IOAssert._
-import swaydb.core.data.{Memory, Persistent, Transient}
-import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
-import swaydb.core.queue.{Command, KeyValueLimiter}
+import swaydb.core.group.compression.GroupByInternal
+import swaydb.core.segment.format.a.block.SegmentBlock
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
 class SegmentGroupReadSpec0 extends SegmentGroupReadSpec {
-  val keyValuesCount = 100000
+  val keyValuesCount = 1000
 }
 
 class SegmentGroupReadSpec1 extends SegmentGroupReadSpec {
-  val keyValuesCount = 100000
+  val keyValuesCount = 1000
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -49,7 +46,7 @@ class SegmentGroupReadSpec1 extends SegmentGroupReadSpec {
 }
 
 class SegmentGroupReadSpec2 extends SegmentGroupReadSpec {
-  val keyValuesCount = 100000
+  val keyValuesCount = 1000
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -58,7 +55,7 @@ class SegmentGroupReadSpec2 extends SegmentGroupReadSpec {
 }
 
 class SegmentGroupReadSpec3 extends SegmentGroupReadSpec {
-  val keyValuesCount = 100000
+  val keyValuesCount = 1000
   override def inMemoryStorage = true
 }
 
@@ -70,92 +67,69 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
 
   //  override def deleteFiles = false
 
-  "read for randomly compressed key-values" in {
-    implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
-      Some(
-        KeyValueGroupingStrategyInternal.Count(
-          count = (keyValuesCount / 50) max 10,
-          groupCompression =
-            Some(
-              GroupGroupingStrategyInternal.Count(
-                count = 20,
-                indexCompression = randomCompression(),
-                valueCompression = randomCompression()
-              )
-            ),
-          indexCompression = randomCompression(),
-          valueCompression = randomCompression()
-        )
-      )
+  "read" in {
+    runThis(1.times) {
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupBy(keyValuesCount))
 
-    //    println(compressionType)
+      val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(0), addGroups = false)
+      val segment = TestSegment(keyValues).runRandomIO.right.value
 
-    val keyValues = randomKeyValues(keyValuesCount, startId = Some(0))
-    val segment = TestSegment(keyValues).assertGet
+      val segments =
+        segment.put(
+          newKeyValues = keyValues,
+          minSegmentSize = 100.mb,
+          removeDeletes = false,
+          createdInLevel = 0,
+          valuesConfig = keyValues.last.valuesConfig,
+          sortedIndexConfig = keyValues.last.sortedIndexConfig,
+          binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+          hashIndexConfig = keyValues.last.hashIndexConfig,
+          bloomFilterConfig = keyValues.last.bloomFilterConfig,
+          segmentConfig = SegmentBlock.Config.random
+        ).runRandomIO.right.value
 
-    val segments =
-      segment.put(
-        newKeyValues = keyValues.toMemory,
-        minSegmentSize = 100.mb,
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
-        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-        compressDuplicateValues = true,
-        removeDeletes = false,
-        createdInLevel = 0,
-        maxProbe = TestData.maxProbe
-      ).assertGet
-    //    printGroupHierarchy(segments)
+      printGroupHierarchy(segments)
 
-    segments should have size 1
-    val newSegment = segments.head
-    assertReads(keyValues, newSegment)
+      segments should have size 1
+      val newSegment = segments.head
+      assertReads(keyValues, newSegment)
+    }
   }
 
   "Nested groups" should {
     "read their group's key-values only" in {
-      val group1KeyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false, startId = Some(0))
+      val group1KeyValues = randomizedKeyValues(keyValuesCount, addGroups = false, startId = Some(0))
       val group1 = randomGroup(group1KeyValues)
 
-      val group2KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group1.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+      val group2KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group1.maxKey.maxKey.readInt() + 1), addGroups = false)
       val group2 = randomGroup((Slice(group1) ++ group2KeyValues).updateStats)
 
-      val group3KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group2.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+      val group3KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group2.maxKey.maxKey.readInt() + 1), addGroups = false)
       val group3 = randomGroup((Slice(group2) ++ group3KeyValues).updateStats)
 
-      val group4KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group3.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+      val group4KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group3.maxKey.maxKey.readInt() + 1), addGroups = false)
       val group4 = randomGroup((Slice(group3) ++ group4KeyValues).updateStats)
 
-      val group5KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group4.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+      val group5KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group4.maxKey.maxKey.readInt() + 1), addGroups = false)
       val group5 = randomGroup((Slice(group4) ++ group5KeyValues).updateStats)
 
       //group5 is the root Group.
       val allGroupKeyValues = group1KeyValues ++ group2KeyValues ++ group3KeyValues ++ group4KeyValues ++ group5KeyValues
 
-      //write the root Group
-      val (bytes, deadline) =
-        SegmentWriter.write(
-          keyValues = Slice(group5),
-          createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
+      val readKeyValues = writeAndRead(Slice(group5)).runRandomIO.right.value
 
-      readAll(bytes).assertGet shouldBe allGroupKeyValues
+      readKeyValues shouldBe allGroupKeyValues
     }
   }
 
   //  "Decompressed group" should {
-  //    "eventually getFromHashIndex uncompressed and update cache" in {
-  //      val keyValues = randomizedKeyValues(100, addRandomGroups = false)
+  //    "eventually value uncompressed and update cache" in {
+  //      val keyValues = randomizedKeyValues(100, addGroups = false)
   //
-  //      implicit val keyValueLimiter = KeyValueLimiter(100.bytes, 5.second)
+  //      implicit val memorySweeper = MemorySweeper(100.bytes, 5.second)
   //
   //      val group: Transient.Group = randomGroup(keyValues)
-  //      val segment = TestSegment(Slice(group)).assertGet
+  //      val segment = TestSegment(Slice(group)).runIO
   //
   //      if (persistent) {
   //        segment.isCacheEmpty shouldBe true
@@ -163,7 +137,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
   //        println(segment.segmentSize)
   //
   //        println("*** Reading single key-value ***")
-  //        segment.getFromHashIndex(keyValues.head.key).assertGet shouldBe keyValues.head
+  //        segment.get(keyValues.head.key).runIO shouldBe keyValues.head
   //        assertPostReader()
   //
   //        println("*** Reading all key-values ***")
@@ -179,7 +153,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
   //            group.isIndexDecompressed shouldBe true
   //            segment.isCacheEmpty shouldBe false
   //          }
-  //          println("Checking group should eventually getFromHashIndex removed")
+  //          println("Checking group should eventually value removed")
   //          eventual(10.seconds) {
   //            segment.isCacheEmpty shouldBe true
   //          }
@@ -190,7 +164,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
   //        println(segment.segmentSize)
   //
   //        println("*** Reading single key-value ***")
-  //        segment.getFromHashIndex(keyValues.head.key).assertGet shouldBe keyValues.head
+  //        segment.get(keyValues.head.key).runIO shouldBe keyValues.head
   //        assertPostReader()
   //
   //        println("*** Reading all key-values ***")
@@ -215,7 +189,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
   //        }
   //      }
   //
-  //      keyValueLimiter.terminate()
+  //      memorySweeper.terminate()
   //    }
   //  }
 }

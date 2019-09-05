@@ -19,81 +19,39 @@
 
 package swaydb.core.segment.merge
 
-import scala.util.Random
-import swaydb.core.{TestBase, TestData}
+import swaydb.core.CommonAssertions._
+import swaydb.core.TestBase
+import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
+import swaydb.core.group.compression.GroupByInternal
+import swaydb.core.segment.format.a.block._
 import swaydb.core.util.Benchmark
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
 
 class SegmentMergeStressSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
-  val keyValueCount = 100
-  val maxIteration = 5
+  val keyValueCount = 1000
+  val maxIteration = 10
 
   /**
-    * Result: Merging of grouped key-values is expensive and should be deferred to lower levels.
-    *
-    * Deeply nested groups should be avoided. So [[GroupGroupingStrategyInternal]] should be avoided.
-    */
+   * Result: Merging of grouped key-values is expensive and should be deferred to lower levels.
+   *
+   * Deeply nested groups should be avoided. So [[GroupByInternal.Groups]] should be avoided.
+   */
   "Randomly merging overlapping key-values" should {
     "be performant" in {
       (1 to maxIteration).foldLeft(Slice.empty[KeyValue.ReadOnly]) {
         case (oldKeyValues, index) =>
           println(s"Iteration: $index/$maxIteration")
 
-          val newKeyValues = randomizedKeyValues(count = keyValueCount, startId = Some(index * 200))
+          val newKeyValues = randomizedKeyValues(count = keyValueCount, startId = Some(index * 200), addGroups = false)
 
-          val groupGroupingStrategy =
-            if (Random.nextBoolean())
-              Some(
-                GroupGroupingStrategyInternal.Count(
-                  count = randomInt(5) + 1,
-                  indexCompression = randomCompression(),
-                  valueCompression = randomCompression()
-                )
-              )
-            else if (Random.nextBoolean())
-              Some(
-                GroupGroupingStrategyInternal.Size(
-                  size = randomInt(500) + 200,
-                  indexCompression = randomCompression(),
-                  valueCompression = randomCompression()
-                )
-              )
-            else
-              None
-
-          implicit val compression =
-            if (Random.nextBoolean())
-              Some(
-                KeyValueGroupingStrategyInternal.Count(
-                  count = newKeyValues.size / randomInt(10) + 1,
-                  groupCompression = groupGroupingStrategy,
-                  indexCompression = randomCompression(),
-                  valueCompression = randomCompression()
-                )
-              )
-            else if (Random.nextBoolean())
-              Some(
-                KeyValueGroupingStrategyInternal.Size(
-                  size = newKeyValues.last.stats.segmentSizeWithoutFooter / randomInt(10) + 1,
-                  groupCompression = groupGroupingStrategy,
-                  indexCompression = randomCompression(),
-                  valueCompression = randomCompression()
-                )
-              )
-            else
-              None
+          implicit val groupGroupBy = randomGroupByOption(10)
 
           val mergedKeyValues =
             Benchmark("Merge performance") {
@@ -101,20 +59,21 @@ class SegmentMergeStressSpec extends TestBase {
                 newKeyValues = newKeyValues,
                 oldKeyValues = oldKeyValues,
                 minSegmentSize = 100.mb,
-                maxProbe = TestData.maxProbe,
                 isLastLevel = false,
                 forInMemory = false,
-                bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-                resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-                minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-                hashIndexCompensation = TestData.hashIndexCompensation,
-                enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-                compressDuplicateValues = true
-              ).assertGet
+                createdInLevel = randomIntMax(),
+                valuesConfig = ValuesBlock.Config.random,
+                sortedIndexConfig = SortedIndexBlock.Config.random,
+                binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+                hashIndexConfig = HashIndexBlock.Config.random,
+                bloomFilterConfig = BloomFilterBlock.Config.random,
+                segmentIO = SegmentIO.random
+              ).get
             }
+
           mergedKeyValues should have size 1
           val head = mergedKeyValues.head.toSlice
-          println(head.size)
+          println("Merged key-values: " + head.size)
           head
       }
     }

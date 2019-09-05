@@ -19,16 +19,18 @@
 
 package swaydb.core.map.timer
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
-import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicLong
+
+import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Map.ExceptionHandler
+import swaydb.IO
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
-import swaydb.core.queue.FileLimiter
-import swaydb.data.IO
+import swaydb.core.util.SkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -37,13 +39,13 @@ private[core] object PersistentTimer extends LazyLogging {
   private implicit object TimerSkipListMerger extends SkipListMerger[Slice[Byte], Slice[Byte]] {
     override def insert(insertKey: Slice[Byte],
                         insertValue: Slice[Byte],
-                        skipList: ConcurrentSkipListMap[Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                        skipList: SkipList.Concurrent[Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore): Unit =
       throw new IllegalAccessException("Timer does not require skipList merger.")
 
     override def insert(entry: MapEntry[Slice[Byte], Slice[Byte]],
-                        skipList: ConcurrentSkipListMap[Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                        skipList: SkipList.Concurrent[Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore): Unit =
       throw new IllegalAccessException("Timer does not require skipList merger.")
@@ -56,19 +58,19 @@ private[core] object PersistentTimer extends LazyLogging {
                                        timeOrder: TimeOrder[Slice[Byte]],
                                        functionStore: FunctionStore,
                                        writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                       reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[PersistentTimer] = {
-    implicit val limiter = FileLimiter.empty
+                                       reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentTimer] = {
+    implicit val limiter = FileSweeper.Disabled
+    implicit val memorySweeper = MemorySweeper.Disabled
 
     Map.persistent[Slice[Byte], Slice[Byte]](
       folder = path,
       mmap = mmap,
       flushOnOverflow = true,
       fileSize = flushCheckpointSize,
-      initialWriteCount = 0,
       dropCorruptedTailEntries = false
     ).map(_.item) flatMap {
       map =>
-        map.headValue() match {
+        map.skipList.head() match {
           case Some(usedID) =>
             val startId = usedID.readLong()
             map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(startId + mod))) flatMap {
@@ -82,7 +84,7 @@ private[core] object PersistentTimer extends LazyLogging {
                     )
                   }
                 else
-                  IO.Failure(IO.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
+                  IO.Left(swaydb.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
             }
 
           case None =>
@@ -97,30 +99,30 @@ private[core] object PersistentTimer extends LazyLogging {
                     )
                   }
                 else
-                  IO.Failure(IO.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
+                  IO.Left(swaydb.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
             }
         }
     }
   }
 
   /**
-    * Stores next checkpoint time to Map.
-    *
-    * Why throw exceptions?
-    * Writes are ALWAYS expected to succeed but unexpected failures can still occur.
-    * Since nextTime is called for each written key-value having an IO wrapper
-    * for each [[PersistentTimer.next]] call can increase in-memory objects which can cause
-    * performance issues.
-    *
-    * Throwing exception on failure is temporarily solution since failures are not expected and if failure does occur
-    * it would be due to file system permission issue.
-    *
-    * Possibly needs a better solution.
-    */
+   * Stores next checkpoint time to Map.
+   *
+   * Why throw exceptions?
+   * Writes are ALWAYS expected to succeed but unexpected failures can still occur.
+   * Since nextTime is called for each written key-value having an IO wrapper
+   * for each [[PersistentTimer.next]] call can increase in-memory objects which can cause
+   * performance issues.
+   *
+   * Throwing exception on failure is temporarily solution since failures are not expected and if failure does occur
+   * it would be due to file system permission issue.
+   *
+   * Possibly needs a better solution.
+   */
   private[timer] def checkpoint(nextTime: Long,
                                 mod: Long,
                                 map: PersistentMap[Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) =
-    map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(nextTime + mod))) onFailureSideEffect {
+    map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(nextTime + mod))) onLeftSideEffect {
       failed =>
         val message = s"Failed to write timer entry: $nextTime"
         logger.error(message, failed.exception)
@@ -148,6 +150,6 @@ private[core] class PersistentTimer(mod: Long,
       Time(nextTime)
     }
 
-  override def close: IO[Unit] =
+  override def close: IO[swaydb.Error.Map, Unit] =
     map.close()
 }

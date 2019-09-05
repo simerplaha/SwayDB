@@ -22,7 +22,7 @@ package swaydb.configs.level
 import java.util.concurrent.Executors
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.api.grouping.KeyValueGroupingStrategy
+import swaydb.data.api.grouping.GroupBy
 import swaydb.data.compaction.{CompactionExecutionContext, Throttle}
 import swaydb.data.config._
 
@@ -43,30 +43,35 @@ object DefaultMemoryConfig {
     }
 
   /**
-    * Default configuration for 2 leveled Memory database.
-    */
+   * Default configuration for 2 leveled Memory database.
+   */
   def apply(mapSize: Int,
             segmentSize: Int,
-            bloomFilterFalsePositiveRate: Double,
+            mightContainFalsePositiveRate: Double,
             compressDuplicateValues: Boolean,
             deleteSegmentsEventually: Boolean,
-            groupingStrategy: Option[KeyValueGroupingStrategy],
+            keyValueGroupBy: Option[GroupBy.KeyValues],
             acceleration: LevelZeroMeter => Accelerator): SwayDBMemoryConfig =
     ConfigWizard
       .addMemoryLevel0(
         mapSize = mapSize,
+        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         acceleration = acceleration,
-        throttle = _ => Duration.Zero,
-        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
+        throttle = _ => Duration.Zero
       )
       .addMemoryLevel1(
         segmentSize = segmentSize,
-        pushForward = false,
-        applyGroupingOnCopy = false,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
-        groupingStrategy = groupingStrategy,
+        copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        mightContainIndex =
+          MightContainIndex.Enable(
+            falsePositiveRate = mightContainFalsePositiveRate,
+            minimumNumberOfKeys = 100,
+            updateMaxProbe = optimalMaxProbe => 1,
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
+            compression = _ => Seq.empty
+          ),
+        groupBy = keyValueGroupBy,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           _ =>

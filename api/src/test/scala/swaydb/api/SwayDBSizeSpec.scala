@@ -19,26 +19,24 @@
 
 package swaydb
 
+
 import swaydb.api.TestBaseEmbedded
-import swaydb.core.TestBase
-import swaydb.serializers.Default._
-import swaydb.core.IOAssert._
-import swaydb.core.CommonAssertions._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
-import swaydb.data.IO
+import swaydb.serializers.Default._
 
 class SwayDBSize_Persistent_Spec extends SwayDBSizeSpec {
   val keyValueCount: Int = 10000000
 
-  override def newDB(): Map[Int, String, IO] =
-    swaydb.persistent.Map[Int, String](dir = randomDir).assertGet
+  override def newDB(): Map[Int, String, IO.ApiIO] =
+    swaydb.persistent.Map[Int, String](dir = randomDir).right.value
 }
 
 class SwayDBSize_Memory_Spec extends SwayDBSizeSpec {
   val keyValueCount: Int = 10000000
 
-  override def newDB(): Map[Int, String, IO] =
-    swaydb.memory.Map[Int, String]().assertGet
+  override def newDB(): Map[Int, String, IO.ApiIO] =
+    swaydb.memory.Map[Int, String]().right.value
 }
 
 sealed trait SwayDBSizeSpec extends TestBaseEmbedded {
@@ -47,14 +45,14 @@ sealed trait SwayDBSizeSpec extends TestBaseEmbedded {
 
   override def deleteFiles = false
 
-  def newDB(): Map[Int, String, IO]
+  def newDB(): Map[Int, String, IO.ApiIO]
 
   "return the size of key-values" in {
     val db = newDB()
 
     (1 to keyValueCount) foreach {
       i =>
-        db.put(i, i.toString).assertGet
+        db.put(i, i.toString).right.value
     }
 
     db.size shouldBe keyValueCount

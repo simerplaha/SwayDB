@@ -19,40 +19,45 @@
 
 package swaydb.core.map.serializer
 
-import java.util.concurrent.ConcurrentSkipListMap
-import swaydb.core.data.Persistent
-import swaydb.core.data.Persistent
+
+import org.scalatest.OptionValues._
+import swaydb.core.CommonAssertions._
+import swaydb.IOValues._
+import swaydb.core.TestData._
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
+import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.Segment
+import swaydb.core.segment.format.a.block.SegmentIO
+import swaydb.core.util.SkipList
 import swaydb.core.{TestBase, TestLimitQueues}
-import swaydb.data.slice.Slice
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
+
 import scala.collection.JavaConverters._
-import swaydb.core.io.file.DBFile
 
 class AppendixMapEntrySpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
+  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
+  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeper
+  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def compression = randomGroupingStrategyOption(randomNextInt(1000))
+  implicit def compression = randomGroupByOption(randomNextInt(1000))
+  implicit def segmentIO: SegmentIO = SegmentIO.random
 
   val appendixReader = AppendixMapEntryReader(true, true)
-  val segment = TestSegment().assertGet
+  val segment = TestSegment().runRandomIO.right.value
 
   "MapEntryWriterAppendix & MapEntryReaderAppendix" should {
 
     "write Add segment" in {
       import AppendixMapEntryWriter.AppendixPutWriter
+      import swaydb.Error.Map.ExceptionHandler
       val entry = MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
 
       val slice = Slice.create[Byte](entry.entryBytesSize)
@@ -60,13 +65,13 @@ class AppendixMapEntrySpec extends TestBase {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import appendixReader.AppendixPutReader
-      MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](Reader(slice.drop(1))).assertGet shouldBe entry
+      MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice.drop(1))).runRandomIO.right.value.value shouldBe entry
 
       import appendixReader.AppendixReader
-      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice)).assertGet
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.right.value.value
       readEntry shouldBe entry
 
-      val skipList = new ConcurrentSkipListMap[Slice[Byte], Segment](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
       readEntry applyTo skipList
       val scalaSkipList = skipList.asScala
 
@@ -78,6 +83,7 @@ class AppendixMapEntrySpec extends TestBase {
 
     "write Remove Segment" in {
       import AppendixMapEntryWriter.AppendixRemoveWriter
+      import swaydb.Error.Map.ExceptionHandler
       val entry = MapEntry.Remove[Slice[Byte]](1)
 
       val slice = Slice.create[Byte](entry.entryBytesSize)
@@ -85,26 +91,26 @@ class AppendixMapEntrySpec extends TestBase {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import appendixReader.AppendixRemoveReader
-      MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](Reader(slice.drop(1))).assertGet.key shouldBe entry.key
+      MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](Reader[swaydb.Error.Map](slice.drop(1))).runRandomIO.right.value.value.key shouldBe entry.key
 
       import appendixReader.AppendixReader
-      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice)).assertGet
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.right.value.value
       readEntry shouldBe entry
 
-      val skipList = new ConcurrentSkipListMap[Slice[Byte], Segment](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
       readEntry applyTo skipList
       skipList shouldBe empty
-
     }
 
     "write and remove key-value" in {
       import AppendixMapEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
+      import swaydb.Error.Map.ExceptionHandler
 
-      val segment1 = TestSegment().assertGet
-      val segment2 = TestSegment().assertGet
-      val segment3 = TestSegment().assertGet
-      val segment4 = TestSegment().assertGet
-      val segment5 = TestSegment().assertGet
+      val segment1 = TestSegment().runRandomIO.right.value
+      val segment2 = TestSegment().runRandomIO.right.value
+      val segment3 = TestSegment().runRandomIO.right.value
+      val segment4 = TestSegment().runRandomIO.right.value
+      val segment5 = TestSegment().runRandomIO.right.value
 
       val entry: MapEntry[Slice[Byte], Segment] =
         (MapEntry.Put[Slice[Byte], Segment](segment1.minKey, segment1): MapEntry[Slice[Byte], Segment]) ++
@@ -120,10 +126,10 @@ class AppendixMapEntrySpec extends TestBase {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import appendixReader.AppendixReader
-      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice)).assertGet
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.right.value.value
       readEntry shouldBe entry
 
-      val skipList = new ConcurrentSkipListMap[Slice[Byte], Segment](keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
       readEntry applyTo skipList
       val scalaSkipList = skipList.asScala
       assertSkipList()
@@ -132,14 +138,14 @@ class AppendixMapEntrySpec extends TestBase {
         scalaSkipList should have size 3
         scalaSkipList.get(segment1.minKey) shouldBe empty
         scalaSkipList.get(segment2.minKey) shouldBe empty
-        scalaSkipList.get(segment3.minKey).assertGet shouldBe segment3
-        scalaSkipList.get(segment4.minKey).assertGet shouldBe segment4
-        scalaSkipList.get(segment5.minKey).assertGet shouldBe segment5
+        scalaSkipList.get(segment3.minKey).value shouldBe segment3
+        scalaSkipList.get(segment4.minKey).value shouldBe segment4
+        scalaSkipList.get(segment5.minKey).value shouldBe segment5
       }
       //write skip list to bytes should result in the same skip list as before
       import appendixReader.AppendixReader
       val bytes = MapCodec.write[Slice[Byte], Segment](skipList)
-      val crcEntries = MapCodec.read[Slice[Byte], Segment](bytes, false).assertGet.item.assertGet
+      val crcEntries = MapCodec.read[Slice[Byte], Segment](bytes, false).runRandomIO.right.value.item.value
       skipList.clear()
       crcEntries applyTo skipList
       assertSkipList()

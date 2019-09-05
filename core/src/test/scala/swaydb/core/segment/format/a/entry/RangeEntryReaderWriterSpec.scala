@@ -20,14 +20,14 @@
 package swaydb.core.segment.format.a.entry
 
 import org.scalatest.WordSpec
+import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.{TestData, TestTimer}
-import swaydb.core.IOAssert._
+import swaydb.core.TestTimer
 import swaydb.core.data.Transient
 import swaydb.core.data.Value.{FromValue, RangeValue}
-import swaydb.core.io.reader.Reader
+import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -45,7 +45,19 @@ class RangeEntryReaderWriterSpec extends WordSpec {
       val entry = randomRangeKeyValue(from = fromKey, to = toKey, randomFromValueOption()(TestTimer.random), randomRangeValue()(TestTimer.random)).toTransient
       //      println("write: " + entry)
 
-      val read = EntryReader.read(Reader(entry.indexEntryBytes), entry.valueEntryBytes.map(Reader(_)).getOrElse(Reader.empty), 0, 0, 0, None).assertGet
+      val read =
+        EntryReader.read(
+          indexEntry = entry.indexEntryBytes.dropIntUnsigned().right.value,
+          mightBeCompressed = entry.stats.hasPrefixCompression,
+          valueCache = entry.valueEntryBytes.headOption.map(buildSingleValueCache),
+          indexOffset = 0,
+          nextIndexOffset = 0,
+          nextIndexSize = 0,
+          isNormalised = false,
+          hasAccessPositionIndex = entry.sortedIndexConfig.enableAccessPositionIndex,
+          previous = None
+        ).runRandomIO.right.value
+
       //      println("read:  " + read)
       read shouldBe entry
     }
@@ -53,7 +65,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
 
   "write and read range entry with other entries" in {
     runThisParallel(1000.times) {
-      val keyValues = randomizedKeyValues(count = 1, addRandomGroups = false)
+      val keyValues = randomizedKeyValues(count = 1, addPut = true, addGroups = false)
       val previous = keyValues.head
 
       val fromKey = keyValues.last.key.readInt() + 1
@@ -64,25 +76,47 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           toKey = toKey,
           fromValue = randomFromValueOption()(TestTimer.random),
           rangeValue = randomRangeValue()(TestTimer.random),
-          falsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
           previous = Some(previous)
         )
 
       //      println("previous: " + previous)
       //      println("next: " + next)
 
-      val valueBytes = Slice((previous.valueEntryBytes ++ next.valueEntryBytes).toArray)
+      val valueBytes = (previous.valueEntryBytes ++ next.valueEntryBytes).flatten.toSlice
 
-      val previousRead = EntryReader.read(Reader(previous.indexEntryBytes), Reader(valueBytes), 0, 0, 0, None).assertGet
+      val previousRead =
+        EntryReader.read(
+          indexEntry = previous.indexEntryBytes.dropIntUnsigned().right.value,
+          mightBeCompressed = false,
+          isNormalised = false,
+          valueCache = Some(buildSingleValueCache(valueBytes)),
+          indexOffset = 0,
+          nextIndexOffset = 0,
+          nextIndexSize = 0,
+          hasAccessPositionIndex = previous.sortedIndexConfig.enableAccessPositionIndex,
+          previous = None
+        ).runRandomIO.right.value
+
       previousRead shouldBe previous
 
-      val nextRead = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, -1, 0, Some(previousRead)).assertGet
-      //      println("nextRead:  " + nextRead)
-      //      println
+      val nextRead =
+        EntryReader.read(
+          indexEntry = next.indexEntryBytes.dropIntUnsigned().right.value,
+          mightBeCompressed = next.stats.hasPrefixCompression,
+          isNormalised = false,
+          valueCache = Some(buildSingleValueCache(valueBytes)),
+          indexOffset = 0,
+          nextIndexOffset = 0,
+          nextIndexSize = 0,
+          hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
+          previous = Some(previousRead)
+        ).runRandomIO.right.value
+
       nextRead shouldBe next
     }
   }

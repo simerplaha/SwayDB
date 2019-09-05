@@ -26,23 +26,23 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
 import swaydb.core.TestData._
-import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
-import swaydb.core.actor.WiredActor
-import swaydb.core.data.{KeyValue, Memory, Time}
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.{BufferCleaner, DBFile, IOEffect}
+import swaydb.core.TestLimitQueues.{fileSweeper, _}
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
+import swaydb.core.data.{Memory, Time, Transient}
+import swaydb.core.group.compression.GroupByInternal
+import swaydb.core.io.file.{BlockCache, BufferCleaner, DBFile, IOEffect}
 import swaydb.core.io.reader.FileReader
-import swaydb.core.level.compaction.{CompactionOrdering, CompactionStrategy, Compactor, CompactorState, DefaultCompactionOrdering}
+import swaydb.core.level.compaction._
+import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
-import swaydb.core.util.IDGenerator
-import swaydb.data.IO
+import swaydb.core.segment.format.a.block._
+import swaydb.core.util.{BlockCacheFileIDGenerator, Futures, IDGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
@@ -50,17 +50,18 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
+import swaydb.{IO, WiredActor}
 
 import scala.concurrent.duration._
 import scala.util.Random
 
 trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Eventually {
 
-  BufferCleaner.initialiseCleaner
+  BufferCleaner.initialiseCleaner(TestData.scheduler)
 
   implicit val idGenerator = IDGenerator()
 
-  private val currentLevelId = new AtomicInteger(Byte.MaxValue + 1)
+  val currentLevelId = new AtomicInteger(Byte.MaxValue + 1)
 
   private def nextLevelId: Int = {
     //LevelNumber cannot be greater than 1 byte. If more than one byte is used, reset.
@@ -202,10 +203,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   //    walkDeleteFolder(testDir)
   //  }
 
-  override protected def afterEach(): Unit = {
+  override protected def afterEach(): Unit =
     walkDeleteFolder(testDir)
-    currentLevelId set 0
-  }
 
   object TestMap {
     def apply(keyValues: Slice[Memory.SegmentResponse],
@@ -213,8 +212,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               path: Path = testMapFile,
               flushOnOverflow: Boolean = false,
               mmap: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                    keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                    fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+                                    memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper,
+                                    fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper,
                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[Slice[Byte], Memory.SegmentResponse] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
@@ -231,9 +230,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
             folder = path,
             mmap = mmap,
             flushOnOverflow = flushOnOverflow,
-            initialWriteCount = 0,
             fileSize = fileSize
-          ).assertGet
+          ).runRandomIO.right.value
 
       keyValues foreach {
         keyValue =>
@@ -244,31 +242,31 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   }
 
   object TestSegment {
-    def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
+    def apply(keyValues: Slice[Transient] = randomizedKeyValues(addPut = true)(TestTimer.Incremental(), KeyOrder.default, memorySweeper),
               path: Path = testSegmentFile,
-              bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
-              enableRangeFilterAndIndex: Boolean = TestData.enableRangeFilterAndIndex)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
-                                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
+              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                               memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper,
+                                                                               fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper,
+                                                                               timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                               blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
+                                                                               segmentIO: SegmentIO = SegmentIO.random,
+                                                                               groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(randomIntMax(1000))): IO[swaydb.Error.Segment, Segment] =
       if (levelStorage.memory)
         Segment.memory(
           path = path,
+          segmentId = IOEffect.fileId(path).get._1,
           keyValues = keyValues,
-          createdInLevel = 0,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          enableRangeFilterAndIndex = enableRangeFilterAndIndex
+          createdInLevel = 0
         )
       else
         Segment.persistent(
           path = path,
+          segmentId = IOEffect.fileId(path).get._1,
           createdInLevel = 0,
+          segmentConfig = segmentConfig,
           mmapReads = levelStorage.mmapSegmentsOnRead,
           mmapWrites = levelStorage.mmapSegmentsOnWrite,
-          keyValues = keyValues,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          enableRangeFilterAndIndex = enableRangeFilterAndIndex
+          keyValues = keyValues
         )
   }
 
@@ -279,7 +277,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         //        val replyTo = TestActor[PushSegmentsResponse]()
         //        level ! PushSegments(segments, replyTo)
         ???
-        //        replyTo.getMessage(5.seconds).result.assertGet
+        //        replyTo.getMessage(5.seconds).result.runIO
         //        level.segmentsCount() shouldBe segments.size
         level
       }
@@ -304,43 +302,41 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               nextLevel: Option[NextLevel] = None,
               pushForward: Boolean = false,
               throttle: LevelMeter => Throttle = testDefaultThrottle,
-              bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
-              resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
-              minimumNumberOfKeyForHashIndex: Int = TestData.minimumNumberOfKeyForHashIndex,
-              enableRangeFilterAndIndex: Boolean = TestData.enableRangeFilterAndIndex,
-              hashIndexCompensation: Int => Int = TestData.hashIndexCompensation,
-              compressDuplicateValues: Boolean = true,
               deleteSegmentsEventually: Boolean = false,
               applyGroupingOnCopy: Boolean = false,
-              maxProbe: Int = TestData.maxProbe,
+              valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+              sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+              binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+              hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+              bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random,
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                      keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                      fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+                                                      memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper,
+                                                      fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper,
+                                                      blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                      compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategy(randomNextInt(1000))): Level =
+                                                      compression: Option[GroupByInternal.KeyValues] = randomGroupBy(randomNextInt(1000))): Level =
       Level(
-        levelStorage = levelStorage,
         segmentSize = segmentSize,
+        levelStorage = levelStorage,
+        appendixStorage = appendixStorage,
         nextLevel = nextLevel,
         pushForward = pushForward,
-        appendixStorage = appendixStorage,
         throttle = throttle,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
-        compressDuplicateValues = compressDuplicateValues,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        maxProbe = maxProbe,
-        applyGroupingOnCopy = applyGroupingOnCopy
-      ) flatMap {
+        segmentConfig = segmentConfig
+      ).flatMap {
         level =>
           level.putKeyValuesTest(keyValues) map {
             _ =>
               level
           }
-      } assertGet
+      }.right.value
   }
 
   object TestLevelZero {
@@ -349,66 +345,82 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               mapSize: Long = mapSize,
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
               throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                               keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                                               memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                               fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): LevelZero =
+                                                                               fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper): LevelZero =
       LevelZero(
         mapSize = mapSize,
         storage = level0Storage,
         nextLevel = nextLevel,
         throttle = throttle,
         acceleration = brake,
-      ).assertGet
+      ).runRandomIO.right.value
   }
 
-
   def createFile(bytes: Slice[Byte]): Path =
-    IOEffect.write(bytes, testDir.resolve(nextSegmentId)).assertGet
+    IOEffect.write(testDir.resolve(nextSegmentId), bytes).runRandomIO.right.value
 
-  def createFileReader(path: Path): FileReader = {
-    implicit val limiter = fileOpenLimiter
+  def createRandomFileReader(path: Path): FileReader = {
+    implicit val limiter = fileSweeper
+    if (Random.nextBoolean())
+      createMMAPFileReader(path)
+    else
+      createFileChannelFileReader(path)
+  }
+
+  def createMMAPFileReader(bytes: Slice[Byte]): FileReader =
+    createMMAPFileReader(createFile(bytes))
+
+  def createMMAPFileReader(path: Path)(implicit blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): FileReader = {
+    implicit val limiter = fileSweeper
+    implicit val memorySweeper = TestLimitQueues.memorySweeper
     new FileReader(
-      if (Random.nextBoolean())
-        DBFile.channelRead(path, autoClose = true).assertGet
-      else
-        DBFile.mmapRead(path, autoClose = true).assertGet
+      DBFile.mmapRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
     )
   }
 
-  def createFileChannelReader(bytes: Slice[Byte]): FileReader =
-    createFileReader(createFile(bytes))
+  def createFileChannelFileReader(bytes: Slice[Byte]): FileReader =
+    createFileChannelFileReader(createFile(bytes))
+
+  def createFileChannelFileReader(path: Path)(implicit blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): FileReader = {
+    implicit val limiter = fileSweeper
+    implicit val memorySweeper = TestLimitQueues.memorySweeper
+    new FileReader(
+      DBFile.channelRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+    )
+  }
+
+  def createRandomFileReader(bytes: Slice[Byte]): FileReader =
+    createRandomFileReader(createFile(bytes))
 
   /**
-    * Runs multiple asserts on individual levels and also one by one merges key-values from upper levels
-    * to lower levels and asserts the results are still the same.
-    *
-    * The tests written only need to define a 3 level test case and this function will create a 4 level database
-    * and run multiple passes for the test merging key-values from levels into lower levels asserting the results
-    * are the same after merge.
-    *
-    * Note: Tests for decremental time is not required because in reality upper Level cannot have lower time key-values
-    * that are not merged into lower Level already. So there will never be a situation where upper Level's keys are
-    * ignored completely due to it having a lower or equal time to lower Level. If it has a lower or same time this means
-    * that it has already been merged into lower Levels already making the upper Level's read always valid.
-    */
-  def assertLevel(level0KeyValues: (Iterable[Memory], Iterable[Memory], TestTimer) => Iterable[Memory] = (_, _, _) => Iterable.empty,
-                  assertLevel0: (Iterable[Memory], Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _, _) => (),
-                  level1KeyValues: (Iterable[Memory], TestTimer) => Iterable[Memory] = (_, _) => Iterable.empty,
-                  assertLevel1: (Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _) => (),
-                  level2KeyValues: TestTimer => Iterable[Memory] = _ => Iterable.empty,
-                  assertLevel2: (Iterable[Memory], LevelRef) => Unit = (_, _) => (),
-                  assertAllLevels: (Iterable[Memory], Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _, _) => (),
+   * Runs multiple asserts on individual levels and also one by one merges key-values from upper levels
+   * to lower levels and asserts the results are still the same.
+   *
+   * The tests written only need to define a 3 level test case and this function will create a 4 level database
+   * and run multiple passes for the test merging key-values from levels into lower levels asserting the results
+   * are the same after merge.
+   *
+   * Note: Tests for decremental time is not required because in reality upper Level cannot have lower time key-values
+   * that are not merged into lower Level already. So there will never be a situation where upper Level's keys are
+   * ignored completely due to it having a lower or equal time to lower Level. If it has a lower or same time thi®s means
+   * that it has already been merged into lower Levels already making the upper Level's read always valid.
+   */
+  def assertLevel(level0KeyValues: (Slice[Memory], Slice[Memory], TestTimer) => Slice[Memory] = (_, _, _) => Slice.empty,
+                  assertLevel0: (Slice[Memory], Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _, _) => (),
+                  level1KeyValues: (Slice[Memory], TestTimer) => Slice[Memory] = (_, _) => Slice.empty,
+                  assertLevel1: (Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _) => (),
+                  level2KeyValues: TestTimer => Slice[Memory] = _ => Slice.empty,
+                  assertLevel2: (Slice[Memory], LevelRef) => Unit = (_, _) => (),
+                  assertAllLevels: (Slice[Memory], Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _, _) => (),
                   throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                                               groupBy: Option[GroupByInternal.KeyValues]): Unit = {
 
     def iterationMessage =
       s"Thread: ${Thread.currentThread().getId} - throttleOn: $throttleOn"
 
-    implicit val compactionStrategy: CompactionStrategy[CompactorState] =
-      Compactor
-
-    implicit val compactionOrdering: CompactionOrdering =
-      DefaultCompactionOrdering
+    implicit val compactionStrategy: Compactor[ThrottleState] =
+      ThrottleCompactor
 
     println(iterationMessage)
 
@@ -418,9 +430,9 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     val testTimer: TestTimer = TestTimer.Incremental()
 
     /**
-      * If [[throttleOn]] is true then enable fast throttling
-      * so that this test covers as many scenarios as possible.
-      */
+     * If [[throttleOn]] is true then enable fast throttling
+     * so that this test covers as many scenarios as possible.
+     */
     val levelThrottle: LevelMeter => Throttle = if (throttleOn) _ => Throttle(Duration.Zero, randomNextInt(3) max 1) else _ => Throttle(Duration.Zero, 0)
     val levelZeroThrottle: LevelZeroMeter => FiniteDuration = if (throttleOn) _ => Duration.Zero else _ => 365.days
 
@@ -432,12 +444,11 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     val level1 = TestLevel(nextLevel = Some(level2), throttle = levelThrottle)
     val level0 = TestLevelZero(nextLevel = Some(level1), throttle = levelZeroThrottle)
 
-    val compaction: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+    val compaction: Option[WiredActor[Compactor[ThrottleState], ThrottleState]] =
       if (throttleOn)
-        CoreInitializer.startCompaction(
+        CoreInitializer.initialiseCompaction(
           zero = level0,
-          executionContexts = CompactionExecutionContext.Create(TestExecutionContext.executionContext) +: List.fill(4)(CompactionExecutionContext.Shared),
-          copyForwardAllOnStart = randomBoolean()
+          executionContexts = CompactionExecutionContext.Create(TestExecutionContext.executionContext) +: List.fill(4)(CompactionExecutionContext.Shared)
         ) get
       else
         None
@@ -461,7 +472,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     val level2Assert: LevelRef => Unit = assertLevel2(level0KV, _)
     val levelAllAssert: LevelRef => Unit = assertAllLevels(level0KV, level1KV, level2KV, _)
 
-    def runAsserts(asserts: Seq[((Iterable[Memory], LevelRef => Unit), (Iterable[Memory], LevelRef => Unit), (Iterable[Memory], LevelRef => Unit), (Iterable[Memory], LevelRef => Unit))]) =
+    def runAsserts(asserts: Seq[((Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit))]) =
       asserts.foldLeft(1) {
         case (count, ((level0KeyValues, level0Assert), (level1KeyValues, level1Assert), (level2KeyValues, level2Assert), (level3KeyValues, level3Assert))) => {
           println(s"\nRunning assert: $count/${asserts.size} - $iterationMessage")
@@ -486,7 +497,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         }
       }
 
-    val asserts =
+    val asserts: Seq[((Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit), (Slice[Memory], LevelRef => Unit))] =
       if (throttleOn)
       //if throttle is only the top most Level's (Level0) assert should
       // be executed because throttle behaviour is unknown during runtime
@@ -498,14 +509,14 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                 (level0KV, level0Assert),
                 (level1KV, noAssert),
                 (level2KV, noAssert),
-                (Iterable.empty, noAssert),
+                (Slice.empty, noAssert),
               )
             else
               (
-                (Iterable.empty, level0Assert),
-                (Iterable.empty, noAssert),
-                (Iterable.empty, noAssert),
-                (Iterable.empty, noAssert),
+                (Slice.empty, level0Assert),
+                (Slice.empty, noAssert),
+                (Slice.empty, noAssert),
+                (Slice.empty, noAssert),
               )
           )
       else
@@ -514,44 +525,55 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
             (level0KV, level0Assert),
             (level1KV, level1Assert),
             (level2KV, level2Assert),
-            (Iterable.empty, noAssert),
+            (Slice.empty, noAssert),
           ),
           (
             (level0KV, level0Assert),
             (level1KV, level1Assert),
-            (Iterable.empty, level2Assert),
+            (Slice.empty, level2Assert),
             (level2KV, level2Assert),
           ),
           (
             (level0KV, level0Assert),
-            (Iterable.empty, level1Assert),
+            (Slice.empty, level1Assert),
             (level1KV, level1Assert),
             (level2KV, level2Assert),
           ),
           (
-            (Iterable.empty, level0Assert),
+            (Slice.empty, level0Assert),
             (level0KV, level0Assert),
             (level1KV, level1Assert),
             (level2KV, level2Assert),
           ),
           (
-            (Iterable.empty, level0Assert),
-            (Iterable.empty, level0Assert),
+            (Slice.empty, level0Assert),
+            (Slice.empty, level0Assert),
             (level0KV, level0Assert),
             (level1KV, level1Assert)
           ),
           (
-            (Iterable.empty, level0Assert),
-            (Iterable.empty, level0Assert),
-            (Iterable.empty, level0Assert),
+            (Slice.empty, level0Assert),
+            (Slice.empty, level0Assert),
+            (Slice.empty, level0Assert),
             (level0KV, level0Assert)
           )
         )
 
     runAsserts(asserts)
 
-    level0.delete.assertGet
-    compaction foreach Compactor.terminate
+    level0.delete.runRandomIO.right.value
+
+    val terminate =
+      compaction map {
+        compaction =>
+          compaction.askFlatMap {
+            (impl, state, actor) =>
+              impl.terminate(state, actor)
+          }
+      } getOrElse Futures.unit
+
+    import RunThis._
+    terminate.await
 
     if (!throttleOn)
       assertLevel(
@@ -566,29 +588,29 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       )
   }
 
-  private def doAssertOnLevel(level0KeyValues: Iterable[Memory],
+  private def doAssertOnLevel(level0KeyValues: Slice[Memory],
                               assertLevel0: LevelRef => Unit,
                               level0: LevelZero,
-                              level1KeyValues: Iterable[Memory],
+                              level1KeyValues: Slice[Memory],
                               assertLevel1: LevelRef => Unit,
                               level1: Level,
-                              level2KeyValues: Iterable[Memory],
+                              level2KeyValues: Slice[Memory],
                               assertLevel2: LevelRef => Unit,
                               level2: Level,
-                              level3KeyValues: Iterable[Memory],
+                              level3KeyValues: Slice[Memory],
                               assertLevel3: LevelRef => Unit,
                               level3: Level,
                               assertAllLevels: LevelRef => Unit,
                               assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                                                                 groupBy: Option[GroupByInternal.KeyValues]): Unit = {
     println("level3.putKeyValues")
-    if (level3KeyValues.nonEmpty) level3.putKeyValuesTest(level3KeyValues).assertGet
+    if (level3KeyValues.nonEmpty) level3.putKeyValuesTest(level3KeyValues).runRandomIO.right.value
     println("level2.putKeyValues")
-    if (level2KeyValues.nonEmpty) level2.putKeyValuesTest(level2KeyValues).assertGet
+    if (level2KeyValues.nonEmpty) level2.putKeyValuesTest(level2KeyValues).runRandomIO.right.value
     println("level1.putKeyValues")
-    if (level1KeyValues.nonEmpty) level1.putKeyValuesTest(level1KeyValues).assertGet
+    if (level1KeyValues.nonEmpty) level1.putKeyValuesTest(level1KeyValues).runRandomIO.right.value
     println("level0.putKeyValues")
-    if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).assertGet
+    if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).runRandomIO.right.value
     import RunThis._
 
     Seq(
@@ -631,27 +653,31 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     ).runThisRandomlyInParallel
   }
 
-  def assertSegment[T](keyValues: Slice[Memory],
-                       assert: (Slice[Memory], Segment) => T,
-                       testWithCachePopulated: Boolean = true,
+  def assertSegment[T](keyValues: Slice[Transient],
+                       assert: (Slice[Transient], Segment) => T,
+                       testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]) = {
-    val segment = TestSegment(keyValues.toTransient).assertGet
-    if (closeAfterCreate) segment.close.assertGet
+                                                          memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper,
+                                                          segmentIO: SegmentIO = SegmentIO.random,
+                                                          groupBy: Option[GroupByInternal.KeyValues]) = {
+    println(s"assertSegment - keyValues: ${keyValues.size}")
+    val segment = TestSegment(keyValues).right.value
+    if (closeAfterCreate) segment.close.right.value
 
     assert(keyValues, segment) //first
-    if (testWithCachePopulated) assert(keyValues, segment) //with cache populated
+    if (testAgainAfterAssert) assert(keyValues, segment) //with cache populated
 
     if (persistent) {
-      segment.clearCache()
+      segment.clearCachedKeyValues()
       assert(keyValues, segment) //same Segment but test with cleared cache.
 
       val segmentReopened = segment.reopen //reopen
+      if (closeAfterCreate) segmentReopened.close.right.value
       assert(keyValues, segmentReopened)
-      if (testWithCachePopulated) assert(keyValues, segmentReopened)
-      segmentReopened.close.assertGet
+      if (testAgainAfterAssert) assert(keyValues, segmentReopened)
+      segmentReopened.close.right.value
     } else {
-      segment.close.assertGet
+      segment.close.right.value
     }
   }
 }

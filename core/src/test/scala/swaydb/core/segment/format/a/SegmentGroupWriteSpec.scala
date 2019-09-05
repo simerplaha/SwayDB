@@ -21,26 +21,25 @@ package swaydb.core.segment.format.a
 
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
-import swaydb.core.{TestBase, TestData, TestTimer}
+import swaydb.core.CommonAssertions._
+import swaydb.IOValues._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.GroupByInternal
+import swaydb.core.segment.format.a.block.SegmentBlock
+import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.TestData._
-import swaydb.core.IOAssert._
-import scala.concurrent.duration._
 
-//@formatter:off
 class SegmentGroupWriteSpec0 extends SegmentGroupWriteSpec {
-  val keyValuesCount = 10000
+  val keyValuesCount = 1000
 }
 
 class SegmentGroupWriteSpec1 extends SegmentGroupWriteSpec {
-  val keyValuesCount = 10000
+  val keyValuesCount = 1000
   override def levelFoldersCount = 1
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -49,10 +48,9 @@ class SegmentGroupWriteSpec1 extends SegmentGroupWriteSpec {
 }
 
 class SegmentGroupWriteSpec2 extends SegmentGroupWriteSpec {
-  val keyValuesCount = 10000
+  val keyValuesCount = 1000
   override def inMemoryStorage = true
 }
-//@formatter:on
 
 sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with PrivateMethodTester {
 
@@ -62,7 +60,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
 
   "Deleting all Grouped key-values" should {
     "return empty Segments" in {
-      runThis(5.times) {
+      runThis(20.times, log = true) {
         val rightKeyValues = randomizedKeyValues(keyValuesCount)
         //add another head key-value that is used to a merge split to occur.
         val mergePut = randomPutKeyValue(rightKeyValues.head.key.readInt() - 1).toTransient
@@ -70,30 +68,28 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
         //all key-values to remove and assert
         val keyValues = (Slice(mergePut) ++ rightKeyValues).updateStats
 
-        implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = Some(randomGroupingStrategy(keyValuesCount))
-        val segment = TestSegment(keyValues).assertGet
+        implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupBy(keyValuesCount))
+        val segment = TestSegment(keyValues).right.value
 
         //write a head key-values so that it triggers merging and grouping
         val groupedSegments =
           segment.put(
             newKeyValues = Slice(mergePut.toMemory),
             minSegmentSize = 10.mb,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            compressDuplicateValues = true,
             removeDeletes = false,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe
-          ).assertGet
+            valuesConfig = keyValues.last.valuesConfig,
+            sortedIndexConfig = keyValues.last.sortedIndexConfig,
+            binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+            hashIndexConfig = keyValues.last.hashIndexConfig,
+            bloomFilterConfig = keyValues.last.bloomFilterConfig,
+            segmentConfig = SegmentBlock.Config.random
+          ).runRandomIO.right.value
         //        printGroupHierarchy(newSegments)
         groupedSegments should have size 1
         val newGroupedSegment = groupedSegments.head
         //perform reads, grouping should result in accurate read results.
         assertReads(keyValues, newGroupedSegment)
-
         //submit remove key-values either single removes or range removed.
         val removeKeyValues: Slice[Transient] =
           eitherOne(
@@ -115,25 +111,24 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
           newGroupedSegment.put(
             newKeyValues = removeKeyValues.toMemory,
             minSegmentSize = 10.mb,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            compressDuplicateValues = true,
             removeDeletes = false,
-            maxProbe = TestData.maxProbe,
-            createdInLevel = 0
-          ).assertGet
+            createdInLevel = 0,
+            valuesConfig = keyValues.last.valuesConfig,
+            sortedIndexConfig = keyValues.last.sortedIndexConfig,
+            binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+            hashIndexConfig = keyValues.last.hashIndexConfig,
+            bloomFilterConfig = keyValues.last.bloomFilterConfig,
+            segmentConfig = SegmentBlock.Config.random
+          ).runRandomIO.right.value
 
         newSegmentsWithRemovedKeyValues should have size 1
         val lastSegment = newSegmentsWithRemovedKeyValues.head
         keyValues foreach {
           keyValue =>
-            lastSegment.get(keyValue.key).get.safeGetBlocking().get match {
+            lastSegment.get(keyValue.key).runRandomIO.right.value.get match {
               case _: KeyValue.ReadOnly.Remove =>
               case remove: KeyValue.ReadOnly.Range =>
-                remove.fetchFromOrElseRangeValue.assertGet shouldBe Value.remove(None)
+                remove.fetchFromOrElseRangeValue.runRandomIO.right.value shouldBe Value.remove(None)
               case actual =>
                 fail(s"Expected Remove found ${actual.getClass.getName}")
             }
@@ -142,23 +137,3 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
     }
   }
 }
-
-//test code to rest persistent Segment
-//      import swaydb.core.TestLimitQueues._
-//      implicit val any = (any: Any, any2: Any) => ()
-//      implicit val any2 = (any: Any) => ()
-//      import scala.concurrent.ExecutionContext.Implicits.global
-//
-//      val newSegment =
-//        Segment(
-//          path = Paths.getFromHashIndex("/Users/simer/IdeaProjects/SwayDB.range/core/target/TEST_FILES/SegmentGroupWriteSpec0/12/2.seg"),
-//          mmapReads = true,
-//          mmapWrites = true,
-//          minKey = 0,
-//          maxKey = MaxKey.Fixed(keyValuesCount),
-//          segmentSize = 5.mb,
-//          removeDeletes = false,
-//          nearestExpiryDeadline = None
-//        ).assertGet
-
-//      println(newSegment.path)

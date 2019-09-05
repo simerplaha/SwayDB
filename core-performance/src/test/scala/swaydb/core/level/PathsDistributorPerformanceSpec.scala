@@ -19,8 +19,7 @@
 
 package swaydb.core.level
 
-import scala.util.Random
-import swaydb.core.IOAssert._
+import swaydb.IOValues._
 import swaydb.core.TestBase
 import swaydb.core.io.file.IOEffect
 import swaydb.core.segment.Segment
@@ -28,7 +27,9 @@ import swaydb.core.util.Benchmark
 import swaydb.data.config.Dir
 import swaydb.data.order.KeyOrder
 
-class PathsDistributorPerformanceSpec extends TestBase with Benchmark {
+import scala.util.Random
+
+class PathsDistributorPerformanceSpec extends TestBase  {
 
   implicit val keyOrder = KeyOrder.default
 
@@ -48,8 +49,8 @@ class PathsDistributorPerformanceSpec extends TestBase with Benchmark {
 
     //randomly create Segments in different paths to have an un-even distribution in each folder
     def randomlyDistributeSegments(): Iterable[Segment] = {
-      val segment = TestSegment(path = randomPath).assertGet
-      segment.close.assertGet
+      val segment = TestSegment(path = randomPath).runRandomIO.right.value
+      segment.close.runRandomIO.right.value
       Array.fill(10)(segment)
     }
 
@@ -74,7 +75,7 @@ class PathsDistributorPerformanceSpec extends TestBase with Benchmark {
     //in production scenarios there will never be more then 10 request/seconds, depending on the number of Segments being merged
     //into next Level at one time.
     //These benchmark also include Segment creation in randomlyDistributeSegments which should be accounted for.
-    benchmark("Benchmark PathsDistributor") {
+    Benchmark("Benchmark PathsDistributor") {
       (1 to 10000) foreach {
         _ =>
           distributor.next

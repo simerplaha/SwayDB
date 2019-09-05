@@ -20,8 +20,9 @@
 package swaydb.data.util
 
 import java.nio.charset.Charset
-import swaydb.data.IO
-import swaydb.data.slice.{Reader, Slice}
+
+import swaydb.IO
+import swaydb.data.slice.{ReaderBase, Slice}
 
 object ByteUtil {
 
@@ -32,7 +33,7 @@ object ByteUtil {
     slice add int.toByte
   }
 
-  def readInt(reader: Reader): IO[Int] = {
+  def readInt[E >: swaydb.Error.IO : IO.ExceptionHandler](reader: ReaderBase[E]): IO[E, Int] = {
     reader.read(ByteSizeOf.int) map readInt
   }
 
@@ -63,21 +64,21 @@ object ByteUtil {
       ((bytes(6) & 0xffL) << 8) |
       bytes(7) & 0xffL
 
-  def readLong(reader: Reader): IO[Long] =
+  def readLong[E >: swaydb.Error.IO : IO.ExceptionHandler](reader: ReaderBase[E]): IO[E, Long] =
     reader.read(ByteSizeOf.long) map readLong
 
-  def readBoolean(reader: Reader): IO[Boolean] =
+  def readBoolean[E >: swaydb.Error.IO : IO.ExceptionHandler](reader: ReaderBase[E]): IO[E, Boolean] =
     reader.get() map (_ == 1)
 
-  def readString(reader: Reader, charset: Charset): IO[String] =
+  def readString[E >: swaydb.Error.IO : IO.ExceptionHandler](reader: ReaderBase[E], charset: Charset): IO[E, String] =
     reader.size flatMap {
       size =>
         reader.read((size - reader.getPosition).toInt) map (readString(_, charset))
     }
 
-  def readString(size: Int,
-                 reader: Reader,
-                 charset: Charset): IO[String] =
+  def readString[E >: swaydb.Error.IO : IO.ExceptionHandler](size: Int,
+                                                             reader: ReaderBase[E],
+                                                             charset: Charset): IO[E, String] =
     reader.read(size) map (readString(_, charset))
 
   //TODO - readString is expensive. If the slice bytes are a sub-slice of another other Slice a copy of the array will be created.
@@ -90,20 +91,20 @@ object ByteUtil {
     bytes addAll string.getBytes(charsets)
 
   /** **************************************************
-    * Credit - https://github.com/larroy/varint-scala
-    *
-    * Duplicate functions here. This code
-    * is crucial for read performance and the most frequently used.
-    * Creating reader on each read will be expensive therefore the functions are repeated
-    * for slice and reader.
-    *
-    * Need to re-evaluate this code and see if abstract functions can be used.
-    * ************************************************/
+   * Credit - https://github.com/larroy/varint-scala
+   *
+   * Duplicate functions here. This code
+   * is crucial for read performance and the most frequently used.
+   * Creating reader on each read will be expensive therefore the functions are repeated
+   * for slice and reader.
+   *
+   * Need to re-evaluate this code and see if abstract functions can be used.
+   * ************************************************/
 
   def writeSignedInt(x: Int, slice: Slice[Byte]): Unit =
     writeUnsignedInt((x << 1) ^ (x >> 31), slice)
 
-  def readSignedInt(reader: Reader): IO[Int] = {
+  def readSignedInt[E >: swaydb.Error.IO : IO.ExceptionHandler](reader: ReaderBase[E]): IO[E, Int] = {
     readUnsignedInt(reader) map {
       unsigned =>
         // undo even odd mapping
@@ -113,7 +114,7 @@ object ByteUtil {
     }
   }
 
-  def readSignedInt(slice: Slice[Byte]): IO[Int] = {
+  def readSignedInt[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, Int] = {
     readUnsignedInt(slice) map {
       unsigned =>
         // undo even odd mapping
@@ -145,21 +146,24 @@ object ByteUtil {
     Slice(array).slice(i, array.length - 1)
   }
 
-  def readUnsignedInt(reader: Reader): IO[Int] =
+  def readUnsignedInt[E >: swaydb.Error.IO : IO.ExceptionHandler](reader: ReaderBase[E]): IO[E, Int] =
     IO {
       var i = 0
       var int = 0
       var read = 0
+      val beforeReadPosition = reader.getPosition
+      val readBytes = reader.read(ByteSizeOf.varInt).get.createReaderUnsafe()
       do {
-        read = reader.get().get
+        read = readBytes.get()
         int |= (read & 0x7F) << i
         i += 7
         require(i <= 35)
       } while ((read & 0x80) != 0)
+      reader.moveTo(beforeReadPosition + readBytes.getPosition)
       int
     }
 
-  def readUnsignedInt(slice: Slice[Byte]): IO[Int] =
+  def readUnsignedInt[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, Int] =
     IO {
       var index = 0
       var i = 0
@@ -176,10 +180,27 @@ object ByteUtil {
       int
     }
 
+  def readUnsignedIntWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, (Int, Int)] =
+    IO {
+      var index = 0
+      var i = 0
+      var int = 0
+      var read = 0
+      do {
+        read = slice(index)
+        int |= (read & 0x7F) << i
+        i += 7
+        index += 1
+        require(i <= 35)
+      } while ((read & 0x80) != 0)
+
+      (int, index)
+    }
+
   /**
-    * @return Tuple where the first integer is the unsigned integer and the second is the number of bytes read.
-    */
-  def readLastUnsignedInt(slice: Slice[Byte]): IO[(Int, Int)] =
+   * @return Tuple where the first integer is the unsigned integer and the second is the number of bytes read.
+   */
+  def readLastUnsignedInt[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, (Int, Int)] =
     IO {
       var index = slice.size - 1
       var i = 0
@@ -198,7 +219,7 @@ object ByteUtil {
   def writeSignedLong(long: Long, slice: Slice[Byte]): Unit =
     writeUnsignedLong((long << 1) ^ (long >> 63), slice)
 
-  def readSignedLong(reader: Reader): IO[Long] =
+  def readSignedLong[E >: swaydb.Error.IO : IO.ExceptionHandler](reader: ReaderBase[E]): IO[E, Long] =
     readUnsignedLong(reader) map {
       unsigned =>
         // undo even odd mapping
@@ -207,7 +228,7 @@ object ByteUtil {
         tmp ^ (unsigned & (1L << 63))
     }
 
-  def readSignedLong(slice: Slice[Byte]): IO[Long] =
+  def readSignedLong[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, Long] =
     readUnsignedLong(slice) map {
       unsigned =>
         // undo even odd mapping
@@ -225,22 +246,24 @@ object ByteUtil {
     slice add (x & 0x7F).toByte
   }
 
-  def readUnsignedLong(reader: Reader): IO[Long] =
+  def readUnsignedLong[E >: swaydb.Error.IO : IO.ExceptionHandler](reader: ReaderBase[E]): IO[E, Long] =
     IO {
       var i = 0
       var long = 0L
       var read = 0L
+      val beforeReadPosition = reader.getPosition
+      val readBytes = reader.read(ByteSizeOf.varLong).get.createReaderUnsafe()
       do {
-        read = reader.get().get
+        read = readBytes.get()
         long |= (read & 0x7F) << i
         i += 7
         require(i <= 70)
       } while ((read & 0x80L) != 0)
-
+      reader.moveTo(beforeReadPosition + readBytes.getPosition)
       long
     }
 
-  def readUnsignedLong(slice: Slice[Byte]): IO[Long] =
+  def readUnsignedLong[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, Long] =
     IO {
       var index = 0
       var i = 0
@@ -254,6 +277,22 @@ object ByteUtil {
         require(i <= 70)
       } while ((read & 0x80L) != 0)
       long
+    }
+
+  def readUnsignedLongWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, (Long, Int)] =
+    IO {
+      var index = 0
+      var i = 0
+      var long = 0L
+      var read = 0L
+      do {
+        read = slice(index)
+        long |= (read & 0x7F) << i
+        i += 7
+        index += 1
+        require(i <= 70)
+      } while ((read & 0x80L) != 0)
+      (long, index)
     }
 
   def sizeOf(int: Int): Int = {

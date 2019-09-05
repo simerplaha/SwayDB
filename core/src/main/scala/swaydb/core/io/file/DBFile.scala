@@ -22,57 +22,176 @@ package swaydb.core.io.file
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.queue.{FileLimiter, FileLimiterItem}
-import swaydb.core.segment.SegmentException
-import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
+import swaydb.Error.IO.ExceptionHandler
+import swaydb.IO._
+import swaydb.core.actor.{FileSweeper, FileSweeperItem}
+import swaydb.core.cache.Cache
+import swaydb.data.Reserve
+import swaydb.data.config.IOStrategy
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, Reserve}
+import swaydb.{Error, IO}
 
-import scala.annotation.tailrec
 import scala.util.hashing.MurmurHash3
 
-object DBFile {
+object DBFile extends LazyLogging {
 
-  def write(bytes: Slice[Byte],
-            path: Path): IO[Path] =
-    IOEffect.write(bytes, path)
+  def fileCache(filePath: Path,
+                memoryMapped: Boolean,
+                ioStrategy: IOStrategy,
+                file: Option[DBFileType],
+                blockCacheFileId: Long,
+                autoClose: Boolean)(implicit fileSweeper: FileSweeper) = {
 
-  def channelWrite(path: Path, autoClose: Boolean)(implicit limiter: FileLimiter): IO[DBFile] =
-    ChannelFile.write(path) map {
+    //FIX-ME: need a better solution.
+    var self: Cache[Error.IO, Unit, DBFileType] = null
+
+    val closer: FileSweeperItem =
+      new FileSweeperItem {
+        override def path: Path = filePath
+        override def delete(): IO[Error.Segment, Unit] = IO.failed("only closable")
+        override def close(): IO[Error.Segment, Unit] = {
+          self.get() map {
+            fileType =>
+              fileType.flatMap(_.close()) map {
+                _ =>
+                  self.clear()
+              }
+          } getOrElse IO.unit
+        }
+
+        override def isOpen: Boolean =
+          self.get().exists(_.exists(_.isOpen))
+      }
+
+    val cache =
+      Cache.io[swaydb.Error.IO, Error.OpeningFile, Unit, DBFileType](
+        strategy = ioStrategy.withCacheOnAccess,
+        reserveError = Error.OpeningFile(filePath, Reserve.free(name = s"DBFile: $filePath. MemoryMapped: $memoryMapped")),
+        initial = file
+      ) {
+        _ =>
+          logger.debug(s"{}: Opening closed file.", filePath)
+
+          val openResult =
+            if (memoryMapped)
+              MMAPFile.read(filePath, blockCacheFileId)
+            else
+              ChannelFile.read(filePath, blockCacheFileId)
+
+          if (autoClose) fileSweeper.foreach(_.close(closer))
+          openResult
+      }
+
+    self = cache
+
+    if (autoClose && file.isDefined) fileSweeper.foreach(_.close(closer))
+    cache
+  }
+
+  def write(path: Path,
+            bytes: Slice[Byte]): IO[swaydb.Error.IO, Path] =
+    IOEffect.write(path, bytes)
+
+  def write(path: Path,
+            bytes: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Path] =
+    IOEffect.write(path, bytes)
+
+  def channelWrite(path: Path,
+                   ioStrategy: IOStrategy,
+                   blockCacheFileId: Long,
+                   autoClose: Boolean)(implicit fileSweeper: FileSweeper,
+                                       blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
+    ChannelFile.write(path, blockCacheFileId) map {
       file =>
         new DBFile(
           path = path,
           memoryMapped = false,
-          memory = false,
           autoClose = autoClose,
-          file = Some(file)
+          blockCacheFileId = blockCacheFileId,
+          fileCache =
+            fileCache(
+              filePath = path,
+              memoryMapped = false,
+              file = Some(file),
+              ioStrategy = ioStrategy,
+              autoClose = autoClose,
+              blockCacheFileId = blockCacheFileId
+            )
         )
     }
 
-  def channelRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit limiter: FileLimiter): IO[DBFile] =
+  def channelRead(path: Path,
+                  ioStrategy: IOStrategy,
+                  autoClose: Boolean,
+                  blockCacheFileId: Long,
+                  checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
+                                               blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
     if (checkExists && IOEffect.notExists(path))
-      IO.Failure(IO.Error.NoSuchFile(path))
+      IO.Left[swaydb.Error.IO, DBFile](swaydb.Error.NoSuchFile(path))
     else
-      IO(
+      IO {
         new DBFile(
           path = path,
           memoryMapped = false,
-          memory = false,
           autoClose = autoClose,
-          file = None
+          blockCacheFileId = blockCacheFileId,
+          fileCache =
+            fileCache(
+              filePath = path,
+              memoryMapped = false,
+              file = None,
+              ioStrategy = ioStrategy,
+              autoClose = autoClose,
+              blockCacheFileId = blockCacheFileId
+            )
         )
-      )
+      }
 
-  def mmapWriteAndRead(bytes: Slice[Byte],
-                       path: Path,
-                       autoClose: Boolean)(implicit limiter: FileLimiter): IO[DBFile] =
+  def mmapWriteAndRead(path: Path,
+                       ioStrategy: IOStrategy,
+                       autoClose: Boolean,
+                       blockCacheFileId: Long,
+                       bytes: Iterable[Slice[Byte]])(implicit fileSweeper: FileSweeper,
+                                                     blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
+  //do not write bytes if the Slice has empty bytes.
+    bytes.foldLeftIO(0) {
+      case (written, bytes) =>
+        if (!bytes.isFull)
+          IO.failed(swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size))
+        else
+          IO.Right(written + bytes.size)
+    } flatMap {
+      totalWritten =>
+        mmapInit(
+          path = path,
+          bufferSize = totalWritten,
+          ioStrategy = ioStrategy,
+          autoClose = autoClose,
+          blockCacheFileId = blockCacheFileId
+        ) flatMap {
+          file =>
+            file.append(bytes) map {
+              _ =>
+                file
+            }
+        }
+    }
+
+  def mmapWriteAndRead(path: Path,
+                       ioStrategy: IOStrategy,
+                       autoClose: Boolean,
+                       blockCacheFileId: Long,
+                       bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
+                                           blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull)
-      IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(0, bytes.written, bytes.size)))
+      IO.failed(swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size))
     else
       mmapInit(
         path = path,
-        bufferSize = bytes.written,
+        bufferSize = bytes.size,
+        ioStrategy = ioStrategy,
+        blockCacheFileId = blockCacheFileId,
         autoClose = autoClose
       ) flatMap {
         file =>
@@ -82,188 +201,163 @@ object DBFile {
           }
       }
 
-  def mmapRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit limiter: FileLimiter): IO[DBFile] =
+  def mmapRead(path: Path,
+               ioStrategy: IOStrategy,
+               autoClose: Boolean,
+               blockCacheFileId: Long,
+               checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
+                                            blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
     if (checkExists && IOEffect.notExists(path))
-      IO.Failure(IO.Error.NoSuchFile(path))
+      IO.Left[swaydb.Error.IO, DBFile](swaydb.Error.NoSuchFile(path))
     else
       IO(
         new DBFile(
           path = path,
           memoryMapped = true,
-          memory = false,
           autoClose = autoClose,
-          file = None
+          blockCacheFileId = blockCacheFileId,
+          fileCache =
+            fileCache(
+              filePath = path,
+              memoryMapped = true,
+              blockCacheFileId = blockCacheFileId,
+              ioStrategy = ioStrategy,
+              file = None,
+              autoClose = autoClose
+            )
         )
       )
 
   def mmapInit(path: Path,
+               ioStrategy: IOStrategy,
                bufferSize: Long,
-               autoClose: Boolean)(implicit limiter: FileLimiter): IO[DBFile] =
-    MMAPFile.write(path, bufferSize) map {
+               blockCacheFileId: Long,
+               autoClose: Boolean)(implicit fileSweeper: FileSweeper,
+                                   blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
+    MMAPFile.write(path, bufferSize, blockCacheFileId) map {
       file =>
         new DBFile(
           path = path,
           memoryMapped = true,
-          memory = false,
           autoClose = autoClose,
-          file = Some(file)
+          blockCacheFileId = blockCacheFileId,
+          fileCache =
+            fileCache(
+              filePath = path,
+              memoryMapped = true,
+              file = Some(file),
+              blockCacheFileId = blockCacheFileId,
+              ioStrategy = ioStrategy,
+              autoClose = autoClose
+            )
         )
-    }
-
-  def memory(path: Path,
-             bytes: Slice[Byte],
-             autoClose: Boolean)(implicit limiter: FileLimiter): IO[DBFile] =
-    IO {
-      new DBFile(
-        path = path,
-        memoryMapped = false,
-        memory = true,
-        autoClose = autoClose,
-        file = Some(MemoryFile(path, bytes))
-      )
     }
 }
 /**
-  * Wrapper class for different file types of [[DBFileType]].
-  *
-  * Responsible for lazy loading files for reads and opening closed files in a thread safe manner.
-  */
+ * Wrapper class for different file types of [[DBFileType]].
+ *
+ * Responsible for lazy loading files for reads and opening closed files in a thread safe manner.
+ */
 class DBFile(val path: Path,
              memoryMapped: Boolean,
-             val memory: Boolean,
              autoClose: Boolean,
-             @volatile var file: Option[DBFileType])(implicit limiter: FileLimiter) extends FileLimiterItem with LazyLogging {
-
-  private val busy = Reserve[Unit]()
-
-  if (autoClose && isOpen) limiter.close(this)
+             val blockCacheFileId: Long,
+             fileCache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit blockCache: Option[BlockCache.State]) extends LazyLogging {
 
   def existsOnDisk =
     IOEffect.exists(path)
 
-  def existsInMemory =
-    file.isDefined
+  def file: IO[Error.IO, DBFileType] =
+    fileCache.value()
 
-  def delete(): IO[Unit] =
+  def delete(): IO[swaydb.Error.IO, Unit] =
   //close the file
     close flatMap {
       _ =>
         //try delegating the delete to the file itself.
         //If the file is already closed, then delete it from disk.
         //memory files are never closed so the first statement will always be executed for memory files.
-        (file.map(_.delete()) getOrElse IOEffect.deleteIfExists(path)) map {
+        (fileCache.get().map(_.flatMap(_.delete())) getOrElse IOEffect.deleteIfExists(path)) map {
           _ =>
-            file = None
+            fileCache.clear()
         }
     }
 
-  def close: IO[Unit] =
-    file map {
+  def close: IO[swaydb.Error.IO, Unit] =
+    fileCache.get() map {
       fileType =>
-        fileType.close() map {
+        fileType.flatMap(_.close()) map {
           _ =>
-            //cannot lose reference to in-memory file on close. Only on delete, this in-memory file reference can be discarded.
-            if (!memory) file = None
+            fileCache.clear()
         }
     } getOrElse IO.unit
 
   //if it's an in memory files return failure as Memory files cannot be copied.
-  def copyTo(toPath: Path): IO[Path] =
-    if (file.map(_.memory).getOrElse(false))
-      IO.Failure(IO.Error.Fatal(CannotCopyInMemoryFiles(path)))
-    else
-      forceSave() flatMap {
-        _ =>
-          IOEffect.copy(path, toPath) map {
-            path =>
-              logger.trace("{}: Copied: to {}", path, toPath)
-              path
-          }
-      }
-
-  /**
-    * Use [[openFile]] instead to disallow multiple concurrently opened files.
-    */
-  private def tryOpen(): IO[DBFileType] =
-    file match {
-      case Some(openedFile) =>
-        IO.Success(openedFile)
-
-      case None =>
-        logger.trace(s"{}: Opening closed file.", path)
-        val openResult =
-          if (memory)
-            file.map(IO.Success(_)) getOrElse {
-              IO.Failure(IO.Error.NoSuchFile(path))
-            }
-          else if (memoryMapped)
-            MMAPFile.read(path)
-          else
-            ChannelFile.read(path)
-
-        openResult match {
-          case success @ IO.Success(fileOpened) =>
-            file.foreach(_.close())
-            file = Some(fileOpened)
-            if (autoClose) limiter.close(this)
-            success
-
-          case failed @ IO.Failure(_) =>
-            failed
+  def copyTo(toPath: Path): IO[swaydb.Error.IO, Path] =
+    forceSave() flatMap {
+      _ =>
+        IOEffect.copy(path, toPath) map {
+          path =>
+            logger.trace("{}: Copied: to {}", path, toPath)
+            path
         }
     }
 
-  @tailrec
-  private def openFile(maxTries: Int = 1): IO[DBFileType] =
-    file match {
-      case Some(openedFile) =>
-        IO.Success(openedFile)
-
-      case None =>
-        if (Reserve.setBusyOrGet((), busy).isEmpty)
-          try tryOpen() finally Reserve.setFree(busy)
-        else if (maxTries == 0)
-          IO.Failure(IO.Error.OpeningFile(path, busy))
-        else
-          openFile(maxTries - 1)
-    }
-
   def append(slice: Slice[Byte]) =
-    openFile() flatMap (_.append(slice))
+    fileCache.value() flatMap (_.append(slice))
 
-  def read(position: Int, size: Int): IO[Slice[Byte]] =
-    openFile() flatMap (_.read(position, size))
+  def append(slice: Iterable[Slice[Byte]]) =
+    fileCache.value() flatMap (_.append(slice))
 
-  def get(position: Int) =
-    openFile() flatMap (_.get(position))
+  def read(position: Int, size: Int): IO[swaydb.Error.IO, Slice[Byte]] =
+    if (size == 0)
+      IO.emptyBytes
+    else
+      blockCache map {
+        blockCacheState =>
+          fileCache.value() flatMap {
+            file =>
+              BlockCache.getOrSeek(
+                position = position,
+                size = size,
+                file = file,
+                state = blockCacheState
+              )
+          }
+      } getOrElse {
+        fileCache.value() flatMap (_.read(position, size))
+      }
 
-  def readAll =
-    openFile() flatMap (_.readAll)
+  def get(position: Int): IO[Error.IO, Byte] =
+    if (blockCache.isDefined)
+      read(position, 1).map(_.head)
+    else
+      fileCache.value() flatMap (_.get(position))
 
-  def fileSize =
-    openFile() flatMap (_.fileSize)
+  def readAll: IO[Error.IO, Slice[Byte]] =
+    fileCache.value() flatMap (_.readAll)
+
+  def fileSize: IO[Error.IO, Long] =
+    fileCache.value() flatMap (_.fileSize)
 
   //memory files are never closed, if it's memory file return true.
-  def isOpen =
-    file.exists(_.isOpen)
+  def isOpen: Boolean =
+    fileCache.get().exists(_.exists(_.isOpen))
 
-  def isFileDefined =
-    file.isDefined
+  def isFileDefined: Boolean =
+    fileCache.get().isDefined
 
-  def isMemoryMapped =
-    openFile() flatMap (_.isMemoryMapped)
+  def isMemoryMapped: IO[Error.IO, Boolean] =
+    fileCache.value() flatMap (_.isMemoryMapped)
 
-  def isLoaded =
-    openFile() flatMap (_.isLoaded)
+  def isLoaded: IO[Error.IO, Boolean] =
+    fileCache.value() flatMap (_.isLoaded)
 
-  def isFull: IO[Boolean] =
-    openFile() flatMap (_.isFull)
+  def isFull: IO[swaydb.Error.IO, Boolean] =
+    fileCache.value() flatMap (_.isFull)
 
-  def forceSave(): IO[Unit] =
-    file.map(_.forceSave()) getOrElse IO.unit
-
-  def persistent: Boolean =
-    !memory
+  def forceSave(): IO[swaydb.Error.IO, Unit] =
+    fileCache.value().map(_.forceSave()) getOrElse IO.unit
 
   override def equals(that: Any): Boolean =
     that match {

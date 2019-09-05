@@ -22,19 +22,19 @@ package swaydb
 import scala.concurrent.duration.Deadline
 
 /**
-  * Output of functions
-  */
+ * Output of functions
+ */
 sealed trait Apply[+V]
 object Apply {
 
   /**
-    * Function outputs for Map
-    */
+   * Function outputs for Map
+   */
   sealed trait Map[+V] extends Apply[V]
 
   /**
-    * Function outputs for Set
-    */
+   * Function outputs for Set
+   */
   sealed trait Set[+V] extends Apply[V]
 
   case object Nothing extends Map[Nothing] with Set[Nothing]

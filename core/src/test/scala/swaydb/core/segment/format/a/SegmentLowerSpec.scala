@@ -19,21 +19,22 @@
 
 package swaydb.core.segment.format.a
 
+import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.core.CommonAssertions._
+import swaydb.IOValues._
+import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.IOAssert._
-import swaydb.core.data._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.data.Transient
+import swaydb.core.group.compression.GroupByInternal
+import swaydb.core.segment.format.a.block.HashIndexBlock
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.RunThis._
 
-//@formatter:off
 class SegmentLowerSpec0 extends SegmentLowerSpec {
   val keyValuesCount = 100
 }
@@ -63,7 +64,6 @@ class SegmentLowerSpec3 extends SegmentLowerSpec {
 
   override def inMemoryStorage = true
 }
-//@formatter:on
 
 sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMethodTester {
 
@@ -71,102 +71,122 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
 
   def keyValuesCount: Int
 
-  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
-    randomGroupingStrategyOption(keyValuesCount)
+  implicit val groupBy: Option[GroupByInternal.KeyValues] =
+    randomGroupByOption(keyValuesCount)
 
   "Segment.lower" should {
-    "getFromHashIndex the lower key from the segment that has only 1 fixed key-value" in {
+    "value the lower key from the segment that has only 1 fixed key-value" in {
       assertSegment(
-        keyValues = Slice(randomFixedKeyValue(1)),
+        keyValues =
+          Slice(randomFixedKeyValue(1)).toTransient,
+
         assert =
           (keyValues, segment) => {
-            segment.lower(0).assertGetOpt shouldBe empty
-            segment.lower(1).assertGetOpt shouldBe empty
-            segment.lower(2).assertGet shouldBe keyValues.head
+            segment.lower(0).runRandomIO.right.value shouldBe empty
+            segment.lower(1).runRandomIO.right.value shouldBe empty
+            segment.lower(2).runRandomIO.right.value.value shouldBe keyValues.head
           }
       )
     }
 
-    "getFromHashIndex the lower from the segment when there are no Range key-values" in {
+    "value the lower from the segment when there are no Range key-values" in {
       //1, 2, 3
       assertSegment(
-        keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3)),
+        keyValues =
+          Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient,
+
         assert =
           (keyValues, segment) => {
-            segment.lower(0).assertGetOpt shouldBe empty //smallest key in this segment is 1
-            segment.lower(1).assertGetOpt shouldBe empty
+            segment.lower(0).runRandomIO.right.value shouldBe empty //smallest key in this segment is 1
+            segment.lower(1).runRandomIO.right.value shouldBe empty
 
-            segment.lower(2).assertGet shouldBe keyValues.head
-            segment.lower(3).assertGet shouldBe keyValues(1)
+            segment.lower(2).runRandomIO.right.value.value shouldBe keyValues.head
+            segment.lower(3).runRandomIO.right.value.value shouldBe keyValues(1)
             (4 to 10) foreach {
               i =>
-                segment.lower(i).assertGet shouldBe keyValues(2)
+                segment.lower(i).runRandomIO.right.value.value shouldBe keyValues(2)
             }
           }
       )
     }
 
-    "getFromHashIndex the lower from the segment when there are Range key-values" in {
-      //1, (2 - 5), 10, (11 - 20), (20 - 30)
-      runThis(10.times) {
+    "value the lower from the segment when there are Range key-values" in {
+      //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+      runThis(1000.times) {
         assertSegment(
           keyValues = Slice(
             randomFixedKeyValue(1),
             randomRangeKeyValue(2, 5),
             randomFixedKeyValue(10),
             randomRangeKeyValue(11, 20),
-            randomRangeKeyValue(20, 30)
+            randomRangeKeyValue(20, 30),
+            randomGroup(Slice(randomFixedKeyValue(30), randomRangeKeyValue(40, 50)).toTransient).toMemory
+          ).toTransient(
+            hashIndexConfig = HashIndexBlock.Config(10, 0, 0, copyIndex = randomBoolean(), _.requiredSpace * 10, _ => randomIOStrategy(), _ => Seq.empty)
           ),
+
           assert =
             (keyValues, segment) => {
               //0
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(0).assertGetOpt shouldBe empty
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(0).runRandomIO.right.value shouldBe empty
               //1
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(1).assertGetOpt shouldBe empty
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(1).runRandomIO.right.value shouldBe empty
               //    2
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(2).assertGet shouldBe keyValues(0)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(2).runRandomIO.right.value.value shouldBe keyValues(0)
               //     3
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(3).assertGet shouldBe keyValues(1)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(3).runRandomIO.right.value.value shouldBe keyValues(1)
               //       4
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(4).assertGet shouldBe keyValues(1)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(4).runRandomIO.right.value.value shouldBe keyValues(1)
               //        5
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(5).assertGet shouldBe keyValues(1)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(5).runRandomIO.right.value.value shouldBe keyValues(1)
               //          6
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(6).assertGet shouldBe keyValues(1)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(6).runRandomIO.right.value.value shouldBe keyValues(1)
               //            10
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(10).assertGet shouldBe keyValues(1)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(10).runRandomIO.right.value.value shouldBe keyValues(1)
               //                 11
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(11).assertGet shouldBe keyValues(2)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(11).runRandomIO.right.value.value shouldBe keyValues(2)
               //                   12
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(12).assertGet shouldBe keyValues(3)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(12).runRandomIO.right.value.value shouldBe keyValues(3)
               //                    19
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(19).assertGet shouldBe keyValues(3)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(19).runRandomIO.right.value.value shouldBe keyValues(3)
               //                      20
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(20).assertGet shouldBe keyValues(3)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(20).runRandomIO.right.value.value shouldBe keyValues(3)
               //                              21
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(21).assertGet shouldBe keyValues(4)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(21).runRandomIO.right.value.value shouldBe keyValues(4)
               //                                29
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(29).assertGet shouldBe keyValues(4)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(29).runRandomIO.right.value.value shouldBe keyValues(4)
               //                                 30
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(30).assertGet shouldBe keyValues(4)
-              //                                    31
-              //1, (2 - 5), 10, (11 - 20), (20 - 30)
-              segment.lower(31).assertGet shouldBe keyValues(4)
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(30).runRandomIO.right.value.value shouldBe keyValues(4)
+              //                                           31
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(31).runRandomIO.right.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.head
+              //                                              40
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(40).runRandomIO.right.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.head
+              //                                                41
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(41).runRandomIO.right.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              //                                                   50
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(50).runRandomIO.right.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
+              //                                                      51
+              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
+              segment.lower(51).runRandomIO.right.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
             }
         )
       }
@@ -174,7 +194,7 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
 
     "random" in {
       assertSegment(
-        keyValues = randomizedKeyValues(keyValuesCount),
+        keyValues = randomizedKeyValues(keyValuesCount, addUpdates = true),
         assert = assertLower(_, _)
       )
     }

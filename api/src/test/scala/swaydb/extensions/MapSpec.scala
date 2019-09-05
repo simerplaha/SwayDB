@@ -19,23 +19,25 @@
 
 package swaydb.extensions
 
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration._
+import org.scalatest.OptionValues._
 import swaydb.Prepare
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration._
+
 class MapSpec0 extends MapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).assertGet
+    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).runRandomIO.right.value.runRandomIO.right.value
 }
 
 class MapSpec1 extends MapSpec {
@@ -43,7 +45,7 @@ class MapSpec1 extends MapSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
+    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).runRandomIO.right.value.runRandomIO.right.value
 }
 
 class MapSpec2 extends MapSpec {
@@ -51,14 +53,14 @@ class MapSpec2 extends MapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).assertGet
+    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).runRandomIO.right.value.runRandomIO.right.value
 }
 
 class MapSpec3 extends MapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String]().assertGet
+    swaydb.extensions.memory.Map[Int, String]().runRandomIO.right.value.runRandomIO.right.value
 }
 
 sealed trait MapSpec extends TestBaseEmbedded {
@@ -74,10 +76,10 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "initialise a rootMap" in {
       val rootMap = newDB()
 
-      rootMap.stream.materialize.get shouldBe empty
+      rootMap.stream.materialize.runRandomIO.right.value shouldBe empty
 
       //assert
-      rootMap.baseMap().stream.materialize.get shouldBe
+      rootMap.baseMap().stream.materialize.runRandomIO.right.value shouldBe
         List(
           (Key.MapStart(Seq.empty), None),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -93,12 +95,12 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "update a rootMaps value" in {
       val rootMap = newDB()
 
-      rootMap.getValue().assertGetOpt shouldBe empty
-      rootMap.updateValue("rootMap").assertGet
-      rootMap.getValue().assertGet shouldBe "rootMap"
+      rootMap.getValue().runRandomIO.right.value shouldBe empty
+      rootMap.updateValue("rootMap").runRandomIO.right.value
+      rootMap.getValue().runRandomIO.right.value.value shouldBe "rootMap"
 
       //assert
-      rootMap.baseMap().stream.materialize.get shouldBe
+      rootMap.baseMap().stream.materialize.runRandomIO.right.value shouldBe
         List(
           (Key.MapStart(Seq.empty), Some("rootMap")),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -113,16 +115,16 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
     "insert key-values to rootMap" in {
       val rootMap = newDB()
-      rootMap.put(1, "one").assertGet
-      rootMap.put(2, "two").assertGet
+      rootMap.put(1, "one").runRandomIO.right.value
+      rootMap.put(2, "two").runRandomIO.right.value
 
       rootMap.get(1).get.get shouldBe "one"
       rootMap.get(2).get.get shouldBe "two"
 
-      rootMap.stream.materialize.get shouldBe ListBuffer((1, "one"), (2, "two"))
+      rootMap.stream.materialize.runRandomIO.right.value shouldBe ListBuffer((1, "one"), (2, "two"))
 
       //assert
-      rootMap.baseMap().stream.materialize.get shouldBe
+      rootMap.baseMap().stream.materialize.runRandomIO.right.value shouldBe
         List(
           (Key.MapStart(Seq.empty), None),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -139,23 +141,23 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
     "insert a subMap" in {
       val rootMap = newDB()
-      rootMap.put(1, "one").assertGet
-      rootMap.put(2, "two").assertGet
+      rootMap.put(1, "one").runRandomIO.right.value
+      rootMap.put(2, "two").runRandomIO.right.value
 
-      rootMap.maps.get(1).assertGetOpt shouldBe empty
+      rootMap.maps.get(1).runRandomIO.right.value shouldBe empty
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
 
-      rootMap.maps.get(1).assertGetOpt shouldBe defined
+      rootMap.maps.get(1).runRandomIO.right.value shouldBe defined
 
-      subMap.put(1, "subMap one").assertGet
-      subMap.put(2, "subMap two").assertGet
+      subMap.put(1, "subMap one").runRandomIO.right.value
+      subMap.put(2, "subMap two").runRandomIO.right.value
 
-      rootMap.stream.materialize.get shouldBe ListBuffer((1, "one"), (2, "two"))
-      subMap.stream.materialize.get shouldBe ListBuffer((1, "subMap one"), (2, "subMap two"))
+      rootMap.stream.materialize.runRandomIO.right.value shouldBe ListBuffer((1, "one"), (2, "two"))
+      subMap.stream.materialize.runRandomIO.right.value shouldBe ListBuffer((1, "subMap one"), (2, "subMap two"))
 
       //assert
-      rootMap.baseMap().stream.materialize.get shouldBe
+      rootMap.baseMap().stream.materialize.runRandomIO.right.value shouldBe
         List(
           (Key.MapStart(Seq.empty), None),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -183,22 +185,22 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
     "remove all entries from rootMap and subMap" in {
       val rootMap = newDB()
-      rootMap.put(1, "one").assertGet
-      rootMap.put(2, "two").assertGet
+      rootMap.put(1, "one").runRandomIO.right.value
+      rootMap.put(2, "two").runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
 
-      subMap.put(1, "subMap one").assertGet
-      subMap.put(2, "subMap two").assertGet
+      subMap.put(1, "subMap one").runRandomIO.right.value
+      subMap.put(2, "subMap two").runRandomIO.right.value
 
       eitherOne(
         left = {
-          rootMap.clear().assertGet
-          subMap.clear().assertGet
+          rootMap.clear().runRandomIO.right.value
+          subMap.clear().runRandomIO.right.value
         },
         right = {
-          rootMap.remove(1, 2).assertGet
-          subMap.remove(1, 2).assertGet
+          rootMap.remove(1, 2).runRandomIO.right.value
+          subMap.remove(1, 2).runRandomIO.right.value
         }
       )
       //assert
@@ -227,9 +229,9 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "update a subMap's value" in {
       val rootMap = newDB()
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
       rootMap.maps.updateValue(1, "sub map updated")
-      rootMap.maps.contains(1).assertGet shouldBe true
+      rootMap.maps.contains(1).runRandomIO.right.value shouldBe true
 
       //assert
       //      rootMap.baseMap().toList shouldBe
@@ -257,43 +259,43 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "getMap, containsMap, exists & getMapValue" in {
       val rootMap = newDB()
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
-      subMap.put(1, "one").assertGet
-      subMap.put(2, "two").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
+      subMap.put(1, "one").runRandomIO.right.value
+      subMap.put(2, "two").runRandomIO.right.value
 
-      val subMapGet = rootMap.maps.get(1).assertGet
-      subMapGet.getValue().assertGet shouldBe "sub map"
-      subMapGet.stream.materialize.get shouldBe ListBuffer((1, "one"), (2, "two"))
+      val subMapGet = rootMap.maps.get(1).runRandomIO.right.value.value
+      subMapGet.getValue().runRandomIO.right.value.value shouldBe "sub map"
+      subMapGet.stream.materialize.runRandomIO.right.value shouldBe ListBuffer((1, "one"), (2, "two"))
 
-      rootMap.maps.contains(1).assertGet shouldBe true
-      rootMap.exists().assertGet shouldBe true
-      subMap.exists().assertGet shouldBe true
-      rootMap.maps.getValue(1).assertGet shouldBe "sub map"
-      rootMap.maps.getValue(2).assertGetOpt shouldBe empty //2 does not exists
+      rootMap.maps.contains(1).runRandomIO.right.value shouldBe true
+      rootMap.exists().runRandomIO.right.value shouldBe true
+      subMap.exists().runRandomIO.right.value shouldBe true
+      rootMap.maps.getValue(1).runRandomIO.right.value.value shouldBe "sub map"
+      rootMap.maps.getValue(2).runRandomIO.right.value shouldBe empty //2 does not exists
 
-      rootMap.maps.remove(1).assertGet
+      rootMap.maps.remove(1).runRandomIO.right.value
 
-      rootMap.maps.contains(1).assertGet shouldBe false
-      rootMap.exists().assertGet shouldBe true
-      subMap.exists().assertGet shouldBe false
-      rootMap.maps.getValue(1).assertGetOpt shouldBe empty //is deleted
+      rootMap.maps.contains(1).runRandomIO.right.value shouldBe false
+      rootMap.exists().runRandomIO.right.value shouldBe true
+      subMap.exists().runRandomIO.right.value shouldBe false
+      rootMap.maps.getValue(1).runRandomIO.right.value shouldBe empty //is deleted
 
       rootMap.closeDatabase().get
     }
 
     "expire key" in {
       val rootMap = newDB()
-      rootMap.put(1, "one", 500.millisecond).assertGet
-      rootMap.put(2, "two").assertGet
+      rootMap.put(1, "one", 500.millisecond).runRandomIO.right.value
+      rootMap.put(2, "two").runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
 
-      subMap.put(1, "subMap one", 500.millisecond).assertGet
-      subMap.put(2, "subMap two").assertGet
+      subMap.put(1, "subMap one", 500.millisecond).runRandomIO.right.value
+      subMap.put(2, "subMap two").runRandomIO.right.value
 
       eventual {
-        rootMap.get(1).assertGetOpt shouldBe empty
-        subMap.get(1).assertGetOpt shouldBe empty
+        rootMap.get(1).runRandomIO.right.value shouldBe empty
+        subMap.get(1).runRandomIO.right.value shouldBe empty
       }
 
       //assert
@@ -325,26 +327,26 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
     "expire range keys" in {
       val rootMap = newDB()
-      rootMap.put(1, "one").assertGet
-      rootMap.put(2, "two").assertGet
+      rootMap.put(1, "one").runRandomIO.right.value
+      rootMap.put(2, "two").runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
 
-      subMap.put(1, "subMap two").assertGet
-      subMap.put(2, "subMap two").assertGet
-      subMap.put(3, "subMap two").assertGet
-      subMap.put(4, "subMap two").assertGet
+      subMap.put(1, "subMap two").runRandomIO.right.value
+      subMap.put(2, "subMap two").runRandomIO.right.value
+      subMap.put(3, "subMap two").runRandomIO.right.value
+      subMap.put(4, "subMap two").runRandomIO.right.value
 
-      rootMap.expire(1, 2, 100.millisecond).assertGet //expire all key-values from rootMap
-      subMap.expire(2, 3, 100.millisecond).assertGet //expire some from subMap
+      rootMap.expire(1, 2, 100.millisecond).runRandomIO.right.value //expire all key-values from rootMap
+      subMap.expire(2, 3, 100.millisecond).runRandomIO.right.value //expire some from subMap
 
       eventual {
-        rootMap.get(1).assertGetOpt shouldBe empty
-        rootMap.get(2).assertGetOpt shouldBe empty
-        subMap.get(1).assertGet shouldBe "subMap two"
-        subMap.get(2).assertGetOpt shouldBe empty
-        subMap.get(3).assertGetOpt shouldBe empty
-        subMap.get(4).assertGet shouldBe "subMap two"
+        rootMap.get(1).runRandomIO.right.value shouldBe empty
+        rootMap.get(2).runRandomIO.right.value shouldBe empty
+        subMap.get(1).runRandomIO.right.value.value shouldBe "subMap two"
+        subMap.get(2).runRandomIO.right.value shouldBe empty
+        subMap.get(3).runRandomIO.right.value shouldBe empty
+        subMap.get(4).runRandomIO.right.value.value shouldBe "subMap two"
       }
 
       //assert
@@ -374,33 +376,33 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
     "update range keys" in {
       val rootMap = newDB()
-      rootMap.put(1, "one").assertGet
-      rootMap.put(2, "two").assertGet
+      rootMap.put(1, "one").runRandomIO.right.value
+      rootMap.put(2, "two").runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
 
-      subMap.put(1, "subMap two").assertGet
-      subMap.put(2, "subMap two").assertGet
-      subMap.put(3, "subMap two").assertGet
-      subMap.put(4, "subMap two").assertGet
+      subMap.put(1, "subMap two").runRandomIO.right.value
+      subMap.put(2, "subMap two").runRandomIO.right.value
+      subMap.put(3, "subMap two").runRandomIO.right.value
+      subMap.put(4, "subMap two").runRandomIO.right.value
 
       eitherOne(
         left = {
-          rootMap.update(1, 2, "updated").assertGet //update all key-values from rootMap
-          subMap.update(2, 3, "updated").assertGet //update some from subMap
+          rootMap.update(1, 2, "updated").runRandomIO.right.value //update all key-values from rootMap
+          subMap.update(2, 3, "updated").runRandomIO.right.value //update some from subMap
         },
         right = {
-          rootMap.update(1, "updated").assertGet
-          rootMap.update(2, "updated").assertGet
-          subMap.update(2, "updated").assertGet
-          subMap.update(3, "updated").assertGet
+          rootMap.update(1, "updated").runRandomIO.right.value
+          rootMap.update(2, "updated").runRandomIO.right.value
+          subMap.update(2, "updated").runRandomIO.right.value
+          subMap.update(3, "updated").runRandomIO.right.value
         }
       )
 
-      rootMap.get(1).assertGet shouldBe "updated"
-      rootMap.get(2).assertGet shouldBe "updated"
-      subMap.get(2).assertGet shouldBe "updated"
-      subMap.get(3).assertGet shouldBe "updated"
+      rootMap.get(1).runRandomIO.right.value.value shouldBe "updated"
+      rootMap.get(2).runRandomIO.right.value.value shouldBe "updated"
+      subMap.get(2).runRandomIO.right.value.value shouldBe "updated"
+      subMap.get(3).runRandomIO.right.value.value shouldBe "updated"
 
       rootMap.closeDatabase().get
     }
@@ -410,18 +412,18 @@ sealed trait MapSpec extends TestBaseEmbedded {
       rootMap.commitPrepared(
         Prepare.Put(1, "one"),
         Prepare.Put(2, "two")
-      ).assertGet
+      ).runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
       subMap.commitPrepared(
         Prepare.Put(1, "one one"),
         Prepare.Put(2, "two two")
-      ).assertGet
+      ).runRandomIO.right.value
 
-      rootMap.get(1).assertGet shouldBe "one"
-      rootMap.get(2).assertGet shouldBe "two"
-      subMap.get(1).assertGet shouldBe "one one"
-      subMap.get(2).assertGet shouldBe "two two"
+      rootMap.get(1).runRandomIO.right.value.value shouldBe "one"
+      rootMap.get(2).runRandomIO.right.value.value shouldBe "two"
+      subMap.get(1).runRandomIO.right.value.value shouldBe "one one"
+      subMap.get(2).runRandomIO.right.value.value shouldBe "two two"
 
       rootMap.closeDatabase().get
     }
@@ -431,28 +433,28 @@ sealed trait MapSpec extends TestBaseEmbedded {
       rootMap.commitPrepared(
         Prepare.Put(1, "one"),
         Prepare.Put(2, "two")
-      ).assertGet
+      ).runRandomIO.right.value
 
       rootMap.commitPrepared(
         Prepare.Update(1, "one updated"),
         Prepare.Update(2, "two updated")
-      ).assertGet
+      ).runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
       subMap.commitPrepared(
         Prepare.Put(1, "one one"),
         Prepare.Put(2, "two two")
-      ).assertGet
+      ).runRandomIO.right.value
 
       subMap.commitPrepared(
         Prepare.Update(1, "one one updated"),
         Prepare.Update(2, "two two updated")
-      ).assertGet
+      ).runRandomIO.right.value
 
-      rootMap.get(1).assertGet shouldBe "one updated"
-      rootMap.get(2).assertGet shouldBe "two updated"
-      subMap.get(1).assertGet shouldBe "one one updated"
-      subMap.get(2).assertGet shouldBe "two two updated"
+      rootMap.get(1).runRandomIO.right.value.value shouldBe "one updated"
+      rootMap.get(2).runRandomIO.right.value.value shouldBe "two updated"
+      subMap.get(1).runRandomIO.right.value.value shouldBe "one one updated"
+      subMap.get(2).runRandomIO.right.value.value shouldBe "two two updated"
 
       rootMap.closeDatabase().get
     }
@@ -462,27 +464,27 @@ sealed trait MapSpec extends TestBaseEmbedded {
       rootMap.commitPrepared(
         Prepare.Put(1, "one"),
         Prepare.Put(2, "two")
-      ).assertGet
+      ).runRandomIO.right.value
 
       rootMap.commitPrepared(
         Prepare.Expire(1, 100.millisecond),
         Prepare.Expire(2, 100.millisecond)
-      ).assertGet
+      ).runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
       subMap.commitPrepared(
         Prepare.Put(1, "one one"),
         Prepare.Put(2, "two two")
-      ).assertGet
+      ).runRandomIO.right.value
 
       subMap.commitPrepared(
         Prepare.Expire(1, 100.millisecond),
         Prepare.Expire(2, 100.millisecond)
-      ).assertGet
+      ).runRandomIO.right.value
 
       eventual {
-        rootMap.stream.materialize.get shouldBe empty
-        subMap.stream.materialize.get shouldBe empty
+        rootMap.stream.materialize.runRandomIO.right.value shouldBe empty
+        subMap.stream.materialize.runRandomIO.right.value shouldBe empty
       }
 
       rootMap.closeDatabase().get
@@ -490,59 +492,59 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
     "batchPut" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).assertGet
+      rootMap.put((1, "one"), (2, "two")).runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
       subMap.put((1, "one one"), (2, "two two"))
 
-      rootMap.stream.materialize.get shouldBe ListBuffer((1, "one"), (2, "two"))
-      subMap.stream.materialize.get shouldBe ListBuffer((1, "one one"), (2, "two two"))
+      rootMap.stream.materialize.runRandomIO.right.value shouldBe ListBuffer((1, "one"), (2, "two"))
+      subMap.stream.materialize.runRandomIO.right.value shouldBe ListBuffer((1, "one one"), (2, "two two"))
 
       rootMap.closeDatabase().get
     }
 
     "batchUpdate" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).assertGet
-      rootMap.update((1, "one updated"), (2, "two updated")).assertGet
+      rootMap.put((1, "one"), (2, "two")).runRandomIO.right.value
+      rootMap.update((1, "one updated"), (2, "two updated")).runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
       subMap.put((1, "one one"), (2, "two two"))
-      subMap.update((1, "one one updated"), (2, "two two updated")).assertGet
+      subMap.update((1, "one one updated"), (2, "two two updated")).runRandomIO.right.value
 
-      rootMap.stream.materialize.get shouldBe ListBuffer((1, "one updated"), (2, "two updated"))
-      subMap.stream.materialize.get shouldBe ListBuffer((1, "one one updated"), (2, "two two updated"))
+      rootMap.stream.materialize.runRandomIO.right.value shouldBe ListBuffer((1, "one updated"), (2, "two updated"))
+      subMap.stream.materialize.runRandomIO.right.value shouldBe ListBuffer((1, "one one updated"), (2, "two two updated"))
 
       rootMap.closeDatabase().get
     }
 
     "batchRemove" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).assertGet
-      rootMap.remove(1, 2).assertGet
+      rootMap.put((1, "one"), (2, "two")).runRandomIO.right.value
+      rootMap.remove(1, 2).runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
       subMap.put((1, "one one"), (2, "two two"))
-      subMap.remove(1, 2).assertGet
+      subMap.remove(1, 2).runRandomIO.right.value
 
-      rootMap.stream.materialize.get shouldBe empty
-      subMap.stream.materialize.get shouldBe empty
+      rootMap.stream.materialize.runRandomIO.right.value shouldBe empty
+      subMap.stream.materialize.runRandomIO.right.value shouldBe empty
 
       rootMap.closeDatabase().get
     }
 
     "batchExpire" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).assertGet
-      rootMap.expire((1, 1.second.fromNow)).assertGet
+      rootMap.put((1, "one"), (2, "two")).runRandomIO.right.value
+      rootMap.expire((1, 1.second.fromNow)).runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
       subMap.put((1, "one one"), (2, "two two"))
-      subMap.expire((1, 1.second.fromNow), (2, 1.second.fromNow)).assertGet
+      subMap.expire((1, 1.second.fromNow), (2, 1.second.fromNow)).runRandomIO.right.value
 
       eventual {
-        rootMap.stream.materialize.get should contain only ((2, "two"))
-        subMap.stream.materialize.get shouldBe empty
+        rootMap.stream.materialize.runRandomIO.right.value should contain only ((2, "two"))
+        subMap.stream.materialize.runRandomIO.right.value shouldBe empty
       }
 
       rootMap.closeDatabase().get
@@ -550,105 +552,105 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
     "get" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).assertGet
+      rootMap.put((1, "one"), (2, "two")).runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
       subMap.put((1, "one one"), (2, "two two"))
 
-      rootMap.get(1).assertGet shouldBe "one"
-      rootMap.get(2).assertGet shouldBe "two"
-      subMap.get(1).assertGet shouldBe "one one"
-      subMap.get(2).assertGet shouldBe "two two"
+      rootMap.get(1).runRandomIO.right.value.value shouldBe "one"
+      rootMap.get(2).runRandomIO.right.value.value shouldBe "two"
+      subMap.get(1).runRandomIO.right.value.value shouldBe "one one"
+      subMap.get(2).runRandomIO.right.value.value shouldBe "two two"
 
-      rootMap.remove(1, 2).assertGet
-      subMap.remove(1, 2).assertGet
+      rootMap.remove(1, 2).runRandomIO.right.value
+      subMap.remove(1, 2).runRandomIO.right.value
 
-      rootMap.get(1).assertGetOpt shouldBe empty
-      rootMap.get(2).assertGetOpt shouldBe empty
-      subMap.get(1).assertGetOpt shouldBe empty
-      subMap.get(2).assertGetOpt shouldBe empty
+      rootMap.get(1).runRandomIO.right.value shouldBe empty
+      rootMap.get(2).runRandomIO.right.value shouldBe empty
+      subMap.get(1).runRandomIO.right.value shouldBe empty
+      subMap.get(2).runRandomIO.right.value shouldBe empty
 
       rootMap.closeDatabase().get
     }
 
-    "get when sub map is removed" in {
+    "value when sub map is removed" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).assertGet
+      rootMap.put((1, "one"), (2, "two")).runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
       subMap.put((1, "one one"), (2, "two two"))
 
-      rootMap.get(1).assertGet shouldBe "one"
-      rootMap.get(2).assertGet shouldBe "two"
-      subMap.get(1).assertGet shouldBe "one one"
-      subMap.get(2).assertGet shouldBe "two two"
+      rootMap.get(1).runRandomIO.right.value.value shouldBe "one"
+      rootMap.get(2).runRandomIO.right.value.value shouldBe "two"
+      subMap.get(1).runRandomIO.right.value.value shouldBe "one one"
+      subMap.get(2).runRandomIO.right.value.value shouldBe "two two"
 
-      rootMap.remove(1, 2).assertGet
-      rootMap.maps.remove(1).assertGet
+      rootMap.remove(1, 2).runRandomIO.right.value
+      rootMap.maps.remove(1).runRandomIO.right.value
 
-      rootMap.get(1).assertGetOpt shouldBe empty
-      rootMap.get(2).assertGetOpt shouldBe empty
-      subMap.get(1).assertGetOpt shouldBe empty
-      subMap.get(2).assertGetOpt shouldBe empty
+      rootMap.get(1).runRandomIO.right.value shouldBe empty
+      rootMap.get(2).runRandomIO.right.value shouldBe empty
+      subMap.get(1).runRandomIO.right.value shouldBe empty
+      subMap.get(2).runRandomIO.right.value shouldBe empty
 
       rootMap.closeDatabase().get
     }
 
     "getKey" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).assertGet
+      rootMap.put((1, "one"), (2, "two")).runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
       subMap.put((11, "one one"), (22, "two two"))
 
-      rootMap.getKey(1).assertGet shouldBe 1
-      rootMap.getKey(2).assertGet shouldBe 2
-      subMap.getKey(11).assertGet shouldBe 11
-      subMap.getKey(22).assertGet shouldBe 22
+      rootMap.getKey(1).runRandomIO.right.value.value shouldBe 1
+      rootMap.getKey(2).runRandomIO.right.value.value shouldBe 2
+      subMap.getKey(11).runRandomIO.right.value.value shouldBe 11
+      subMap.getKey(22).runRandomIO.right.value.value shouldBe 22
 
-      rootMap.remove(1, 2).assertGet
-      rootMap.maps.remove(1).assertGet
+      rootMap.remove(1, 2).runRandomIO.right.value
+      rootMap.maps.remove(1).runRandomIO.right.value
 
-      rootMap.get(1).assertGetOpt shouldBe empty
-      rootMap.get(2).assertGetOpt shouldBe empty
-      subMap.get(11).assertGetOpt shouldBe empty
-      subMap.get(22).assertGetOpt shouldBe empty
+      rootMap.get(1).runRandomIO.right.value shouldBe empty
+      rootMap.get(2).runRandomIO.right.value shouldBe empty
+      subMap.get(11).runRandomIO.right.value shouldBe empty
+      subMap.get(22).runRandomIO.right.value shouldBe empty
 
       rootMap.closeDatabase().get
     }
 
     "getKeyValue" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).assertGet
+      rootMap.put((1, "one"), (2, "two")).runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
       subMap.put((11, "one one"), (22, "two two"))
 
-      rootMap.getKeyValue(1).assertGet shouldBe(1, "one")
-      rootMap.getKeyValue(2).assertGet shouldBe(2, "two")
-      subMap.getKeyValue(11).assertGet shouldBe(11, "one one")
-      subMap.getKeyValue(22).assertGet shouldBe(22, "two two")
+      rootMap.getKeyValue(1).runRandomIO.right.value.value shouldBe(1, "one")
+      rootMap.getKeyValue(2).runRandomIO.right.value.value shouldBe(2, "two")
+      subMap.getKeyValue(11).runRandomIO.right.value.value shouldBe(11, "one one")
+      subMap.getKeyValue(22).runRandomIO.right.value.value shouldBe(22, "two two")
 
-      rootMap.remove(1, 2).assertGet
-      rootMap.maps.remove(1).assertGet
+      rootMap.remove(1, 2).runRandomIO.right.value
+      rootMap.maps.remove(1).runRandomIO.right.value
 
-      rootMap.getKeyValue(1).assertGetOpt shouldBe empty
-      rootMap.getKeyValue(2).assertGetOpt shouldBe empty
-      subMap.getKeyValue(11).assertGetOpt shouldBe empty
-      subMap.getKeyValue(22).assertGetOpt shouldBe empty
+      rootMap.getKeyValue(1).runRandomIO.right.value shouldBe empty
+      rootMap.getKeyValue(2).runRandomIO.right.value shouldBe empty
+      subMap.getKeyValue(11).runRandomIO.right.value shouldBe empty
+      subMap.getKeyValue(22).runRandomIO.right.value shouldBe empty
 
       rootMap.closeDatabase().get
     }
 
     "keys" in {
       val rootMap = newDB()
-      rootMap.put((1, "one"), (2, "two")).assertGet
+      rootMap.put((1, "one"), (2, "two")).runRandomIO.right.value
 
-      val subMap = rootMap.maps.put(1, "sub map").assertGet
+      val subMap = rootMap.maps.put(1, "sub map").runRandomIO.right.value
       subMap.put((11, "one one"), (22, "two two"))
 
-      rootMap.keys.stream.materialize.get should contain inOrderOnly(1, 2)
-      subMap.keys.stream.materialize.get should contain inOrderOnly(11, 22)
+      rootMap.keys.stream.materialize.runRandomIO.right.value should contain inOrderOnly(1, 2)
+      subMap.keys.stream.materialize.runRandomIO.right.value should contain inOrderOnly(11, 22)
 
       rootMap.closeDatabase().get
     }
@@ -663,7 +665,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "return empty subMap range keys for a empty SubMap" in {
       val db = newDB()
 
-      val rootMap = db.maps.put(1, "rootMap").assertGet
+      val rootMap = db.maps.put(1, "rootMap").runRandomIO.right.value
       Map.childSubMapRanges(rootMap).get shouldBe empty
 
       db.closeDatabase().get
@@ -672,8 +674,8 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "return subMap that has only one child subMap" in {
       val rootMap = newDB()
 
-      val firstMap = rootMap.maps.put(1, "rootMap").assertGet
-      val secondMap = firstMap.maps.put(2, "second map").assertGet
+      val firstMap = rootMap.maps.put(1, "rootMap").runRandomIO.right.value
+      val secondMap = firstMap.maps.put(2, "second map").runRandomIO.right.value
 
       Map.childSubMapRanges(firstMap).get should contain only ((Key.SubMap(Seq(1), 2), Key.MapStart(Seq(1, 2)), Key.MapEnd(Seq(1, 2))))
       Map.childSubMapRanges(secondMap).get shouldBe empty
@@ -684,9 +686,9 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "return subMaps of 3 nested maps" in {
       val db = newDB()
 
-      val firstMap = db.maps.put(1, "first").assertGet
-      val secondMap = firstMap.maps.put(2, "second").assertGet
-      val thirdMap = secondMap.maps.put(2, "third").assertGet
+      val firstMap = db.maps.put(1, "first").runRandomIO.right.value
+      val secondMap = firstMap.maps.put(2, "second").runRandomIO.right.value
+      val thirdMap = secondMap.maps.put(2, "third").runRandomIO.right.value
 
       Map.childSubMapRanges(firstMap).get should contain inOrderOnly((Key.SubMap(Seq(1), 2), Key.MapStart(Seq(1, 2)), Key.MapEnd(Seq(1, 2))), (Key.SubMap(Seq(1, 2), 2), Key.MapStart(Seq(1, 2, 2)), Key.MapEnd(Seq(1, 2, 2))))
       Map.childSubMapRanges(secondMap).get should contain only ((Key.SubMap(Seq(1, 2), 2), Key.MapStart(Seq(1, 2, 2)), Key.MapEnd(Seq(1, 2, 2))))
@@ -698,18 +700,18 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "returns multiple child subMap that also contains nested subMaps" in {
       val db = newDB()
 
-      val firstMap = db.maps.put(1, "firstMap").assertGet
-      val secondMap = firstMap.maps.put(2, "subMap").assertGet
+      val firstMap = db.maps.put(1, "firstMap").runRandomIO.right.value
+      val secondMap = firstMap.maps.put(2, "subMap").runRandomIO.right.value
 
-      secondMap.maps.put(2, "subMap").assertGet
-      secondMap.maps.put(3, "subMap3").assertGet
-      val subMap4 = secondMap.maps.put(4, "subMap4").assertGet
-      subMap4.maps.put(44, "subMap44").assertGet
-      val subMap5 = secondMap.maps.put(5, "subMap5").assertGet
-      val subMap55 = subMap5.maps.put(55, "subMap55").assertGet
-      subMap55.maps.put(5555, "subMap55").assertGet
-      subMap55.maps.put(6666, "subMap55").assertGet
-      subMap5.maps.put(555, "subMap555").assertGet
+      secondMap.maps.put(2, "subMap").runRandomIO.right.value
+      secondMap.maps.put(3, "subMap3").runRandomIO.right.value
+      val subMap4 = secondMap.maps.put(4, "subMap4").runRandomIO.right.value
+      subMap4.maps.put(44, "subMap44").runRandomIO.right.value
+      val subMap5 = secondMap.maps.put(5, "subMap5").runRandomIO.right.value
+      val subMap55 = subMap5.maps.put(55, "subMap55").runRandomIO.right.value
+      subMap55.maps.put(5555, "subMap55").runRandomIO.right.value
+      subMap55.maps.put(6666, "subMap55").runRandomIO.right.value
+      subMap5.maps.put(555, "subMap555").runRandomIO.right.value
 
       val mapHierarchy =
         List(
@@ -737,10 +739,10 @@ sealed trait MapSpec extends TestBaseEmbedded {
       "create a new subMap" in {
         val root = newDB()
 
-        val first = root.maps.put(1, "first").assertGet
-        val second = first.maps.put(2, "second").assertGet
-        first.maps.get(2).assertGetOpt shouldBe defined
-        second.maps.get(2).assertGetOpt shouldBe empty
+        val first = root.maps.put(1, "first").runRandomIO.right.value
+        val second = first.maps.put(2, "second").runRandomIO.right.value
+        first.maps.get(2).runRandomIO.right.value shouldBe defined
+        second.maps.get(2).runRandomIO.right.value shouldBe empty
 
         root.closeDatabase().get
       }
@@ -750,14 +752,14 @@ sealed trait MapSpec extends TestBaseEmbedded {
       "replace existing map" in {
         val root = newDB()
 
-        val first = root.maps.put(1, "first").assertGet
-        val second = first.maps.put(2, "second").assertGet
-        val secondAgain = first.maps.put(2, "second again").assertGet
+        val first = root.maps.put(1, "first").runRandomIO.right.value
+        val second = first.maps.put(2, "second").runRandomIO.right.value
+        val secondAgain = first.maps.put(2, "second again").runRandomIO.right.value
 
-        first.maps.get(2).assertGetOpt shouldBe defined
-        first.maps.getValue(2).assertGet shouldBe "second again"
-        second.getValue().assertGet shouldBe "second again"
-        secondAgain.getValue().assertGet shouldBe "second again"
+        first.maps.get(2).runRandomIO.right.value shouldBe defined
+        first.maps.getValue(2).runRandomIO.right.value.value shouldBe "second again"
+        second.getValue().runRandomIO.right.value.value shouldBe "second again"
+        secondAgain.getValue().runRandomIO.right.value.value shouldBe "second again"
 
         root.closeDatabase().get
       }
@@ -765,24 +767,24 @@ sealed trait MapSpec extends TestBaseEmbedded {
       "replace existing map and all it's entries" in {
         val root = newDB()
 
-        val first = root.maps.put(1, "first").assertGet
-        val second = first.maps.put(2, "second").assertGet
+        val first = root.maps.put(1, "first").runRandomIO.right.value
+        val second = first.maps.put(2, "second").runRandomIO.right.value
         //write entries to second map
-        second.put(1, "one").assertGet
-        second.put(2, "two").assertGet
-        second.put(3, "three").assertGet
+        second.put(1, "one").runRandomIO.right.value
+        second.put(2, "two").runRandomIO.right.value
+        second.put(3, "three").runRandomIO.right.value
         //assert second map has these entries
-        second.stream.materialize.get shouldBe List((1, "one"), (2, "two"), (3, "three"))
+        second.stream.materialize.runRandomIO.right.value shouldBe List((1, "one"), (2, "two"), (3, "three"))
 
-        val secondAgain = first.maps.put(2, "second again").assertGet
+        val secondAgain = first.maps.put(2, "second again").runRandomIO.right.value
 
-        //map value get updated
-        first.maps.get(2).assertGetOpt shouldBe defined
-        first.maps.getValue(2).assertGet shouldBe "second again"
-        second.getValue().assertGet shouldBe "second again"
-        secondAgain.getValue().assertGet shouldBe "second again"
+        //map value value updated
+        first.maps.get(2).runRandomIO.right.value shouldBe defined
+        first.maps.getValue(2).runRandomIO.right.value.value shouldBe "second again"
+        second.getValue().runRandomIO.right.value.value shouldBe "second again"
+        secondAgain.getValue().runRandomIO.right.value.value shouldBe "second again"
         //all the old entries are removed
-        second.stream.materialize.get shouldBe empty
+        second.stream.materialize.runRandomIO.right.value shouldBe empty
 
         root.closeDatabase().get
       }
@@ -795,51 +797,51 @@ sealed trait MapSpec extends TestBaseEmbedded {
         //   second
         //       third
         //           fourth
-        val first = root.maps.put(1, "first").assertGet
-        val second = first.maps.put(2, "second").assertGet
-        second.put(1, "second one").assertGet
-        second.put(2, "second two").assertGet
-        second.put(3, "second three").assertGet
+        val first = root.maps.put(1, "first").runRandomIO.right.value
+        val second = first.maps.put(2, "second").runRandomIO.right.value
+        second.put(1, "second one").runRandomIO.right.value
+        second.put(2, "second two").runRandomIO.right.value
+        second.put(3, "second three").runRandomIO.right.value
         //third map that is the child map of second map
-        val third = second.maps.put(3, "third").assertGet
-        third.put(1, "third one").assertGet
-        third.put(2, "third two").assertGet
-        third.put(3, "third three").assertGet
-        val fourth = third.maps.put(4, "fourth").assertGet
-        fourth.put(1, "fourth one").assertGet
-        fourth.put(2, "fourth two").assertGet
-        fourth.put(3, "fourth three").assertGet
+        val third = second.maps.put(3, "third").runRandomIO.right.value
+        third.put(1, "third one").runRandomIO.right.value
+        third.put(2, "third two").runRandomIO.right.value
+        third.put(3, "third three").runRandomIO.right.value
+        val fourth = third.maps.put(4, "fourth").runRandomIO.right.value
+        fourth.put(1, "fourth one").runRandomIO.right.value
+        fourth.put(2, "fourth two").runRandomIO.right.value
+        fourth.put(3, "fourth three").runRandomIO.right.value
 
         /**
           * Assert that the all maps' content is accurate
           */
-        second.stream.materialize.get shouldBe List((1, "second one"), (2, "second two"), (3, "second three"))
-        third.stream.materialize.get shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
-        fourth.stream.materialize.get shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
+        second.stream.materialize.runRandomIO.right.value shouldBe List((1, "second one"), (2, "second two"), (3, "second three"))
+        third.stream.materialize.runRandomIO.right.value shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
+        fourth.stream.materialize.runRandomIO.right.value shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
 
-        second.stream.materialize.get shouldBe List((1, "second one"), (2, "second two"), (3, "second three"))
-        third.stream.materialize.get shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
-        fourth.stream.materialize.get shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
+        second.stream.materialize.runRandomIO.right.value shouldBe List((1, "second one"), (2, "second two"), (3, "second three"))
+        third.stream.materialize.runRandomIO.right.value shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
+        fourth.stream.materialize.runRandomIO.right.value shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
 
-        second.maps.stream.materialize.get shouldBe List((3, "third"))
-        third.maps.stream.materialize.get shouldBe List((4, "fourth"))
-        fourth.maps.stream.materialize.get shouldBe empty
+        second.maps.stream.materialize.runRandomIO.right.value shouldBe List((3, "third"))
+        third.maps.stream.materialize.runRandomIO.right.value shouldBe List((4, "fourth"))
+        fourth.maps.stream.materialize.runRandomIO.right.value shouldBe empty
 
         //submit put on second map and assert that all it's contents are replaced.
-        val secondAgain = first.maps.put(2, "second updated").assertGet
+        val secondAgain = first.maps.put(2, "second updated").runRandomIO.right.value
 
-        //map value get updated
-        first.maps.get(2).assertGetOpt shouldBe defined
-        first.maps.getValue(2).assertGet shouldBe "second updated"
-        second.getValue().assertGet shouldBe "second updated"
-        secondAgain.getValue().assertGet shouldBe "second updated"
+        //map value value updated
+        first.maps.get(2).runRandomIO.right.value shouldBe defined
+        first.maps.getValue(2).runRandomIO.right.value.value shouldBe "second updated"
+        second.getValue().runRandomIO.right.value.value shouldBe "second updated"
+        secondAgain.getValue().runRandomIO.right.value.value shouldBe "second updated"
         //all the old entries are removed
-        second.stream.materialize.get shouldBe empty
-        third.stream.materialize.get shouldBe empty
-        fourth.stream.materialize.get shouldBe empty
+        second.stream.materialize.runRandomIO.right.value shouldBe empty
+        third.stream.materialize.runRandomIO.right.value shouldBe empty
+        fourth.stream.materialize.runRandomIO.right.value shouldBe empty
 
-        second.maps.contains(3).assertGet shouldBe false
-        second.maps.contains(4).assertGet shouldBe false
+        second.maps.contains(3).runRandomIO.right.value shouldBe false
+        second.maps.contains(4).runRandomIO.right.value shouldBe false
 
         root.closeDatabase().get
       }
@@ -849,24 +851,24 @@ sealed trait MapSpec extends TestBaseEmbedded {
       "remove all key-values from a map" in {
 
         val root = newDB()
-        val first = root.maps.put(1, "first").assertGet
-        val second = first.maps.put(2, "second").assertGet
-        second.put(1, "second one").assertGet
-        second.put(2, "second two").assertGet
-        second.put(3, "second three").assertGet
+        val first = root.maps.put(1, "first").runRandomIO.right.value
+        val second = first.maps.put(2, "second").runRandomIO.right.value
+        second.put(1, "second one").runRandomIO.right.value
+        second.put(2, "second two").runRandomIO.right.value
+        second.put(3, "second three").runRandomIO.right.value
         //third map that is the child map of second map
-        val third = second.maps.put(3, "third").assertGet
-        third.put(1, "third one").assertGet
-        third.put(2, "third two").assertGet
-        third.put(3, "third three").assertGet
+        val third = second.maps.put(3, "third").runRandomIO.right.value
+        third.put(1, "third one").runRandomIO.right.value
+        third.put(2, "third two").runRandomIO.right.value
+        third.put(3, "third three").runRandomIO.right.value
 
-        second.stream.materialize.get should have size 3
-        second.clear().assertGet
-        second.stream.materialize.get shouldBe empty
+        second.stream.materialize.runRandomIO.right.value should have size 3
+        second.clear().runRandomIO.right.value
+        second.stream.materialize.runRandomIO.right.value shouldBe empty
 
-        third.stream.materialize.get should have size 3
-        second.maps.clear(3).assertGet
-        third.stream.materialize.get shouldBe empty
+        third.stream.materialize.runRandomIO.right.value should have size 3
+        second.maps.clear(3).runRandomIO.right.value
+        third.stream.materialize.runRandomIO.right.value shouldBe empty
 
         root.closeDatabase().get
       }

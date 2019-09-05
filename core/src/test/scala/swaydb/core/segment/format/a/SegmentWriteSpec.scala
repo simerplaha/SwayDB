@@ -19,35 +19,37 @@
 
 package swaydb.core.segment.format.a
 
-import java.nio.file._
+import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 
-import swaydb.configs.level.DefaultGroupingStrategy
+import org.scalatest.OptionValues._
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
+import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.Transient.Remove
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Value.{FromValue, RangeValue}
-import swaydb.core.data.{Memory, Value, _}
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.data._
+import swaydb.core.group.compression.GroupByInternal
+import swaydb.core.io.file.{BlockCache, IOEffect}
 import swaydb.core.io.file.IOEffect._
-import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.FileLimiter
+import swaydb.core.actor.MemorySweeper
+import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util._
-import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
-import swaydb.data.config.Dir
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.MaxKey
+import swaydb.data.config.{ActorConfig, Dir}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.StorageUnits._
-import swaydb.data.{IO, MaxKey}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.Random
@@ -74,48 +76,50 @@ class SegmentWriteSpec3 extends SegmentWriteSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait SegmentWriteSpec extends TestBase with Benchmark {
+sealed trait SegmentWriteSpec extends TestBase {
 
   val keyValuesCount = 100
 
   implicit val testTimer: TestTimer = TestTimer.Incremental()
 
-  implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
-    randomGroupingStrategyOption(keyValuesCount)
+  implicit def groupBy: Option[GroupByInternal.KeyValues] =
+    randomGroupByOption(keyValuesCount)
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
+  implicit def segmentIO = SegmentIO.random
+  implicit val memorySweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeper
+  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   //  override def deleteFiles = false
 
-  implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
+  implicit val fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper
 
   "Segment" should {
 
     "create a Segment" in {
-      runThis(100.times) {
+      runThis(100.times, log = true) {
         assertSegment(
           keyValues =
-            randomizedKeyValues(randomIntMax(keyValuesCount) max 1).toMemory,
+            randomizedKeyValues(eitherOne(randomIntMax(keyValuesCount) max 1, keyValuesCount)),
 
           assert =
             (keyValues, segment) => {
               assertReads(keyValues, segment)
+              segment.segmentId shouldBe IOEffect.fileId(segment.path).get._1
               segment.minKey shouldBe keyValues.head.key
               segment.maxKey shouldBe {
                 keyValues.last match {
-                  case _: Memory.Fixed =>
+                  case _: Transient.Fixed =>
                     MaxKey.Fixed[Slice[Byte]](keyValues.last.key)
 
-                  case group: Memory.Group =>
+                  case group: Transient.Group =>
                     group.maxKey
 
-                  case range: Memory.Range =>
+                  case range: Transient.Range =>
                     MaxKey.Range[Slice[Byte]](range.fromKey, range.toKey)
                 }
               }
-
               //ensure that min and max keys are slices
               segment.minKey.underlyingArraySize shouldBe 4
               segment.maxKey match {
@@ -126,50 +130,48 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                   fromKey.underlyingArraySize shouldBe 4
                   maxKey.underlyingArraySize shouldBe 4
               }
-
-              assertBloom(keyValues.toTransient, segment.getBloomFilter.assertGet)
-
-              segment.close.assertGet
+              assertBloom(keyValues, segment)
+              segment.close.right.value
             }
         )
       }
     }
 
     "set minKey & maxKey to be Fixed if the last key-value is a Fixed key-value" in {
-      runThis(100.times) {
+      runThis(50.times) {
         assertSegment(
           keyValues =
-            Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)),
+            Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)).toTransient,
           assert =
             (keyValues, segment) => {
               segment.minKey shouldBe (1: Slice[Byte])
               segment.maxKey shouldBe MaxKey.Fixed[Slice[Byte]](11)
               segment.minKey.underlyingArraySize shouldBe ByteSizeOf.int
               segment.maxKey.maxKey.underlyingArraySize shouldBe ByteSizeOf.int
-              segment.close.assertGet
+              segment.close.runRandomIO.right.value
             }
         )
       }
     }
 
     "set minKey & maxKey to be Range if the last key-value is a Range key-value" in {
-      runThis(100.times) {
+      runThis(50.times) {
         assertSegment(
-          keyValues = Slice(randomFixedKeyValue(0), randomRangeKeyValue(1, 10)),
+          keyValues = Slice(randomFixedKeyValue(0), randomRangeKeyValue(1, 10)).toTransient,
           assert =
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
               segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](1, 10)
-              segment.close.assertGet
+              segment.close.runRandomIO.right.value
             }
         )
       }
     }
 
     "set minKey & maxKey to be Range if the last key-value is a Group and the Group's last key-value is Range" in {
-      runThis(100.times) {
+      runThis(50.times) {
         assertSegment(
-          keyValues = Slice(randomFixedKeyValue(0), randomGroup(Slice(randomFixedKeyValue(2), randomRangeKeyValue(5, 10)).toTransient)).toMemory,
+          keyValues = Slice(randomFixedKeyValue(0).toTransient, randomGroup(Slice(randomFixedKeyValue(2), randomRangeKeyValue(5, 10)).toTransient)).updateStats,
           assert =
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
@@ -180,26 +182,26 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
               rangeMaxKey.maxKey.underlyingArraySize shouldBe ByteSizeOf.int
               rangeMaxKey.fromKey.underlyingArraySize shouldBe ByteSizeOf.int
 
-              segment.close.assertGet
+              segment.close.runRandomIO.right.value
             }
         )
       }
     }
 
     "set minKey & maxKey to be Range if last key-value is a Group and the Group's last key-value is Fixed" in {
-      runThis(10.times) {
+      runThis(30.times) {
         assertSegment(
           keyValues =
             Slice(
-              randomFixedKeyValue(0),
-              randomGroup(Slice(randomRangeKeyValue(5, 10),
-                randomFixedKeyValue(20)).toTransient)
-            ).toMemory,
+              randomFixedTransientKeyValue(0),
+              randomGroup(Slice(randomRangeKeyValue(5, 10), randomFixedKeyValue(20)).toTransient)
+            ).updateStats,
+
           assert =
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
               segment.maxKey shouldBe MaxKey.Fixed[Slice[Byte]](20)
-              segment.close.assertGet
+              segment.close.runRandomIO.right.value
             }
         )
       }
@@ -210,19 +212,20 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         assertSegment(
           keyValues =
             Slice(
-              randomFixedKeyValue(0),
+              randomFixedTransientKeyValue(0),
               randomGroup(
                 Slice(
-                  randomFixedKeyValue(2).toTransient,
+                  randomFixedTransientKeyValue(2),
                   randomGroup(Slice(randomFixedKeyValue(3), randomRangeKeyValue(5, 10)).toTransient)
                 ).updateStats
               )
-            ).toMemory,
+            ).updateStats,
+
           assert =
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
               segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](5, 10)
-              segment.close.assertGet
+              segment.close.runRandomIO.right.value
             }
         )
       }
@@ -231,7 +234,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "un-slice Segment's minKey & maxKey and also un-slice cache key-values" in {
       //assert that all key-values added to cache are not sub-slices.
       def assertCacheKeyValuesAreSliced(segment: Segment) =
-        segment.cache.asScala foreach {
+        segment.skipList.asScala foreach {
           case (key, value: KeyValue.ReadOnly) =>
             key.shouldBeSliced()
             assertSliced(value)
@@ -249,29 +252,21 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         }
       }
 
-      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
-        val (bytes, _) =
-          SegmentWriter.write(
-            keyValues = keyValues,
-            createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet
+      def doAssert(keyValues: Slice[Transient]) = {
 
         //read key-values so they are all part of the same byte array.
-        val readKeyValues: Slice[Memory] = SegmentReader.readAll(SegmentReader.readFooter(Reader(bytes)).assertGet, Reader(bytes)).assertGet.toMemory
+        val readKeyValues = writeAndRead(keyValues).get
 
         //assert that readKeyValues keys are not sliced.
         readKeyValues foreach assertNotSliced
 
         //Create Segment with sub-slice key-values and assert min & maxKey and also check that cached key-values are un-sliced.
         assertSegment(
-          keyValues = readKeyValues,
+          keyValues = readKeyValues.toTransient,
           assert =
             (keyValues, segment) => {
               assertMinAndMaxKeyAreSliced(segment)
-              //if Persistent Segment, read all key-values from disk so that they getFromHashIndex added to cache.
+              //if Persistent Segment, read all key-values from disk so that they value added to cache.
               if (persistent) assertGet(readKeyValues, segment)
               //assert key-values added to cache are un-sliced
               assertCacheKeyValuesAreSliced(segment)
@@ -305,32 +300,32 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       }
     }
 
-    "create bloomFilter if the Segment has Remove range key-values or function key-values and set hasRange to true" in {
+    "not create bloomFilter if the Segment has Remove range key-values or function key-values and set hasRange to true" in {
 
       def doAssert(keyValues: Slice[KeyValue], segment: Segment) = {
-        segment.getBloomFilter.assertGetOpt shouldBe defined
-        assertBloom(keyValues.toMemory.toTransient, segment.getBloomFilter.get.get)
-        segment.hasRange.assertGet shouldBe true
-        segment.close.assertGet
+        segment.hasBloomFilter.get shouldBe false
+        assertBloom(keyValues.toMemory.toTransient, segment)
+        segment.hasRange.runRandomIO.right.value shouldBe true
+        segment.close.runRandomIO.right.value
       }
 
       assertSegment(
-        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, None, Value.remove(randomDeadlineOption, Time.empty))),
+        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, None, Value.remove(randomDeadlineOption, Time.empty))).toTransient,
         assert = doAssert
       )
 
       assertSegment(
-        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.remove(None, Time.empty)), Value.remove(randomDeadlineOption, Time.empty))),
+        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.remove(None, Time.empty)), Value.remove(randomDeadlineOption, Time.empty))).toTransient,
         assert = doAssert
       )
 
       assertSegment(
-        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.update(None, randomDeadlineOption, Time.empty)), Value.remove(randomDeadlineOption, Time.empty))),
+        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.update(None, randomDeadlineOption, Time.empty)), Value.remove(randomDeadlineOption, Time.empty))).toTransient,
         assert = doAssert
       )
 
       assertSegment(
-        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.remove(randomDeadlineOption, Time.empty))),
+        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.remove(randomDeadlineOption, Time.empty))).toTransient,
         assert = doAssert
       )
 
@@ -341,7 +336,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
       //group can also have a range key-value which should have the same effect.
 
-      runThis(100.times) {
+      runThis(50.times) {
         assertSegment(
           keyValues =
             Slice(
@@ -367,7 +362,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                   )
                 ).toTransient
               ).toMemory
-            ),
+            ).toTransient,
           assert = doAssert
         )
       }
@@ -375,22 +370,46 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "create bloomFilter if the Segment has no Remove range key-values but has update range key-values. And set hasRange to true" in {
       assertSegment(
-        keyValues = Slice(Memory.put(0), Memory.put(1, 1), Memory.remove(2, randomDeadlineOption)),
+        keyValues =
+          Slice(Memory.put(0), Memory.put(1, 1), Memory.remove(2, randomDeadlineOption))
+            .toTransient(
+              bloomFilterConfig =
+                BloomFilterBlock.Config(
+                  falsePositiveRate = 0.001,
+                  minimumNumberOfKeys = 0,
+                  optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
+                  blockIO = _ => randomIOStrategy(),
+                  compressions = _ => randomCompressionsOrEmpty()
+                )
+            ),
+
         assert =
           (keyValues, segment) => {
-            segment.getBloomFilter.assertGetOpt shouldBe defined
-            segment.hasRange.assertGet shouldBe false
-            segment.close.assertGet
+            segment.hasBloomFilter.runRandomIO.right.value shouldBe true
+            segment.hasRange.runRandomIO.right.value shouldBe false
+            segment.close.runRandomIO.right.value
           }
       )
 
       assertSegment(
-        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, None, Value.update(10, randomDeadlineOption))),
+        keyValues =
+          Slice(Memory.put(0), Memory.Range(1, 10, None, Value.update(10, randomDeadlineOption)))
+            .toTransient(
+              bloomFilterConfig =
+                BloomFilterBlock.Config(
+                  falsePositiveRate = 0.001,
+                  minimumNumberOfKeys = 0,
+                  optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
+                  blockIO = _ => randomIOStrategy(),
+                  compressions = _ => randomCompressionsOrEmpty()
+                )
+            ),
+
         assert =
           (keyValues, segment) => {
-            segment.getBloomFilter.assertGetOpt shouldBe defined
-            segment.hasRange.assertGet shouldBe true
-            segment.close.assertGet
+            segment.hasBloomFilter.runRandomIO.right.value shouldBe true
+            segment.hasRange.runRandomIO.right.value shouldBe true
+            segment.close.runRandomIO.right.value
           }
       )
 
@@ -398,13 +417,24 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         keyValues =
           Slice(
             Memory.put(0),
-            randomGroup(Slice(Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.update(1, randomDeadlineOption))).toTransient).toMemory
+            randomGroup(
+              Slice(Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.update(1, randomDeadlineOption))).toTransient
+            ).toMemory
+          ).toTransient(
+            bloomFilterConfig =
+              BloomFilterBlock.Config(
+                falsePositiveRate = 0.001,
+                minimumNumberOfKeys = 0,
+                optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
+                blockIO = _ => randomIOStrategy(),
+                compressions = _ => randomCompressionsOrEmpty()
+              )
           ),
         assert =
           (keyValues, segment) => {
-            segment.getBloomFilter.assertGetOpt shouldBe defined
-            segment.hasRange.assertGet shouldBe true
-            segment.close.assertGet
+            segment.hasBloomFilter.runRandomIO.right.value shouldBe true
+            segment.hasRange.runRandomIO.right.value shouldBe true
+            segment.close.runRandomIO.right.value
           }
       )
     }
@@ -412,55 +442,61 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "set hasRange to true if the Segment contains Range key-values" in {
 
       def doAssert(keyValues: Slice[KeyValue], segment: Segment): Unit = {
-        segment.hasRange.assertGet shouldBe true
-        segment.hasPut.assertGet shouldBe true
-        segment.close.assertGet
+        segment.hasRange.runRandomIO.right.value shouldBe true
+        segment.hasPut.runRandomIO.right.value shouldBe true
+        segment.close.runRandomIO.right.value
       }
 
       assertSegment(
-        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, None, Value.update(10))),
+        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, None, Value.update(10))).toTransient,
         assert = doAssert
       )
 
       assertSegment(
-        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.remove(None, Time.empty)), Value.update(10))),
+        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.remove(None, Time.empty)), Value.update(10))).toTransient,
         assert = doAssert
       )
 
       assertSegment(
-        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.put(1)), Value.update(10))),
+        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.put(1)), Value.update(10))).toTransient,
         assert = doAssert
       )
 
       assertSegment(
-        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, None, Value.remove(None, Time.empty))),
+        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, None, Value.remove(None, Time.empty))).toTransient,
         assert = doAssert
       )
 
       assertSegment(
-        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.remove(10.seconds.fromNow)), Value.remove(None, Time.empty))),
+        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.remove(10.seconds.fromNow)), Value.remove(None, Time.empty))).toTransient,
         assert = doAssert
       )
 
       assertSegment(
-        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.put(1)), Value.remove(None, Time.empty))),
+        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.put(1)), Value.remove(None, Time.empty))).toTransient,
         assert = doAssert
       )
 
       runThisParallel(100.times) {
         assertSegment(
-          keyValues = Slice(Memory.put(0), randomRangeKeyValue(1, 10)),
+          keyValues = Slice(Memory.put(0), randomRangeKeyValue(1, 10)).toTransient,
           assert = doAssert
         )
       }
 
       assertSegment(
-        keyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomRanges = true, addRandomPutDeadlines = true, addRandomRemoveDeadlines = true),
+        keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addRanges = true, addPutDeadlines = true, addRemoveDeadlines = true).toTransient,
         assert = doAssert
       )
 
       assertSegment(
-        keyValues = Slice(randomGroup(Slice(Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.update(1, randomDeadlineOption))).toTransient).toMemory),
+        keyValues =
+          Slice(
+            randomGroup(
+              Slice(
+                Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.update(1, randomDeadlineOption))).toTransient
+            )
+          ),
         assert = doAssert
       )
     }
@@ -471,18 +507,19 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       } else {
         assertSegment(
           keyValues =
-            randomPutKeyValues(keyValuesCount),
+            randomPutKeyValues(keyValuesCount).toTransient,
           assert =
             (keyValues, segment) => {
-              val failedKeyValues = randomKeyValues(keyValuesCount, addRandomRemoves = true)
-              TestSegment(failedKeyValues, path = segment.path).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
+              val failedKV = randomKeyValues(keyValuesCount, addRemoves = true)
+              val reopenedSegment = TestSegment(failedKV, path = segment.path)
+              reopenedSegment.left.right.value.exception shouldBe a[FileAlreadyExistsException]
               //data remained unchanged
               assertReads(keyValues, segment)
-              failedKeyValues foreach {
+              failedKV foreach {
                 keyValue =>
-                  segment.get(keyValue.key).assertGetOpt.isEmpty shouldBe true
+                  segment.get(keyValue.key).runRandomIO.right.value.isEmpty shouldBe true
               }
-              assertBloom(keyValues.toTransient, segment.getBloomFilter.assertGet)
+              assertBloom(keyValues, segment)
             }
         )
       }
@@ -492,26 +529,36 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       if (memory) {
         //memory Segments cannot re-initialise Segments after shutdown.
       } else {
-        runThisParallel(10.times) {
+        runThis(10.times) {
           assertSegment(
-            keyValues = randomizedKeyValues(keyValuesCount),
-            closeAfterCreate = true,
-            testWithCachePopulated = false,
+            keyValues =
+              randomizedKeyValues(keyValuesCount),
+
+            closeAfterCreate =
+              true,
+
+            testAgainAfterAssert =
+              false,
+
             assert =
               (keyValues, segment) => {
                 segment.isOpen shouldBe false
                 segment.isFileDefined shouldBe false
-                segment.isCacheEmpty shouldBe true
+                segment.isKeyValueCacheEmpty shouldBe true
 
                 assertReads(keyValues, segment)
 
+                segment.skipList.isConcurrent shouldBe true
+
                 segment.isOpen shouldBe true
                 segment.isFileDefined shouldBe true
-                segment.isCacheEmpty shouldBe false
+                segment.isKeyValueCacheEmpty shouldBe false
 
-                segment.getBloomFilter.assertGetOpt.foreach(bloom => assertBloom(keyValues.toTransient, bloom))
-
-                segment.close.assertGet
+                assertBloom(keyValues, segment)
+                segment.close.runRandomIO.right.value
+                segment.isOpen shouldBe false
+                segment.isFileDefined shouldBe false
+                segment.isKeyValueCacheEmpty shouldBe false
               }
           )
         }
@@ -527,7 +574,16 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             keyValues = randomizedKeyValues(keyValuesCount),
             assert =
               (keyValues, segment) => {
-                val readSegment = Segment(segment.path, randomBoolean(), randomBoolean(), false).assertGet
+                implicit val memorySweeper: Option[MemorySweeper.KeyValue] = orNone(TestLimitQueues.keyValueSweeperBlock)
+                val readSegment =
+                  Segment(
+                    path = segment.path,
+                    segmentId = segment.segmentId,
+                    mmapReads = randomBoolean(),
+                    mmapWrites = randomBoolean(),
+                    checkExists = false
+                  ).runRandomIO.right.value
+
                 readSegment shouldBe segment
               }
           )
@@ -537,24 +593,24 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "fail initialisation if the segment does not exist" in {
       if (memory) {
-        //memory Segments do not getFromHashIndex re-initialised
+        //memory Segments do not value re-initialised
       } else {
-        val segment = TestSegment().assertGet
-        segment.delete.assertGet
+        val segment = TestSegment().right.value
+        segment.delete.right.value
 
-        segment.tryReopen.failed.assertGet.exception shouldBe a[NoSuchFileException]
+        segment.tryReopen.left.right.value.exception shouldBe a[NoSuchFileException]
       }
     }
   }
 
   "deleteSegments" should {
     "delete multiple segments" in {
-      val segment1 = TestSegment(randomizedKeyValues(keyValuesCount)).assertGet
-      val segment2 = TestSegment(randomizedKeyValues(keyValuesCount)).assertGet
-      val segment3 = TestSegment(randomizedKeyValues(keyValuesCount)).assertGet
+      val segment1 = TestSegment(randomizedKeyValues(keyValuesCount)).right.value
+      val segment2 = TestSegment(randomizedKeyValues(keyValuesCount)).right.value
+      val segment3 = TestSegment(randomizedKeyValues(keyValuesCount)).right.value
 
       val deleted = Segment.deleteSegments(Seq(segment1, segment2, segment3))
-      deleted.assertGet shouldBe 3
+      deleted.right.value shouldBe 3
 
       //files should be closed
       segment1.isOpen shouldBe false
@@ -574,28 +630,26 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
   "Segment" should {
     "open a closed Segment on read and clear footer" in {
       runThis(10.times) {
-        implicit val fileOpenLimiter: FileLimiter = FileLimiter.empty
+        implicit val fileSweeper = FileSweeper.Disabled
 
         val keyValues = randomizedKeyValues(keyValuesCount)
-        val segment = TestSegment(keyValues).assertGet
+        val segment = TestSegment(keyValues).right.value
 
-        def close = {
-          segment.close.assertGet
+        def close: Unit = {
+          segment.close.right.value
           if (levelStorage.persistent) {
             //also clear the cache so that if the key-value is a group on open file is still reopened
             //instead of just reading from in-memory Group key-value.
-            segment.clearCache()
+            eitherOne(segment.clearCachedKeyValues(), segment.clearAllCaches())
             segment.isFileDefined shouldBe false
             segment.isOpen shouldBe false
-            segment.isFooterDefined shouldBe false
           }
         }
 
-        def open(keyValue: KeyValue) = {
-          segment.get(keyValue.key).assertGet shouldBe keyValue
+        def open(keyValue: KeyValue): Unit = {
+          segment.get(keyValue.key).right.value.value shouldBe keyValue
           segment.isFileDefined shouldBe true
           segment.isOpen shouldBe true
-          segment.isFooterDefined shouldBe true
         }
 
         unzipGroups(keyValues) foreach {
@@ -610,41 +664,39 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "fail read and write operations on a Segment that does not exists" in {
       val keyValues = randomizedKeyValues(keyValuesCount)
-      val segment = TestSegment(keyValues).assertGet
+      val segment = TestSegment(keyValues).right.value
 
-      segment.delete.assertGet
+      segment.delete.right.value
       segment.isOpen shouldBe false
       segment.isFileDefined shouldBe false
 
       segment.existsOnDisk shouldBe false
-      segment.get(keyValues.head.key).failed.assertGet.exception shouldBe a[NoSuchFileException]
+      segment.get(keyValues.head.key).left.right.value.exception shouldBe a[NoSuchFileException]
 
       segment.put(
         newKeyValues = keyValues.toMemory,
         minSegmentSize = 1.mb,
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
-        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-        compressDuplicateValues = true,
         removeDeletes = false,
         createdInLevel = 0,
-        maxProbe = TestData.maxProbe
-      ).failed.assertGet.exception shouldBe a[NoSuchFileException]
+        valuesConfig = keyValues.last.valuesConfig,
+        sortedIndexConfig = keyValues.last.sortedIndexConfig,
+        binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+        hashIndexConfig = keyValues.last.hashIndexConfig,
+        bloomFilterConfig = keyValues.last.bloomFilterConfig,
+        segmentConfig = SegmentBlock.Config.random
+      ).left.right.value.exception shouldBe a[NoSuchFileException]
 
       segment.refresh(
         minSegmentSize = 1.mb,
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
-        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-        compressDuplicateValues = true,
         removeDeletes = false,
         createdInLevel = 0,
-        maxProbe = TestData.maxProbe
-      ).failed.assertGet.exception shouldBe a[NoSuchFileException]
+        valuesConfig = keyValues.last.valuesConfig,
+        sortedIndexConfig = keyValues.last.sortedIndexConfig,
+        binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+        hashIndexConfig = keyValues.last.hashIndexConfig,
+        bloomFilterConfig = keyValues.last.bloomFilterConfig,
+        segmentConfig = SegmentBlock.Config.random
+      ).left.right.value.exception shouldBe a[NoSuchFileException]
 
       segment.isOpen shouldBe false
       segment.isFileDefined shouldBe false
@@ -653,26 +705,32 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
   "reopen closed channel for read when closed by LimitQueue" in {
     if (memory) {
-      //memory Segments do not getFromHashIndex closed via
+      //memory Segments do not value closed via
     } else {
-      implicit val segmentOpenLimit = FileLimiter(1, 100.millisecond)
-      val keyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false)
-      val segment1 = TestSegment(keyValues)(keyOrder, keyValueLimiter, segmentOpenLimit).assertGet
+      implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
+      implicit val segmentOpenLimit = FileSweeper(1, ActorConfig.TimeLoop(100.millisecond, ec))
+      val keyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
+      val segment1 = TestSegment(keyValues)(keyOrder, memorySweeper, segmentOpenLimit).right.value
 
-      segment1.getHeadKeyValueCount().assertGet shouldBe keyValues.size
+      segment1.getHeadKeyValueCount().right.value shouldBe keyValues.size
       segment1.isOpen shouldBe true
 
       //create another segment should close segment 1
-      val segment2 = TestSegment(keyValues)(keyOrder, keyValueLimiter, segmentOpenLimit).assertGet
-      segment2.getHeadKeyValueCount().assertGet shouldBe keyValues.size
+      val segment2 = TestSegment(keyValues)(keyOrder, memorySweeper, segmentOpenLimit).right.value
+      segment2.getHeadKeyValueCount().right.value shouldBe keyValues.size
 
       eventual(5.seconds) {
         //segment one is closed
         segment1.isOpen shouldBe false
       }
-      //read one key value from Segment1 so that it's reopened and added to the cache. This will also remove Segment 2 from cache
-      (segment1 get keyValues.head.key).assertGet shouldBe keyValues.head
-      segment1.isOpen shouldBe true
+
+      eventual(5.second) {
+        //when it's close clear all the caches so that key-values do not get read from the cache.
+        eitherOne(segment1.clearAllCaches(), segment1.clearCachedKeyValues())
+        //read one key value from Segment1 so that it's reopened and added to the cache. This will also remove Segment 2 from cache
+        (segment1 get keyValues.head.key).right.value.value shouldBe keyValues.head
+        segment1.isOpen shouldBe true
+      }
 
       eventual(5.seconds) {
         //segment2 is closed
@@ -687,11 +745,10 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       val segment = TestSegment(keyValues).get
       assertReads(keyValues, segment) //populate the cache
 
-      segment.cacheSize shouldBe keyValues.size
-      segment.isFooterDefined shouldBe true //footer is set in-memory
+      segment.cachedKeyValueSize shouldBe keyValues.size
 
-      segment.delete.assertGet
-      segment.cacheSize shouldBe keyValues.size //cache is not cleared
+      segment.delete.right.value
+      segment.cachedKeyValueSize shouldBe keyValues.size //cache is not cleared
       if (persistent) {
         segment.isOpen shouldBe false
         segment.isFooterDefined shouldBe false //on delete in-memory footer is cleared
@@ -709,144 +766,167 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         val segment = TestSegment(keyValues).get.asInstanceOf[PersistentSegment]
         val targetPath = createRandomIntDirectory.resolve(nextId + s".${Extension.Seg}")
 
-        segment.copyTo(targetPath).assertGet
+        segment.copyTo(targetPath).right.value
         segment.existsOnDisk shouldBe true
 
         val copiedSegment = segment.reopen(targetPath)
-        copiedSegment.getAll().assertGet shouldBe keyValuesReadOnly
+        copiedSegment.getAll().right.value shouldBe keyValuesReadOnly
         copiedSegment.path shouldBe targetPath
 
         //original segment should still exist
-        segment.getAll().assertGet shouldBe keyValuesReadOnly
+        segment.getAll().right.value shouldBe keyValuesReadOnly
       }
     }
   }
 
   "copyToPersist" should {
     "copy the segment and persist it to disk" in {
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
+      implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
+
       val keyValues = randomizedKeyValues(keyValuesCount)
-      val segment = TestSegment(keyValues).assertGet
+      val segment = TestSegment(keyValues).right.value
       val levelPath = createNextLevelPath
+
+      def fetchNextPath = {
+        val segmentId = nextId
+        val path = levelPath.resolve(IDGenerator.segmentId(segmentId))
+        (segmentId, path)
+      }
+
       val segments =
         Segment.copyToPersist(
           segment = segment,
           createdInLevel = 0,
-          fetchNextPath = levelPath.resolve(nextSegmentId),
+          fetchNextPath = fetchNextPath,
           mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
           mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          maxProbe = TestData.maxProbe,
-          compressDuplicateValues = true,
+          valuesConfig = keyValues.last.valuesConfig,
+          sortedIndexConfig = keyValues.last.sortedIndexConfig,
+          binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+          hashIndexConfig = keyValues.last.hashIndexConfig,
+          bloomFilterConfig = keyValues.last.bloomFilterConfig,
+          segmentConfig = SegmentBlock.Config.random,
           removeDeletes = false,
-          minSegmentSize =
-            if (persistent)
-              keyValues.last.stats.segmentSize / 10
-            else
-              keyValues.last.stats.memorySegmentSize / 10,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
-        ).assertGet
+          minSegmentSize = keyValues.last.stats.segmentSize / 10
+        ).right.value
 
       if (persistent)
-        segments should have size 1
+        segments.size shouldBe 1
       else
-        segments.size should be > 2
+        segments.size should be > 1
 
       segments.foreach(_.existsOnDisk shouldBe true)
-      Segment.getAllKeyValues(segments).assertGet shouldBe keyValues
+      Segment.getAllKeyValues(segments).right.value shouldBe keyValues
     }
 
     "copy the segment and persist it to disk when remove deletes is true" in {
       runThis(10.times) {
+        implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
         val keyValues = randomizedKeyValues(keyValuesCount)
-        val segment = TestSegment(keyValues).assertGet
+        val segment = TestSegment(keyValues).right.value
         val levelPath = createNextLevelPath
+
+        def fetchNextPath = {
+          val segmentId = nextId
+          val path = levelPath.resolve(IDGenerator.segmentId(segmentId))
+          (segmentId, path)
+        }
 
         val segments =
           Segment.copyToPersist(
             segment = segment,
             createdInLevel = 0,
-            fetchNextPath = levelPath.resolve(nextSegmentId),
+            fetchNextPath = fetchNextPath,
             mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
             mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
             removeDeletes = true,
-            maxProbe = TestData.maxProbe,
-            compressDuplicateValues = true,
+            valuesConfig = keyValues.last.valuesConfig,
+            sortedIndexConfig = keyValues.last.sortedIndexConfig,
+            binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+            hashIndexConfig = keyValues.last.hashIndexConfig,
+            bloomFilterConfig = keyValues.last.bloomFilterConfig,
+            segmentConfig = SegmentBlock.Config.random,
             minSegmentSize =
               if (persistent)
                 keyValues.last.stats.segmentSize / 10
               else
-                keyValues.last.stats.memorySegmentSize / 10,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate
-          ).assertGet
+                keyValues.last.stats.memorySegmentSize / 10
+          ).right.value
 
         segments.foreach(_.existsOnDisk shouldBe true)
 
         if (persistent)
-          unzipGroups(Segment.getAllKeyValues(segments).assertGet) shouldBe unzipGroups(keyValues) //persistent Segments are simply copied and are not checked for removed key-values.
+          unzipGroups(Segment.getAllKeyValues(segments).right.value) shouldBe unzipGroups(keyValues) //persistent Segments are simply copied and are not checked for removed key-values.
         else
-          unzipGroups(Segment.getAllKeyValues(segments).assertGet) shouldBe unzipGroups(keyValues).collect { //memory Segments does a split/merge and apply lastLevel rules.
+          unzipGroups(Segment.getAllKeyValues(segments).right.value) shouldBe unzipGroups(keyValues).collect { //memory Segments does a split/merge and apply lastLevel rules.
             case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
               keyValue
-            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
+            case Transient.Range(fromKey, _, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
               put.toMemory(fromKey).toTransient
           }.updateStats
       }
     }
 
     "revert copy if Segment initialisation fails after copy" in {
+      implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
       val keyValues = randomizedKeyValues(keyValuesCount)
-      val segment = TestSegment(keyValues).assertGet
+      val segment = TestSegment(keyValues).right.value
       val levelPath = createNextLevelPath
-      val nextPath = levelPath.resolve(nextSegmentId)
 
-      Files.createFile(nextPath) //path already taken.
+      val (segmentId, nextPath) = {
+        val segmentId = nextId
+        val path = levelPath.resolve(IDGenerator.segmentId(segmentId))
+        (segmentId, path)
+      }
+
+      IOEffect.createFile(nextPath).right.value //path already taken.
 
       Segment.copyToPersist(
         segment = segment,
         createdInLevel = 0,
-        fetchNextPath = nextPath,
+        fetchNextPath = (segmentId, nextPath),
         mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
         mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
-        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
         removeDeletes = true,
-        maxProbe = TestData.maxProbe,
-        compressDuplicateValues = true,
+        valuesConfig = keyValues.last.valuesConfig,
+        sortedIndexConfig = keyValues.last.sortedIndexConfig,
+        binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+        hashIndexConfig = keyValues.last.hashIndexConfig,
+        bloomFilterConfig = keyValues.last.bloomFilterConfig,
+        segmentConfig = SegmentBlock.Config.random,
         minSegmentSize =
           if (persistent)
             keyValues.last.stats.segmentSize / 10
           else
-            keyValues.last.stats.memorySegmentSize / 10,
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate
-      ).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
+            keyValues.last.stats.memorySegmentSize / 10
+      ).left.right.value.exception shouldBe a[FileAlreadyExistsException]
 
-      Files.size(nextPath) shouldBe 0
+      IOEffect.size(nextPath).right.value shouldBe 0
       if (persistent) segment.existsOnDisk shouldBe true //original Segment remains untouched
 
     }
 
     "revert copy of Key-values if creating at least one Segment fails" in {
-      val keyValues = randomizedKeyValues(keyValuesCount).toMemory
+      implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
+      val keyValues = randomizedKeyValues(keyValuesCount)
       val levelPath = createNextLevelPath
       val nextSegmentId = nextId
 
-      def nextPath = levelPath.resolve(IDGenerator.segmentId(nextId))
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
-      Files.createFile(levelPath.resolve(IDGenerator.segmentId(nextSegmentId + 4))) //path already taken.
+      def nextPath = {
+        val segmentId = nextId
+        val path = levelPath.resolve(IDGenerator.segmentId(segmentId))
+        (segmentId, path)
+      }
+
+      IOEffect.createFile(levelPath.resolve(IDGenerator.segmentId(nextSegmentId + 4))).right.value //path already taken.
 
       levelStorage.dirs foreach {
         dir =>
-          Files.createDirectories(dir.path)
-          IO(Files.createFile(dir.path.resolve(IDGenerator.segmentId(nextSegmentId + 4)))) //path already taken.
+          IOEffect.createDirectoriesIfAbsent(dir.path)
+          IO(IOEffect.createFile(dir.path.resolve(IDGenerator.segmentId(nextSegmentId + 4)))) //path already taken.
       }
 
       val filesBeforeCopy = levelPath.files(Extension.Seg)
@@ -858,17 +938,15 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         fetchNextPath = nextPath,
         mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
         mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
         removeDeletes = false,
-        maxProbe = TestData.maxProbe,
-        minSegmentSize = keyValues.toTransient.last.stats.segmentSize / 5,
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-        compressDuplicateValues = true
-
-      ).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
+        minSegmentSize = keyValues.last.stats.segmentSize / 5,
+        valuesConfig = keyValues.last.valuesConfig,
+        sortedIndexConfig = keyValues.last.sortedIndexConfig,
+        binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+        hashIndexConfig = keyValues.last.hashIndexConfig,
+        bloomFilterConfig = keyValues.last.bloomFilterConfig,
+        segmentConfig = SegmentBlock.Config.random
+      ).left.right.value.exception shouldBe a[FileAlreadyExistsException]
 
       levelPath.files(Extension.Seg) shouldBe filesBeforeCopy
     }
@@ -876,68 +954,83 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
   "copyToMemory" should {
     "copy persistent segment and store it in Memory" in {
+      runThis(100.times) {
+        implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
+        implicit val groupBy: Option[GroupByInternal.KeyValues] = None
+        val keyValues = randomizedKeyValues(keyValuesCount)
+        val segment = TestSegment(keyValues).right.value
+        val levelPath = createNextLevelPath
 
-      val keyValues = randomizedKeyValues(keyValuesCount)
-      val segment = TestSegment(keyValues).assertGet
-      val levelPath = createNextLevelPath
-      val segments =
-        Segment.copyToMemory(
-          segment = segment,
-          fetchNextPath = levelPath.resolve(nextSegmentId),
-          createdInLevel = 0,
-          removeDeletes = false,
-          compressDuplicateValues = true,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          maxProbe = TestData.maxProbe,
-          minSegmentSize =
-            if (persistent)
-              keyValues.last.stats.segmentSize / 4
-            else
-              keyValues.last.stats.memorySegmentSize / 4,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
+        def nextPath = {
+          val segmentId = nextId
+          val path = levelPath.resolve(IDGenerator.segmentId(segmentId))
+          (segmentId, path)
+        }
 
-      segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not getFromHashIndex written to disk without splitting.
+        val segments =
+          Segment.copyToMemory(
+            segment = segment,
+            fetchNextPath = nextPath,
+            createdInLevel = 0,
+            removeDeletes = false,
+            valuesConfig = keyValues.last.valuesConfig,
+            sortedIndexConfig = keyValues.last.sortedIndexConfig,
+            binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+            hashIndexConfig = keyValues.last.hashIndexConfig,
+            bloomFilterConfig = keyValues.last.bloomFilterConfig,
+            minSegmentSize =
+              //there are too many conditions that will not split the segments so set the size of each segment to be too small
+              //for the split to occur.
+              keyValues.last.stats.memorySegmentSize / 10
 
-      segments.foreach(_.existsOnDisk shouldBe false)
-      Segment.getAllKeyValues(segments).assertGet shouldBe keyValues
+          ).right.value
+
+        segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not value written to disk without splitting.
+
+        segments.foreach(_.existsOnDisk shouldBe false)
+        Segment.getAllKeyValues(segments).right.value shouldBe keyValues
+      }
     }
 
     "copy the segment and persist it to disk when removeDeletes is true" in {
       runThis(10.times) {
-        val keyValues = randomizedKeyValues(1000)
-        val segment = TestSegment(keyValues).assertGet
+        implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
+        implicit val groupBy: Option[GroupByInternal.KeyValues] = None
+
+        val keyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
+        val segment = TestSegment(keyValues).right.value
         val levelPath = createNextLevelPath
+
+        def nextPath = {
+          val segmentId = nextId
+          val path = levelPath.resolve(IDGenerator.segmentId(segmentId))
+          (segmentId, path)
+        }
 
         val segments =
           Segment.copyToMemory(
             segment = segment,
             createdInLevel = 0,
-            fetchNextPath = levelPath.resolve(nextSegmentId),
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
+            fetchNextPath = nextPath,
             removeDeletes = true,
-            maxProbe = TestData.maxProbe,
-            compressDuplicateValues = true,
-            minSegmentSize = keyValues.last.stats.segmentSize / 1000, //divide by large because key-value can contain all expired.
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet
+            minSegmentSize = keyValues.last.stats.segmentSize / 1000,
+            valuesConfig = keyValues.last.valuesConfig,
+            sortedIndexConfig = keyValues.last.sortedIndexConfig,
+            binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+            hashIndexConfig = keyValues.last.hashIndexConfig,
+            bloomFilterConfig = keyValues.last.bloomFilterConfig
+          ).right.value
 
         segments.foreach(_.existsOnDisk shouldBe false)
 
-        segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not getFromHashIndex written to disk without splitting.
+        segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not value written to disk without splitting.
 
-        //some key-values could getFromHashIndex expired while unexpired key-values are being collected. So try again!
+        //some key-values could value expired while unexpired key-values are being collected. So try again!
         IO {
-          Segment.getAllKeyValues(segments).assertGet shouldBe unzipGroups(keyValues).collect {
+          Segment.getAllKeyValues(segments).right.value shouldBe unzipGroups(keyValues).collect {
             case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
               keyValue
-            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
+            case Transient.Range(fromKey, _, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
               put.toMemory(fromKey).toTransient
           }.updateStats
         }
@@ -968,7 +1061,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             key
         }
 
-        val segment = TestSegment(keyValuesWithEmptyValues.toTransient).assertGet
+        val segment = TestSegment(keyValuesWithEmptyValues.toTransient).right.value
 
         def valuesValueShouldBeNone(value: Value): Unit =
           value match {
@@ -984,19 +1077,19 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             //nothing to assert
           }
 
-        segment.getAll().assertGet foreach {
+        segment.getAll().right.value foreach {
           case keyValue: KeyValue.ReadOnly.Put =>
-            keyValue.getOrFetchValue.assertGetOpt shouldBe None
+            keyValue.getOrFetchValue.runRandomIO.right.value shouldBe None
 
           case keyValue: KeyValue.ReadOnly.Update =>
-            keyValue.getOrFetchValue.assertGetOpt shouldBe None
+            keyValue.getOrFetchValue.runRandomIO.right.value shouldBe None
 
           case keyValue: KeyValue.ReadOnly.Range =>
-            val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValue.assertGet
+            val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValue.right.value
             Seq(fromValue, Some(rangeValue)).flatten foreach valuesValueShouldBeNone
 
           case apply: KeyValue.ReadOnly.PendingApply =>
-            apply.getOrFetchApplies.assertGet foreach valuesValueShouldBeNone
+            apply.getOrFetchApplies.right.value foreach valuesValueShouldBeNone
 
           case _: KeyValue.ReadOnly.Function =>
           //nothing to assert
@@ -1009,8 +1102,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "reopen closed channel" in {
       val keyValues1 = randomizedKeyValues(keyValuesCount)
 
-      val segment = TestSegment(keyValues1).assertGet
-      segment.close.assertGet
+      val segment = TestSegment(keyValues1).right.value
+      segment.close.right.value
       if (persistent) segment.isOpen shouldBe false
 
       val keyValues2 = randomizedKeyValues(keyValuesCount)
@@ -1018,59 +1111,57 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       segment.put(
         newKeyValues = keyValues2,
         minSegmentSize = 1.mb,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-        compressDuplicateValues = true,
+        valuesConfig = keyValues2.last.valuesConfig,
+        sortedIndexConfig = keyValues2.last.sortedIndexConfig,
+        binarySearchIndexConfig = keyValues2.last.binarySearchIndexConfig,
+        hashIndexConfig = keyValues2.last.hashIndexConfig,
+        bloomFilterConfig = keyValues2.last.bloomFilterConfig,
+        segmentConfig = SegmentBlock.Config.random,
         removeDeletes = false,
-        createdInLevel = 0,
-        maxProbe = TestData.maxProbe
-      ).assertGet
+        createdInLevel = 0
+      ).right.value
 
       if (persistent) segment.isOpen shouldBe true
     }
 
     "return a new segment with merged key values" in {
       val keyValues = Slice(Transient.put(1, 1))
-      val segment = TestSegment(keyValues).assertGet
+      val segment = TestSegment(keyValues).right.value
 
-      val newKeyValues = Slice(Memory.put(2, 2))
+      val newKeyValues = Slice(Memory.put(2, 2)).toTransient
       val newSegments =
         segment.put(
           newKeyValues = newKeyValues,
           minSegmentSize = 4.mb,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          compressDuplicateValues = true,
           removeDeletes = false,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
-        ).assertGet
+          valuesConfig = newKeyValues.last.valuesConfig,
+          sortedIndexConfig = newKeyValues.last.sortedIndexConfig,
+          binarySearchIndexConfig = newKeyValues.last.binarySearchIndexConfig,
+          hashIndexConfig = newKeyValues.last.hashIndexConfig,
+          bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
+          segmentConfig = SegmentBlock.Config.random
+        ).right.value
 
       newSegments should have size 1
 
-      val allReadKeyValues = Segment.getAllKeyValues(newSegments).assertGet
+      val allReadKeyValues = Segment.getAllKeyValues(newSegments).right.value
 
       val expectedKeyValues =
         SegmentMerger.merge(
           newKeyValues = newKeyValues,
           oldKeyValues = keyValues.toMemory,
           minSegmentSize = 1.mb,
-          maxProbe = TestData.maxProbe,
           isLastLevel = false,
           forInMemory = memory,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          compressDuplicateValues = true
-        ).assertGet
+          valuesConfig = newKeyValues.last.valuesConfig,
+          sortedIndexConfig = newKeyValues.last.sortedIndexConfig,
+          binarySearchIndexConfig = newKeyValues.last.binarySearchIndexConfig,
+          hashIndexConfig = newKeyValues.last.hashIndexConfig,
+          bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
+        ).right.value
 
       expectedKeyValues should have size 1
 
@@ -1078,28 +1169,29 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "return multiple new segments with merged key values" in {
-      val keyValues = randomizedKeyValues(10000)
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
+
+      val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).get
 
-      val newKeyValues = randomizedKeyValues(10000)
+      val newKeyValues = randomizedKeyValues(keyValuesCount)
       val newSegments =
         segment.put(
           newKeyValues = newKeyValues.toMemory,
-          minSegmentSize = 10.kb,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true,
+          minSegmentSize = segment.segmentSize / 10,
+          valuesConfig = newKeyValues.last.valuesConfig,
+          sortedIndexConfig = newKeyValues.last.sortedIndexConfig,
+          binarySearchIndexConfig = newKeyValues.last.binarySearchIndexConfig,
+          hashIndexConfig = newKeyValues.last.hashIndexConfig,
+          bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
+          segmentConfig = SegmentBlock.Config.random,
           removeDeletes = false,
-          createdInLevel = 0,
-          maxProbe = TestData.maxProbe
-        ).assertGet
+          createdInLevel = 0
+        ).right.value
 
       newSegments.size should be > 1
 
-      val allReadKeyValues = Segment.getAllKeyValues(newSegments).assertGet
+      val allReadKeyValues = Segment.getAllKeyValues(newSegments).right.value
 
       //give merge a very large size so that there are no splits (test convenience)
       val expectedKeyValues =
@@ -1107,16 +1199,16 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           newKeyValues = newKeyValues.toMemory,
           oldKeyValues = keyValues.toMemory,
           minSegmentSize = 10.mb,
-          maxProbe = TestData.maxProbe,
           isLastLevel = false,
           forInMemory = memory,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          compressDuplicateValues = true
-        ).assertGet
+          valuesConfig = newKeyValues.last.valuesConfig,
+          sortedIndexConfig = newKeyValues.last.sortedIndexConfig,
+          binarySearchIndexConfig = newKeyValues.last.binarySearchIndexConfig,
+          hashIndexConfig = newKeyValues.last.hashIndexConfig,
+          bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
+        ).right.value
 
       expectedKeyValues should have size 1
 
@@ -1129,9 +1221,11 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         // not for in-memory Segments
       } else {
 
+        implicit val groupBy: Option[GroupByInternal.KeyValues] = None
+
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues).get
-        val newKeyValues = randomizedKeyValues(10000)
+        val newKeyValues = randomizedKeyValues(keyValuesCount)
 
         val tenthSegmentId = {
           val segmentId = (segment.path.fileId.get._1 + 10).toSegmentFileId
@@ -1139,21 +1233,20 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         }
 
         //create a segment with the next id in sequence which should fail put with FileAlreadyExistsException
-        val segmentToFailPut = TestSegment(path = tenthSegmentId).assertGet
+        val segmentToFailPut = TestSegment(path = tenthSegmentId).right.value
 
         segment.put(
           newKeyValues = newKeyValues.toMemory,
-          minSegmentSize = 1.kb,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          compressDuplicateValues = true,
+          minSegmentSize = 500.bytes,
           removeDeletes = false,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
-        ).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
+          valuesConfig = newKeyValues.last.valuesConfig,
+          sortedIndexConfig = newKeyValues.last.sortedIndexConfig,
+          binarySearchIndexConfig = newKeyValues.last.binarySearchIndexConfig,
+          hashIndexConfig = newKeyValues.last.hashIndexConfig,
+          bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
+          segmentConfig = SegmentBlock.Config.random
+        ).left.right.value.exception shouldBe a[FileAlreadyExistsException]
 
         //the folder should contain only the original segment and the segmentToFailPut
         segment.path.getParent.files(Extension.Seg) should contain only(segment.path, segmentToFailPut.path)
@@ -1170,29 +1263,28 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         Transient.put(4),
         Transient.Range.create[FromValue, RangeValue](5, 10, None, Value.Update(None, None, testTimer.next))
       ).updateStats
-      val segment = TestSegment(keyValues).assertGet
+      val segment = TestSegment(keyValues).right.value
       assertGet(keyValues, segment)
 
-      val deleteKeyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.remove(3), Memory.remove(4), Memory.Range(5, 10, None, Value.remove(None)))
+      val deleteKeyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.remove(3), Memory.remove(4), Memory.Range(5, 10, None, Value.remove(None))).toTransient
 
       val deletedSegment =
         segment.put(
           newKeyValues = deleteKeyValues,
           minSegmentSize = 4.mb,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          compressDuplicateValues = true,
           removeDeletes = false,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
-        ).assertGet
+          valuesConfig = deleteKeyValues.last.valuesConfig,
+          sortedIndexConfig = deleteKeyValues.last.sortedIndexConfig,
+          binarySearchIndexConfig = deleteKeyValues.last.binarySearchIndexConfig,
+          hashIndexConfig = deleteKeyValues.last.hashIndexConfig,
+          bloomFilterConfig = deleteKeyValues.last.bloomFilterConfig,
+          segmentConfig = SegmentBlock.Config.random
+        ).right.value
 
       deletedSegment should have size 1
       val newDeletedSegment = deletedSegment.head
-      unzipGroups(newDeletedSegment.getAll().assertGet) shouldBe deleteKeyValues
+      unzipGroups(newDeletedSegment.getAll().right.value) shouldBe deleteKeyValues
 
       assertGet(keyValues, segment)
       if (persistent) assertGet(keyValues, segment.reopen)
@@ -1201,8 +1293,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "return new segment with updated KeyValues if all keys values were updated to None" in {
       implicit val testTimer: TestTimer = TestTimer.Incremental()
 
-      val keyValues = randomizedKeyValues(count = keyValuesCount, addRandomGroups = false)
-      val segment = TestSegment(keyValues).assertGet
+      val keyValues = randomizedKeyValues(count = keyValuesCount, addGroups = false)
+      val segment = TestSegment(keyValues).right.value
 
       val updatedKeyValues = Slice.create[Memory](keyValues.size)
       keyValues.foreach(keyValue => updatedKeyValues add Memory.put(keyValue.key, None))
@@ -1211,21 +1303,20 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         segment.put(
           newKeyValues = updatedKeyValues,
           minSegmentSize = 4.mb,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          compressDuplicateValues = true,
           removeDeletes = true,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
-        ).assertGet
+          valuesConfig = keyValues.last.valuesConfig,
+          sortedIndexConfig = keyValues.last.sortedIndexConfig,
+          binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+          hashIndexConfig = keyValues.last.hashIndexConfig,
+          bloomFilterConfig = keyValues.last.bloomFilterConfig,
+          segmentConfig = SegmentBlock.Config.random
+        ).right.value
 
       updatedSegments should have size 1
 
       val newUpdatedSegment = updatedSegments.head
-      unzipGroups(newUpdatedSegment.getAll().assertGet) shouldBe updatedKeyValues
+      unzipGroups(newUpdatedSegment.getAll().right.value) shouldBe updatedKeyValues
 
       assertGet(updatedKeyValues, newUpdatedSegment)
     }
@@ -1233,9 +1324,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "merge existing segment file with new KeyValues returning new segment file with updated KeyValues" in {
       runThis(10.times) {
         implicit val testTimer: TestTimer = TestTimer.Incremental()
-        //ranges getFromHashIndex split to make sure there are no ranges.
-        val keyValues1 = randomizedKeyValues(count = keyValuesCount, addRandomRanges = false)
-        val segment1 = TestSegment(keyValues1).assertGet
+        //ranges value split to make sure there are no ranges.
+        val keyValues1 = randomizedKeyValues(count = keyValuesCount, addRanges = false)
+        val segment1 = TestSegment(keyValues1).right.value
 
         val keyValues2Unclosed = Slice.create[Transient](keyValues1.size * 100)
         unzipGroups(keyValues1) foreach {
@@ -1245,22 +1336,21 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
         val keyValues2Closed = keyValues2Unclosed.close().updateStats
 
-        val segment2 = TestSegment(keyValues2Closed).assertGet
+        val segment2 = TestSegment(keyValues2Closed).right.value
 
         val mergedSegments =
           segment1.put(
-            newKeyValues = segment2.getAll().assertGet.toSlice,
+            newKeyValues = segment2.getAll().right.value.toSlice,
             minSegmentSize = 10.mb,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            compressDuplicateValues = true,
             removeDeletes = false,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe
-          ).assertGet
+            valuesConfig = keyValues1.last.valuesConfig,
+            sortedIndexConfig = keyValues1.last.sortedIndexConfig,
+            binarySearchIndexConfig = keyValues1.last.binarySearchIndexConfig,
+            hashIndexConfig = keyValues1.last.hashIndexConfig,
+            bloomFilterConfig = keyValues1.last.bloomFilterConfig,
+            segmentConfig = SegmentBlock.Config.random
+          ).right.value
 
         mergedSegments.size shouldBe 1
         val mergedSegment = mergedSegments.head
@@ -1268,15 +1358,15 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         //test merged segment should contain all
         keyValues2Closed foreach {
           keyValue =>
-            (mergedSegment get keyValue.key).assertGet shouldBe keyValue
+            (mergedSegment get keyValue.key).right.value.value shouldBe keyValue
         }
 
-        unzipGroups(mergedSegment.getAll().assertGet).size shouldBe keyValues2Closed.size
+        unzipGroups(mergedSegment.getAll().right.value).size shouldBe keyValues2Closed.size
       }
     }
 
     "return no new segments if all the KeyValues in the Segment were deleted and if remove deletes is true" in {
-      runThis(1000.times) {
+      runThis(50.times) {
         val keyValues =
           Slice(
             randomFixedKeyValue(1),
@@ -1287,7 +1377,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             randomGroup(Slice(randomFixedKeyValue(11), randomRangeKeyValue(12, 15, Some(randomRangeValue()), randomRangeValue())).toTransient).toMemory
           ).toTransient
 
-        val segment = TestSegment(keyValues).assertGet
+        val segment = TestSegment(keyValues).right.value
 
         val deleteKeyValues = Slice.create[Memory](keyValues.size)
         (1 to 4).foreach(key => deleteKeyValues add Memory.remove(key))
@@ -1297,16 +1387,15 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         segment.put(
           newKeyValues = deleteKeyValues,
           minSegmentSize = 4.mb,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          compressDuplicateValues = true,
           removeDeletes = true,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
-        ).assertGet shouldBe empty
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentConfig = SegmentBlock.Config.random
+        ).right.value shouldBe empty
       }
     }
 
@@ -1314,7 +1403,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       implicit val testTimer: TestTimer = TestTimer.Empty
 
       val keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 10, None, Value.update(10))).updateStats
-      val segment = TestSegment(keyValues).assertGet
+      val segment = TestSegment(keyValues).right.value
 
       val deleteKeyValues = Slice.create[Memory](10)
       (1 to 10).foreach(key => deleteKeyValues add Memory.remove(key))
@@ -1323,16 +1412,15 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         segment.put(
           newKeyValues = deleteKeyValues,
           minSegmentSize = 4.mb,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          compressDuplicateValues = true,
           removeDeletes = false,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
-        ).assertGet.head.getAll().assertGet
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentConfig = SegmentBlock.Config.random
+        ).right.value.head.getAll().right.value
 
       val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Some(Value.remove(None)), Value.update(10))) :+ Memory.remove(10)
 
@@ -1343,43 +1431,42 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       implicit val testTimer: TestTimer = TestTimer.Empty
 
       val keyValues = randomKeyValues(count = keyValuesCount)
-      val segment = TestSegment(keyValues).assertGet
+      val segment = TestSegment(keyValues).right.value
 
-      val deleteKeyValues = Slice.create[Remove](keyValues.size - 1)
+      val deleteKeyValues = Slice.create[Transient.Remove](keyValues.size - 1)
       keyValues.drop(1).foreach(keyValue => deleteKeyValues add Transient.remove(keyValue.key))
 
       val newSegments =
         segment.put(
           newKeyValues = deleteKeyValues.toMemory,
           minSegmentSize = 4.mb,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          compressDuplicateValues = true,
           removeDeletes = true,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
-        ).assertGet
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentConfig = SegmentBlock.Config.random
+        ).right.value
 
       newSegments.size shouldBe 1
-      newSegments.head.getHeadKeyValueCount().assertGet shouldBe 1
+      newSegments.head.getHeadKeyValueCount().right.value shouldBe 1
 
       val newSegment = newSegments.head
       val keyValue = keyValues.head
 
-      newSegment.get(keyValue.key).assertGet shouldBe keyValue
+      newSegment.get(keyValue.key).runRandomIO.right.value.value shouldBe keyValue
 
-      newSegment.lower(keyValue.key).assertGetOpt shouldBe empty
-      newSegment.higher(keyValue.key).assertGetOpt shouldBe empty
+      newSegment.lower(keyValue.key).right.value shouldBe empty
+      newSegment.higher(keyValue.key).right.value shouldBe empty
     }
 
     "distribute new Segments to multiple folders equally" in {
-      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
       val keyValues1 = Slice(Transient.put(1, 1), Transient.put(2, 2), Transient.put(3, 3), Transient.put(4, 4), Transient.put(5, 5), Transient.put(6, 6)).updateStats
-      val segment = TestSegment(keyValues1).assertGet
+      val segment = TestSegment(keyValues1).right.value
 
       val keyValues2 = Slice(Memory.put(7, 7), Memory.put(8, 8), Memory.put(9, 9), Memory.put(10, 10), Memory.put(11, 11), Memory.put(12, 12))
 
@@ -1391,41 +1478,39 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           segment.put(
             newKeyValues = keyValues2,
             minSegmentSize = 60.bytes,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            compressDuplicateValues = true,
             removeDeletes = false,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
+            valuesConfig = ValuesBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            segmentConfig = SegmentBlock.Config.random,
             targetPaths = distributor
-          ).assertGet
+          ).right.value
         else
           segment.put(
             newKeyValues = keyValues2,
             minSegmentSize = 21.bytes,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            compressDuplicateValues = true,
             removeDeletes = false,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
+            valuesConfig = ValuesBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            segmentConfig = SegmentBlock.Config.random,
             targetPaths = distributor
-          ).assertGet
+          ).right.value
 
       //all returned segments contain all the KeyValues ???
       //      segments should have size 6
-      //      segments(0).getAll().assertGet shouldBe keyValues1.slice(0, 1).unslice()
-      //      segments(1).getAll().assertGet shouldBe keyValues1.slice(2, 3).unslice()
-      //      segments(2).getAll().assertGet shouldBe keyValues1.slice(4, 5).unslice()
-      //      segments(3).getAll().assertGet shouldBe keyValues2.slice(0, 1).unslice()
-      //      segments(4).getAll().assertGet shouldBe keyValues2.slice(2, 3).unslice()
-      //      segments(5).getAll().assertGet shouldBe keyValues2.slice(4, 5).unslice()
+      //      segments(0).getAll().value shouldBe keyValues1.slice(0, 1).unslice()
+      //      segments(1).getAll().value shouldBe keyValues1.slice(2, 3).unslice()
+      //      segments(2).getAll().value shouldBe keyValues1.slice(4, 5).unslice()
+      //      segments(3).getAll().value shouldBe keyValues2.slice(0, 1).unslice()
+      //      segments(4).getAll().value shouldBe keyValues2.slice(2, 3).unslice()
+      //      segments(5).getAll().value shouldBe keyValues2.slice(4, 5).unslice()
 
       //all the paths are used to write Segments
       segments(0).path.getParent shouldBe dirs(0).path
@@ -1442,69 +1527,68 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
   "refresh" should {
     "return new Segment with Removed key-values removed" in {
       if (persistent) {
-        val keyValues1 = (1 to 100).map(key => eitherOne(randomRemoveKeyValue(key), randomRangeKeyValue(key, key + 1, None, randomRangeValue()))).toTransient
-        val segment = TestSegment(keyValues1).assertGet
-        segment.getAll().assertGet shouldBe keyValues1
+        val keyValues =
+          (1 to 100) map {
+            key =>
+              eitherOne(randomRemoveKeyValue(key), randomRangeKeyValue(key, key + 1, None, randomRangeValue()))
+          } toTransient
+        val segment = TestSegment(keyValues).right.value
+        segment.getBloomFilterKeyValueCount().right.value shouldBe keyValues.size
+        segment.getAll().right.value shouldBe keyValues
 
         val reopened = segment.reopen(segment.path)
-        val (ranges, nonRanges) = keyValues1.partition(_.isRange)
-        val expectedBloomFilterCount = (ranges.size * 2) + nonRanges.size
-
-        reopened.getBloomFilterKeyValueCount().assertGet shouldBe expectedBloomFilterCount
+        reopened.getBloomFilterKeyValueCount().right.value shouldBe keyValues.size
         reopened.refresh(
           minSegmentSize = 1.mb,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          compressDuplicateValues = true,
           removeDeletes = true,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
-        ).assertGet shouldBe empty
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentConfig = SegmentBlock.Config.random
+        ).right.value shouldBe empty
       }
     }
 
     "return no new Segments if all the key-values in the Segment were expired" in {
       val keyValues1 = (1 to 100).map(key => randomPutKeyValue(key, deadline = Some(1.second.fromNow))).toTransient
-      val segment = TestSegment(keyValues1).assertGet
-      segment.getHeadKeyValueCount().assertGet shouldBe keyValues1.size
+      val segment = TestSegment(keyValues1).right.value
+      segment.getHeadKeyValueCount().right.value shouldBe keyValues1.size
 
       sleep(2.seconds)
       segment.refresh(
         minSegmentSize = 1.mb,
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
-        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-        compressDuplicateValues = true,
         removeDeletes = true,
         createdInLevel = 0,
-        maxProbe = TestData.maxProbe
-      ).assertGet shouldBe empty
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
+        segmentConfig = SegmentBlock.Config.random
+      ).right.value shouldBe empty
     }
 
     "return all key-values when removeDeletes is false" in {
       val keyValues1 = (1 to 100).map(key => Transient.put(key, key, 1.second)).updateStats
-      val segment = TestSegment(keyValues1).assertGet
-      segment.getHeadKeyValueCount().assertGet shouldBe keyValues1.size
+      val segment = TestSegment(keyValues1).right.value
+      segment.getHeadKeyValueCount().right.value shouldBe keyValues1.size
 
       sleep(2.seconds)
       val refresh =
         segment.refresh(
           minSegmentSize = 1.mb,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          compressDuplicateValues = true,
           removeDeletes = false,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
-        ).assertGet
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentConfig = SegmentBlock.Config.random
+        ).right.value
 
       refresh should have size 1
       refresh.head shouldContainAll keyValues1
@@ -1513,68 +1597,51 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
   "split & then write" should {
     "succeed for non group key-values" in {
-      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
-      val keyValues = randomizedKeyValues(1000, addRandomGroups = false)
-      val result =
+      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
+      val keyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
+
+      val result: Iterable[Iterable[Transient]] =
         SegmentMerger.split(
           keyValues = keyValues,
           minSegmentSize = 100.mb,
           isLastLevel = false,
           forInMemory = inMemoryStorage,
-          maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-          compressDuplicateValues = true
-        ).assertGet
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentIO = SegmentIO.random,
+          createdInLevel = randomIntMax()
+        ).right.value
 
       result should have size 1
       result.head should have size keyValues.size
 
-      val (bytes, deadline) =
-        SegmentWriter.write(
-          keyValues = result.head,
-          createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
-
-      readAll(bytes).assertGet shouldBe keyValues
+      writeAndRead(result.head).right.value shouldBe keyValues
     }
 
     "succeed for grouped key-values" in {
-      val keyValues = randomizedKeyValues(1000)
+
+      val keyValues = randomizedKeyValues(keyValuesCount)
 
       val result = SegmentMerger.split(
         keyValues = keyValues,
         minSegmentSize = 100.mb,
         isLastLevel = false,
         forInMemory = inMemoryStorage,
-        maxProbe = TestData.maxProbe,
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
-        compressDuplicateValues = true
-      )(keyOrder, Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).assertGet
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
+        segmentIO = SegmentIO.random,
+        createdInLevel = randomIntMax()
+      )(keyOrder, Some(randomGroupBy())).right.value
 
       result should have size 1
-      result.head should have size 1
 
-      val (bytes, deadline) =
-        SegmentWriter.write(
-          keyValues = result.head,
-          createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
-
-      readAll(bytes).assertGet shouldBe keyValues
+      writeAndRead(result.head).right.value shouldBe keyValues
     }
   }
 }

@@ -20,14 +20,13 @@
 package swaydb
 
 import scala.collection.{TraversableOnce, mutable}
-import swaydb.data.IO
 
 /**
-  * Scala collections are blocking and requires an IO Set from SwayDB to build a Set.
-  */
+ * Scala collections are blocking and requires an IO Set from SwayDB to build a Set.
+ */
 private[swaydb] object ScalaSet {
 
-  def apply[A](db: Set[A, IO]): mutable.Set[A] =
+  def apply[A](db: Set[A, IO.ApiIO]): mutable.Set[A] =
     new mutable.Set[A] {
 
       override def contains(elem: A): Boolean =

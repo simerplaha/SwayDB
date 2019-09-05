@@ -19,14 +19,18 @@
 
 package swaydb.core.util
 
+import swaydb.Error.IO.ExceptionHandler
+import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.PipeOps._
-import swaydb.data.IO
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteUtil
 
 private[swaydb] object Bytes {
+
+  val zero = 0.toByte
+  val one = 1.toByte
 
   def commonPrefixBytesCount(previous: Slice[Byte],
                              next: Slice[Byte]): Int = {
@@ -135,20 +139,28 @@ private[swaydb] object Bytes {
 
   def compressJoin(left: Slice[Byte],
                    right: Slice[Byte]): Slice[Byte] =
-    compressJoin(left, right, Slice.emptyBytes)
+    compressJoin(
+      left = left,
+      right = right,
+      tail = Slice.emptyBytes
+    )
 
   def compressJoin(left: Slice[Byte],
                    right: Slice[Byte],
                    tail: Byte): Slice[Byte] =
-    compressJoin(left, right, Slice(tail))
+    compressJoin(
+      left = left,
+      right = right,
+      tail = Slice(tail)
+    )
 
   /**
-    * Merges the input bytes into a single byte array extracting common bytes.
-    *
-    * If there are no common bytes the compress will result in 2 more additional bytes.
-    *
-    * tail bytes are also appended to the the result. When decompressing tail bytes should be stripped.
-    */
+   * Merges the input bytes into a single byte array extracting common bytes.
+   *
+   * If there are no common bytes the compress will result in 2 more additional bytes.
+   *
+   * tail bytes are also appended to the the result. When decompressing tail bytes should be stripped.
+   */
   def compressJoin(left: Slice[Byte],
                    right: Slice[Byte],
                    tail: Slice[Byte]): Slice[Byte] = {
@@ -178,7 +190,7 @@ private[swaydb] object Bytes {
     }
   }
 
-  def decompressJoin(bytes: Slice[Byte]): IO[(Slice[Byte], Slice[Byte])] =
+  def decompressJoin(bytes: Slice[Byte]): IO[swaydb.Error.IO, (Slice[Byte], Slice[Byte])] =
     Reader(bytes) ==> {
       reader =>
         for {
@@ -187,18 +199,55 @@ private[swaydb] object Bytes {
           commonBytes <- reader.readIntUnsigned()
           hasMore <- reader.hasAtLeast(lastBytesRead + 1) //if there are more bytes to read.
           right <-
-          if (!hasMore && commonBytes == leftBytesSize) //if right was fully compressed then right == left, return left.
-            IO.Success(left)
-          else
-            reader.readIntUnsigned() flatMap {
-              rightSize =>
-                reader.read(rightSize) map {
-                  right =>
-                    decompress(left, right, commonBytes)
-                }
-            }
+            if (!hasMore && commonBytes == leftBytesSize) //if right was fully compressed then right == left, return left.
+              IO.Right(left)
+            else
+              reader.readIntUnsigned() flatMap {
+                rightSize =>
+                  reader.read(rightSize) map {
+                    right =>
+                      decompress(left, right, commonBytes)
+                  }
+              }
         } yield {
           (left, right)
         }
     }
+
+  def normalise(bytes: Slice[Byte], toSize: Int): Slice[Byte] = {
+    assert(bytes.size < toSize, s"bytes.size(${bytes.size}) >= toSize($toSize)")
+    val finalSlice = Slice.create[Byte](toSize)
+    var zeroesToAdd = toSize - bytes.size - 1
+    while (zeroesToAdd > 0) {
+      finalSlice add Bytes.zero
+      zeroesToAdd -= 1
+    }
+    finalSlice add Bytes.one
+    finalSlice addAll bytes
+  }
+
+  def normalise(appendHeader: Slice[Byte],
+                bytes: Slice[Byte],
+                toSize: Int): Slice[Byte] = {
+    assert((appendHeader.size + bytes.size) < toSize, s"appendHeader.size(${appendHeader.size}) + bytes.size(${bytes.size}) >= toSize($toSize)")
+    val finalSlice = Slice.create[Byte](appendHeader.size + toSize)
+    finalSlice addAll appendHeader
+    var zeroesToAdd = toSize - appendHeader.size - bytes.size - 1
+    while (zeroesToAdd > 0) {
+      finalSlice add Bytes.zero
+      zeroesToAdd -= 1
+    }
+    finalSlice add Bytes.one
+    finalSlice addAll bytes
+  }
+
+  /**
+   * Does not validate if the input bytes are normalised bytes.
+   * It simply drops upto the first 1.byte.
+   *
+   * Similar function [[Slice.dropTo]] which is not directly to avoid
+   * creation of [[Some]] object.
+   */
+  def deNormalise(bytes: Slice[Byte]): Slice[Byte] =
+    bytes drop (bytes.indexOf(Bytes.one).get + 1)
 }

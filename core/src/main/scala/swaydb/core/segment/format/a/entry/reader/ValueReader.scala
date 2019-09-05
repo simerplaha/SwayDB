@@ -19,37 +19,39 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
-import swaydb.data.slice.Reader
+import swaydb.data.slice.ReaderBase
+
 import scala.annotation.implicitNotFound
-import swaydb.data.IO
 
 @implicitNotFound("Type class implementation not found for ValueReader of type ${T}")
 sealed trait ValueReader[-T] {
 
   def isPrefixCompressed: Boolean
 
-  def read[V](indexReader: Reader,
+  def read[V](indexReader: ReaderBase[swaydb.Error.Segment],
               previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                            valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]]
+                                            valueLengthReader: ValueLengthReader[V]): IO[swaydb.Error.Segment, Option[(Int, Int)]]
 }
 
 object ValueReader {
   implicit object NoValueReader extends ValueReader[BaseEntryId.Value.NoValue] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read[V](indexReader: Reader,
+    override def read[V](indexReader: ReaderBase[swaydb.Error.Segment],
                          previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                                       valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]] =
+                                                       valueLengthReader: ValueLengthReader[V]): IO[swaydb.Error.Segment, Option[(Int, Int)]] =
       IO.none
   }
 
   implicit object ValueUncompressedReader extends ValueReader[BaseEntryId.Value.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
-    override def read[V](indexReader: Reader,
+    override def read[V](indexReader: ReaderBase[swaydb.Error.Segment],
                          previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                                       valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]] =
+                                                       valueLengthReader: ValueLengthReader[V]): IO[swaydb.Error.Segment, Option[(Int, Int)]] =
       valueOffsetReader.read(indexReader, previous) flatMap {
         valueOffset =>
           valueLengthReader.read(indexReader, previous) map {
@@ -60,11 +62,13 @@ object ValueReader {
   }
 
   implicit object ValueFullyCompressedReader extends ValueReader[BaseEntryId.Value.FullyCompressed] {
-    override def isPrefixCompressed: Boolean = true
+    //prefixCompression does not apply on the value itself since it can still hold reference to offset and length.
+    //A value is considered prefix compressed only if it's valueOffset and valueLength are prefix compressed.
+    override def isPrefixCompressed: Boolean = false
 
-    override def read[V](indexReader: Reader,
+    override def read[V](indexReader: ReaderBase[swaydb.Error.Segment],
                          previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                                       valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]] =
+                                                       valueLengthReader: ValueLengthReader[V]): IO[swaydb.Error.Segment, Option[(Int, Int)]] =
       ValueUncompressedReader.read(
         indexReader = indexReader,
         previous = previous

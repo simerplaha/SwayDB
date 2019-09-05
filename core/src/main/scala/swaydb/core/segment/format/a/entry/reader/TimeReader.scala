@@ -19,40 +19,42 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import scala.annotation.implicitNotFound
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
 import swaydb.core.data.{KeyValue, Time}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
-import swaydb.data.IO
-import swaydb.data.slice.Reader
+import swaydb.data.slice.ReaderBase
+
+import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for TimeReader of type ${T}")
 sealed trait TimeReader[-T] {
   def isPrefixCompressed: Boolean
 
-  def read(indexReader: Reader,
-           previous: Option[KeyValue.ReadOnly]): IO[Time]
+  def read(indexReader: ReaderBase[swaydb.Error.Segment],
+           previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Time]
 }
 
 /**
-  * Time is always set for only Fixed key-values.
-  * Group and Range key-values do not have time set.
-  */
+ * Time is always set for only Fixed key-values.
+ * Group and Range key-values do not have time set.
+ */
 object TimeReader {
 
   implicit object NoTimeReader extends TimeReader[BaseEntryId.Time.NoTime] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): IO[Time] =
+    override def read(indexReader: ReaderBase[swaydb.Error.Segment],
+                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Time] =
       Time.successEmpty
   }
 
   implicit object UnCompressedTimeReader extends TimeReader[BaseEntryId.Time.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): IO[Time] =
+    override def read(indexReader: ReaderBase[swaydb.Error.Segment],
+                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Time] =
       indexReader.readIntUnsigned() flatMap {
         timeSize =>
           indexReader.read(timeSize) map {
@@ -66,8 +68,8 @@ object TimeReader {
 
     override def isPrefixCompressed: Boolean = true
 
-    def readTime(indexReader: Reader,
-                 previousTime: Time): IO[Time] =
+    def readTime(indexReader: ReaderBase[swaydb.Error.Segment],
+                 previousTime: Time): IO[swaydb.Error.Segment, Time] =
       indexReader.readIntUnsigned() flatMap {
         commonBytes =>
           indexReader.readIntUnsigned() flatMap {
@@ -80,8 +82,8 @@ object TimeReader {
           }
       }
 
-    override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): IO[Time] =
+    override def read(indexReader: ReaderBase[swaydb.Error.Segment],
+                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Time] =
       previous map {
         case previous: KeyValue.ReadOnly.Put =>
           readTime(indexReader, previous.time)
@@ -99,10 +101,9 @@ object TimeReader {
           readTime(indexReader, previous.time)
 
         case _: KeyValue.ReadOnly.Range | _: KeyValue.ReadOnly.Group =>
-          IO.Failure(EntryReaderFailure.PreviousIsNotFixedKeyValue)
-
+          IO.failed(EntryReaderFailure.PreviousIsNotFixedKeyValue)
       } getOrElse {
-        IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
+        IO.failed(EntryReaderFailure.NoPreviousKeyValue)
       }
   }
 }

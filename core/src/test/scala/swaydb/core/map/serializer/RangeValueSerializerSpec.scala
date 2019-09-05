@@ -20,14 +20,14 @@
 package swaydb.core.map.serializer
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.Error.Map.ExceptionHandler
+import swaydb.IOValues._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.TestTimer
 import swaydb.core.data.Value
 import swaydb.core.data.Value.{FromValue, RangeValue}
-import swaydb.core.{CommonAssertions, TestTimer, IOAssert}
 import swaydb.data.slice.Slice
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
 
 class RangeValueSerializerSpec extends WordSpec with Matchers {
 
@@ -39,7 +39,7 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
     RangeValueSerializer.write((), rangeValue)(bytes)
     bytes.isFull shouldBe true
 
-    RangeValueSerializer.read(bytes).assertGet shouldBe ((Option.empty[FromValue], rangeValue))
+    RangeValueSerializer.read(bytes).runRandomIO.right.value shouldBe ((Option.empty[FromValue], rangeValue))
 
     //also assert option Serializer
     def doAssertOption(rangeValue: RangeValue) = {
@@ -50,7 +50,7 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
       RangeValueSerializer.write(Option.empty[FromValue], rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
       bytes.isFull shouldBe true
 
-      RangeValueSerializer.read(bytes).assertGet shouldBe ((None, rangeValue))
+      RangeValueSerializer.read(bytes).runRandomIO.right.value shouldBe ((None, rangeValue))
     }
 
     doAssertOption(rangeValue)
@@ -75,7 +75,6 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
           doAssert(rangeValue)
       }
     }
-
   }
 
   def doAssert[F <: FromValue, R <: RangeValue](fromValue: F, rangeValue: R)(implicit serializer: RangeValueSerializer[F, R]) = {
@@ -85,7 +84,7 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
     RangeValueSerializer.write(fromValue, rangeValue)(bytes)
     bytes.isFull shouldBe true
 
-    RangeValueSerializer.read(bytes).assertGet shouldBe ((Some(fromValue), rangeValue))
+    RangeValueSerializer.read(bytes).runRandomIO.right.value shouldBe ((Some(fromValue), rangeValue))
 
     //also assert option Serializer
     def doAssertOption(fromValue: FromValue, rangeValue: RangeValue) = {
@@ -95,7 +94,7 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
       RangeValueSerializer.write(Option(fromValue), rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
       bytes.isFull shouldBe true
 
-      RangeValueSerializer.read(bytes).assertGet shouldBe ((Some(fromValue), rangeValue))
+      RangeValueSerializer.read(bytes).runRandomIO.right.value shouldBe ((Some(fromValue), rangeValue))
     }
 
     doAssertOption(fromValue, rangeValue)
@@ -133,6 +132,5 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
         case (fromValue: Value.PendingApply, rangeValue: Value.PendingApply) => doAssert(fromValue, rangeValue)
       }
     }
-
   }
 }

@@ -21,9 +21,8 @@ package swaydb.compression
 
 import net.jpountz.lz4.{LZ4Factory, LZ4FastDecompressor, LZ4SafeDecompressor}
 import org.xerial.snappy
-import swaydb.data.IO
-import swaydb.data.compression.LZ4Decompressor.{FastDecompressor, SafeDecompressor}
-import swaydb.data.compression.LZ4Instance._
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
 import swaydb.data.compression.{DecompressorId, LZ4Decompressor, LZ4Instance}
 import swaydb.data.slice.Slice
 import swaydb.data.util.PipeOps._
@@ -33,19 +32,19 @@ private[swaydb] sealed trait DecompressorInternal {
   val id: Int
 
   def decompress(slice: Slice[Byte],
-                 decompressLength: Int): IO[Slice[Byte]]
+                 decompressLength: Int): IO[swaydb.Error.Segment, Slice[Byte]]
 }
 
 private[swaydb] object DecompressorInternal {
 
   private[swaydb] sealed trait LZ4 extends DecompressorInternal
 
-  def apply(id: Int): IO[DecompressorInternal] =
+  def apply(id: Int): IO[swaydb.Error.Segment, DecompressorInternal] =
     DecompressorId(id) map {
       id =>
         IO(apply(id))
     } getOrElse {
-      IO.Failure(DecompressException.InvalidDecompressorId(id))
+      IO.failed(swaydb.Exception.InvalidDecompressorId(id))
     }
 
   def apply(instance: LZ4Instance,
@@ -59,16 +58,16 @@ private[swaydb] object DecompressorInternal {
                              lZ4Decompressor: LZ4Decompressor): DecompressorId.LZ4DecompressorId =
     (lz4Instance, lZ4Decompressor) match {
       //@formatter:off
-      case (FastestInstance, FastDecompressor) =>     DecompressorId.LZ4FastestInstance.FastDecompressor
-      case (FastestInstance, SafeDecompressor) =>     DecompressorId.LZ4FastestInstance.SafeDecompressor
-      case (FastestJavaInstance, FastDecompressor) => DecompressorId.LZ4FastestJavaInstance.FastDecompressor
-      case (FastestJavaInstance, SafeDecompressor) => DecompressorId.LZ4FastestJavaInstance.SafeDecompressor
-      case (NativeInstance, FastDecompressor) =>      DecompressorId.LZ4NativeInstance.FastDecompressor
-      case (NativeInstance, SafeDecompressor) =>      DecompressorId.LZ4NativeInstance.SafeDecompressor
-      case (SafeInstance, FastDecompressor) =>        DecompressorId.LZ4SafeInstance.FastDecompressor
-      case (SafeInstance, SafeDecompressor) =>        DecompressorId.LZ4SafeInstance.SafeDecompressor
-      case (UnsafeInstance, FastDecompressor) =>      DecompressorId.LZ4UnsafeInstance.FastDecompressor
-      case (UnsafeInstance, SafeDecompressor) =>      DecompressorId.LZ4UnsafeInstance.SafeDecompressor
+      case (LZ4Instance.Fastest, LZ4Decompressor.Fast) =>     DecompressorId.LZ4FastestInstance.FastDecompressor
+      case (LZ4Instance.Fastest, LZ4Decompressor.Safe) =>     DecompressorId.LZ4FastestInstance.SafeDecompressor
+      case (LZ4Instance.FastestJava, LZ4Decompressor.Fast) => DecompressorId.LZ4FastestJavaInstance.FastDecompressor
+      case (LZ4Instance.FastestJava, LZ4Decompressor.Safe) => DecompressorId.LZ4FastestJavaInstance.SafeDecompressor
+      case (LZ4Instance.Native, LZ4Decompressor.Fast) =>      DecompressorId.LZ4NativeInstance.FastDecompressor
+      case (LZ4Instance.Native, LZ4Decompressor.Safe) =>      DecompressorId.LZ4NativeInstance.SafeDecompressor
+      case (LZ4Instance.Safe, LZ4Decompressor.Fast) =>        DecompressorId.LZ4SafeInstance.FastDecompressor
+      case (LZ4Instance.Safe, LZ4Decompressor.Safe) =>        DecompressorId.LZ4SafeInstance.SafeDecompressor
+      case (LZ4Instance.Unsafe, LZ4Decompressor.Fast) =>      DecompressorId.LZ4UnsafeInstance.FastDecompressor
+      case (LZ4Instance.Unsafe, LZ4Decompressor.Safe) =>      DecompressorId.LZ4UnsafeInstance.SafeDecompressor
       //@formatter:on
     }
 
@@ -101,7 +100,7 @@ private[swaydb] object DecompressorInternal {
                                      decompressor: LZ4FastDecompressor) extends DecompressorInternal.LZ4 {
 
     override def decompress(slice: Slice[Byte],
-                            decompressLength: Int): IO[Slice[Byte]] =
+                            decompressLength: Int): IO[swaydb.Error.Segment, Slice[Byte]] =
       IO(Slice(decompressor.decompress(slice.toArray, decompressLength)))
   }
 
@@ -109,7 +108,7 @@ private[swaydb] object DecompressorInternal {
                                      decompressor: LZ4SafeDecompressor) extends DecompressorInternal.LZ4 {
 
     override def decompress(slice: Slice[Byte],
-                            decompressLength: Int): IO[Slice[Byte]] =
+                            decompressLength: Int): IO[swaydb.Error.Segment, Slice[Byte]] =
       IO(Slice(decompressor.decompress(slice.toArray, decompressLength)))
   }
 
@@ -118,8 +117,8 @@ private[swaydb] object DecompressorInternal {
     override val id: Int = DecompressorId.UnCompressedGroup.id
 
     override def decompress(slice: Slice[Byte],
-                            decompressLength: Int): IO[Slice[Byte]] =
-      IO.Success(slice)
+                            decompressLength: Int): IO[swaydb.Error.Segment, Slice[Byte]] =
+      IO.Right(slice)
   }
 
   private[swaydb] case object Snappy extends DecompressorInternal {
@@ -127,11 +126,11 @@ private[swaydb] object DecompressorInternal {
     override val id: Int = DecompressorId.Snappy.Default.id
 
     override def decompress(slice: Slice[Byte],
-                            decompressLength: Int): IO[Slice[Byte]] =
+                            decompressLength: Int): IO[swaydb.Error.Segment, Slice[Byte]] =
       IO(snappy.Snappy.uncompress(slice.toArray)) map (Slice(_))
   }
 
-  def random(): IO[DecompressorInternal] =
+  def random(): IO[swaydb.Error.Segment, DecompressorInternal] =
     DecompressorInternal(DecompressorId.randomIntId())
 
   def randomLZ4(): DecompressorInternal.LZ4 =

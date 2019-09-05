@@ -86,7 +86,7 @@
 ////  val keyValueCount = 1000000
 //  val keyValueCount = 100
 //
-//  "Concurrently put, get, read lower and higher 1 million key-values" in {
+//  "Concurrently put, value, read lower and higher 1 million key-values" in {
 //    val level1 = TestLevel(nextLevel = Some(TestLevel()))
 //    val zero = TestLevelZero(Some(level1))
 //    val keyValues = randomIntKeyStringValues(keyValueCount, valueSize = 17)
@@ -101,7 +101,7 @@
 //          val key = keyValue.key.read[Int]
 //          if (key % 100000 == 0)
 //            println(s"PUT. Current written KeyValue : $key")
-//          zero.put(keyValue.key, keyValue.getOrFetchValue).assertGet
+//          zero.put(keyValue.key, keyValue.getOrFetchValue).runIO
 //      }
 //
 //    def doGet =
@@ -110,7 +110,7 @@
 //          val key = keyValue.key.read[Int]
 //          if (key % 100000 == 0)
 //            println(s"GET. KeyValue : $key")
-//          zero.get(keyValue.key).assertGet shouldBe keyValue.getOrFetchValue
+//          zero.get(keyValue.key).runIO shouldBe keyValue.getOrFetchValue
 //      }
 //
 //    def readLower =
@@ -119,7 +119,7 @@
 //          if (index % 100000 == 0)
 //            println(s"Read lower key index. Current read index: $index")
 //          val expectedLower = keyValues(index - 1)
-//          val (key, value) = zero.lower(keyValues(index).key).assertGet
+//          val (key, value) = zero.lower(keyValues(index).key).runIO
 //          key shouldBe expectedLower.key
 //          value shouldBe expectedLower.getOrFetchValue
 //      }
@@ -130,7 +130,7 @@
 //          if (index % 100000 == 0)
 //            println(s"Read higher key index. Current read index: $index")
 //          val expectedLower = keyValues(index + 1)
-//          val (key, value) = zero.higher(keyValues(index).key).assertGet
+//          val (key, value) = zero.higher(keyValues(index).key).runIO
 //          key shouldBe expectedLower.key
 //          value shouldBe expectedLower.getOrFetchValue
 //      }

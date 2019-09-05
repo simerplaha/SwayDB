@@ -1,14 +1,14 @@
 import sbt.Keys.{libraryDependencies, publishMavenStyle}
 import sbt.url
+import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import xerial.sbt.Sonatype._
-import ReleaseTransformations._
 
 val lz4Version = "1.6.0"
 val snappyVersion = "1.1.7.3"
 val logbackClassicVersion = "1.2.3"
 val scalaLoggingVersion = "3.8.0"
-val scalaMockVersion = "4.2.0"
-val scalaTestVersion = "3.0.5-M1"
+val scalaMockVersion = "4.4.0"
+val scalaTestVersion = "3.0.8"
 val reactiveStreamsVersion = "1.0.2"
 val boopickleVersion = "1.3.1"
 
@@ -16,12 +16,11 @@ parallelExecution in ThisBuild := false
 
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
-  version := "0.9",
   scalaVersion := scalaVersion.value
 )
 
 val publishSettings = Seq[Setting[_]](
-  crossScalaVersions := Seq("2.11.12", "2.12.8", "2.13.0-M3"),
+  crossScalaVersions := Seq("2.11.12", "2.12.9"),
   sonatypeProfileName := "io.swaydb",
   publishMavenStyle := true,
   licenses := Seq("AGPL3" -> url("https://www.gnu.org/licenses/agpl-3.0.en.html")),
@@ -84,7 +83,7 @@ lazy val data =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies ++= testDependencies
+      libraryDependencies ++= commonDependencies
     ).dependsOn(macros % "compile-internal")
 
 lazy val api =
@@ -160,4 +159,3 @@ lazy val benchmark =
       libraryDependencies ++= commonDependencies
     ).dependsOn(core, configs)
     .dependsOn(api, core % "test->test")
-

@@ -20,20 +20,21 @@
 package swaydb.extensions.memory
 
 import com.typesafe.scalalogging.LazyLogging
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{FiniteDuration, _}
-import swaydb.SwayDB
 import swaydb.configs.level.DefaultMemoryConfig
-import swaydb.core.BlockingCore
+import swaydb.core.Core
 import swaydb.core.function.FunctionStore
-import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.api.grouping.KeyValueGroupingStrategy
+import swaydb.data.api.grouping.GroupBy
+import swaydb.data.config.{ActorConfig, FileCache, MemoryCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.extensions.{Extend, Key}
 import swaydb.serializers.Serializer
+import swaydb.{Error, IO, SwayDB, extensions}
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{FiniteDuration, _}
 
 object Map extends LazyLogging {
 
@@ -51,44 +52,55 @@ object Map extends LazyLogging {
     * @param keySerializer     Converts keys to Bytes
     * @param valueSerializer   Converts values to Bytes
     * @param keyOrder          Sort order for keys
-    * @param fileOpenLimiterEC Execution context used to close opened files when the maxOpenFiles limit is reached.
-    * @param cacheLimiterEC    Execution context used to drop cached key-values when cacheSize is reached.
+    * @param fileSweeperEC Execution context used to close opened files when the maxOpenFiles limit is reached.
+    * @param memorySweeperEC    Execution context used to drop cached key-values when cacheSize is reached.
     * @tparam K
     * @tparam V
+    *
     * @return
     */
 
+
   def apply[K, V](mapSize: Int = 4.mb,
                   segmentSize: Int = 2.mb,
-                  cacheSize: Int = 500.mb,
-                  cacheCheckDelay: FiniteDuration = 10.seconds,
-                  bloomFilterFalsePositiveRate: Double = 0.01,
+                  memoryCacheSize: Int = 500.mb,
+                  maxOpenSegments: Int = 100,
+                  memorySweeperPollInterval: FiniteDuration = 10.seconds,
+                  fileSweeperPollInterval: FiniteDuration = 10.seconds,
+                  mightContainFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = false,
-                  deleteSegmentsEventually: Boolean = false,
-                  groupingStrategy: Option[KeyValueGroupingStrategy] = None,
+                  deleteSegmentsEventually: Boolean = true,
+                  groupBy: Option[GroupBy.KeyValues] = None,
                   acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                        fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.extensions.Map[K, V]] =
-    BlockingCore(
+                                                                                        fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
+                                                                                        memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, IO.ApiIO[extensions.Map[K, V]]] =
+    Core(
       config = DefaultMemoryConfig(
         mapSize = mapSize,
         segmentSize = segmentSize,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        mightContainFalsePositiveRate = mightContainFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        groupingStrategy = groupingStrategy,
+        keyValueGroupBy = groupBy,
         acceleration = acceleration
       ),
-      maxOpenSegments = 0,
-      cacheSize = cacheSize,
-      cacheCheckDelay = cacheCheckDelay,
-      //memory Segments are never closed.
-      segmentsOpenCheckDelay = Duration.Zero,
-      fileOpenLimiterEC = fileOpenLimiterEC,
-      cacheLimiterEC = cacheLimiterEC
-    ) flatMap {
+      fileCache =
+        FileCache.Enable.default(
+          maxOpen = maxOpenSegments,
+          interval = fileSweeperPollInterval,
+          ec = fileSweeperEC
+        ),
+      memoryCache =
+        MemoryCache.EnableKeyValueCache(
+          capacity = memoryCacheSize,
+          actorConfig = ActorConfig.Timer(
+            delay = memorySweeperPollInterval,
+            ec = memorySweeperEC
+          )
+        )
+    ) map {
       db =>
         implicit val optionValueSerializer: Serializer[Option[V]] =
           new Serializer[Option[V]] {
@@ -102,11 +114,12 @@ object Map extends LazyLogging {
                 Some(valueSerializer.read(data))
           }
 
-        val map = swaydb.Map[Key[K], Option[V], IO](db)
+        val map = swaydb.Map[Key[K], Option[V], IO.ApiIO](db)
         Extend(map = map)(
           keySerializer = keySerializer,
           optionValueSerializer = optionValueSerializer,
           keyOrder = Key.ordering(keyOrder)
         )
     }
+
 }

@@ -22,23 +22,31 @@ package swaydb.data.slice
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
+
+import swaydb.data.MaxKey
+import swaydb.data.order.KeyOrder
+import swaydb.data.util.{ByteSizeOf, ByteUtil}
+import swaydb.{Error, IO}
+
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
 import scala.collection.{IterableLike, mutable}
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
-import swaydb.data.{IO, MaxKey}
-import swaydb.data.order.KeyOrder
-import swaydb.data.util.{ByteSizeOf, ByteUtil}
 
 /**
-  * Documentation - http://swaydb.io/slice
-  */
+ * Documentation - http://swaydb.io/slice
+ */
 object Slice {
 
   val emptyBytes = Slice.create[Byte](0)
 
   val someEmptyBytes = Some(emptyBytes)
+
+  val emptyEmptyBytes: Slice[Slice[Byte]] = Slice.empty[Slice[Byte]]
+
+  def bytes(range: Iterable[Int]): Slice[Byte] =
+    range.map(_.toByte)(collection.breakOut)
 
   @inline final def empty[T: ClassTag] =
     Slice.create[T](0)
@@ -48,15 +56,15 @@ object Slice {
       array = Array.fill(length)(elem),
       fromOffset = 0,
       toOffset = if (length == 0) -1 else length - 1,
-      _written = length
+      written = length
     )
 
-  def create[T: ClassTag](length: Int): Slice[T] =
+  def create[T: ClassTag](length: Int, isFull: Boolean = false): Slice[T] =
     new Slice(
       array = new Array[T](length),
       fromOffset = 0,
       toOffset = if (length == 0) -1 else length - 1,
-      _written = 0
+      written = if (isFull) length else 0
     )
 
   def apply[T: ClassTag](data: Array[T]): Slice[T] =
@@ -67,8 +75,24 @@ object Slice {
         array = data,
         fromOffset = 0,
         toOffset = data.length - 1,
-        _written = data.length
+        written = data.length
       )
+
+  def from(byteBuffer: ByteBuffer) =
+    new Slice[Byte](
+      array = byteBuffer.array(),
+      fromOffset = byteBuffer.arrayOffset(),
+      toOffset = byteBuffer.position() - 1,
+      written = byteBuffer.position()
+    )
+
+  def from(byteBuffer: ByteBuffer, from: Int, to: Int) =
+    new Slice[Byte](
+      array = byteBuffer.array(),
+      fromOffset = from,
+      toOffset = to,
+      written = to - from + 1
+    )
 
   def apply[T: ClassTag](data: T*): Slice[T] =
     Slice(data.toArray)
@@ -80,13 +104,13 @@ object Slice {
     Slice.create[Byte](1).addBoolean(boolean)
 
   def writeIntUnsigned(int: Int): Slice[Byte] =
-    Slice.create[Byte](ByteSizeOf.int + 1).addIntUnsigned(int).close()
+    Slice.create[Byte](ByteSizeOf.varInt).addIntUnsigned(int).close()
 
   def writeLong(long: Long): Slice[Byte] =
     Slice.create[Byte](ByteSizeOf.long).addLong(long)
 
   def writeLongUnsigned(long: Long): Slice[Byte] =
-    Slice.create[Byte](ByteSizeOf.long + 1).addLongUnsigned(long).close()
+    Slice.create[Byte](ByteSizeOf.varLong).addLongUnsigned(long).close()
 
   def writeString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] =
     Slice(string.getBytes(charsets))
@@ -130,8 +154,8 @@ object Slice {
   }
 
   /**
-    * Boolean indicates if the toKey is inclusive.
-    */
+   * Boolean indicates if the toKey is inclusive.
+   */
   def intersects[T](range1: (Slice[T], Slice[T], Boolean),
                     range2: (Slice[T], Slice[T], Boolean))(implicit ordering: Ordering[Slice[T]]): Boolean = {
     import ordering._
@@ -156,9 +180,9 @@ object Slice {
 
   implicit class SlicesImplicits[T: ClassTag](slices: Slice[Slice[T]]) {
     /**
-      * Closes this Slice and children Slices which disables
-      * more data to be written to any of the Slices.
-      */
+     * Closes this Slice and children Slices which disables
+     * more data to be written to any of the Slices.
+     */
     def closeAll(): Slice[Slice[T]] = {
       val newSlices = Slice.create[Slice[T]](slices.close().size)
       slices foreach {
@@ -191,8 +215,8 @@ object Slice {
   }
 
   /**
-    * http://www.swaydb.io/slice/byte-slice
-    */
+   * http://www.swaydb.io/slice/byte-slice
+   */
   implicit class ByteSliceImplicits(slice: Slice[Byte]) {
 
     def addByte(value: Byte): Slice[Byte] = {
@@ -221,12 +245,18 @@ object Slice {
     def readInt(): Int =
       ByteUtil.readInt(slice)
 
+    def dropIntUnsigned(): IO[Error.IO, Slice[Byte]] =
+      readIntUnsignedWithByteSize() map {
+        case (_, byteSize) =>
+          slice.drop(byteSize)
+      }
+
     def addIntSigned(int: Int): Slice[Byte] = {
       ByteUtil.writeSignedInt(int, slice)
       slice
     }
 
-    def readIntSigned(): IO[Int] =
+    def readIntSigned[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Int] =
       ByteUtil.readSignedInt(slice)
 
     def addIntUnsigned(int: Int): Slice[Byte] = {
@@ -234,8 +264,11 @@ object Slice {
       slice
     }
 
-    def readIntUnsigned(): IO[Int] =
+    def readIntUnsigned[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Int] =
       ByteUtil.readUnsignedInt(slice)
+
+    def readIntUnsignedWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, (Int, Int)] =
+      ByteUtil.readUnsignedIntWithByteSize(slice)
 
     def addLong(long: Long): Slice[Byte] = {
       ByteUtil.writeLong(long, slice)
@@ -250,15 +283,18 @@ object Slice {
       slice
     }
 
-    def readLongUnsigned(): IO[Long] =
+    def readLongUnsigned[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Long] =
       ByteUtil.readUnsignedLong(slice)
+
+    def readUnsignedLongWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, (Long, Int)] =
+      ByteUtil.readUnsignedLongWithByteSize(slice)
 
     def addLongSigned(long: Long): Slice[Byte] = {
       ByteUtil.writeSignedLong(long, slice)
       slice
     }
 
-    def readLongSigned(): IO[Long] =
+    def readLongSigned[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Long] =
       ByteUtil.readSignedLong(slice)
 
     def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] = {
@@ -269,14 +305,20 @@ object Slice {
     def readString(charset: Charset = StandardCharsets.UTF_8): String =
       ByteUtil.readString(slice, charset)
 
-    def toByteBuffer: ByteBuffer =
-      slice.toByteBuffer
+    def toByteBufferWrap: ByteBuffer =
+      slice.toByteBufferWrap
+
+    def toByteBufferDirect: ByteBuffer =
+      slice.toByteBufferDirect
 
     def toByteArrayOutputStream =
       slice.toByteArrayInputStream
 
-    def createReader() =
-      new BytesReader(slice)
+    def createReaderUnsafe() =
+      new SliceReaderUnsafe(slice)
+
+    def createReaderSafe[E >: swaydb.Error.IO : IO.ExceptionHandler]() =
+      SliceReader(slice)
   }
 
   implicit class SliceImplicit[T](slice: Slice[T]) {
@@ -285,12 +327,7 @@ object Slice {
       slice
     }
 
-    def addAll(values: Iterable[T]): Slice[T] = {
-      if (values.nonEmpty) slice.insertAll(values)
-      slice
-    }
-
-    def addAllWithSizeIntUnsigned(values: Iterable[T]): Slice[T] = {
+    def addAll(values: Slice[T]): Slice[T] = {
       if (values.nonEmpty) slice.insertAll(values)
       slice
     }
@@ -319,10 +356,10 @@ object Slice {
 
   class SliceBuilder[T: ClassTag](sizeHint: Int) extends mutable.Builder[T, Slice[T]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-    protected var slice: Slice[T] = Slice.create[T](((sizeHint max 100) * 2.5).toInt)
+    protected var slice: Slice[T] = Slice.create[T](sizeHint)
 
     def extendSlice(by: Int) = {
-      val extendedSlice = Slice.create[T](slice.size * by)
+      val extendedSlice = Slice.create[T]((slice.size * by) max 100)
       extendedSlice addAll slice
       slice = extendedSlice
     }
@@ -349,7 +386,7 @@ object Slice {
   implicit def canBuildFrom[T: ClassTag]: CanBuildFrom[Slice[_], T, Slice[T]] =
     new CanBuildFrom[Slice[_], T, Slice[T]] {
       def apply(from: Slice[_]) =
-        new SliceBuilder[T](from.size max 100) //max is used in-case from.size == 0
+        new SliceBuilder[T](from.size)
 
       def apply() =
         new SliceBuilder[T](100)
@@ -357,75 +394,81 @@ object Slice {
 }
 
 /**
-  * An Iterable type that holds offset references to an Array without creating copies of the original array when creating
-  * sub-slices.
-  *
-  * @param array      Array to create Slices for
-  * @param fromOffset start offset
-  * @param toOffset   end offset
-  * @param _written   write position
-  * @tparam T The type of this Slice
-  */
-class Slice[+T: ClassTag](array: Array[T],
-                          val fromOffset: Int,
-                          val toOffset: Int,
-                          private var _written: Int) extends Iterable[T] with IterableLike[T, Slice[T]] {
+ * An Iterable type that holds offset references to an Array without creating copies of the original array when creating
+ * sub-slices.
+ *
+ * @param array      Array to create Slices for
+ * @param fromOffset start offset
+ * @param toOffset   end offset
+ * @param written    items written
+ * @tparam T The type of this Slice
+ */
+class Slice[+T: ClassTag] private(array: Array[T],
+                                  val fromOffset: Int,
+                                  val toOffset: Int,
+                                  private var written: Int) extends Iterable[T] with IterableLike[T, Slice[T]] { self =>
 
-  private var writePosition = fromOffset + _written
+  private var writePosition = fromOffset + written
 
-  override val size =
+  val allocatedSize =
     toOffset - fromOffset + 1
 
-  def written =
-    _written
+  override def size: Int =
+    written
 
   override def isEmpty =
-    written == 0
+    size == 0
 
   def isFull =
-    written == size
+    size == allocatedSize
 
   override def nonEmpty =
     !isEmpty
 
   /**
-    * Create a new Slice for the offsets.
-    *
-    * @param fromOffset start offset
-    * @param toOffset   end offset
-    * @return Slice for the given offsets
-    */
-  @throws[ArrayIndexOutOfBoundsException]
+   * Create a new Slice for the offsets.
+   *
+   * @param fromOffset start offset
+   * @param toOffset   end offset
+   *
+   * @return Slice for the given offsets
+   */
   override def slice(fromOffset: Int, toOffset: Int): Slice[T] =
     if (toOffset < 0) {
       Slice.empty[T]
     } else {
       //overflow check
-      val fromOffsetAdjusted = fromOffset + this.fromOffset
-      val toOffsetAdjusted = fromOffsetAdjusted + (toOffset - fromOffset)
-      if (fromOffsetAdjusted < this.fromOffset) throw new ArrayIndexOutOfBoundsException(fromOffset)
-      if (toOffsetAdjusted > this.toOffset) throw new ArrayIndexOutOfBoundsException(toOffset)
-      if (fromOffsetAdjusted > toOffsetAdjusted) throw new ArrayIndexOutOfBoundsException(fromOffset)
-      val sliceWritePosition =
-      //writePosition cannot be calculated if position was manually moved.
-      //new is set to be full is that's the case.
-        if (written >= size)
-          toOffsetAdjusted - fromOffsetAdjusted + 1
-        else if (writePosition <= fromOffsetAdjusted) //not written
-          0
-        else if (writePosition > toOffsetAdjusted) //fully written
-          toOffsetAdjusted - fromOffsetAdjusted + 1
-        else //some written
-          toOffsetAdjusted - writePosition + 1
-      new Slice[T](
-        array = array,
-        fromOffset = fromOffsetAdjusted,
-        toOffset = toOffsetAdjusted,
-        _written = sliceWritePosition
-      )
+      var fromOffsetAdjusted = fromOffset + this.fromOffset
+      var toOffsetAdjusted = fromOffsetAdjusted + (toOffset - fromOffset)
+
+      if (fromOffsetAdjusted < this.fromOffset)
+        fromOffsetAdjusted = this.fromOffset
+
+      if (toOffsetAdjusted > this.toOffset)
+        toOffsetAdjusted = this.toOffset
+
+      if (fromOffsetAdjusted > toOffsetAdjusted) {
+        Slice.empty
+      } else {
+        val actualWritePosition = this.fromOffset + written //in-case the slice was manually moved.
+        val sliceWritePosition =
+          if (actualWritePosition <= fromOffsetAdjusted) //not written
+            0
+          else if (actualWritePosition > toOffsetAdjusted) //fully written
+            toOffsetAdjusted - fromOffsetAdjusted + 1
+          else //partially written
+            actualWritePosition - fromOffsetAdjusted
+
+        new Slice[T](
+          array = array,
+          fromOffset = fromOffsetAdjusted,
+          toOffset = toOffsetAdjusted,
+          written = sliceWritePosition
+        )
+      }
     }
 
-  override def splitAt(index: Int): (Slice[T], Slice[T]) =
+  private def splitAt(index: Int, size: Int): (Slice[T], Slice[T]) =
     if (index == 0) {
       (Slice.empty[T], slice(0, size - 1))
     } else {
@@ -433,6 +476,12 @@ class Slice[+T: ClassTag](array: Array[T],
       val split2 = slice(index, size - 1)
       (split1, split2)
     }
+
+  def splitInnerArrayAt(index: Int): (Slice[T], Slice[T]) =
+    splitAt(index, allocatedSize)
+
+  override def splitAt(index: Int): (Slice[T], Slice[T]) =
+    splitAt(index, size)
 
   override def grouped(size: Int): Iterator[Slice[T]] =
     groupedSlice(size).iterator
@@ -452,23 +501,25 @@ class Slice[+T: ClassTag](array: Array[T],
         group(groups, slice2, size - 1)
       }
 
-    group(Slice.create[Slice[T]](size), this, size)
+    if (size == 0)
+      Slice(this)
+    else
+      group(Slice.create[Slice[T]](size), this, size)
   }
 
-  //Note: using moveTo will set the writePosition incorrectly during runTime.
-  //one moveTo is invoked manually, all the subsequent writes should move this pointer manually.
-  private[swaydb] def moveWritePositionUnsafe(writePosition: Int): Unit = {
-    //cannot track written once writePosition is manually moved.
-    //set this slice to be fully written.
-    this._written = size
+  @throws[ArrayIndexOutOfBoundsException]
+  private[swaydb] def moveWritePosition(writePosition: Int): Unit = {
     val adjustedPosition = fromOffset + writePosition
     //+1 because write position can be a step ahead for the next write but cannot over over toOffset.
     if (adjustedPosition > toOffset + 1) throw new ArrayIndexOutOfBoundsException(adjustedPosition)
     this.writePosition = adjustedPosition
+    written = adjustedPosition max written
   }
 
   override def drop(count: Int): Slice[T] =
-    if (count >= size)
+    if (count <= 0)
+      this
+    else if (count >= size)
       Slice.empty[T]
     else
       slice(count, size - 1)
@@ -476,20 +527,51 @@ class Slice[+T: ClassTag](array: Array[T],
   def dropHead(): Slice[T] =
     drop(1)
 
+  /**
+   * @return Elements after the input element
+   *         Returns None if input element is not found.
+   */
+  def dropTo[B >: T](elem: B): Option[Slice[T]] =
+    indexOf(elem) map {
+      index =>
+        drop(index + 1)
+    }
+
+  /**
+   * @return input Element and elements after the input element.
+   *         Returns None if input element is not found.
+   */
+  def dropUntil[B >: T](elem: B): Option[Slice[T]] =
+    indexOf(elem) map {
+      index =>
+        drop(index)
+    }
+
   override def dropRight(count: Int): Slice[T] =
-    if (count >= size)
+    if (count <= 0)
+      this
+    else if (count >= size)
       Slice.empty[T]
     else
       slice(0, size - count - 1)
 
   override def take(count: Int): Slice[T] =
-    slice(0, (size min count) - 1)
+    if (size == count)
+      this
+    else
+      slice(0, (size min count) - 1)
 
   def take(fromIndex: Int, count: Int): Slice[T] =
-    slice(fromIndex, (size min (fromIndex + count)) - 1)
+    if (count == 0)
+      Slice.empty
+    else
+      slice(fromIndex, fromIndex + count - 1)
 
   override def takeRight(count: Int): Slice[T] =
-    slice(size - count, size - 1)
+    if (size == count)
+      this
+    else
+      slice(size - count, size - 1)
 
   override def head: T =
     headOption.get
@@ -498,16 +580,16 @@ class Slice[+T: ClassTag](array: Array[T],
     lastOption.get
 
   override def headOption: Option[T] =
-    if (_written <= 0)
+    if (written <= 0)
       None
     else
       Some(array(fromOffset))
 
   override def lastOption: Option[T] =
-    if (_written <= 0)
+    if (written <= 0)
       None
     else
-      Some(array(fromOffset + _written - 1))
+      Some(array(fromOffset + written - 1))
 
   def headSlice: Slice[T] = slice(0, 0)
 
@@ -521,17 +603,13 @@ class Slice[+T: ClassTag](array: Array[T],
   }
 
   /**
-    * Returns a new slice which is not writable.
-    */
+   * Returns a new non-writable slice. Unless position is moved manually.
+   */
   def close(): Slice[T] =
-    if (size == written)
+    if (allocatedSize == size)
       this
-    else if (writePosition - 1 >= 0)
-      slice(0, writePosition - 1)
-    else if (writePosition == 0)
-      Slice.empty[T]
     else
-      this
+      slice(0, size - 1)
 
   def apply(index: Int): T =
     get(index)
@@ -540,37 +618,65 @@ class Slice[+T: ClassTag](array: Array[T],
   private[slice] def insert(item: Any): Unit = {
     if (writePosition < fromOffset || writePosition > toOffset) throw new ArrayIndexOutOfBoundsException(writePosition)
     array(writePosition) = item.asInstanceOf[T]
-    _written = (written + 1) min size //this can occur if writePosition was manually moved.
     writePosition += 1
+    written = (writePosition - fromOffset) max written
   }
 
   @throws[ArrayIndexOutOfBoundsException]
   private[slice] def insertAll(items: Iterable[Any]): Unit = {
     val futurePosition = writePosition + items.size - 1
     if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
-    items.asInstanceOf[Iterable[T]] foreach {
-      item =>
-        array(writePosition) = item
-        _written = (written + 1) min size //this can occur if writePosition was manually moved.
-        writePosition += 1
+    items match {
+      case array: mutable.WrappedArray[T] =>
+        Array.copy(array.array, 0, this.array, currentWritePosition, items.size)
+
+      case items: Slice[T] =>
+        Array.copy(items.unsafeInnerArray, items.fromOffset, this.array, currentWritePosition, items.size)
+
+      case _ =>
+        throw new Exception(s"Iterable is neither an Array or Slice. ${items.getClass.getName}")
     }
+    writePosition += items.size
+    written = (writePosition - fromOffset) max written
   }
 
-  private[slice] def toByteBuffer: ByteBuffer =
+  private[slice] def toByteBufferWrap: ByteBuffer =
     ByteBuffer.wrap(array.asInstanceOf[Array[Byte]], fromOffset, size)
+
+  private[slice] def toByteBufferDirect: ByteBuffer =
+    ByteBuffer
+      .allocateDirect(size)
+      .put(array.asInstanceOf[Array[Byte]], 0, size)
 
   private[slice] def toByteArrayInputStream: ByteArrayInputStream =
     new ByteArrayInputStream(array.asInstanceOf[Array[Byte]], fromOffset, size)
 
+  private def unsafeInnerArray: Array[_] =
+    this.array.asInstanceOf[Array[_]]
+
   /**
-    * Returns the original Array if Slice is not a sub Slice
-    * else returns a new copied Array from the offsets defined for this Slice.
-    */
+   * Returns the original Array if Slice is not a sub Slice
+   * else returns a new copied Array from the offsets defined for this Slice.
+   */
   override def toArray[B >: T](implicit evidence$1: ClassTag[B]): Array[B] =
     if (size == array.length)
       array.asInstanceOf[Array[B]]
     else
       toArrayCopy
+
+  def indexOf[B >: T](elem: B): Option[Int] = {
+    var index = 0
+    var found = Option.empty[Int]
+    while (found.isEmpty && index < size) {
+      val next = get(index)
+      if (elem == next)
+        found = Some(index)
+      else
+        None
+      index += 1
+    }
+    found
+  }
 
   def toArrayCopy[B >: T](implicit evidence$1: ClassTag[B]): Array[B] = {
     val newArray = new Array[B](size)
@@ -578,24 +684,48 @@ class Slice[+T: ClassTag](array: Array[T],
     newArray
   }
 
+  def isOriginalSlice =
+    array.length == size
+
+  def isOriginalFullSlice =
+    isOriginalSlice && isFull
+
+  def arrayLength =
+    array.length
+
   def unslice(): Slice[T] =
     Slice(toArray)
 
+  def toOptionUnsliced(): Option[Slice[T]] = {
+    val slice = unslice()
+    if (slice.isEmpty)
+      None
+    else
+      Some(slice)
+  }
+
+  def toOption: Option[Slice[T]] =
+    if (this.isEmpty)
+      None
+    else
+      Some(this)
+
   override def iterator = new Iterator[T] {
-    private var position = fromOffset
+    private val writtenPosition = fromOffset + self.size - 1
+    private var index = fromOffset
 
     override def hasNext: Boolean =
-      position <= toOffset && position <= writePosition - 1
+      index <= toOffset && index <= writtenPosition
 
     override def next(): T = {
-      val next = array(position)
-      position += 1
+      val next = array(index)
+      index += 1
       next
     }
   }
 
   def reverse: Iterator[T] = new Iterator[T] {
-    private var position = toOffset min (writePosition - 1)
+    private var position = toOffset min (fromOffset + self.size - 1)
 
     override def hasNext: Boolean =
       position >= fromOffset
@@ -629,9 +759,12 @@ class Slice[+T: ClassTag](array: Array[T],
   def underlyingArraySize =
     array.length
 
+  private[swaydb] def underlyingWrittenArrayUnsafe[X >: T]: (Array[X], Int, Int) =
+    (array.asInstanceOf[Array[X]], fromOffset, size)
+
   /**
-    * Return a new ordered Slice.
-    */
+   * Return a new ordered Slice.
+   */
   def sorted[B >: T](implicit ordering: Ordering[B]): Slice[B] =
     Slice(toArrayCopy.sorted(ordering))
 
@@ -651,6 +784,14 @@ class Slice[+T: ClassTag](array: Array[T],
         false
     }
 
-  override def hashCode(): Int =
-    MurmurHash3.orderedHash(this)
+  override def hashCode(): Int = {
+    var seed = MurmurHash3.arraySeed
+    var i = fromOffset
+    val end = fromOffset + self.size
+    while (i < end) {
+      seed = MurmurHash3.mix(seed, array(i).##)
+      i += 1
+    }
+    MurmurHash3.finalizeHash(seed, size)
+  }
 }

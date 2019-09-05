@@ -20,6 +20,7 @@
 package swaydb.core.map.serializer
 
 import java.nio.charset.StandardCharsets
+
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.util.Bytes
@@ -58,9 +59,27 @@ object AppendixMapEntryWriter {
         entry.value.maxKey match {
           case MaxKey.Fixed(maxKey) =>
             (1, maxKey)
+
           case MaxKey.Range(fromKey, maxToKey) =>
             (2, Bytes.compressJoin(fromKey, maxToKey))
         }
+
+      def writeMinMax(bytes: Slice[Byte]) =
+        entry.value.minMaxFunctionId map {
+          minMaxFunctionId =>
+            bytes addIntUnsigned minMaxFunctionId.min.size
+            bytes addAll minMaxFunctionId.min
+            minMaxFunctionId.max map {
+              max =>
+                bytes addIntUnsigned max.size
+                bytes addAll max
+            } getOrElse {
+              bytes addIntUnsigned 0
+            }
+        } getOrElse {
+          bytes addIntUnsigned 0
+        }
+
       bytes
         .addIntUnsigned(id)
         .addIntUnsigned(segmentPath.size)
@@ -72,6 +91,8 @@ object AppendixMapEntryWriter {
         .addIntUnsigned(maxKeyBytes.size)
         .addAll(maxKeyBytes)
         .addLongUnsigned(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L))
+
+      writeMinMax(bytes)
     }
 
     override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Segment]): Int = {
@@ -85,6 +106,15 @@ object AppendixMapEntryWriter {
             (2, Bytes.compressJoin(fromKey, maxToKey))
         }
 
+      val minMaxFunctionIdBytesRequires =
+        entry.value.minMaxFunctionId map {
+          minMax =>
+            Bytes.sizeOf(minMax.min.size) +
+              minMax.min.size +
+              Bytes.sizeOf(minMax.max.map(_.size).getOrElse(0)) +
+              minMax.max.map(_.size).getOrElse(0)
+        } getOrElse 1
+
       Bytes.sizeOf(id) +
         Bytes.sizeOf(segmentPath.length) +
         segmentPath.length +
@@ -94,7 +124,8 @@ object AppendixMapEntryWriter {
         Bytes.sizeOf(maxKeyId) +
         Bytes.sizeOf(maxKeyBytes.size) +
         maxKeyBytes.size +
-        Bytes.sizeOf(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L))
+        Bytes.sizeOf(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L)) +
+        minMaxFunctionIdBytesRequires
     }
   }
 

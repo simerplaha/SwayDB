@@ -19,37 +19,39 @@
 
 package swaydb
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{FiniteDuration, _}
-import scala.concurrent.forkjoin.ForkJoinPool
-import swaydb.core.BlockingCore
+
+import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.Core
+import swaydb.core.actor.FileSweeper
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.queue.FileLimiter
-import swaydb.core.tool.AppendixRepairer
+import swaydb.core.level.tool.AppendixRepairer
+import swaydb.data.MaxKey
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, MaxKey}
 import swaydb.serializers.Serializer
 
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.forkjoin.ForkJoinPool
+
 /**
-  * Instance used for creating/initialising databases.
-  */
+ * Instance used for creating/initialising databases.
+ */
 object SwayDB extends LazyLogging {
 
   private implicit val memoryFunctionStore: FunctionStore = FunctionStore.memory()
   private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   /**
-    * Default execution context for all databases.
-    *
-    * This can be overridden by provided an implicit parameter in the scope of where the database is initialized.
-    */
+   * Default execution context for all databases.
+   *
+   * This can be overridden by provided an implicit parameter in the scope of where the database is initialized.
+   */
   lazy val defaultExecutionContext = new ExecutionContext {
     val threadPool = new ForkJoinPool(Runtime.getRuntime.availableProcessors())
 
@@ -61,112 +63,88 @@ object SwayDB extends LazyLogging {
   }
 
   /**
-    * Creates a database based on the input config.
-    *
-    * @param config                 Configuration to use to create the database
-    * @param maxSegmentsOpen        Number of concurrent opened Segments
-    * @param cacheSize              Size of in-memory key-values. For Memory database this set the size of uncompressed key-values.
-    *                               If compression is used for memory database the this field can be ignored.
-    * @param cacheCheckDelay        Sets the max interval at which key-values get dropped from the cache. The delays
-    *                               are dynamically adjusted based on the current size of the cache to stay close the set
-    *                               cacheSize.
-    *                               If compression is not used for memory database the this field can be ignored.
-    * @param segmentsOpenCheckDelay For persistent Levels only. This can property is not used for databases.
-    *                               Sets the max interval at which Segments get closed. The delays
-    *                               are dynamically adjusted based on the current number of open Segments.
-    * @param keySerializer          Converts keys to Bytes
-    * @param valueSerializer        Converts values to Bytes
-    * @param keyOrder               Sort order for keys
-    * @tparam K Type of key
-    * @tparam V Type of value
-    * @return Database instance
-    */
+   * Creates a database based on the input config.
+   *
+   * @param config                         Configuration to use to create the database
+   * @param keySerializer                  Converts keys to Bytes
+   * @param valueSerializer                Converts values to Bytes
+   * @param keyOrder                       Sort order for keys
+   * @tparam K Type of key
+   * @tparam V Type of value
+   *
+   * @return Database instance
+   */
   def apply[K, V](config: SwayDBPersistentConfig,
-                  maxSegmentsOpen: Int,
-                  cacheSize: Int,
-                  cacheCheckDelay: FiniteDuration,
-                  segmentsOpenCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
-                                                          valueSerializer: Serializer[V],
-                                                          keyOrder: KeyOrder[Slice[Byte]],
-                                                          fileOpenLimiterEC: ExecutionContext,
-                                                          cacheLimiterEC: ExecutionContext): IO[swaydb.Map[K, V, IO]] =
-    BlockingCore(
+                  fileCache: FileCache.Enable,
+                  memoryCache: MemoryCache)(implicit keySerializer: Serializer[K],
+                                            valueSerializer: Serializer[V],
+                                            keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
+    Core(
       config = config,
-      maxOpenSegments = maxSegmentsOpen,
-      cacheSize = cacheSize,
-      cacheCheckDelay = cacheCheckDelay,
-      segmentsOpenCheckDelay = segmentsOpenCheckDelay,
-      fileOpenLimiterEC = fileOpenLimiterEC,
-      cacheLimiterEC = cacheLimiterEC
+      fileCache = fileCache,
+      memoryCache = memoryCache
     ) map {
       db =>
-        swaydb.Map[K, V, IO](db)
+        swaydb.Map[K, V, IO.ApiIO](db)
     }
 
   def apply[T](config: SwayDBPersistentConfig,
-               maxSegmentsOpen: Int,
-               cacheSize: Int,
-               cacheCheckDelay: FiniteDuration,
-               segmentsOpenCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
-                                                       keyOrder: KeyOrder[Slice[Byte]],
-                                                       fileOpenLimiterEC: ExecutionContext,
-                                                       cacheLimiterEC: ExecutionContext): IO[swaydb.Set[T, IO]] =
-    BlockingCore(
+               fileCache: FileCache.Enable,
+               memoryCache: MemoryCache)(implicit serializer: Serializer[T],
+                                         keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+    Core(
       config = config,
-      maxOpenSegments = maxSegmentsOpen,
-      cacheSize = cacheSize,
-      cacheCheckDelay = cacheCheckDelay,
-      segmentsOpenCheckDelay = segmentsOpenCheckDelay,
-      fileOpenLimiterEC = fileOpenLimiterEC,
-      cacheLimiterEC = cacheLimiterEC
+      fileCache = fileCache,
+      memoryCache = memoryCache
     ) map {
       db =>
         swaydb.Set[T](db)
     }
 
   def apply[K, V](config: SwayDBMemoryConfig,
-                  cacheSize: Int,
-                  cacheCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
-                                                   valueSerializer: Serializer[V],
-                                                   keyOrder: KeyOrder[Slice[Byte]],
-                                                   fileOpenLimiterEC: ExecutionContext,
-                                                   cacheLimiterEC: ExecutionContext): IO[swaydb.Map[K, V, IO]] =
-    BlockingCore(
+                  fileCache: FileCache.Enable,
+                  memoryCache: MemoryCache)(implicit keySerializer: Serializer[K],
+                                            valueSerializer: Serializer[V],
+                                            keyOrder: KeyOrder[Slice[Byte]],
+                                            fileSweeperEC: ExecutionContext,
+                                            memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
+    Core(
       config = config,
-      maxOpenSegments = 0,
-      cacheSize = cacheSize,
-      cacheCheckDelay = cacheCheckDelay,
-      segmentsOpenCheckDelay = Duration.Zero,
-      fileOpenLimiterEC = fileOpenLimiterEC,
-      cacheLimiterEC = cacheLimiterEC
+      fileCache = fileCache,
+      memoryCache = memoryCache
     ) map {
       db =>
-        swaydb.Map[K, V, IO](db)
+        swaydb.Map[K, V, IO.ApiIO](db)
     }
 
   def apply[T](config: SwayDBMemoryConfig,
-               cacheSize: Int,
-               cacheCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
-                                                keyOrder: KeyOrder[Slice[Byte]],
-                                                fileOpenLimiterEC: ExecutionContext,
-                                                cacheLimiterEC: ExecutionContext): IO[swaydb.Set[T, IO]] =
-    BlockingCore(
+               fileCache: FileCache.Enable,
+               memoryCache: MemoryCache)(implicit serializer: Serializer[T],
+                                         keyOrder: KeyOrder[Slice[Byte]],
+                                         fileSweeperEC: ExecutionContext,
+                                         memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+    Core(
       config = config,
-      maxOpenSegments = 0,
-      cacheSize = cacheSize,
-      cacheCheckDelay = cacheCheckDelay,
-      segmentsOpenCheckDelay = Duration.Zero,
-      fileOpenLimiterEC = fileOpenLimiterEC,
-      cacheLimiterEC = cacheLimiterEC
+      fileCache = fileCache,
+      memoryCache = memoryCache
     ) map {
       db =>
         swaydb.Set[T](db)
     }
 
-  def apply[T](config: LevelZeroConfig)(implicit serializer: Serializer[T],
-                                        keyOrder: KeyOrder[Slice[Byte]],
-                                        ec: ExecutionContext): IO[swaydb.Set[T, IO]] =
-    BlockingCore(
+  def apply[T](config: LevelZeroPersistentConfig)(implicit serializer: Serializer[T],
+                                                  keyOrder: KeyOrder[Slice[Byte]],
+                                                  mmapCleanerEC: Option[ExecutionContext]): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+    Core(
+      config = config
+    ) map {
+      db =>
+        swaydb.Set[T](db)
+    }
+
+  def apply[T](config: LevelZeroMemoryConfig)(implicit serializer: Serializer[T],
+                                              keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+    Core(
       config = config
     ) map {
       db =>
@@ -219,17 +197,17 @@ object SwayDB extends LazyLogging {
   }
 
   /**
-    * Documentation: http://www.swaydb.io/api/repairAppendix
-    */
+   * Documentation: http://www.swaydb.io/api/repairAppendix
+   */
   def repairAppendix[K](levelPath: Path,
                         repairStrategy: AppendixRepairStrategy)(implicit serializer: Serializer[K],
-                                                                fileLimiter: FileLimiter,
+                                                                fileSweeper: FileSweeper.Enabled,
                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                ec: ExecutionContext = defaultExecutionContext): IO[RepairResult[K]] =
+                                                                ec: ExecutionContext = defaultExecutionContext): IO[swaydb.Error.Level, RepairResult[K]] =
   //convert to typed result.
     AppendixRepairer(levelPath, repairStrategy) match {
-      case IO.Failure(IO.Error.Fatal(OverlappingSegmentsException(segmentInfo, overlappingSegmentInfo))) =>
-        IO.Success(
+      case IO.Left(swaydb.Error.Fatal(OverlappingSegmentsException(segmentInfo, overlappingSegmentInfo))) =>
+        IO.Right[swaydb.Error.Segment, RepairResult[K]](
           OverlappingSegments[K](
             segmentInfo =
               SegmentInfo(
@@ -263,10 +241,10 @@ object SwayDB extends LazyLogging {
               )
           )
         )
-      case IO.Failure(error) =>
-        IO.Failure(error)
+      case IO.Left(error) =>
+        IO.Left(error)
 
-      case IO.Success(_) =>
-        IO.Success(RepairResult.Repaired)
+      case IO.Right(_) =>
+        IO.Right[swaydb.Error.Segment, RepairResult[K]](RepairResult.Repaired)
     }
 }

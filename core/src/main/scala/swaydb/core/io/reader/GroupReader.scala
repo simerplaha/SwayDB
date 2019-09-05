@@ -19,36 +19,41 @@
 
 package swaydb.core.io.reader
 
+import java.nio.file.Paths
+
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.IO
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
+import swaydb.data.slice.{ReaderBase, Slice}
 
 private[core] class GroupReader(decompressedValuesSize: Int,
                                 startIndexOffset: Int,
                                 endIndexOffset: Int,
-                                valuesDecompressor: () => IO[Reader],
-                                indexReader: Reader) extends Reader with LazyLogging {
+                                valuesDecompressor: () => IO[swaydb.Error.Segment, ReaderBase[swaydb.Error.Segment]],
+                                indexReader: ReaderBase[swaydb.Error.Segment]) extends ReaderBase[swaydb.Error.Segment] with LazyLogging {
 
   private var position: Int = 0
 
-  override def size: IO[Long] =
+  def path = Paths.get(this.getClass.getSimpleName)
+
+  override def size: IO[swaydb.Error.Segment, Long] =
     indexReader.size map (_ + decompressedValuesSize)
 
-  def moveTo(newPosition: Long): Reader = {
-    position = newPosition.toInt
+  def moveTo(newPosition: Long): ReaderBase[swaydb.Error.Segment] = {
+    position = newPosition.toInt max 0
     this
   }
 
-  def hasMore: IO[Boolean] =
-    size.map(position <= _)
+  def hasMore: IO[swaydb.Error.Segment, Boolean] =
+    size.map(position < _)
 
-  def hasAtLeast(atLeastSize: Long): IO[Boolean] =
+  def hasAtLeast(atLeastSize: Long): IO[swaydb.Error.Segment, Boolean] =
     size map {
       size =>
         (size - position) >= atLeastSize
     }
 
-  override def copy(): GroupReader =
+  override def copy(): ReaderBase[swaydb.Error.Segment] =
     new GroupReader(
       decompressedValuesSize = decompressedValuesSize,
       startIndexOffset = startIndexOffset,
@@ -60,7 +65,7 @@ private[core] class GroupReader(decompressedValuesSize: Int,
   override def getPosition: Int =
     position
 
-  override def get(): IO[Int] =
+  override def get(): IO[swaydb.Error.Segment, Int] =
     if (position >= startIndexOffset) {
       indexReader.moveTo(position - startIndexOffset).get() map {
         byte =>
@@ -95,6 +100,8 @@ private[core] class GroupReader(decompressedValuesSize: Int,
           }
       }
 
-  override def readRemaining(): IO[Slice[Byte]] =
-    IO.Failure(new NotImplementedError(s"Function readRemaining() on ${this.getClass.getSimpleName} is not supported!"))
+  override def isFile: Boolean = false
+
+  override def readRemaining(): IO[swaydb.Error.Segment, Slice[Byte]] =
+    IO.failed(new IllegalStateException(s"Function readRemaining() on ${this.getClass.getSimpleName} is not supported!"))
 }

@@ -22,17 +22,20 @@ package swaydb.core.level
 import java.nio.file.NoSuchFileException
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.EitherValues._
 import org.scalatest.PrivateMethodTester
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.GroupByInternal
+import swaydb.core.io.file.BlockCache
 import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
-import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -64,14 +67,15 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
-  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
+  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
+  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeper
+  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "copy" should {
@@ -81,8 +85,8 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
 
       val keyValues1 = randomIntKeyStringValues()
       val keyValues2 = randomIntKeyStringValues()
-      val segments = Iterable(TestSegment(keyValues1).assertGet, TestSegment(keyValues2).assertGet)
-      val copiedSegments = level.copy(segments).assertGet
+      val segments = Iterable(TestSegment(keyValues1).runRandomIO.right.value, TestSegment(keyValues2).runRandomIO.right.value)
+      val copiedSegments = level.copy(segments).runRandomIO.right.value
 
       val allKeyValues = Slice((keyValues1 ++ keyValues2).toArray).updateStats
 
@@ -90,20 +94,20 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
 
       if (persistent) level.segmentFilesOnDisk should not be empty
 
-      Segment.getAllKeyValues(copiedSegments).assertGet shouldBe allKeyValues
+      Segment.getAllKeyValues(copiedSegments).runRandomIO.right.value shouldBe allKeyValues
     }
 
     "fail copying Segments if it failed to copy one of the Segments" in {
       val level = TestLevel()
       level.isEmpty shouldBe true
 
-      val segment1 = TestSegment().assertGet
-      val segment2 = TestSegment().assertGet
+      val segment1 = TestSegment().runRandomIO.right.value
+      val segment2 = TestSegment().runRandomIO.right.value
 
-      segment2.delete.assertGet // delete segment2 so there is a failure in copying Segments
+      segment2.delete.runRandomIO.right.value // delete segment2 so there is a failure in copying Segments
 
       val segments = Iterable(segment1, segment2)
-      level.copy(segments).failed.assertGet.exception shouldBe a[NoSuchFileException]
+      level.copy(segments).left.runRandomIO.right.value.exception shouldBe a[NoSuchFileException]
 
       level.isEmpty shouldBe true
       if (persistent) level.reopen.isEmpty shouldBe true
@@ -114,12 +118,12 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
       level.isEmpty shouldBe true
 
       val keyValues = randomPutKeyValues(keyValuesCount).asInstanceOf[Slice[Memory.SegmentResponse]]
-      val copiedSegments = level.copy(TestMap(keyValues)).assertGet
+      val copiedSegments = level.copy(TestMap(keyValues)).runRandomIO.right.value
       level.isEmpty shouldBe true //copy function does not write to appendix.
 
       if (persistent) level.segmentFilesOnDisk should not be empty
 
-      Segment.getAllKeyValues(copiedSegments).assertGet shouldBe keyValues
+      Segment.getAllKeyValues(copiedSegments).runRandomIO.right.value shouldBe keyValues
     }
   }
 
@@ -127,17 +131,16 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
     val level2 = TestLevel(segmentSize = 1.kb)
     val level1 = TestLevel(segmentSize = 1.kb, nextLevel = Some(level2))
 
-    val keyValues = randomPutKeyValues(keyValuesCount, addRandomExpiredPutDeadlines = false)
+    val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
     val maps = TestMap(keyValues.toTransient.toMemoryResponse)
 
-    level1.put(maps).assertGet
+    level1.put(maps).right.right.value.right.value
 
     level1.isEmpty shouldBe true
     level2.isEmpty shouldBe false
 
     assertReads(keyValues, level1)
 
-    level1.segmentsInLevel() foreach (_.createdInLevel.assertGet shouldBe level2.levelNumber)
+    level1.segmentsInLevel() foreach (_.createdInLevel.runRandomIO.right.value shouldBe level2.levelNumber)
   }
-
 }

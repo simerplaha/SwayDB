@@ -20,39 +20,40 @@
 package swaydb.core.io.file
 
 import java.nio.file.Path
-import swaydb.data.IO
+
+import swaydb.IO
+import swaydb.core.actor.FileSweeperItem
 import swaydb.data.slice.Slice
 
-private[file] trait DBFileType {
+private[file] trait DBFileType extends FileSweeperItem {
 
-  def path: Path
+  val path: Path
 
-  def delete(): IO[Unit]
+  def blockCacheFileId: Long
 
-  def close(): IO[Unit]
+  def delete(): IO[swaydb.Error.IO, Unit]
 
-  def append(slice: Slice[Byte]): IO[Unit]
+  def close(): IO[swaydb.Error.IO, Unit]
 
-  def read(position: Int, size: Int): IO[Slice[Byte]]
+  def append(slice: Slice[Byte]): IO[swaydb.Error.IO, Unit]
 
-  def get(position: Int): IO[Byte]
+  def append(slice: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Unit]
 
-  def readAll: IO[Slice[Byte]]
+  def read(position: Int, size: Int): IO[swaydb.Error.IO, Slice[Byte]]
 
-  def fileSize: IO[Long]
+  def get(position: Int): IO[swaydb.Error.IO, Byte]
 
-  def isMemoryMapped: IO[Boolean]
+  def readAll: IO[swaydb.Error.IO, Slice[Byte]]
 
-  def isLoaded: IO[Boolean]
+  def fileSize: IO[swaydb.Error.IO, Long]
+
+  def isMemoryMapped: IO[swaydb.Error.IO, Boolean]
+
+  def isLoaded: IO[swaydb.Error.IO, Boolean]
 
   def isOpen: Boolean
 
-  def isFull: IO[Boolean]
+  def isFull: IO[swaydb.Error.IO, Boolean]
 
-  def memory: Boolean
-
-  def persistent: Boolean =
-    !memory
-
-  def forceSave(): IO[Unit]
+  def forceSave(): IO[swaydb.Error.IO, Unit]
 }

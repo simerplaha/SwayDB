@@ -19,59 +19,71 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
+import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
+import swaydb.core.segment.format.a.block.ValuesBlock
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
-import swaydb.core.segment.format.a.entry.reader.value.LazyValueReader
-import swaydb.data.IO
-import swaydb.data.slice.Reader
+import swaydb.data.slice.ReaderBase
 
 object UpdateReader extends EntryReader[Persistent.Update] {
 
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
-                              indexReader: Reader,
-                              valueReader: Reader,
+                              indexReader: ReaderBase[swaydb.Error.Segment],
+                              valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
+                              hasAccessPositionIndex: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
                                                             valueLengthReader: ValueLengthReader[T],
-                                                            valueBytesReader: ValueReader[T]): IO[Persistent.Update] =
+                                                            valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Update] =
     deadlineReader.read(indexReader, previous) flatMap {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {
           valueOffsetAndLength =>
-            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
             timeReader.read(indexReader, previous) flatMap {
               time =>
-                KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Update) map {
-                  case (key, isKeyPrefixCompressed) =>
-                    Persistent.Update(
-                      _key = key,
-                      deadline = deadline,
-                      lazyValueReader =
-                        LazyValueReader(
-                          reader = valueReader,
-                          offset = valueOffset,
-                          length = valueLength
-                        ),
-                      _time = time,
-                      nextIndexOffset = nextIndexOffset,
-                      nextIndexSize = nextIndexSize,
-                      indexOffset = indexOffset,
-                      valueOffset = valueOffset,
-                      valueLength = valueLength,
-                      isPrefixCompressed =
-                        isKeyPrefixCompressed ||
-                          timeReader.isPrefixCompressed ||
-                          deadlineReader.isPrefixCompressed ||
-                          valueOffsetReader.isPrefixCompressed ||
-                          valueLengthReader.isPrefixCompressed ||
-                          valueBytesReader.isPrefixCompressed
-                    )
+                KeyReader.read(
+                  keyValueIdInt = keyValueId,
+                  hasAccessPositionIndex = hasAccessPositionIndex,
+                  indexReader = indexReader,
+                  previous = previous,
+                  keyValueId = KeyValueId.Update
+                ) flatMap {
+                  case (accessPosition, key, isKeyPrefixCompressed) =>
+                    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                    val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+
+                    if (valueLength > 0 && valueCache.isEmpty)
+                      ValuesBlock.valuesBlockNotInitialised
+                    else
+                      IO {
+                        Persistent.Update.fromCache(
+                          key = key,
+                          deadline = deadline,
+                          valueCache = valueCache getOrElse Cache.emptyValuesBlock,
+                          time = time,
+                          nextIndexOffset = nextIndexOffset,
+                          nextIndexSize = nextIndexSize,
+                          indexOffset = indexOffset,
+                          valueOffset = valueOffset,
+                          valueLength = valueLength,
+                          accessPosition = accessPosition,
+                          isPrefixCompressed =
+                            isKeyPrefixCompressed ||
+                              timeReader.isPrefixCompressed ||
+                              deadlineReader.isPrefixCompressed ||
+                              valueOffsetReader.isPrefixCompressed ||
+                              valueLengthReader.isPrefixCompressed ||
+                              valueBytesReader.isPrefixCompressed
+                        )
+                      }
                 }
             }
         }

@@ -20,17 +20,18 @@
 package swaydb.benchmark
 
 import com.typesafe.scalalogging.LazyLogging
-import scala.annotation.tailrec
-import scala.concurrent.duration._
-import scala.util.Random
+import swaydb.{IO, Tag}
 import swaydb.core.util.Benchmark
-import swaydb.data.IO
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default.{LongSerializer, StringSerializer}
 
-case class Runner(test: Test) extends Benchmark with LazyLogging {
+import scala.annotation.tailrec
+import scala.concurrent.duration._
+import scala.util.Random
 
-  private val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], IO] = test.map
+case class Runner(test: Test) extends LazyLogging {
+
+  private val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], IO.ApiIO] = test.map
   private val randomWrite: Boolean = test.randomWrite
   private val randomRead: Boolean = test.randomRead
   private val forwardIteration: Boolean = test.forwardIteration
@@ -62,7 +63,7 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
 
     val writeKeys = if (randomWrite) shuffledKeys else keys
 
-    benchmark("Write benchmark") {
+    Benchmark("Write benchmark") {
       writeKeys foreach {
         key =>
           map.put(key, testValue)
@@ -76,7 +77,7 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
     }
 
     if (forwardIteration)
-      benchmark("Forward iteration benchmark during compaction") {
+      Benchmark("Forward iteration benchmark during compaction") {
         map foreach {
           keyValue =>
             val key = keyValue._1.readLong()
@@ -85,7 +86,7 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
         }
       }
     else if (reverseIteration)
-      benchmark("Reverse iteration benchmark during compaction") {
+      Benchmark("Reverse iteration benchmark during compaction") {
         map
           .reverse
           .foreach {
@@ -94,28 +95,29 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
           }
       }
     else {
+      println(s"mapsCount: ${map.level0Meter.mapsCount}")
       val readKeys = if (randomRead) shuffledKeys else keys
-      benchmark("Read benchmark during compaction") {
-        (1 to 5).par foreach {
-          _ =>
-            readKeys foreach {
-              key =>
-                try {
-                  //            db.get(key)
-                  val value = map.get(key).get.get
-                  val longKey = key.readLong()
-                  if (longKey % 10000 == 0) {
-                    val valueString = value.map(_.readString())
-                    println(longKey + " -> " + valueString)
-                    assert(valueString.contains(stringValue))
-                  }
-                } catch {
-                  case ex: Exception =>
-                    println("Key not found 1:" + key.readLong())
-                    ex.printStackTrace()
-                    System.exit(0)
-                }
-            }
+      Benchmark("Read benchmark during compaction") {
+        //        (1 to 5).par foreach {
+        //          _ =>
+        readKeys foreach {
+          key =>
+            //                try {
+            map.get(key)
+          //                  val value = map.get(key).get.get
+          //                  val longKey = key.readLong()
+          //                  if (longKey % 10000 == 0) {
+          //                    val valueString = value.map(_.readString())
+          //                    println(longKey + " -> " + valueString)
+          //                    assert(valueString.contains(stringValue))
+          //                  }
+          //                } catch {
+          //                  case ex: Exception =>
+          //                    println("Key not found 1:" + key.readLong())
+          //                    ex.printStackTrace()
+          //                    System.exit(0)
+          //                }
+          //        }
         }
       }
     }
@@ -144,13 +146,13 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
     areTopLevelsEmpty(1)
 
     if (forwardIteration)
-      benchmark("Forward iteration benchmark after compaction") {
+      Benchmark("Forward iteration benchmark after compaction") {
         map foreach {
           _ =>
         }
       }
     else if (reverseIteration)
-      benchmark("Reverse iteration benchmark after compaction") {
+      Benchmark("Reverse iteration benchmark after compaction") {
         map
           .reverse
           .foreach {
@@ -158,22 +160,23 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
           }
       }
     else {
+      println(s"mapsCount: ${map.level0Meter.mapsCount}")
       val readKeys = if (randomRead) shuffledKeys else keys
-      benchmark("Read benchmark after compaction") {
+      Benchmark("Read benchmark after compaction") {
         readKeys foreach {
           key =>
-            try {
-              //            db.get(key)
-              val value = map.get(key).get.get
-              val longKey = key.readLong()
-              if (longKey % 10000 == 0)
-                println(longKey + " -> " + value.map(_.readString()))
-            } catch {
-              case ex: Exception =>
-                println("Key not found 2:" + key.readLong())
-                ex.printStackTrace()
-                System.exit(0)
-            }
+            //            try {
+            map.get(key)
+          //              val value = map.get(key).get.get
+          //              val longKey = key.readLong()
+          //              if (longKey % 10000 == 0)
+          //                println(longKey + " -> " + value.map(_.readString()))
+          //            } catch {
+          //              case ex: Exception =>
+          //                println("Key not found 2:" + key.readLong())
+          //                ex.printStackTrace()
+          //                System.exit(0)
+          //            }
         }
       }
     }

@@ -19,23 +19,24 @@
 
 package swaydb.core.segment.format.a
 
+import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
+import swaydb.core.CommonAssertions._
+import swaydb.IOValues._
+import swaydb.core.RunThis._
 import swaydb.core.TestBase
+import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.data.slice.Slice
+import swaydb.core.group.compression.GroupByInternal
+import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
-import scala.concurrent.duration._
+
 import scala.util.Random
 
-//@formatter:off
 class SegmentGetSpec0 extends SegmentGetSpec {
   val keyValuesCount = 1000
 }
@@ -62,7 +63,6 @@ class SegmentGetSpec3 extends SegmentGetSpec {
   val keyValuesCount = 1000
   override def inMemoryStorage = true
 }
-//@formatter:on
 
 sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMethodTester {
 
@@ -70,35 +70,35 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
   def keyValuesCount: Int
 
-  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
-    randomGroupingStrategyOption(keyValuesCount)
+  implicit val groupBy: Option[GroupByInternal.KeyValues] =
+    randomGroupByOption(keyValuesCount)
 
-  "Segment.getFromHashIndex" should {
+  "Segment.get" should {
 
     "fixed key-value" in {
-      runThis(100.times) {
+      runThis(100.times, log = true) {
         assertSegment(
-          keyValues = Slice(randomFixedKeyValue(1)),
+          keyValues = Slice(randomFixedKeyValue(1).toTransient),
           assert =
             (keyValues, segment) =>
               Random.shuffle(
                 Seq(
-                  () => segment.get(0).assertGetOpt shouldBe empty,
-                  () => segment.get(2).assertGetOpt shouldBe empty,
-                  () => segment.get(keyValues.head.key).assertGet shouldBe keyValues.head,
+                  () => segment.get(0).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(2).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(keyValues.head.key).runRandomIO.right.value.value shouldBe keyValues.head
                 )
               ).foreach(_ ())
         )
 
         assertSegment(
-          keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)),
+          keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient,
           assert =
             (keyValues, segment) =>
               Random.shuffle(
                 Seq(
-                  () => segment.get(0).assertGetOpt shouldBe empty,
-                  () => segment.get(3).assertGetOpt shouldBe empty,
-                  () => segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+                  () => segment.get(0).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(3).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(keyValues.head.key).runRandomIO.right.value.value shouldBe keyValues.head
                 )
               ).foreach(_ ())
         )
@@ -108,18 +108,18 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
     "range-value" in {
       runThis(100.times) {
         assertSegment(
-          keyValues = Slice(randomRangeKeyValue(1, 10)),
+          keyValues = Slice(randomRangeKeyValue(1, 10)).toTransient,
           assert =
             (keyValues, segment) =>
               Random.shuffle(
                 Seq(
-                  () => segment.get(0).assertGetOpt shouldBe empty,
-                  () => segment.get(10).assertGetOpt shouldBe empty,
-                  () => segment.get(11).assertGetOpt shouldBe empty,
+                  () => segment.get(0).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(10).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(11).runRandomIO.right.value shouldBe empty,
                   () =>
                     (1 to 9) foreach {
                       i =>
-                        segment.get(i).assertGet shouldBe keyValues.head
+                        segment.get(i).runRandomIO.right.value.value shouldBe keyValues.head
                     }
                 )
               ).foreach(_ ())
@@ -127,23 +127,23 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
         assertSegment(
           keyValues =
-            Slice(randomRangeKeyValue(1, 10), randomRangeKeyValue(10, 20)),
+            Slice(randomRangeKeyValue(1, 10), randomRangeKeyValue(10, 20)).toTransient,
           assert =
             (keyValues, segment) =>
               Random.shuffle(
                 Seq(
-                  () => segment.get(0).assertGetOpt shouldBe empty,
-                  () => segment.get(20).assertGetOpt shouldBe empty,
-                  () => segment.get(21).assertGetOpt shouldBe empty,
+                  () => segment.get(0).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(20).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(21).runRandomIO.right.value shouldBe empty,
                   () =>
                     (1 to 9) foreach {
                       i =>
-                        segment.get(i).assertGet shouldBe keyValues.head
+                        segment.get(i).runRandomIO.right.value.value shouldBe keyValues.head
                     },
                   () =>
                     (10 to 19) foreach {
                       i =>
-                        segment.get(i).assertGet shouldBe keyValues.last
+                        segment.get(i).runRandomIO.right.value.value shouldBe keyValues.last
                     }
                 )
               ).foreach(_ ())
@@ -151,11 +151,13 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
       }
     }
 
-    "getFromHashIndex Group key-values" in {
+    "value Group key-values" in {
       //run this test randomly to possibly test all range key-value combinations
-      runThis(100.times) {
-        val groupKeyValues = randomizedKeyValues(keyValuesCount)
-        val keyValues = Slice(randomGroup(groupKeyValues)).toMemory
+      runThis(5.times, log = true) {
+        val nestedGroupsKeyValueCount = 5
+        val groupKeyValues = randomizedKeyValues(keyValuesCount, nestedGroupsKeyValueCount = nestedGroupsKeyValueCount)
+        val group = randomGroup(groupKeyValues)
+        val keyValues = Slice(group).updateStats
         assertSegment(
           keyValues = keyValues,
           assert =
@@ -165,114 +167,117 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
       }
     }
 
-    "getFromHashIndex random key-values" in {
+    "value random key-values" in {
       val keyValues = randomizedKeyValues(keyValuesCount)
-      val segment = TestSegment(keyValues).assertGet
+      val segment = TestSegment(keyValues).runRandomIO.right.value
       assertGet(keyValues, segment)
     }
 
     "add unsliced key-values to Segment's caches" in {
       assertSegment(
-        keyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false),
-        testWithCachePopulated = false,
+        keyValues = randomizedKeyValues(keyValuesCount, addGroups = false),
+        testAgainAfterAssert = false,
         assert =
           (keyValues, segment) =>
             (0 until keyValues.size) foreach {
               index =>
                 val keyValue = keyValues(index)
                 if (persistent) segment.getFromCache(keyValue.key) shouldBe empty
-                segment.get(keyValue.key).assertGet shouldBe keyValue
+                segment.get(keyValue.key).runRandomIO.right.value.value shouldBe keyValue
 
-                val gotFromCache = eventually(segment.getFromCache(keyValue.key).assertGet)
+                val gotFromCache = eventually(segment.getFromCache(keyValue.key).value)
                 //underlying array sizes should not be slices but copies of arrays.
                 gotFromCache.key.underlyingArraySize shouldBe keyValue.key.toArray.length
 
                 gotFromCache match {
                   case range: KeyValue.ReadOnly.Range =>
                     //if it's a range, toKey should also be unsliced.
-                    range.toKey.underlyingArraySize shouldBe keyValues.find(_.key == range.fromKey).assertGet.key.toArray.length
+                    range.toKey.underlyingArraySize shouldBe keyValues.find(_.key == range.fromKey).value.key.toArray.length
                   case _ =>
                     gotFromCache.getOrFetchValue.map(_.underlyingArraySize) shouldBe keyValue.getOrFetchValue.map(_.toArray.length)
-
                 }
             }
       )
     }
 
     "add read key values to cache" in {
-      runThis(100.times) {
+      runThis(20.times, log = true) {
         assertSegment(
-          keyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false),
-          testWithCachePopulated = false,
+          keyValues =
+            randomizedKeyValues(keyValuesCount, addGroups = false),
+
+          testAgainAfterAssert =
+            false,
+
           assert =
             (keyValues, segment) =>
               keyValues foreach {
                 keyValue =>
-                  if (persistent) segment isInCache keyValue.key shouldBe false
-                  (segment get keyValue.key).assertGet shouldBe keyValue
-                  eventually(segment isInCache keyValue.key shouldBe true)
+                  if (persistent) segment isInKeyValueCache keyValue.key shouldBe false
+                  (segment get keyValue.key).runRandomIO.right.value.value shouldBe keyValue
+                  segment isInKeyValueCache keyValue.key shouldBe true
               }
         )
       }
     }
 
-    "read value from a closed ValueReader" in {
-      runThis(100.times) {
-        assertSegment(
-          keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient,
-          assert =
-            (keyValues, segment) =>
-              keyValues foreach {
-                keyValue =>
-                  val readKeyValue = segment.get(keyValue.key).assertGet
-                  segment.close.assertGet
-                  readKeyValue.getOrFetchValue shouldBe keyValue.getOrFetchValue
-              }
-        )
-      }
-    }
-
-    "lazily load values" in {
-      runThis(100.times) {
-        assertSegment(
-          keyValues = randomizedKeyValues(keyValuesCount),
-          testWithCachePopulated = false,
-          assert =
-            (keyValues, segment) =>
-              unzipGroups(keyValues) foreach {
-                keyValue =>
-                  val readKeyValue = segment.get(keyValue.key).assertGet
-
-                  readKeyValue match {
-                    case persistent: Persistent.Remove =>
-                      //remove has no value so isValueDefined will always return true
-                      persistent.isValueDefined shouldBe true
-
-                    case persistent: Persistent =>
-                      persistent.isValueDefined shouldBe false
-
-                    case _: Memory =>
-                    //memory key-values always have values defined
-                  }
-                  //read the value
-                  readKeyValue match {
-                    case range: KeyValue.ReadOnly.Range =>
-                      range.fetchFromAndRangeValue.assertGet
-                    case _ =>
-                      readKeyValue.getOrFetchValue shouldBe keyValue.getOrFetchValue
-                  }
-
-                  //value is now set
-                  readKeyValue match {
-                    case persistent: Persistent =>
-                      persistent.isValueDefined shouldBe true
-
-                    case _: Memory =>
-                    //memory key-values always have values defined
-                  }
-              }
-        )
-      }
-    }
+    //    "read value from a closed ValueReader" in {
+    //      runThis(100.times) {
+    //        assertSegment(
+    //          keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient,
+    //          assert =
+    //            (keyValues, segment) =>
+    //              keyValues foreach {
+    //                keyValue =>
+    //                  val readKeyValue = segment.get(keyValue.key).runIO
+    //                  segment.close.runIO
+    //                  readKeyValue.getOrFetchValue shouldBe keyValue.getOrFetchValue
+    //              }
+    //        )
+    //      }
+    //    }
+    //
+    //    "lazily load values" in {
+    //      runThis(100.times) {
+    //        assertSegment(
+    //          keyValues = randomizedKeyValues(keyValuesCount),
+    //          testAgainAfterAssert = false,
+    //          assert =
+    //            (keyValues, segment) =>
+    //              unzipGroups(keyValues) foreach {
+    //                keyValue =>
+    //                  val readKeyValue = segment.get(keyValue.key).runIO
+    //
+    //                  readKeyValue match {
+    //                    case persistent: Persistent.Remove =>
+    //                      //remove has no value so isValueDefined will always return true
+    //                      persistent.isValueDefined shouldBe true
+    //
+    //                    case persistent: Persistent =>
+    //                      persistent.isValueDefined shouldBe false
+    //
+    //                    case _: Memory =>
+    //                    //memory key-values always have values defined
+    //                  }
+    //                  //read the value
+    //                  readKeyValue match {
+    //                    case range: KeyValue.ReadOnly.Range =>
+    //                      range.fetchFromAndRangeValue.runIO
+    //                    case _ =>
+    //                      readKeyValue.getOrFetchValue shouldBe keyValue.getOrFetchValue
+    //                  }
+    //
+    //                  //value is now set
+    //                  readKeyValue match {
+    //                    case persistent: Persistent =>
+    //                      persistent.isValueDefined shouldBe true
+    //
+    //                    case _: Memory =>
+    //                    //memory key-values always have values defined
+    //                  }
+    //              }
+    //        )
+    //      }
+    //    }
   }
 }

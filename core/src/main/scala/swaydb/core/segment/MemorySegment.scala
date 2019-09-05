@@ -20,91 +20,85 @@
 package swaydb.core.segment
 
 import java.nio.file.Path
-import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.Consumer
 
-import swaydb.core.util.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
+import swaydb.IO._
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Memory.{Group, SegmentResponse}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
-import swaydb.data.IO._
+import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, MaxKey, Reserve}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
 import scala.concurrent.duration.Deadline
 
+
 private[segment] case class MemorySegment(path: Path,
+                                          segmentId: Long,
                                           minKey: Slice[Byte],
                                           maxKey: MaxKey[Slice[Byte]],
+                                          minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                           segmentSize: Int,
                                           _hasRange: Boolean,
                                           _hasPut: Boolean,
-                                          //only Memory Segment's need to know if there is a Group. Persistent Segments always get floor from cache when reading.
+                                          //only Memory Segment's need to know if there is a Group. Persistent Segments always find floor from cache when reading.
                                           _hasGroup: Boolean,
                                           _isGrouped: Boolean,
                                           _createdInLevel: Int,
-                                          private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
-                                          bloomFilter: Option[BloomFilter],
-                                          nearestExpiryDeadline: Option[Deadline],
-                                          busy: Reserve[Unit])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                               timeOrder: TimeOrder[Slice[Byte]],
-                                                               functionStore: FunctionStore,
-                                                               keyValueLimiter: KeyValueLimiter,
-                                                               fileLimiter: FileLimiter) extends Segment with LazyLogging {
+                                          private[segment] val skipList: SkipList.Concurrent[Slice[Byte], Memory],
+                                          bloomFilterReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
+                                          nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                                                   functionStore: FunctionStore,
+                                                                                   memorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                   fileSweeper: FileSweeper.Enabled,
+                                                                                   segmentIO: SegmentIO) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
   import keyOrder._
 
   /**
-    * Adds the new Group to the queue only if it is not already in the Queue.
-    *
-    * This function is always invoked before reading the Group itself therefore if the header is not already
-    * populated, it means that this is a newly fetched/decompressed Group and should be added to the [[keyValueLimiter]].
-    *
-    * [[keyValueLimiter]] never removes [[Memory.Group]] key-value but instead uncompressed and re-adds them to the skipList.
-    *
-    */
-  private def addToQueueMayBe(group: Memory.Group): Unit =
-    if (!group.isHeaderDecompressed) //If the header is already decompressed then this Group is already in the Limit queue as the queue always pre-reads the header
-      keyValueLimiter.add(group, cache) //this is a new decompression, add to queue.
-
-  override def reserveForCompactionOrGet(): Option[Unit] =
-    Reserve.setBusyOrGet((), busy)
-
-  override def freeFromCompaction(): Unit =
-    Reserve.setFree(busy)
-
-  override def isReserved: Boolean =
-    busy.isBusy
-
-  override def onRelease: Future[Unit] =
-    Reserve.future(busy)
+   * Adds the new Group to the queue only if it is not already in the Queue.
+   *
+   * This function is always invoked before reading the Group itself therefore if the header is not already
+   * populated, it means that this is a newly fetched/decompressed Group and should be added to the [[memorySweeper]].
+   *
+   * [[memorySweeper]] never removes [[Memory.Group]] key-value but instead uncompressed and re-adds them to the skipList.
+   *
+   */
+  private def addToQueueMayBe(group: Memory.Group): Unit = {
+    val groupSegment = group.segment
+    //If the group is already initialised then this Group is already in the Limit queue as the queue always pre-reads the header
+    if (!groupSegment.blockCache.isCached && groupSegment.isKeyValueCacheEmpty)
+      memorySweeper.foreach(_.add(group, skipList)) //this is a new decompression, add to queue.
+  }
 
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],
                    minSegmentSize: Long,
-                   bloomFilterFalsePositiveRate: Double,
-                   resetPrefixCompressionEvery: Int,
-                   minimumNumberOfKeyForHashIndex: Int,
-                   hashIndexCompensation: Int => Int,
-                   enableRangeFilterAndIndex: Boolean,
-                   compressDuplicateValues: Boolean,
                    removeDeletes: Boolean,
                    createdInLevel: Int,
-                   maxProbe: Int,
+                   valuesConfig: ValuesBlock.Config,
+                   sortedIndexConfig: SortedIndexBlock.Config,
+                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                   hashIndexConfig: HashIndexBlock.Config,
+                   bloomFilterConfig: BloomFilterBlock.Config,
+                   segmentConfig: SegmentBlock.Config,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
-                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
+                                                  groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Slice[Segment]] =
     if (deleted)
-      IO.Failure(IO.Error.NoSuchFile(path))
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       getAll() flatMap {
         currentKeyValues =>
@@ -112,34 +106,34 @@ private[segment] case class MemorySegment(path: Path,
             newKeyValues = newKeyValues,
             oldKeyValues = currentKeyValues,
             minSegmentSize = minSegmentSize,
-            forInMemory = true,
-            maxProbe = maxProbe,
             isLastLevel = removeDeletes,
-            bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = hashIndexCompensation,
-            compressDuplicateValues = compressDuplicateValues,
-            enableRangeFilterAndIndex = enableRangeFilterAndIndex
+            forInMemory = true,
+            createdInLevel = createdInLevel,
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig,
+            segmentIO = segmentIO
           ) flatMap {
             splits =>
               splits.mapIO[Segment](
                 block =
                   keyValues => {
+                    val segmentId = idGenerator.nextID
                     Segment.memory(
-                      path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                      path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
+                      segmentId = segmentId,
                       createdInLevel = createdInLevel,
-                      enableRangeFilterAndIndex = enableRangeFilterAndIndex,
-                      keyValues = keyValues,
-                      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+                      keyValues = keyValues
                     )
                   },
 
                 recover =
-                  (segments: Slice[Segment], _: IO.Failure[Iterable[Segment]]) =>
+                  (segments: Slice[Segment], _: IO.Left[swaydb.Error.Segment, Iterable[Segment]]) =>
                     segments foreach {
                       segmentToDelete =>
-                        segmentToDelete.delete onFailureSideEffect {
+                        segmentToDelete.delete onLeftSideEffect {
                           exception =>
                             logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
                         }
@@ -149,52 +143,52 @@ private[segment] case class MemorySegment(path: Path,
       }
 
   override def refresh(minSegmentSize: Long,
-                       bloomFilterFalsePositiveRate: Double,
-                       resetPrefixCompressionEvery: Int,
-                       minimumNumberOfKeyForHashIndex: Int,
-                       hashIndexCompensation: Int => Int,
-                       enableRangeFilterAndIndex: Boolean,
-                       compressDuplicateValues: Boolean,
                        removeDeletes: Boolean,
                        createdInLevel: Int,
-                       maxProbe: Int,
+                       valuesConfig: ValuesBlock.Config,
+                       sortedIndexConfig: SortedIndexBlock.Config,
+                       binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                       hashIndexConfig: HashIndexBlock.Config,
+                       bloomFilterConfig: BloomFilterBlock.Config,
+                       segmentConfig: SegmentBlock.Config,
                        targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
-                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
+                                                      groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Slice[Segment]] =
     if (deleted)
-      IO.Failure(IO.Error.NoSuchFile(path))
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       getAll() flatMap {
         currentKeyValues =>
           SegmentMerger.split(
             keyValues = currentKeyValues,
             minSegmentSize = minSegmentSize,
-            forInMemory = true,
             isLastLevel = removeDeletes,
-            maxProbe = maxProbe,
-            bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = hashIndexCompensation,
-            compressDuplicateValues = compressDuplicateValues,
-            enableRangeFilterAndIndex = enableRangeFilterAndIndex
+            forInMemory = true,
+            createdInLevel = createdInLevel,
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig,
+            segmentIO = segmentIO
           ) flatMap {
             splits =>
               splits.mapIO[Segment](
                 block =
-                  keyValues =>
+                  keyValues => {
+                    val segmentId = idGenerator.nextID
                     Segment.memory(
-                      path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                      path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
+                      segmentId = segmentId,
                       createdInLevel = createdInLevel,
-                      enableRangeFilterAndIndex = enableRangeFilterAndIndex,
-                      keyValues = keyValues,
-                      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
-                    ),
+                      keyValues = keyValues
+                    )
+                  },
 
                 recover =
-                  (segments: Slice[Segment], _: IO.Failure[Iterable[Segment]]) =>
+                  (segments: Slice[Segment], _: IO.Left[swaydb.Error.Segment, Iterable[Segment]]) =>
                     segments foreach {
                       segmentToDelete =>
-                        segmentToDelete.delete onFailureSideEffect {
+                        segmentToDelete.delete onLeftSideEffect {
                           exception =>
                             logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
                         }
@@ -204,94 +198,118 @@ private[segment] case class MemorySegment(path: Path,
       }
 
   override def getFromCache(key: Slice[Byte]): Option[KeyValue.ReadOnly] =
-    Option(cache.get(key))
+    skipList.get(key)
 
   /**
-    * Basic get does not perform floor checks on the cache which are only required if the Segment contains
-    * range or groups.
-    */
-  private def doBasicGet(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
-    Option(cache.get(key)) map {
+   * Basic value does not perform floor checks on the cache which are only required if the Segment contains
+   * range or groups.
+   */
+  private def doBasicGet(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
+    skipList.get(key) map {
       case response: Memory.SegmentResponse =>
-        IO.Success(Some(response))
+        IO.Right(Some(response))
+
       case _: Memory.Group =>
-        IO.Failure(new Exception("Get resulted in a Group when floorEntry should've fetched the Group instead."))
+        IO.failed("Get resulted in a Group when floorEntry should've fetched the Group instead.")
     } getOrElse {
       IO.none
     }
 
-  override def get(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
+  override def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     if (deleted)
-      IO.Failure(IO.Error.NoSuchFile(path))
-
-    else if (!bloomFilter.forall(_.mightContain(key)))
-      IO.none
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
-      maxKey match {
-        case MaxKey.Fixed(maxKey) if key > maxKey =>
-          IO.none
+      mightContainKey(key, rangeCheck = true) flatMap {
+        mightContain =>
+          if (mightContain)
+            maxKey match {
+              case MaxKey.Fixed(maxKey) if key > maxKey =>
+                IO.none
 
-        case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
-          IO.none
-
-        case _ =>
-          if (_hasRange || _hasGroup)
-            Option(cache.floorEntry(key)).map(_.getValue) match {
-              case Some(range: Memory.Range) if range contains key =>
-                IO.Success(Some(range))
-
-              case Some(group: Memory.Group) if group contains key =>
-                addToQueueMayBe(group)
-                group.segmentCache.get(key) flatMap {
-                  case Some(persistent) =>
-                    persistent.toMemoryResponseOption()
-
-                  case None =>
-                    IO.none
-                }
+              case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
+                IO.none
 
               case _ =>
-                doBasicGet(key)
+                if (_hasRange || _hasGroup)
+                  skipList.floor(key) match {
+                    case Some(range: Memory.Range) if range contains key =>
+                      IO.Right(Some(range))
+
+                    case Some(group: Memory.Group) if group contains key =>
+                      addToQueueMayBe(group)
+                      group.segment.get(key) flatMap {
+                        case Some(persistent) =>
+                          persistent.toMemoryResponseOption()
+
+                        case None =>
+                          IO.none
+                      }
+
+                    case _ =>
+                      doBasicGet(key)
+                  }
+                else
+                  doBasicGet(key)
             }
           else
-            doBasicGet(key)
+            IO.none
       }
 
-  def mightContain(key: Slice[Byte]): IO[Boolean] =
-    IO(bloomFilter.forall(_.mightContain(key)))
-
-  override def lower(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
-    if (deleted)
-      IO.Failure(IO.Error.NoSuchFile(path))
+  def mightContainKey(key: Slice[Byte], rangeCheck: Boolean): IO[swaydb.Error.Segment, Boolean] =
+    if (rangeCheck && (_hasGroup || _hasRange))
+      IO.`true`
     else
-      Option(cache.lowerEntry(key)) map {
-        entry =>
-          entry.getValue match {
-            case response: Memory.SegmentResponse =>
-              IO.Success(Some(response))
-            case group: Memory.Group =>
-              addToQueueMayBe(group)
-              group.segmentCache.lower(key) flatMap {
-                case Some(persistent) =>
-                  persistent.toMemoryResponseOption()
-                case None =>
-                  IO.none
-              }
+      bloomFilterReader map {
+        reader =>
+          BloomFilterBlock.mightContain(
+            key = key,
+            reader = reader.copy()
+          )
+      } getOrElse IO.`true`
+
+  def mightContainKey(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
+    mightContainKey(key = key, rangeCheck = false)
+
+  override def mightContainFunction(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
+    IO {
+      minMaxFunctionId.exists {
+        minMaxFunctionId =>
+          MinMax.contains(
+            key = key,
+            minMax = minMaxFunctionId
+          )(FunctionStore.order)
+      }
+    }
+
+  override def lower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
+    if (deleted)
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
+    else
+      skipList.lower(key) map {
+        case response: Memory.SegmentResponse =>
+          IO.Right(Some(response))
+        case group: Memory.Group =>
+          addToQueueMayBe(group)
+          group.segment.lower(key) flatMap {
+            case Some(persistent) =>
+              persistent.toMemoryResponseOption()
+            case None =>
+              IO.none
           }
       } getOrElse {
         IO.none
       }
 
   /**
-    * Basic get does not perform floor checks on the cache which are only required if the Segment contains
-    * range or groups.
-    */
-  private def doBasicHigher(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
-    Option(cache.higherEntry(key)).map(_.getValue) map {
+   * Basic value does not perform floor checks on the cache which are only required if the Segment contains
+   * range or groups.
+   */
+  private def doBasicHigher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
+    skipList.higher(key) map {
       case response: Memory.SegmentResponse =>
-        IO.Success(Some(response))
+        IO.Right(Some(response))
       case group: Memory.Group =>
-        group.segmentCache.higher(key) flatMap {
+        group.segment.higher(key) flatMap {
           case Some(persistent) =>
             persistent.toMemoryResponseOption()
           case None =>
@@ -301,9 +319,9 @@ private[segment] case class MemorySegment(path: Path,
       IO.none
     }
 
-  def floorHigherHint(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
+  def floorHigherHint(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
     if (deleted)
-      IO.Failure(IO.Error.NoSuchFile(path))
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       hasPut map {
         hasPut =>
@@ -318,17 +336,17 @@ private[segment] case class MemorySegment(path: Path,
             None
       }
 
-  override def higher(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
+  override def higher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
     if (deleted)
-      IO.Failure(IO.Error.NoSuchFile(path))
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else if (_hasRange || _hasGroup)
-      Option(cache.floorEntry(key)).map(_.getValue) map {
+      skipList.floor(key) map {
         case floorRange: Memory.Range if floorRange contains key =>
-          IO.Success(Some(floorRange))
+          IO.Right(Some(floorRange))
 
         case floorGroup: Memory.Group if floorGroup containsHigher key =>
           addToQueueMayBe(floorGroup)
-          floorGroup.segmentCache.higher(key) flatMap {
+          floorGroup.segment.higher(key) flatMap {
             case Some(persistent) =>
               persistent.toMemoryResponseOption()
             case None =>
@@ -338,7 +356,7 @@ private[segment] case class MemorySegment(path: Path,
               //Group's last key-value can be inclusive or exclusive and fromKey & toKey can be the same.
               //So it's hard to know if the Group contain higher therefore a basicHigher is required if group returns None for higher.
               if (higher.isDefined)
-                IO.Success(higher)
+                IO.Right(higher)
               else
                 doBasicHigher(key)
           }
@@ -350,13 +368,13 @@ private[segment] case class MemorySegment(path: Path,
     else
       doBasicHigher(key)
 
-  override def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
+  override def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
     if (deleted)
-      IO.Failure(IO.Error.NoSuchFile(path))
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       IO {
-        val slice = addTo getOrElse Slice.create[KeyValue.ReadOnly](cache.size())
-        cache.values() forEach {
+        val slice = addTo getOrElse Slice.create[KeyValue.ReadOnly](skipList.size)
+        skipList.values() forEach {
           new Consumer[Memory] {
             override def accept(value: Memory): Unit =
               slice add value
@@ -365,39 +383,40 @@ private[segment] case class MemorySegment(path: Path,
         slice
       }
 
-  override def delete: IO[Unit] = {
+  override def delete: IO[swaydb.Error.Segment, Unit] = {
     //cache should not be cleared.
     logger.trace(s"{}: DELETING FILE", path)
     if (deleted)
-      IO.Failure(IO.Error.NoSuchFile(path))
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
-      IO.Success {
+      IO.Right {
         deleted = true
       }
   }
 
-  override val close: IO[Unit] =
+  override val close: IO[swaydb.Error.Segment, Unit] =
     IO.unit
 
-  override def getBloomFilterKeyValueCount(): IO[Int] =
+  override def getBloomFilterKeyValueCount(): IO[swaydb.Error.Segment, Int] =
     if (deleted)
-      IO.Failure(IO.Error.NoSuchFile(path))
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
-      cache.values().asScala.foldLeftIO(0) {
+      skipList.values().asScala.foldLeftIO(0) {
         case (count, keyValue) =>
           keyValue match {
             case _: SegmentResponse =>
-              IO.Success(count + 1)
+              IO.Right(count + 1)
+
             case group: Group =>
-              group.header() map (count + _.bloomFilterItemsCount)
+              group.segment.getBloomFilterKeyValueCount() map (_ + count)
           }
       }
 
-  override def getHeadKeyValueCount(): IO[Int] =
+  override def getHeadKeyValueCount(): IO[swaydb.Error.Segment, Int] =
     if (deleted)
-      IO.Failure(IO.Error.NoSuchFile(path))
+      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
-      IO.Success(cache.size())
+      IO.Right(skipList.size)
 
   override def isOpen: Boolean =
     !deleted
@@ -414,24 +433,56 @@ private[segment] case class MemorySegment(path: Path,
   override def existsOnDisk: Boolean =
     false
 
-  override def getBloomFilter: IO[Option[BloomFilter]] =
-    IO(bloomFilter)
-
-  override def hasRange: IO[Boolean] =
+  override def hasRange: IO[swaydb.Error.Segment, Boolean] =
     IO(_hasRange)
 
-  override def hasPut: IO[Boolean] =
+  override def hasPut: IO[swaydb.Error.Segment, Boolean] =
     IO(_hasPut)
 
   override def isFooterDefined: Boolean =
     !deleted
 
   override def deleteSegmentsEventually: Unit =
-    fileLimiter.delete(this)
+    fileSweeper.delete(this)
 
-  override def createdInLevel: IO[Int] =
+  override def createdInLevel: IO[swaydb.Error.Segment, Int] =
     IO(_createdInLevel)
 
-  override def isGrouped: IO[Boolean] =
+  override def isGrouped: IO[swaydb.Error.Segment, Boolean] =
     IO(_isGrouped)
+
+  override def hasBloomFilter: IO[swaydb.Error.Segment, Boolean] =
+    IO(bloomFilterReader.isDefined)
+
+  override def clearCachedKeyValues(): Unit =
+    skipList.values().asScala foreach {
+      case group: Group =>
+        group.segment.clearCachedKeyValues()
+
+      case _: SegmentResponse =>
+        ()
+    }
+
+  override def clearAllCaches(): Unit =
+    skipList.values().asScala foreach {
+      case group: Group =>
+        val groupSegment = group.segment
+        groupSegment.clearCachedKeyValues()
+        groupSegment.clearLocalAndBlockCache()
+
+      case _: SegmentResponse =>
+        ()
+    }
+
+  override def isInKeyValueCache(key: Slice[Byte]): Boolean =
+    skipList contains key
+
+  override def isKeyValueCacheEmpty: Boolean =
+    skipList.isEmpty
+
+  def areAllCachesEmpty: Boolean =
+    isKeyValueCacheEmpty
+
+  override def cachedKeyValueSize: Int =
+    skipList.size
 }

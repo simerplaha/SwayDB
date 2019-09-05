@@ -20,11 +20,11 @@
 package swaydb.data
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{Future, Promise}
-import scala.concurrent.duration._
+import scala.concurrent.Promise
 
-private[swaydb] class Reserve[T](@volatile var info: Option[T],
-                                 private[data] val promises: ListBuffer[Promise[Unit]]) {
+class Reserve[T](@volatile var info: Option[T],
+                 private[data] val promises: ListBuffer[Promise[Unit]],
+                 val name: String) {
   def savePromise(promise: Promise[Unit]): Unit =
     promises += promise
 
@@ -35,19 +35,17 @@ private[swaydb] class Reserve[T](@volatile var info: Option[T],
     !isBusy
 }
 
-private[swaydb] object Reserve {
-  private val blockingTimeout = 5.seconds.toMillis
-  private val futureUnit = Future.successful(())
+object Reserve {
 
-  def apply[T](): Reserve[T] =
-    new Reserve(None, ListBuffer.empty)
+  def free[T](name: String): Reserve[T] =
+    new Reserve(None, ListBuffer.empty, name)
 
-  def apply[T](info: T): Reserve[T] =
-    new Reserve(Some(info), ListBuffer.empty)
+  def busy[T](info: T, name: String): Reserve[T] =
+    new Reserve(Some(info), ListBuffer.empty, name)
 
   def blockUntilFree[T](reserve: Reserve[T]): Unit =
     reserve.synchronized {
-      while (reserve.isBusy) reserve.wait(blockingTimeout)
+      while (reserve.isBusy) reserve.wait()
     }
 
   private def notifyBlocking[T](reserve: Reserve[T]): Unit = {
@@ -55,14 +53,14 @@ private[swaydb] object Reserve {
     reserve.promises.foreach(_.trySuccess(()))
   }
 
-  def future[T](reserve: Reserve[T]): Future[Unit] =
+  def promise[T](reserve: Reserve[T]): Promise[Unit] =
     reserve.synchronized {
       if (reserve.isBusy) {
         val promise = Promise[Unit]
         reserve.savePromise(promise)
-        promise.future
+        promise
       } else {
-        futureUnit
+        Promise.successful(())
       }
     }
 

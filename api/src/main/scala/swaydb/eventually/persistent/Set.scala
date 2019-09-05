@@ -19,22 +19,23 @@
 
 package swaydb.eventually.persistent
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{FiniteDuration, _}
-import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultGroupingStrategy}
-import swaydb.core.BlockingCore
+
+import com.typesafe.scalalogging.LazyLogging
+import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultGroupBy}
+import swaydb.core.Core
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.api.grouping.KeyValueGroupingStrategy
+import swaydb.data.api.grouping.GroupBy
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.SwayDB
-import swaydb.data.IO
+import swaydb.{IO, SwayDB}
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{FiniteDuration, _}
 
 object Set extends LazyLogging {
 
@@ -42,10 +43,10 @@ object Set extends LazyLogging {
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
   /**
-    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
-    */
+   * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
+   */
   def apply[T](dir: Path,
-               maxOpenSegments: Int = 1000,
+               maxSegmentsOpen: Int = 1000,
                mapSize: Int = 4.mb,
                maxMemoryLevelSize: Int = 100.mb,
                maxSegmentsToPush: Int = 5,
@@ -54,19 +55,22 @@ object Set extends LazyLogging {
                persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                mmapPersistentSegments: MMAP = MMAP.WriteAndRead,
                mmapPersistentAppendix: Boolean = true,
-               cacheSize: Int = 100.mb,
                otherDirs: Seq[Dir] = Seq.empty,
-               cacheCheckDelay: FiniteDuration = 5.seconds,
+               keyValueCacheCheckDelay: FiniteDuration = 5.seconds,
                segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
-               bloomFilterFalsePositiveRate: Double = 0.01,
+               blockSize: Int = 4098.bytes,
+               memoryCacheSize: Int = 100.mb,
+               memorySweeperPollInterval: FiniteDuration = 10.seconds,
+               fileSweeperPollInterval: FiniteDuration = 10.seconds,
+               mightContainFalsePositiveRate: Double = 0.01,
                compressDuplicateValues: Boolean = true,
                deleteSegmentsEventually: Boolean = false,
-               groupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
+               groupBy: Option[GroupBy.KeyValues] = Some(DefaultGroupBy()),
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                     fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                     cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Set[T, IO]] =
-    BlockingCore(
+                                                                                     fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
+                                                                                     memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+    Core(
       config =
         DefaultEventuallyPersistentConfig(
           dir = dir,
@@ -79,18 +83,25 @@ object Set extends LazyLogging {
           persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
           mmapPersistentSegments = mmapPersistentSegments,
           mmapPersistentAppendix = mmapPersistentAppendix,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          mightContainFalsePositiveRate = mightContainFalsePositiveRate,
           compressDuplicateValues = compressDuplicateValues,
           deleteSegmentsEventually = deleteSegmentsEventually,
-          groupingStrategy = groupingStrategy,
+          groupBy = groupBy,
           acceleration = acceleration
         ),
-      maxOpenSegments = maxOpenSegments,
-      cacheSize = cacheSize,
-      cacheCheckDelay = cacheCheckDelay,
-      segmentsOpenCheckDelay = segmentsOpenCheckDelay,
-      fileOpenLimiterEC = fileOpenLimiterEC,
-      cacheLimiterEC = cacheLimiterEC
+      fileCache =
+        FileCache.Enable.default(
+          maxOpen = maxSegmentsOpen,
+          interval = fileSweeperPollInterval,
+          ec = fileSweeperEC
+        ),
+      memoryCache =
+        MemoryCache.Enabled.default(
+          blockSize = blockSize,
+          memorySize = memoryCacheSize,
+          interval = memorySweeperPollInterval,
+          ec = memorySweeperEC
+        )
     ) map {
       db =>
         swaydb.Set[T](db)

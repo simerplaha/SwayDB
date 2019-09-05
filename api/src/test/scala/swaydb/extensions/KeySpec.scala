@@ -20,13 +20,14 @@
 package swaydb.extensions
 
 import org.scalatest.{Matchers, WordSpec}
-import scala.collection.SortedSet
-import scala.util.Random
 import swaydb.core.TestData._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers.Serializer
+
+import scala.collection.SortedSet
+import scala.util.Random
 
 class KeySpec extends WordSpec with Matchers {
 
@@ -103,7 +104,6 @@ class KeySpec extends WordSpec with Matchers {
       doAssert(Key.SubMapsEnd(Seq(Double.MinValue)))
       doAssert(Key.MapEnd(Seq(Double.MinValue)))
     }
-
   }
 
   "ordering" should {
@@ -270,6 +270,5 @@ class KeySpec extends WordSpec with Matchers {
       //key-values should
       map.toList shouldBe expected
     }
-
   }
 }

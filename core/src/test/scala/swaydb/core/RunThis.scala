@@ -20,15 +20,15 @@
 package swaydb.core
 
 import org.scalatest.concurrent.Eventually
-import scala.concurrent.duration.{Deadline, FiniteDuration}
+import swaydb.core.util.FiniteDurations._
+
+import scala.concurrent.duration.{Deadline, FiniteDuration, _}
 import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.core.util.FiniteDurationUtil._
 
 object RunThis extends Eventually {
 
-  implicit val level0PushDownPool = TestExecutionContext.executionContext
+  implicit val ec = TestExecutionContext.executionContext
 
   implicit class RunThisImplicits[R](f: => R) {
     def runThis(times: Int): Unit =
@@ -77,19 +77,18 @@ object RunThis extends Eventually {
     def time = int
   }
 
-  def runThis(times: Int)(f: => Unit): Unit =
+  def runThis(times: Int, log: Boolean = false, otherInfo: String = "")(f: => Unit): Unit =
     (1 to times) foreach {
       i =>
-//        println(s"Iteration number: $i")
+        if (log) println(s"Iteration: $i${if (otherInfo.nonEmpty) s": $otherInfo" else ""}/$times")
         f
     }
 
-  def runThisParallel(times: Int)(f: => Unit): Unit =
+  def runThisParallel(times: Int, log: Boolean = false, otherInfo: String = "")(f: => Unit): Unit =
     (1 to times).par foreach {
       i =>
-        //        println(s"Iteration number: $i")
+        if (log) println(s"Iteration: $i${if (otherInfo.nonEmpty) s": $otherInfo" else ""}/$times")
         f
-      //        println(s"Iteration done  : $i")
     }
 
   def sleep(time: FiniteDuration): Unit = {

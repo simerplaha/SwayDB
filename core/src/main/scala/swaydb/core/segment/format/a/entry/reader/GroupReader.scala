@@ -19,59 +19,67 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
+import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
+import swaydb.core.segment.format.a.block.ValuesBlock
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
-import swaydb.core.segment.format.a.entry.reader.value.LazyGroupValueReader
-import swaydb.data.IO
-import swaydb.data.slice.Reader
+import swaydb.data.slice.ReaderBase
 
 object GroupReader extends EntryReader[Persistent.Group] {
 
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
-                              indexReader: Reader,
-                              valueReader: Reader,
+                              indexReader: ReaderBase[swaydb.Error.Segment],
+                              valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
+                              hasAccessPositionIndex: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
                                                             valueLengthReader: ValueLengthReader[T],
-                                                            valueBytesReader: ValueReader[T]): IO[Persistent.Group] =
+                                                            valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Group] =
     deadlineReader.read(indexReader, previous) flatMap {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {
           valueOffsetAndLength =>
-            KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Group) flatMap {
-              case (key, isKeyPrefixCompressed) =>
-                val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
-
-                Persistent.Group(
-                  key = key,
-                  deadline = deadline,
-                  valueReader = valueReader,
-                  nextIndexOffset = nextIndexOffset,
-                  nextIndexSize = nextIndexSize,
-                  lazyGroupValueReader =
-                    LazyGroupValueReader(
-                      reader = valueReader,
-                      offset = valueOffset,
-                      length = valueLength
-                    ),
-                  indexOffset = indexOffset,
-                  valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1),
-                  valueLength = valueOffsetAndLength.map(_._2).getOrElse(0),
-                  isPrefixCompressed =
-                    isKeyPrefixCompressed ||
-                      timeReader.isPrefixCompressed ||
-                      deadlineReader.isPrefixCompressed ||
-                      valueOffsetReader.isPrefixCompressed ||
-                      valueLengthReader.isPrefixCompressed ||
-                      valueBytesReader.isPrefixCompressed
-                )
-            }
+            valueOffsetAndLength map {
+              case (valueOffset, valueLength) =>
+                KeyReader.read(
+                  keyValueIdInt = keyValueId,
+                  indexReader = indexReader,
+                  hasAccessPositionIndex = hasAccessPositionIndex,
+                  previous = previous,
+                  keyValueId = KeyValueId.Group
+                ) flatMap {
+                  case (accessPosition, key, isKeyPrefixCompressed) =>
+                    valueCache map {
+                      valueCache =>
+                        Persistent.Group(
+                          key = key,
+                          deadline = deadline,
+                          valueCache = valueCache,
+                          nextIndexOffset = nextIndexOffset,
+                          nextIndexSize = nextIndexSize,
+                          indexOffset = indexOffset,
+                          valueOffset = valueOffset,
+                          valueLength = valueLength,
+                          accessPosition = accessPosition,
+                          isPrefixCompressed =
+                            isKeyPrefixCompressed ||
+                              timeReader.isPrefixCompressed ||
+                              deadlineReader.isPrefixCompressed ||
+                              valueOffsetReader.isPrefixCompressed ||
+                              valueLengthReader.isPrefixCompressed ||
+                              valueBytesReader.isPrefixCompressed
+                        )
+                    } getOrElse ValuesBlock.valuesBlockNotInitialised
+                }
+            } getOrElse ValuesBlock.valuesBlockNotInitialised
         }
     }
 }

@@ -19,28 +19,27 @@
 
 package swaydb.extensions
 
-import swaydb.From
-import swaydb.data.IO
-import swaydb.data.accelerate.LevelZeroMeter
+import swaydb.{From, IO}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.extensions.stream.{MapKeysStream, MapStream}
 import swaydb.serializers.Serializer
+import swaydb.Error.API.ExceptionHandler
 
-class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
+class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO.ApiIO],
                  mapKey: Seq[K])(implicit keySerializer: Serializer[K],
                                  mapKeySerializer: Serializer[Key[K]],
                                  keyOrder: KeyOrder[Slice[Byte]],
                                  valueSerializerOption: Serializer[Option[V]],
                                  valueSerializer: Serializer[V]) extends MapStream[K, V](mapKey, mapsOnly = true, map = map.copy(from = Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
 
-  def getOrPut(key: K, value: V): IO[Map[K, V]] =
+  def getOrPut(key: K, value: V): IO.ApiIO[Map[K, V]] =
     get(key) flatMap {
       got =>
-        got.map(IO.Success(_)) getOrElse put(key, value)
+        got.map(IO.Right(_)) getOrElse put(key, value)
     }
 
-  def put(key: K, value: V): IO[Map[K, V]] = {
+  def put(key: K, value: V): IO.ApiIO[Map[K, V]] = {
     val subMapKey = mapKey :+ key
     Map.putMap[K, V](
       map = map,
@@ -58,7 +57,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
     }
   }
 
-  def updateValue(key: K, value: V): IO[Map[K, V]] = {
+  def updateValue(key: K, value: V): IO.ApiIO[Map[K, V]] = {
     val subMapKey = mapKey :+ key
     map.commit {
       Map.updateMapValue[K, V](
@@ -74,10 +73,10 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
     }
   }
 
-  def remove(key: K): IO[IO.OK] =
+  def remove(key: K): IO.ApiIO[IO.Done] =
     Map.removeMap(map, mapKey :+ key) flatMap map.commit
 
-  def get(key: K): IO[Option[Map[K, V]]] = {
+  def get(key: K): IO.ApiIO[Option[Map[K, V]]] = {
     contains(key) map {
       exists =>
         if (exists)
@@ -95,24 +94,24 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
   /**
     * Removes all key-values from the target Map.
     */
-  def clear(key: K): IO[IO.OK] =
+  def clear(key: K): IO.ApiIO[IO.Done] =
     get(key) flatMap {
       case Some(map) =>
         map.clear()
       case None =>
-        IO.ok
+        IO.done
     }
 
-  def contains(key: K): IO[Boolean] =
+  def contains(key: K): IO.ApiIO[Boolean] =
     map.contains(Key.MapStart(mapKey :+ key))
 
-  override def size: IO[Int] =
+  override def size: IO.ApiIO[Int] =
     keys.size
 
   /**
     * Returns None if this map does not exist or returns the value.
     */
-  def getValue(key: K): IO[Option[V]] =
+  def getValue(key: K): IO.ApiIO[Option[V]] =
     map.get(Key.MapStart(mapKey :+ key)).map(_.flatten)
 
   def keys: MapKeysStream[K] =
@@ -120,7 +119,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
       mapKey = mapKey,
       mapsOnly = true,
       set =
-        new swaydb.Set[Key[K], IO](
+        new swaydb.Set[Key[K], IO.ApiIO](
           core = map.core,
           from = Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true))
         )

@@ -19,13 +19,15 @@
 
 package swaydb.core.data
 
-import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.{TestBase, TestData, TestTimer}
+import swaydb.core.segment.format.a.block.SortedIndexBlock
+import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.core.CommonAssertions._
+import swaydb.core.TestData._
 
 class TransientSpec extends TestBase {
 
@@ -33,109 +35,107 @@ class TransientSpec extends TestBase {
 
   implicit def testTimer: TestTimer = TestTimer.random
 
-  "Transient" should {
-    "be iterable" in {
-      val one = Transient.remove(1)
-      val two = Transient.remove(2, TestData.falsePositiveRate, Some(one))
-      val three = Transient.put(key = 3, value = Some(3), falsePositiveRate = TestData.falsePositiveRate, previousMayBe = Some(two))
-      val four = Transient.remove(4, TestData.falsePositiveRate, Some(three))
-      val five = Transient.put(key = 5, value = Some(5), falsePositiveRate = TestData.falsePositiveRate, previousMayBe = Some(four))
+  "be reverse iterable" in {
+    val one = Transient.remove(1)
+    val two = Transient.remove(2, Some(one))
+    val three = Transient.put(key = 3, value = Some(3), previous = Some(two))
+    val four = Transient.remove(4, Some(three))
+    val five = Transient.put(key = 5, value = Some(5), previous = Some(four))
 
-      five.reverseIterator.toList should contain inOrderOnly(five, four, three, two, one)
+    five.reverseIterator.toList should contain inOrderOnly(five, four, three, two, one)
+  }
+
+  "has same value" should {
+    "return false for groups" in {
+      runThis(10.times) {
+        Transient.hasSameValue(
+          left = randomGroup(),
+          right = randomTransientKeyValue(randomString, randomStringOption)
+        ) shouldBe false
+      }
+
+      runThis(10.times) {
+        Transient.hasSameValue(
+          left = randomTransientKeyValue(randomString, randomStringOption),
+          right = randomGroup()
+        ) shouldBe false
+      }
+    }
+
+    "return false for put" in {
+      runThis(100.times) {
+        val left = randomPutKeyValue(1, None).toTransient
+        val right = randomFixedTransientKeyValue(randomString, Some(randomString))
+
+        if (right.isInstanceOf[Transient.Remove]) {
+          Transient.hasSameValue(left = left, right = right) shouldBe true
+          Transient.hasSameValue(left = right, right = left) shouldBe true
+        } else {
+          Transient.hasSameValue(left = left, right = right) shouldBe false
+          Transient.hasSameValue(left = right, right = left) shouldBe false
+        }
+      }
     }
   }
 
-  "assert stats" in {
-    runThis(100.times) {
-      randomTransientKeyValue(
-        key = 1,
-        toKey = Some(2),
-        value = Option.empty[Slice[Byte]],
-        previous = None
-      ) match {
-        case keyValue: Transient.Remove =>
-          keyValue.stats.valueLength shouldBe 0
-          keyValue.stats.hasRemoveRange shouldBe false
-          keyValue.stats.hasPut shouldBe false
-          keyValue.stats.position shouldBe 1
-          keyValue.stats.totalNumberOfRanges shouldBe 0
-          keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
-          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
-          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
-          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+  "enablePrefixCompression" should {
+    "return false is reset count is 0" in {
+      runThis(100.times) {
+        Transient.enablePrefixCompression(
+          randomFixedKeyValue(1)
+            .toTransient(
+              previous = None,
+              sortedIndexConfig =
+                SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0)
+            )
+        ) shouldBe false
+      }
+    }
 
-        case keyValue: Transient.Put =>
-          keyValue.stats.valueLength shouldBe 0
-          keyValue.stats.hasRemoveRange shouldBe false
-          keyValue.stats.hasPut shouldBe true
-          keyValue.stats.position shouldBe 1
-          keyValue.stats.totalNumberOfRanges shouldBe 0
-          keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
-          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
-          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
-          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+    "return true for every 2nd key-value" in {
+      runThis(100.times) {
+        val keyValues =
+          Slice(
+            randomFixedKeyValue(1),
+            randomFixedKeyValue(2),
+            randomFixedKeyValue(3),
+            randomFixedKeyValue(4)
+          ).toTransient(
+            sortedIndexConfig =
+              SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 2)
+          )
 
-        case keyValue: Transient.Update =>
-          keyValue.stats.valueLength shouldBe 0
-          keyValue.stats.hasRemoveRange shouldBe false
-          keyValue.stats.hasPut shouldBe false
-          keyValue.stats.position shouldBe 1
-          keyValue.stats.totalNumberOfRanges shouldBe 0
-          keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
-          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
-          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
-          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+        Transient.enablePrefixCompression(keyValues.head) shouldBe false //there is no previous
+        Transient.enablePrefixCompression(keyValues(1)) shouldBe false //reset
+        Transient.enablePrefixCompression(keyValues(2)) shouldBe true //not reset
+        Transient.enablePrefixCompression(keyValues(3)) shouldBe false //reset again
+      }
+    }
+  }
 
-        case keyValue: Transient.Function =>
-          keyValue.stats.valueLength should be > 0
-          keyValue.stats.hasRemoveRange shouldBe false
-          keyValue.stats.hasPut shouldBe false
-          keyValue.stats.position shouldBe 1
-          keyValue.stats.totalNumberOfRanges shouldBe 0
-          keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
-          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
-          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
-          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+  "normalise" should {
+    "returns indexEntry bytes of same size" in {
+      runThis(100.times, log = true) {
 
-        case keyValue: Transient.PendingApply =>
-          keyValue.stats.valueLength should be > 0
-          keyValue.stats.hasRemoveRange shouldBe false
-          keyValue.stats.hasPut shouldBe false
-          keyValue.stats.position shouldBe 1
-          keyValue.stats.totalNumberOfRanges shouldBe 0
-          keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
-          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
-          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
-          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+        val keyValues =
+          (1 to 100) map {
+            _ =>
+              eitherOne(
+                randomFixedKeyValue(Int.MaxValue).toTransient,
+                randomRangeKeyValue(randomIntMax(1000), 100 + randomIntMax(1000)).toTransient,
+                randomGroup(keyValues = randomizedKeyValues(startId = Some(eitherOne(randomIntMax(1000), randomIntMax(10), randomIntMax(10000)))))
+              )
+          } updateStats
 
-        case keyValue: Transient.Range =>
-          keyValue.stats.valueLength should be > 0
-          keyValue.stats.hasRemoveRange shouldBe keyValue.rangeValue.hasRemoveMayBe
-          keyValue.stats.hasPut shouldBe keyValue.fromValue.exists(_.isInstanceOf[Value.Put])
-          keyValue.stats.position shouldBe 1
-          keyValue.stats.totalNumberOfRanges shouldBe 1
-          keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.rangeCommonPrefixesCount shouldBe Stats.createRangeCommonPrefixesCount(3)
-          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
-          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
-          keyValue.stats.totalBloomFiltersItemsCount shouldBe 2
+        val normalisedKeyValues = Transient.normalise(keyValues)
 
-        case keyValue: Transient.Group =>
-          keyValue.stats.valueLength should be > 0
-          keyValue.stats.hasRemoveRange shouldBe keyValue.keyValues.exists(_.stats.hasRemoveRange)
-          keyValue.stats.hasPut shouldBe keyValue.keyValues.exists(_.stats.hasPut)
-          keyValue.stats.position shouldBe 1
-          keyValue.stats.totalNumberOfRanges shouldBe countRangesManually(keyValue.keyValues)
-          keyValue.stats.groupsCount shouldBe 1
-          keyValue.stats.rangeCommonPrefixesCount shouldBe keyValue.keyValues.last.stats.rangeCommonPrefixesCount
-          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
-          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
-          keyValue.stats.totalBloomFiltersItemsCount shouldBe keyValue.keyValues.last.stats.totalBloomFiltersItemsCount
+        val expectedSize = normalisedKeyValues.head.indexEntryBytes.size
+        println(s"expectedSize: $expectedSize")
+
+        normalisedKeyValues foreach {
+          keyValue =>
+            keyValue.indexEntryBytes.size shouldBe expectedSize
+        }
       }
     }
   }

@@ -20,15 +20,16 @@
 package swaydb.core.data
 
 import java.util.concurrent.atomic.AtomicLong
-import swaydb.data.IO
+
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
+import swaydb.IO
 
 private[core] object Time {
 
   val empty = Time(Slice.emptyBytes)
   val someEmpty = Some(empty)
-  val successEmpty = IO.Success(empty)
+  val successEmpty = IO.Right[Nothing, Time](empty)(IO.ExceptionHandler.Nothing)
 
   val long = new AtomicLong(System.nanoTime())
 
@@ -36,6 +37,7 @@ private[core] object Time {
     Time(Slice.writeLong(long.incrementAndGet()))
 
   def apply(time: Long): Time =
+  //TODO - store time as unsignedLong.
     new Time(Slice.writeLong(time))
 
   def >(upperTime: Time, lowerTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean = {
@@ -47,7 +49,7 @@ private[core] object Time {
   }
 
   implicit class TimeOptionImplicits(time: Time) {
-    def >(otherTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean =
+    @inline def >(otherTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean =
       Time > (time, otherTime)
   }
 

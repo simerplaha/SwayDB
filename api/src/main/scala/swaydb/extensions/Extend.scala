@@ -19,21 +19,20 @@
 
 package swaydb.extensions
 
-import swaydb.Prepare
-import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
+import swaydb.{IO, Prepare}
 
 private[extensions] object Extend {
 
   /**
-    * Wraps the input [[swaydb.Map]] instance and returns a new [[Map]] instance
-    * which contains extended APIs to create nested Maps.
-    */
-  def apply[K, V](map: swaydb.Map[Key[K], Option[V], IO])(implicit keySerializer: Serializer[K],
-                                                          optionValueSerializer: Serializer[Option[V]],
-                                                          keyOrder: KeyOrder[Slice[Byte]]): IO[Map[K, V]] = {
+   * Wraps the input [[swaydb.Map]] instance and returns a new [[Map]] instance
+   * which contains extended APIs to create nested Maps.
+   */
+  def apply[K, V](map: swaydb.Map[Key[K], Option[V], IO.ApiIO])(implicit keySerializer: Serializer[K],
+                                                                optionValueSerializer: Serializer[Option[V]],
+                                                                keyOrder: KeyOrder[Slice[Byte]]): IO.ApiIO[Map[K, V]] = {
     implicit val mapKeySerializer = Key.serializer(keySerializer)
 
     implicit val valueSerializer = new Serializer[V] {

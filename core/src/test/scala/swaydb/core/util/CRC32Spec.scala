@@ -20,8 +20,8 @@
 package swaydb.core.util
 
 import org.scalatest.{FlatSpec, Matchers}
-import swaydb.core.TestData._
 import swaydb.core.RunThis._
+import swaydb.core.TestData._
 import swaydb.data.slice.Slice
 
 class CRC32Spec extends FlatSpec with Matchers {

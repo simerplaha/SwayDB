@@ -21,15 +21,16 @@ package swaydb.core.level
 
 import java.nio.file.{Path, Paths}
 
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data.{KeyValue, Memory}
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.segment.Segment
-import swaydb.data.IO
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
+import swaydb.{Error, IO}
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Promise}
 
 private[core] object TrashLevel extends NextLevel {
 
@@ -51,7 +52,7 @@ private[core] object TrashLevel extends NextLevel {
   override val hasNextLevel: Boolean =
     false
 
-  override val bloomFilterKeyValueCount: IO[Int] =
+  override val bloomFilterKeyValueCount: IO[swaydb.Error.Segment, Int] =
     IO.zero
 
   override val segmentsCount: Int =
@@ -79,19 +80,19 @@ private[core] object TrashLevel extends NextLevel {
     0
 
   override val head =
-    IO.none
+    IO.Defer.none
 
   override val last =
-    IO.none
+    IO.Defer.none
 
   override def get(key: Slice[Byte]) =
-    IO.none
+    IO.Defer.none
 
   override def lower(key: Slice[Byte]) =
-    IO.none
+    IO.Defer.none
 
   override def higher(key: Slice[Byte]) =
-    IO.none
+    IO.Defer.none
 
   override val isEmpty: Boolean =
     true
@@ -108,33 +109,36 @@ private[core] object TrashLevel extends NextLevel {
   override val sizeOfSegments: Long =
     0
 
-  override def releaseLocks: IO[Unit] =
+  override def releaseLocks: IO[swaydb.Error.Close, Unit] =
     IO.unit
 
-  override val close: IO[Unit] =
+  override val close: IO[swaydb.Error.Close, Unit] =
     IO.unit
 
   override def meterFor(levelNumber: Int): Option[LevelMeter] =
     None
 
-  override def mightContain(key: Slice[Byte]): IO[Boolean] =
+  override def mightContainKey(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
+    IO.`false`
+
+  override def mightContainFunction(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
     IO.`false`
 
   override val isTrash: Boolean = true
 
-  override def ceiling(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
-    IO.none
+  override def ceiling(key: Slice[Byte]): IO.Defer[swaydb.Error.Segment, Option[KeyValue.ReadOnly.Put]] =
+    IO.Defer.none
 
-  override def floor(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
-    IO.none
+  override def floor(key: Slice[Byte]): IO.Defer[swaydb.Error.Segment, Option[KeyValue.ReadOnly.Put]] =
+    IO.Defer.none
 
-  override val headKey: IO.Async[Option[Slice[Byte]]] =
-    IO.none
+  override val headKey: IO.Defer[swaydb.Error.Segment, Option[Slice[Byte]]] =
+    IO.Defer.none
 
-  override val lastKey: IO.Async[Option[Slice[Byte]]] =
-    IO.none
+  override val lastKey: IO.Defer[swaydb.Error.Segment, Option[Slice[Byte]]] =
+    IO.Defer.none
 
-  override def closeSegments(): IO[Unit] =
+  override def closeSegments(): IO[swaydb.Error.Segment, Unit] =
     IO.unit
 
   override def levelNumber: Int = -1
@@ -147,17 +151,17 @@ private[core] object TrashLevel extends NextLevel {
   override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     (segments, Iterable.empty)
 
-  override def put(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] =
-    IO.unit
+  override def put(segment: Segment)(implicit ec: ExecutionContext): IO[Nothing, IO.Right[Nothing, Unit]] =
+    IO.unitUnit
 
-  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Async[Unit] =
-    IO.unit
+  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
+    IO.unitUnit
 
-  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Unit] =
-    IO.unit
+  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
+    IO.unitUnit
 
-  override def removeSegments(segments: Iterable[Segment]): IO[Int] =
-    IO.Success(segments.size)
+  override def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Int] =
+    IO.Right(segments.size)
 
   override val meter: LevelMeter =
     new LevelMeter {
@@ -168,17 +172,14 @@ private[core] object TrashLevel extends NextLevel {
       override def nextLevelMeter: Option[LevelMeter] = None
     }
 
-  override def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] =
-    IO.unit
+  override def refresh(segment: Segment)(implicit ec: ExecutionContext): IO[Nothing, IO.Right[Nothing, Unit]] =
+    IO.unitUnit
 
-  override def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Int] =
-    IO.Success(segments.size)
+  override def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Nothing, IO[Error.Segment, Int]] =
+    IO.Right[Nothing, IO[Error.Segment, Int]](IO.Right(segments.size))(IO.ExceptionHandler.Nothing)
 
   override def isZero: Boolean =
     false
-
-  override def stateID: Long =
-    0
 
   override def nextCompactionDelay: FiniteDuration =
     365.days
@@ -193,8 +194,14 @@ private[core] object TrashLevel extends NextLevel {
   override def optimalSegmentsToCollapse(take: Int): Iterable[Segment] =
     Segment.emptyIterable
 
-  override def groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
+  override def groupBy: Option[GroupByInternal.KeyValues] =
     None
+
+  def lastSegmentId: Option[Long] =
+    None
+
+  override def stateId: Long =
+    0
 
   override def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
     true
@@ -205,5 +212,5 @@ private[core] object TrashLevel extends NextLevel {
   override def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
     true
 
-  override def delete: IO[Unit] = IO.unit
+  override def delete: IO[swaydb.Error.Delete, Unit] = IO.unit
 }

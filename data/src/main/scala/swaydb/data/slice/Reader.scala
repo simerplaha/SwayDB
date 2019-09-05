@@ -19,93 +19,17 @@
 
 package swaydb.data.slice
 
-import java.nio.charset.{Charset, StandardCharsets}
-import swaydb.data.util.ByteUtil
-import scala.annotation.tailrec
-import scala.reflect.ClassTag
-import swaydb.data.IO
+import swaydb.IO
 
-private[swaydb] trait Reader { self =>
+abstract class Reader[E >: swaydb.Error.IO : IO.ExceptionHandler] extends ReaderBase[E] {
 
-  def get(): IO[Int]
+  def moveTo(position: Long): Reader[E]
 
-  def read(size: Long): IO[Slice[Byte]] =
-    read(size.toInt)
+  override def copy(): Reader[E]
 
-  def read(size: Int): IO[Slice[Byte]]
-
-  def size: IO[Long]
-
-  def hasMore: IO[Boolean]
-
-  def hasAtLeast(size: Long): IO[Boolean]
-
-  def getPosition: Int
-
-  def moveTo(position: Long): Reader
-
-  def readRemaining(): IO[Slice[Byte]]
-
-  def skip(skip: Long): Reader =
+  override def skip(skip: Long): Reader[E] =
     moveTo(getPosition + skip)
 
-  def readBoolean(): IO[Boolean] =
-    ByteUtil.readBoolean(self)
-
-  def readInt(): IO[Int] =
-    ByteUtil.readInt(self)
-
-  def readIntUnsigned(): IO[Int] =
-    ByteUtil.readUnsignedInt(self)
-
-  def readIntUnsignedBytes(): IO[Slice[Byte]] =
-    ByteUtil.readUnsignedInt(self) flatMap {
-      size =>
-        read(size)
-    }
-
-  def readIntSigned(): IO[Int] =
-    ByteUtil.readSignedInt(self)
-
-  def readLong(): IO[Long] =
-    ByteUtil.readLong(self)
-
-  def readLongUnsigned(): IO[Long] =
-    ByteUtil.readUnsignedLong(self)
-
-  def readLongSigned(): IO[Long] =
-    ByteUtil.readSignedLong(self)
-
-  def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): IO[String] =
-    ByteUtil.readString(self, charset)
-
-  def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): IO[String] =
-    ByteUtil.readString(size, self, charset)
-
-  def remaining: IO[Long] =
-    size map {
-      size =>
-        size - getPosition
-    }
-
-  def copy(): Reader
-
-  @tailrec
-  final def foldLeftIO[R: ClassTag](result: R)(f: (R, Reader) => IO[R]): IO[R] =
-    hasMore match {
-      case IO.Failure(exception) =>
-        IO.Failure(exception)
-
-      case IO.Success(yes) if yes =>
-        f(result, self) match {
-          case IO.Success(newResult) =>
-            foldLeftIO(newResult)(f)
-
-          case IO.Failure(exception) =>
-            IO.Failure(exception)
-        }
-
-      case _ =>
-        IO.Success(result)
-    }
+  override def reset(): Reader[E] =
+    this moveTo 0
 }

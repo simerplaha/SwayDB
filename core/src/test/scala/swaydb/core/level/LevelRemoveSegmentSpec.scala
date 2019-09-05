@@ -22,12 +22,13 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -65,17 +66,17 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
-  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
+  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
+  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeper
+  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "removeSegments" should {
     "remove segments from disk and remove them from appendix" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValuesTest(randomPutKeyValues(keyValuesCount)).assertGet
+      level.putKeyValuesTest(randomPutKeyValues(keyValuesCount)).runRandomIO.right.value
 
-      level.removeSegments(level.segmentsInLevel()).assertGet
+      level.removeSegments(level.segmentsInLevel()).runRandomIO.right.value
 
       level.isEmpty shouldBe true
 
@@ -84,6 +85,5 @@ sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with Priva
         level.reopen.isEmpty shouldBe true
       }
     }
-
   }
 }

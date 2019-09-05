@@ -24,11 +24,11 @@ import java.nio.file.Path
 import java.nio.{ByteBuffer, MappedByteBuffer}
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.{Actor, ActorRef}
+import swaydb.Error.IO.ExceptionHandler
 import swaydb.core.io.file.BufferCleaner.State
-import swaydb.data.IO
+import swaydb.data.config.ActorConfig.QueueOrder
+import swaydb.{Actor, ActorRef, IO, Scheduler}
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 private[core] object Cleaner {
@@ -73,7 +73,7 @@ private[core] object BufferCleaner extends LazyLogging {
     MethodHandles.foldArguments(cleanDroppedArgument, cleaner)
   }
 
-  private[file] def initialiseCleaner(state: State, buffer: MappedByteBuffer, path: Path): IO[State] =
+  private[file] def initialiseCleaner(state: State, buffer: MappedByteBuffer, path: Path): IO[swaydb.Error.IO, State] =
     IO {
       val cleaner = java9Cleaner()
       cleaner.invoke(buffer)
@@ -88,7 +88,7 @@ private[core] object BufferCleaner extends LazyLogging {
         logger.info("Initialised Java 8 ByteBuffer cleaner.")
         state
       }
-    } onFailureSideEffect {
+    } onLeftSideEffect {
       error =>
         val errorMessage = s"ByteBuffer cleaner not initialised. Failed to clean MMAP file: ${path.toString}."
         val exception = error.exception
@@ -97,15 +97,15 @@ private[core] object BufferCleaner extends LazyLogging {
     }
 
   /**
-    * Mutates the state after cleaner is initialised. Do not copy state to avoid necessary GC workload.
-    */
-  private[file] def clean(state: State, buffer: MappedByteBuffer, path: Path): IO[State] =
+   * Mutates the state after cleaner is initialised. Do not copy state to avoid necessary GC workload.
+   */
+  private[file] def clean(state: State, buffer: MappedByteBuffer, path: Path): IO[swaydb.Error.IO, State] =
     state.cleaner map {
       cleaner =>
         IO {
           cleaner.clean(buffer)
           state
-        } onFailureSideEffect {
+        } onLeftSideEffect {
           error =>
             val errorMessage = s"Failed to clean MappedByteBuffer at path '${path.toString}'."
             val exception = error.exception
@@ -119,7 +119,7 @@ private[core] object BufferCleaner extends LazyLogging {
   //FIXME: Rah! Not very nice way to initialise BufferCleaner.
   //       Currently BufferCleaner is required to be globally known.
   //       Instead this should be passed around whenever required and be explicit.
-  def initialiseCleaner(implicit ec: ExecutionContext) =
+  def initialiseCleaner(implicit scheduler: Scheduler) =
     if (cleaner.isEmpty)
       cleaner = Some(new BufferCleaner)
 
@@ -130,11 +130,17 @@ private[core] object BufferCleaner extends LazyLogging {
     } getOrElse logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
 }
 
-private[core] class BufferCleaner(implicit ec: ExecutionContext) extends LazyLogging {
+private[core] class BufferCleaner(implicit scheduler: Scheduler) extends LazyLogging {
   logger.debug("Starting buffer cleaner.")
+  implicit val queueOrder = QueueOrder.FIFO
 
-  private val actor: ActorRef[(MappedByteBuffer, Path, Boolean)] =
-    Actor.timer[(MappedByteBuffer, Path, Boolean), State](State(None), 5.seconds) {
+  private val actor: ActorRef[(MappedByteBuffer, Path, Boolean), State] =
+    Actor.timerCache[(MappedByteBuffer, Path, Boolean), State](
+      state = State(None),
+      stashCapacity = 100,
+      interval = 5.seconds,
+      weigher = _ => 1
+    ) {
       case (message @ (buffer, path, isOverdue), self) =>
         if (isOverdue)
           BufferCleaner.clean(self.state, buffer, path)

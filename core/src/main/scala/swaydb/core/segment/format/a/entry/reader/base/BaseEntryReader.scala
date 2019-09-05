@@ -19,12 +19,15 @@
 
 package swaydb.core.segment.format.a.entry.reader.base
 
+import swaydb.IO
+import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
+import swaydb.core.segment.format.a.block.ValuesBlock
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.data.IO
-import swaydb.data.slice.Reader
+import swaydb.data.slice.ReaderBase
 
-trait BaseEntryReader {
+private[core] trait BaseEntryReader {
 
   def minID: Int
 
@@ -32,11 +35,12 @@ trait BaseEntryReader {
 
   def read[T](baseId: Int,
               keyValueId: Int,
-              indexReader: Reader,
-              valueReader: Reader,
+              indexReader: ReaderBase[swaydb.Error.Segment],
+              valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
+              hasAccessPositionIndex: Boolean,
               previous: Option[Persistent],
-              reader: EntryReader[T]): Option[IO[T]]
+              reader: EntryReader[T]): Option[IO[swaydb.Error.Segment, T]]
 }

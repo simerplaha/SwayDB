@@ -19,23 +19,24 @@
 
 package swaydb.core.data
 
-import swaydb.compression.CompressionInternal
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
+import swaydb.core.actor.MemorySweeper
+import swaydb.core.cache.{Cache, NoIO}
 import swaydb.core.data.KeyValue.ReadOnly
-import swaydb.core.group.compression.data.GroupHeader
-import swaydb.core.group.compression.{GroupCompressor, GroupDecompressor, GroupKeyCompressor}
-import swaydb.core.io.reader.Reader
+import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
-import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.format.a.entry.reader.value._
+import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.format.a.entry.writer._
-import swaydb.core.segment.{Segment, SegmentCache, SegmentCacheInitializer}
-import swaydb.core.util.Bytes
-import swaydb.core.util.CollectionUtil._
+import swaydb.core.segment.{Segment, SegmentCache}
+import swaydb.core.util.Collections._
+import swaydb.core.util.{Bytes, MinMax}
+import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Reader, Slice}
-import swaydb.data.{IO, MaxKey}
+import swaydb.data.slice.Slice
 
-import scala.collection.SortedSet
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 private[core] sealed trait KeyValue {
@@ -48,38 +49,38 @@ private[core] sealed trait KeyValue {
 private[core] object KeyValue {
 
   /**
-    * Read-only instances are only created for Key-values read from disk for Persistent Segments
-    * and are stored in-memory after merge for Memory Segments.
-    */
+   * Read-only instances are only created for Key-values read from disk for Persistent Segments
+   * and are stored in-memory after merge for Memory Segments.
+   */
   sealed trait ReadOnly extends KeyValue {
     def indexEntryDeadline: Option[Deadline]
   }
 
   /**
-    * Key-values that can be added to [[KeyValueLimiter]].
-    *
-    * These key-values can remain in memory depending on the cacheSize and are dropped or uncompressed on overflow.
-    *
-    * Only [[KeyValue.ReadOnly.Group]] && [[Persistent.SegmentResponse]] key-values are [[CacheAble]].
-    *
-    * Only [[Memory.Group]] key-values are uncompressed and every other key-value is dropped.
-    */
+   * Key-values that can be added to [[MemorySweeper]].
+   *
+   * These key-values can remain in memory depending on the cacheSize and are dropped or uncompressed on overflow.
+   *
+   * Only [[KeyValue.ReadOnly.Group]] && [[Persistent.SegmentResponse]] key-values are [[CacheAble]].
+   *
+   * Only [[Memory.Group]] key-values are uncompressed and every other key-value is dropped.
+   */
   sealed trait CacheAble extends ReadOnly {
     def valueLength: Int
   }
 
   object ReadOnly {
     /**
-      * An API response type expected from a [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
-      *
-      * Key-value types like [[Group]] are processed within [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
-      */
+     * An API response type expected from a [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
+     *
+     * Key-value types like [[Group]] are processed within [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
+     */
     sealed trait SegmentResponse extends KeyValue with ReadOnly
 
     sealed trait Fixed extends SegmentResponse {
-      def toFromValue(): IO[Value.FromValue]
+      def toFromValue(): IO[swaydb.Error.Segment, Value.FromValue]
 
-      def toRangeValue(): IO[Value.RangeValue]
+      def toRangeValue(): IO[swaydb.Error.Segment, Value.RangeValue]
 
       def time: Time
     }
@@ -90,9 +91,9 @@ private[core] object KeyValue {
       def hasTimeLeft(): Boolean
       def isOverdue(): Boolean = !hasTimeLeft()
       def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
-      def getOrFetchValue: IO[Option[Slice[Byte]]]
+      def getOrFetchValue: IO[swaydb.Error.Segment, Option[Slice[Byte]]]
       def time: Time
-      def toFromValue(): IO[Value.Put]
+      def toFromValue(): IO[swaydb.Error.Segment, Value.Put]
       def copyWithDeadlineAndTime(deadline: Option[Deadline], time: Time): KeyValue.ReadOnly.Put
       def copyWithTime(time: Time): KeyValue.ReadOnly.Put
     }
@@ -103,7 +104,7 @@ private[core] object KeyValue {
       def isOverdue(): Boolean = !hasTimeLeft()
       def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
       def time: Time
-      def toFromValue(): IO[Value.Remove]
+      def toFromValue(): IO[swaydb.Error.Segment, Value.Remove]
       def toRemoveValue(): Value.Remove
       def copyWithTime(time: Time): KeyValue.ReadOnly.Remove
     }
@@ -114,8 +115,8 @@ private[core] object KeyValue {
       def isOverdue(): Boolean = !hasTimeLeft()
       def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
       def time: Time
-      def getOrFetchValue: IO[Option[Slice[Byte]]]
-      def toFromValue(): IO[Value.Update]
+      def getOrFetchValue: IO[swaydb.Error.Segment, Option[Slice[Byte]]]
+      def toFromValue(): IO[swaydb.Error.Segment, Value.Update]
       def toPut(): KeyValue.ReadOnly.Put
       def toPut(deadline: Option[Deadline]): KeyValue.ReadOnly.Put
       def copyWithDeadlineAndTime(deadline: Option[Deadline], time: Time): KeyValue.ReadOnly.Update
@@ -125,14 +126,14 @@ private[core] object KeyValue {
 
     sealed trait Function extends KeyValue.ReadOnly.Fixed {
       def time: Time
-      def getOrFetchFunction: IO[Slice[Byte]]
-      def toFromValue(): IO[Value.Function]
+      def getOrFetchFunction: IO[swaydb.Error.Segment, Slice[Byte]]
+      def toFromValue(): IO[swaydb.Error.Segment, Value.Function]
       def copyWithTime(time: Time): Function
     }
 
     sealed trait PendingApply extends KeyValue.ReadOnly.Fixed {
-      def getOrFetchApplies: IO[Slice[Value.Apply]]
-      def toFromValue(): IO[Value.PendingApply]
+      def getOrFetchApplies: IO[swaydb.Error.Segment, Slice[Value.Apply]]
+      def toFromValue(): IO[swaydb.Error.Segment, Value.PendingApply]
       def time: Time
       def deadline: Option[Deadline]
     }
@@ -154,10 +155,10 @@ private[core] object KeyValue {
     sealed trait Range extends KeyValue.ReadOnly with SegmentResponse {
       def fromKey: Slice[Byte]
       def toKey: Slice[Byte]
-      def fetchFromValue: IO[Option[Value.FromValue]]
-      def fetchRangeValue: IO[Value.RangeValue]
-      def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)]
-      def fetchFromOrElseRangeValue: IO[Value.FromValue] =
+      def fetchFromValue: IO[swaydb.Error.Segment, Option[Value.FromValue]]
+      def fetchRangeValue: IO[swaydb.Error.Segment, Value.RangeValue]
+      def fetchFromAndRangeValue: IO[swaydb.Error.Segment, (Option[Value.FromValue], Value.RangeValue)]
+      def fetchFromOrElseRangeValue: IO[swaydb.Error.Segment, Value.FromValue] =
         fetchFromAndRangeValue map {
           case (fromValue, rangeValue) =>
             fromValue getOrElse rangeValue
@@ -186,129 +187,22 @@ private[core] object KeyValue {
     sealed trait Group extends KeyValue.ReadOnly with CacheAble {
       def minKey: Slice[Byte]
       def maxKey: MaxKey[Slice[Byte]]
-      def header(): IO[GroupHeader]
-      def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
-                       keyValueLimiter: KeyValueLimiter): SegmentCache
+      def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
+                  memorySweeper: Option[MemorySweeper.KeyValue],
+                  groupIO: SegmentIO): SegmentCache
       def deadline: Option[Deadline]
-    }
-  }
-
-  /**
-    * Write-only instances are only created after a successful merge of key-values and are used to write to Persistent
-    * and Memory Segments.
-    */
-  sealed trait WriteOnly extends KeyValue {
-    val isRemoveRangeMayBe: Boolean
-    val isRange: Boolean
-    val isGroup: Boolean
-    val previous: Option[KeyValue.WriteOnly]
-    def enableRangeFilterAndIndex: Boolean
-    def resetPrefixCompressionEvery: Int
-    def minimumNumberOfKeysForHashIndex: Int
-    def hashIndexCompensation: Int => Int
-    def value: Option[Slice[Byte]]
-    def fullKey: Slice[Byte]
-    def stats: Stats
-    def deadline: Option[Deadline]
-    def indexEntryBytes: Slice[Byte]
-    def valueEntryBytes: Option[Slice[Byte]]
-    //a flag that returns true if valueBytes are created for this or any of it's previous key-values indicating value slice is required.
-    def hasValueEntryBytes: Boolean
-    //start value offset is carried current value offset position.
-    def currentStartValueOffsetPosition: Int
-    def currentEndValueOffsetPosition: Int
-    def nextStartValueOffsetPosition: Int =
-      if (!hasValueEntryBytes && currentEndValueOffsetPosition == 0)
-        0
-      else
-        currentEndValueOffsetPosition + 1
-
-    def enablePrefixCompression: Boolean =
-      resetPrefixCompressionEvery > 0 &&
-        previous.exists {
-          previous =>
-            previous.stats.position + 1 % resetPrefixCompressionEvery != 0
-        }
-
-    def updateStats(falsePositiveRate: Double,
-                    previous: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly
-
-    private def thisInScope = this
-
-    def reverseIterator: Iterator[WriteOnly] =
-      new Iterator[WriteOnly] {
-        var currentPrevious: Option[KeyValue.WriteOnly] =
-          Some(thisInScope)
-
-        override def hasNext: Boolean =
-          currentPrevious.isDefined
-
-        override def next(): KeyValue.WriteOnly = {
-          val next = currentPrevious.get
-          currentPrevious = next.previous
-          next
-        }
-      }
-  }
-
-  object WriteOnly {
-
-    implicit class WriteOnlyImplicits(keyValues: Iterable[KeyValue.WriteOnly]) {
-      def lastGroup(): Option[Transient.Group] =
-        keyValues.iterator.foldLeftWhile(Option.empty[Transient.Group], _.isGroup) {
-          case (_, group: Transient.Group) =>
-            Some(group)
-          case (previousGroup, _) =>
-            previousGroup
-        }
-
-      def maxKey() =
-        keyValues.last match {
-          case range: Range =>
-            MaxKey.Range(range.fromKey, range.toKey)
-          case group: Group =>
-            group.maxKey
-          case fixed: Transient =>
-            MaxKey.Fixed(fixed.key)
-        }
-
-      def minKey: Slice[Byte] =
-        keyValues.head.key
-    }
-
-    sealed trait Fixed extends KeyValue.WriteOnly {
-
-      def hasTimeLeft(): Boolean
-      def isOverdue(): Boolean = !hasTimeLeft()
-      def time: Time
-    }
-
-    sealed trait Range extends KeyValue.WriteOnly {
-      def fromKey: Slice[Byte]
-      def toKey: Slice[Byte]
-      def fromValue: Option[Value.FromValue]
-      def rangeValue: Value.RangeValue
-      def fetchFromValue: IO[Option[Value.FromValue]]
-      def fetchRangeValue: IO[Value.RangeValue]
-      def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)]
-    }
-
-    sealed trait Group extends KeyValue.WriteOnly {
-      def minKey: Slice[Byte]
-      def maxKey: MaxKey[Slice[Byte]]
-      def fullKey: Slice[Byte]
-      def keyValues: Slice[KeyValue.WriteOnly]
-      def compressedKeyValues: Slice[Byte]
+      def areAllCachesEmpty: Boolean
+      def isKeyValuesCacheEmpty: Boolean
+      def isBlockCacheEmpty: Boolean
+      def clearCachedKeyValues(): Unit
+      def clearBlockCache(): Unit
     }
   }
 
   type KeyValueTuple = (Slice[Byte], Option[Slice[Byte]])
 }
 
-private[swaydb] sealed trait Memory extends KeyValue.ReadOnly {
-
-  def key: Slice[Byte]
-}
+private[swaydb] sealed trait Memory extends KeyValue.ReadOnly
 
 private[swaydb] object Memory {
   sealed trait SegmentResponse extends Memory with KeyValue.ReadOnly.SegmentResponse
@@ -331,11 +225,11 @@ private[swaydb] object Memory {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: IO[Option[Slice[Byte]]] =
-      IO.Success(value)
+    override def getOrFetchValue: IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
+      IO.Right(value)
 
-    override def toFromValue(): IO[Value.Put] =
-      IO.Success(Value.Put(value, deadline, time))
+    override def toFromValue(): IO[swaydb.Error.Segment, Value.Put] =
+      IO.Right(Value.Put(value, deadline, time))
 
     override def copyWithDeadlineAndTime(deadline: Option[Deadline],
                                          time: Time): Put =
@@ -345,8 +239,8 @@ private[swaydb] object Memory {
       copy(time = time)
 
     //ahh not very type-safe.
-    override def toRangeValue(): IO[Value.RangeValue] =
-      IO.Failure(new Exception("Put cannot be converted to RangeValue"))
+    override def toRangeValue(): IO[swaydb.Error.Segment, Value.RangeValue] =
+      IO.failed("Put cannot be converted to RangeValue")
   }
 
   case class Update(key: Slice[Byte],
@@ -362,11 +256,11 @@ private[swaydb] object Memory {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: IO[Option[Slice[Byte]]] =
-      IO.Success(value)
+    override def getOrFetchValue: IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
+      IO.Right(value)
 
-    override def toFromValue(): IO[Value.Update] =
-      IO.Success(Value.Update(value, deadline, time))
+    override def toFromValue(): IO[swaydb.Error.Segment, Value.Update] =
+      IO.Right(Value.Update(value, deadline, time))
 
     override def copyWithDeadlineAndTime(deadline: Option[Deadline],
                                          time: Time): Update =
@@ -394,7 +288,7 @@ private[swaydb] object Memory {
         time = time
       )
 
-    override def toRangeValue(): IO[Value.Update] =
+    override def toRangeValue(): IO[swaydb.Error.Segment, Value.Update] =
       toFromValue()
   }
 
@@ -404,16 +298,16 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def getOrFetchFunction: IO[Slice[Byte]] =
-      IO.Success(function)
+    override def getOrFetchFunction: IO[swaydb.Error.Segment, Slice[Byte]] =
+      IO.Right(function)
 
-    override def toFromValue(): IO[Value.Function] =
-      IO.Success(Value.Function(function, time))
+    override def toFromValue(): IO[swaydb.Error.Segment, Value.Function] =
+      IO.Right(Value.Function(function, time))
 
     override def copyWithTime(time: Time): Function =
       copy(time = time)
 
-    override def toRangeValue(): IO[Value.Function] =
+    override def toRangeValue(): IO[swaydb.Error.Segment, Value.Function] =
       toFromValue()
   }
 
@@ -427,13 +321,13 @@ private[swaydb] object Memory {
 
     def time = Time.fromApplies(applies)
 
-    override def getOrFetchApplies: IO[Slice[Value.Apply]] =
-      IO.Success(applies)
+    override def getOrFetchApplies: IO[swaydb.Error.Segment, Slice[Value.Apply]] =
+      IO.Right(applies)
 
-    override def toFromValue(): IO[Value.PendingApply] =
-      IO.Success(Value.PendingApply(applies))
+    override def toFromValue(): IO[swaydb.Error.Segment, Value.PendingApply] =
+      IO.Right(Value.PendingApply(applies))
 
-    override def toRangeValue(): IO[Value.PendingApply] =
+    override def toRangeValue(): IO[swaydb.Error.Segment, Value.PendingApply] =
       toFromValue()
   }
 
@@ -455,10 +349,10 @@ private[swaydb] object Memory {
     override def copyWithTime(time: Time): ReadOnly.Remove =
       copy(time = time)
 
-    override def toFromValue(): IO[Value.Remove] =
-      IO.Success(toRemoveValue())
+    override def toFromValue(): IO[swaydb.Error.Segment, Value.Remove] =
+      IO.Right(toRemoveValue())
 
-    override def toRangeValue(): IO[Value.Remove] =
+    override def toRangeValue(): IO[swaydb.Error.Segment, Value.Remove] =
       toFromValue()
   }
 
@@ -479,98 +373,354 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def fetchFromValue: IO[Option[Value.FromValue]] =
-      IO.Success(fromValue)
+    override def fetchFromValue: IO[swaydb.Error.Segment, Option[Value.FromValue]] =
+      IO.Right(fromValue)
 
-    override def fetchRangeValue: IO[Value.RangeValue] =
-      IO.Success(rangeValue)
+    override def fetchRangeValue: IO[swaydb.Error.Segment, Value.RangeValue] =
+      IO.Right(rangeValue)
 
-    override def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)] =
-      IO.Success(fromValue, rangeValue)
+    override def fetchFromAndRangeValue: IO[swaydb.Error.Segment, (Option[Value.FromValue], Value.RangeValue)] =
+      IO.Right(fromValue, rangeValue)
   }
 
   object Group {
     def apply(minKey: Slice[Byte],
               maxKey: MaxKey[Slice[Byte]],
-              compressedKeyValues: Slice[Byte],
-              groupStartOffset: Int,
-              deadline: Option[Deadline]): Memory.Group =
-      new Group(
-        minKey = minKey,
-        maxKey = maxKey,
-        deadline = deadline,
-        valueLength = compressedKeyValues.size,
-        groupDecompressor = GroupDecompressor(Reader(compressedKeyValues), groupStartOffset)
+              blockedSegment: SegmentBlock.Closed): Group =
+      Group(
+        minKey = minKey.unslice(),
+        maxKey = maxKey.unslice(),
+        segmentBytes = blockedSegment.flattenSegmentBytes.unslice(),
+        deadline = blockedSegment.nearestDeadline
       )
   }
 
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
-                   deadline: Option[Deadline],
-                   groupDecompressor: GroupDecompressor,
-                   valueLength: Int) extends Memory with KeyValue.ReadOnly.Group {
+                   segmentBytes: Slice[Byte],
+                   deadline: Option[Deadline]) extends Memory with KeyValue.ReadOnly.Group {
 
-    lazy val segmentCacheInitializer: SegmentCacheInitializer =
-      new SegmentCacheInitializer(
-        id = "Persistent.Group",
-        minKey = minKey,
-        maxKey = maxKey,
-        unsliceKey = false,
-        getFooter = groupDecompressor.footer _,
-        getHashIndexHeader = groupDecompressor.hashIndexHeader _,
-        createReader = groupDecompressor.reader _
-      )
+    private val segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[MemorySweeper.KeyValue], SegmentIO), SegmentCache] =
+      Cache.noIO(synchronised = true, stored = true, initial = None) {
+        case (keyOrder: KeyOrder[Slice[Byte]], memorySweeper: Option[MemorySweeper.KeyValue], groupIO: SegmentIO) =>
+          SegmentCache(
+            id = "Memory.Group - BinarySegment",
+            maxKey = maxKey,
+            minKey = minKey,
+            unsliceKey = false,
+            blockRef = BlockRefReader(segmentBytes)(SegmentBlockOps),
+            segmentIO = groupIO
+          )(keyOrder, memorySweeper)
+      }
+
+    override def valueLength: Int = segmentBytes.size
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
     override def key: Slice[Byte] = minKey
 
-    def isValueDefined: Boolean =
-      groupDecompressor.isIndexDecompressed()
+    override def areAllCachesEmpty: Boolean =
+      segmentCache.get() forall (_.areAllCachesEmpty)
 
-    def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
-                     keyValueLimiter: KeyValueLimiter): SegmentCache =
-      segmentCacheInitializer.segmentCache
+    def isKeyValuesCacheEmpty: Boolean =
+      segmentCache.get() forall (_.isKeyValueCacheEmpty)
 
-    def header() =
-      groupDecompressor.header()
+    def isBlockCacheEmpty: Boolean =
+      segmentCache.get() forall (_.isBlockCacheEmpty)
 
-    def isHeaderDecompressed: Boolean =
-      groupDecompressor.isHeaderDecompressed()
+    def clearCachedKeyValues(): Unit =
+      segmentCache.get() foreach (_.clearCachedKeyValues())
 
-    def isIndexDecompressed: Boolean =
-      groupDecompressor.isIndexDecompressed()
+    def clearBlockCache(): Unit =
+      segmentCache.get() foreach (_.clearLocalAndBlockCache())
 
-    def isValueDecompressed: Boolean =
-      groupDecompressor.isValueDecompressed()
+    def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
+                memorySweeper: Option[MemorySweeper.KeyValue],
+                config: SegmentIO): SegmentCache =
+      segmentCache getOrElse {
+        segmentCache.value(keyOrder, memorySweeper, config)
+      }
 
+    /**
+     * Simply clearing the [[segmentCache]] will not work. A new group is required because
+     * while [[MemorySweeper]] puts the Group back into it's cache some other thread might've
+     * read the [[segmentCache]] and therefore missing the [[SegmentCache.addToCache]] check.
+     */
     def uncompress(): Memory.Group =
-      copy(groupDecompressor = groupDecompressor.uncompress())
+      copy()
   }
-
 }
 
-private[core] sealed trait Transient extends KeyValue.WriteOnly
+private[core] sealed trait Transient extends KeyValue { self =>
+  val isRemoveRangeMayBe: Boolean
+  val isRange: Boolean
+  val isGroup: Boolean
+  val previous: Option[Transient]
+  val thisKeyValueAccessIndexPosition: Int
+  def mergedKey: Slice[Byte]
+  def values: Slice[Slice[Byte]]
+  def valuesConfig: ValuesBlock.Config
+  def sortedIndexConfig: SortedIndexBlock.Config
+  def binarySearchIndexConfig: BinarySearchIndexBlock.Config
+  def hashIndexConfig: HashIndexBlock.Config
+  def bloomFilterConfig: BloomFilterBlock.Config
+  def isPrefixCompressed: Boolean
+  def stats: Stats
+  def deadline: Option[Deadline]
+  def indexEntryBytes: Slice[Byte]
+  def valueEntryBytes: Slice[Slice[Byte]]
+  //a flag that returns true if valueBytes are created for this or any of it's previous key-values indicating value slice is required.
+  def hasValueEntryBytes: Boolean
+  //start value offset is carried current value offset position.
+  def currentStartValueOffsetPosition: Int
+  def currentEndValueOffsetPosition: Int
+  def nextStartValueOffsetPosition: Int =
+    if (!hasValueEntryBytes && currentEndValueOffsetPosition == 0)
+      0
+    else
+      currentEndValueOffsetPosition + 1
+
+  def updatePrevious(valuesConfig: ValuesBlock.Config,
+                     sortedIndexConfig: SortedIndexBlock.Config,
+                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                     hashIndexConfig: HashIndexBlock.Config,
+                     bloomFilterConfig: BloomFilterBlock.Config,
+                     previous: Option[Transient]): Transient
+
+  def reverseIterator: Iterator[Transient] =
+    new Iterator[Transient] {
+      var currentPrevious: Option[Transient] =
+        Some(self)
+
+      override def hasNext: Boolean =
+        currentPrevious.isDefined
+
+      override def next(): Transient = {
+        val next = currentPrevious.get
+        currentPrevious = next.previous
+        next
+      }
+    }
+}
 
 private[core] object Transient {
 
-  private[core] sealed trait SegmentResponse extends Transient
+  implicit class TransientIterableImplicits(keyValues: Slice[Transient]) {
+    def lastGroup(): Option[Transient.Group] =
+      keyValues.foldLeftWhile(Option.empty[Transient.Group], _.isGroup) {
+        case (_, group: Transient.Group) =>
+          Some(group)
+        case (previousGroup, _) =>
+          previousGroup
+      }
+
+    def maxKey() =
+      keyValues.last match {
+        case range: Range =>
+          MaxKey.Range(range.fromKey, range.toKey)
+        case group: Group =>
+          group.maxKey
+        case fixed: Transient =>
+          MaxKey.Fixed(fixed.key)
+      }
+
+    def minKey: Slice[Byte] =
+      keyValues.head.key
+  }
+
+  sealed trait Fixed extends Transient.SegmentResponse {
+
+    def hasTimeLeft(): Boolean
+    def isOverdue(): Boolean = !hasTimeLeft()
+    def time: Time
+  }
+
+  def hasSameValue(left: Transient, right: Transient): Boolean =
+    (left, right) match {
+      //Groups
+      case (_: Transient.Group, right: Transient) => false
+      case (_: Transient, right: Transient.Group) => false
+      //Remove
+      case (left: Transient.Remove, right: Transient.Remove) => true
+      case (left: Transient.Remove, right: Transient.Put) => right.value.isEmpty
+      case (left: Transient.Remove, right: Transient.Update) => right.value.isEmpty
+      case (left: Transient.Remove, right: Transient.Function) => false
+      case (left: Transient.Remove, right: Transient.PendingApply) => false
+      case (left: Transient.Remove, right: Transient.Range) => false
+      //Put
+      case (left: Transient.Put, right: Transient.Remove) => left.value.isEmpty
+      case (left: Transient.Put, right: Transient.Put) => left.value == right.value
+      case (left: Transient.Put, right: Transient.Update) => left.value == right.value
+      case (left: Transient.Put, right: Transient.Function) => left.value contains right.function
+      case (left: Transient.Put, right: Transient.PendingApply) => false
+      case (left: Transient.Put, right: Transient.Range) => false
+      //Update
+      case (left: Transient.Update, right: Transient.Remove) => left.value.isEmpty
+      case (left: Transient.Update, right: Transient.Put) => left.value == right.value
+      case (left: Transient.Update, right: Transient.Update) => left.value == right.value
+      case (left: Transient.Update, right: Transient.Function) => left.value contains right.function
+      case (left: Transient.Update, right: Transient.PendingApply) => false
+      case (left: Transient.Update, right: Transient.Range) => false
+      //Function
+      case (left: Transient.Function, right: Transient.Remove) => false
+      case (left: Transient.Function, right: Transient.Put) => right.value contains left.function
+      case (left: Transient.Function, right: Transient.Update) => right.value contains left.function
+      case (left: Transient.Function, right: Transient.Function) => left.function == right.function
+      case (left: Transient.Function, right: Transient.PendingApply) => false
+      case (left: Transient.Function, right: Transient.Range) => false
+      //PendingApply
+      case (left: Transient.PendingApply, right: Transient.Remove) => false
+      case (left: Transient.PendingApply, right: Transient.Put) => false
+      case (left: Transient.PendingApply, right: Transient.Update) => false
+      case (left: Transient.PendingApply, right: Transient.Function) => false
+      case (left: Transient.PendingApply, right: Transient.PendingApply) => left.applies == right.applies
+      case (left: Transient.PendingApply, right: Transient.Range) => false
+      //Range
+      case (left: Transient.Range, right: Transient.Remove) => false
+      case (left: Transient.Range, right: Transient.Put) => false
+      case (left: Transient.Range, right: Transient.Update) => false
+      case (left: Transient.Range, right: Transient.Function) => false
+      case (left: Transient.Range, right: Transient.PendingApply) => false
+      case (left: Transient.Range, right: Transient.Range) => left.fromValue == right.fromValue && left.rangeValue == right.rangeValue
+    }
+
+  //do not fetch the value itself as it will be serialised if it is a range.
+  //Here we just check the types to determine if a key-value has value.
+  def hasValue(keyValue: Transient): Boolean =
+    keyValue match {
+      case transient: Transient.Put =>
+        transient.value.exists(_.nonEmpty)
+
+      case transient: Transient.Update =>
+        transient.value.exists(_.nonEmpty)
+
+      case _: Transient.Remove =>
+        false
+
+      case _: Transient.Group | _: Transient.Range | _: Transient.PendingApply | _: Transient.Function =>
+        true
+    }
+
+  def hasNoValue(keyValue: Transient): Boolean =
+    !hasValue(keyValue)
+
+  def compressibleValue(keyValue: Transient): Option[Slice[Byte]] =
+    keyValue match {
+      case transient: Transient.SegmentResponse =>
+        //if value is empty byte slice, return None instead of empty Slice.We do not store empty byte arrays.
+        if (transient.value.exists(_.isEmpty))
+          None
+        else
+          transient.value
+      case _: Transient.Group =>
+        None
+    }
+
+  def enablePrefixCompression(keyValue: Transient): Boolean =
+    keyValue.sortedIndexConfig.prefixCompressionResetCount > 0 &&
+      keyValue.previous.exists {
+        previous =>
+          (previous.stats.chainPosition + 1) % keyValue.sortedIndexConfig.prefixCompressionResetCount != 0
+      }
+
+  def normalise(keyValues: Iterable[Transient]): Slice[Transient] = {
+    val toSize = Some(keyValues.last.stats.segmentMaxSortedIndexEntrySize + 1)
+    val normalisedKeyValues = Slice.create[Transient](keyValues.size)
+
+    keyValues foreach {
+      case keyValue: SegmentResponse =>
+        keyValue match {
+          case keyValue: Transient.Remove =>
+            normalisedKeyValues add keyValue.copy(
+              normaliseToSize = toSize,
+              previous = normalisedKeyValues.lastOption
+            )
+
+          case keyValue: Transient.Put =>
+            normalisedKeyValues add keyValue.copy(
+              normaliseToSize = toSize,
+              previous = normalisedKeyValues.lastOption
+            )
+
+          case keyValue: Transient.Update =>
+            normalisedKeyValues add keyValue.copy(
+              normaliseToSize = toSize,
+              previous = normalisedKeyValues.lastOption
+            )
+
+          case keyValue: Transient.Function =>
+            normalisedKeyValues add keyValue.copy(
+              normaliseToSize = toSize,
+              previous = normalisedKeyValues.lastOption
+            )
+
+          case keyValue: Transient.PendingApply =>
+            normalisedKeyValues add keyValue.copy(
+              normaliseToSize = toSize,
+              previous = normalisedKeyValues.lastOption
+            )
+
+          case keyValue: Transient.Range =>
+            normalisedKeyValues add
+              keyValue.copy(
+                normaliseToSize = toSize,
+                previous = normalisedKeyValues.lastOption
+              )
+        }
+
+      case keyValue: Transient.Group =>
+        normalisedKeyValues add
+          keyValue.copy(
+            normaliseToSize = toSize,
+            previous = normalisedKeyValues.lastOption
+          )
+    }
+
+    normalisedKeyValues
+  }
+
+  private[core] sealed trait SegmentResponse extends Transient {
+    def value: Option[Slice[Byte]]
+
+    def updatePrevious(valuesConfig: ValuesBlock.Config,
+                       sortedIndexConfig: SortedIndexBlock.Config,
+                       binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                       hashIndexConfig: HashIndexBlock.Config,
+                       bloomFilterConfig: BloomFilterBlock.Config,
+                       previous: Option[Transient]): Transient.SegmentResponse
+  }
 
   implicit class TransientImplicits(transient: Transient.SegmentResponse)(implicit keyOrder: KeyOrder[Slice[Byte]]) {
 
     def toMemoryResponse: Memory.SegmentResponse =
       transient match {
         case put: Transient.Put =>
-          Memory.Put(put.key, put.value, put.deadline, put.time)
+          Memory.Put(
+            key = put.key,
+            value = put.value,
+            deadline = put.deadline,
+            time = put.time
+          )
 
         case remove: Transient.Remove =>
-          Memory.Remove(remove.key, remove.deadline, remove.time)
+          Memory.Remove(
+            key = remove.key,
+            deadline = remove.deadline,
+            time = remove.time
+          )
 
         case function: Transient.Function =>
-          Memory.Function(function.key, function.function, function.time)
+          Memory.Function(
+            key = function.key,
+            function = function.function,
+            time = function.time
+          )
 
         case apply: Transient.PendingApply =>
-          Memory.PendingApply(apply.key, apply.applies)
+          Memory.PendingApply(
+            key = apply.key,
+            applies = apply.applies
+          )
 
         case update: Transient.Update =>
           Memory.Update(
@@ -591,81 +741,99 @@ private[core] object Transient {
   }
 
   case class Remove(key: Slice[Byte],
+                    normaliseToSize: Option[Int],
                     deadline: Option[Deadline],
                     time: Time,
-                    previous: Option[KeyValue.WriteOnly],
-                    falsePositiveRate: Double,
-                    resetPrefixCompressionEvery: Int,
-                    minimumNumberOfKeysForHashIndex: Int,
-                    hashIndexCompensation: Int => Int,
-                    enableRangeFilterAndIndex: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                    valuesConfig: ValuesBlock.Config,
+                    sortedIndexConfig: SortedIndexBlock.Config,
+                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                    hashIndexConfig: HashIndexBlock.Config,
+                    bloomFilterConfig: BloomFilterBlock.Config,
+                    previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
     override val isRange: Boolean = false
     override val isGroup: Boolean = false
     override val isRemoveRangeMayBe = false
-    override val value: Option[Slice[Byte]] = None
-    override val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
+    override def mergedKey = key
+    override def value: Option[Slice[Byte]] = None
+    override def values: Slice[Slice[Byte]] = Slice.emptyEmptyBytes
+
+    override val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
+        normaliseToSize = normaliseToSize,
         compressDuplicateValues = false,
-        enablePrefixCompression = enablePrefixCompression
+        enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
-
-    override def fullKey = key
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
     override val stats =
       Stats(
+        keySize = key.size,
         indexEntry = indexEntryBytes,
-        value = None,
-        falsePositiveRate = falsePositiveRate,
+        value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         isPut = false,
-        position = previous.map(_.stats.position + 1) getOrElse 1,
-        hashIndexItemsCount = previous.map(_.stats.hashIndexItemsCount + 1) getOrElse 1,
-        numberOfRanges = 0,
-        bloomFiltersItemCount = 1,
-        usePreviousHashIndexOffset = enablePrefixCompression,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
-        rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
-        previous = previous,
+        isPrefixCompressed = isPrefixCompressed,
+        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
+        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
+        thisKeyValuesNumberOfRanges = 0,
+        thisKeyValuesUniqueKeys = 1,
+        sortedIndex = sortedIndexConfig,
+        bloomFilter = bloomFilterConfig,
+        hashIndex = hashIndexConfig,
+        binarySearch = binarySearchIndexConfig,
+        values = valuesConfig,
+        previousStats = previous.map(_.stats),
         deadline = deadline
       )
 
-    override def updateStats(falsePositiveRate: Double,
-                             keyValue: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly =
-      this.copy(previous = keyValue, falsePositiveRate = falsePositiveRate)
+    override def updatePrevious(valuesConfig: ValuesBlock.Config,
+                                sortedIndexConfig: SortedIndexBlock.Config,
+                                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                hashIndexConfig: HashIndexBlock.Config,
+                                bloomFilterConfig: BloomFilterBlock.Config,
+                                previous: Option[Transient]): Transient.SegmentResponse =
+      this.copy(
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        previous = previous
+      )
 
     override def hasTimeLeft(): Boolean =
       deadline.exists(_.hasTimeLeft())
   }
 
   case class Put(key: Slice[Byte],
+                 normaliseToSize: Option[Int],
                  value: Option[Slice[Byte]],
                  deadline: Option[Deadline],
                  time: Time,
-                 previous: Option[KeyValue.WriteOnly],
-                 falsePositiveRate: Double,
-                 compressDuplicateValues: Boolean,
-                 resetPrefixCompressionEvery: Int,
-                 minimumNumberOfKeysForHashIndex: Int,
-                 hashIndexCompensation: Int => Int,
-                 enableRangeFilterAndIndex: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                 valuesConfig: ValuesBlock.Config,
+                 sortedIndexConfig: SortedIndexBlock.Config,
+                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                 hashIndexConfig: HashIndexBlock.Config,
+                 bloomFilterConfig: BloomFilterBlock.Config,
+                 previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
 
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
+    override def mergedKey = key
+    override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
-        compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = enablePrefixCompression
+        normaliseToSize = normaliseToSize,
+        compressDuplicateValues = valuesConfig.compressDuplicateValues,
+        enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean =
@@ -673,209 +841,255 @@ private[core] object Transient {
 
     val stats =
       Stats(
+        keySize = key.size,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
-        falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         isPut = true,
-        position = previous.map(_.stats.position + 1) getOrElse 1,
-        hashIndexItemsCount = previous.map(_.stats.hashIndexItemsCount + 1) getOrElse 1,
-        numberOfRanges = 0,
-        bloomFiltersItemCount = 1,
-        usePreviousHashIndexOffset = enablePrefixCompression,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
-        rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
-        previous = previous,
+        isPrefixCompressed = isPrefixCompressed,
+        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
+        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
+        thisKeyValuesNumberOfRanges = 0,
+        thisKeyValuesUniqueKeys = 1,
+        sortedIndex = sortedIndexConfig,
+        bloomFilter = bloomFilterConfig,
+        hashIndex = hashIndexConfig,
+        binarySearch = binarySearchIndexConfig,
+        values = valuesConfig,
+        previousStats = previous.map(_.stats),
         deadline = deadline
       )
 
-    override def fullKey = key
-
-    override def updateStats(falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly =
-      this.copy(falsePositiveRate = falsePositiveRate, previous = previous)
+    override def updatePrevious(valuesConfig: ValuesBlock.Config,
+                                sortedIndexConfig: SortedIndexBlock.Config,
+                                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                hashIndexConfig: HashIndexBlock.Config,
+                                bloomFilterConfig: BloomFilterBlock.Config,
+                                previous: Option[Transient]): Transient.SegmentResponse =
+      this.copy(
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        previous = previous
+      )
 
     override def hasTimeLeft(): Boolean =
       deadline.forall(_.hasTimeLeft())
   }
 
   case class Update(key: Slice[Byte],
+                    normaliseToSize: Option[Int],
                     value: Option[Slice[Byte]],
                     deadline: Option[Deadline],
                     time: Time,
-                    previous: Option[KeyValue.WriteOnly],
-                    falsePositiveRate: Double,
-                    compressDuplicateValues: Boolean,
-                    resetPrefixCompressionEvery: Int,
-                    minimumNumberOfKeysForHashIndex: Int,
-                    hashIndexCompensation: Int => Int,
-                    enableRangeFilterAndIndex: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                    valuesConfig: ValuesBlock.Config,
+                    sortedIndexConfig: SortedIndexBlock.Config,
+                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                    hashIndexConfig: HashIndexBlock.Config,
+                    bloomFilterConfig: BloomFilterBlock.Config,
+                    previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
-    override def fullKey = key
+    override def mergedKey = key
+    override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
-    override def updateStats(falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): Transient.Update =
-      this.copy(falsePositiveRate = falsePositiveRate, previous = previous)
-
-    override def hasTimeLeft(): Boolean =
-      deadline.forall(_.hasTimeLeft())
-
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
-        compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = enablePrefixCompression
+        normaliseToSize = normaliseToSize,
+        compressDuplicateValues = valuesConfig.compressDuplicateValues,
+        enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
 
     val stats =
       Stats(
+        keySize = key.size,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
-        falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         isPut = false,
-        position = previous.map(_.stats.position + 1) getOrElse 1,
-        hashIndexItemsCount = previous.map(_.stats.hashIndexItemsCount + 1) getOrElse 1,
-        numberOfRanges = 0,
-        bloomFiltersItemCount = 1,
-        usePreviousHashIndexOffset = enablePrefixCompression,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
-        rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
-        previous = previous,
+        isPrefixCompressed = isPrefixCompressed,
+        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
+        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
+        thisKeyValuesNumberOfRanges = 0,
+        thisKeyValuesUniqueKeys = 1,
+        sortedIndex = sortedIndexConfig,
+        bloomFilter = bloomFilterConfig,
+        hashIndex = hashIndexConfig,
+        binarySearch = binarySearchIndexConfig,
+        values = valuesConfig,
+        previousStats = previous.map(_.stats),
         deadline = deadline
       )
+
+    override def updatePrevious(valuesConfig: ValuesBlock.Config,
+                                sortedIndexConfig: SortedIndexBlock.Config,
+                                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                hashIndexConfig: HashIndexBlock.Config,
+                                bloomFilterConfig: BloomFilterBlock.Config,
+                                previous: Option[Transient]): Transient.Update =
+      this.copy(
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        previous = previous
+      )
+
+    override def hasTimeLeft(): Boolean =
+      deadline.forall(_.hasTimeLeft())
   }
 
   case class Function(key: Slice[Byte],
+                      normaliseToSize: Option[Int],
                       function: Slice[Byte],
-                      deadline: Option[Deadline],
                       time: Time,
-                      previous: Option[KeyValue.WriteOnly],
-                      falsePositiveRate: Double,
-                      compressDuplicateValues: Boolean,
-                      resetPrefixCompressionEvery: Int,
-                      minimumNumberOfKeysForHashIndex: Int,
-                      hashIndexCompensation: Int => Int,
-                      enableRangeFilterAndIndex: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                      valuesConfig: ValuesBlock.Config,
+                      sortedIndexConfig: SortedIndexBlock.Config,
+                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                      hashIndexConfig: HashIndexBlock.Config,
+                      bloomFilterConfig: BloomFilterBlock.Config,
+                      previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
+    override def mergedKey = key
+    override def value: Option[Slice[Byte]] = Some(function)
+    override def values: Slice[Slice[Byte]] = Slice(function)
+    override def deadline: Option[Deadline] = None
 
-    override def fullKey = key
-
-    override def value = Some(function)
-
-    override def updateStats(falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): Transient.Function =
-      this.copy(falsePositiveRate = falsePositiveRate, previous = previous)
-
-    override def hasTimeLeft(): Boolean =
-      deadline.forall(_.hasTimeLeft())
-
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
-        compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = enablePrefixCompression
+        normaliseToSize = normaliseToSize,
+        compressDuplicateValues = valuesConfig.compressDuplicateValues,
+        enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
 
     val stats =
       Stats(
+        keySize = key.size,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
-        falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         isPut = false,
-        position = previous.map(_.stats.position + 1) getOrElse 1,
-        hashIndexItemsCount = previous.map(_.stats.hashIndexItemsCount + 1) getOrElse 1,
-        numberOfRanges = 0,
-        bloomFiltersItemCount = 1,
-        usePreviousHashIndexOffset = enablePrefixCompression,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
-        rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
-        previous = previous,
+        isPrefixCompressed = isPrefixCompressed,
+        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
+        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
+        thisKeyValuesNumberOfRanges = 0,
+        thisKeyValuesUniqueKeys = 1,
+        sortedIndex = sortedIndexConfig,
+        bloomFilter = bloomFilterConfig,
+        hashIndex = hashIndexConfig,
+        binarySearch = binarySearchIndexConfig,
+        values = valuesConfig,
+        previousStats = previous.map(_.stats),
         deadline = deadline
       )
+
+    override def updatePrevious(valuesConfig: ValuesBlock.Config,
+                                sortedIndexConfig: SortedIndexBlock.Config,
+                                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                hashIndexConfig: HashIndexBlock.Config,
+                                bloomFilterConfig: BloomFilterBlock.Config,
+                                previous: Option[Transient]): Transient.Function =
+      this.copy(
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        previous = previous
+      )
+
+    override def hasTimeLeft(): Boolean =
+      deadline.forall(_.hasTimeLeft())
   }
 
   case class PendingApply(key: Slice[Byte],
+                          normaliseToSize: Option[Int],
                           applies: Slice[Value.Apply],
-                          previous: Option[KeyValue.WriteOnly],
-                          falsePositiveRate: Double,
-                          compressDuplicateValues: Boolean,
-                          resetPrefixCompressionEvery: Int,
-                          minimumNumberOfKeysForHashIndex: Int,
-                          hashIndexCompensation: Int => Int,
-                          enableRangeFilterAndIndex: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                          valuesConfig: ValuesBlock.Config,
+                          sortedIndexConfig: SortedIndexBlock.Config,
+                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                          hashIndexConfig: HashIndexBlock.Config,
+                          bloomFilterConfig: BloomFilterBlock.Config,
+                          previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
-    override val deadline: Option[Deadline] =
-      Segment.getNearestDeadline(None, applies)
+    override def mergedKey = key
+    override val deadline: Option[Deadline] = Segment.getNearestDeadline(None, applies)
+    override val value: Option[Slice[Byte]] = Some(ValueSerializer.writeBytes(applies))
+    override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
-    override def value: Option[Slice[Byte]] = {
-      val bytesRequired = ValueSerializer.bytesRequired(applies)
-      val bytes = Slice.create[Byte](bytesRequired)
-      ValueSerializer.write(applies)(bytes)
-      Some(bytes)
-    }
+    override def time = Time.fromApplies(applies)
 
-    def time = Time.fromApplies(applies)
-
-    override def fullKey = key
-
-    override def updateStats(falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): Transient.PendingApply =
-      this.copy(falsePositiveRate = falsePositiveRate, previous = previous)
+    override def updatePrevious(valuesConfig: ValuesBlock.Config,
+                                sortedIndexConfig: SortedIndexBlock.Config,
+                                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                hashIndexConfig: HashIndexBlock.Config,
+                                bloomFilterConfig: BloomFilterBlock.Config,
+                                previous: Option[Transient]): Transient.PendingApply =
+      this.copy(
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        previous = previous
+      )
 
     override def hasTimeLeft(): Boolean =
       true
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
-        compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = enablePrefixCompression
+        normaliseToSize = normaliseToSize,
+        compressDuplicateValues = valuesConfig.compressDuplicateValues,
+        enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
 
     val stats =
       Stats(
+        keySize = key.size,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
-        falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         isPut = false,
-        position = previous.map(_.stats.position + 1) getOrElse 1,
-        hashIndexItemsCount = previous.map(_.stats.hashIndexItemsCount + 1) getOrElse 1,
-        numberOfRanges = 0,
-        bloomFiltersItemCount = 1,
-        usePreviousHashIndexOffset = enablePrefixCompression,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
-        rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
-        previous = previous,
+        isPrefixCompressed = isPrefixCompressed,
+        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
+        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
+        thisKeyValuesNumberOfRanges = 0,
+        thisKeyValuesUniqueKeys = 1,
+        sortedIndex = sortedIndexConfig,
+        bloomFilter = bloomFilterConfig,
+        hashIndex = hashIndexConfig,
+        binarySearch = binarySearchIndexConfig,
+        values = valuesConfig,
+        previousStats = previous.map(_.stats),
         deadline = deadline
       )
   }
@@ -885,29 +1099,35 @@ private[core] object Transient {
     def apply[R <: Value.RangeValue](fromKey: Slice[Byte],
                                      toKey: Slice[Byte],
                                      rangeValue: R,
-                                     falsePositiveRate: Double,
-                                     resetPrefixCompressionEvery: Int,
-                                     minimumNumberOfKeyForHashIndex: Int,
-                                     hashIndexCompensation: Int => Int,
-                                     enableRangeFilterAndIndex: Boolean,
-                                     previous: Option[KeyValue.WriteOnly])(implicit rangeValueSerializer: RangeValueSerializer[Unit, R]): Range = {
-      val bytesRequired = rangeValueSerializer.bytesRequired((), rangeValue)
-      val value = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
-      value.foreach(rangeValueSerializer.write((), rangeValue, _))
-      val fullKey = Bytes.compressJoin(fromKey, toKey)
+                                     valuesConfig: ValuesBlock.Config,
+                                     sortedIndexConfig: SortedIndexBlock.Config,
+                                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                     hashIndexConfig: HashIndexBlock.Config,
+                                     bloomFilterConfig: BloomFilterBlock.Config,
+                                     previous: Option[Transient])(implicit rangeValueSerializer: RangeValueSerializer[Unit, R]): Range = {
+
+      def valueSerialiser() = {
+        val bytesRequired = rangeValueSerializer.bytesRequired((), rangeValue)
+        val bytes = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
+        bytes.foreach(rangeValueSerializer.write((), rangeValue, _))
+        bytes
+      }
+
+      val mergedKey = Bytes.compressJoin(fromKey, toKey)
       new Range(
         fromKey = fromKey,
         toKey = toKey,
-        fullKey = fullKey,
+        mergedKey = mergedKey,
+        normaliseToSize = None,
         fromValue = None,
         rangeValue = rangeValue,
-        value = value,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
-        hashIndexCompensation = hashIndexCompensation
+        valueSerialiser = valueSerialiser _,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        previous = previous
       )
     }
 
@@ -915,234 +1135,220 @@ private[core] object Transient {
                                                            toKey: Slice[Byte],
                                                            fromValue: Option[F],
                                                            rangeValue: R,
-                                                           falsePositiveRate: Double,
-                                                           resetPrefixCompressionEvery: Int,
-                                                           minimumNumberOfKeyForHashIndex: Int,
-                                                           hashIndexCompensation: Int => Int,
-                                                           enableRangeFilterAndIndex: Boolean,
-                                                           previous: Option[KeyValue.WriteOnly])(implicit rangeValueSerializer: RangeValueSerializer[Option[F], R]): Range = {
-      val bytesRequired = rangeValueSerializer.bytesRequired(fromValue, rangeValue)
-      val value = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
-      value.foreach(rangeValueSerializer.write(fromValue, rangeValue, _))
-      val fullKey: Slice[Byte] = Bytes.compressJoin(fromKey, toKey)
+                                                           valuesConfig: ValuesBlock.Config,
+                                                           sortedIndexConfig: SortedIndexBlock.Config,
+                                                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                                           hashIndexConfig: HashIndexBlock.Config,
+                                                           bloomFilterConfig: BloomFilterBlock.Config,
+                                                           previous: Option[Transient])(implicit rangeValueSerializer: RangeValueSerializer[Option[F], R]): Range = {
+      def valueSerialiser() = {
+        val bytesRequired = rangeValueSerializer.bytesRequired(fromValue, rangeValue)
+        val bytes = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
+        bytes.foreach(rangeValueSerializer.write(fromValue, rangeValue, _))
+        bytes
+      }
+
+      val mergedKey: Slice[Byte] = Bytes.compressJoin(fromKey, toKey)
 
       new Range(
         fromKey = fromKey,
         toKey = toKey,
-        fullKey = fullKey,
+        mergedKey = mergedKey,
+        normaliseToSize = None,
         fromValue = fromValue,
         rangeValue = rangeValue,
-        value = value,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
-        hashIndexCompensation = hashIndexCompensation
+        valueSerialiser = valueSerialiser _,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        previous = previous
       )
     }
   }
 
   case class Range(fromKey: Slice[Byte],
                    toKey: Slice[Byte],
-                   fullKey: Slice[Byte],
+                   mergedKey: Slice[Byte],
+                   normaliseToSize: Option[Int],
                    fromValue: Option[Value.FromValue],
                    rangeValue: Value.RangeValue,
-                   value: Option[Slice[Byte]],
-                   previous: Option[KeyValue.WriteOnly],
-                   falsePositiveRate: Double,
-                   resetPrefixCompressionEvery: Int,
-                   minimumNumberOfKeysForHashIndex: Int,
-                   hashIndexCompensation: Int => Int,
-                   enableRangeFilterAndIndex: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Range {
-
-    def key = fromKey
+                   valueSerialiser: () => Option[Slice[Byte]],
+                   valuesConfig: ValuesBlock.Config,
+                   sortedIndexConfig: SortedIndexBlock.Config,
+                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                   hashIndexConfig: HashIndexBlock.Config,
+                   bloomFilterConfig: BloomFilterBlock.Config,
+                   previous: Option[Transient]) extends Transient.SegmentResponse {
 
     override val isRemoveRangeMayBe = rangeValue.hasRemoveMayBe
     override val isGroup: Boolean = false
     override val isRange: Boolean = true
     override val deadline: Option[Deadline] = None
-    override def updateStats(falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): Transient.Range =
-      this.copy(falsePositiveRate = falsePositiveRate, previous = previous)
+    override def key = fromKey
+    override def value = valueSerialiser()
+    override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
-    override def fetchFromValue: IO[Option[Value.FromValue]] =
-      IO.Success(fromValue)
-
-    override def fetchRangeValue: IO[Value.RangeValue] =
-      IO.Success(rangeValue)
-
-    override def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)] =
-      IO.Success(fromValue, rangeValue)
-
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = Time.empty,
+        normaliseToSize = normaliseToSize,
         //It's highly likely that two sequential key-values within the same range have the different value after the range split occurs so this is always set to true.
-        compressDuplicateValues = true,
-        enablePrefixCompression = enablePrefixCompression
+        compressDuplicateValues = valuesConfig.compressDuplicateRangeValues,
+        enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
 
-    val commonBytesCount = Bytes.commonPrefixBytesCount(fromKey, toKey)
-
-    val rangeCommonPrefixesCount: SortedSet[Int] =
-      previous map {
-        previous =>
-          if (previous.stats.rangeCommonPrefixesCount.contains(commonBytesCount))
-            previous.stats.rangeCommonPrefixesCount
-          else
-            previous.stats.rangeCommonPrefixesCount + commonBytesCount
-      } getOrElse Stats.createRangeCommonPrefixesCount(commonBytesCount)
-
     val stats =
       Stats(
+        keySize = fromKey.size + toKey.size,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
-        falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
-        position = previous.map(_.stats.position + 1) getOrElse 1,
-        hashIndexItemsCount = previous.map(_.stats.hashIndexItemsCount + 2) getOrElse 2,
-        numberOfRanges = 1,
-        bloomFiltersItemCount = 2,
-        usePreviousHashIndexOffset = enablePrefixCompression,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex, //ranges cost 2. One for fromKey and second for rangeFilter's common prefix bytes.
-        hashIndexCompensation = hashIndexCompensation,
-        rangeCommonPrefixesCount = rangeCommonPrefixesCount,
-        previous = previous,
+        thisKeyValuesNumberOfRanges = 1,
+        thisKeyValuesUniqueKeys = 1,
+        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
+        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
+        sortedIndex = sortedIndexConfig,
+        isPrefixCompressed = isPrefixCompressed,
+        bloomFilter = bloomFilterConfig,
+        hashIndex = hashIndexConfig,
+        binarySearch = binarySearchIndexConfig,
+        values = valuesConfig,
+        previousStats = previous.map(_.stats),
         deadline = None
+      )
+
+    override def updatePrevious(valuesConfig: ValuesBlock.Config,
+                                sortedIndexConfig: SortedIndexBlock.Config,
+                                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                hashIndexConfig: HashIndexBlock.Config,
+                                bloomFilterConfig: BloomFilterBlock.Config,
+                                previous: Option[Transient]): Transient.Range =
+      this.copy(
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        previous = previous
       )
   }
 
   object Group {
 
-    def apply(keyValues: Slice[KeyValue.WriteOnly],
-              indexCompression: CompressionInternal,
-              valueCompression: CompressionInternal,
-              falsePositiveRate: Double,
-              resetPrefixCompressionEvery: Int,
-              minimumNumberOfKeyForHashIndex: Int,
-              hashIndexCompensation: Int => Int,
-              previous: Option[KeyValue.WriteOnly],
-              maxProbe: Int,
-              enableRangeFilterAndIndex: Boolean): IO[Option[Transient.Group]] =
+    def apply(keyValues: Slice[Transient],
+              previous: Option[Transient],
+              createdInLevel: Int,
+              //compression is for the group's key-values.
+              groupConfig: SegmentBlock.Config,
+              //these configs are for the Group itself and not the key-values within the group.
+              valuesConfig: ValuesBlock.Config,
+              sortedIndexConfig: SortedIndexBlock.Config,
+              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+              hashIndexConfig: HashIndexBlock.Config,
+              bloomFilterConfig: BloomFilterBlock.Config): IO[swaydb.Error.Segment, Transient.Group] =
       GroupCompressor.compress(
         keyValues = keyValues,
-        indexCompressions = Seq(indexCompression),
-        valueCompressions = Seq(valueCompression),
-        falsePositiveRate = falsePositiveRate,
-        hashIndexCompensation = hashIndexCompensation,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
         previous = previous,
-        maxProbe = maxProbe,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex
-      )
-
-    def apply(keyValues: Slice[KeyValue.WriteOnly],
-              indexCompressions: Seq[CompressionInternal],
-              valueCompressions: Seq[CompressionInternal],
-              falsePositiveRate: Double,
-              resetPrefixCompressionEvery: Int,
-              minimumNumberOfKeyForHashIndex: Int,
-              hashIndexCompensation: Int => Int,
-              previous: Option[KeyValue.WriteOnly],
-              maxProbe: Int,
-              enableRangeFilterAndIndex: Boolean): IO[Option[Transient.Group]] =
-      GroupCompressor.compress(
-        keyValues = keyValues,
-        indexCompressions = indexCompressions,
-        valueCompressions = valueCompressions,
-        falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        hashIndexCompensation = hashIndexCompensation,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-        previous = previous,
-        maxProbe = maxProbe,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex
+        groupConfig = groupConfig,
+        createdInLevel = createdInLevel,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig
       )
   }
 
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
-                   fullKey: Slice[Byte],
-                   compressedKeyValues: Slice[Byte],
+                   mergedKey: Slice[Byte],
+                   normaliseToSize: Option[Int],
+                   blockedSegment: SegmentBlock.Closed,
                    //the deadline is the nearest deadline in the Group's key-values.
+                   minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                    deadline: Option[Deadline],
-                   keyValues: Slice[KeyValue.WriteOnly],
-                   previous: Option[KeyValue.WriteOnly],
-                   falsePositiveRate: Double,
-                   resetPrefixCompressionEvery: Int,
-                   minimumNumberOfKeysForHashIndex: Int,
-                   hashIndexCompensation: Int => Int,
-                   enableRangeFilterAndIndex: Boolean) extends Transient with KeyValue.WriteOnly.Group {
+                   keyValues: Slice[Transient],
+                   valuesConfig: ValuesBlock.Config,
+                   sortedIndexConfig: SortedIndexBlock.Config,
+                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                   hashIndexConfig: HashIndexBlock.Config,
+                   bloomFilterConfig: BloomFilterBlock.Config,
+                   previous: Option[Transient]) extends Transient {
 
-    override def key = minKey
+    def key = minKey
 
-    override val isRemoveRangeMayBe: Boolean = keyValues.last.stats.hasRemoveRange
-    override val isRange: Boolean = keyValues.last.stats.hasRange
+    override val isRemoveRangeMayBe: Boolean = keyValues.last.stats.segmentHasRemoveRange
+    override val isRange: Boolean = keyValues.last.stats.segmentHasRange
     override val isGroup: Boolean = true
-    override val value: Option[Slice[Byte]] = Some(compressedKeyValues)
+    override def values: Slice[Slice[Byte]] = blockedSegment.segmentBytes
 
-    override def updateStats(falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): Transient.Group =
-      this.copy(falsePositiveRate = falsePositiveRate, previous = previous)
-
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = Time.empty,
+        normaliseToSize = normaliseToSize,
         //it's highly unlikely that 2 groups after compression will have duplicate values.
         //compressDuplicateValues check is unnecessary since the value bytes of a group can be large.
         compressDuplicateValues = false,
-        enablePrefixCompression = enablePrefixCompression
+        enablePrefixCompression = Transient.enablePrefixCompression(this)
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
 
-    val rangeCommonPrefixesCount: SortedSet[Int] =
-      previous map {
-        previous =>
-          previous.stats.rangeCommonPrefixesCount ++ keyValues.last.stats.rangeCommonPrefixesCount
-      } getOrElse keyValues.last.stats.rangeCommonPrefixesCount
-
     val stats =
       Stats(
+        keySize = minKey.size + maxKey.maxKey.size,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
-        falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
-        isPut = keyValues.last.stats.hasPut,
-        position = previous.map(_.stats.position + 1) getOrElse 1,
-        hashIndexItemsCount = previous.map(_.stats.hashIndexItemsCount + keyValues.last.stats.hashIndexItemsCount).getOrElse(keyValues.last.stats.hashIndexItemsCount),
-        numberOfRanges = keyValues.last.stats.totalNumberOfRanges,
-        bloomFiltersItemCount = keyValues.last.stats.totalBloomFiltersItemsCount,
-        usePreviousHashIndexOffset = enablePrefixCompression,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
-        rangeCommonPrefixesCount = rangeCommonPrefixesCount,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
-        previous = previous,
+        isPut = keyValues.last.stats.segmentHasPut,
+        isPrefixCompressed = isPrefixCompressed,
+        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
+        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
+        thisKeyValuesNumberOfRanges = keyValues.last.stats.segmentTotalNumberOfRanges,
+        thisKeyValuesUniqueKeys = keyValues.last.stats.segmentUniqueKeysCount,
+        sortedIndex = sortedIndexConfig,
+        bloomFilter = bloomFilterConfig,
+        hashIndex = hashIndexConfig,
+        binarySearch = binarySearchIndexConfig,
+        values = valuesConfig,
+        previousStats = previous.map(_.stats),
         deadline = deadline
+      )
+
+    override def updatePrevious(valuesConfig: ValuesBlock.Config,
+                                sortedIndexConfig: SortedIndexBlock.Config,
+                                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                hashIndexConfig: HashIndexBlock.Config,
+                                bloomFilterConfig: BloomFilterBlock.Config,
+                                previous: Option[Transient]): Transient.Group =
+      this.copy(
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        previous = previous
       )
   }
 }
 
-private[core] sealed trait Persistent extends KeyValue.ReadOnly with KeyValue.CacheAble {
+private[core] sealed trait Persistent extends KeyValue.CacheAble {
 
   val indexOffset: Int
   val nextIndexOffset: Int
   val nextIndexSize: Int
-
-  def key: Slice[Byte]
-
-  def isValueDefined: Boolean
+  val accessPosition: Int
 
   def valueLength: Int
 
@@ -1151,37 +1357,23 @@ private[core] sealed trait Persistent extends KeyValue.ReadOnly with KeyValue.Ca
   def isPrefixCompressed: Boolean
 
   /**
-    * This function is NOT thread-safe and is mutable. It should always be invoke at the time of creation
-    * and before inserting into the Segment's cache.
-    */
-  def unsliceIndexBytes: Unit
+   * This function is NOT thread-safe and is mutable. It should always be invoke at the time of creation
+   * and before inserting into the Segment's cache.
+   */
+  def unsliceKeys: Unit
 }
 
 private[core] object Persistent {
 
   sealed trait SegmentResponse extends KeyValue.ReadOnly.SegmentResponse with Persistent {
-    def toMemory(): IO[Memory.SegmentResponse]
+    def toMemory(): IO[swaydb.Error.Segment, Memory.SegmentResponse]
 
-    def toMemoryResponseOption(): IO[Option[Memory.SegmentResponse]] =
+    def isValueCached: Boolean
+
+    def toMemoryResponseOption(): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
       toMemory() map (Some(_))
   }
   sealed trait Fixed extends Persistent.SegmentResponse with KeyValue.ReadOnly.Fixed
-
-  object Remove {
-    def apply(key: Slice[Byte],
-              deadline: Option[Deadline],
-              time: Time,
-              isPrefixCompressed: Boolean): Persistent.Remove =
-      Persistent.Remove(
-        _key = key,
-        deadline = deadline,
-        _time = time,
-        indexOffset = 0,
-        nextIndexOffset = -1,
-        nextIndexSize = 0,
-        isPrefixCompressed = isPrefixCompressed
-      )
-  }
 
   case class Remove(private var _key: Slice[Byte],
                     deadline: Option[Deadline],
@@ -1189,10 +1381,11 @@ private[core] object Persistent {
                     indexOffset: Int,
                     nextIndexOffset: Int,
                     nextIndexSize: Int,
+                    accessPosition: Int,
                     isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Remove {
     override val valueLength: Int = 0
-    override val isValueDefined: Boolean = true
-    override val valueOffset: Int = 0
+    override val isValueCached: Boolean = true
+    override val valueOffset: Int = -1
 
     def key = _key
 
@@ -1200,7 +1393,7 @@ private[core] object Persistent {
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
-    override def unsliceIndexBytes(): Unit = {
+    override def unsliceKeys(): Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
     }
@@ -1211,8 +1404,8 @@ private[core] object Persistent {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.exists(deadline => (deadline - minus).hasTimeLeft())
 
-    override def toMemory(): IO[Memory.Remove] =
-      IO.Success {
+    override def toMemory(): IO[swaydb.Error.Segment, Memory.Remove] =
+      IO.Right {
         Memory.Remove(
           key = key,
           deadline = deadline,
@@ -1223,10 +1416,10 @@ private[core] object Persistent {
     override def copyWithTime(time: Time): ReadOnly.Remove =
       copy(_time = time)
 
-    override def toFromValue(): IO[Value.Remove] =
-      IO.Success(toRemoveValue())
+    override def toFromValue(): IO[swaydb.Error.Segment, Value.Remove] =
+      IO.Right(toRemoveValue())
 
-    override def toRangeValue(): IO[Value.Remove] =
+    override def toRangeValue(): IO[swaydb.Error.Segment, Value.Remove] =
       toFromValue()
 
     override def toRemoveValue(): Value.Remove =
@@ -1234,41 +1427,51 @@ private[core] object Persistent {
   }
 
   object Put {
-    def apply(key: Slice[Byte],
-              deadline: Option[Deadline],
-              time: Time,
-              value: Option[Slice[Byte]],
-              isPrefixCompressed: Boolean): Persistent.Put =
-      Persistent.Put(
+    def fromCache(key: Slice[Byte],
+                  deadline: Option[Deadline],
+                  valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  time: Time,
+                  nextIndexOffset: Int,
+                  nextIndexSize: Int,
+                  indexOffset: Int,
+                  valueOffset: Int,
+                  valueLength: Int,
+                  accessPosition: Int,
+                  isPrefixCompressed: Boolean) =
+      new Put(
         _key = key,
         deadline = deadline,
-        lazyValueReader =
-          LazyValueReader(
-            reader = value.map(Reader(_)).getOrElse(Reader.empty),
-            offset = 0,
-            length = value.map(_.size).getOrElse(0)
-          ),
+        valueCache =
+          valueCache mapConcurrentStored {
+            reader =>
+              reader
+                .copy()
+                .readFullBlockOrNone()
+                .map(_.unslice())
+          },
         _time = time,
-        nextIndexOffset = -1,
-        nextIndexSize = 0,
-        indexOffset = 0,
-        valueOffset = 0,
-        valueLength = value.map(_.size).getOrElse(0),
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        indexOffset = indexOffset,
+        valueOffset = valueOffset,
+        valueLength = valueLength,
+        accessPosition = accessPosition,
         isPrefixCompressed = isPrefixCompressed
       )
   }
 
   case class Put(private var _key: Slice[Byte],
                  deadline: Option[Deadline],
-                 private val lazyValueReader: LazyValueReader,
+                 private val valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, Option[Slice[Byte]]],
                  private var _time: Time,
                  nextIndexOffset: Int,
                  nextIndexSize: Int,
                  indexOffset: Int,
                  valueOffset: Int,
                  valueLength: Int,
+                 accessPosition: Int,
                  isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Put {
-    override def unsliceIndexBytes: Unit = {
+    override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
     }
@@ -1287,22 +1490,22 @@ private[core] object Persistent {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: IO[Option[Slice[Byte]]] =
-      lazyValueReader.getOrFetchValue
+    override def getOrFetchValue: IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
+      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
-    override def isValueDefined: Boolean =
-      lazyValueReader.isValueDefined
+    override def isValueCached: Boolean =
+      valueCache.isCached
 
-    override def toFromValue(): IO[Value.Put] =
+    override def toFromValue(): IO[swaydb.Error.Segment, Value.Put] =
       getOrFetchValue map {
         value =>
           Value.Put(value, deadline, time)
       }
 
-    override def toRangeValue(): IO[Value.RangeValue] =
-      IO.Failure(new Exception("Put cannot be converted to RangeValue"))
+    override def toRangeValue(): IO[swaydb.Error.Segment, Value.RangeValue] =
+      IO.failed("Put cannot be converted to RangeValue")
 
-    override def toMemory(): IO[Memory.Put] =
+    override def toMemory(): IO[swaydb.Error.Segment, Memory.Put] =
       getOrFetchValue map {
         value =>
           Memory.Put(
@@ -1321,17 +1524,52 @@ private[core] object Persistent {
       copy(_time = time)
   }
 
+  object Update {
+    def fromCache(key: Slice[Byte],
+                  deadline: Option[Deadline],
+                  valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  time: Time,
+                  nextIndexOffset: Int,
+                  nextIndexSize: Int,
+                  indexOffset: Int,
+                  valueOffset: Int,
+                  valueLength: Int,
+                  accessPosition: Int,
+                  isPrefixCompressed: Boolean) =
+      new Update(
+        _key = key,
+        deadline = deadline,
+        valueCache =
+          valueCache mapConcurrentStored {
+            reader =>
+              reader
+                .copy()
+                .readFullBlockOrNone()
+                .map(_.unslice())
+          },
+        _time = time,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        indexOffset = indexOffset,
+        valueOffset = valueOffset,
+        valueLength = valueLength,
+        accessPosition = accessPosition,
+        isPrefixCompressed = isPrefixCompressed
+      )
+  }
+
   case class Update(private var _key: Slice[Byte],
                     deadline: Option[Deadline],
-                    private val lazyValueReader: LazyValueReader,
+                    private val valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, Option[Slice[Byte]]],
                     private var _time: Time,
                     nextIndexOffset: Int,
                     nextIndexSize: Int,
                     indexOffset: Int,
                     valueOffset: Int,
                     valueLength: Int,
+                    accessPosition: Int,
                     isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Update {
-    override def unsliceIndexBytes: Unit = {
+    override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
     }
@@ -1350,22 +1588,22 @@ private[core] object Persistent {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def isValueDefined: Boolean =
-      lazyValueReader.isValueDefined
+    override def isValueCached: Boolean =
+      valueCache.isCached
 
-    def getOrFetchValue: IO[Option[Slice[Byte]]] =
-      lazyValueReader.getOrFetchValue
+    def getOrFetchValue: IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
+      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
-    override def toFromValue(): IO[Value.Update] =
+    override def toFromValue(): IO[swaydb.Error.Segment, Value.Update] =
       getOrFetchValue map {
         value =>
           Value.Update(value, deadline, time)
       }
 
-    override def toRangeValue(): IO[Value.Update] =
+    override def toRangeValue(): IO[swaydb.Error.Segment, Value.Update] =
       toFromValue()
 
-    override def toMemory(): IO[Memory.Update] =
+    override def toMemory(): IO[swaydb.Error.Segment, Memory.Update] =
       getOrFetchValue map {
         value =>
           Memory.Update(
@@ -1390,13 +1628,14 @@ private[core] object Persistent {
       Persistent.Put(
         _key = key,
         deadline = deadline,
-        lazyValueReader = lazyValueReader,
+        valueCache = valueCache,
         _time = time,
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
         indexOffset = indexOffset,
         valueOffset = valueOffset,
         valueLength = valueLength,
+        accessPosition = accessPosition,
         isPrefixCompressed = isPrefixCompressed
       )
 
@@ -1404,27 +1643,61 @@ private[core] object Persistent {
       Persistent.Put(
         _key = key,
         deadline = deadline,
-        lazyValueReader = lazyValueReader,
+        valueCache = valueCache,
         _time = time,
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
         indexOffset = indexOffset,
         valueOffset = valueOffset,
         valueLength = valueLength,
+        accessPosition = accessPosition,
+        isPrefixCompressed = isPrefixCompressed
+      )
+  }
+
+  object Function {
+    def fromCache(key: Slice[Byte],
+                  valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  time: Time,
+                  nextIndexOffset: Int,
+                  nextIndexSize: Int,
+                  indexOffset: Int,
+                  valueOffset: Int,
+                  valueLength: Int,
+                  accessPosition: Int,
+                  isPrefixCompressed: Boolean) =
+      new Function(
+        _key = key,
+        valueCache =
+          valueCache mapConcurrentStored {
+            reader =>
+              reader
+                .copy()
+                .readFullBlock()
+                .map(_.unslice())
+          },
+        _time = time,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        indexOffset = indexOffset,
+        valueOffset = valueOffset,
+        valueLength = valueLength,
+        accessPosition = accessPosition,
         isPrefixCompressed = isPrefixCompressed
       )
   }
 
   case class Function(private var _key: Slice[Byte],
-                      private val lazyFunctionReader: LazyFunctionReader,
+                      private val valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, Slice[Byte]],
                       private var _time: Time,
                       nextIndexOffset: Int,
                       nextIndexSize: Int,
                       indexOffset: Int,
                       valueOffset: Int,
                       valueLength: Int,
+                      accessPosition: Int,
                       isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Function {
-    override def unsliceIndexBytes: Unit = {
+    override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
     }
@@ -1437,22 +1710,22 @@ private[core] object Persistent {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def isValueDefined: Boolean =
-      lazyFunctionReader.isValueDefined
+    override def isValueCached: Boolean =
+      valueCache.isCached
 
-    def getOrFetchFunction: IO[Slice[Byte]] =
-      lazyFunctionReader.getOrFetchFunction
+    def getOrFetchFunction: IO[swaydb.Error.Segment, Slice[Byte]] =
+      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
-    override def toFromValue(): IO[Value.Function] =
+    override def toFromValue(): IO[swaydb.Error.Segment, Value.Function] =
       getOrFetchFunction map {
         value =>
           Value.Function(value, time)
       }
 
-    override def toRangeValue(): IO[Value.Function] =
+    override def toRangeValue(): IO[swaydb.Error.Segment, Value.Function] =
       toFromValue()
 
-    override def toMemory(): IO[Memory.Function] =
+    override def toMemory(): IO[swaydb.Error.Segment, Memory.Function] =
       getOrFetchFunction map {
         function =>
           Memory.Function(
@@ -1467,21 +1740,40 @@ private[core] object Persistent {
   }
 
   object PendingApply {
-    def apply(key: Slice[Byte],
-              deadline: Option[Deadline],
-              applies: Slice[Value.Apply],
-              time: Time,
-              isPrefixCompressed: Boolean): Persistent.PendingApply =
-      Persistent.PendingApply(
+    def fromCache(key: Slice[Byte],
+                  time: Time,
+                  deadline: Option[Deadline],
+                  valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  nextIndexOffset: Int,
+                  nextIndexSize: Int,
+                  indexOffset: Int,
+                  valueOffset: Int,
+                  valueLength: Int,
+                  accessPosition: Int,
+                  isPrefixCompressed: Boolean) =
+      new PendingApply(
         _key = key,
         _time = time,
         deadline = deadline,
-        lazyValueReader = ActivePendingApplyValueReader(applies),
-        nextIndexOffset = -1,
-        nextIndexSize = 0,
-        indexOffset = 0,
-        valueOffset = 0,
-        valueLength = 0,
+        valueCache =
+          valueCache mapConcurrentStored {
+            reader =>
+              reader
+                .copy()
+                .readFullBlock()
+                .flatMap {
+                  bytes =>
+                    ValueSerializer
+                      .read[Slice[Value.Apply]](bytes)
+                      .map(_.map(_.unslice))
+                }
+          },
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        indexOffset = indexOffset,
+        valueOffset = valueOffset,
+        valueLength = valueLength,
+        accessPosition = accessPosition,
         isPrefixCompressed = isPrefixCompressed
       )
   }
@@ -1489,14 +1781,15 @@ private[core] object Persistent {
   case class PendingApply(private var _key: Slice[Byte],
                           private var _time: Time,
                           deadline: Option[Deadline],
-                          lazyValueReader: LazyPendingApplyValueReader,
+                          valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, Slice[Value.Apply]],
                           nextIndexOffset: Int,
                           nextIndexSize: Int,
                           indexOffset: Int,
                           valueOffset: Int,
                           valueLength: Int,
+                          accessPosition: Int,
                           isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.PendingApply {
-    override def unsliceIndexBytes: Unit = {
+    override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
     }
@@ -1509,22 +1802,21 @@ private[core] object Persistent {
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
-    override def isValueDefined: Boolean =
-      lazyValueReader.isValueDefined
+    override def isValueCached: Boolean =
+      valueCache.isCached
 
-    override def getOrFetchApplies: IO[Slice[Value.Apply]] =
-      lazyValueReader.getOrFetchApplies
+    override def getOrFetchApplies: IO[swaydb.Error.Segment, Slice[Value.Apply]] =
+      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
-    override def toFromValue(): IO[Value.PendingApply] =
-      lazyValueReader.getOrFetchApplies map {
-        applies =>
-          Value.PendingApply(applies)
-      }
+    override def toFromValue(): IO[swaydb.Error.Segment, Value.PendingApply] =
+      valueCache
+        .value(ValuesBlock.Offset(valueOffset, valueLength))
+        .map(Value.PendingApply)
 
-    override def toRangeValue(): IO[Value.PendingApply] =
+    override def toRangeValue(): IO[swaydb.Error.Segment, Value.PendingApply] =
       toFromValue()
 
-    override def toMemory(): IO[Memory.PendingApply] =
+    override def toMemory(): IO[swaydb.Error.Segment, Memory.PendingApply] =
       getOrFetchApplies map {
         applies =>
           Memory.PendingApply(
@@ -1536,24 +1828,37 @@ private[core] object Persistent {
 
   object Range {
     def apply(key: Slice[Byte],
-              lazyRangeValueReader: LazyRangeValueReader,
+              valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               nextIndexOffset: Int,
               nextIndexSize: Int,
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              isPrefixCompressed: Boolean): IO[Persistent.Range] =
+              accessPosition: Int,
+              isPrefixCompressed: Boolean): IO[swaydb.Error.Segment, Persistent.Range] =
       Bytes.decompressJoin(key) map {
         case (fromKey, toKey) =>
           Range(
             _fromKey = fromKey,
             _toKey = toKey,
-            lazyRangeValueReader = lazyRangeValueReader,
+            valueCache =
+              valueCache mapConcurrentStored {
+                rangeReader =>
+                  rangeReader
+                    .copy()
+                    .readFullBlock()
+                    .flatMap(RangeValueSerializer.read)
+                    .map {
+                      case (from, range) =>
+                        (from.map(_.unslice), range.unslice)
+                    }
+              },
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
             indexOffset = indexOffset,
             valueOffset = valueOffset,
             valueLength = valueLength,
+            accessPosition = accessPosition,
             isPrefixCompressed = isPrefixCompressed
           )
       }
@@ -1561,12 +1866,13 @@ private[core] object Persistent {
 
   case class Range(private var _fromKey: Slice[Byte],
                    private var _toKey: Slice[Byte],
-                   lazyRangeValueReader: LazyRangeValueReader,
+                   valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)],
                    nextIndexOffset: Int,
                    nextIndexSize: Int,
                    indexOffset: Int,
                    valueOffset: Int,
                    valueLength: Int,
+                   accessPosition: Int,
                    isPrefixCompressed: Boolean) extends Persistent.SegmentResponse with KeyValue.ReadOnly.Range {
 
     def fromKey = _fromKey
@@ -1575,7 +1881,7 @@ private[core] object Persistent {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def unsliceIndexBytes: Unit = {
+    override def unsliceKeys: Unit = {
       this._fromKey = _fromKey.unslice()
       this._toKey = _toKey.unslice()
     }
@@ -1583,19 +1889,16 @@ private[core] object Persistent {
     override def key: Slice[Byte] =
       _fromKey
 
-    override def fetchFromValue: IO[Option[Value.FromValue]] =
-      lazyRangeValueReader.fetchFromValue
+    def fetchRangeValue: IO[swaydb.Error.Segment, Value.RangeValue] =
+      fetchFromAndRangeValue.map(_._2)
 
-    override def fetchRangeValue: IO[Value.RangeValue] =
-      lazyRangeValueReader.fetchRangeValue
+    def fetchFromValue: IO[swaydb.Error.Segment, Option[Value.FromValue]] =
+      fetchFromAndRangeValue.map(_._1)
 
-    override def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)] =
-      lazyRangeValueReader.fetchFromAndRangeValue
+    def fetchFromAndRangeValue: IO[swaydb.Error.Segment, (Option[Value.FromValue], Value.RangeValue)] =
+      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
-    override def isValueDefined: Boolean =
-      lazyRangeValueReader.isValueDefined
-
-    override def toMemory(): IO[Memory.Range] =
+    override def toMemory(): IO[swaydb.Error.Segment, Memory.Range] =
       fetchFromAndRangeValue map {
         case (fromValue, rangeValue) =>
           Memory.Range(
@@ -1605,64 +1908,93 @@ private[core] object Persistent {
             rangeValue = rangeValue
           )
       }
+
+    override def isValueCached: Boolean =
+      valueCache.isCached
   }
 
   object Group {
     def apply(key: Slice[Byte],
-              valueReader: Reader,
-              lazyGroupValueReader: LazyGroupValueReader,
+              valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               nextIndexOffset: Int,
               nextIndexSize: Int,
               indexOffset: Int,
               valueLength: Int,
               valueOffset: Int,
+              accessPosition: Int,
               deadline: Option[Deadline],
-              isPrefixCompressed: Boolean): IO[Group] =
-      GroupKeyCompressor.decompress(key) map {
+              isPrefixCompressed: Boolean): IO[swaydb.Error.Segment, Group] =
+      GroupKeyCompressor.decompress(key) flatMap {
         case (minKey, maxKey) =>
-          Group(
-            _minKey = minKey,
-            _maxKey = maxKey,
-            lazyGroupValueReader = lazyGroupValueReader,
-            groupDecompressor = GroupDecompressor(valueReader.copy(), valueOffset),
-            valueReader = valueReader.copy(),
-            nextIndexOffset = nextIndexOffset,
-            nextIndexSize = nextIndexSize,
-            indexOffset = indexOffset,
-            valueOffset = valueOffset,
-            valueLength = valueLength,
-            deadline = deadline,
-            isPrefixCompressed = isPrefixCompressed
-          )
+          valueCache.value(ValuesBlock.Offset(valueOffset, valueLength)) map {
+            reader =>
+              val segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[MemorySweeper.KeyValue], SegmentIO), SegmentCache] =
+                Cache.noIO(synchronised = true, stored = true, initial = None) {
+                  case (keyOrder: KeyOrder[Slice[Byte]], memorySweeper: Option[MemorySweeper.KeyValue], groupIO: SegmentIO) =>
+                    val blockRef: BlockRefReader[SegmentBlock.Offset] =
+                      BlockRefReader.moveTo(
+                        //cache will return a reader with the offset pointing to this Group's offset, here simply reset to return as an BlockRef within the parent Segment's values block.
+                        start = 0,
+                        size = valueLength,
+                        reader = reader.copy()
+                      )
+
+                    SegmentCache(
+                      id = "Persistent.Group - BinarySegment",
+                      maxKey = maxKey,
+                      minKey = minKey,
+                      //persistent key-value's key do not have be sliced either because the decompressed bytes are still in memory.
+                      //slicing will just use more memory. On memory overflow the Group itself will find dropped and hence all the
+                      //key-values inside the group's SegmentCache will also be GC'd.
+                      unsliceKey = false,
+                      blockRef = blockRef,
+                      segmentIO = groupIO
+                    )(keyOrder, memorySweeper)
+                }
+
+              Group(
+                _minKey = minKey,
+                _maxKey = maxKey,
+                segmentCache = segmentCache,
+                nextIndexOffset = nextIndexOffset,
+                nextIndexSize = nextIndexSize,
+                indexOffset = indexOffset,
+                valueOffset = valueOffset,
+                valueLength = valueLength,
+                accessPosition = accessPosition,
+                deadline = deadline,
+                isPrefixCompressed = isPrefixCompressed
+              )
+          }
       }
   }
 
   case class Group(private var _minKey: Slice[Byte],
                    private var _maxKey: MaxKey[Slice[Byte]],
-                   private val groupDecompressor: GroupDecompressor,
-                   lazyGroupValueReader: LazyGroupValueReader,
-                   valueReader: Reader,
+                   segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[MemorySweeper.KeyValue], SegmentIO), SegmentCache],
                    nextIndexOffset: Int,
                    nextIndexSize: Int,
                    indexOffset: Int,
                    valueOffset: Int,
                    valueLength: Int,
+                   accessPosition: Int,
                    deadline: Option[Deadline],
                    isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group {
 
-    lazy val segmentCacheInitializer =
-      new SegmentCacheInitializer(
-        id = "Persistent.Group",
-        minKey = minKey,
-        maxKey = maxKey,
-        //persistent key-value's key do not have be sliced either because the decompressed bytes are still in memory.
-        //slicing will just use more memory. On memory overflow the Group itself will get dropped and hence all the
-        //key-values inside the group's SegmentCache will also be GC'd.
-        unsliceKey = false,
-        getFooter = groupDecompressor.footer _,
-        getHashIndexHeader = groupDecompressor.hashIndexHeader _,
-        createReader = groupDecompressor.reader _
-      )
+    def areAllCachesEmpty: Boolean =
+      segmentCache.get() forall (_.areAllCachesEmpty)
+
+    def isKeyValuesCacheEmpty: Boolean =
+      segmentCache.get() forall (_.isKeyValueCacheEmpty)
+
+    def isBlockCacheEmpty: Boolean =
+      segmentCache.get() forall (_.isBlockCacheEmpty)
+
+    def clearCachedKeyValues(): Unit =
+      segmentCache.get() foreach (_.clearCachedKeyValues())
+
+    def clearBlockCache(): Unit =
+      segmentCache.get() foreach (_.clearLocalAndBlockCache())
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
@@ -1675,35 +2007,16 @@ private[core] object Persistent {
     override def maxKey: MaxKey[Slice[Byte]] =
       _maxKey
 
-    override def unsliceIndexBytes: Unit = {
+    override def unsliceKeys: Unit = {
       this._minKey = _minKey.unslice()
       this._maxKey = _maxKey.unslice()
     }
 
-    def isIndexDecompressed: Boolean =
-      groupDecompressor.isIndexDecompressed()
-
-    def isValueDecompressed: Boolean =
-      groupDecompressor.isValueDecompressed()
-
-    def isHeaderDecompressed: Boolean =
-      groupDecompressor.isHeaderDecompressed()
-
-    def header() =
-      groupDecompressor.header()
-
-    /**
-      * On uncompressed a new Group is returned. It would be much efficient if the Group's old [[SegmentCache]]'s skipList's
-      * key-values are also still passed to the new Group in a thread-safe manner.
-      */
-    def uncompress(): Persistent.Group =
-      copy(groupDecompressor = groupDecompressor.uncompress(), valueReader = valueReader.copy())
-
-    def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
-                     keyValueLimiter: KeyValueLimiter): SegmentCache =
-      segmentCacheInitializer.segmentCache
-
-    override def isValueDefined: Boolean =
-      lazyGroupValueReader.isValueDefined
+    def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
+                memorySweeper: Option[MemorySweeper.KeyValue],
+                config: SegmentIO): SegmentCache =
+      segmentCache getOrElse {
+        segmentCache.value(keyOrder, memorySweeper, config)
+      }
   }
 }

@@ -19,13 +19,14 @@
 
 package swaydb.extensions.stream
 
-import scala.annotation.tailrec
-import swaydb.Streamer
-import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.extensions.Key
 import swaydb.serializers.Serializer
+import swaydb.{IO, Streamable}
+import swaydb.Error.API.ExceptionHandler
+
+import scala.annotation.tailrec
 
 /**
   * TODO - [[MapStream]] and [[MapKeysStream]] are similar and need a higher type - tagless final.
@@ -130,20 +131,20 @@ object MapStream {
       }
 
   @tailrec
-  private def step[K, V](stream: swaydb.Stream[(Key[K], Option[V]), IO],
+  private def step[K, V](stream: swaydb.Stream[(Key[K], Option[V]), IO.ApiIO],
                          previous: (Key[K], Option[V]),
                          isReverse: Boolean,
                          mapsOnly: Boolean,
-                         thisMapKeyBytes: Slice[Byte])(implicit keySerializer: Serializer[K]): IO[Option[(Key[K], Option[V])]] =
+                         thisMapKeyBytes: Slice[Byte])(implicit keySerializer: Serializer[K]): IO.ApiIO[Option[(Key[K], Option[V])]] =
     stream.next(previous) match {
-      case IO.Success(some @ Some((key, value))) =>
+      case IO.Right(some @ Some((key, value))) =>
         checkStep(key = key, isReverse = isReverse, mapsOnly = mapsOnly, thisMapKeyBytes = thisMapKeyBytes) match {
           case Step.Stop =>
             IO.none
 
           case Step.Next =>
             stream.next(key, value) match {
-              case IO.Success(Some(keyValue)) =>
+              case IO.Right(Some(keyValue)) =>
                 step(
                   stream = stream,
                   previous = keyValue,
@@ -152,32 +153,31 @@ object MapStream {
                   thisMapKeyBytes = thisMapKeyBytes
                 )
 
-              case IO.Success(None) =>
+              case IO.Right(None) =>
                 IO.none
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
           case Step.Success =>
-            IO.Success(some)
+            IO.Right(some)
         }
 
-      case IO.Success(None) =>
+      case IO.Right(None) =>
         IO.none
 
-      case IO.Failure(error) =>
-        IO.Failure(error)
+      case IO.Left(error) =>
+        IO.Left(error)
     }
-
 }
 
 case class MapStream[K, V](mapKey: Seq[K],
                            mapsOnly: Boolean = false,
                            userDefinedFrom: Boolean = false,
-                           map: swaydb.Map[Key[K], Option[V], IO])(implicit keySerializer: Serializer[K],
+                           map: swaydb.Map[Key[K], Option[V], IO.ApiIO])(implicit keySerializer: Serializer[K],
                                                                    mapKeySerializer: Serializer[Key[K]],
-                                                                   optionValueSerializer: Serializer[Option[V]]) extends Streamer[(K, V), IO] { self =>
+                                                                   optionValueSerializer: Serializer[Option[V]]) extends Streamable[(K, V), IO.ApiIO] { self =>
 
   private val endEntriesKey = Key.MapEntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)
@@ -223,10 +223,10 @@ case class MapStream[K, V](mapKey: Seq[K],
   def isReverse: Boolean =
     self.map.reverseIteration
 
-  private def headOptionInner: IO[Option[(Key[K], Option[V])]] = {
+  private def headOptionInner: IO.ApiIO[Option[(Key[K], Option[V])]] = {
     val stream = map.stream
     map.headOption match {
-      case IO.Success(someKeyValue @ Some(keyValue @ (key, _))) =>
+      case IO.Right(someKeyValue @ Some(keyValue @ (key, _))) =>
         MapStream.checkStep(
           key = key,
           isReverse = map.reverseIteration,
@@ -246,55 +246,55 @@ case class MapStream[K, V](mapKey: Seq[K],
             )
 
           case Step.Success =>
-            IO.Success(someKeyValue)
+            IO.Right(someKeyValue)
         }
 
-      case IO.Success(None) =>
+      case IO.Right(None) =>
         IO.none
 
-      case IO.Failure(error) =>
-        IO.Failure(error)
+      case IO.Left(error) =>
+        IO.Left(error)
     }
   }
 
-  override def headOption: IO[Option[(K, V)]] =
+  override def headOption: IO.ApiIO[Option[(K, V)]] =
     headOptionInner.map(_.map(MapStream.toKV(_)))
 
-  override def drop(count: Int): swaydb.Stream[(K, V), IO] =
+  override def drop(count: Int): swaydb.Stream[(K, V), IO.ApiIO] =
     stream drop count
 
-  override def dropWhile(f: ((K, V)) => Boolean): swaydb.Stream[(K, V), IO] =
+  override def dropWhile(f: ((K, V)) => Boolean): swaydb.Stream[(K, V), IO.ApiIO] =
     stream dropWhile f
 
-  override def take(count: Int): swaydb.Stream[(K, V), IO] =
+  override def take(count: Int): swaydb.Stream[(K, V), IO.ApiIO] =
     stream take count
 
-  override def takeWhile(f: ((K, V)) => Boolean): swaydb.Stream[(K, V), IO] =
+  override def takeWhile(f: ((K, V)) => Boolean): swaydb.Stream[(K, V), IO.ApiIO] =
     stream takeWhile f
 
-  override def map[B](f: ((K, V)) => B): swaydb.Stream[B, IO] =
+  override def map[B](f: ((K, V)) => B): swaydb.Stream[B, IO.ApiIO] =
     stream map f
 
-  override def flatMap[B](f: ((K, V)) => swaydb.Stream[B, IO]): swaydb.Stream[B, IO] =
+  override def flatMap[B](f: ((K, V)) => swaydb.Stream[B, IO.ApiIO]): swaydb.Stream[B, IO.ApiIO] =
     stream flatMap f
 
-  override def foreach[U](f: ((K, V)) => U): swaydb.Stream[Unit, IO] =
+  override def foreach[U](f: ((K, V)) => U): swaydb.Stream[Unit, IO.ApiIO] =
     stream foreach f
 
-  override def filter(f: ((K, V)) => Boolean): swaydb.Stream[(K, V), IO] =
+  override def filter(f: ((K, V)) => Boolean): swaydb.Stream[(K, V), IO.ApiIO] =
     stream filter f
 
-  override def filterNot(f: ((K, V)) => Boolean): swaydb.Stream[(K, V), IO] =
+  override def filterNot(f: ((K, V)) => Boolean): swaydb.Stream[(K, V), IO.ApiIO] =
     stream filterNot f
 
-  override def foldLeft[B](initial: B)(f: (B, (K, V)) => B): IO[B] =
+  override def foldLeft[B](initial: B)(f: (B, (K, V)) => B): IO.ApiIO[B] =
     stream.foldLeft(initial)(f)
 
-  override def size: IO[Int] =
+  override def size: IO.ApiIO[Int] =
     map.keys.size
 
-  def stream: swaydb.Stream[(K, V), IO] =
-    new swaydb.Stream[(K, V), IO] {
+  def stream: swaydb.Stream[(K, V), IO.ApiIO] =
+    new swaydb.Stream[(K, V), IO.ApiIO] {
       /**
         * Stores raw key-value from previous read. This is a temporary solution because
         * this class extends Stream[(K, V)] and the types are being lost on stream.next here since previous
@@ -302,14 +302,14 @@ case class MapStream[K, V](mapKey: Seq[K],
         */
       private var previousRaw: (Key[K], Option[V]) = _
 
-      override def headOption: IO[Option[(K, V)]] =
+      override def headOption: IO.ApiIO[Option[(K, V)]] =
         self.headOptionInner.map(_.map {
           raw =>
             previousRaw = raw
             MapStream.toKV(raw)
         })
 
-      override private[swaydb] def next(previous: (K, V)): IO[Option[(K, V)]] =
+      override private[swaydb] def next(previous: (K, V)): IO.ApiIO[Option[(K, V)]] =
         MapStream.step(
           stream = self.map.stream,
           previous = previousRaw,
@@ -343,7 +343,7 @@ case class MapStream[K, V](mapKey: Seq[K],
     * because from is always set in [[swaydb.extensions.Maps]] and regardless from where the iteration starts the
     * most efficient way to fetch the last is from the key [[endSubMapsKey]].
     */
-  override def lastOption: IO[Option[(K, V)]] =
+  override def lastOption: IO.ApiIO[Option[(K, V)]] =
     reverse.headOption
 
   override def toString(): String =

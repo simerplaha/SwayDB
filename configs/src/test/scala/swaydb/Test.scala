@@ -20,5 +20,4 @@
 package swaydb
 
 class Test {
-
 }

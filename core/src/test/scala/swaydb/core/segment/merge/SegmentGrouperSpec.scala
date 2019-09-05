@@ -19,218 +19,370 @@
 
 package swaydb.core.segment.merge
 
-import swaydb.core.{TestBase, TestData, TestTimer}
-import swaydb.core.data._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
-import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
-import swaydb.data.order.KeyOrder
-import swaydb.serializers.Default._
-import swaydb.serializers._
-import swaydb.core.TestData._
+import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.data._
+import swaydb.core.group.compression.GroupByInternal
+import swaydb.core.segment.format.a.block._
+import swaydb.core.util.Benchmark
+import swaydb.core.{TestBase, TestTimer}
+import swaydb.data.order.KeyOrder
+import swaydb.data.util.StorageUnits._
+import swaydb.serializers.Default._
+import swaydb.serializers._
+
 import scala.collection.mutable.ListBuffer
-import scala.util.Random
-import swaydb.core.IOAssert._
 
 class SegmentGrouperSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.Empty
-  implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
+  implicit def groupBy: Option[GroupByInternal.KeyValues] = None
   val keyValueCount = 100
 
   import keyOrder._
 
   "addKeyValue" should {
     "add KeyValue to next split and close the split if the new key-value does not fit" in {
+      runThis(100.times) {
+        val initialSegment = SegmentBuffer(groupBy)
+        initialSegment add Transient.put(key = 1, value = Some(1), previous = None)
+        initialSegment add Transient.put(key = 2, value = Some(2), previous = initialSegment.lastOption) //total segmentSize is 133.bytes
 
-      val initialSegment = ListBuffer[KeyValue.WriteOnly]()
-      initialSegment += Transient.put(key = 1, value = 1, previous = None, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)
-      initialSegment += Transient.put(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true) //total segmentSize is 60 bytes
+        val segments = ListBuffer[SegmentBuffer](initialSegment)
+        //this KeyValue's segment size without footer is 17.bytes
+        val keyValue = Memory.put(3, 3)
 
-      val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](initialSegment)
-      //this KeyValue's segment size without footer is 13 bytes
-      val keyValue = Memory.put(3, 3)
+        val minSegmentSize =
+          eitherOne(
+            initialSegment.last.stats.segmentSize.bytes,
+            initialSegment.last.stats.segmentSize.bytes - randomIntMax(initialSegment.last.stats.segmentSize.bytes),
+            initialSegment.last.stats.segmentSize.bytes - randomIntMax(initialSegment.last.stats.segmentSize.bytes / 2),
+            randomIntMax(initialSegment.last.stats.segmentSize.bytes)
+          ) //<= segmentSize of the first 2 key-values which should always result in a new segment being created
 
-      //minSegmentSize is 69.bytes. Adding the above keyValues should create a segment of total size
-      // 60 + 13 - 3 (common bytes between 2 and 3) which is over the limit = 70.bytes.
-      // this should result is closing the existing segment and starting a new segment
-      SegmentGrouper.addKeyValue(
-        keyValueToAdd = keyValue,
-        splits = segments,
-        minSegmentSize = 70.bytes,
-        maxProbe = TestData.maxProbe,
-        forInMemory = false,
-        isLastLevel = false,
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
-        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-        compressDuplicateValues = true
-      )
+        val segmentMergeConfigs =
+          SegmentMergeConfigs(
+            segmentValuesConfig = ValuesBlock.Config.random,
+            segmentSortedIndexConfig = SortedIndexBlock.Config.random,
+            segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            segmentHashIndexConfig = HashIndexBlock.Config.random,
+            segmentBloomFilterConfig = BloomFilterBlock.Config.random,
+            groupBy = groupBy
+          )
 
-      //the initialSegment should be closed and a new segment should get started
-      segments.size shouldBe 2
+        //total Segment bytes with the next key-value is 150.bytes which also the minimum SegmentSize which should start a new segment on add.
+        SegmentGrouper.addKeyValue(
+          keyValueToAdd = keyValue,
+          splits = segments,
+          minSegmentSize = minSegmentSize,
+          forInMemory = false,
+          isLastLevel = false,
+          createdInLevel = 0,
+          segmentMergeConfigs = segmentMergeConfigs,
+          segmentIO = SegmentIO.random
+        )
 
-      val firstSegment = segments.head
-      firstSegment(0).key equiv initialSegment.head.key
-      firstSegment(1).key equiv initialSegment.last.key
-      firstSegment.last.stats.segmentSize shouldBe 72.bytes
+        //the initialSegment should be closed and a new segment should value started
+        segments.size shouldBe 2
 
-      val secondSegment = segments.last
-      secondSegment.head.key equiv keyValue.key
+        val firstSegment = segments.head
+        firstSegment.head.key equiv initialSegment.head.key
+        firstSegment.toList(1).key equiv initialSegment.last.key
+        firstSegment.last.stats.segmentSize should be >= minSegmentSize
+
+        val secondSegment = segments.last
+        secondSegment.head.key equiv keyValue.key
+      }
     }
 
     "add KeyValue all key-values until Group count is reached" in {
+      runThis(20.times) {
+        val forInMemory = randomBoolean()
 
-      implicit val groupingStrategy =
-        Some(
-          KeyValueGroupingStrategyInternal.Count(
-            count = 1000,
-            groupCompression = None,
-            indexCompression = randomCompression(),
-            valueCompression = randomCompression()
+        val keyValueCount = 10000
+
+        val groupBy =
+          GroupByInternal.KeyValues(
+            count = keyValueCount,
+            size = None,
+            applyGroupingOnCopy = randomBoolean(),
+            groupByGroups = None,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            valuesConfig = ValuesBlock.Config.random,
+            groupConfig = SegmentBlock.Config.random
           )
-        )
 
-      val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer.empty)
-      val keyValues = randomPutKeyValues(1000)
-
-      keyValues foreach {
-        keyValue =>
-          SegmentGrouper.addKeyValue(
-            keyValueToAdd = keyValue,
-            splits = segments,
-            minSegmentSize = 100.mb,
-            forInMemory = Random.nextBoolean(),
-            maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            isLastLevel = false,
-            compressDuplicateValues = true
+        val segmentMergeConfigs =
+          SegmentMergeConfigs(
+            segmentValuesConfig = ValuesBlock.Config.random,
+            segmentSortedIndexConfig = SortedIndexBlock.Config.random,
+            segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            segmentHashIndexConfig = HashIndexBlock.Config.random,
+            segmentBloomFilterConfig = BloomFilterBlock.Config.random,
+            groupBy = Some(groupBy)
           )
+
+        val buffer: SegmentBuffer.Grouped = SegmentBuffer(groupBy)
+        val segments = ListBuffer[SegmentBuffer](buffer)
+        val keyValues = randomizedKeyValues(keyValueCount, addGroups = false).toMemory
+
+        Benchmark(s"Grouping ${keyValues.size} key-values.") {
+          keyValues foreach {
+            keyValue =>
+              SegmentGrouper.addKeyValue(
+                keyValueToAdd = keyValue,
+                splits = segments,
+                minSegmentSize = 100.mb,
+                forInMemory = forInMemory,
+                createdInLevel = 0,
+                isLastLevel = false,
+                segmentMergeConfigs = segmentMergeConfigs,
+                segmentIO = SegmentIO.random
+              ).get
+          }
+        }
+
+        segments.size shouldBe 1
+        buffer.currentGroups.size shouldBe 1
+        buffer.unGrouped.size shouldBe 0
+        val group = buffer.groupedKeyValues.head
+        group.keyValues shouldBe keyValues
+
+        val persistentGroupKeyValues = readAll(group).right.value
+        persistentGroupKeyValues shouldBe group.keyValues
       }
-
-      segments should have size 1
-      segments.head should have size 1
-      val group = segments.head.head.asInstanceOf[Transient.Group]
-      group.keyValues shouldBe keyValues
-
-      val (segmentBytes, deadline) =
-        SegmentWriter.write(
-          keyValues = Slice(group),
-          createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
-
-      val reader = Reader(segmentBytes)
-      val footer = SegmentReader.readFooter(reader.copy()).assertGet
-      val readKeyValues = SegmentReader.readAll(footer, reader).assertGet
-      readKeyValues shouldBe keyValues
     }
 
-    "add KeyValue all key-values until Group size is reached" in {
+    "group key-values equally" in {
+      runThis(20.times) {
+        val forInMemory = randomBoolean()
 
-      val keyValues = randomKeyValues(1000)
+        val keyValueCount = 10000
 
-      implicit val groupingStrategy =
-        Some(
-          KeyValueGroupingStrategyInternal.Size(
-            size = keyValues.last.stats.segmentSizeWithoutFooter,
-            groupCompression = None,
-            indexCompression = randomCompression(),
-            valueCompression = randomCompression()
+        val groupBy =
+          GroupByInternal.KeyValues(
+            count = keyValueCount / 100,
+            size = None,
+            applyGroupingOnCopy = randomBoolean(),
+            groupByGroups = None,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            valuesConfig = ValuesBlock.Config.random,
+            groupConfig = SegmentBlock.Config.random
           )
-        )
 
-      val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer.empty)
+        val buffer: SegmentBuffer.Grouped = SegmentBuffer(groupBy)
+        val segments = ListBuffer[SegmentBuffer](buffer)
+        val keyValues = randomizedKeyValues(keyValueCount, addGroups = false).toMemory
 
-      keyValues foreach {
-        keyValue =>
-          SegmentGrouper.addKeyValue(
-            keyValueToAdd = keyValue.toMemoryResponse,
-            splits = segments,
-            minSegmentSize = 100.mb,
-            forInMemory = Random.nextBoolean(),
-            maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            isLastLevel = false,
-            compressDuplicateValues = true
+        val segmentMergeConfigs =
+          SegmentMergeConfigs(
+            segmentValuesConfig = ValuesBlock.Config.random,
+            segmentSortedIndexConfig = SortedIndexBlock.Config.random,
+            segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            segmentHashIndexConfig = HashIndexBlock.Config.random,
+            segmentBloomFilterConfig = BloomFilterBlock.Config.random,
+            groupBy = Some(groupBy)
           )
+
+        Benchmark(s"Grouping ${keyValues.size} key-values.") {
+          keyValues foreach {
+            keyValue =>
+              SegmentGrouper.addKeyValue(
+                keyValueToAdd = keyValue,
+                splits = segments,
+                minSegmentSize = 100.mb,
+                forInMemory = forInMemory,
+                createdInLevel = 0,
+                isLastLevel = false,
+                segmentMergeConfigs = segmentMergeConfigs,
+                segmentIO = SegmentIO.random
+              ).get
+          }
+        }
+
+        segments.size shouldBe 1
+        buffer.currentGroups.size shouldBe 100
+        buffer.unGrouped.size shouldBe 0
+
+        Benchmark("write a read all") {
+          val persistentGroupKeyValues = writeAndRead(buffer).right.value
+          persistentGroupKeyValues shouldBe keyValues
+        }
       }
-
-      segments should have size 1
-      segments.head should have size 1
-      val group = segments.head.head.asInstanceOf[Transient.Group]
-      group.keyValues shouldBe keyValues
-
-      val (segmentBytes, deadline) =
-        SegmentWriter.write(
-          keyValues = Slice(group),
-          createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
-
-      val reader = Reader(segmentBytes)
-      val footer = SegmentReader.readFooter(reader.copy()).assertGet
-      val readKeyValues = SegmentReader.readAll(footer, reader).assertGet
-      readKeyValues shouldBe keyValues
     }
 
-    "add large number of key-values for Grouping" in {
+    "group key-values when size is specified" in {
+      runThis(20.times) {
+        val forInMemory = randomBoolean()
 
-      val keyValues = randomizedKeyValues(100000, addRandomGroups = false)
+        val keyValueCount = 10000
 
-      val groupSize = keyValues.last.stats.segmentSizeWithoutFooter / 100
-
-      implicit val groupingStrategy =
-        Some(
-          KeyValueGroupingStrategyInternal.Size(
-            size = groupSize,
-            groupCompression = None,
-            indexCompression = randomCompression(),
-            valueCompression = randomCompression()
+        val groupBy =
+          GroupByInternal.KeyValues(
+            count = keyValueCount,
+            size = Some(1.kb),
+            applyGroupingOnCopy = randomBoolean(),
+            groupByGroups = None,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            valuesConfig = ValuesBlock.Config.random,
+            groupConfig = SegmentBlock.Config.random
           )
-        )
 
-      val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer.empty)
+        val buffer: SegmentBuffer.Grouped = SegmentBuffer(groupBy)
+        val segments = ListBuffer[SegmentBuffer](buffer)
+        val keyValues = randomizedKeyValues(keyValueCount, addGroups = false).toMemory
 
-      keyValues foreach {
-        keyValue =>
-          SegmentGrouper.addKeyValue(
-            keyValueToAdd = keyValue.toMemoryResponse,
-            splits = segments,
-            minSegmentSize = 100.mb,
-            forInMemory = Random.nextBoolean(),
-            maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
-            isLastLevel = false,
-            compressDuplicateValues = true
+        val segmentMergeConfigs =
+          SegmentMergeConfigs(
+            segmentValuesConfig = ValuesBlock.Config.random,
+            segmentSortedIndexConfig = SortedIndexBlock.Config.random,
+            segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            segmentHashIndexConfig = HashIndexBlock.Config.random,
+            segmentBloomFilterConfig = BloomFilterBlock.Config.random,
+            groupBy = Some(groupBy)
           )
+
+        Benchmark(s"Grouping ${keyValues.size} key-values.") {
+          keyValues foreach {
+            keyValue =>
+              SegmentGrouper.addKeyValue(
+                keyValueToAdd = keyValue,
+                splits = segments,
+                minSegmentSize = 100.mb,
+                forInMemory = forInMemory,
+                createdInLevel = 0,
+                isLastLevel = false,
+                segmentMergeConfigs = segmentMergeConfigs,
+                segmentIO = SegmentIO.random
+              ).get
+          }
+        }
+
+        segments.size shouldBe 1
+        buffer.currentGroups.size should be > 100
+
+        //group any ungrouped key-values
+        SegmentGrouper.group(
+          buffer = buffer,
+          createdInLevel = 0,
+          segmentValuesConfig = segmentMergeConfigs.segmentValuesConfig,
+          segmentSortedIndexConfig = segmentMergeConfigs.segmentSortedIndexConfig,
+          segmentBinarySearchIndexConfig = segmentMergeConfigs.segmentBinarySearchIndexConfig,
+          segmentHashIndexConfig = segmentMergeConfigs.segmentHashIndexConfig,
+          segmentBloomFilterConfig = segmentMergeConfigs.segmentBloomFilterConfig,
+          force = true,
+          skipQuotaCheck = false
+        ).get
+
+        buffer.unGrouped.size shouldBe 0
+
+        Benchmark("write a read all") {
+          val persistentGroupKeyValues = writeAndRead(buffer).right.value
+          printGroupHierarchy(persistentGroupKeyValues, 5)
+          persistentGroupKeyValues shouldBe keyValues
+        }
       }
+    }
 
-      segments should have size 1
-      segments.head.size should be > 10
+    "group by groups" in {
+      runThis(20.times) {
+        val forInMemory = randomBoolean()
+
+        val keyValueCount = 1000
+
+        val groupBy =
+          GroupByInternal.KeyValues(
+            count = keyValueCount / 10,
+            size = None,
+            applyGroupingOnCopy = randomBoolean(),
+            groupByGroups =
+              Some(
+                GroupByInternal.Groups(
+                  count = 2,
+                  size = None,
+                  valuesConfig = ValuesBlock.Config.random,
+                  sortedIndexConfig = SortedIndexBlock.Config.random,
+                  binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+                  hashIndexConfig = HashIndexBlock.Config.random,
+                  bloomFilterConfig = BloomFilterBlock.Config.random,
+                  groupConfig = SegmentBlock.Config.random,
+                  applyGroupingOnCopy = randomBoolean()
+                )
+              ),
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            valuesConfig = ValuesBlock.Config.random,
+            groupConfig = SegmentBlock.Config.random
+          )
+
+        val buffer: SegmentBuffer.Grouped = SegmentBuffer(groupBy)
+        val segments = ListBuffer[SegmentBuffer](buffer)
+        val keyValues = randomizedKeyValues(keyValueCount, addGroups = false).toMemory
+
+        val segmentMergeConfigs =
+          SegmentMergeConfigs(
+            segmentValuesConfig = ValuesBlock.Config.random,
+            segmentSortedIndexConfig = SortedIndexBlock.Config.random,
+            segmentBinarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            segmentHashIndexConfig = HashIndexBlock.Config.random,
+            segmentBloomFilterConfig = BloomFilterBlock.Config.random,
+            groupBy = Some(groupBy)
+          )
+
+        Benchmark(s"Grouping ${keyValues.size} key-values.") {
+          keyValues foreach {
+            keyValue =>
+              SegmentGrouper.addKeyValue(
+                keyValueToAdd = keyValue,
+                splits = segments,
+                minSegmentSize = 100.mb,
+                forInMemory = forInMemory,
+                createdInLevel = 0,
+                isLastLevel = false,
+                segmentMergeConfigs = segmentMergeConfigs,
+                segmentIO = SegmentIO.random
+              ).get
+          }
+        }
+
+        segments.size shouldBe 1
+        buffer.currentGroups.size shouldBe 1
+
+        //group any ungrouped key-values
+        SegmentGrouper.group(
+          buffer = buffer,
+          createdInLevel = 0,
+          segmentValuesConfig = segmentMergeConfigs.segmentValuesConfig,
+          segmentSortedIndexConfig = segmentMergeConfigs.segmentSortedIndexConfig,
+          segmentBinarySearchIndexConfig = segmentMergeConfigs.segmentBinarySearchIndexConfig,
+          segmentHashIndexConfig = segmentMergeConfigs.segmentHashIndexConfig,
+          segmentBloomFilterConfig = segmentMergeConfigs.segmentBloomFilterConfig,
+          force = true,
+          skipQuotaCheck = false
+        ).get
+
+        buffer.unGrouped.size shouldBe 0
+
+        Benchmark("write a read all") {
+          val persistentGroupKeyValues = writeAndRead(buffer).right.value
+          printGroupHierarchy(persistentGroupKeyValues, 5)
+          persistentGroupKeyValues shouldBe keyValues
+        }
+      }
     }
   }
 }

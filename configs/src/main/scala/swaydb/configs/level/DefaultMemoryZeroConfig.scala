@@ -42,8 +42,8 @@ object DefaultMemoryZeroConfig {
     }
 
   /**
-    * Default configuration for a single level zero only Memory database.
-    */
+   * Default configuration for a single level zero only Memory database.
+   */
   def apply(mapSize: Int,
             acceleration: LevelZeroMeter => Accelerator): LevelZeroMemoryConfig =
     ConfigWizard

@@ -20,5 +20,4 @@
 package swaydb.macros
 
 object Test {
-
 }

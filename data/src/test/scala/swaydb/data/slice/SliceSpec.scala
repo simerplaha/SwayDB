@@ -20,10 +20,12 @@
 package swaydb.data.slice
 
 import org.scalatest.{Matchers, WordSpec}
-import scala.util.Random
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.ByteSizeOf
+import org.scalatest.OptionValues._
+
+import scala.util.Random
 
 class SliceSpec extends WordSpec with Matchers {
 
@@ -33,9 +35,17 @@ class SliceSpec extends WordSpec with Matchers {
 
   "A Slice" should {
     "be created by specifying it's length" in {
-      val slice = Slice.create(10)
+      val slice = Slice.create[Int](10)
+      slice.allocatedSize shouldBe 10
+      slice.size shouldBe 0
+      slice.fromOffset shouldBe 0
+      slice.toOffset shouldBe 9
+    }
+
+    "be created by specifying it's length and isFull" in {
+      val slice = Slice.create[Int](10, isFull = true)
+      slice.allocatedSize shouldBe 10
       slice.size shouldBe 10
-      slice.written shouldBe 0
       slice.fromOffset shouldBe 0
       slice.toOffset shouldBe 9
     }
@@ -43,8 +53,8 @@ class SliceSpec extends WordSpec with Matchers {
     "be created from an Array" in {
       val array = Array.fill[Byte](10)(1)
       val slice = Slice[Byte](array)
+      slice.allocatedSize shouldBe 10
       slice.size shouldBe 10
-      slice.written shouldBe 10
       slice.fromOffset shouldBe 0
       slice.toOffset shouldBe 9
     }
@@ -53,18 +63,19 @@ class SliceSpec extends WordSpec with Matchers {
       val array = Array.fill[Int](3)(Random.nextInt())
       val slice1 = Slice[Int](array)
       slice1.size shouldBe 3
+      slice1.allocatedSize shouldBe 3
 
       val slice2 = slice1.slice(1, 2)
+      slice2.allocatedSize shouldBe 2
       slice2.size shouldBe 2
-      slice2.written shouldBe 2
       slice2.fromOffset shouldBe 1
       slice2.toOffset shouldBe 2
       slice2.toList should contain inOrderElementsOf List(array(1), array(2))
       slice2.underlyingArraySize shouldBe slice1.size
 
       val slice2Copy = slice2.unslice()
+      slice2Copy.allocatedSize shouldBe 2
       slice2Copy.size shouldBe 2
-      slice2Copy.written shouldBe 2
       slice2Copy.underlyingArraySize shouldBe 2
     }
 
@@ -73,28 +84,28 @@ class SliceSpec extends WordSpec with Matchers {
       val slice0 = Slice.create[Int](4)
       slice0 add 10
       slice0 add 10 //second slice starts here
-      slice0.written shouldBe 2
+      slice0.size shouldBe 2
 
       //slice1 = (10, 10)
       val slice1 = slice0.slice(0, 1)
-      slice1.written shouldBe 2
+      slice1.size shouldBe 2
       slice1.toArray shouldBe Array(10, 10)
       slice1.underlyingArraySize shouldBe 4
 
       //slice1 = (10, null)
       val slice2 = slice0.slice(1, 2)
-      slice2.written shouldBe 1
-      slice2.toArray shouldBe Array(10, 0)
+      slice2.size shouldBe 1
+      slice2.toArray shouldBe Array(10)
 
       //slice1 = (null, null)
       val slice3 = slice0.slice(2, 3)
-      slice3.written shouldBe 0
-      slice3.toArray shouldBe Array(0, 0)
+      slice3.size shouldBe 0
+      slice3.toArray shouldBe empty
 
       //slice4 = (10, 10, null, null)
       val slice4 = slice0.slice(0, 3)
-      slice4.written shouldBe 2
-      slice4.toArray shouldBe Array(10, 10, 0, 0)
+      slice4.size shouldBe 2
+      slice4.toArray shouldBe Array(10, 10)
     }
 
     "be sliced if the original slice is full written" in {
@@ -104,64 +115,63 @@ class SliceSpec extends WordSpec with Matchers {
       slice0 add 2
       slice0 add 3
       slice0 add 4
-      slice0.written shouldBe 4
+      slice0.size shouldBe 4
 
       //slice1 = (1, 2)
       val slice1 = slice0.slice(0, 1)
-      slice1.written shouldBe 2
+      slice1.size shouldBe 2
       slice1.toArray shouldBe Array(1, 2)
 
       //slice1 = (2, 3)
       val slice2 = slice0.slice(1, 2)
-      slice2.written shouldBe 2
+      slice2.size shouldBe 2
       slice2.toArray shouldBe Array(2, 3)
 
       //slice1 = (3, 4)
       val slice3 = slice0.slice(2, 3)
-      slice3.written shouldBe 2
+      slice3.size shouldBe 2
       slice3.toArray shouldBe Array(3, 4)
 
       //slice4 = (1, 2, 3, 4)
       val slice4 = slice0.slice(0, 3)
-      slice4.written shouldBe 4
+      slice4.size shouldBe 4
       slice4.toArray shouldBe Array(1, 2, 3, 4)
     }
 
-    "throw ArrayIndexOutOfBoundsException when creating a sub Slice with invalid offsets" in {
-      val slice1 = Slice.fill(3)(Random.nextInt())
+    "return empty when creating a sub Slice with invalid offsets" in {
+      val slice1 = Slice(1, 2, 3)
       slice1.size shouldBe 3
-      assertThrows[ArrayIndexOutOfBoundsException] {
-        slice1.slice(0, 3)
-      }
+      slice1.slice(0, 3) shouldBe Slice(1, 2, 3)
+      slice1.slice(3, 100) shouldBe empty
+      slice1.slice(10, 3) shouldBe empty
+
       //valid subslice 2
       val slice2 = slice1.slice(1, 2)
       slice2.size shouldBe 2
-
-      assertThrows[ArrayIndexOutOfBoundsException] {
-        slice2.slice(0, 2)
-      }
+      slice2 shouldBe Slice(2, 3)
+      slice2.slice(100, 100) shouldBe empty
     }
 
     "throw ArrayIndexOutOfBoundsException when inserting items outside the Slice offset" in {
       val slice = Slice.create[Byte](1)
-      slice.size shouldBe 1
-      slice.written shouldBe 0
+      slice.allocatedSize shouldBe 1
+      slice.size shouldBe 0
       slice.fromOffset shouldBe 0
       slice.toOffset shouldBe 0
 
-      slice.add(1).written shouldBe 1
+      slice.add(1).size shouldBe 1
       assertThrows[ArrayIndexOutOfBoundsException] {
         slice.add(1)
       }
-      slice.written shouldBe 1
+      slice.size shouldBe 1
     }
 
     "throw ArrayIndexOutOfBoundsException when adding items outside it's offset and when the Slice is a sub slice" in {
       val slice1 = Slice.fill(4)(Random.nextInt())
-      slice1.written shouldBe 4
+      slice1.size shouldBe 4
 
       val slice2 = slice1.slice(1, 2)
-      slice2.written shouldBe 2
+      slice2.size shouldBe 2
 
       slice2.size shouldBe 2
       slice2.head shouldBe slice1(1)
@@ -266,18 +276,22 @@ class SliceSpec extends WordSpec with Matchers {
       tail5.underlyingArraySize shouldBe slice.size
     }
 
-    "update original slice when splits are updated" in {
+    "update original slice with moveWritePosition when splits are updated" in {
       val originalSlice = Slice.create[Int](2)
-      val (split1, split2) = originalSlice.splitAt(1)
-      split1.size shouldBe 1
-      split2.size shouldBe 1
+      val (split1, split2) = originalSlice.splitInnerArrayAt(1)
+      split1.allocatedSize shouldBe 1
+      split2.size shouldBe 0
 
       split1.add(100)
       split2.add(200)
 
+      split1.size shouldBe 1
+      split2.size shouldBe 1
+
+      originalSlice.moveWritePosition(2)
+      originalSlice should contain only(100, 200)
       originalSlice.toArray shouldBe Array(100, 200)
     }
-
 
     "group elements" in {
       val slice = Slice((1 to 100).toArray)
@@ -326,7 +340,7 @@ class SliceSpec extends WordSpec with Matchers {
       slice addInt Int.MaxValue
       slice addInt Int.MinValue
 
-      val reader = slice.createReader()
+      val reader = slice.createReaderUnsafe()
       reader.readInt() shouldBe Int.MaxValue
       reader.readInt() shouldBe Int.MinValue
     }
@@ -336,7 +350,7 @@ class SliceSpec extends WordSpec with Matchers {
       slice addLong Long.MaxValue
       slice addLong Long.MinValue
 
-      val reader = slice.createReader()
+      val reader = slice.createReaderUnsafe()
       reader.readLong() shouldBe Long.MaxValue
       reader.readLong() shouldBe Long.MinValue
     }
@@ -344,19 +358,19 @@ class SliceSpec extends WordSpec with Matchers {
     "write and read Unsigned Integer" in {
       val slice = Slice.create[Byte](ByteSizeOf.int + 1)
       slice addIntUnsigned Int.MaxValue
-      slice.createReader().readIntUnsigned() shouldBe Int.MaxValue
+      slice.createReaderUnsafe().readIntUnsigned() shouldBe Int.MaxValue
     }
 
     "write and read Unsigned Long" in {
       val slice = Slice.create[Byte](ByteSizeOf.long + 1)
       slice addLongUnsigned Long.MaxValue
-      slice.createReader().readLongUnsigned() shouldBe Long.MaxValue
+      slice.createReaderUnsafe().readLongUnsigned() shouldBe Long.MaxValue
     }
 
     "write and read String" in {
       val slice = Slice.create[Byte](10000)
       slice addString "This is a string"
-      slice.close().createReader().readRemainingAsString() shouldBe "This is a string"
+      slice.close().createReaderUnsafe().readRemainingAsString() shouldBe "This is a string"
     }
 
     "write and read remaining string String" in {
@@ -370,7 +384,7 @@ class SliceSpec extends WordSpec with Matchers {
       slice addLongSigned -4L
       slice addString "This is a string"
 
-      val reader = slice.close().createReader()
+      val reader = slice.close().createReaderUnsafe()
       reader.readInt() shouldBe 1
       reader.readLong() shouldBe 2L
       reader.readIntUnsigned() shouldBe 3
@@ -384,7 +398,7 @@ class SliceSpec extends WordSpec with Matchers {
       val slice = Slice.create[Byte](10000)
       slice addString "This is a string"
 
-      val reader = slice.close().createReader()
+      val reader = slice.close().createReaderUnsafe()
       reader.readString(8) shouldBe "This is "
       reader.readString(8) shouldBe "a string"
     }
@@ -415,7 +429,7 @@ class SliceSpec extends WordSpec with Matchers {
   "++ empty slices" in {
     val merged: Slice[Int] = Slice.empty[Int] ++ Slice.empty[Int]
     merged shouldBe empty
-    merged.written shouldBe 0
+    merged.size shouldBe 0
     merged.isEmpty shouldBe true
     merged.isFull shouldBe true
   }
@@ -423,7 +437,7 @@ class SliceSpec extends WordSpec with Matchers {
   "++ empty and non empty slices" in {
     val merged: Slice[Int] = Slice.empty[Int] ++ Slice(1)
     merged should contain only 1
-    merged.written shouldBe 1
+    merged.size shouldBe 1
     merged.isEmpty shouldBe false
     merged.isFull shouldBe true
   }
@@ -431,7 +445,7 @@ class SliceSpec extends WordSpec with Matchers {
   "++ non empty and empty slices" in {
     val merged: Slice[Int] = Slice(1) ++ Slice.empty[Int]
     merged should contain only 1
-    merged.written shouldBe 1
+    merged.size shouldBe 1
     merged.isEmpty shouldBe false
     merged.isFull shouldBe true
   }
@@ -629,5 +643,259 @@ class SliceSpec extends WordSpec with Matchers {
     slice2.take(0, 2) shouldBe Slice(4, 5)
     slice2.take(0, 3) shouldBe Slice(4, 5, 6)
     slice2.take(0, 4) shouldBe Slice(4, 5, 6)
+  }
+
+  "manually adjusting slice random testing 1" in {
+    val slice = Slice.create[Int](10)
+
+    slice.moveWritePosition(3)
+
+    slice.size shouldBe 3
+    slice add 4
+    slice(3) shouldBe 4
+    slice.size shouldBe 4
+    slice addAll Slice(5, 6, 7, 8, 9, 10)
+    slice.size shouldBe 10
+
+    slice.head shouldBe 0
+    slice.last shouldBe 10
+
+    slice.moveWritePosition(0)
+    slice.size shouldBe 10
+
+    slice.slice(0, 2).isFull shouldBe true
+    slice.slice(2, 5).isFull shouldBe true
+    slice.slice(5, 9).isFull shouldBe true
+    slice.slice(0, 9).isFull shouldBe true
+    slice.take(Int.MaxValue).isFull shouldBe true
+  }
+
+  "manually adjusting slice random testing 2" in {
+    val slice = Slice.create[Int](10)
+
+    slice.moveWritePosition(5)
+    slice add 6
+    slice.size shouldBe 6
+    slice.moveWritePosition(0)
+    slice add 1
+    slice.size shouldBe 6
+    slice add 2
+    slice add 3
+    slice add 4
+    slice add 5
+    slice.size shouldBe 6
+
+    slice.slice(5, 6).isEmpty shouldBe false
+    slice.slice(5, 6).size shouldBe 1
+    slice.slice(5, 7).size shouldBe 1
+    slice.slice(5, 8).size shouldBe 1
+    slice.slice(5, 9).size shouldBe 1
+
+    slice.slice(6, 7).isEmpty shouldBe true
+    slice.slice(7, 8).isEmpty shouldBe true
+    slice.slice(9, 9).isEmpty shouldBe true
+  }
+
+  "manually adjusting slice random testing with addAll" in {
+    val slice = Slice.create[Int](10)
+
+    slice moveWritePosition 5
+    slice addAll Slice(1, 2, 3, 4)
+    slice.size shouldBe 9
+    //move the same position and write again. Size should remain the same
+    slice moveWritePosition 5
+    slice addAll Slice(1, 2, 3, 4)
+    slice.size shouldBe 9
+
+    slice add 1
+    slice.size shouldBe 10
+
+    assertThrows[ArrayIndexOutOfBoundsException] {
+      slice add 1
+    }
+    slice.size shouldBe 10
+
+    slice.last shouldBe 1
+    slice moveWritePosition 9
+    slice add 2
+    slice.last shouldBe 2
+    slice.size shouldBe 10
+  }
+
+  "closing an empty slice" in {
+    val close0 = Slice.create(0).close()
+    close0.size shouldBe 0
+    close0.size shouldBe 0
+    close0.fromOffset shouldBe 0
+    close0.toList shouldBe List.empty
+
+    val close1 = Slice.create(1).close()
+    close1.size shouldBe 0
+    close1.size shouldBe 0
+    close1.fromOffset shouldBe 0
+    close1.toList shouldBe List.empty
+  }
+
+  "moved a closed sub slice" in {
+    val slice = Slice.create[Int](10)
+    val subSlice = slice.slice(0, 4).close()
+
+    //can only write to a subslice
+    (5 to 20) foreach {
+      i =>
+        assertThrows[ArrayIndexOutOfBoundsException] {
+          subSlice.moveWritePosition(i)
+        }
+    }
+    slice add 1
+    subSlice shouldBe empty
+    slice should contain only 1
+  }
+
+  "equals" in {
+    val slice = Slice.fill(10)(1)
+    slice == Slice.fill(10)(1) shouldBe true
+
+    slice.dropHead() == slice shouldBe false
+    slice.dropHead() == Slice.fill(9)(1) shouldBe true
+
+    Slice.empty == Slice.empty shouldBe true
+  }
+
+  "toOptionUnsliced" in {
+    Slice.empty.toOptionUnsliced() shouldBe None
+    Slice.emptyEmptyBytes.toOptionUnsliced() shouldBe None
+    Slice(1, 2, 3).take(0).toOptionUnsliced() shouldBe None
+    Slice(1, 2, 3).drop(3).toOptionUnsliced() shouldBe None
+    Slice(1, 2, 3).drop(1).toOptionUnsliced() shouldBe defined
+    Slice(1, 2, 3).drop(1).drop(1).toOptionUnsliced() shouldBe defined
+    Slice(1, 2, 3).drop(1).drop(1).drop(1).toOptionUnsliced() shouldBe None
+  }
+
+  "toOption" in {
+    Slice.emptyBytes.toOption shouldBe empty
+    Slice(1, 2, 3).toOption shouldBe Some(Slice(1, 2, 3))
+
+    val slice = Slice(1, 2, 3)
+    val slice1 = slice.take(1).toOption.get
+    slice1 should have size 1
+    slice1 shouldBe Slice(1)
+    slice1.underlyingArraySize shouldBe 3
+  }
+
+  "indexOf" when {
+
+    "empty" in {
+      Slice.emptyBytes.indexOf(0) shouldBe empty
+      Slice.emptyBytes.indexOf(1) shouldBe empty
+    }
+
+    "single" in {
+      val bytes = Slice(1)
+
+      bytes.indexOf(0) shouldBe empty
+      bytes.indexOf(1) shouldBe Some(0)
+    }
+
+    "many" in {
+      val bytes = Slice(1, 2, 3, 4, 5)
+
+      bytes.indexOf(0) shouldBe empty
+      bytes.indexOf(1) shouldBe Some(0)
+      bytes.indexOf(2) shouldBe Some(1)
+      bytes.indexOf(3) shouldBe Some(2)
+      bytes.indexOf(4) shouldBe Some(3)
+      bytes.indexOf(5) shouldBe Some(4)
+      bytes.indexOf(6) shouldBe empty
+    }
+  }
+
+  "dropTo" when {
+    "empty" in {
+      Slice.emptyBytes.dropTo(1) shouldBe empty
+      Slice.emptyBytes.dropTo(Byte.MaxValue) shouldBe empty
+      Slice.emptyBytes.dropTo(Byte.MinValue) shouldBe empty
+    }
+
+    "single" in {
+      val bytes = Slice(1)
+
+      bytes.dropTo(1).value shouldBe empty
+      bytes.dropTo(2) shouldBe empty
+    }
+
+    "many" in {
+      val bytes = Slice(1, 2, 3, 4, 5)
+
+      bytes.dropTo(0) shouldBe empty
+      bytes.dropTo(1).value shouldBe Slice(2, 3, 4, 5)
+      bytes.dropTo(2).value shouldBe Slice(3, 4, 5)
+      bytes.dropTo(3).value shouldBe Slice(4, 5)
+      bytes.dropTo(4).value shouldBe Slice(5)
+      bytes.dropTo(5).value shouldBe empty
+      bytes.dropTo(6) shouldBe empty
+    }
+  }
+
+  "dropUntil" when {
+    "empty" in {
+      Slice.emptyBytes.dropUntil(1) shouldBe empty
+      Slice.emptyBytes.dropUntil(Byte.MaxValue) shouldBe empty
+      Slice.emptyBytes.dropUntil(Byte.MinValue) shouldBe empty
+    }
+
+    "single" in {
+      val bytes = Slice(1)
+
+      bytes.dropUntil(1).value shouldBe bytes
+      bytes.dropUntil(2) shouldBe empty
+    }
+
+    "many" in {
+      val bytes = Slice(1, 2, 3, 4, 5)
+
+      bytes.dropUntil(0) shouldBe empty
+      bytes.dropUntil(1).value shouldBe Slice(1, 2, 3, 4, 5)
+      bytes.dropUntil(2).value shouldBe Slice(2, 3, 4, 5)
+      bytes.dropUntil(3).value shouldBe Slice(3, 4, 5)
+      bytes.dropUntil(4).value shouldBe Slice(4, 5)
+      bytes.dropUntil(5).value shouldBe Slice(5)
+      bytes.dropUntil(6) shouldBe empty
+    }
+  }
+
+  "hashCode" should {
+    "be same for partially and fully written slice" in {
+      val partiallyWritten = Slice.create[Int](100)
+      partiallyWritten.add(1)
+      partiallyWritten.add(2)
+      partiallyWritten.add(3)
+      partiallyWritten.add(4)
+      partiallyWritten.add(5)
+
+      val bytes =
+        Seq(
+          Slice(1, 2, 3, 4, 5),
+          partiallyWritten
+        )
+
+      partiallyWritten.underlyingArraySize shouldBe 100
+
+      bytes foreach {
+        bytes =>
+          bytes.hashCode() shouldBe bytes.##
+          bytes.drop(1).hashCode() shouldBe Slice(2, 3, 4, 5).##
+          bytes.drop(2).hashCode() shouldBe Slice(3, 4, 5).##
+          bytes.drop(3).hashCode() shouldBe Slice(4, 5).##
+          bytes.drop(4).hashCode() shouldBe Slice(5).##
+          bytes.drop(5).hashCode() shouldBe Slice[Int]().##
+
+          bytes.dropRight(1).hashCode() shouldBe Slice(1, 2, 3, 4).##
+          bytes.dropRight(2).hashCode() shouldBe Slice(1, 2, 3).##
+          bytes.dropRight(3).hashCode() shouldBe Slice(1, 2).##
+          bytes.dropRight(4).hashCode() shouldBe Slice(1).##
+          bytes.dropRight(5).hashCode() shouldBe Slice[Int]().##
+      }
+    }
   }
 }

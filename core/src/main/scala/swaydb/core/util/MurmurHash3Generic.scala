@@ -24,8 +24,8 @@ import java.lang.Long.rotateLeft
 import swaydb.data.slice.Slice
 
 /**
-  * Credit: Original implementation https://github.com/alexandrnikitin/bloom-filter-scala.
-  */
+ * Credit: Original implementation https://github.com/alexandrnikitin/bloom-filter-scala.
+ */
 object MurmurHash3Generic {
 
   private val c1: Long = 0x87c37b91114253d5L
@@ -42,7 +42,7 @@ object MurmurHash3Generic {
   }
 
   def murmurhash3_x64_64(key: Slice[Byte], offset: Int, len: Int, seed: Int): Long = {
-    val reader = key.createReader()
+    val reader = key.createReaderUnsafe()
     var h1: Long = seed & 0x00000000FFFFFFFFL
     var h2: Long = seed & 0x00000000FFFFFFFFL
 

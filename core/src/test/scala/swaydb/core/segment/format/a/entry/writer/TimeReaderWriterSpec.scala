@@ -20,6 +20,7 @@
 package swaydb.core.segment.format.a.entry.writer
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
@@ -72,10 +73,11 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
                   enablePrefixCompression = true,
                   entryId = keyId,
                   plusSize = 0,
-                  isKeyCompressed = true
+                  isKeyCompressed = true,
+                  hasPrefixCompressed = randomBoolean()
                 )
 
-              val reader = Reader(writeResult.indexBytes)
+              val reader = Reader[swaydb.Error.Segment](writeResult.indexBytes)
 
               val expectedEntryID = put.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(keyId.timePartiallyCompressed.noValue.noDeadline.baseId)
               reader.readIntUnsigned().get shouldBe expectedEntryID
@@ -112,10 +114,11 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
               enablePrefixCompression = true,
               entryId = keyId,
               plusSize = 0,
-              isKeyCompressed = true
+              isKeyCompressed = true,
+              hasPrefixCompressed = randomBoolean()
             )
 
-          val reader = Reader(writeResult.indexBytes)
+          val reader = Reader[swaydb.Error.Segment](writeResult.indexBytes)
 
           val expectedEntryID = put.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(keyId.timeUncompressed.noValue.noDeadline.baseId)
           reader.readIntUnsigned().get shouldBe expectedEntryID
@@ -148,10 +151,11 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
                   enablePrefixCompression = true,
                   entryId = keyId,
                   plusSize = 0,
-                  isKeyCompressed = true
+                  isKeyCompressed = true,
+                  hasPrefixCompressed = randomBoolean()
                 )
 
-              val reader = Reader(writeResult.indexBytes)
+              val reader = Reader[swaydb.Error.Segment](writeResult.indexBytes)
 
               val expectedEntryID = adjustedEntryId.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(keyId.noTime.noValue.noDeadline.baseId)
               reader.readIntUnsigned().get shouldBe expectedEntryID

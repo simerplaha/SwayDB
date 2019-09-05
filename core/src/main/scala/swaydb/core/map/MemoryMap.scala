@@ -19,16 +19,18 @@
 
 package swaydb.core.map
 
-import java.util.concurrent.ConcurrentSkipListMap
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.map.serializer.MapEntryWriter
-import scala.reflect.ClassTag
+import swaydb.Error.Map.ExceptionHandler
+import swaydb.IO
 import swaydb.core.function.FunctionStore
-import swaydb.data.IO
+import swaydb.core.map.serializer.MapEntryWriter
+import swaydb.core.util.SkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap[K, V],
+import scala.reflect.ClassTag
+
+private[map] class MemoryMap[K, V: ClassTag](val skipList: SkipList.Concurrent[K, V],
                                              flushOnOverflow: Boolean,
                                              val fileSize: Long)(implicit keyOrder: KeyOrder[K],
                                                                  timeOrder: TimeOrder[Slice[Byte]],
@@ -39,28 +41,14 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
   private var currentBytesWritten: Long = 0
 
   @volatile private var _hasRange: Boolean = false
-  @volatile private var writeCount: Long = 0L
 
   override def hasRange: Boolean = _hasRange
 
-  private val stateIDLock = new Object()
-
-  def stateID: Long =
-    stateIDLock.synchronized {
-      writeCount
-    }
-
-  def incrementStateID: Long =
-    stateIDLock.synchronized {
-      writeCount += 1
-      writeCount
-    }
-
-  def delete: IO[Unit] =
+  def delete: IO[swaydb.Error.Map, Unit] =
     IO(skipList.clear())
 
-  override def write(entry: MapEntry[K, V]): IO[Boolean] =
-    stateIDLock.synchronized {
+  override def write(entry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] =
+    synchronized {
       if (flushOnOverflow || currentBytesWritten == 0 || ((currentBytesWritten + entry.totalByteSize) <= fileSize)) {
         if (entry.hasRange) {
           _hasRange = true //set hasRange to true before inserting so that reads start looking for floor key-values as the inserts are occurring.
@@ -71,13 +59,12 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
           entry applyTo skipList
         }
         currentBytesWritten += entry.totalByteSize
-        writeCount += 1
         IO.`true`
       } else {
         IO.`false`
       }
     }
 
-  override def close(): IO[Unit] =
+  override def close(): IO[swaydb.Error.Map, Unit] =
     IO.unit
 }

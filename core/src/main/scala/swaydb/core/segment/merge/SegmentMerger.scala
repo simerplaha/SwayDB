@@ -20,152 +20,215 @@
 package swaydb.core.segment.merge
 
 import com.typesafe.scalalogging.LazyLogging
-import scala.annotation.tailrec
-import scala.collection.mutable.ListBuffer
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
+import swaydb.IO._
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.merge.{FixedMerger, ValueMerger}
-import swaydb.core.queue.KeyValueLimiter
-import swaydb.data.IO
-import swaydb.data.IO._
+import swaydb.core.segment.format.a.block._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
+import scala.annotation.tailrec
+import scala.collection.mutable.ListBuffer
+
 private[core] object SegmentMerger extends LazyLogging {
-  implicit val keyValueLimiter = KeyValueLimiter.none
+  implicit val memorySweeper = Option.empty[MemorySweeper.KeyValue]
+
+  def transferSmall(buffers: ListBuffer[SegmentBuffer],
+                    minSegmentSize: Long,
+                    forMemory: Boolean,
+                    createdInLevel: Int,
+                    valuesConfig: ValuesBlock.Config,
+                    sortedIndexConfig: SortedIndexBlock.Config,
+                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                    hashIndexConfig: HashIndexBlock.Config,
+                    bloomFilterConfig: BloomFilterBlock.Config)(implicit groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, ListBuffer[SegmentBuffer]] =
+  //if there are any small Segments, merge them into previous Segment.
+    if (buffers.length >= 2 && ((forMemory && buffers.last.lastOption.map(_.stats.memorySegmentSize).getOrElse(0) < minSegmentSize) || buffers.last.lastOption.map(_.stats.segmentSize).getOrElse(0) < minSegmentSize)) {
+      val newBuffers = buffers dropRight 1
+      val newBuffersLast = newBuffers.last
+      val newBuffersLastKeyValue = newBuffersLast.last
+      val result =
+        newBuffersLast match {
+          case flattened: SegmentBuffer.Flattened =>
+            buffers.last foreachIO {
+              case response: Transient.SegmentResponse =>
+                IO {
+                  flattened add
+                    response.updatePrevious(
+                      valuesConfig = newBuffersLastKeyValue.valuesConfig,
+                      sortedIndexConfig = newBuffersLastKeyValue.sortedIndexConfig,
+                      binarySearchIndexConfig = newBuffersLastKeyValue.binarySearchIndexConfig,
+                      hashIndexConfig = newBuffersLastKeyValue.hashIndexConfig,
+                      bloomFilterConfig = newBuffersLastKeyValue.bloomFilterConfig,
+                      previous = flattened.lastOption
+                    )
+                }
+
+              case _: Transient.Group =>
+                IO.failed[swaydb.Error.Segment, ListBuffer[SegmentBuffer]]("Unexpected Group in Flattened SegmentBuffer")
+            }
+          case grouped: SegmentBuffer.Grouped =>
+            buffers.last foreachIO {
+              case response: Transient.SegmentResponse =>
+                IO {
+                  grouped add
+                    response.updatePrevious(
+                      valuesConfig = newBuffersLastKeyValue.valuesConfig,
+                      sortedIndexConfig = newBuffersLastKeyValue.sortedIndexConfig,
+                      binarySearchIndexConfig = newBuffersLastKeyValue.binarySearchIndexConfig,
+                      hashIndexConfig = newBuffersLastKeyValue.hashIndexConfig,
+                      bloomFilterConfig = newBuffersLastKeyValue.bloomFilterConfig,
+                      previous = grouped.lastOption
+                    )
+                }
+
+              case group: Transient.Group =>
+                grouped addGroup
+                  group.updatePrevious(
+                    valuesConfig = newBuffersLastKeyValue.valuesConfig,
+                    sortedIndexConfig = newBuffersLastKeyValue.sortedIndexConfig,
+                    binarySearchIndexConfig = newBuffersLastKeyValue.binarySearchIndexConfig,
+                    hashIndexConfig = newBuffersLastKeyValue.hashIndexConfig,
+                    bloomFilterConfig = newBuffersLastKeyValue.bloomFilterConfig,
+                    previous = grouped.lastNonGroupOption
+                  )
+            }
+        }
+
+      result match {
+        case Some(failure) =>
+          IO.Left(failure.value)
+
+        case None =>
+          IO(newBuffers.filter(_.nonEmpty))
+      }
+    } else {
+      IO(buffers.filter(_.nonEmpty))
+    }
 
   /**
-    * If the last Segment is too small, this function merges the last Segment with the previous Segment's key-value.
-    *
-    * It also executes grouping on the last un-grouped key-values if compression type (grouping) is provided.
-    */
-  @tailrec
-  def completeMerge(segments: ListBuffer[ListBuffer[KeyValue.WriteOnly]],
-                    minSegmentSize: Long,
-                    maxProbe: Int,
-                    forMemory: Boolean,
-                    bloomFilterFalsePositiveRate: Double,
-                    resetPrefixCompressionEvery: Int,
-                    minimumNumberOfKeyForHashIndex: Int,
-                    hashIndexCompensation: Int => Int,
-                    enableRangeFilterAndIndex: Boolean,
-                    groupLastSegment: Boolean = true)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
-    //if there are any small Segments, merge them into previous Segment.
-    val noSmallSegments =
-      if (segments.length >= 2 && ((forMemory && segments.last.lastOption.map(_.stats.memorySegmentSize).getOrElse(0) < minSegmentSize) || segments.last.lastOption.map(_.stats.segmentSize).getOrElse(0) < minSegmentSize)) {
-        val newSegments = segments dropRight 1
-        val newSegmentsLast = newSegments.last
-        segments.last foreach {
-          keyValue =>
-            newSegmentsLast += keyValue.updateStats(bloomFilterFalsePositiveRate, newSegmentsLast.lastOption)
-        }
-        newSegments
-      } else {
-        segments
-      }
+   * If the last Segment is too small merge the last Segment with the previous Segment's key-value.
+   *
+   * It also executes grouping on the last un-grouped key-values if compression type (grouping) is provided.
+   */
+  def close(buffers: ListBuffer[SegmentBuffer],
+            minSegmentSize: Long,
+            forMemory: Boolean,
+            createdInLevel: Int,
+            valuesConfig: ValuesBlock.Config,
+            sortedIndexConfig: SortedIndexBlock.Config,
+            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+            hashIndexConfig: HashIndexBlock.Config,
+            bloomFilterConfig: BloomFilterBlock.Config)(implicit groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, ListBuffer[SegmentBuffer]] =
+    transferSmall(
+      buffers = buffers,
+      minSegmentSize = minSegmentSize,
+      forMemory = forMemory,
+      createdInLevel = createdInLevel,
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig
+    ) match {
+      case transferredBuffersIO @ IO.Right(transferredBuffers) =>
+        transferredBuffers.lastOption match {
+          case Some(last) =>
+            last match {
+              case _: SegmentBuffer.Flattened =>
+                transferredBuffersIO
 
-    //if compression is specified, compress any last non grouped key-values and try completingMerge again
-    //in-case compression of the last Segment's key-values resulted is a smaller Segment.
-    groupingStrategy match {
-      case Some(groupingS) if groupLastSegment =>
-        noSmallSegments.filter(_.nonEmpty).lastOption match {
-          case Some(lastSegmentsKeyValues) =>
-            SegmentGrouper.group(
-              segmentKeyValues = lastSegmentsKeyValues,
-              bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-              resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-              minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-              hashIndexCompensation = hashIndexCompensation,
-              groupingStrategy = groupingS,
-              maxProbe = maxProbe,
-              enableRangeFilterAndIndex = enableRangeFilterAndIndex,
-              force = true
-            ) match {
-              case IO.Success(Some(_)) => //grouping occurred.
-                //do completeMerge again in-case grouping the last Segment resulted in a smaller Segment.
-                completeMerge(
-                  segments = noSmallSegments,
-                  minSegmentSize = minSegmentSize,
-                  maxProbe = maxProbe,
-                  forMemory = forMemory,
-                  bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                  resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                  minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-                  hashIndexCompensation = hashIndexCompensation,
-                  enableRangeFilterAndIndex = enableRangeFilterAndIndex,
-                  groupLastSegment = false
-                )
-
-              case IO.Success(None) =>
-                IO.Success(noSmallSegments.filter(_.nonEmpty))
-
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case lastBuffer: SegmentBuffer.Grouped =>
+                SegmentGrouper.group(
+                  buffer = lastBuffer,
+                  createdInLevel = createdInLevel,
+                  segmentValuesConfig = valuesConfig,
+                  segmentSortedIndexConfig = sortedIndexConfig,
+                  segmentBinarySearchIndexConfig = binarySearchIndexConfig,
+                  segmentHashIndexConfig = hashIndexConfig,
+                  segmentBloomFilterConfig = bloomFilterConfig,
+                  force = true,
+                  skipQuotaCheck = false
+                ) map {
+                  _ =>
+                    transferredBuffers.filter(_.nonEmpty)
+                }
             }
+
           case None =>
-            IO.Success(noSmallSegments.filter(_.nonEmpty))
+            transferredBuffersIO
         }
-      case _ =>
-        IO.Success(noSmallSegments.filter(_.nonEmpty))
+
+      case failure @ IO.Left(_) =>
+        failure
     }
-  }
 
   def split(keyValues: Iterable[KeyValue.ReadOnly],
             minSegmentSize: Long,
             isLastLevel: Boolean,
             forInMemory: Boolean,
-            maxProbe: Int,
-            bloomFilterFalsePositiveRate: Double,
-            resetPrefixCompressionEvery: Int,
-            minimumNumberOfKeyForHashIndex: Int,
-            hashIndexCompensation: Int => Int,
-            enableRangeFilterAndIndex: Boolean,
-            compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                              groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[KeyValue.WriteOnly]]] = {
-    val splits = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer())
+            createdInLevel: Int,
+            valuesConfig: ValuesBlock.Config,
+            sortedIndexConfig: SortedIndexBlock.Config,
+            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+            hashIndexConfig: HashIndexBlock.Config,
+            bloomFilterConfig: BloomFilterBlock.Config,
+            segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Iterable[Iterable[Transient]]] = {
+
+    val segmentMergeConfigs =
+      SegmentMergeConfigs(
+        segmentValuesConfig = valuesConfig,
+        segmentSortedIndexConfig = sortedIndexConfig,
+        segmentBinarySearchIndexConfig = binarySearchIndexConfig,
+        segmentHashIndexConfig = hashIndexConfig,
+        segmentBloomFilterConfig = bloomFilterConfig,
+        groupBy = groupBy
+      )
+
+    val splits = ListBuffer(SegmentBuffer(groupBy))
     keyValues foreachIO {
       keyValue =>
         SegmentGrouper.addKeyValue(
           keyValueToAdd = keyValue,
           splits = splits,
-          maxProbe = maxProbe,
           minSegmentSize = minSegmentSize,
           forInMemory = forInMemory,
           isLastLevel = isLastLevel,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = hashIndexCompensation,
-          compressDuplicateValues = compressDuplicateValues,
-          enableRangeFilterAndIndex = enableRangeFilterAndIndex
-
+          createdInLevel = createdInLevel,
+          segmentMergeConfigs = segmentMergeConfigs,
+          segmentIO = segmentIO
         )
     } match {
       case None =>
-        completeMerge(
-          segments = splits,
+        close(
+          buffers = splits,
           minSegmentSize = minSegmentSize,
-          maxProbe = maxProbe,
           forMemory = forInMemory,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = hashIndexCompensation,
-          enableRangeFilterAndIndex = enableRangeFilterAndIndex
+          createdInLevel = createdInLevel,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig
         )
 
-      case Some(IO.Failure(failure)) =>
-        IO.Failure(failure)
+      case Some(IO.Left(failure)) =>
+        IO.Left(failure)
     }
   }
 
   /**
-    * TODO: Both inputs are Memory so temporarily it's OK to call .get because Memory key-values do not do IO. But this should be fixed and .get should not be invoked.
-    *
-    * Need a type class implementation on executing side effects of merging key-values, one for [[Memory]] key-values and other for [[Persistent]] key-value types.
-    */
+   * TODO: Both inputs are Memory so temporarily it's OK to call .find because Memory key-values do not do IO. But this should be fixed and .find should not be invoked.
+   *
+   * Need a type class implementation on executing side effects of merging key-values, one for [[Memory]] key-values and other for [[Persistent]] key-value types.
+   */
   def merge(newKeyValues: Slice[Memory.SegmentResponse],
             oldKeyValues: Slice[Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                          timeOrder: TimeOrder[Slice[Byte]],
@@ -176,13 +239,13 @@ private[core] object SegmentMerger extends LazyLogging {
       minSegmentSize = Int.MaxValue,
       isLastLevel = false,
       forInMemory = true,
-      maxProbe = -1,
-      bloomFilterFalsePositiveRate = 0.01,
-      resetPrefixCompressionEvery = 100,
-      minimumNumberOfKeyForHashIndex = 50,
-      hashIndexCompensation = _ => 0,
-      compressDuplicateValues = false,
-      enableRangeFilterAndIndex = false
+      createdInLevel = 0,
+      valuesConfig = ValuesBlock.Config.disabled,
+      sortedIndexConfig = SortedIndexBlock.Config.disabled,
+      binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
+      hashIndexConfig = HashIndexBlock.Config.disabled,
+      bloomFilterConfig = BloomFilterBlock.Config.disabled,
+      segmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
     )(keyOrder, timeOrder, functionStore, None)
       .get
       .flatten
@@ -198,13 +261,13 @@ private[core] object SegmentMerger extends LazyLogging {
       minSegmentSize = Int.MaxValue,
       isLastLevel = false,
       forInMemory = true,
-      maxProbe = -1,
-      bloomFilterFalsePositiveRate = 0.01,
-      resetPrefixCompressionEvery = 100,
-      minimumNumberOfKeyForHashIndex = 50,
-      hashIndexCompensation = _ => 0,
-      compressDuplicateValues = false,
-      enableRangeFilterAndIndex = false
+      createdInLevel = 0,
+      valuesConfig = ValuesBlock.Config.disabled,
+      sortedIndexConfig = SortedIndexBlock.Config.disabled,
+      binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
+      hashIndexConfig = HashIndexBlock.Config.disabled,
+      bloomFilterConfig = BloomFilterBlock.Config.disabled,
+      segmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
     )(keyOrder, timeOrder, functionStore, None)
       .get
       .flatten
@@ -213,146 +276,154 @@ private[core] object SegmentMerger extends LazyLogging {
   def merge(newKeyValues: Slice[KeyValue.ReadOnly],
             oldKeyValues: Slice[KeyValue.ReadOnly],
             minSegmentSize: Long,
-            maxProbe: Int,
             isLastLevel: Boolean,
             forInMemory: Boolean,
-            bloomFilterFalsePositiveRate: Double,
-            resetPrefixCompressionEvery: Int,
-            minimumNumberOfKeyForHashIndex: Int,
-            hashIndexCompensation: Int => Int,
-            compressDuplicateValues: Boolean,
-            enableRangeFilterAndIndex: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]],
-                                        functionStore: FunctionStore,
-                                        groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[KeyValue.WriteOnly]]] =
+            createdInLevel: Int,
+            valuesConfig: ValuesBlock.Config,
+            sortedIndexConfig: SortedIndexBlock.Config,
+            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+            hashIndexConfig: HashIndexBlock.Config,
+            bloomFilterConfig: BloomFilterBlock.Config,
+            segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  timeOrder: TimeOrder[Slice[Byte]],
+                                  functionStore: FunctionStore,
+                                  groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Iterable[Iterable[Transient]]] =
     merge(
       newKeyValues = MergeList(newKeyValues),
       oldKeyValues = MergeList(oldKeyValues),
-      splits = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer.empty),
+      splits = ListBuffer(SegmentBuffer(groupBy)),
       minSegmentSize = minSegmentSize,
       isLastLevel = isLastLevel,
-      maxProbe = maxProbe,
       forInMemory = forInMemory,
-      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-      hashIndexCompensation = hashIndexCompensation,
-      compressDuplicateValues = compressDuplicateValues,
-      enableRangeFilterAndIndex = enableRangeFilterAndIndex
+      valuesConfig = valuesConfig,
+      createdInLevel = createdInLevel,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig,
+      segmentIO = segmentIO
     ) flatMap {
-      splits =>
-        completeMerge(
-          segments = splits,
+      segments =>
+        close(
+          buffers = segments,
           minSegmentSize = minSegmentSize,
-          maxProbe = maxProbe,
           forMemory = forInMemory,
-          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = hashIndexCompensation,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          enableRangeFilterAndIndex = enableRangeFilterAndIndex
+          createdInLevel = createdInLevel,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig
         )
     }
 
   private def merge(newKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
                     oldKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
-                    splits: ListBuffer[ListBuffer[KeyValue.WriteOnly]],
+                    splits: ListBuffer[SegmentBuffer],
                     minSegmentSize: Long,
                     isLastLevel: Boolean,
                     forInMemory: Boolean,
-                    maxProbe: Int,
-                    bloomFilterFalsePositiveRate: Double,
-                    resetPrefixCompressionEvery: Int,
-                    minimumNumberOfKeyForHashIndex: Int,
-                    hashIndexCompensation: Int => Int,
-                    compressDuplicateValues: Boolean,
-                    enableRangeFilterAndIndex: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore,
-                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
+                    createdInLevel: Int,
+                    valuesConfig: ValuesBlock.Config,
+                    sortedIndexConfig: SortedIndexBlock.Config,
+                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                    hashIndexConfig: HashIndexBlock.Config,
+                    bloomFilterConfig: BloomFilterBlock.Config,
+                    segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                          timeOrder: TimeOrder[Slice[Byte]],
+                                          functionStore: FunctionStore,
+                                          groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, ListBuffer[SegmentBuffer]] = {
 
     import keyOrder._
 
-    def add(nextKeyValue: KeyValue.ReadOnly): IO[Unit] =
+    implicit val groupIO = groupBy.map(_.groupIO) getOrElse segmentIO
+
+    val segmentMergeConfigs =
+      SegmentMergeConfigs(
+        segmentValuesConfig = valuesConfig,
+        segmentSortedIndexConfig = sortedIndexConfig,
+        segmentBinarySearchIndexConfig = binarySearchIndexConfig,
+        segmentHashIndexConfig = hashIndexConfig,
+        segmentBloomFilterConfig = bloomFilterConfig,
+        groupBy = groupBy
+      )
+
+    def add(nextKeyValue: KeyValue.ReadOnly): IO[swaydb.Error.Segment, Unit] =
       SegmentGrouper.addKeyValue(
         keyValueToAdd = nextKeyValue,
         splits = splits,
         minSegmentSize = minSegmentSize,
         forInMemory = forInMemory,
         isLastLevel = isLastLevel,
-        maxProbe = maxProbe,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
-        compressDuplicateValues = compressDuplicateValues,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex
+        createdInLevel = createdInLevel,
+        segmentMergeConfigs = segmentMergeConfigs,
+        segmentIO = segmentIO
       )
 
     @tailrec
     def doMerge(newKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
-                oldKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] =
+                oldKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly]): IO[swaydb.Error.Segment, ListBuffer[SegmentBuffer]] =
       (newKeyValues.headOption, oldKeyValues.headOption) match {
 
         case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>
           if (oldKeyValue.key < newKeyValue.key)
             add(oldKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (newKeyValue.key < oldKeyValue.key)
             add(newKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else
             FixedMerger(
               newKeyValue = newKeyValue,
               oldKeyValue = oldKeyValue
             ) match {
-              case IO.Success(mergedKeyValue) =>
+              case IO.Right(mergedKeyValue) =>
                 add(mergedKeyValue) match {
-                  case IO.Success(_) =>
+                  case IO.Right(_) =>
                     doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
 
-                  case IO.Failure(exception) =>
-                    IO.Failure(exception)
+                  case IO.Left(error) =>
+                    IO.Left(error)
                 }
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
-          * When the input is an overwrite key-value and the existing is a range key-value.
-          */
+         * When the input is an overwrite key-value and the existing is a range key-value.
+         */
         case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldRangeKeyValue: ReadOnly.Range)) =>
           if (newKeyValue.key < oldRangeKeyValue.fromKey)
             add(newKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (newKeyValue.key >= oldRangeKeyValue.toKey)
             add(oldRangeKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else //is in-range key
             oldRangeKeyValue.fetchFromAndRangeValue match {
-              case IO.Success((oldFromValue, oldRangeRangeValue)) if newKeyValue.key equiv oldRangeKeyValue.fromKey =>
+              case IO.Right((oldFromValue, oldRangeRangeValue)) if newKeyValue.key equiv oldRangeKeyValue.fromKey =>
                 FixedMerger(
                   newKeyValue = newKeyValue,
                   oldKeyValue = oldFromValue.getOrElse(oldRangeRangeValue).toMemory(newKeyValue.key)
                 ).flatMap(_.toFromValue()) match {
-                  case IO.Success(newFromValue) =>
+                  case IO.Right(newFromValue) =>
                     val toPrepend =
                       Memory.Range(
                         fromKey = oldRangeKeyValue.fromKey,
@@ -362,54 +433,54 @@ private[core] object SegmentMerger extends LazyLogging {
                       )
                     doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(toPrepend))
 
-                  case IO.Failure(exception) =>
-                    IO.Failure(exception)
+                  case IO.Left(error) =>
+                    IO.Left(error)
                 }
 
-              case IO.Success((oldFromValue, oldRangeValue)) => //else it's a mid range value - split required.
+              case IO.Right((oldFromValue, oldRangeValue)) => //else it's a mid range value - split required.
                 FixedMerger(
                   newKeyValue = newKeyValue,
                   oldKeyValue = oldRangeValue.toMemory(newKeyValue.key)
                 ).flatMap(_.toFromValue()) match {
-                  case IO.Success(newFromValue) =>
+                  case IO.Right(newFromValue) =>
                     val lowerSplit = Memory.Range(oldRangeKeyValue.fromKey, newKeyValue.key, oldFromValue, oldRangeValue)
                     val upperSplit = Memory.Range(newKeyValue.key, oldRangeKeyValue.toKey, Some(newFromValue), oldRangeValue)
                     add(lowerSplit) match {
-                      case IO.Success(_) =>
+                      case IO.Right(_) =>
                         doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(upperSplit))
 
-                      case IO.Failure(exception) =>
-                        IO.Failure(exception)
+                      case IO.Left(error) =>
+                        IO.Left(error)
                     }
-                  case IO.Failure(exception) =>
-                    IO.Failure(exception)
+                  case IO.Left(error) =>
+                    IO.Left(error)
                 }
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
-          * When the input is a range and the existing is a fixed key-value.
-          */
+         * When the input is a range and the existing is a fixed key-value.
+         */
         case (Some(newRangeKeyValue: ReadOnly.Range), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>
           if (oldKeyValue.key >= newRangeKeyValue.toKey)
             add(newRangeKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (oldKeyValue.key < newRangeKeyValue.fromKey)
             add(oldKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else //is in-range key
             newRangeKeyValue.fetchFromAndRangeValue match {
-              case IO.Success((newRangeFromValue, newRangeRangeValue)) if newRangeKeyValue.fromKey equiv oldKeyValue.key =>
+              case IO.Right((newRangeFromValue, newRangeRangeValue)) if newRangeKeyValue.fromKey equiv oldKeyValue.key =>
                 val fromOrRange = newRangeFromValue.getOrElse(newRangeRangeValue)
                 fromOrRange match {
                   //the range is remove or put simply drop old key-value. No need to merge! Important! do a time check.
@@ -422,7 +493,7 @@ private[core] object SegmentMerger extends LazyLogging {
                       newKeyValue = newRangeFromValue.getOrElse(newRangeRangeValue).toMemory(oldKeyValue.key),
                       oldKeyValue = oldKeyValue
                     ).flatMap(_.toFromValue()) match {
-                      case IO.Success(newFromValue) =>
+                      case IO.Right(newFromValue) =>
                         val newKeyValue =
                           Memory.Range(
                             fromKey = newRangeKeyValue.fromKey,
@@ -432,12 +503,12 @@ private[core] object SegmentMerger extends LazyLogging {
                           )
                         doMerge(newKeyValues.dropPrepend(newKeyValue), oldKeyValues.dropHead())
 
-                      case IO.Failure(exception) =>
-                        IO.Failure(exception)
+                      case IO.Left(error) =>
+                        IO.Left(error)
                     }
                 }
 
-              case IO.Success((newRangeFromValue, newRangeRangeValue)) => //split required.
+              case IO.Right((newRangeFromValue, newRangeRangeValue)) => //split required.
                 newRangeRangeValue match {
                   //the range is remove or put simply remove all old key-values. No need to merge! Important! do a time check.
                   case Value.Remove(None, rangeTime) if rangeTime > oldKeyValue.time =>
@@ -448,49 +519,49 @@ private[core] object SegmentMerger extends LazyLogging {
                       newKeyValue = newRangeRangeValue.toMemory(oldKeyValue.key),
                       oldKeyValue = oldKeyValue
                     ).flatMap(_.toFromValue()) match {
-                      case IO.Success(newFromValue) =>
+                      case IO.Right(newFromValue) =>
                         val lowerSplit = Memory.Range(newRangeKeyValue.fromKey, oldKeyValue.key, newRangeFromValue, newRangeRangeValue)
                         val upperSplit = Memory.Range(oldKeyValue.key, newRangeKeyValue.toKey, Some(newFromValue), newRangeRangeValue)
                         add(lowerSplit) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropPrepend(upperSplit), oldKeyValues.dropHead())
-                          case IO.Failure(exception) =>
-                            IO.Failure(exception)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
 
-                      case IO.Failure(exception) =>
-                        IO.Failure(exception)
+                      case IO.Left(error) =>
+                        IO.Left(error)
                     }
                 }
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
-          * When both the key-values are ranges.
-          */
+         * When both the key-values are ranges.
+         */
         case (Some(newRangeKeyValue: ReadOnly.Range), Some(oldRangeKeyValue: ReadOnly.Range)) =>
           if (newRangeKeyValue.toKey <= oldRangeKeyValue.fromKey)
             add(newRangeKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
           else if (oldRangeKeyValue.toKey <= newRangeKeyValue.fromKey)
             add(oldRangeKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else
             newRangeKeyValue.fetchFromAndRangeValue match {
-              case IO.Success((newRangeFromValue, newRangeRangeValue)) =>
+              case IO.Right((newRangeFromValue, newRangeRangeValue)) =>
                 oldRangeKeyValue.fetchFromAndRangeValue match {
-                  case IO.Success((oldRangeFromValue, oldRangeRangeValue)) =>
+                  case IO.Right((oldRangeFromValue, oldRangeRangeValue)) =>
                     val newRangeFromKey = newRangeKeyValue.fromKey
                     val newRangeToKey = newRangeKeyValue.toKey
                     val oldRangeFromKey = oldRangeKeyValue.fromKey
@@ -511,11 +582,11 @@ private[core] object SegmentMerger extends LazyLogging {
                         val lowerSplit = Memory.Range(newRangeToKey, oldRangeToKey, None, oldRangeRangeValue)
 
                         add(upperSplit).flatMap(_ => add(middleSplit)) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(lowerSplit))
 
-                          case IO.Failure(exception) =>
-                            IO.Failure(exception)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       } else if (newRangeToKey equiv oldRangeToKey) {
                         //1      -      20
@@ -531,11 +602,11 @@ private[core] object SegmentMerger extends LazyLogging {
                           )
 
                         add(upperSplit).flatMap(_ => add(lowerSplit)) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
 
-                          case IO.Failure(exception) =>
-                            IO.Failure(exception)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       } else {
                         //1      -         21
@@ -552,11 +623,11 @@ private[core] object SegmentMerger extends LazyLogging {
                         val lowerSplit = Memory.Range(oldRangeToKey, newRangeToKey, None, newRangeRangeValue)
 
                         add(upperSplit).flatMap(_ => add(middleSplit)) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropPrepend(lowerSplit), oldKeyValues.dropHead())
 
-                          case IO.Failure(exception) =>
-                            IO.Failure(exception)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       }
                     } else if (newRangeFromKey equiv oldRangeFromKey) {
@@ -575,11 +646,11 @@ private[core] object SegmentMerger extends LazyLogging {
                         val lowerSplit = Memory.Range(newRangeToKey, oldRangeToKey, None, oldRangeRangeValue)
 
                         add(upperSplit) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(lowerSplit))
 
-                          case IO.Failure(exception) =>
-                            IO.Failure(exception)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       } else if (newRangeToKey equiv oldRangeToKey) {
                         //      10   -  20
@@ -595,11 +666,11 @@ private[core] object SegmentMerger extends LazyLogging {
                         )
 
                         add(update) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
 
-                          case IO.Failure(exception) =>
-                            IO.Failure(exception)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       } else {
                         //      10   -     21
@@ -616,11 +687,11 @@ private[core] object SegmentMerger extends LazyLogging {
                         val lowerSplit = Memory.Range(oldRangeToKey, newRangeToKey, None, newRangeRangeValue)
 
                         add(upperSplit) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropPrepend(lowerSplit), oldKeyValues.dropHead())
 
-                          case IO.Failure(exception) =>
-                            IO.Failure(exception)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       }
                     } else {
@@ -640,11 +711,11 @@ private[core] object SegmentMerger extends LazyLogging {
                         val lowerSplit = Memory.Range(newRangeToKey, oldRangeToKey, None, oldRangeRangeValue)
 
                         add(upperSplit).flatMap(_ => add(middleSplit)) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(lowerSplit))
 
-                          case IO.Failure(exception) =>
-                            IO.Failure(exception)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       } else if (newRangeToKey equiv oldRangeToKey) {
                         //        11 -   20
@@ -659,11 +730,11 @@ private[core] object SegmentMerger extends LazyLogging {
                         )
 
                         add(upperSplit).flatMap(_ => add(lowerSplit)) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
 
-                          case IO.Failure(exception) =>
-                            IO.Failure(exception)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       } else {
                         //        11 -     21
@@ -681,213 +752,215 @@ private[core] object SegmentMerger extends LazyLogging {
                         val lowerSplit = Memory.Range(oldRangeToKey, newRangeToKey, None, newRangeRangeValue)
 
                         add(upperSplit).flatMap(_ => add(middleSplit)) match {
-                          case IO.Success(_) =>
+                          case IO.Right(_) =>
                             doMerge(newKeyValues.dropPrepend(lowerSplit), oldKeyValues.dropHead())
 
-                          case IO.Failure(exception) =>
-                            IO.Failure(exception)
+                          case IO.Left(error) =>
+                            IO.Left(error)
                         }
                       }
                     }
 
-                  case IO.Failure(exception) =>
-                    IO.Failure(exception)
+                  case IO.Left(error) =>
+                    IO.Left(error)
                 }
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
-          * When the input is a Fixed key-value and the existing is a Group key-value.
-          */
+         * When the input is a Fixed key-value and the existing is a Group key-value.
+         */
         case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldGroupKeyValue: ReadOnly.Group)) =>
           if (newKeyValue.key < oldGroupKeyValue.minKey)
             add(newKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (oldGroupKeyValue.maxKey lessThan newKeyValue.key)
             add(oldGroupKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else //is in-group key. Open the Group and merge.
-            oldGroupKeyValue.segmentCache.getAll() match {
-              case IO.Success(oldGroupKeyValues) =>
+            oldGroupKeyValue.segment.getAll() match {
+              case IO.Right(oldGroupKeyValues) =>
                 doMerge(
                   newKeyValues,
                   MergeList[Memory.Range, KeyValue.ReadOnly](oldGroupKeyValues) append oldKeyValues.dropHead()
                 )
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
-          * When the input is a Group and the existing is a Fixed key-value.
-          */
+         * When the input is a Group and the existing is a Fixed key-value.
+         */
         case (Some(newGroupKeyValue: ReadOnly.Group), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>
           if (newGroupKeyValue.maxKey lessThan oldKeyValue.key)
             add(newGroupKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (oldKeyValue.key < newGroupKeyValue.key)
             add(oldKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else //Group overlaps fixed key-value
-            newGroupKeyValue.segmentCache.getAll() match {
-              case IO.Success(newGroupKeyValues) =>
+            newGroupKeyValue.segment.getAll() match {
+              case IO.Right(newGroupKeyValues) =>
                 doMerge(
                   MergeList[Memory.Range, KeyValue.ReadOnly](newGroupKeyValues) append newKeyValues.dropHead(),
                   oldKeyValues
                 )
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
-          * When the input is a Range key-value and the existing is a Group key-value.
-          */
+         * When the input is a Range key-value and the existing is a Group key-value.
+         */
         case (Some(newRangeKeyValue: KeyValue.ReadOnly.Range), Some(oldGroupKeyValue: ReadOnly.Group)) =>
           if (newRangeKeyValue.toKey <= oldGroupKeyValue.minKey)
             add(newRangeKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (oldGroupKeyValue.maxKey lessThan newRangeKeyValue.fromKey)
             add(oldGroupKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else
           //Open the Group and merge.
             newRangeKeyValue.fetchFromAndRangeValue match {
               //Cases when the Remove range completely overlaps the group and there is no time set for
               //both fromValue & RangeValue then there is no need to open the group. Simply remove the Group.
-              case IO.Success((None | Some(Value.Remove(None, Time.empty)), Value.Remove(None, Time.empty))) if newRangeKeyValue.fromKey <= oldGroupKeyValue.minKey && oldGroupKeyValue.maxKey.maxKey < newRangeKeyValue.toKey =>
+              case IO.Right((None | Some(Value.Remove(None, Time.empty)), Value.Remove(None, Time.empty))) if newRangeKeyValue.fromKey <= oldGroupKeyValue.minKey && oldGroupKeyValue.maxKey.maxKey < newRangeKeyValue.toKey =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
 
-              case IO.Success(_) =>
-                oldGroupKeyValue.segmentCache.getAll() match {
-                  case IO.Success(oldGroupKeyValues) =>
+              case IO.Right(_) =>
+                oldGroupKeyValue.segment.getAll() match {
+                  case IO.Right(oldGroupKeyValues) =>
                     doMerge(
                       newKeyValues,
                       MergeList[Memory.Range, KeyValue.ReadOnly](oldGroupKeyValues) append oldKeyValues.dropHead()
                     )
 
-                  case IO.Failure(exception) =>
-                    IO.Failure(exception)
+                  case IO.Left(error) =>
+                    IO.Left(error)
                 }
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
-          * When the input is a Group and the existing is a Range key-value.
-          */
+         * When the input is a Group and the existing is a Range key-value.
+         */
         case (Some(newGroupKeyValue: ReadOnly.Group), Some(oldRangeKeyValue: KeyValue.ReadOnly.Range)) =>
           if (newGroupKeyValue.maxKey lessThan oldRangeKeyValue.fromKey)
             add(newGroupKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (oldRangeKeyValue.toKey <= newGroupKeyValue.minKey)
             add(oldRangeKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else //Group overlaps fixed key-value
-            newGroupKeyValue.segmentCache.getAll() match {
-              case IO.Success(newGroupKeyValues) =>
+            newGroupKeyValue.segment.getAll() match {
+              case IO.Right(newGroupKeyValues) =>
                 doMerge(
                   MergeList[Memory.Range, KeyValue.ReadOnly](newGroupKeyValues) append newKeyValues.dropHead(),
                   oldKeyValues
                 )
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         /**
-          * When both are Groups.
-          */
+         * When both are Groups.
+         */
         case (Some(newGroupKeyValue: ReadOnly.Group), Some(oldGroupKeyValue: KeyValue.ReadOnly.Group)) =>
           if (newGroupKeyValue.maxKey lessThan oldGroupKeyValue.minKey)
             add(newGroupKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else if (oldGroupKeyValue.maxKey lessThan newGroupKeyValue.minKey)
             add(oldGroupKeyValue) match {
-              case IO.Success(_) =>
+              case IO.Right(_) =>
                 doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
           else //Group overlaps fixed key-value
-            newGroupKeyValue.segmentCache.getAll() match {
-              case IO.Success(newGroupKeyValues) =>
-                oldGroupKeyValue.segmentCache.getAll() match {
-                  case IO.Success(oldGroupKeyValues) =>
+            newGroupKeyValue.segment.getAll() match {
+              case IO.Right(newGroupKeyValues) =>
+                oldGroupKeyValue.segment.getAll() match {
+                  case IO.Right(oldGroupKeyValues) =>
                     doMerge(
                       MergeList[Memory.Range, KeyValue.ReadOnly](newGroupKeyValues) append newKeyValues.dropHead(),
                       MergeList[Memory.Range, KeyValue.ReadOnly](oldGroupKeyValues) append oldKeyValues.dropHead()
                     )
 
-                  case IO.Failure(exception) =>
-                    IO.Failure(exception)
+                  case IO.Left(error) =>
+                    IO.Left(error)
                 }
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Left(error) =>
+                IO.Left(error)
             }
 
         //there are no more oldKeyValues. Add all remaining newKeyValues
         case (Some(_), None) =>
           newKeyValues.foreachIO(add) match {
-            case Some(IO.Failure(exception)) =>
-              IO.Failure(exception)
+            case Some(IO.Left(error)) =>
+              IO.Left(error)
+
             case None =>
-              IO.Success(splits)
+              IO.Right(splits)
           }
 
         //there are no more newKeyValues. Add all remaining oldKeyValues
         case (None, Some(_)) =>
           oldKeyValues.foreachIO(add) match {
-            case Some(IO.Failure(exception)) =>
-              IO.Failure(exception)
+            case Some(IO.Left(error)) =>
+              IO.Left(error)
+
             case None =>
-              IO.Success(splits)
+              IO.Right(splits)
           }
 
         case (None, None) =>
-          IO.Success(splits)
+          IO.Right(splits)
       }
 
-    IO.CatchLeak(doMerge(newKeyValues, oldKeyValues))
+    IO.Catch(doMerge(newKeyValues, oldKeyValues))
   }
 }

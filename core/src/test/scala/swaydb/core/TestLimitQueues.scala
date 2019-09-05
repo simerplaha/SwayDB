@@ -20,40 +20,46 @@
 package swaydb.core
 
 import java.util.concurrent.ConcurrentLinkedQueue
-import scala.concurrent.duration._
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter, FileLimiterItem}
+
+import swaydb.core.CommonAssertions._
+import swaydb.core.actor.{FileSweeper, FileSweeperItem, MemorySweeper}
+import swaydb.core.io.file.BlockCache
+import swaydb.core.actor.MemorySweeper
+import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.util.StorageUnits._
+
+import scala.concurrent.duration._
 
 object TestLimitQueues {
 
   implicit val level0PushDownPool = TestExecutionContext.executionContext
 
-  val keyValueLimiter = KeyValueLimiter(10.mb, 5.seconds)
+  val memorySweeper: Option[MemorySweeper.Both] =
+    MemorySweeper(MemoryCache.EnableBoth(4098, 200.mb, ActorConfig.TimeLoop(10.seconds, level0PushDownPool)))
+      .map(_.asInstanceOf[MemorySweeper.Both])
 
-  val closeQueue = new ConcurrentLinkedQueue[FileLimiterItem]()
+  val memorySweeperBlock: Option[MemorySweeper.BlockSweeper] =
+    MemorySweeper(MemoryCache.EnableBlockCache(4098, 10.mb, ActorConfig.Basic(level0PushDownPool)))
+      .map(_.asInstanceOf[MemorySweeper.BlockSweeper])
+
+  val keyValueSweeperBlock: Option[MemorySweeper.KeyValueSweeper] =
+    MemorySweeper(MemoryCache.EnableKeyValueCache(10.mb, ActorConfig.Basic(level0PushDownPool)))
+      .map(_.asInstanceOf[MemorySweeper.KeyValueSweeper])
+
+  val someMemorySweeper = memorySweeper
+
+  val closeQueue = new ConcurrentLinkedQueue[FileSweeperItem]()
   @volatile var closeQueueSize = closeQueue.size()
 
-  val deleteQueue = new ConcurrentLinkedQueue[FileLimiterItem]()
+  val deleteQueue = new ConcurrentLinkedQueue[FileSweeperItem]()
   @volatile var deleteQueueSize = closeQueue.size()
 
-  val fileOpenLimiter: FileLimiter =
-    new FileLimiter {
-      override def close(file: FileLimiterItem): Unit = {
-        closeQueue.add(file)
-        closeQueueSize += 1
-        if (closeQueueSize > 10000) {
-          closeQueue.poll().close()
-        }
-      }
+  val blockCache: Option[BlockCache.State] =
+    memorySweeper.map(BlockCache.init)
 
-      override def delete(file: FileLimiterItem): Unit = {
-        deleteQueue.add(file)
-        deleteQueueSize += 1
-        if (deleteQueueSize > 10000) {
-          closeQueue.poll().delete()
-        }
-      }
+  def randomBlockCache: Option[BlockCache.State] =
+    orNone(blockCache)
 
-      override def terminate(): Unit = ()
-    }
+  val fileSweeper: FileSweeper.Enabled =
+    FileSweeper(1000, ActorConfig.Basic(level0PushDownPool))
 }

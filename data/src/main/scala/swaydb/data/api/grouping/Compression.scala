@@ -25,5 +25,5 @@ sealed trait Compression
 object Compression {
   case class LZ4(compressor: (LZ4Instance, LZ4Compressor), decompressor: (LZ4Instance, LZ4Decompressor)) extends Compression
   case class Snappy(minCompressionPercentage: Double) extends Compression
-  case object UnCompressedGroup extends Compression
+  case object None extends Compression
 }

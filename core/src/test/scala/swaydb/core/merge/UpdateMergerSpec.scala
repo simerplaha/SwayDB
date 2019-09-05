@@ -20,21 +20,20 @@
 package swaydb.core.merge
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.{CommonAssertions, TestTimer}
-import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.serializers.Default._
-import swaydb.serializers._
-import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
+import swaydb.core.TestData._
+import swaydb.core.TestTimer
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.serializers.Default._
+import swaydb.serializers._
 
 class UpdateMergerSpec extends WordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
+  implicit def groupBy = randomGroupByOption(randomNextInt(1000))
 
   "Merging update into any other fixed key-value" when {
     "times are not in order" should {

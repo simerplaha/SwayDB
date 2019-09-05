@@ -20,19 +20,19 @@
 package swaydb.core.map.timer
 
 import java.nio.file.Path
-import scala.concurrent.ExecutionContext
+
+import swaydb.IO
 import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
-import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 private[core] trait Timer {
   def next: Time
 
-  def close: IO[Unit]
+  def close: IO[swaydb.Error.Map, Unit]
 }
 
 private[core] object Timer {
@@ -48,7 +48,7 @@ private[core] object Timer {
                                             timeOrder: TimeOrder[Slice[Byte]],
                                             functionStore: FunctionStore,
                                             writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
-                                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[PersistentTimer] =
+                                            reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentTimer] =
     PersistentTimer(
       path = path,
       mmap = mmap,
@@ -56,4 +56,3 @@ private[core] object Timer {
       flushCheckpointSize = flushCheckpointSize
     )
 }
-

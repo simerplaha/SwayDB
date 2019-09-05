@@ -19,10 +19,10 @@
 
 package swaydb.extensions
 
+import swaydb.IO
 import swaydb.core.io.reader.Reader
-import swaydb.data.IO
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.{Reader, ReaderBase, Slice}
 import swaydb.data.util.ByteUtil
 import swaydb.serializers.Serializer
 
@@ -85,8 +85,8 @@ private[extensions] object Key {
       slice
     }
 
-  private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): IO[Seq[K]] = {
-    def readOne(reader: Reader): IO[Option[K]] =
+  private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): IO[swaydb.Error.Segment, Seq[K]] = {
+    def readOne(reader: ReaderBase[swaydb.Error.Segment]): IO[swaydb.Error.Segment, Option[K]] =
       reader
         .readIntUnsigned()
         .flatMap(reader.read)
@@ -98,7 +98,7 @@ private[extensions] object Key {
               Some(keySerializer.read(bytes))
         }
 
-    Reader(keys).foldLeftIO(Seq.empty[K]) {
+    Reader[swaydb.Error.Segment](keys).foldLeftIO(Seq.empty[K]) {
       case (keys, reader) =>
         readOne(reader) map {
           key =>
@@ -206,7 +206,7 @@ private[extensions] object Key {
         }
 
       override def read(data: Slice[Byte]): Key[K] = {
-        val reader = data.createReader()
+        val reader = data.createReaderUnsafe()
         reader.skip(1) //skip formatId
         val keyBytes = reader.read(reader.readIntUnsigned())
         val keys = readKeys(keyBytes, keySerializer).get
@@ -243,13 +243,13 @@ private[extensions] object Key {
   def ordering(customOrder: KeyOrder[Slice[Byte]]) =
     new KeyOrder[Slice[Byte]] {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int = {
-        val readerLeft = a.createReader()
+        val readerLeft = a.createReaderUnsafe()
         readerLeft.skip(1) //skip formatId
         val keySizeLeft = readerLeft.readIntUnsigned()
         readerLeft.skip(keySizeLeft)
         val dataTypeLeft = readerLeft.get()
 
-        val readerRight = a.createReader()
+        val readerRight = a.createReaderUnsafe()
         readerRight.skip(1) //skip formatId
         val keySizeRight = readerRight.readIntUnsigned() //read the keySize integer
         readerRight.skip(keySizeRight) //skip key size

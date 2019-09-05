@@ -19,37 +19,49 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
+import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
+import swaydb.core.segment.format.a.block.ValuesBlock
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
-import swaydb.data.IO
-import swaydb.data.slice.Reader
+import swaydb.data.slice.ReaderBase
 
 object RemoveReader extends EntryReader[Persistent.Remove] {
 
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
-                              indexReader: Reader,
-                              valueReader: Reader,
+                              indexReader: ReaderBase[swaydb.Error.Segment],
+                              valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
+                              hasAccessPositionIndex: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
-                                                        deadlineReader: DeadlineReader[T],
-                                                        valueOffsetReader: ValueOffsetReader[T],
-                                                        valueLengthReader: ValueLengthReader[T],
-                                                        valueBytesReader: ValueReader[T]): IO[Persistent.Remove] =
+                                                            deadlineReader: DeadlineReader[T],
+                                                            valueOffsetReader: ValueOffsetReader[T],
+                                                            valueLengthReader: ValueLengthReader[T],
+                                                            valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Remove] =
     deadlineReader.read(indexReader, previous) flatMap {
       deadline =>
         timeReader.read(indexReader, previous) flatMap {
           time =>
-            KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Remove) map {
-              case (key, isKeyPrefixCompressed) =>
+            KeyReader.read(
+              keyValueIdInt = keyValueId,
+              indexReader = indexReader,
+              hasAccessPositionIndex = hasAccessPositionIndex,
+              previous = previous,
+              keyValueId = KeyValueId.Remove
+            ) map {
+              case (accessPosition, key, isKeyPrefixCompressed) =>
                 Persistent.Remove(
                   _key = key,
                   indexOffset = indexOffset,
                   nextIndexOffset = nextIndexOffset,
                   nextIndexSize = nextIndexSize,
                   deadline = deadline,
+                  accessPosition = accessPosition,
                   _time = time,
                   isPrefixCompressed =
                     isKeyPrefixCompressed ||

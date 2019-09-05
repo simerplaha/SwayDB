@@ -28,8 +28,8 @@ import swaydb.core.segment.format.a.entry.reader.base.BaseEntryReader
 import scala.collection.JavaConverters._
 
 /**
-  * Generates if conditions for all readers.
-  */
+ * Generates if conditions for all readers.
+ */
 object IfConditionGenerator extends App {
   implicit class Implicits(entryId: BaseEntryId) {
     def name =
@@ -41,7 +41,7 @@ object IfConditionGenerator extends App {
       val typedId = ids.head
 
       val targetFunction =
-        s"Some(reader(${typedId.name}, keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
+        s"Some(reader(${typedId.name}, keyValueId, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, hasAccessPositionIndex, previous))"
 
       val ifCondition = s"if (baseId == ${typedId.baseId}) \n$targetFunction"
 
@@ -51,10 +51,10 @@ object IfConditionGenerator extends App {
       val typedId2 = ids.last
 
       val targetFunction1 =
-        s"Some(reader(${typedId1.name}, keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
+        s"Some(reader(${typedId1.name}, keyValueId, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, hasAccessPositionIndex, previous))"
 
       val targetFunction2 =
-        s"Some(reader(${typedId2.name}, keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
+        s"Some(reader(${typedId2.name}, keyValueId, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, hasAccessPositionIndex, previous))"
 
       val ifCondition = s"if (baseId == ${typedId1.baseId}) \n$targetFunction1"
       val elseIfCondition = s"else if (baseId == ${typedId2.baseId}) \n$targetFunction2"
@@ -67,7 +67,7 @@ object IfConditionGenerator extends App {
       //      println("Mid:" + mid.id)
 
       s"if(baseId == ${mid.baseId})" + {
-        s"\nSome(reader(${mid.name}, keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
+        s"\nSome(reader(${mid.name}, keyValueId, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, hasAccessPositionIndex, previous))"
       } + {
         s"\nelse if(baseId < ${mid.baseId})\n" +
           generateBinarySearchConditions(ids.takeWhile(_.baseId < mid.baseId))
@@ -80,11 +80,15 @@ object IfConditionGenerator extends App {
     }
   }
 
-  def write(fileNumber: Int, ids: List[BaseEntryId]): Unit = {
+  def write(fileNumber: Int, ids: List[BaseEntryId], uncompressedOnly: Boolean): Unit = {
     val conditions = generateBinarySearchConditions(ids)
     val baseEntryReaderClass = classOf[BaseEntryReader].getSimpleName
 
-    val targetIdClass = Paths.get(s"${System.getProperty("user.dir")}/core/src/main/scala/swaydb/core/segment/format/a/entry/reader/base/$baseEntryReaderClass$fileNumber.scala")
+    val targetIdClass =
+      if (uncompressedOnly)
+        Paths.get(s"${System.getProperty("user.dir")}/core/src/main/scala/swaydb/core/segment/format/a/entry/reader/base/${baseEntryReaderClass}Uncompressed.scala")
+      else
+        Paths.get(s"${System.getProperty("user.dir")}/core/src/main/scala/swaydb/core/segment/format/a/entry/reader/base/$baseEntryReaderClass$fileNumber.scala")
     val allLines = Files.readAllLines(targetIdClass).asScala
     val writer = new PrintWriter(targetIdClass.toFile)
 
@@ -112,7 +116,27 @@ object IfConditionGenerator extends App {
   }
 
   keyIdsGrouped foreach {
-    case (keyCompressionType, ids) =>
-      write(keyCompressionType, ids)
+    case (fileNumber, ids) =>
+      write(fileNumber, ids, false)
   }
+
+  def isUncompressedId(id: BaseEntryIdFormatA) = {
+    val tokens = id.getClass.getName.split("\\$").filter(_.contains("Compressed"))
+    if (tokens.length == 1) //values can be fullyCompressed but still be non-prefixCompressed when only the value bytes are removed but valueOffset and valueLength of previous are copied over.
+      tokens.contains("ValueFullyCompressed")
+    else
+      tokens.length == 0
+  }
+
+  def uncompressedIds =
+    BaseEntryIdFormatA
+      .baseIds
+      .filter(isUncompressedId)
+      .sortBy(_.baseId)
+
+  write(
+    fileNumber = -1,
+    ids = uncompressedIds,
+    uncompressedOnly = true
+  )
 }

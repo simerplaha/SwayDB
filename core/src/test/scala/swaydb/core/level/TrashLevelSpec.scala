@@ -20,12 +20,14 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.EitherValues._
 import org.scalatest.PrivateMethodTester
-import swaydb.core.IOAssert._
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IOValues._
 import swaydb.core.RunThis._
+import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.segment.Segment
-import swaydb.core.{TestBase, TestData}
 import swaydb.data.compaction.Throttle
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -65,15 +67,15 @@ sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethod
     "delete Segments when Push from an upper level" in {
       val level = TestLevel(nextLevel = Some(TrashLevel), throttle = (_) => Throttle(1.seconds, 10))
 
-      val segments = Seq(TestSegment(randomKeyValues(keyValuesCount)).assertGet, TestSegment(randomIntKeyStringValues(keyValuesCount)).assertGet)
-      level.put(segments).assertGet
+      val segments = Seq(TestSegment(randomKeyValues(keyValuesCount)).runRandomIO.right.value, TestSegment(randomIntKeyStringValues(keyValuesCount)).runRandomIO.right.value)
+      level.put(segments).right.right.value.right.value
 
-      //throttle is Duration.Zero, Segments get merged to lower ExpiryLevel and deleted from Level.
+      //throttle is Duration.Zero, Segments value merged to lower ExpiryLevel and deleted from Level.
       eventual(15.seconds)(level.isEmpty shouldBe true)
       //key values do not exist
-      Segment.getAllKeyValues(segments).assertGet foreach {
+      Segment.getAllKeyValues(segments).runRandomIO.right.value foreach {
         keyValue =>
-          level.get(keyValue.key).assertGetOpt shouldBe empty
+          level.get(keyValue.key).runRandomIO.right.value shouldBe empty
       }
       if (persistent) level.reopen.isEmpty shouldBe true
     }

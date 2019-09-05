@@ -20,23 +20,35 @@
 package swaydb.core.util
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO
 import swaydb.core.segment.Segment
 import swaydb.data.Reserve
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Promise
 
 /**
-  * Reserves a range of keys for processing by a single thread.
-  *
-  * This is used to ensure that multiple threads do not concurrent perform compaction on overlapping keys within
-  * the same Level.
-  */
+ * Reserves a range of keys for processing by a single thread.
+ *
+ * This is used to ensure that multiple threads do not concurrent perform compaction on overlapping keys within
+ * the same Level.
+ */
 object ReserveRange extends LazyLogging {
 
-  case class Range[T](from: Slice[Byte], to: Slice[Byte], toInclusive: Boolean, reserve: Reserve[T])
+  case class Range[T](from: Slice[Byte],
+                      to: Slice[Byte],
+                      toInclusive: Boolean,
+                      reserve: Reserve[T])
+
+  object Range {
+    implicit def ErrorHandler[T] = new IO.ExceptionHandler[Range[T]] {
+      override def toException(f: Range[T]): Throwable = throw new UnsupportedOperationException("Exception on Range")
+      override def toError(e: Throwable): Range[T] = throw e
+    }
+  }
+
   case class State[T](ranges: ListBuffer[Range[T]])
 
   def create[T](): State[T] =
@@ -66,10 +78,10 @@ object ReserveRange extends LazyLogging {
         toInclusive = toInclusive,
         info = info
       ) match {
-        case Left(range) =>
+        case IO.Left(range) =>
           range.reserve.info
 
-        case Right(_) =>
+        case IO.Right(_) =>
           None
       }
     }
@@ -78,7 +90,7 @@ object ReserveRange extends LazyLogging {
                          to: Slice[Byte],
                          toInclusive: Boolean,
                          info: T)(implicit state: State[T],
-                                  ordering: KeyOrder[Slice[Byte]]): Either[Future[Unit], Slice[Byte]] =
+                                  ordering: KeyOrder[Slice[Byte]]): IO[Promise[Unit], Slice[Byte]] =
     state.synchronized {
       reserveOrGetRange(
         from = from,
@@ -86,13 +98,13 @@ object ReserveRange extends LazyLogging {
         toInclusive = toInclusive,
         info = info
       ) match {
-        case Left(range) =>
+        case IO.Left(range) =>
           val promise = Promise[Unit]()
           range.reserve.savePromise(promise)
-          Left(promise.future)
+          IO.Left[Promise[Unit], Slice[Byte]](promise)(IO.ExceptionHandler.PromiseUnit)
 
-        case Right(value) =>
-          Right(value)
+        case IO.Right(value) =>
+          IO.Right[Promise[Unit], Slice[Byte]](value)(IO.ExceptionHandler.PromiseUnit)
       }
     }
 
@@ -133,18 +145,18 @@ object ReserveRange extends LazyLogging {
                                    to: Slice[Byte],
                                    toInclusive: Boolean,
                                    info: T)(implicit state: State[T],
-                                            ordering: KeyOrder[Slice[Byte]]): Either[Range[T], Slice[Byte]] =
+                                            ordering: KeyOrder[Slice[Byte]]): IO[ReserveRange.Range[T], Slice[Byte]] =
     state.synchronized {
       state
         .ranges
         .find(range => Slice.intersects((from, to, toInclusive), (range.from, range.to, range.toInclusive)))
-        .map(Left(_))
+        .map(IO.Left(_)(Range.ErrorHandler))
         .getOrElse {
-          state.ranges += ReserveRange.Range(from, to, toInclusive, Reserve(info))
+          state.ranges += ReserveRange.Range(from, to, toInclusive, Reserve.busy(info, "ReserveRange"))
           val waitingCount = state.ranges.size
           //Helps debug situations if too many threads and try to compact into the same Segment.
           if (waitingCount >= 100) logger.warn(s"Too many listeners: $waitingCount")
-          Right(from)
+          IO.Right[ReserveRange.Range[T], Slice[Byte]](from)
         }
     }
 }

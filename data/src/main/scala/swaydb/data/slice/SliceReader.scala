@@ -19,34 +19,38 @@
 
 package swaydb.data.slice
 
-import swaydb.data.IO
+import java.nio.file.Paths
+
+import swaydb.IO
 
 /**
-  * http://www.swaydb.io/slice/byte-slice
-  */
-private[swaydb] case class SliceReader(slice: Slice[Byte]) extends Reader {
+ * http://www.swaydb.io/slice/byte-slice
+ */
+private[swaydb] case class SliceReader[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]) extends Reader[E] {
 
   private var position: Int = 0
 
-  override val size: IO[Long] =
+  def path = Paths.get(this.getClass.getSimpleName)
+
+  override val size: IO[E, Long] =
     IO(slice.size.toLong)
 
-  def hasAtLeast(size: Long): IO[Boolean] =
+  def hasAtLeast(size: Long): IO[E, Boolean] =
     IO((slice.size - position) >= size)
 
-  def read(size: Int): IO[Slice[Byte]] =
+  def read(size: Int): IO[E, Slice[Byte]] =
     IO {
       if (size == 0)
         Slice.emptyBytes
       else {
-        val bytes = slice.slice(position, position + size - 1)
+        val bytes = slice.take(position, size)
         position += size
         bytes
       }
     }
 
-  def moveTo(newPosition: Long): Reader = {
-    position = newPosition.toInt
+  def moveTo(newPosition: Long): SliceReader[E] = {
+    position = newPosition.toInt max 0
     this
   }
 
@@ -58,15 +62,16 @@ private[swaydb] case class SliceReader(slice: Slice[Byte]) extends Reader {
     }
 
   def hasMore =
-    IO.Success(position < slice.size)
+    IO.Right(position < slice.size)
 
   override def getPosition: Int =
     position
 
-  override def copy(): Reader =
+  override def copy(): SliceReader[E] =
     SliceReader(slice)
 
-  override def readRemaining(): IO[Slice[Byte]] =
+  override def readRemaining(): IO[E, Slice[Byte]] =
     remaining flatMap read
 
+  override def isFile: Boolean = false
 }

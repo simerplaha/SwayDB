@@ -19,56 +19,104 @@
 
 package swaydb.core.segment.format.a.entry
 
+import org.scalatest.Matchers._
 import org.scalatest.WordSpec
-import scala.util.Random
+import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
-import swaydb.core.IOAssert._
-import swaydb.core.io.reader.Reader
+import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
+import scala.util.Random
+
 class FixedEntryReaderWriterSpec extends WordSpec {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
   "write and read single Fixed entry" in {
-    runThisParallel(1000.times) {
-      implicit val testTimer = TestTimer.random
-      val entry = randomFixedKeyValue(key = randomIntMax(), value = randomStringOption).toTransient
-      //      println("write: " + entry)
+    runThis(100.times) {
+      implicit val testTimer = TestTimer.Empty
+      val entry = randomFixedKeyValue(key = randomIntMax()).toTransient
 
-      val read = EntryReader.read(Reader(entry.indexEntryBytes), entry.valueEntryBytes.map(Reader(_)).getOrElse(Reader.empty), 0, 0, 0, None).assertGet
+      //if normalise is true, use normalised entry.
+      val normalisedEntry =
+        if (entry.sortedIndexConfig.normaliseIndex)
+          Transient.normalise(Slice(entry)).head
+        else
+          Slice(entry).head
+
+      normalisedEntry.valueEntryBytes.size should be <= 1
+
+      val read =
+        EntryReader.read(
+          indexEntry = normalisedEntry.indexEntryBytes.dropIntUnsigned().right.value,
+          mightBeCompressed = entry.stats.hasPrefixCompression,
+          valueCache = entry.valueEntryBytes.headOption.map(buildSingleValueCache),
+          indexOffset = 0,
+          nextIndexOffset = 0,
+          nextIndexSize = 0,
+          hasAccessPositionIndex = entry.sortedIndexConfig.enableAccessPositionIndex,
+          isNormalised = entry.sortedIndexConfig.normaliseIndex,
+          previous = None
+        ).runRandomIO.right.value
       //      println("read:  " + read)
       read shouldBe entry
     }
   }
 
   "write and read two fixed entries" in {
-    runThisParallel(1000.times) {
+    runThis(1000.times) {
       implicit val testTimer = TestTimer.random
 
-      val keyValues = randomizedKeyValues(count = 1, addRandomGroups = false)
+      val keyValues = randomizedKeyValues(count = 1, addPut = true, addGroups = false)
       val previous = keyValues.head
 
-      val duplicateValues = if (Random.nextBoolean()) previous.value else randomStringOption
+      previous.values.size should be <= 1
+
+      val duplicateValues = if (Random.nextBoolean()) previous.values.headOption else randomStringOption
       val duplicateDeadline = if (Random.nextBoolean()) previous.deadline else randomDeadlineOption
       val next = randomFixedKeyValue(randomIntMax(), deadline = duplicateDeadline, value = duplicateValues).toTransient(previous = Some(previous))
 
       //      println("write previous: " + previous)
       //      println("write next: " + next)
 
-      val valueBytes = Slice((previous.valueEntryBytes ++ next.valueEntryBytes).toArray)
+      val valueBytes: Slice[Byte] = (previous.valueEntryBytes ++ next.valueEntryBytes).flatten.toSlice
 
-      val previousRead = EntryReader.read(Reader(previous.indexEntryBytes), Reader(valueBytes), 0, 0, 0, None).assertGet
+      val previousRead =
+        EntryReader.read(
+          indexEntry = previous.indexEntryBytes.dropIntUnsigned().right.value,
+          mightBeCompressed = false,
+          valueCache = Some(buildSingleValueCache(valueBytes)),
+          indexOffset = 0,
+          nextIndexOffset = 0,
+          nextIndexSize = 0,
+          hasAccessPositionIndex = previous.sortedIndexConfig.enableAccessPositionIndex,
+          isNormalised = false,
+          previous = None
+        ).runRandomIO.right.value
+
       previousRead shouldBe previous
 
-      val nextRead = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).assertGet
+      val nextRead =
+        EntryReader.read(
+          indexEntry = next.indexEntryBytes.dropIntUnsigned().right.value,
+          mightBeCompressed = next.stats.hasPrefixCompression,
+          valueCache = Some(buildSingleValueCache(valueBytes)),
+          indexOffset = 0,
+          nextIndexOffset = 0,
+          nextIndexSize = 0,
+          isNormalised = false,
+          hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
+          previous = Some(previousRead)
+        ).runRandomIO.right.value
+
+      //      val nextRead = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).runIO
       nextRead shouldBe next
 
       //      println("read previous:  " + previousRead)

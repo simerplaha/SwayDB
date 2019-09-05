@@ -19,69 +19,67 @@
 
 package swaydb.api
 
-import swaydb._
-import swaydb.core.IOAssert._
+
+import swaydb.{Tag, _}
+import swaydb.IOValues._
 import swaydb.core.RunThis._
-import swaydb.data.IO
 import swaydb.serializers.Default._
 
 class ScalaSetSpec0 extends ScalaSetSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): Set[Int, IO] =
-    swaydb.persistent.Set[Int](dir = randomDir).assertGet
+  override def newDB(): Set[Int, IO.ApiIO] =
+    swaydb.persistent.Set[Int](dir = randomDir).right.value
 }
 
 class ScalaSetSpec1 extends ScalaSetSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(): Set[Int, IO] =
-    swaydb.persistent.Set[Int](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).assertGet
+  override def newDB(): Set[Int, IO.ApiIO] =
+    swaydb.persistent.Set[Int](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).right.value
 }
 
 class ScalaSetSpec2 extends ScalaSetSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Set[Int, IO] =
-    swaydb.memory.Set[Int](mapSize = 1.byte).assertGet
+  override def newDB(): Set[Int, IO.ApiIO] =
+    swaydb.memory.Set[Int](mapSize = 1.byte).right.value
 }
 
 class ScalaSetSpec3 extends ScalaSetSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Set[Int, IO] =
-    swaydb.memory.Set[Int]().assertGet
+  override def newDB(): Set[Int, IO.ApiIO] =
+    swaydb.memory.Set[Int]().right.value
 }
 
 class ScalaSetSpec4 extends ScalaSetSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Set[Int, IO] =
-    swaydb.memory.zero.Set[Int](mapSize = 1.byte).assertGet
+  override def newDB(): Set[Int, IO.ApiIO] =
+    swaydb.memory.zero.Set[Int](mapSize = 1.byte).right.value
 }
 
 class ScalaSetSpec5 extends ScalaSetSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Set[Int, IO] =
-    swaydb.memory.zero.Set[Int]().assertGet
+  override def newDB(): Set[Int, IO.ApiIO] =
+    swaydb.memory.zero.Set[Int]().right.value
 }
 
 sealed trait ScalaSetSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Set[Int, IO]
+  def newDB(): Set[Int, IO.ApiIO]
 
   "Expire" when {
     "put" in {
       val db = newDB()
-
       db.asScala.add(1)
-
       db.asScala.contains(1) shouldBe true
     }
 
@@ -129,7 +127,6 @@ sealed trait ScalaSetSpec extends TestBaseEmbedded {
       db.asScala.contains(3) shouldBe false
 
       db.close().get
-
     }
   }
 }

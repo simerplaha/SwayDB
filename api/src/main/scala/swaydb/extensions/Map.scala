@@ -19,18 +19,20 @@
 
 package swaydb.extensions
 
-import scala.concurrent.duration.{Deadline, FiniteDuration}
-import swaydb.data.IO
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.extensions.stream.{MapKeysStream, MapStream}
 import swaydb.serializers.Serializer
-import swaydb.{From, Prepare}
+import swaydb.{From, IO, Prepare}
+import IO._
+import swaydb.Error.API.ExceptionHandler
+import swaydb.extensions.stream.{MapKeysStream, MapStream}
+
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 private[extensions] object Map {
-  def apply[K, V](map: swaydb.Map[Key[K], Option[V], IO],
+  def apply[K, V](map: swaydb.Map[Key[K], Option[V], IO.ApiIO],
                   mapKey: Seq[K])(implicit keySerializer: Serializer[K],
                                   valueSerializer: Serializer[V],
                                   mapKeySerializer: Serializer[Key[K]],
@@ -42,31 +44,31 @@ private[extensions] object Map {
     )
 
   /**
-    * Creates the entries range for the [[Map]]'s mapKey/mapId.
-    */
+   * Creates the entries range for the [[Map]]'s mapKey/mapId.
+   */
   def entriesRangeKeys[K](mapKey: Seq[K]): (Key.MapEntriesStart[K], Key.MapEntriesEnd[K]) =
     (Key.MapEntriesStart(mapKey), Key.MapEntriesEnd(mapKey))
 
   /**
-    * Fetches all range key-values for all [[Map]]s within this [[Map]].
-    *
-    * All key-values are stored in this format. This function creates all [[Key.MapStart]] to [[Key.MapEnd]]
-    * ranges for the current [[Map]] and all child [[Map]].
-    *
-    * MapKey.Start(Seq(1))
-    *   MapKey.EntriesStart(Seq(1))
-    *     MapKey.Entry(Seq(1), 1)
-    *   MapKey.EntriesEnd(Seq(1))
-    *   MapKey.SubMapsStart(Seq(1))
-    *     MapKey.SubMap(Seq(1), 1000)
-    *   MapKey.SubMapsEnd(Seq(1))
-    * MapKey.End(Seq(1))
-    */
+   * Fetches all range key-values for all [[Map]]s within this [[Map]].
+   *
+   * All key-values are stored in this format. This function creates all [[Key.MapStart]] to [[Key.MapEnd]]
+   * ranges for the current [[Map]] and all child [[Map]].
+   *
+   * MapKey.Start(Seq(1))
+   *   MapKey.EntriesStart(Seq(1))
+   *     MapKey.Entry(Seq(1), 1)
+   *   MapKey.EntriesEnd(Seq(1))
+   *   MapKey.SubMapsStart(Seq(1))
+   *     MapKey.SubMap(Seq(1), 1000)
+   *   MapKey.SubMapsEnd(Seq(1))
+   * MapKey.End(Seq(1))
+   */
   def childSubMapRanges[K, V](parentMap: Map[K, V])(implicit keySerializer: Serializer[K],
                                                     mapKeySerializer: Serializer[Key[K]],
                                                     keyOrder: KeyOrder[Slice[Byte]],
                                                     valueSerializer: Serializer[V],
-                                                    optionValueSerializer: Serializer[Option[V]]): IO[List[(Key.SubMap[K], Key.MapStart[K], Key.MapEnd[K])]] =
+                                                    optionValueSerializer: Serializer[Option[V]]): IO.ApiIO[List[(Key.SubMap[K], Key.MapStart[K], Key.MapEnd[K])]] =
     IO { //FIXME - ok a little weird with .get.
       parentMap.maps.foldLeft(List.empty[(Key.SubMap[K], Key.MapStart[K], Key.MapEnd[K])]) {
         case (previousList, (subMapKey, _)) => {
@@ -86,8 +88,8 @@ private[extensions] object Map {
     }
 
   /**
-    * Build [[Prepare.Remove]] for the input [[Key]] ranges.
-    */
+   * Build [[Prepare.Remove]] for the input [[Key]] ranges.
+   */
   def toPrepareRemove[K](prepare: Iterable[(Key.SubMap[K], Key.MapStart[K], Key.MapEnd[K])]): Iterable[Prepare.Remove[Key[K]]] =
     prepare flatMap {
       case (subMap, start, end) =>
@@ -95,17 +97,17 @@ private[extensions] object Map {
     }
 
   /**
-    * Returns batch entries to create a new [[Map]].
-    *
-    * Note: If the map already exists, it will be removed including all it's child maps similar to a in-memory [[scala.collection.mutable.Map]].
-    */
-  def putMap[K, V](map: swaydb.Map[Key[K], Option[V], IO],
+   * Returns batch entries to create a new [[Map]].
+   *
+   * Note: If the map already exists, it will be removed including all it's child maps similar to a in-memory [[scala.collection.mutable.Map]].
+   */
+  def putMap[K, V](map: swaydb.Map[Key[K], Option[V], IO.ApiIO],
                    mapKey: Seq[K],
                    value: Option[V])(implicit keySerializer: Serializer[K],
                                      mapKeySerializer: Serializer[Key[K]],
                                      valueSerializer: Serializer[V],
                                      optionValueSerializer: Serializer[Option[V]],
-                                     keyOrder: KeyOrder[Slice[Byte]]): IO[Iterable[Prepare[Key[K], Option[V]]]] =
+                                     keyOrder: KeyOrder[Slice[Byte]]): IO.ApiIO[Iterable[Prepare[Key[K], Option[V]]]] =
   //batch to remove all SubMaps.
     childSubMapRanges(parentMap = Map[K, V](map, mapKey)).map(toPrepareRemove) flatMap {
       removeSubMapsBatches =>
@@ -132,7 +134,7 @@ private[extensions] object Map {
                 )
             }
         } getOrElse {
-          IO.Failure(new Exception("Cannot put map with empty key."))
+          IO.failed("Cannot put map with empty key.")
         }
     }
 
@@ -152,12 +154,12 @@ private[extensions] object Map {
       Seq(Prepare.Put(Key.MapStart(mapKey), Option(value)))
     }
 
-  def removeMap[K, V](map: swaydb.Map[Key[K], Option[V], IO],
+  def removeMap[K, V](map: swaydb.Map[Key[K], Option[V], IO.ApiIO],
                       mapKey: Seq[K])(implicit keySerializer: Serializer[K],
                                       mapKeySerializer: Serializer[Key[K]],
                                       valueSerializer: Serializer[V],
                                       optionValueSerializer: Serializer[Option[V]],
-                                      keyOrder: KeyOrder[Slice[Byte]]): IO[Seq[Prepare.Remove[Key[K]]]] =
+                                      keyOrder: KeyOrder[Slice[Byte]]): IO.ApiIO[Seq[Prepare.Remove[Key[K]]]] =
   //fetch all child subMaps from the subMap being removed and batch remove them.
     Map.childSubMapRanges(Map[K, V](map, mapKey)) map {
       childSubMapRanges =>
@@ -169,30 +171,30 @@ private[extensions] object Map {
 }
 
 /**
-  * Key-value or Map database API.
-  *
-  * For documentation check - http://swaydb.io/api/
-  */
+ * Key-value or Map database API.
+ *
+ * For documentation check - http://swaydb.io/api/
+ */
 class Map[K, V](mapKey: Seq[K],
-                map: swaydb.Map[Key[K], Option[V], IO])(implicit keySerializer: Serializer[K],
-                                                        mapKeySerializer: Serializer[Key[K]],
-                                                        keyOrder: KeyOrder[Slice[Byte]],
-                                                        valueSerializerOption: Serializer[Option[V]],
-                                                        valueSerializer: Serializer[V]) extends MapStream[K, V](mapKey, map = map.copy(map.core, from = Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
+                map: swaydb.Map[Key[K], Option[V], IO.ApiIO])(implicit keySerializer: Serializer[K],
+                                                              mapKeySerializer: Serializer[Key[K]],
+                                                              keyOrder: KeyOrder[Slice[Byte]],
+                                                              valueSerializerOption: Serializer[Option[V]],
+                                                              valueSerializer: Serializer[V]) extends MapStream[K, V](mapKey, map = map.copy(map.core, from = Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
 
   def maps: Maps[K, V] =
     new Maps[K, V](map, mapKey)
 
-  def exists(): IO[Boolean] =
+  def exists(): IO.ApiIO[Boolean] =
     map.contains(Key.MapStart(mapKey))
 
   /**
-    * Returns None if the map does not exist or returns the value.
-    */
-  def getValue(): IO[Option[V]] =
+   * Returns None if the map does not exist or returns the value.
+   */
+  def getValue(): IO.ApiIO[Option[V]] =
     map.get(Key.MapStart(mapKey)).map(_.flatten)
 
-  def updateValue(value: V): IO[Map[K, V]] =
+  def updateValue(value: V): IO.ApiIO[Map[K, V]] =
     map.commit {
       Map.updateMapValue[K, V](
         mapKey = mapKey,
@@ -206,19 +208,19 @@ class Map[K, V](mapKey: Seq[K],
         )
     }
 
-  def put(key: K, value: V): IO[IO.OK] =
+  def put(key: K, value: V): IO.ApiIO[IO.Done] =
     map.put(key = Key.MapEntry(mapKey, key), value = Some(value))
 
-  def put(key: K, value: V, expireAfter: FiniteDuration): IO[IO.OK] =
+  def put(key: K, value: V, expireAfter: FiniteDuration): IO.ApiIO[IO.Done] =
     map.put(Key.MapEntry(mapKey, key), Some(value), expireAfter.fromNow)
 
-  def put(key: K, value: V, expireAt: Deadline): IO[IO.OK] =
+  def put(key: K, value: V, expireAt: Deadline): IO.ApiIO[IO.Done] =
     map.put(Key.MapEntry(mapKey, key), Some(value), expireAt)
 
-  def put(keyValues: (K, V)*): IO[IO.OK] =
+  def put(keyValues: (K, V)*): IO.ApiIO[IO.Done] =
     put(keyValues)
 
-  def put(keyValues: Iterable[(K, V)]): IO[IO.OK] =
+  def put(keyValues: Iterable[(K, V)]): IO.ApiIO[IO.Done] =
     map.put {
       keyValues map {
         case (key, value) =>
@@ -238,16 +240,16 @@ class Map[K, V](mapKey: Seq[K],
   private def preparePut(key: K, value: V, deadline: Option[Deadline]): Prepare[Key.MapEntry[K], Option[V]] =
     Prepare.Put(Key.MapEntry(mapKey, key), value = Some(value), deadline = deadline)
 
-  def remove(key: K): IO[IO.OK] =
+  def remove(key: K): IO.ApiIO[IO.Done] =
     map.remove(Key.MapEntry(mapKey, key))
 
-  def remove(from: K, to: K): IO[IO.OK] =
+  def remove(from: K, to: K): IO.ApiIO[IO.Done] =
     map.remove(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to))
 
-  def remove(keys: K*): IO[IO.OK] =
+  def remove(keys: K*): IO.ApiIO[IO.Done] =
     remove(keys)
 
-  def remove(keys: Iterable[K]): IO[IO.OK] =
+  def remove(keys: Iterable[K]): IO.ApiIO[IO.Done] =
     map.remove(keys.map(key => Key.MapEntry(mapKey, key)))
 
   def prepareRemove(key: K): Prepare[Key.MapEntry[K], Option[V]] =
@@ -263,9 +265,9 @@ class Map[K, V](mapKey: Seq[K],
     Prepare.Remove(from = Key.MapEntry(mapKey, from), to = to.map(Key.MapEntry(mapKey, _)), deadline = deadline)
 
   /**
-    * Removes all key-values from the current Map. SubMaps and subMap's key-values or not altered.
-    */
-  def clear(): IO[IO.OK] = {
+   * Removes all key-values from the current Map. SubMaps and subMap's key-values or not altered.
+   */
+  def clear(): IO.ApiIO[IO.Done] = {
     val (start, end) = Map.entriesRangeKeys(mapKey)
     map.commit(
       //remove key-value entries, but also re-insert the start and end entries for the Map.
@@ -275,34 +277,34 @@ class Map[K, V](mapKey: Seq[K],
     )
   }
 
-  def expire(key: K, after: FiniteDuration): IO[IO.OK] =
+  def expire(key: K, after: FiniteDuration): IO.ApiIO[IO.Done] =
     map.expire(Key.MapEntry(mapKey, key), after.fromNow)
 
-  def expire(key: K, at: Deadline): IO[IO.OK] =
+  def expire(key: K, at: Deadline): IO.ApiIO[IO.Done] =
     map.expire(Key.MapEntry(mapKey, key), at)
 
-  def expire(from: K, to: K, after: FiniteDuration): IO[IO.OK] =
+  def expire(from: K, to: K, after: FiniteDuration): IO.ApiIO[IO.Done] =
     map.expire(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to), after.fromNow)
 
-  def expire(from: K, to: K, at: Deadline): IO[IO.OK] =
+  def expire(from: K, to: K, at: Deadline): IO.ApiIO[IO.Done] =
     map.expire(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to), at)
 
-  def expire(keys: (K, Deadline)*): IO[IO.OK] =
+  def expire(keys: (K, Deadline)*): IO.ApiIO[IO.Done] =
     expire(keys)
 
-  def expire(keys: Iterable[(K, Deadline)]): IO[IO.OK] =
+  def expire(keys: Iterable[(K, Deadline)]): IO.ApiIO[IO.Done] =
     map.expire(keys.map(keyDeadline => (Key.MapEntry(mapKey, keyDeadline._1), keyDeadline._2)))
 
-  def update(key: K, value: V): IO[IO.OK] =
+  def update(key: K, value: V): IO.ApiIO[IO.Done] =
     map.update(Key.MapEntry(mapKey, key), Some(value))
 
-  def update(from: K, to: K, value: V): IO[IO.OK] =
+  def update(from: K, to: K, value: V): IO.ApiIO[IO.Done] =
     map.update(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to), Some(value))
 
-  def update(keyValues: (K, V)*): IO[IO.OK] =
+  def update(keyValues: (K, V)*): IO.ApiIO[IO.Done] =
     update(keyValues)
 
-  def update(keyValues: Iterable[(K, V)]): IO[IO.OK] =
+  def update(keyValues: Iterable[(K, V)]): IO.ApiIO[IO.Done] =
     map.update {
       keyValues map {
         case (key, value) =>
@@ -310,7 +312,7 @@ class Map[K, V](mapKey: Seq[K],
       }
     }
 
-  def commitPrepared(prepare: Prepare[K, V]*): IO[IO.OK] =
+  def commitPrepared(prepare: Prepare[K, V]*): IO.ApiIO[IO.Done] =
     this.commit(prepare)
 
   private def makeCommit(prepare: Prepare[K, V]): Prepare[Key.MapEntry[K], Option[V]] =
@@ -334,54 +336,54 @@ class Map[K, V](mapKey: Seq[K],
   private def makeCommit(prepare: Iterable[Prepare[K, V]]): Iterable[Prepare[Key.MapEntry[K], Option[V]]] =
     prepare map makeCommit
 
-  def commit(prepare: Iterable[Prepare[K, V]]): IO[IO.OK] =
+  def commit(prepare: Iterable[Prepare[K, V]]): IO.ApiIO[IO.Done] =
     map.commit(makeCommit(prepare))
 
   /**
-    * Returns target value for the input key.
-    *
-    * @return Returns None is the key does not exist.
-    */
-  def get(key: K): IO[Option[V]] =
+   * Returns target value for the input key.
+   *
+   * @return Returns None is the key does not exist.
+   */
+  def get(key: K): IO.ApiIO[Option[V]] =
     map.get(Key.MapEntry(mapKey, key)) flatMap {
       case Some(value) =>
-        IO.Success(value)
+        IO.Right(value)
       case None =>
         IO.none
     }
 
   /**
-    * Returns target full key for the input partial key.
-    *
-    * This function is mostly used for Set databases where partial ordering on the Key is provided.
-    */
-  def getKey(key: K): IO[Option[K]] =
+   * Returns target full key for the input partial key.
+   *
+   * This function is mostly used for Set databases where partial ordering on the Key is provided.
+   */
+  def getKey(key: K): IO.ApiIO[Option[K]] =
     map.getKey(Key.MapEntry(mapKey, key)) flatMap {
       case Some(key) =>
         key match {
           case Key.MapEntry(_, dataKey) =>
-            IO.Success(Some(dataKey))
+            IO.Right(Some(dataKey))
           case got =>
-            IO.Failure(new Exception(s"Unable to fetch key. Got: $got expected MapKey.Entry"))
+            IO.failed(s"Unable to fetch key. Got: $got expected MapKey.Entry")
         }
       case None =>
         IO.none
     }
 
-  def getKeyValue(key: K): IO[Option[(K, V)]] =
+  def getKeyValue(key: K): IO.ApiIO[Option[(K, V)]] =
     map.getKeyValue(Key.MapEntry(mapKey, key)) flatMap {
       case Some((key, value)) =>
         key match {
           case Key.MapEntry(_, dataKey) =>
             value map {
               value =>
-                IO.Success(Some(dataKey, value))
+                IO.Right(Some(dataKey, value))
             } getOrElse {
-              IO.Failure(new Exception("Value does not exist."))
+              IO.failed("Value does not exist.")
             }
 
           case got =>
-            IO.Failure(new Exception(s"Unable to fetch keyValue. Got: $got expected MapKey.Entry"))
+            IO.failed(s"Unable to fetch keyValue. Got: $got expected MapKey.Entry")
         }
       case None =>
         IO.none
@@ -391,20 +393,20 @@ class Map[K, V](mapKey: Seq[K],
     MapKeysStream[K](
       mapKey = mapKey,
       set =
-        new swaydb.Set[Key[K], IO](
+        new swaydb.Set[Key[K], IO.ApiIO](
           core = map.core,
           from = Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)),
           reverseIteration = isReverse
         )
     )
 
-  def contains(key: K): IO[Boolean] =
+  def contains(key: K): IO.ApiIO[Boolean] =
     map contains Key.MapEntry(mapKey, key)
 
-  override def size: IO[Int] =
+  override def size: IO.ApiIO[Int] =
     keys.size
 
-  def mightContain(key: K): IO[Boolean] =
+  def mightContain(key: K): IO.ApiIO[Boolean] =
     map mightContain Key.MapEntry(mapKey, key)
 
   def level0Meter: LevelZeroMeter =
@@ -422,15 +424,15 @@ class Map[K, V](mapKey: Seq[K],
   def valueSize(value: V): Int =
     map valueSize Some(value)
 
-  def expiration(key: K): IO[Option[Deadline]] =
+  def expiration(key: K): IO.ApiIO[Option[Deadline]] =
     map expiration Key.MapEntry(mapKey, key)
 
-  def timeLeft(key: K): IO[Option[FiniteDuration]] =
+  def timeLeft(key: K): IO.ApiIO[Option[FiniteDuration]] =
     expiration(key).map(_.map(_.timeLeft))
 
-  def closeDatabase(): IO[Unit] =
+  def closeDatabase(): IO.ApiIO[Unit] =
     baseMap().close()
 
-  private[swaydb] def baseMap(): swaydb.Map[Key[K], Option[V], IO] =
+  private[swaydb] def baseMap(): swaydb.Map[Key[K], Option[V], ApiIO] =
     map
 }

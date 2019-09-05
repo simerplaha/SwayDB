@@ -20,8 +20,9 @@
 package swaydb.core.map.timer
 
 import java.util.concurrent.atomic.AtomicLong
+
+import swaydb.IO
 import swaydb.core.data.Time
-import swaydb.data.IO
 
 private[core] object MemoryTimer {
   def apply(): MemoryTimer =
@@ -33,6 +34,6 @@ private[core] class MemoryTimer(time: AtomicLong) extends Timer {
   def next: Time =
     Time(time.incrementAndGet())
 
-  override def close: IO[Unit] =
+  override def close: IO[swaydb.Error.Map, Unit] =
     IO.unit
 }

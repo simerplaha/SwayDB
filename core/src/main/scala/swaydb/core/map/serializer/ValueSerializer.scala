@@ -19,27 +19,29 @@
 
 package swaydb.core.map.serializer
 
-import scala.annotation.implicitNotFound
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.Deadline
+import swaydb.Error.IO.ExceptionHandler
+import swaydb.IO
+import swaydb.IO._
 import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
-import swaydb.core.util.TimeUtil._
-import swaydb.data.IO
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.core.util.Times._
+import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.data.util.ByteSizeOf
-import IO._
+
+import scala.annotation.implicitNotFound
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.Deadline
 
 @implicitNotFound("Type class implementation not found for ValueSerializer of type ${T}")
 sealed trait ValueSerializer[T] {
 
   def write(value: T, bytes: Slice[Byte]): Unit
 
-  def read(reader: Reader): IO[T]
+  def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, T]
 
-  def read(bytes: Slice[Byte]): IO[T] =
+  def read(bytes: Slice[Byte]): IO[swaydb.Error.IO, T] =
     read(Reader(bytes))
 
   def bytesRequired(value: T): Int
@@ -47,7 +49,7 @@ sealed trait ValueSerializer[T] {
 
 object ValueSerializer {
 
-  def readDeadline(reader: Reader): IO[Option[Deadline]] =
+  def readDeadline(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Option[Deadline]] =
     reader.readLongUnsigned() map {
       deadline =>
         if (deadline == 0)
@@ -56,7 +58,7 @@ object ValueSerializer {
           deadline.toDeadlineOption
     }
 
-  def readTime(reader: Reader): IO[Time] =
+  def readTime(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Time] =
     reader.readIntUnsigned() flatMap {
       timeSize =>
         if (timeSize == 0)
@@ -65,7 +67,7 @@ object ValueSerializer {
           reader.read(timeSize) map (Time(_))
     }
 
-  def readRemainingTime(reader: Reader): IO[Time] =
+  def readRemainingTime(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Time] =
     reader.readRemaining() map {
       remaining =>
         if (remaining.isEmpty)
@@ -74,7 +76,7 @@ object ValueSerializer {
           Time(remaining)
     }
 
-  def readValue(reader: Reader): IO[Option[Slice[Byte]]] =
+  def readValue(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Option[Slice[Byte]]] =
     reader.readRemaining() map {
       remaining =>
         if (remaining.isEmpty)
@@ -98,7 +100,7 @@ object ValueSerializer {
         value.time.size +
         value.value.map(_.size).getOrElse(0)
 
-    override def read(reader: Reader): IO[Value.Put] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.Put] =
       for {
         deadline <- readDeadline(reader)
         time <- readTime(reader)
@@ -123,7 +125,7 @@ object ValueSerializer {
         value.time.size +
         value.value.map(_.size).getOrElse(0)
 
-    override def read(reader: Reader): IO[Value.Update] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.Update] =
       for {
         deadline <- readDeadline(reader)
         time <- readTime(reader)
@@ -144,7 +146,7 @@ object ValueSerializer {
       Bytes.sizeOf(value.deadline.toNanos) +
         value.time.size
 
-    override def read(reader: Reader): IO[Value.Remove] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.Remove] =
       for {
         deadline <- readDeadline(reader)
         time <- readRemainingTime(reader)
@@ -160,7 +162,7 @@ object ValueSerializer {
     override def bytesRequired(value: Value.Function): Int =
       ValueSerializer.bytesRequired((value.function, value.time.time))(TupleOfBytesSerializer)
 
-    override def read(reader: Reader): IO[Value.Function] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.Function] =
       ValueSerializer.read[(Slice[Byte], Slice[Byte])](reader) map {
         case (function, time) =>
           Value.Function(function, Time(time))
@@ -205,7 +207,7 @@ object ValueSerializer {
           }
       }
 
-    override def read(reader: Reader): IO[Slice[Value.Apply]] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Slice[Value.Apply]] =
       reader.readIntUnsigned() flatMap {
         count =>
           reader.foldLeftIO(Slice.create[Value.Apply](count)) {
@@ -233,7 +235,7 @@ object ValueSerializer {
                             applies
                         }
                       else
-                        IO.Failure(new Exception(s"Invalid id:$id"))
+                        IO.failed(s"Invalid id:$id")
                   }
               }
           }
@@ -248,13 +250,13 @@ object ValueSerializer {
     override def bytesRequired(value: Value.PendingApply): Int =
       ValueSerializer.bytesRequired(value.applies)
 
-    override def read(reader: Reader): IO[Value.PendingApply] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.PendingApply] =
       ValueSerializer.read[Slice[Value.Apply]](reader) map Value.PendingApply
   }
 
   /**
-    * Serializer for a tuple of Option bytes and sequence bytes.
-    */
+   * Serializer for a tuple of Option bytes and sequence bytes.
+   */
   implicit object SeqOfBytesSerializer extends ValueSerializer[Seq[Slice[Byte]]] {
 
     override def write(values: Seq[Slice[Byte]], bytes: Slice[Byte]): Unit =
@@ -271,7 +273,7 @@ object ValueSerializer {
           size + Bytes.sizeOf(valueBytes.size) + valueBytes.size
       }
 
-    override def read(reader: Reader): IO[Seq[Slice[Byte]]] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Seq[Slice[Byte]]] =
       reader.foldLeftIO(ListBuffer.empty[Slice[Byte]]) {
         case (result, reader) =>
           reader.readIntUnsigned() flatMap {
@@ -285,8 +287,8 @@ object ValueSerializer {
   }
 
   /**
-    * Serializer for a tuple of Option bytes and sequence bytes.
-    */
+   * Serializer for a tuple of Option bytes and sequence bytes.
+   */
   implicit object TupleOfBytesSerializer extends ValueSerializer[(Slice[Byte], Slice[Byte])] {
 
     override def write(value: (Slice[Byte], Slice[Byte]), bytes: Slice[Byte]): Unit =
@@ -295,19 +297,19 @@ object ValueSerializer {
     override def bytesRequired(value: (Slice[Byte], Slice[Byte])): Int =
       SeqOfBytesSerializer.bytesRequired(Seq(value._1, value._2))
 
-    override def read(reader: Reader): IO[(Slice[Byte], Slice[Byte])] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Slice[Byte], Slice[Byte])] =
       SeqOfBytesSerializer.read(reader) flatMap {
         bytes =>
           if (bytes.size != 2)
-            IO.Failure(new Exception(TupleOfBytesSerializer.getClass.getSimpleName + s".read did not return a tuple. Size = ${bytes.size}"))
+            IO.failed(TupleOfBytesSerializer.getClass.getSimpleName + s".read did not return a tuple. Size = ${bytes.size}")
           else
-            IO.Success(bytes.head, bytes.last)
+            IO.Right(bytes.head, bytes.last)
       }
   }
 
   /**
-    * Serializer for a tuple of Option bytes and sequence bytes.
-    */
+   * Serializer for a tuple of Option bytes and sequence bytes.
+   */
   implicit object TupleBytesAndOptionBytesSerializer extends ValueSerializer[(Slice[Byte], Option[Slice[Byte]])] {
 
     override def write(value: (Slice[Byte], Option[Slice[Byte]]), bytes: Slice[Byte]): Unit =
@@ -330,7 +332,7 @@ object ValueSerializer {
             value._1.size
       }
 
-    override def read(reader: Reader): IO[(Slice[Byte], Option[Slice[Byte]])] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Slice[Byte], Option[Slice[Byte]])] =
       reader.readIntUnsigned() flatMap {
         id =>
           if (id == 0)
@@ -347,44 +349,48 @@ object ValueSerializer {
   }
 
   /**
-    * Serializer for a tuple of Option bytes and sequence bytes.
-    */
-  implicit object IntMapListBufferSerializer extends ValueSerializer[mutable.Map[Int, Iterable[(Byte, Byte)]]] {
+   * Serializer for a tuple of Option bytes and sequence bytes.
+   */
+  implicit object IntMapListBufferSerializer extends ValueSerializer[mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]]] {
     val formatId = 0.toByte
 
-    override def write(value: mutable.Map[Int, Iterable[(Byte, Byte)]], bytes: Slice[Byte]): Unit = {
+    override def write(map: mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]], bytes: Slice[Byte]): Unit = {
       bytes add formatId
-      value foreach {
-        case (int, iterableBytes) =>
+      map foreach {
+        case (int, tuples) =>
           bytes addIntUnsigned int
-          bytes addIntUnsigned iterableBytes.size
-          iterableBytes foreach {
+          bytes addIntUnsigned tuples.size
+          tuples foreach {
             case (left, right) =>
-              bytes add left
-              bytes add right
+              bytes addIntUnsigned left.size
+              bytes addAll left
+              bytes addIntUnsigned right.size
+              bytes addAll right
           }
       }
     }
 
-    override def read(reader: Reader): IO[mutable.Map[Int, Iterable[(Byte, Byte)]]] =
+    override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]]] =
       reader.get() flatMap {
         format =>
           if (format != formatId)
-            IO.Failure(IO.Error.Fatal(new Exception(s"Invalid formatID: $format")))
+            IO.Left(swaydb.Error.Fatal(new Exception(s"Invalid formatID: $format")))
           else
-            reader.foldLeftIO(mutable.Map.empty[Int, Iterable[(Byte, Byte)]]) {
+            reader.foldLeftIO(mutable.Map.empty[Int, Iterable[(Slice[Byte], Slice[Byte])]]) {
               case (map, reader) =>
                 reader.readIntUnsigned() flatMap {
                   int =>
                     reader.readIntUnsigned() flatMap {
-                      bufferSize =>
-                        (1 to bufferSize) mapIO {
+                      tuplesCount =>
+                        (1 to tuplesCount) mapIO {
                           _ =>
                             for {
-                              left <- reader.get()
-                              right <- reader.get()
+                              leftSize <- reader.readIntUnsigned()
+                              left <- reader.read(leftSize)
+                              rightSize <- reader.readIntUnsigned()
+                              right <- reader.read(rightSize)
                             } yield {
-                              (left.toByte, right.toByte)
+                              (left, right)
                             }
                         } map {
                           bytes =>
@@ -396,29 +402,55 @@ object ValueSerializer {
             }
       }
 
-    def optimalBytesRequired(numberOfRanges: Int, rangeFilterCommonPrefixes: Iterable[Int]): Int =
+    /**
+     * Calculates the number of bytes required with minimal information about the RangeFilter.
+     */
+    def optimalBytesRequired(numberOfRanges: Int,
+                             maxUncommonBytesToStore: Int,
+                             rangeFilterCommonPrefixes: Iterable[Int]): Int =
       ByteSizeOf.byte + //formatId
-        rangeFilterCommonPrefixes.foldLeft(0)(_ + Bytes.sizeOf(_)) +
-        ByteSizeOf.int * rangeFilterCommonPrefixes.size +
-        numberOfRanges * 2
+        rangeFilterCommonPrefixes.foldLeft(0)(_ + Bytes.sizeOf(_)) + //common prefix bytes sizes
+        //Bytes.sizeOf(numberOfRanges) because there can only be a max of numberOfRanges per group so ByteSizeOf.int is not required.
+        (Bytes.sizeOf(numberOfRanges) * rangeFilterCommonPrefixes.size) + //tuples count per common prefix count
+        (numberOfRanges * Bytes.sizeOf(maxUncommonBytesToStore) * 2) +
+        (numberOfRanges * maxUncommonBytesToStore * 2) //store the bytes itself, * 2 because it's a tuple.
 
-    override def bytesRequired(value: mutable.Map[Int, Iterable[(Byte, Byte)]]): Int =
-      value.foldLeft(ByteSizeOf.byte) {
-        case (size, (int, bytesBuffer)) =>
+
+    /**
+     * This is not currently used by RangeFilter, [[optimalBytesRequired]] is used instead
+     * for faster calculation without long iterations. The size is almost always accurate and very rarely adds a few extra bytes.
+     * See tests.
+     */
+    override def bytesRequired(map: mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]]): Int =
+      map.foldLeft(ByteSizeOf.byte) {
+        case (totalSize, (int, tuples)) =>
           Bytes.sizeOf(int) +
-            Bytes.sizeOf(bytesBuffer.size) +
-            (bytesBuffer.size * 2) +
-            size
+            Bytes.sizeOf(tuples.size) +
+            tuples.foldLeft(0) {
+              case (totalSize, (left, right)) =>
+                Bytes.sizeOf(left.size) +
+                  left.size +
+                  Bytes.sizeOf(right.size) +
+                  right.size +
+                  totalSize
+            } + totalSize
       }
+  }
+
+  def writeBytes[T](value: T)(implicit serializer: ValueSerializer[T]): Slice[Byte] = {
+    val bytesRequired = ValueSerializer.bytesRequired(value)
+    val bytes = Slice.create[Byte](bytesRequired)
+    serializer.write(value, bytes)
+    bytes
   }
 
   def write[T](value: T)(bytes: Slice[Byte])(implicit serializer: ValueSerializer[T]): Unit =
     serializer.write(value, bytes)
 
-  def read[T](value: Slice[Byte])(implicit serializer: ValueSerializer[T]): IO[T] =
+  def read[T](value: Slice[Byte])(implicit serializer: ValueSerializer[T]): IO[swaydb.Error.IO, T] =
     serializer.read(value)
 
-  def read[T](reader: Reader)(implicit serializer: ValueSerializer[T]): IO[T] =
+  def read[T](reader: ReaderBase[swaydb.Error.IO])(implicit serializer: ValueSerializer[T]): IO[swaydb.Error.IO, T] =
     serializer.read(reader)
 
   def bytesRequired[T](value: T)(implicit serializer: ValueSerializer[T]): Int =

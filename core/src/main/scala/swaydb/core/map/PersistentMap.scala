@@ -20,24 +20,23 @@
 package swaydb.core.map
 
 import java.nio.file.Path
-import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Error.Map.ExceptionHandler
+import swaydb.IO
+import swaydb.IO._
+import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.io.file.{DBFile, IOEffect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
-import swaydb.core.queue.FileLimiter
-import swaydb.core.util.Extension
-import swaydb.data.IO
-import swaydb.data.IO._
+import swaydb.core.util.{Extension, SkipList}
+import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
-import scala.collection.concurrent
 import scala.reflect.ClassTag
 
 private[map] object PersistentMap extends LazyLogging {
@@ -46,16 +45,15 @@ private[map] object PersistentMap extends LazyLogging {
                                          mmap: Boolean,
                                          flushOnOverflow: Boolean,
                                          fileSize: Long,
-                                         initialWriteCount: Long,
                                          dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
                                                                             timeOrder: TimeOrder[Slice[Byte]],
                                                                             functionStore: FunctionStore,
-                                                                            limiter: FileLimiter,
+                                                                            fileSweeper: FileSweeper,
                                                                             reader: MapEntryReader[MapEntry[K, V]],
                                                                             writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                            skipListMerger: SkipListMerger[K, V]): IO[RecoveryResult[PersistentMap[K, V]]] = {
+                                                                            skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, RecoveryResult[PersistentMap[K, V]]] = {
     IOEffect.createDirectoryIfAbsent(folder)
-    val skipList: ConcurrentSkipListMap[K, V] = new ConcurrentSkipListMap[K, V](keyOrder)
+    val skipList: SkipList.Concurrent[K, V] = SkipList.concurrent[K, V]()(keyOrder)
 
     recover(folder, mmap, fileSize, skipList, dropCorruptedTailEntries) map {
       case (fileRecoveryResult, hasRange) =>
@@ -65,10 +63,10 @@ private[map] object PersistentMap extends LazyLogging {
             mmap = mmap,
             fileSize = fileSize,
             flushOnOverflow = flushOnOverflow,
-            initialWriteCount = initialWriteCount,
+            skipList = skipList,
             currentFile = fileRecoveryResult.item,
             hasRangeInitial = hasRange
-          )(skipList),
+          ),
           result = fileRecoveryResult.result
         )
     }
@@ -77,16 +75,15 @@ private[map] object PersistentMap extends LazyLogging {
   private[map] def apply[K, V: ClassTag](folder: Path,
                                          mmap: Boolean,
                                          flushOnOverflow: Boolean,
-                                         fileSize: Long,
-                                         initialWriteCount: Long)(implicit keyOrder: KeyOrder[K],
-                                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                                  limiter: FileLimiter,
-                                                                  functionStore: FunctionStore,
-                                                                  reader: MapEntryReader[MapEntry[K, V]],
-                                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                  skipListMerger: SkipListMerger[K, V]): IO[PersistentMap[K, V]] = {
+                                         fileSize: Long)(implicit keyOrder: KeyOrder[K],
+                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                         fileSweeper: FileSweeper,
+                                                         functionStore: FunctionStore,
+                                                         reader: MapEntryReader[MapEntry[K, V]],
+                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                         skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, PersistentMap[K, V]] = {
     IOEffect.createDirectoryIfAbsent(folder)
-    val skipList: ConcurrentSkipListMap[K, V] = new ConcurrentSkipListMap[K, V](keyOrder)
+    val skipList: SkipList.Concurrent[K, V] = SkipList.concurrent[K, V]()(keyOrder)
 
     firstFile(folder, mmap, fileSize) map {
       file =>
@@ -95,36 +92,38 @@ private[map] object PersistentMap extends LazyLogging {
           mmap = mmap,
           fileSize = fileSize,
           flushOnOverflow = flushOnOverflow,
-          initialWriteCount = initialWriteCount,
           currentFile = file,
+          skipList = skipList,
           hasRangeInitial = false
-        )(skipList)
+        )
     }
   }
 
-  private[map] def firstFile(folder: Path, memoryMapped: Boolean, fileSize: Long)(implicit limiter: FileLimiter): IO[DBFile] =
+  private[map] def firstFile(folder: Path,
+                             memoryMapped: Boolean,
+                             fileSize: Long)(implicit fileSweeper: FileSweeper): IO[swaydb.Error.Map, DBFile] =
     if (memoryMapped)
-      DBFile.mmapInit(folder.resolve(0.toLogFileId), fileSize, autoClose = false)
+      DBFile.mmapInit(folder.resolve(0.toLogFileId), IOStrategy.SynchronisedIO(true), fileSize, autoClose = false, blockCacheFileId = 0)(fileSweeper, None)
     else
-      DBFile.channelWrite(folder.resolve(0.toLogFileId), autoClose = false)
+      DBFile.channelWrite(folder.resolve(0.toLogFileId), IOStrategy.SynchronisedIO(true), autoClose = false, blockCacheFileId = 0)(fileSweeper, None)
 
   private[map] def recover[K, V](folder: Path,
                                  mmap: Boolean,
                                  fileSize: Long,
-                                 skipList: ConcurrentSkipListMap[K, V],
+                                 skipList: SkipList.Concurrent[K, V],
                                  dropCorruptedTailEntries: Boolean)(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                     mapReader: MapEntryReader[MapEntry[K, V]],
                                                                     skipListMerger: SkipListMerger[K, V],
                                                                     keyOrder: KeyOrder[K],
-                                                                    limiter: FileLimiter,
+                                                                    fileSweeper: FileSweeper,
                                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                                    functionStore: FunctionStore): IO[(RecoveryResult[DBFile], Boolean)] = {
+                                                                    functionStore: FunctionStore): IO[swaydb.Error.Map, (RecoveryResult[DBFile], Boolean)] = {
     //read all existing logs and populate skipList
     var hasRange: Boolean = false
     folder.files(Extension.Log) mapIO {
       path =>
         logger.info("{}: Recovering with dropCorruptedTailEntries = {}.", path, dropCorruptedTailEntries)
-        DBFile.channelRead(path, autoClose = false) flatMap {
+        DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false, blockCacheFileId = 0)(fileSweeper, None) flatMap {
           file =>
             file.readAll flatMap {
               bytes =>
@@ -156,13 +155,24 @@ private[map] object PersistentMap extends LazyLogging {
         }
     } flatMap {
       recoveredFiles =>
-        nextFile(recoveredFiles.map(_.item), mmap, fileSize, skipList) getOrElse firstFile(folder, mmap, fileSize) map {
+        nextFile(
+          oldFiles = recoveredFiles.map(_.item),
+          mmap = mmap,
+          fileSize = fileSize,
+          skipList = skipList
+        ) getOrElse {
+          firstFile(
+            folder = folder,
+            memoryMapped = mmap,
+            fileSize = fileSize
+          )
+        } map {
           file =>
-            //if there was a failure recovering any one of the files, return the recovery with the failure result.
             (
+              //if there was a failure recovering any one of the files, return the recovery with the failure result.
               RecoveryResult(
                 item = file,
-                result = recoveredFiles.find(_.result.isFailure).map(_.result) getOrElse IO.unit
+                result = recoveredFiles.find(_.result.isLeft).map(_.result) getOrElse IO.unit
               ),
               hasRange
             )
@@ -171,18 +181,18 @@ private[map] object PersistentMap extends LazyLogging {
   }
 
   /**
-    * Creates nextFile by persisting the entries in skipList to the new file. This function does not
-    * re-read oldFiles to apply the existing entries to skipList, skipList should already be populated with new entries.
-    * This is to ensure that before deleting any of the old entries, a new file is successful created.
-    *
-    * oldFiles get deleted after the recovery is successful. In case of a failure an error message is logged.
-    */
+   * Creates nextFile by persisting the entries in skipList to the new file. This function does not
+   * re-read oldFiles to apply the existing entries to skipList, skipList should already be populated with new entries.
+   * This is to ensure that before deleting any of the old entries, a new file is successful created.
+   *
+   * oldFiles value deleted after the recovery is successful. In case of a failure an error message is logged.
+   */
   private[map] def nextFile[K, V](oldFiles: Iterable[DBFile],
                                   mmap: Boolean,
                                   fileSize: Long,
-                                  skipList: ConcurrentSkipListMap[K, V])(implicit reader: MapEntryReader[MapEntry[K, V]],
-                                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                         limiter: FileLimiter): Option[IO[DBFile]] =
+                                  skipList: SkipList.Concurrent[K, V])(implicit reader: MapEntryReader[MapEntry[K, V]],
+                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                       fileSweeper: FileSweeper): Option[IO[swaydb.Error.Map, DBFile]] =
     oldFiles.lastOption map {
       lastFile =>
         nextFile(lastFile, mmap, fileSize, skipList) flatMap {
@@ -195,11 +205,11 @@ private[map] object PersistentMap extends LazyLogging {
                   nextFile.path,
                   failure.exception
                 )
-                IO.Failure(failure.exception)
+                IO.Left(failure.value)
 
               case None =>
                 logger.info(s"Recovery successful")
-                IO.Success(nextFile)
+                IO.Right(nextFile)
             }
         }
     }
@@ -207,17 +217,17 @@ private[map] object PersistentMap extends LazyLogging {
   private[map] def nextFile[K, V](currentFile: DBFile,
                                   mmap: Boolean,
                                   size: Long,
-                                  skipList: ConcurrentSkipListMap[K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                         mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                         limiter: FileLimiter): IO[DBFile] =
+                                  skipList: SkipList.Concurrent[K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                       mapReader: MapEntryReader[MapEntry[K, V]],
+                                                                       fileSweeper: FileSweeper): IO[swaydb.Error.Map, DBFile] =
     currentFile.path.incrementFileId flatMap {
       nextPath =>
         val bytes = MapCodec.write(skipList)
         val newFile =
           if (mmap)
-            DBFile.mmapInit(path = nextPath, bufferSize = bytes.size + size, autoClose = false)
+            DBFile.mmapInit(path = nextPath, IOStrategy.SynchronisedIO(true), bufferSize = bytes.size + size, autoClose = false, blockCacheFileId = 0)(fileSweeper, None)
           else
-            DBFile.channelWrite(nextPath, autoClose = false)
+            DBFile.channelWrite(nextPath, IOStrategy.SynchronisedIO(true), autoClose = false, blockCacheFileId = 0)(fileSweeper, None)
 
         newFile flatMap {
           newFile =>
@@ -225,7 +235,7 @@ private[map] object PersistentMap extends LazyLogging {
               _ =>
                 currentFile.delete() flatMap {
                   _ =>
-                    IO.Success(newFile)
+                    IO.Right(newFile)
                 }
             }
         }
@@ -236,20 +246,20 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
                                                       mmap: Boolean,
                                                       fileSize: Long,
                                                       flushOnOverflow: Boolean,
-                                                      initialWriteCount: Long,
+                                                      skipList: SkipList.Concurrent[K, V],
                                                       private var currentFile: DBFile,
-                                                      private val hasRangeInitial: Boolean)(val skipList: ConcurrentSkipListMap[K, V])(implicit keyOrder: KeyOrder[K],
-                                                                                                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                                       limiter: FileLimiter,
-                                                                                                                                       functionStore: FunctionStore,
-                                                                                                                                       reader: MapEntryReader[MapEntry[K, V]],
-                                                                                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                                                       skipListMerger: SkipListMerger[K, V]) extends Map[K, V] with LazyLogging {
+                                                      private val hasRangeInitial: Boolean)(implicit keyOrder: KeyOrder[K],
+                                                                                            timeOrder: TimeOrder[Slice[Byte]],
+                                                                                            fileSweeper: FileSweeper,
+                                                                                            functionStore: FunctionStore,
+                                                                                            reader: MapEntryReader[MapEntry[K, V]],
+                                                                                            writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                                            skipListMerger: SkipListMerger[K, V]) extends Map[K, V] with LazyLogging {
 
   // actualSize of the file can be different to fileSize when the entry's size is > fileSize.
   // In this case a file is created just to fit those bytes (for that one entry).
   // For eg: if fileSize is 4.mb and the entry size is 5.mb, a new file is created with 5.mb for that one entry.
-  // all the subsequent entries get added to 4.mb files, if it fits, or else the size is extended again.
+  // all the subsequent entries value added to 4.mb files, if it fits, or else the size is extended again.
   private var actualFileSize: Long = fileSize
   // does not account of flushed entries.
   private var bytesWritten: Long = 0
@@ -257,47 +267,27 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   //_hasRange is not a case class input parameters because 2.11 throws compilation error 'values cannot be volatile'
   @volatile private var _hasRange: Boolean = hasRangeInitial
 
-  @volatile private var writeCount: Long = initialWriteCount
-
   override def hasRange: Boolean = _hasRange
-
-  private val stateIDLock = new Object()
 
   def currentFilePath =
     currentFile.path
 
-  def stateID: Long =
-    stateIDLock.synchronized {
-      writeCount
-    }
-
-  def incrementStateID: Long =
-    stateIDLock.synchronized {
-      writeCount += 1
-      writeCount
-    }
-
-  override def write(mapEntry: MapEntry[K, V]): IO[Boolean] =
-    stateIDLock.synchronized {
-      persist(mapEntry) onSuccessSideEffect {
-        _ =>
-          writeCount += 1
-      }
-    }
+  override def write(mapEntry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] =
+    synchronized(persist(mapEntry))
 
   /**
-    * Before writing the Entry, check to ensure if the current [[MapEntry]] requires a merge write or direct write.
-    *
-    * Merge write should be used when
-    * - The entry contains a [[Memory.Range]] key-value.
-    * - The entry contains a [[Memory.Update]] Update key-value.
-    * - The entry contains a [[Memory.Remove]] with deadline key-value. Removes without deadlines do not require merging.
-    *
-    * Note: These check are not required for Appendix writes because Appendix entries current do not use
-    * Range, Update or key-values with deadline.
-    */
+   * Before writing the Entry, check to ensure if the current [[MapEntry]] requires a merge write or direct write.
+   *
+   * Merge write should be used when
+   * - The entry contains a [[Memory.Range]] key-value.
+   * - The entry contains a [[Memory.Update]] Update key-value.
+   * - The entry contains a [[Memory.Remove]] with deadline key-value. Removes without deadlines do not require merging.
+   *
+   * Note: These check are not required for Appendix writes because Appendix entries current do not use
+   * Range, Update or key-values with deadline.
+   */
   @tailrec
-  private def persist(entry: MapEntry[K, V]): IO[Boolean] =
+  private def persist(entry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] =
     if ((bytesWritten + entry.totalByteSize) <= actualFileSize)
       currentFile.append(MapCodec.write(entry)) map {
         _ =>
@@ -320,25 +310,25 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
     else {
       val nextFilesSize = entry.totalByteSize.toLong max fileSize
       PersistentMap.nextFile(currentFile, mmap, nextFilesSize, skipList) match {
-        case IO.Success(newFile) =>
+        case IO.Right(newFile) =>
           currentFile = newFile
           actualFileSize = nextFilesSize
           bytesWritten = 0
           persist(entry)
 
-        case IO.Failure(error) =>
+        case IO.Left(error) =>
           logger.error("{}: Failed to replace with new file", currentFile.path, error.exception)
-          IO.Failure(error)
+          IO.Left(error)
       }
     }
 
-  override def close(): IO[Unit] =
+  override def close(): IO[swaydb.Error.Map, Unit] =
     currentFile.close
 
-  override def exists =
+  override def exists: Boolean =
     currentFile.existsOnDisk
 
-  override def delete: IO[Unit] =
+  override def delete: IO[swaydb.Error.Map, Unit] =
     currentFile.delete() flatMap {
       _ =>
         IOEffect.delete(path) map {
@@ -347,12 +337,9 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
         }
     }
 
-  override def asScala: concurrent.Map[K, V] =
-    skipList.asScala
-
   override def pathOption: Option[Path] =
     Some(path)
 
-  override def fileId: IO[Long] =
+  override def fileId: IO[swaydb.Error.Map, Long] =
     path.fileId.map(_._1)
 }

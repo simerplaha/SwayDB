@@ -22,7 +22,7 @@ package swaydb.data.config
 import java.nio.file.Path
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.api.grouping.KeyValueGroupingStrategy
+import swaydb.data.api.grouping.{Compression, GroupBy}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.storage.Level0Storage
 
@@ -31,8 +31,8 @@ import scala.concurrent.duration.FiniteDuration
 sealed trait PersistentConfig
 
 /**
-  * http://swaydb.io#configuring-levels
-  */
+ * http://swaydb.io#configuring-levels
+ */
 object ConfigWizard {
   def addPersistentLevel0(dir: Path,
                           mapSize: Long,
@@ -82,12 +82,16 @@ case class LevelZeroPersistentConfig(mapSize: Long,
                           mmapSegment: MMAP,
                           mmapAppendix: Boolean,
                           appendixFlushCheckpointSize: Long,
-                          pushForward: Boolean,
-                          bloomFilterFalsePositiveRate: Double,
-                          compressDuplicateValues: Boolean,
+                          copyForward: Boolean,
                           deleteSegmentsEventually: Boolean,
-                          applyGroupingOnCopy: Boolean,
-                          groupingStrategy: Option[KeyValueGroupingStrategy],
+                          sortedKeyIndex: SortedKeyIndex,
+                          randomKeyIndex: RandomKeyIndex,
+                          binarySearchIndex: BinarySearchIndex,
+                          mightContainIndex: MightContainIndex,
+                          valuesConfig: ValuesConfig,
+                          segmentIO: IOAction => IOStrategy,
+                          segmentCompressions: UncompressedBlockInfo => Seq[Compression],
+                          groupBy: Option[GroupBy.KeyValues],
                           compactionExecutionContext: CompactionExecutionContext,
                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
@@ -99,12 +103,16 @@ case class LevelZeroPersistentConfig(mapSize: Long,
         mmapSegment = mmapSegment,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        pushForward = pushForward,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
+        copyForward = copyForward,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        applyGroupingOnCopy = applyGroupingOnCopy,
-        groupingStrategy = groupingStrategy,
+        sortedIndex = sortedKeyIndex,
+        hashIndex = randomKeyIndex,
+        binarySearchIndex = binarySearchIndex,
+        segmentIO = segmentIO,
+        segmentCompressions = segmentCompressions,
+        mightContainKey = mightContainIndex,
+        values = valuesConfig,
+        groupBy = groupBy,
         compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       ),
@@ -112,24 +120,20 @@ case class LevelZeroPersistentConfig(mapSize: Long,
     )
 
   def addMemoryLevel1(segmentSize: Int,
-                      pushForward: Boolean,
-                      bloomFilterFalsePositiveRate: Double,
-                      compressDuplicateValues: Boolean,
+                      copyForward: Boolean,
                       deleteSegmentsEventually: Boolean,
-                      applyGroupingOnCopy: Boolean,
-                      groupingStrategy: Option[KeyValueGroupingStrategy],
+                      mightContainKey: MightContainIndex,
+                      groupBy: Option[GroupBy.KeyValues],
                       compactionExecutionContext: CompactionExecutionContext,
                       throttle: LevelMeter => Throttle) =
     SwayDBPersistentConfig(
       level0 = this,
       level1 = MemoryLevelConfig(
         segmentSize = segmentSize,
-        pushForward = pushForward,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
-        groupingStrategy = groupingStrategy,
+        copyForward = copyForward,
+        mightContainKey = mightContainKey,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        applyGroupingOnCopy = applyGroupingOnCopy,
+        groupBy = groupBy,
         compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       ),
@@ -149,12 +153,16 @@ case class LevelZeroMemoryConfig(mapSize: Long,
                           mmapSegment: MMAP,
                           mmapAppendix: Boolean,
                           appendixFlushCheckpointSize: Long,
-                          pushForward: Boolean,
-                          bloomFilterFalsePositiveRate: Double,
-                          compressDuplicateValues: Boolean,
+                          copyForward: Boolean,
                           deleteSegmentsEventually: Boolean,
-                          applyGroupingOnCopy: Boolean,
-                          groupingStrategy: Option[KeyValueGroupingStrategy],
+                          sortedIndex: SortedKeyIndex,
+                          hashIndex: RandomKeyIndex,
+                          binarySearchIndex: BinarySearchIndex,
+                          mightContainKey: MightContainIndex,
+                          values: ValuesConfig,
+                          segmentIO: IOAction => IOStrategy,
+                          segmentCompressions: UncompressedBlockInfo => Seq[Compression],
+                          groupBy: Option[GroupBy.KeyValues],
                           compactionExecutionContext: CompactionExecutionContext,
                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
@@ -166,12 +174,16 @@ case class LevelZeroMemoryConfig(mapSize: Long,
         mmapSegment = mmapSegment,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        pushForward = pushForward,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
+        copyForward = copyForward,
+        sortedIndex = sortedIndex,
+        hashIndex = hashIndex,
+        binarySearchIndex = binarySearchIndex,
+        mightContainKey = mightContainKey,
+        segmentIO = segmentIO,
+        segmentCompressions = segmentCompressions,
+        values = values,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        applyGroupingOnCopy = applyGroupingOnCopy,
-        groupingStrategy = groupingStrategy,
+        groupBy = groupBy,
         compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       ),
@@ -179,24 +191,20 @@ case class LevelZeroMemoryConfig(mapSize: Long,
     )
 
   def addMemoryLevel1(segmentSize: Int,
-                      pushForward: Boolean,
-                      bloomFilterFalsePositiveRate: Double,
-                      compressDuplicateValues: Boolean,
+                      copyForward: Boolean,
                       deleteSegmentsEventually: Boolean,
-                      applyGroupingOnCopy: Boolean,
-                      groupingStrategy: Option[KeyValueGroupingStrategy],
+                      mightContainIndex: MightContainIndex,
+                      groupBy: Option[GroupBy.KeyValues],
                       compactionExecutionContext: CompactionExecutionContext,
                       throttle: LevelMeter => Throttle) =
     SwayDBMemoryConfig(
       level0 = this,
       level1 = MemoryLevelConfig(
         segmentSize = segmentSize,
-        pushForward = pushForward,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
+        copyForward = copyForward,
+        mightContainKey = mightContainIndex,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        applyGroupingOnCopy = applyGroupingOnCopy,
-        groupingStrategy = groupingStrategy,
+        groupBy = groupBy,
         compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       ),
@@ -209,12 +217,10 @@ sealed trait LevelConfig
 case object TrashLevelConfig extends LevelConfig
 
 case class MemoryLevelConfig(segmentSize: Int,
-                             pushForward: Boolean,
-                             bloomFilterFalsePositiveRate: Double,
-                             compressDuplicateValues: Boolean,
+                             copyForward: Boolean,
                              deleteSegmentsEventually: Boolean,
-                             applyGroupingOnCopy: Boolean,
-                             groupingStrategy: Option[KeyValueGroupingStrategy],
+                             mightContainKey: MightContainIndex,
+                             groupBy: Option[GroupBy.KeyValues],
                              compactionExecutionContext: CompactionExecutionContext,
                              throttle: LevelMeter => Throttle) extends LevelConfig
 
@@ -224,12 +230,16 @@ case class PersistentLevelConfig(dir: Path,
                                  mmapSegment: MMAP,
                                  mmapAppendix: Boolean,
                                  appendixFlushCheckpointSize: Long,
-                                 pushForward: Boolean,
-                                 bloomFilterFalsePositiveRate: Double,
-                                 compressDuplicateValues: Boolean,
+                                 copyForward: Boolean,
                                  deleteSegmentsEventually: Boolean,
-                                 applyGroupingOnCopy: Boolean,
-                                 groupingStrategy: Option[KeyValueGroupingStrategy],
+                                 sortedIndex: SortedKeyIndex,
+                                 hashIndex: RandomKeyIndex,
+                                 binarySearchIndex: BinarySearchIndex,
+                                 mightContainKey: MightContainIndex,
+                                 values: ValuesConfig,
+                                 segmentIO: IOAction => IOStrategy,
+                                 segmentCompressions: UncompressedBlockInfo => Seq[Compression],
+                                 groupBy: Option[GroupBy.KeyValues],
                                  compactionExecutionContext: CompactionExecutionContext,
                                  throttle: LevelMeter => Throttle) extends LevelConfig
 
@@ -240,11 +250,32 @@ sealed trait SwayDBConfig {
   def persistent: Boolean
 
   def memory: Boolean = !persistent
+
+  def hasMMAP(levelConfig: LevelConfig) =
+    levelConfig match {
+      case TrashLevelConfig =>
+        false
+      case config: MemoryLevelConfig =>
+        false
+
+      case config: PersistentLevelConfig =>
+        config.mmapAppendix || config.mmapSegment.mmapRead || config.mmapSegment.mmapWrite
+    }
+
+  def hasMMAP: Boolean =
+    level0.storage.isMMAP || hasMMAP(level1) || otherLevels.exists(hasMMAP)
 }
 
 case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
                               level1: LevelConfig,
                               otherLevels: List[LevelConfig]) extends SwayDBConfig {
+
+  def addPersistentLevel(config: PersistentLevelConfig) =
+    SwayDBPersistentConfig(
+      level0 = level0,
+      level1 = level1,
+      otherLevels = otherLevels :+ config
+    )
 
   def addPersistentLevel(dir: Path,
                          otherDirs: Seq[Dir],
@@ -252,65 +283,67 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
                          mmapSegment: MMAP,
                          mmapAppendix: Boolean,
                          appendixFlushCheckpointSize: Long,
-                         pushForward: Boolean,
-                         bloomFilterFalsePositiveRate: Double,
-                         compressDuplicateValues: Boolean,
+                         copyForward: Boolean,
                          deleteSegmentsEventually: Boolean,
-                         applyGroupingOnCopy: Boolean,
-                         groupingStrategy: Option[KeyValueGroupingStrategy],
+                         sortedIndex: SortedKeyIndex,
+                         hashIndex: RandomKeyIndex,
+                         binarySearchIndex: BinarySearchIndex,
+                         mightContainKey: MightContainIndex,
+                         values: ValuesConfig,
+                         segmentIO: IOAction => IOStrategy,
+                         segmentCompressions: UncompressedBlockInfo => Seq[Compression],
+                         groupBy: Option[GroupBy.KeyValues],
                          compactionExecutionContext: CompactionExecutionContext,
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
-    SwayDBPersistentConfig(
-      level0 = level0,
-      level1 = level1,
-      otherLevels = otherLevels :+
-        PersistentLevelConfig(
-          dir = dir,
-          otherDirs = otherDirs,
-          segmentSize = segmentSize,
-          mmapSegment = mmapSegment,
-          mmapAppendix = mmapAppendix,
-          appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-          pushForward = pushForward,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          compressDuplicateValues = compressDuplicateValues,
-          deleteSegmentsEventually = deleteSegmentsEventually,
-          applyGroupingOnCopy = applyGroupingOnCopy,
-          groupingStrategy = groupingStrategy,
-          compactionExecutionContext = compactionExecutionContext,
-          throttle = throttle
-        )
+    addPersistentLevel(
+      PersistentLevelConfig(
+        dir = dir,
+        otherDirs = otherDirs,
+        segmentSize = segmentSize,
+        mmapSegment = mmapSegment,
+        mmapAppendix = mmapAppendix,
+        appendixFlushCheckpointSize = appendixFlushCheckpointSize,
+        copyForward = copyForward,
+        deleteSegmentsEventually = deleteSegmentsEventually,
+        sortedIndex = sortedIndex,
+        hashIndex = hashIndex,
+        binarySearchIndex = binarySearchIndex,
+        segmentIO = segmentIO,
+        segmentCompressions = segmentCompressions,
+        mightContainKey = mightContainKey,
+        values = values,
+        groupBy = groupBy,
+        compactionExecutionContext = compactionExecutionContext,
+        throttle = throttle
+      )
     )
 
+  def addMemoryLevel(config: MemoryLevelConfig): SwayDBMemoryConfig =
+
+    copy(otherLevels = otherLevels :+ config)
+
   def addMemoryLevel(segmentSize: Int,
-                     pushForward: Boolean,
-                     bloomFilterFalsePositiveRate: Double,
-                     compressDuplicateValues: Boolean,
+                     copyForward: Boolean,
                      deleteSegmentsEventually: Boolean,
-                     applyGroupingOnCopy: Boolean,
-                     groupingStrategy: Option[KeyValueGroupingStrategy],
+                     mightContainKey: MightContainIndex,
+                     groupBy: Option[GroupBy.KeyValues],
                      compactionExecutionContext: CompactionExecutionContext,
                      throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
 
-    copy(
-      otherLevels = otherLevels :+
-        MemoryLevelConfig(
-          segmentSize = segmentSize,
-          pushForward = pushForward,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          compressDuplicateValues = compressDuplicateValues,
-          deleteSegmentsEventually = deleteSegmentsEventually,
-          applyGroupingOnCopy = applyGroupingOnCopy,
-          groupingStrategy = groupingStrategy,
-          compactionExecutionContext = compactionExecutionContext,
-          throttle = throttle
-        )
+    addMemoryLevel(
+      MemoryLevelConfig(
+        segmentSize = segmentSize,
+        copyForward = copyForward,
+        deleteSegmentsEventually = deleteSegmentsEventually,
+        mightContainKey = mightContainKey,
+        groupBy = groupBy,
+        compactionExecutionContext = compactionExecutionContext,
+        throttle = throttle
+      )
     )
 
-  def addTrashLevel: SwayDBMemoryConfig =
-    copy(
-      otherLevels = otherLevels :+ TrashLevelConfig
-    )
+  def addTrashLevel(): SwayDBMemoryConfig =
+    copy(otherLevels = otherLevels :+ TrashLevelConfig)
 
   override def persistent: Boolean = false
 }
@@ -319,18 +352,25 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
                                   level1: LevelConfig,
                                   otherLevels: List[LevelConfig]) extends SwayDBConfig {
 
+  def addPersistentLevel(config: PersistentLevelConfig): SwayDBPersistentConfig =
+    copy(otherLevels = otherLevels :+ config)
+
   def addPersistentLevel(dir: Path,
                          otherDirs: Seq[Dir],
                          segmentSize: Int,
                          mmapSegment: MMAP,
                          mmapAppendix: Boolean,
                          appendixFlushCheckpointSize: Long,
-                         pushForward: Boolean,
-                         bloomFilterFalsePositiveRate: Double,
-                         compressDuplicateValues: Boolean,
+                         copyForward: Boolean,
                          deleteSegmentsEventually: Boolean,
-                         applyGroupingOnCopy: Boolean,
-                         groupingStrategy: Option[KeyValueGroupingStrategy],
+                         sortedKeyIndex: SortedKeyIndex,
+                         randomKeyIndex: RandomKeyIndex,
+                         binarySearchIndex: BinarySearchIndex,
+                         mightContainIndex: MightContainIndex,
+                         valuesConfig: ValuesConfig,
+                         segmentIO: IOAction => IOStrategy,
+                         segmentCompressions: UncompressedBlockInfo => Seq[Compression],
+                         groupBy: Option[GroupBy.KeyValues],
                          compactionExecutionContext: CompactionExecutionContext,
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     copy(
@@ -342,24 +382,29 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
           mmapSegment = mmapSegment,
           mmapAppendix = mmapAppendix,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-          pushForward = pushForward,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          compressDuplicateValues = compressDuplicateValues,
+          copyForward = copyForward,
           deleteSegmentsEventually = deleteSegmentsEventually,
-          applyGroupingOnCopy = applyGroupingOnCopy,
-          groupingStrategy = groupingStrategy,
+          sortedIndex = sortedKeyIndex,
+          hashIndex = randomKeyIndex,
+          binarySearchIndex = binarySearchIndex,
+          mightContainKey = mightContainIndex,
+          segmentIO = segmentIO,
+          segmentCompressions = segmentCompressions,
+          values = valuesConfig,
+          groupBy = groupBy,
           compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         )
     )
 
+  def addMemoryLevel(config: MemoryLevelConfig): SwayDBPersistentConfig =
+    copy(otherLevels = otherLevels :+ config)
+
   def addMemoryLevel(segmentSize: Int,
-                     pushForward: Boolean,
-                     bloomFilterFalsePositiveRate: Double,
-                     compressDuplicateValues: Boolean,
+                     copyForward: Boolean,
                      deleteSegmentsEventually: Boolean,
-                     applyGroupingOnCopy: Boolean,
-                     groupingStrategy: Option[KeyValueGroupingStrategy],
+                     mightContainKey: MightContainIndex,
+                     groupBy: Option[GroupBy.KeyValues],
                      compactionExecutionContext: CompactionExecutionContext,
                      throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
 
@@ -367,21 +412,17 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
       otherLevels = otherLevels :+
         MemoryLevelConfig(
           segmentSize = segmentSize,
-          pushForward = pushForward,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          compressDuplicateValues = compressDuplicateValues,
+          copyForward = copyForward,
           deleteSegmentsEventually = deleteSegmentsEventually,
-          applyGroupingOnCopy = applyGroupingOnCopy,
-          groupingStrategy = groupingStrategy,
+          mightContainKey = mightContainKey,
+          groupBy = groupBy,
           compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         )
     )
 
-  def addTrashLevel: SwayDBPersistentConfig =
-    copy(
-      otherLevels = otherLevels :+ TrashLevelConfig
-    )
+  def addTrashLevel(): SwayDBPersistentConfig =
+    copy(otherLevels = otherLevels :+ TrashLevelConfig)
 
   override def persistent: Boolean = true
 }

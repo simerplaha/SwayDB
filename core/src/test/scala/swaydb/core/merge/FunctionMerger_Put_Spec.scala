@@ -20,22 +20,21 @@
 package swaydb.core.merge
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.data._
-import swaydb.core.{CommonAssertions, TestTimer}
-import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.serializers.Default._
-import swaydb.serializers._
-import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
+import swaydb.core.TestData._
+import swaydb.core.TestTimer
+import swaydb.core.data._
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.serializers.Default._
+import swaydb.serializers._
 
 class FunctionMerger_Put_Spec extends WordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
+  implicit def groupBy = randomGroupByOption(randomNextInt(1000))
 
   "Merging any function into Put" when {
     "times are in order" should {

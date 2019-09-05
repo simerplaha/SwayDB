@@ -21,23 +21,22 @@ package swaydb.core.merge
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.CommonAssertions._
+import swaydb.IOValues._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.TestTimer
 import swaydb.core.data._
-import swaydb.core.{CommonAssertions, TestTimer, IOAssert}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import scala.concurrent.duration._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
 
 class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
+  implicit def groupBy = randomGroupByOption(randomNextInt(1000))
 
   "Merging SwayFunction Key/Value/KeyValue into Update" when {
     "times are in order" should {
@@ -126,7 +125,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
                   oldKeyValue.copy(value = value, deadline = deadline.orElse(oldKeyValue.deadline), time = newKeyValue.time)
               }
             else
-              Memory.PendingApply(key = key, applies = Slice(oldKeyValue.toFromValue().assertGet, newKeyValue.toFromValue().assertGet))
+              Memory.PendingApply(key = key, applies = Slice(oldKeyValue.toFromValue().runRandomIO.right.value, newKeyValue.toFromValue().runRandomIO.right.value))
 
           assertMerge(
             newKeyValue = newKeyValue,
@@ -158,7 +157,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
               assertMerge(
                 newKeyValue = newKeyValue,
                 oldKeyValue = oldKeyValue,
-                expected = Memory.PendingApply(Slice.emptyBytes, Slice(oldKeyValue.toFromValue().assertGet, newKeyValue.toFromValue().assertGet)),
+                expected = Memory.PendingApply(Slice.emptyBytes, Slice(oldKeyValue.toFromValue().runRandomIO.right.value, newKeyValue.toFromValue().runRandomIO.right.value)),
                 lastLevel = None
               )
           }
@@ -181,7 +180,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
               assertMerge(
                 newKeyValue = newKeyValue,
                 oldKeyValue = oldKeyValue,
-                expected = Memory.PendingApply(1, Slice(oldKeyValue.toFromValue().assertGet, newKeyValue.toFromValue().assertGet)),
+                expected = Memory.PendingApply(1, Slice(oldKeyValue.toFromValue().runRandomIO.right.value, newKeyValue.toFromValue().runRandomIO.right.value)),
                 lastLevel = None
               )
           }
@@ -221,5 +220,4 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
       }
     }
   }
-
 }

@@ -20,17 +20,17 @@
 package swaydb.memory.zero
 
 import com.typesafe.scalalogging.LazyLogging
-import scala.concurrent.ExecutionContext
-import swaydb.SwayDB
 import swaydb.configs.level.DefaultMemoryZeroConfig
-import swaydb.core.BlockingCore
+import swaydb.core.Core
 import swaydb.core.function.FunctionStore
-import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
+import swaydb.{Error, IO, SwayDB}
+
+import scala.concurrent.ExecutionContext
 
 object Set extends LazyLogging {
 
@@ -38,13 +38,13 @@ object Set extends LazyLogging {
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
   /**
-    * A single level zero only database.
-    */
+   * A single level zero only database.
+   */
   def apply[T](mapSize: Int = 4.mb,
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                     ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Set[T, IO]] =
-    BlockingCore(
+                                                                                     ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+    Core(
       config = DefaultMemoryZeroConfig(
         mapSize = mapSize,
         acceleration = acceleration

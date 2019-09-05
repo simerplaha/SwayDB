@@ -19,23 +19,27 @@
 
 package swaydb.core.util
 
+import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.IOAssert
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IOValues._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteUtil
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.IOAssert._
 
 class BytesSpec extends WordSpec with Matchers {
 
-  "compress and decompress" should {
+  "compress, decompress & commonPrefixBytes" should {
     "return common bytes" in {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte, 5.toByte, 6.toByte))
 
-      val (commonBytes, compressed) = Bytes.compress(previous, next, 1).assertGet
+      val (commonBytes, compressed) = Bytes.compress(previous, next, 1).value
 
       compressed shouldBe Slice(5, 6)
       commonBytes shouldBe 4
@@ -46,13 +50,15 @@ class BytesSpec extends WordSpec with Matchers {
       decompress shouldBe next
       //return empty if minimum compressed bytes is not reached
       Bytes.compress(previous, next, 5) shouldBe empty
+
+      Bytes.commonPrefixBytes(previous, next) shouldBe previous
     }
 
     "return empty bytes when all the bytes were compressed" in {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte))
 
-      val (commonBytes, compressed) = Bytes.compress(previous, next, 1).assertGet
+      val (commonBytes, compressed) = Bytes.compress(previous, next, 1).value
 
       compressed shouldBe Slice.emptyBytes
       commonBytes shouldBe 3
@@ -63,6 +69,8 @@ class BytesSpec extends WordSpec with Matchers {
       decompress shouldBe next
       //return empty if minimum compressed bytes is not reached
       Bytes.compress(previous, next, 4) shouldBe empty
+
+      Bytes.commonPrefixBytes(previous, next) shouldBe next
     }
 
     "return empty when there are no common bytes" in {
@@ -70,6 +78,8 @@ class BytesSpec extends WordSpec with Matchers {
       val next: Slice[Byte] = Slice(Array(5.toByte, 6.toByte, 7.toByte, 8.toByte, 9.toByte, 10.toByte))
 
       Bytes.compress(previous, next, 1) shouldBe empty
+
+      Bytes.commonPrefixBytes(previous, next) shouldBe Slice.emptyBytes
     }
   }
 
@@ -78,15 +88,15 @@ class BytesSpec extends WordSpec with Matchers {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
 
-      Bytes.compressFull(previous, next).assertGet shouldBe Done
-      Bytes.compressExact(previous, next).assertGet shouldBe Done
+      Bytes.compressFull(Some(previous), next).value shouldBe Done
+      Bytes.compressExact(previous, next).value shouldBe Done
     }
 
     "return empty bytes when all the bytes were compressed and next key's size is smaller" in {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte))
 
-      Bytes.compressFull(previous, next).assertGet shouldBe Done
+      Bytes.compressFull(Some(previous), next).value shouldBe Done
       Bytes.compressExact(previous, next) shouldBe empty
     }
 
@@ -94,7 +104,7 @@ class BytesSpec extends WordSpec with Matchers {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
 
-      Bytes.compressFull(previous, next) shouldBe empty
+      Bytes.compressFull(Some(previous), next) shouldBe empty
       Bytes.compressExact(previous, next) shouldBe empty
     }
 
@@ -102,7 +112,7 @@ class BytesSpec extends WordSpec with Matchers {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte))
 
-      Bytes.compressFull(previous, next) shouldBe empty
+      Bytes.compressFull(Some(previous), next) shouldBe empty
       Bytes.compressExact(previous, next) shouldBe empty
     }
 
@@ -110,7 +120,7 @@ class BytesSpec extends WordSpec with Matchers {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(5.toByte, 6.toByte, 7.toByte, 8.toByte, 9.toByte, 10.toByte))
 
-      Bytes.compressFull(previous, next) shouldBe empty
+      Bytes.compressFull(Some(previous), next) shouldBe empty
       Bytes.compressExact(previous, next) shouldBe empty
     }
   }
@@ -124,7 +134,7 @@ class BytesSpec extends WordSpec with Matchers {
       mergedBytes.size shouldBe 12
       mergedBytes.isFull shouldBe true
 
-      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).assertGet
+      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.right.value
 
       (readBytes1, readBytes2) shouldBe ((bytes1, bytes2))
       readBytes1.isFull shouldBe true
@@ -139,7 +149,7 @@ class BytesSpec extends WordSpec with Matchers {
       mergedBytes.size should be < (bytes1.size + bytes2.size)
       mergedBytes.isFull shouldBe true
 
-      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).assertGet
+      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.right.value
 
       (readBytes1, readBytes2) shouldBe ((bytes1, bytes2))
       readBytes1.isFull shouldBe true
@@ -152,7 +162,7 @@ class BytesSpec extends WordSpec with Matchers {
       mergedBytes.size should be < (bytes.size + bytes.size)
       mergedBytes.isFull shouldBe true
 
-      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).assertGet
+      val (readBytes1, readBytes2) = Bytes.decompressJoin(mergedBytes).runRandomIO.right.value
 
       (readBytes1, readBytes2) shouldBe ((bytes, bytes))
       readBytes1.isFull shouldBe true
@@ -181,7 +191,7 @@ class BytesSpec extends WordSpec with Matchers {
       val individualMergedSizes = individuallyCompressedBytes.foldLeft(0)(_ + _.size)
       individualMergedSizes shouldBe 120.bytes //results in 120.bytes which is smaller then without compression
       //uncompress
-      individuallyCompressedBytes.map(Bytes.decompressJoin).map(_.assertGet).toList shouldBe keys
+      individuallyCompressedBytes.map(Bytes.decompressJoin).map(_.runRandomIO.right.value).toList shouldBe keys
 
       //merge each (fromKey, toKey) pair with previous key-values merged bytes. This is should returns is higher compressed keys.
       val mergedCompressedKeys: Slice[Byte] =
@@ -205,9 +215,71 @@ class BytesSpec extends WordSpec with Matchers {
         val sliceReverse = ByteUtil.writeUnsignedIntReversed(intToWrite)
         sliceReverse shouldBe Slice(slice.toList.reverse.toArray)
 
-        ByteUtil.readLastUnsignedInt(sliceReverse).assertGet shouldBe ((intToWrite, slice.size))
-
+        ByteUtil.readLastUnsignedInt(sliceReverse).runRandomIO.right.value shouldBe ((intToWrite, slice.size))
     }
   }
 
+  "normalise & deNormalise" should {
+    "normalise keys" in {
+      val bytes = Slice.fill(10)(1.toByte)
+
+      var normalisedBytes: Slice[Byte] = Bytes.normalise(bytes, toSize = 11)
+      normalisedBytes should have size 11
+      Bytes.deNormalise(normalisedBytes) shouldBe bytes
+
+      normalisedBytes = Bytes.normalise(bytes, toSize = 15)
+      normalisedBytes should have size 15
+      Bytes.deNormalise(normalisedBytes) shouldBe bytes
+
+      normalisedBytes = Bytes.normalise(bytes, toSize = 100000)
+      normalisedBytes should have size 100000
+      Bytes.deNormalise(normalisedBytes) shouldBe bytes
+    }
+
+    "random" in {
+      runThis(1000.times) {
+        val bytes = randomBytesSlice(randomIntMax(100000))
+        val toSize = (bytes.size + 1) max randomIntMax(100000)
+
+        val normalisedBytes = Bytes.normalise(bytes, toSize = toSize)
+        normalisedBytes should have size toSize
+        Bytes.deNormalise(normalisedBytes) shouldBe bytes
+      }
+
+      runThis(1000.times) {
+        val bytes = randomBytesSlice(randomIntMax(Byte.MaxValue))
+        val toSize = (bytes.size + 1) max randomIntMax(Byte.MaxValue)
+
+        val normalisedBytes = Bytes.normalise(bytes, toSize = toSize)
+        normalisedBytes should have size toSize
+        Bytes.deNormalise(normalisedBytes) shouldBe bytes
+      }
+    }
+  }
+
+  "normalise & deNormalise" when {
+    "appendHeader: toSize == +1" in {
+      val header = Slice.writeIntUnsigned(Int.MaxValue)
+      val bytes = Slice.fill(10)(5.toByte)
+      val normalisedBytes = Bytes.normalise(appendHeader = header, bytes = bytes, toSize = header.size + bytes.size + 1)
+      normalisedBytes should have size 16
+
+      val reader = Reader(normalisedBytes)
+      reader.readIntUnsigned().get shouldBe Int.MaxValue
+      val deNormalisedBytes = Bytes.deNormalise(reader.readRemaining().get)
+      deNormalisedBytes shouldBe bytes
+    }
+
+    "appendHeader: toSize == +5" in {
+      val header = Slice.writeIntUnsigned(Int.MaxValue)
+      val bytes = Slice.fill(10)(5.toByte)
+      val normalisedBytes = Bytes.normalise(appendHeader = header, bytes = bytes, toSize = header.size + bytes.size + 5)
+      normalisedBytes should have size 20
+
+      val reader = Reader(normalisedBytes)
+      reader.readIntUnsigned().get shouldBe Int.MaxValue
+      val deNormalisedBytes = Bytes.deNormalise(reader.readRemaining().get)
+      deNormalisedBytes shouldBe bytes
+    }
+  }
 }

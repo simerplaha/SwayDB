@@ -20,18 +20,20 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.EitherValues._
+import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
+import swaydb.IO
+import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
-import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -72,9 +74,9 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
-  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
+  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
+  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeper
+  implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "putMap on a single Level" should {
@@ -89,13 +91,12 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
           mmap = true,
           flushOnOverflow = true,
           fileSize = 1.mb,
-          initialWriteCount = 0,
           dropCorruptedTailEntries = false
-        ).assertGet.item
+        ).runRandomIO.right.value.item
       else
         Map.memory[Slice[Byte], Memory.SegmentResponse]()
 
-    val keyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomPutDeadlines = false)
+    val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
     keyValues foreach {
       keyValue =>
         map.write(MapEntry.Put(keyValue.key, keyValue.asInstanceOf[Memory.SegmentResponse]))
@@ -104,8 +105,8 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
     "succeed" when {
       "writing to an empty Level" in {
         val level = TestLevel()
-        level.put(map).assertGet
-        //since this is a new Segment and Level has no sub-level, all the deleted key-values will get removed.
+        level.put(map).right.right.value.right.value
+        //since this is a new Segment and Level has no sub-level, all the deleted key-values will value removed.
         val (deletedKeyValues, otherKeyValues) = keyValues.partition(_.isInstanceOf[Memory.Remove])
 
         assertReads(otherKeyValues, level)
@@ -113,7 +114,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         //deleted key-values do not exist.
         deletedKeyValues foreach {
           deleted =>
-            level.get(deleted.key).assertGetOpt shouldBe empty
+            level.get(deleted.key).runRandomIO.right.value shouldBe empty
         }
       }
 
@@ -130,16 +131,16 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
               Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"), Memory.remove("four", randomly(expiredDeadline()))
             ).sorted(keyOrder.on[KeyValue](_.key)))
 
-        level.putKeyValuesTest(sortedExistingKeyValues).assertGet
+        level.putKeyValuesTest(sortedExistingKeyValues).runRandomIO.right.value
 
         //put a new map
-        level.put(map).assertGet
+        level.put(map).right.right.value.right.value
         assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
 
-        level.get("one").assertGet shouldBe existingKeyValues(0)
-        level.get("two").assertGet shouldBe existingKeyValues(1)
-        level.get("three").assertGet shouldBe existingKeyValues(2)
-        level.get("four").assertGetOpt shouldBe empty
+        level.get("one").runRandomIO.right.value.value shouldBe existingKeyValues(0)
+        level.get("two").runRandomIO.right.value.value shouldBe existingKeyValues(1)
+        level.get("three").runRandomIO.right.value.value shouldBe existingKeyValues(2)
+        level.get("four").runRandomIO.right.value shouldBe empty
       }
     }
   }
@@ -156,12 +157,11 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
           mmap = true,
           flushOnOverflow = true,
           fileSize = 1.mb,
-          initialWriteCount = 0,
-          dropCorruptedTailEntries = false).assertGet.item
+          dropCorruptedTailEntries = false).runRandomIO.right.value.item
       else
         Map.memory[Slice[Byte], Memory.SegmentResponse]()
 
-    val keyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomPutDeadlines = false)
+    val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
     keyValues foreach {
       keyValue =>
         map.write(MapEntry.Put(keyValue.key, keyValue.asInstanceOf[Memory.SegmentResponse]))
@@ -182,18 +182,18 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])(_: ExecutionContext)) expects(*, *) onCall {
           (putMap: Map[Slice[Byte], Memory.SegmentResponse], _) =>
             putMap.pathOption shouldBe map.pathOption
-            IO.unit
+            IO.unitUnit
         }
 
         val level = TestLevel(nextLevel = Some(nextLevel))
-        level.put(map).assertGet
+        level.put(map).right.right.value.right.value
         assertGetNoneFromThisLevelOnly(keyValues, level) //because nextLevel is a mock.
       }
 
       "writing to non empty Levels by copying to last Level if key-values do not overlap upper Level" in {
         val nextLevel = mock[NextLevel]
 
-        val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomPutDeadlines = false, startId = Some(1)).map(_.asInstanceOf[Memory.SegmentResponse])
+        val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(1)).map(_.asInstanceOf[Memory.SegmentResponse])
         val map = TestMap(lastLevelKeyValues)
 
         nextLevel.isTrash _ expects() returning false
@@ -207,14 +207,14 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])(_: ExecutionContext)) expects(*, *) onCall {
           (putMap: Map[Slice[Byte], Memory.SegmentResponse], _) =>
             putMap.pathOption shouldBe map.pathOption
-            IO.unit
+            IO.unitUnit
         }
 
         val level = TestLevel(nextLevel = Some(nextLevel))
-        val keyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000)).toTransient
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet
+        val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000)).toTransient
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).runRandomIO.right.value), None).runRandomIO.right.value
 
-        level.put(map).assertGet
+        level.put(map).right.right.value.right.value
         assertGetNoneFromThisLevelOnly(lastLevelKeyValues, level) //because nextLevel is a mock.
         assertGetFromThisLevelOnly(keyValues, level)
       }

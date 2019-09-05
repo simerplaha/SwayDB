@@ -19,16 +19,16 @@
 
 package swaydb.core.level
 
+import swaydb.IO
 import swaydb.core.data.Memory
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
-import swaydb.data.IO
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Promise}
 
 object NextLevel {
 
@@ -52,8 +52,8 @@ object NextLevel {
 }
 
 /**
-  * Levels that can have upper Levels or Levels that upper Levels can merge Segments or Maps into.
-  */
+ * Levels that can have upper Levels or Levels that upper Levels can merge Segments or Maps into.
+ */
 trait NextLevel extends LevelRef {
 
   def paths: PathsDistributor
@@ -70,19 +70,21 @@ trait NextLevel extends LevelRef {
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
 
-  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit]
+  def mightContainFunction(key: Slice[Byte]): IO[swaydb.Error.Level, Boolean]
 
-  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Async[Unit]
+  def put(segment: Segment)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]]
 
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Unit]
+  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]]
 
-  def removeSegments(segments: Iterable[Segment]): IO[Int]
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]]
+
+  def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Level, Int]
 
   def meter: LevelMeter
 
-  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit]
+  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]]
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Int]
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]]
 
   def reverseNextLevels: ListBuffer[NextLevel] = {
     val levels = ListBuffer.empty[NextLevel]
@@ -97,6 +99,8 @@ trait NextLevel extends LevelRef {
   def levelSize: Long
 
   def segmentSize: Long
+
+  def lastSegmentId: Option[Long]
 
   def take(count: Int): Slice[Segment]
 
@@ -115,7 +119,7 @@ trait NextLevel extends LevelRef {
 
   def nextThrottlePushCount: Int
 
-  def groupingStrategy: Option[KeyValueGroupingStrategyInternal]
+  def groupBy: Option[GroupByInternal.KeyValues]
 
-  def delete: IO[Unit]
+  def delete: IO[swaydb.Error.Delete, Unit]
 }

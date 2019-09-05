@@ -20,26 +20,27 @@
 package swaydb.core.segment.merge
 
 import org.scalatest.WordSpec
-import scala.concurrent.duration._
-import scala.util.Random
-import swaydb.core.data.{Memory, Time, Value}
+import swaydb.core.CommonAssertions._
+import swaydb.IOValues._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.TestTimer
+import swaydb.core.data.{Memory, Value}
 import swaydb.core.merge.FixedMerger
-import swaydb.core.{CommonAssertions, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
+
+import scala.concurrent.duration._
+import scala.util.Random
 
 class SegmentMerger_Fixed_Into_Range extends WordSpec {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
-  implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
+  implicit def groupBy = randomGroupByOption(randomNextInt(1000) max 1)
 
   "Single into Range" when {
 
@@ -72,7 +73,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
         val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val newKeyValue = randomFixedKeyValue(1)
         val expectedFromValue = FixedMerger(newKeyValue, oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(oldKeyValue.key)).get
-        val expectedKeyValue = Memory.Range(1, 10, expectedFromValue.toFromValue().assertGet, oldKeyValue.rangeValue)
+        val expectedKeyValue = Memory.Range(1, 10, expectedFromValue.toFromValue().runRandomIO.right.value, oldKeyValue.rangeValue)
         val expectedLastLevel = expectedFromValue.asInstanceOf[Memory.Fixed].toLastLevelExpected
 
         //println
@@ -100,7 +101,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
         val expectedKeyValue =
           Slice(
             oldKeyValue.copy(fromKey = 1, toKey = midKey),
-            Memory.Range(midKey, 10, expectedFromValue.toFromValue().assertGet, oldKeyValue.rangeValue)
+            Memory.Range(midKey, 10, expectedFromValue.toFromValue().runRandomIO.right.value, oldKeyValue.rangeValue)
           )
 
         val expectedLastLevelFromLowerSplit = oldKeyValue.fromValue.flatMap(_.toExpectedLastLevelKeyValue(oldKeyValue.key))
@@ -208,5 +209,4 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
       )
     }
   }
-
 }

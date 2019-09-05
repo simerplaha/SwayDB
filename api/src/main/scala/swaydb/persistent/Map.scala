@@ -19,22 +19,23 @@
 
 package swaydb.persistent
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{FiniteDuration, _}
-import swaydb.SwayDB
-import swaydb.configs.level.{DefaultGroupingStrategy, DefaultPersistentConfig}
-import swaydb.core.BlockingCore
+
+import com.typesafe.scalalogging.LazyLogging
+import swaydb.configs.level.{DefaultGroupBy, DefaultPersistentConfig}
+import swaydb.core.Core
 import swaydb.core.function.FunctionStore
-import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.api.grouping.KeyValueGroupingStrategy
+import swaydb.data.api.grouping.GroupBy
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
+import swaydb.{Error, IO, SwayDB}
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{FiniteDuration, _}
 
 object Map extends LazyLogging {
 
@@ -42,40 +43,42 @@ object Map extends LazyLogging {
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
   /**
-    * A pre-configured, 8 Leveled, persistent database where Level1 accumulates a minimum of 10 Segments before
-    * pushing Segments to lower Level.
-    *
-    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
-    *
-    * @param dir                         Root directory for all Level where appendix folder & files are created
-    * @param otherDirs                   Secondary directories for all Levels where Segments get distributed.
-    * @param maxOpenSegments             Number of concurrent Segments opened
-    * @param cacheSize                   Size of in-memory key-values
-    * @param mapSize                     Size of LevelZero's maps (WAL)
-    * @param mmapMaps                    Memory-maps LevelZero maps files if set to true else reverts java.nio.FileChannel
-    * @param mmapAppendix                Memory-maps Levels appendix files if set to true else reverts java.nio.FileChannel
-    * @param mmapSegments                Memory-maps Levels Segment files if set to true else reverts java.nio.FileChannel
-    * @param segmentSize                 Minimum size of Segment files in each Level
-    * @param appendixFlushCheckpointSize Size of the appendix file before it's flushed. Appendix files are append only log files.
-    *                                    Flushing removes deleted entries in the file hence reducing the size of the file.
-    * @param cacheCheckDelay             Sets the max interval at which key-values get dropped from the cache. The delays
-    *                                    are dynamically adjusted based on the current size of the cache to stay close the set
-    *                                    cacheSize.
-    * @param segmentsOpenCheckDelay      Sets the max interval at which Segments get closed. The delays
-    *                                    are dynamically adjusted based on the current number of open Segments.
-    * @param acceleration                Controls the write speed.
-    * @param keySerializer               Converts keys to Bytes
-    * @param valueSerializer             Converts values to Bytes
-    * @param keyOrder                    Sort order for keys
-    * @param fileOpenLimiterEC           ExecutionContext
-    * @tparam K Type of key
-    * @tparam V Type of value
-    * @return Database instance
-    */
+   * A pre-configured, 8 Leveled, persistent database where Level1 accumulates a minimum of 10 Segments before
+   * pushing Segments to lower Level.
+   *
+   * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
+   *
+   * @param dir                                   Root directory for all Level where appendix folder & files are created
+   * @param otherDirs                             Secondary directories for all Levels where Segments value distributed.
+   * @param maxOpenSegments                       Number of concurrent Segments opened
+   * @param memoryCacheSize                       Size of in-memory key-values
+   * @param mapSize                               Size of LevelZero's maps (WAL)
+   * @param mmapMaps                              Memory-maps LevelZero maps files if set to true else reverts java.nio.FileChannel
+   * @param mmapAppendix                          Memory-maps Levels appendix files if set to true else reverts java.nio.FileChannel
+   * @param mmapSegments                          Memory-maps Levels Segment files if set to true else reverts java.nio.FileChannel
+   * @param segmentSize                           Minimum size of Segment files in each Level
+   * @param appendixFlushCheckpointSize           Size of the appendix file before it's flushed. Appendix files are append only log files.
+   *                                              Flushing removes deleted entries in the file hence reducing the size of the file.
+   * @param memorySweeperPollInterval             Sets the max interval at which key-values value dropped from the cache. The delays
+   *                                              are dynamically adjusted based on the current size of the cache to stay close the set
+   *                                              cacheSize.
+   * @param fileSweeperPollInterval               Sets the max interval at which Segments value closed. The delays
+   *                                              are dynamically adjusted based on the current number of open Segments.
+   * @param acceleration                          Controls the write speed.
+   * @param keySerializer                         Converts keys to Bytes
+   * @param valueSerializer                       Converts values to Bytes
+   * @param keyOrder                              Sort order for keys
+   * @param fileSweeperEC                         ExecutionContext
+   * @tparam K Type of key
+   * @tparam V Type of value
+   *
+   * @return Database instance
+   */
 
   def apply[K, V](dir: Path,
                   maxOpenSegments: Int = 1000,
-                  cacheSize: Int = 100.mb,
+                  memoryCacheSize: Int = 100.mb,
+                  blockSize: Int = 4098,
                   mapSize: Int = 4.mb,
                   mmapMaps: Boolean = true,
                   recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
@@ -84,18 +87,18 @@ object Map extends LazyLogging {
                   segmentSize: Int = 2.mb,
                   appendixFlushCheckpointSize: Int = 2.mb,
                   otherDirs: Seq[Dir] = Seq.empty,
-                  cacheCheckDelay: FiniteDuration = 10.seconds,
-                  segmentsOpenCheckDelay: FiniteDuration = 10.seconds,
-                  bloomFilterFalsePositiveRate: Double = 0.01,
+                  memorySweeperPollInterval: FiniteDuration = 10.seconds,
+                  fileSweeperPollInterval: FiniteDuration = 10.seconds,
+                  mightContainFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = true,
                   deleteSegmentsEventually: Boolean = false,
-                  lastLevelGroupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
+                  lastLevelGroupBy: Option[GroupBy.KeyValues] = Some(DefaultGroupBy()),
                   acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                        fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Map[K, V, IO]] =
-    BlockingCore(
+                                                                                        fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
+                                                                                        memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
+    Core(
       config = DefaultPersistentConfig(
         dir = dir,
         otherDirs = otherDirs,
@@ -105,20 +108,27 @@ object Map extends LazyLogging {
         mmapAppendix = mmapAppendix,
         segmentSize = segmentSize,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        mightContainFalsePositiveRate = mightContainFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        groupingStrategy = lastLevelGroupingStrategy,
+        groupBy = lastLevelGroupBy,
         acceleration = acceleration
       ),
-      maxOpenSegments = maxOpenSegments,
-      cacheSize = cacheSize,
-      cacheCheckDelay = cacheCheckDelay,
-      segmentsOpenCheckDelay = segmentsOpenCheckDelay,
-      fileOpenLimiterEC = fileOpenLimiterEC,
-      cacheLimiterEC = cacheLimiterEC
+      fileCache =
+        FileCache.Enable.default(
+          maxOpen = maxOpenSegments,
+          interval = fileSweeperPollInterval,
+          ec = fileSweeperEC
+        ),
+      memoryCache =
+        MemoryCache.Enabled.default(
+          blockSize = blockSize,
+          memorySize = memoryCacheSize,
+          interval = memorySweeperPollInterval,
+          ec = memorySweeperEC
+        )
     ) map {
       db =>
-        swaydb.Map[K, V, IO](db)
+        swaydb.Map[K, V, IO.ApiIO](db)
     }
 }

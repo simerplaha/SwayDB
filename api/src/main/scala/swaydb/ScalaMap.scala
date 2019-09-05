@@ -20,14 +20,13 @@
 package swaydb
 
 import scala.collection.{TraversableOnce, mutable}
-import swaydb.data.IO
 
 /**
-  * Scala collections are blocking and requires an IO Map from SwayDB to build a Map.
-  */
+ * Scala collections are blocking and requires an IO Map from SwayDB to build a Map.
+ */
 private[swaydb] object ScalaMap {
 
-  def apply[K, V](db: Map[K, V, IO]): mutable.Map[K, V] =
+  def apply[K, V](db: Map[K, V, IO.ApiIO]): mutable.Map[K, V] =
     new mutable.Map[K, V] {
       override def get(key: K): Option[V] =
         db.get(key).get

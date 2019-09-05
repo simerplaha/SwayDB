@@ -20,29 +20,30 @@
 package swaydb.core.segment.merge
 
 import org.scalatest.WordSpec
-import scala.util.Random
+import swaydb.core.CommonAssertions._
+import swaydb.IOValues._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.TestTimer
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.merge.FixedMerger
-import swaydb.core.{CommonAssertions, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
+
+import scala.util.Random
 
 class SegmentMerger_Range_Into_Fixed extends WordSpec {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
+  implicit def groupBy = randomGroupByOption(randomNextInt(1000) max 1)
 
   implicit val testTimer = TestTimer.Empty
 
   "Range into Single" when {
-    "Left - when Single key-value matches Range's fromKey" in {
+    "IO.Left - when Single key-value matches Range's fromKey" in {
       runThis(10000.times) {
         val newKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val oldKeyValue = randomFixedKeyValue(1)
@@ -51,7 +52,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
           FixedMerger(
             newKeyValue = newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(oldKeyValue.key),
             oldKeyValue = oldKeyValue
-          ).assertGet
+          ).runRandomIO.right.value
 
         val expectedKeyValue =
           (newKeyValue.fromValue, newKeyValue.rangeValue) match {
@@ -62,7 +63,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
             case (Some(Value.Remove(None, _)), Value.Remove(None, _)) =>
               newKeyValue
             case _ =>
-              Memory.Range(1, 10, expectedFromValue.toFromValue().assertGet, newKeyValue.rangeValue)
+              Memory.Range(1, 10, expectedFromValue.toFromValue().runRandomIO.right.value, newKeyValue.rangeValue)
           }
 
         //        println
@@ -84,7 +85,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
         val midKey = Random.shuffle((2 to 9).toList).head
         val newKeyValue = Memory.Range(1, 10, randomFromValue(), randomRangeValue())
         val oldKeyValue = randomRemoveKeyValue(midKey)
-        val merged = FixedMerger(newKeyValue.rangeValue.toMemory(midKey), oldKeyValue).assertGet
+        val merged = FixedMerger(newKeyValue.rangeValue.toMemory(midKey), oldKeyValue).runRandomIO.right.value
 
         val expectedKeyValue =
           newKeyValue.rangeValue match {
@@ -93,7 +94,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
             case _ =>
               Slice(
                 newKeyValue.copy(fromKey = 1, toKey = midKey),
-                Memory.Range(midKey, 10, merged.toFromValue().assertGet, newKeyValue.rangeValue)
+                Memory.Range(midKey, 10, merged.toFromValue().runRandomIO.right.value, newKeyValue.rangeValue)
               )
           }
 
@@ -122,7 +123,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
       }
     }
 
-    "Right - When Single's key does not belong to the Range" in {
+    "IO.Right - When Single's key does not belong to the Range" in {
       runThis(10000.times) {
         val newKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val oldKeyValue = randomFixedKeyValue(10)
@@ -461,5 +462,4 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
       lastLevelExpect = lastLevelExpected
     )
   }
-
 }

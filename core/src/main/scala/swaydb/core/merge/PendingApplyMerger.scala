@@ -19,25 +19,26 @@
 
 package swaydb.core.merge
 
+import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.Value
 import swaydb.core.function.FunctionStore
-import swaydb.data.IO
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
-object PendingApplyMerger {
+private[core] object PendingApplyMerger {
 
   /**
-    * PendingApply
-    */
+   * PendingApply
+   */
   def apply(newKeyValue: ReadOnly.PendingApply,
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): IO[ReadOnly.Fixed] =
+                                         functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue match {
         case oldKeyValue: ReadOnly.Remove if oldKeyValue.deadline.isEmpty =>
-          IO.Success(oldKeyValue.copyWithTime(newKeyValue.time))
+          IO.Right(oldKeyValue.copyWithTime(newKeyValue.time))
 
         case _: ReadOnly.Fixed =>
           newKeyValue.getOrFetchApplies flatMap {
@@ -46,27 +47,27 @@ object PendingApplyMerger {
           }
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.PendingApply,
             oldKeyValue: ReadOnly.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): IO[ReadOnly.Fixed] =
+                                          functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue.deadline match {
         case None =>
-          IO.Success(oldKeyValue)
+          IO.Right(oldKeyValue)
 
         case Some(_) =>
           PendingApplyMerger(newKeyValue, oldKeyValue: ReadOnly.Fixed)
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Right(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.PendingApply,
             oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): IO[ReadOnly.Fixed] =
+                                      functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       PendingApplyMerger(newKeyValue, oldKeyValue.toMemory(newKeyValue.key))
     else
-      IO.Success(oldKeyValue.toMemory(newKeyValue.key))
+      IO.Right(oldKeyValue.toMemory(newKeyValue.key))
 }
