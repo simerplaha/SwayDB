@@ -95,9 +95,9 @@ private[core] object Lower {
         currentWalker.lower(key) match {
           case IO.Right(LevelSeek.Some(segmentId, lower)) =>
             if (previousSegmentId == segmentId)
-              Higher(key, Seek.Current.Stash(segmentId, lower), nextSeek)
+              Lower(key, Seek.Current.Stash(segmentId, lower), nextSeek)
             else
-              Higher(key, Seek.Current.Stash(segmentId, lower), Seek.Next.Read)
+              Lower(key, Seek.Current.Stash(segmentId, lower), Seek.Next.Read)
 
           case IO.Right(LevelSeek.None) =>
             Lower(key, Seek.Current.Stop, nextSeek)
