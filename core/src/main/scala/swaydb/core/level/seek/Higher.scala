@@ -330,7 +330,7 @@ private[core] object Higher {
                       }
 
                     case failure @ IO.Left(_) =>
-                      failure recoverTo Higher.seeker(key, currentSeek, nextSeek)
+                      failure recoverTo Higher.seeker(key, Seek.Current.Read(segmentId), nextSeek)
                   }
 
                 //10  -  20
@@ -362,7 +362,7 @@ private[core] object Higher {
                       }
 
                     case failure @ IO.Left(_) =>
-                      failure recoverTo Higher.seeker(key, currentSeek, nextSeek)
+                      failure recoverTo Higher.seeker(key, Seek.Current.Read(segmentId), nextSeek)
                   }
 
                 //10 - 20
@@ -392,7 +392,7 @@ private[core] object Higher {
                       }
 
                     case failure @ IO.Left(_) =>
-                      failure recoverTo Higher.seeker(key, currentSeek, nextSeek)
+                      failure recoverTo Higher.seeker(key, Seek.Current.Read(segmentId), nextSeek)
                   }
             }
         }

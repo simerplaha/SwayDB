@@ -153,11 +153,11 @@ private[core] object Lower {
                           }
 
                         case failure @ IO.Left(_) =>
-                          failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+                          failure recoverTo Lower.seeker(key, Seek.Current.Read(segmentId), nextSeek)
                       }
 
                   case failure @ IO.Left(_) =>
-                    failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+                    failure recoverTo Lower.seeker(key, Seek.Current.Read(segmentId), nextSeek)
                 }
 
               //     20 (input key - inclusive)
@@ -313,7 +313,7 @@ private[core] object Lower {
                       }
 
                     case failure @ IO.Left(_) =>
-                      failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+                      failure recoverTo Lower.seeker(key, Seek.Current.Read(segmentId), nextSeek)
                   }
 
                 //       11 ->   20 (input keys)
@@ -332,7 +332,7 @@ private[core] object Lower {
                       }
 
                     case failure @ IO.Left(_) =>
-                      failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+                      failure recoverTo Lower.seeker(key, Seek.Current.Read(segmentId), nextSeek)
                   }
             }
 
@@ -368,7 +368,7 @@ private[core] object Lower {
                     }
 
                   case failure @ IO.Left(_) =>
-                    failure recoverTo Lower.seeker(key, currentSeek, nextSeek)
+                    failure recoverTo Lower.seeker(key, Seek.Current.Read(segmentId), nextSeek)
                 }
             }
         }

@@ -393,9 +393,9 @@ object IO {
     override def recoverWith[F >: L : IO.ExceptionHandler, B >: R](f: PartialFunction[L, IO[F, B]]): IO[F, B] =
       IO.Catch(if (f isDefinedAt value) f(value) else this)
 
-    def recoverTo[F: IO.ExceptionHandler, B](onRecover: => IO.Defer[F, B]): IO.Defer[F, B] =
+    def recoverTo[F >: L : IO.ExceptionHandler, B](io: => IO.Defer[F, B]): IO.Defer[F, B] =
       if (this.isRecoverable)
-        onRecover
+        IO.Defer[F, B](io.toIO.get, this.value)
       else
         IO.Defer[F, B](throw IO.ExceptionHandler.toException(this.value))
 

@@ -151,7 +151,7 @@ class IOIORightSpec extends WordSpec with Matchers {
   }
 
   "toEither" in {
-    IO.Right(2).toEither shouldBe IO.Right(2)
+    IO.Right(2).toEither shouldBe scala.util.Right(2)
   }
 
   "filter" in {
