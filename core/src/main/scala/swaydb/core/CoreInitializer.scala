@@ -50,19 +50,19 @@ private[core] object CoreInitializer extends LazyLogging {
     logger.info("Closing files.")
     zero.close onLeftSideEffect {
       error =>
-        logger.error("Failed to close Levels.", error.exception)
+        logger.error("Failed to close files.", error.exception)
     } onRightSideEffect {
       _ =>
-        logger.error("Files closed!")
+        logger.info("Files closed!")
     }
 
-    logger.info("Releasing database locks.")
+    logger.info("Releasing locks.")
     zero.releaseLocks onLeftSideEffect {
       error =>
         logger.error("Failed to release locks.", error.exception)
     } onRightSideEffect {
       _ =>
-        logger.error("Locks released!")
+        logger.info("Locks released!")
     }
   }
 
@@ -87,7 +87,7 @@ private[core] object CoreInitializer extends LazyLogging {
           logger.error("Failed compaction shutdown.", error.exception)
       } onRightSideEffect {
         _ =>
-          logger.error("Compaction stopped!")
+          logger.info("Compaction stopped!")
       }
 
       closeLevels(zero)
@@ -351,7 +351,7 @@ private[core] object CoreInitializer extends LazyLogging {
           }
       }
 
-    logger.info(s"Starting ${config.otherLevels.size} configured Levels.")
+    logger.info(s"Booting ${config.otherLevels.size + 2} Levels.")
 
     /**
      * Convert [[swaydb.Error.Level]] to [[swaydb.Error]]
