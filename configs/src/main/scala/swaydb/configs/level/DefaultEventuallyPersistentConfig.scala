@@ -142,7 +142,7 @@ object DefaultEventuallyPersistentConfig {
           ioAction =>
             IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
         segmentCompressions = _ => Seq.empty,
-        groupBy = groupBy,
+        groupBy = None,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         throttle =
           (_: LevelMeter) =>

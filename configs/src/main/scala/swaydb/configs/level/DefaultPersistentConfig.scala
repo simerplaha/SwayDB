@@ -436,7 +436,7 @@ object DefaultPersistentConfig {
           ioAction =>
             IOStrategy.ConcurrentIO(cacheOnAccess = ioAction.isCompressed),
         segmentCompressions = _ => Seq.empty,
-        groupBy = groupBy,
+        groupBy = None,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
           levelMeter =>
