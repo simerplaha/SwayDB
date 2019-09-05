@@ -360,7 +360,6 @@ object CommonAssertions {
                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipList.Concurrent[Slice[Byte], Memory.SegmentResponse] = {
     val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse]()(KeyOrder.default)
     (oldKeyValues ++ newKeyValues).map(_.toMemoryResponse) foreach (memory => LevelZeroSkipListMerger.insert(memory.key, memory, skipList))
-    skipList.size shouldBe expected.size
     skipList.asScala.toList shouldBe expected.map(keyValue => (keyValue.key, keyValue.toMemory))
     skipList
   }
