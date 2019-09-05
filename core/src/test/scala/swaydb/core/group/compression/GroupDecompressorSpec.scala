@@ -97,16 +97,16 @@
 //        //          ) mapIO {
 //        //            keyValue =>
 //        //              IO.Async.runSafe(persistentGroup.segmentCache.get(keyValue.key).get).safeGetBlocking match {
-//        //                case IO.Failure(error) =>
-//        //                  IO.Failure(error)
+//        //                case IO.Left(error) =>
+//        //                  IO.Left(error)
 //        //
-//        //                case IO.Success(value) =>
+//        //                case IO.Right(value) =>
 //        //                  try {
 //        //                    IO.Async.runSafe(value.get.toMemory().get).safeGetBlocking.runIO shouldBe keyValue
 //        //                    IO.unit
 //        //                  } catch {
 //        //                    case ex: Exception =>
-//        //                      IO.Failure(ex.getCause)
+//        //                      IO.Left(ex.getCause)
 //        //                  }
 //        //              }
 //        //          } assertGet

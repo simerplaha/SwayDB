@@ -103,7 +103,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.remove(2, 999).right.value
       println("Removed .... ")
 
-      db.stream.materialize.right.value should contain only((1, "1"), (1000, "1000"))
+      db.stream.materialize.runRandomIO.right.value should contain only((1, "1"), (1000, "1000"))
       db.headOption.right.value.value shouldBe ((1, "1"))
       db.lastOption.right.value.value shouldBe ((1000, "1000"))
 
@@ -125,7 +125,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.update(1, 100, value = "updated").right.value
 
-      db.stream.materialize.right.value should contain only((1, "updated"), (100, "updated"))
+      db.stream.materialize.runRandomIO.right.value should contain only((1, "updated"), (100, "updated"))
       db.headOption.right.value.value shouldBe ((1, "updated"))
       db.lastOption.right.value.value shouldBe ((100, "updated"))
 
@@ -144,7 +144,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.update(1, 100, value = "updated").right.value
 
-      db.stream.materialize.right.value should contain only((1, "updated"), (100, "updated"))
+      db.stream.materialize.runRandomIO.right.value should contain only((1, "updated"), (100, "updated"))
       db.headOption.right.value.value shouldBe ((1, "updated"))
       db.lastOption.right.value.value shouldBe ((100, "updated"))
 
@@ -177,7 +177,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       val expected = expectedUnchanged ++ expectedUpdated :+ (100, "100")
 
-      db.stream.materialize.right.value shouldBe expected
+      db.stream.materialize.runRandomIO.right.value shouldBe expected
       db.headOption.right.value.value shouldBe ((1, "1"))
       db.lastOption.right.value.value shouldBe ((100, "100"))
 
@@ -190,7 +190,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.isEmpty.get shouldBe true
 
-      db.stream.materialize.right.value shouldBe empty
+      db.stream.materialize.runRandomIO.right.value shouldBe empty
 
       db.headOption.get shouldBe empty
       db.lastOption.get shouldBe empty
@@ -204,7 +204,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.isEmpty.get shouldBe true
 
-      db.stream.materialize.right.value shouldBe empty
+      db.stream.materialize.runRandomIO.right.value shouldBe empty
 
       db.headOption.get shouldBe empty
       db.lastOption.get shouldBe empty
@@ -239,7 +239,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.stream.materialize.map(_.toMap).right.value.values should contain only "updated"
 
       db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(100, "hundred"), Prepare.Remove(1, 100), Prepare.Update(1, 1000, "updated")).right.value
-      db.stream.materialize.right.value shouldBe empty
+      db.stream.materialize.runRandomIO.right.value shouldBe empty
 
       db.close().get
     }
@@ -252,17 +252,17 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           db.put(i, i.toString).right.value
       }
 
-      db.from(9999).stream.materialize.right.value should contain only((9999, "9999"), (10000, "10000"))
-      db.from(9998).drop(2).take(1).materialize.right.value should contain only ((10000, "10000"))
-      db.before(9999).take(1).materialize.right.value should contain only ((9998, "9998"))
-      db.after(9999).take(1).materialize.right.value should contain only ((10000, "10000"))
-      db.after(9999).drop(1).materialize.right.value shouldBe empty
+      db.from(9999).stream.materialize.runRandomIO.right.value should contain only((9999, "9999"), (10000, "10000"))
+      db.from(9998).drop(2).take(1).materialize.runRandomIO.right.value should contain only ((10000, "10000"))
+      db.before(9999).take(1).materialize.runRandomIO.right.value should contain only ((9998, "9998"))
+      db.after(9999).take(1).materialize.runRandomIO.right.value should contain only ((10000, "10000"))
+      db.after(9999).drop(1).materialize.runRandomIO.right.value shouldBe empty
 
-      db.after(10).takeWhile(_._1 <= 11).materialize.right.value should contain only ((11, "11"))
-      db.after(10).takeWhile(_._1 <= 11).drop(1).materialize.right.value shouldBe empty
+      db.after(10).takeWhile(_._1 <= 11).materialize.runRandomIO.right.value should contain only ((11, "11"))
+      db.after(10).takeWhile(_._1 <= 11).drop(1).materialize.runRandomIO.right.value shouldBe empty
 
-      db.fromOrBefore(0).stream.materialize.right.value shouldBe empty
-      db.fromOrAfter(0).take(1).materialize.right.value should contain only ((1, "1"))
+      db.fromOrBefore(0).stream.materialize.runRandomIO.right.value shouldBe empty
+      db.fromOrAfter(0).take(1).materialize.runRandomIO.right.value should contain only ((1, "1"))
 
       db.close().get
     }

@@ -881,7 +881,7 @@
 //  //      //convert all failures to Async
 //  //      val result: List[IO.Later[_]] =
 //  //        ios.toList collect {
-//  //          case io: IO.Failure[_] =>
+//  //          case io: IO.Left[_] =>
 //  //            io.recoverToAsync(IO.Async((), swaydb.Error.None)).asInstanceOf[IO.Later[_]]
 //  //        }
 //  //

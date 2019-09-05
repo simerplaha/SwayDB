@@ -219,7 +219,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
       case IO.Right(IO.Left(error)) =>
         error match {
-          //do not log the stack if the IO.Failure to merge was ContainsOverlappingBusySegments.
+          //do not log the stack if the IO.Left to merge was ContainsOverlappingBusySegments.
           case swaydb.Error.OverlappingPushSegment =>
             logger.debug(s"Level(${zero.levelNumber}): Failed to push", swaydb.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
           case _ =>

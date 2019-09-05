@@ -85,7 +85,7 @@ class IOSpec extends WordSpec with Matchers {
       iterations shouldBe 4
     }
 
-    "finish iteration on IO.Success IO's" in {
+    "finish iteration on IO.Right IO's" in {
       val slice = Slice(1, 2, 3, 4)
 
       val result: Option[IO.Left[Throwable, Int]] =

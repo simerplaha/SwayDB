@@ -158,7 +158,7 @@ private[core] object Maps extends LazyLogging {
                       IO.unit
 
                     case IO.Left(error) =>
-                      logger.error(s"{}: IO.Failure to delete file after corruption file. Recovery mode: {}", mapPath, recovery.name)
+                      logger.error(s"{}: IO.Left to delete file after corruption file. Recovery mode: {}", mapPath, recovery.name)
                       IO.Left(error)
                   }
               } match {
@@ -305,7 +305,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   /**
    * @param entry entry to add
    *
-   * @return IO.Success(true) when new map gets added to maps. This return value is currently used
+   * @return IO.Right(true) when new map gets added to maps. This return value is currently used
    *         in LevelZero to determine if there is a map that should be converted Segment.
    */
   @tailrec
@@ -347,7 +347,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
       //if the failure was due to a corruption in the current Map, all the new Entries do not value submitted
       //to the same Map file. They SHOULD be added to a new Map file that is not already unreadable.
       case IO.Left(writeException) =>
-        logger.error("IO.Failure to write Map entry. Starting a new Map.", writeException.exception)
+        logger.error("IO.Left to write Map entry. Starting a new Map.", writeException.exception)
         Maps.nextMap(fileSize, currentMap) match {
           case IO.Right(nextMap) =>
             maps addFirst currentMap

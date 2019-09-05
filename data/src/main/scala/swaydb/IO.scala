@@ -121,7 +121,7 @@ object IO {
       failure
     }
 
-    //returns the first IO.Success(Some(_)).
+    //returns the first IO.Right(Some(_)).
     def untilSome[R](f: A => IO[E, Option[R]]): IO[E, Option[(R, A)]] = {
       iterable.iterator foreach {
         item =>
@@ -378,7 +378,7 @@ object IO {
     override def isLeft: Boolean = true
     override def isRight: Boolean = false
     override def left: IO.Right[Throwable, L] = IO.Right[Throwable, L](value)(IO.ExceptionHandler.Throwable)
-    override def right: IO.Left[Throwable, R] = IO.Left[Throwable, R](new UnsupportedOperationException("Value is IO.Left"))(IO.ExceptionHandler.Throwable)
+    override def right: IO.Left[Throwable, R] = IO.Left[Throwable, R](new UnsupportedOperationException("Value is IO.Left", IO.ExceptionHandler.toException(value)))(IO.ExceptionHandler.Throwable)
     def isRecoverable = IO.ExceptionHandler.recover(value).isDefined
     override def exists(f: R => Boolean): Boolean = false
     override def getOrElse[B >: R](default: => B): B = default

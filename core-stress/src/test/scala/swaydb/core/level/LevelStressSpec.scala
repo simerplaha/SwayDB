@@ -88,7 +88,7 @@
 //        Future() flatMap {
 //          _ =>
 //            level.put(randomSegment.head) match {
-//              case IO.Success(_) =>
+//              case IO.Right(_) =>
 //                println(s"$index: End put.")
 //                Future.unit
 //
@@ -105,7 +105,7 @@
 //                    throw error
 //                }
 //
-//              case IO.Failure(error) =>
+//              case IO.Left(error) =>
 //                error.exception.printStackTrace()
 //                System.exit(0) //failure should never occur.
 //                fail(error.exception)
