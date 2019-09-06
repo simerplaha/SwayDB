@@ -56,7 +56,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
             key = keyValue.key,
             start = eitherOne(None, previous),
             end = None,
-            hashIndexReader = blocks.hashIndexReader,
+            hashIndexReader = IO(blocks.hashIndexReader),
             binarySearchIndexReader = null, //set it to null. BinarySearchIndex is not accessed.
             sortedIndexReader = blocks.sortedIndexReader,
             valuesReader = blocks.valuesReader,
@@ -90,9 +90,9 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               key = keyValue.key,
               start = randomStart,
               end = randomEnd,
-              hashIndexReader = None,
+              hashIndexReader = IO.none,
               //randomly use binary search index.
-              binarySearchIndexReader = binarySearchIndexOptional,
+              binarySearchIndexReader = IO(binarySearchIndexOptional),
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader,
               hasRange = keyValues.last.stats.segmentHasRange,
@@ -113,12 +113,12 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           key = key,
           start = None,
           end = None,
-          hashIndexReader = blocks.hashIndexReader,
+          hashIndexReader = IO(blocks.hashIndexReader),
           binarySearchIndexReader =
             if (keyValues.last.stats.segmentHasRange && !blocks.sortedIndexReader.block.isBinarySearchable) {
               //              blocks.binarySearchIndexReader shouldBe defined
               //if it has range then binary search index will be used unless all the ranges were prefix compressed.
-              blocks.binarySearchIndexReader
+              IO(blocks.binarySearchIndexReader)
             } else {
               null
             },
@@ -149,7 +149,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           //randomly give it start and end indexes.
           start = randomStart,
           end = randomEnd,
-          binarySearchIndexReader = randomBinarySearchIndex, //set it to null. BinarySearchIndex is not accessed.
+          binarySearchIndexReader = IO(randomBinarySearchIndex), //set it to null. BinarySearchIndex is not accessed.
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
           keyValueCount = IO.Right[swaydb.Error.Segment, Int](keyValues.size)
@@ -161,7 +161,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           //randomly give it start and end indexes.
           start = randomStart,
           end = randomEnd,
-          binarySearchIndexReader = randomBinarySearchIndex, //set it to null. BinarySearchIndex is not accessed.
+          binarySearchIndexReader = IO(randomBinarySearchIndex), //set it to null. BinarySearchIndex is not accessed.
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
           keyValueCount = IO.Right[swaydb.Error.Segment, Int](keyValues.size)
@@ -226,7 +226,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           //randomly give it start and end indexes.
           start = randomStart,
           end = randomEnd,
-          binarySearchIndexReader = randomBinarySearchIndex, //set it to null. BinarySearchIndex is not accessed.
+          binarySearchIndexReader = IO(randomBinarySearchIndex), //set it to null. BinarySearchIndex is not accessed.
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
           keyValueCount = IO.Right[swaydb.Error.Segment, Int](keyValues.size)

@@ -589,6 +589,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
       next = next,
       hasMore = hasMore(next getOrElse previous)
     ) match {
+      case result: KeyMatcher.Result.Complete =>
+        IO.Right(result)
+
       case KeyMatcher.Result.BehindFetchNext(previousKeyValue) =>
         //        assert(previous.key.readInt() <= previousKeyValue.key.readInt())
         val readFrom = next getOrElse previousKeyValue
@@ -609,9 +612,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
           case IO.Left(error) =>
             IO.Left(error)
         }
-
-      case result: KeyMatcher.Result.Complete =>
-        result.asIO
     }
 
   def matchOrNextAndPersistent(previous: Persistent,

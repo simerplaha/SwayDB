@@ -25,7 +25,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
-trait BinarySearchContext {
+private[block] sealed trait BinarySearchContext {
   val bytesPerValue: Int
   val valuesCount: Int
   val isFullIndex: Boolean
@@ -35,7 +35,7 @@ trait BinarySearchContext {
   def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result]
 }
 
-object BinarySearchContext {
+private[block] object BinarySearchContext {
   def apply(key: Slice[Byte],
             highOrLow: Option[Boolean],
             start: Option[Persistent],

@@ -117,40 +117,34 @@ private[core] class SegmentCache(id: String,
                   start: Option[Persistent],
                   end: => Option[Persistent],
                   hasRange: Boolean,
-                  keyValueCount: => IO[swaydb.Error.Segment, Int],
+                  keyValueCount: Int,
                   threadState: SegmentReadThreadState): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
-    blockCache.createHashIndexReader() flatMap {
-      hashIndexReader =>
-        blockCache.createBinarySearchIndexReader() flatMap {
-          binarySearchIndexReader =>
-            blockCache.createSortedIndexReader() flatMap {
-              sortedIndexReader =>
-                blockCache.createValuesReader() flatMap {
-                  valuesReader =>
-                    SegmentSearcher.search(
-                      key = key,
-                      start = start,
-                      end = end,
-                      keyValueCount = keyValueCount,
-                      hashIndexReader = hashIndexReader,
-                      binarySearchIndexReader = binarySearchIndexReader,
-                      sortedIndexReader = sortedIndexReader,
-                      valuesReader = valuesReader,
-                      hasRange = hasRange,
-                      threadState = Some(threadState)
-                    ) flatMap {
-                      case Some(response: Persistent.SegmentResponse) =>
-                        addToCache(response)
-                        IO.Right(Some(response))
+    blockCache.createSortedIndexReader() flatMap {
+      sortedIndexReader =>
+        blockCache.createValuesReader() flatMap {
+          valuesReader =>
+            SegmentSearcher.search(
+              key = key,
+              start = start,
+              end = end,
+              keyValueCount = IO.Right(keyValueCount),
+              hashIndexReader = blockCache.createHashIndexReader(),
+              binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
+              sortedIndexReader = sortedIndexReader,
+              valuesReader = valuesReader,
+              hasRange = hasRange,
+              threadState = Some(threadState)
+            ) flatMap {
+              case Some(response: Persistent.SegmentResponse) =>
+                addToCache(response)
+                IO.Right(Some(response))
 
-                      case Some(group: Persistent.Group) =>
-                        addToCache(group)
-                        group.segment.get(key)
+              case Some(group: Persistent.Group) =>
+                addToCache(group)
+                group.segment.get(key)
 
-                      case None =>
-                        IO.none
-                    }
-                }
+              case None =>
+                IO.none
             }
         }
     }
@@ -214,7 +208,7 @@ private[core] class SegmentCache(id: String,
                     get(
                       key = key,
                       start = floorValue,
-                      keyValueCount = IO.Right(footer.keyValueCount),
+                      keyValueCount = footer.keyValueCount,
                       end = skipList.higher(key),
                       threadState = thisThreadState,
                       hasRange = footer.hasRange
@@ -226,7 +220,7 @@ private[core] class SegmentCache(id: String,
                           get(
                             key = key,
                             start = floorValue,
-                            keyValueCount = IO.Right(footer.keyValueCount),
+                            keyValueCount = footer.keyValueCount,
                             threadState = thisThreadState,
                             end = skipList.higher(key),
                             hasRange = footer.hasRange
@@ -242,32 +236,29 @@ private[core] class SegmentCache(id: String,
                     start: Option[Persistent],
                     end: => Option[Persistent],
                     keyValueCount: => IO[swaydb.Error.Segment, Int]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
-    blockCache.createBinarySearchIndexReader() flatMap {
-      binarySearchIndexReader =>
-        blockCache.createSortedIndexReader() flatMap {
-          sortedIndexReader =>
-            blockCache.createValuesReader flatMap {
-              valuesReader =>
-                SegmentSearcher.searchLower(
-                  key = key,
-                  start = start,
-                  end = end,
-                  keyValueCount = keyValueCount,
-                  binarySearchIndexReader = binarySearchIndexReader,
-                  sortedIndexReader = sortedIndexReader,
-                  valuesReader
-                ) flatMap {
-                  case Some(response: Persistent.SegmentResponse) =>
-                    addToCache(response)
-                    IO.Right(Some(response))
+    blockCache.createSortedIndexReader() flatMap {
+      sortedIndexReader =>
+        blockCache.createValuesReader flatMap {
+          valuesReader =>
+            SegmentSearcher.searchLower(
+              key = key,
+              start = start,
+              end = end,
+              keyValueCount = keyValueCount,
+              binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
+              sortedIndexReader = sortedIndexReader,
+              valuesReader
+            ) flatMap {
+              case Some(response: Persistent.SegmentResponse) =>
+                addToCache(response)
+                IO.Right(Some(response))
 
-                  case Some(group: Persistent.Group) =>
-                    addToCache(group)
-                    group.segment.lower(key)
+              case Some(group: Persistent.Group) =>
+                addToCache(group)
+                group.segment.lower(key)
 
-                  case None =>
-                    IO.none
-                }
+              case None =>
+                IO.none
             }
         }
     }
@@ -399,40 +390,37 @@ private[core] class SegmentCache(id: String,
                      keyValueCount: => IO[swaydb.Error.Segment, Int]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
     blockCache.getFooter() flatMap {
       footer =>
-        blockCache.createBinarySearchIndexReader() flatMap {
-          binarySearchIndexReader =>
-            blockCache.createSortedIndexReader() flatMap {
-              sortedIndexReader =>
-                blockCache.createValuesReader() flatMap {
-                  valuesReader =>
-                    val startFrom =
-                      if (start.isDefined || footer.hasGroup) //don't do get if it has Group because it will fetch the inner group key-value which cannot be used as startFrom.
-                        IO.Right(start)
-                      else
-                        get(key)
+        blockCache.createSortedIndexReader() flatMap {
+          sortedIndexReader =>
+            blockCache.createValuesReader() flatMap {
+              valuesReader =>
+                val startFrom =
+                  if (start.isDefined || footer.hasGroup) //don't do get if it has Group because it will fetch the inner group key-value which cannot be used as startFrom.
+                    IO.Right(start)
+                  else
+                    get(key)
 
-                    startFrom flatMap {
-                      startFrom =>
-                        SegmentSearcher.searchHigher(
-                          key = key,
-                          start = startFrom,
-                          end = end,
-                          keyValueCount = keyValueCount,
-                          binarySearchIndexReader = binarySearchIndexReader,
-                          sortedIndexReader = sortedIndexReader,
-                          valuesReader = valuesReader
-                        ) flatMap {
-                          case Some(response: Persistent.SegmentResponse) =>
-                            addToCache(response)
-                            IO.Right(Some(response))
+                startFrom flatMap {
+                  startFrom =>
+                    SegmentSearcher.searchHigher(
+                      key = key,
+                      start = startFrom,
+                      end = end,
+                      keyValueCount = keyValueCount,
+                      binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
+                      sortedIndexReader = sortedIndexReader,
+                      valuesReader = valuesReader
+                    ) flatMap {
+                      case Some(response: Persistent.SegmentResponse) =>
+                        addToCache(response)
+                        IO.Right(Some(response))
 
-                          case Some(group: Persistent.Group) =>
-                            addToCache(group)
-                            group.segment.higher(key)
+                      case Some(group: Persistent.Group) =>
+                        addToCache(group)
+                        group.segment.higher(key)
 
-                          case None =>
-                            IO.none
-                        }
+                      case None =>
+                        IO.none
                     }
                 }
             }

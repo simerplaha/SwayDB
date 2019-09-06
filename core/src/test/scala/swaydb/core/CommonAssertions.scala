@@ -770,8 +770,8 @@ object CommonAssertions {
           start = None,
           end = None,
           keyValueCount = IO.Right(blocks.footer.keyValueCount),
-          hashIndexReader = blocks.hashIndexReader,
-          binarySearchIndexReader = blocks.binarySearchIndexReader,
+          hashIndexReader = IO(blocks.hashIndexReader),
+          binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
           hasRange = blocks.footer.hasRange,
@@ -1165,7 +1165,7 @@ object CommonAssertions {
               start = None,
               end = None,
               keyValueCount = IO.Right(blocks.footer.keyValueCount),
-              binarySearchIndexReader = blocks.binarySearchIndexReader,
+              binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).runRandomIO.right.value shouldBe empty
@@ -1177,7 +1177,7 @@ object CommonAssertions {
                   start = None,
                   end = None,
                   keyValueCount = IO.Right(blocks.footer.keyValueCount),
-                  binarySearchIndexReader = blocks.binarySearchIndexReader,
+                  binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
                   sortedIndexReader = blocks.sortedIndexReader,
                   valuesReader = blocks.valuesReader
                 ).runRandomIO.right.value shouldBe range
@@ -1189,7 +1189,7 @@ object CommonAssertions {
               start = None,
               end = None,
               keyValueCount = IO.Right(blocks.footer.keyValueCount),
-              binarySearchIndexReader = blocks.binarySearchIndexReader,
+              binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).runRandomIO.right.value shouldBe empty
@@ -1204,7 +1204,7 @@ object CommonAssertions {
               start = None,
               end = None,
               keyValueCount = IO.Right(blocks.footer.keyValueCount),
-              binarySearchIndexReader = blocks.binarySearchIndexReader,
+              binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).runRandomIO.right.value.value shouldBe expectedLowerKeyValue
@@ -1216,7 +1216,7 @@ object CommonAssertions {
                   start = None,
                   end = None,
                   keyValueCount = IO.Right(blocks.footer.keyValueCount),
-                  binarySearchIndexReader = blocks.binarySearchIndexReader,
+                  binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
                   sortedIndexReader = blocks.sortedIndexReader,
                   valuesReader = blocks.valuesReader
                 ).runRandomIO.right.value shouldBe range
@@ -1228,7 +1228,7 @@ object CommonAssertions {
               start = None,
               end = None,
               keyValueCount = IO.Right(blocks.footer.keyValueCount),
-              binarySearchIndexReader = blocks.binarySearchIndexReader,
+              binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).runRandomIO.right.value.value shouldBe expectedLowerKeyValue
@@ -1253,7 +1253,7 @@ object CommonAssertions {
             start = None,
             end = None,
             keyValueCount = IO.Right(blocks.footer.keyValueCount),
-            binarySearchIndexReader = blocks.binarySearchIndexReader,
+            binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
             sortedIndexReader = blocks.sortedIndexReader,
             valuesReader = blocks.valuesReader
           )
