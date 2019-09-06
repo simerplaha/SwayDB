@@ -38,7 +38,7 @@ private[core] object Time {
 
   def apply(time: Long): Time =
   //TODO - store time as unsignedLong.
-    new Time(Slice.writeLong(time))
+    new Time(Slice.writeLongUnsigned(time))
 
   def >(upperTime: Time, lowerTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean = {
     import timeOrder._
@@ -61,7 +61,7 @@ private[core] object Time {
       .getOrElse(Time.empty)
 }
 
-private[core] case class Time(time: Slice[Byte]) {
+private[core] case class Time private(time: Slice[Byte]) {
   def unslice(): Time =
     Time(time.unslice())
 
