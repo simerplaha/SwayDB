@@ -21,11 +21,11 @@ package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
+import swaydb.{Error, IO}
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.reader.BlockRefReader
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.util.Options._
 import swaydb.core.util.SkipList
 import swaydb.data.MaxKey
@@ -113,15 +113,31 @@ private[core] class SegmentCache(id: String,
         } getOrElse IO.`true`
     }
 
+  def createSortedIndexReader(threadState: SegmentReadThreadState): IO[Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] =
+    thisThreadState.getSortedIndexReader getOrElse {
+      blockCache.createSortedIndexReader() onRightSideEffect {
+        reader =>
+          thisThreadState setSortedIndexReader Some(IO.Right(reader))
+      }
+    }
+
+  def createValuesReader(threadState: SegmentReadThreadState): IO[Error.Segment, Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
+    thisThreadState.getValuesReader getOrElse {
+      blockCache.createValuesReader() onRightSideEffect {
+        reader =>
+          thisThreadState setValuesReader Some(IO.Right(reader))
+      }
+    }
+
   private def get(key: Slice[Byte],
                   start: Option[Persistent],
                   end: => Option[Persistent],
                   hasRange: Boolean,
                   keyValueCount: Int,
                   threadState: SegmentReadThreadState): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
-    blockCache.createSortedIndexReader() flatMap {
+    createSortedIndexReader(threadState) flatMap {
       sortedIndexReader =>
-        blockCache.createValuesReader() flatMap {
+        createValuesReader(threadState) flatMap {
           valuesReader =>
             SegmentSearcher.search(
               key = key,
@@ -178,9 +194,9 @@ private[core] class SegmentCache(id: String,
 
           case floorValue =>
             if (key equiv minKey)
-              blockCache.createSortedIndexReader() flatMap {
+              createSortedIndexReader(threadState) flatMap {
                 sortedIndexReader =>
-                  blockCache.createValuesReader() flatMap {
+                  createValuesReader(threadState) flatMap {
                     valuesReader =>
                       SortedIndexBlock.search(
                         key = key,

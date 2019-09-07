@@ -21,6 +21,9 @@ package swaydb.core.segment
 
 import java.util.concurrent.ConcurrentHashMap
 
+import swaydb.{Error, IO}
+import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.SkipList
 import swaydb.core.util.SkipList.MinMaxSkipList
 import swaydb.data.order.KeyOrder
@@ -40,7 +43,7 @@ private[segment] class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHas
     val existingState = states.get(threadId)
     if (existingState == null) {
       //todo - could possible copy the state of another thread instead of creating an empty one?
-      val newState = new SegmentThreadState[K, V](skipList = SkipList.minMax[K, V](), 0, 0)
+      val newState = new SegmentThreadState[K, V](skipList = SkipList.minMax[K, V](), None, None, 0, 0)
       states.put(threadId, newState)
       newState
     } else {
@@ -58,6 +61,8 @@ private[segment] sealed trait SegmentReadThreadState {
 }
 
 private[segment] class SegmentThreadState[K, V](@BeanProperty var skipList: MinMaxSkipList[K, V],
+                                                @BeanProperty var sortedIndexReader: Option[IO.Right[Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]]],
+                                                @BeanProperty var valuesReader: Option[IO.Right[Error.Segment, Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]]],
                                                 var accessCount: Int,
                                                 var sequentialReadsSuccess: Int) extends SegmentReadThreadState {
   /**
