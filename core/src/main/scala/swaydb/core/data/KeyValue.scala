@@ -140,12 +140,12 @@ private[core] object KeyValue {
 
     object Range {
       implicit class RangeImplicit(range: KeyValue.ReadOnly.Range) {
-        def contains(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+        @inline def contains(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
           import keyOrder._
           key >= range.fromKey && key < range.toKey
         }
 
-        def containsLower(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+        @inline def containsLower(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
           import keyOrder._
           key > range.fromKey && key <= range.toKey
         }
@@ -167,17 +167,17 @@ private[core] object KeyValue {
 
     object Group {
       implicit class GroupImplicit(group: KeyValue.ReadOnly.Group) {
-        def contains(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+        @inline def contains(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
           import keyOrder._
           key >= group.minKey && ((group.maxKey.inclusive && key <= group.maxKey.maxKey) || (!group.maxKey.inclusive && key < group.maxKey.maxKey))
         }
 
-        def containsHigher(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+        @inline def containsHigher(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
           import keyOrder._
           key >= group.minKey && key < group.maxKey.maxKey
         }
 
-        def containsLower(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+        @inline def containsLower(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
           import keyOrder._
           key > group.minKey && key <= group.maxKey.maxKey
         }

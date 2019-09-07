@@ -24,11 +24,11 @@ import swaydb.macros.SealedList
 
 sealed trait KeyValueId {
 
-  def minKey_Compressed_KeyValueId: Int
-  def maxKey_Compressed_KeyValueId: Int
+  val minKey_Compressed_KeyValueId: Int
+  val maxKey_Compressed_KeyValueId: Int
 
-  def minKey_Uncompressed_KeyValueId: Int
-  def maxKey_Uncompressed_KeyValueId: Int
+  val minKey_Uncompressed_KeyValueId: Int
+  val maxKey_Uncompressed_KeyValueId: Int
 
   def hasKeyValueId(keyValueId: Int): Boolean =
     keyValueId >= minKey_Compressed_KeyValueId && keyValueId <= maxKey_Uncompressed_KeyValueId
