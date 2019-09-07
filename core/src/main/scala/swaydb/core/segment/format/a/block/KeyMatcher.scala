@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a.block
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.Persistent
+import swaydb.core.data.Persistent.Partial
 import swaydb.core.segment.format.a.block.KeyMatcher.Result.{AheadOrNoneOrEnd, BehindFetchNext, BehindStopped, Matched}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -29,8 +30,8 @@ import swaydb.data.slice.Slice
 private[core] sealed trait KeyMatcher {
   def key: Slice[Byte]
 
-  def apply(previous: Persistent,
-            next: Option[Persistent],
+  def apply(previous: Persistent.Partial,
+            next: Option[Persistent.Partial],
             hasMore: => Boolean): KeyMatcher.Result
 
   def keyOrder: KeyOrder[Slice[Byte]]
@@ -39,7 +40,7 @@ private[core] sealed trait KeyMatcher {
 
   def whileNextIsPrefixCompressed: Boolean
 
-  def shouldFetchNext(next: Option[Persistent]) =
+  def shouldFetchNext(next: Option[Persistent.Partial]) =
     KeyMatcher.shouldFetchNext(this, next)
 }
 
@@ -51,17 +52,17 @@ private[core] object KeyMatcher {
     sealed trait Complete extends Result
     sealed trait InComplete extends Result
 
-    case class Matched(previous: Option[Persistent], result: Persistent, next: Option[Persistent]) extends Complete
+    case class Matched(previous: Option[Persistent.Partial], result: Persistent.Partial, next: Option[Persistent.Partial]) extends Complete
 
     sealed trait Behind {
-      def previous: Persistent
+      def previous: Persistent.Partial
     }
-    case class BehindFetchNext(previous: Persistent) extends InComplete with Behind
-    case class BehindStopped(previous: Persistent) extends Complete with Behind
+    case class BehindFetchNext(previous: Persistent.Partial) extends InComplete with Behind
+    case class BehindStopped(previous: Persistent.Partial) extends Complete with Behind
     case object AheadOrNoneOrEnd extends Complete
   }
 
-  def shouldFetchNext(matcher: KeyMatcher, next: Option[Persistent]) =
+  def shouldFetchNext(matcher: KeyMatcher, next: Option[Persistent.Partial]) =
     (!matcher.seekOne || next.isEmpty) && (!matcher.whileNextIsPrefixCompressed || next.forall(_.isPrefixCompressed))
 
   sealed trait Bounded extends KeyMatcher
@@ -123,11 +124,11 @@ private[core] object KeyMatcher {
                        val seekOne: Boolean,
                        val whileNextIsPrefixCompressed: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Get with Get.WhilePrefixCompressed with Get.SeekOne {
 
-    override def apply(previous: Persistent,
-                       next: Option[Persistent],
+    override def apply(previous: Persistent.Partial,
+                       next: Option[Persistent.Partial],
                        hasMore: => Boolean): KeyMatcher.Result =
       next.getOrElse(previous) match {
-        case fixed: Persistent.Fixed =>
+        case fixed: Persistent.Partial.Fixed =>
           val matchResult = keyOrder.compare(key, fixed.key)
           if (matchResult == 0)
             Matched(next map (_ => previous), fixed, None)
@@ -139,7 +140,7 @@ private[core] object KeyMatcher {
           else
             AheadOrNoneOrEnd
 
-        case group: Persistent.Group =>
+        case group: Persistent.Partial.Group =>
           val fromKeyMatch = keyOrder.compare(key, group.minKey)
           val toKeyMatch: Int = keyOrder.compare(key, group.maxKey.maxKey)
           if (fromKeyMatch >= 0 && ((group.maxKey.inclusive && toKeyMatch <= 0) || (!group.maxKey.inclusive && toKeyMatch < 0))) //is within the range
@@ -152,7 +153,7 @@ private[core] object KeyMatcher {
           else
             AheadOrNoneOrEnd
 
-        case range: Persistent.Range =>
+        case range: Persistent.Partial.Range =>
           val fromKeyMatch = keyOrder.compare(key, range.fromKey)
           val toKeyMatch = keyOrder.compare(key, range.toKey)
           if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
@@ -223,8 +224,8 @@ private[core] object KeyMatcher {
                              val seekOne: Boolean,
                              val whileNextIsPrefixCompressed: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Lower with Lower.WhilePrefixCompressed with Lower.SeekOne {
 
-    override def apply(previous: Persistent,
-                       next: Option[Persistent],
+    override def apply(previous: Persistent.Partial,
+                       next: Option[Persistent.Partial],
                        hasMore: => Boolean): KeyMatcher.Result =
       next match {
         case someNext @ Some(next) =>
@@ -237,10 +238,10 @@ private[core] object KeyMatcher {
           else if (nextCompare < 0)
             if (hasMore)
               next match {
-                case range: Persistent.Range if keyOrder.compare(key, range.toKey) <= 0 =>
+                case range: Persistent.Partial.Range if keyOrder.compare(key, range.toKey) <= 0 =>
                   Matched(Some(previous), next, None)
 
-                case group: Persistent.Group if keyOrder.compare(key, group.minKey) > 0 && keyOrder.compare(key, group.maxKey.maxKey) <= 0 =>
+                case group: Persistent.Partial.Group if keyOrder.compare(key, group.minKey) > 0 && keyOrder.compare(key, group.maxKey.maxKey) <= 0 =>
                   Matched(Some(previous), next, None)
 
                 case _ =>
@@ -261,10 +262,10 @@ private[core] object KeyMatcher {
           else if (previousCompare < 0)
             if (hasMore)
               previous match {
-                case range: Persistent.Range if keyOrder.compare(key, range.toKey) <= 0 =>
+                case range: Persistent.Partial.Range if keyOrder.compare(key, range.toKey) <= 0 =>
                   Matched(None, previous, next)
 
-                case group: Persistent.Group if keyOrder.compare(key, group.minKey) > 0 && keyOrder.compare(key, group.maxKey.maxKey) <= 0 =>
+                case group: Persistent.Partial.Group if keyOrder.compare(key, group.minKey) > 0 && keyOrder.compare(key, group.maxKey.maxKey) <= 0 =>
                   Matched(None, previous, next)
 
                 case _ =>
@@ -336,8 +337,8 @@ private[core] object KeyMatcher {
                               val seekOne: Boolean,
                               val whileNextIsPrefixCompressed: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Higher with Higher.WhilePrefixCompressed with Higher.SeekOne {
 
-    override def apply(previous: Persistent,
-                       next: Option[Persistent],
+    override def apply(previous: Persistent.Partial,
+                       next: Option[Persistent.Partial],
                        hasMore: => Boolean): KeyMatcher.Result = {
       val keyValue = next getOrElse previous
       val nextCompare = keyOrder.compare(keyValue.key, key)
@@ -345,10 +346,10 @@ private[core] object KeyMatcher {
         Matched(next map (_ => previous), keyValue, None)
       else if (nextCompare <= 0)
         keyValue match {
-          case range: Persistent.Range if keyOrder.compare(key, range.toKey) < 0 =>
+          case range: Persistent.Partial.Range if keyOrder.compare(key, range.toKey) < 0 =>
             Matched(next map (_ => previous), keyValue, None)
 
-          case group: Persistent.Group if keyOrder.compare(key, group.maxKey.maxKey) < 0 =>
+          case group: Persistent.Partial.Group if keyOrder.compare(key, group.maxKey.maxKey) < 0 =>
             Matched(next map (_ => previous), keyValue, None)
 
           case _ =>

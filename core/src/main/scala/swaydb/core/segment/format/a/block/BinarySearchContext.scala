@@ -25,21 +25,21 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
-private[block] sealed trait BinarySearchContext {
+private[block] trait BinarySearchContext {
   val bytesPerValue: Int
   val valuesCount: Int
   val isFullIndex: Boolean
   val higherOrLower: Option[Boolean]
-  val startKeyValue: Option[Persistent]
-  val endKeyValue: Option[Persistent]
+  val startKeyValue: Option[Persistent.Partial]
+  val endKeyValue: Option[Persistent.Partial]
   def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result]
 }
 
 private[block] object BinarySearchContext {
   def apply(key: Slice[Byte],
             highOrLow: Option[Boolean],
-            start: Option[Persistent],
-            end: Option[Persistent],
+            start: Option[Persistent.Partial],
+            end: Option[Persistent.Partial],
             binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
             values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
@@ -72,9 +72,9 @@ private[block] object BinarySearchContext {
 
       override val higherOrLower: Option[Boolean] = highOrLow
 
-      override val startKeyValue: Option[Persistent] = start
+      override val startKeyValue: Option[Persistent.Partial] = start
 
-      override val endKeyValue: Option[Persistent] = end
+      override val endKeyValue: Option[Persistent.Partial] = end
 
       override def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result] =
         binarySearchIndex
@@ -93,8 +93,8 @@ private[block] object BinarySearchContext {
 
   def apply(key: Slice[Byte],
             highOrLow: Option[Boolean],
-            start: Option[Persistent],
-            end: Option[Persistent],
+            start: Option[Persistent.Partial],
+            end: Option[Persistent.Partial],
             keyValuesCount: Int,
             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
             values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
@@ -119,9 +119,9 @@ private[block] object BinarySearchContext {
 
       override val higherOrLower: Option[Boolean] = highOrLow
 
-      override val startKeyValue: Option[Persistent] = start
+      override val startKeyValue: Option[Persistent.Partial] = start
 
-      override val endKeyValue: Option[Persistent] = end
+      override val endKeyValue: Option[Persistent.Partial] = end
 
       override def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result] =
         SortedIndexBlock.findAndMatchOrNextMatch(

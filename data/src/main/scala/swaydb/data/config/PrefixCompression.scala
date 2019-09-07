@@ -22,12 +22,25 @@ package swaydb.data.config
 sealed trait PrefixCompression {
   def resetCount: Int
   def normaliseIndexForBinarySearch: Boolean
+  def enablePartialRead: Boolean
+  def disableKeyPrefixCompression: Boolean
 }
 object PrefixCompression {
-  case class Disable(normaliseIndexForBinarySearch: Boolean) extends PrefixCompression {
+  case class Disable(normaliseIndexForBinarySearch: Boolean,
+                     enablePartialRead: Boolean) extends PrefixCompression {
     def resetCount: Int = 0
+    def disableKeyPrefixCompression = true
   }
+
   case class Enable(resetCount: Int) extends PrefixCompression {
     def normaliseIndexForBinarySearch: Boolean = false
+    def enablePartialRead = false
+    def disableKeyPrefixCompression = false
+  }
+
+  case class DisableForKeys(resetCount: Int,
+                            enablePartialRead: Boolean) extends PrefixCompression {
+    def normaliseIndexForBinarySearch: Boolean = false
+    def disableKeyPrefixCompression = true
   }
 }

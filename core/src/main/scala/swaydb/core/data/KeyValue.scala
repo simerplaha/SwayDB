@@ -20,7 +20,6 @@
 package swaydb.core.data
 
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{Error, IO}
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.cache.{Cache, NoIO}
 import swaydb.core.data.KeyValue.ReadOnly
@@ -29,7 +28,7 @@ import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
-import swaydb.core.segment.format.a.entry.reader.EntryReader
+import swaydb.core.segment.format.a.entry.reader._
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.{Segment, SegmentCache}
 import swaydb.core.util.Collections._
@@ -37,6 +36,7 @@ import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.{Error, IO}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
@@ -453,6 +453,7 @@ private[swaydb] object Memory {
 }
 
 private[core] sealed trait Transient extends KeyValue { self =>
+  val id: Byte
   val isRemoveRangeMayBe: Boolean
   val isRange: Boolean
   val isGroup: Boolean
@@ -625,7 +626,10 @@ private[core] object Transient {
       }
 
   def normalise(keyValues: Iterable[Transient]): Slice[Transient] = {
-    val toSize = Some(keyValues.last.stats.segmentMaxSortedIndexEntrySize + 1)
+    //Bytes.sizeOf(keyValues.last.stats.segmentMaxSortedIndexEntrySize) is to account for the keySize that gets written to
+    //header bytes. This should really be Bytes.sizeOf(keyValues.last.stats.maxKeySize) but that is not calculated which should not
+    //make much difference. This is expected to be 1 or two bytes anyway.
+    val toSize = Some(keyValues.last.stats.segmentMaxSortedIndexEntrySize + Bytes.sizeOf(keyValues.last.stats.segmentMaxSortedIndexEntrySize))
     val normalisedKeyValues = Slice.create[Transient](keyValues.size)
 
     keyValues foreach {
@@ -741,6 +745,10 @@ private[core] object Transient {
       }
   }
 
+  object Remove {
+    final val id = 0.toByte
+  }
+
   case class Remove(key: Slice[Byte],
                     normaliseToSize: Option[Int],
                     deadline: Option[Deadline],
@@ -751,6 +759,7 @@ private[core] object Transient {
                     hashIndexConfig: HashIndexBlock.Config,
                     bloomFilterConfig: BloomFilterBlock.Config,
                     previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
+    final val id = Remove.id
     override val isRange: Boolean = false
     override val isGroup: Boolean = false
     override val isRemoveRangeMayBe = false
@@ -759,7 +768,7 @@ private[core] object Transient {
     override def values: Slice[Slice[Byte]] = Slice.emptyEmptyBytes
 
     override val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
-      KeyValueWriter.write(
+      SortedIndexEntryWriter.write(
         current = this,
         currentTime = time,
         normaliseToSize = normaliseToSize,
@@ -768,6 +777,7 @@ private[core] object Transient {
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
+
     override val stats =
       Stats(
         keySize = key.size,
@@ -779,7 +789,6 @@ private[core] object Transient {
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
         previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
-        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
         thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
@@ -810,6 +819,10 @@ private[core] object Transient {
       deadline.exists(_.hasTimeLeft())
   }
 
+  object Put {
+    final val id = 1.toByte
+  }
+
   case class Put(key: Slice[Byte],
                  normaliseToSize: Option[Int],
                  value: Option[Slice[Byte]],
@@ -821,7 +834,7 @@ private[core] object Transient {
                  hashIndexConfig: HashIndexBlock.Config,
                  bloomFilterConfig: BloomFilterBlock.Config,
                  previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
-
+    final val id = Put.id
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -829,7 +842,7 @@ private[core] object Transient {
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
-      KeyValueWriter.write(
+      SortedIndexEntryWriter.write(
         current = this,
         currentTime = time,
         normaliseToSize = normaliseToSize,
@@ -851,7 +864,6 @@ private[core] object Transient {
         isPut = true,
         isPrefixCompressed = isPrefixCompressed,
         previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
-        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
         thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
@@ -882,6 +894,10 @@ private[core] object Transient {
       deadline.forall(_.hasTimeLeft())
   }
 
+  object Update {
+    final val id = 2.toByte
+  }
+
   case class Update(key: Slice[Byte],
                     normaliseToSize: Option[Int],
                     value: Option[Slice[Byte]],
@@ -893,6 +909,7 @@ private[core] object Transient {
                     hashIndexConfig: HashIndexBlock.Config,
                     bloomFilterConfig: BloomFilterBlock.Config,
                     previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
+    final val id = Update.id
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -900,7 +917,7 @@ private[core] object Transient {
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
-      KeyValueWriter.write(
+      SortedIndexEntryWriter.write(
         current = this,
         currentTime = time,
         normaliseToSize = normaliseToSize,
@@ -921,7 +938,6 @@ private[core] object Transient {
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
         previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
-        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
         thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
@@ -952,6 +968,10 @@ private[core] object Transient {
       deadline.forall(_.hasTimeLeft())
   }
 
+  object Function {
+    final val id = 3.toByte
+  }
+
   case class Function(key: Slice[Byte],
                       normaliseToSize: Option[Int],
                       function: Slice[Byte],
@@ -962,6 +982,7 @@ private[core] object Transient {
                       hashIndexConfig: HashIndexBlock.Config,
                       bloomFilterConfig: BloomFilterBlock.Config,
                       previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
+    final val id = Function.id
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -971,7 +992,7 @@ private[core] object Transient {
     override def deadline: Option[Deadline] = None
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
-      KeyValueWriter.write(
+      SortedIndexEntryWriter.write(
         current = this,
         currentTime = time,
         normaliseToSize = normaliseToSize,
@@ -992,7 +1013,6 @@ private[core] object Transient {
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
         previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
-        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
         thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
@@ -1023,6 +1043,10 @@ private[core] object Transient {
       deadline.forall(_.hasTimeLeft())
   }
 
+  object PendingApply {
+    final val id = 4.toByte
+  }
+
   case class PendingApply(key: Slice[Byte],
                           normaliseToSize: Option[Int],
                           applies: Slice[Value.Apply],
@@ -1032,6 +1056,7 @@ private[core] object Transient {
                           hashIndexConfig: HashIndexBlock.Config,
                           bloomFilterConfig: BloomFilterBlock.Config,
                           previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
+    final val id = PendingApply.id
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -1061,7 +1086,7 @@ private[core] object Transient {
       true
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
-      KeyValueWriter.write(
+      SortedIndexEntryWriter.write(
         current = this,
         currentTime = time,
         normaliseToSize = normaliseToSize,
@@ -1082,7 +1107,6 @@ private[core] object Transient {
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
         previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
-        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
         thisKeyValuesNumberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
@@ -1096,6 +1120,7 @@ private[core] object Transient {
   }
 
   object Range {
+    final val id = 5.toByte
 
     def apply[R <: Value.RangeValue](fromKey: Slice[Byte],
                                      toKey: Slice[Byte],
@@ -1182,7 +1207,7 @@ private[core] object Transient {
                    hashIndexConfig: HashIndexBlock.Config,
                    bloomFilterConfig: BloomFilterBlock.Config,
                    previous: Option[Transient]) extends Transient.SegmentResponse {
-
+    final val id = Range.id
     override val isRemoveRangeMayBe = rangeValue.hasRemoveMayBe
     override val isGroup: Boolean = false
     override val isRange: Boolean = true
@@ -1192,7 +1217,7 @@ private[core] object Transient {
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
-      KeyValueWriter.write(
+      SortedIndexEntryWriter.write(
         current = this,
         currentTime = Time.empty,
         normaliseToSize = normaliseToSize,
@@ -1215,7 +1240,6 @@ private[core] object Transient {
         thisKeyValuesNumberOfRanges = 1,
         thisKeyValuesUniqueKeys = 1,
         previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
-        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
         sortedIndex = sortedIndexConfig,
         isPrefixCompressed = isPrefixCompressed,
         bloomFilter = bloomFilterConfig,
@@ -1243,6 +1267,8 @@ private[core] object Transient {
   }
 
   object Group {
+
+    final val id = 6.toByte
 
     def apply(keyValues: Slice[Transient],
               previous: Option[Transient],
@@ -1283,16 +1309,16 @@ private[core] object Transient {
                    hashIndexConfig: HashIndexBlock.Config,
                    bloomFilterConfig: BloomFilterBlock.Config,
                    previous: Option[Transient]) extends Transient {
+    final val id = Group.id
 
     def key = minKey
-
     override val isRemoveRangeMayBe: Boolean = keyValues.last.stats.segmentHasRemoveRange
     override val isRange: Boolean = keyValues.last.stats.segmentHasRange
     override val isGroup: Boolean = true
     override def values: Slice[Slice[Byte]] = blockedSegment.segmentBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
-      KeyValueWriter.write(
+      SortedIndexEntryWriter.write(
         current = this,
         currentTime = Time.empty,
         normaliseToSize = normaliseToSize,
@@ -1315,7 +1341,6 @@ private[core] object Transient {
         isPut = keyValues.last.stats.segmentHasPut,
         isPrefixCompressed = isPrefixCompressed,
         previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
-        thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
         thisKeyValuesNumberOfRanges = keyValues.last.stats.segmentTotalNumberOfRanges,
         thisKeyValuesUniqueKeys = keyValues.last.stats.segmentUniqueKeysCount,
         sortedIndex = sortedIndexConfig,
@@ -1344,7 +1369,7 @@ private[core] object Transient {
   }
 }
 
-private[core] sealed trait Persistent extends KeyValue.CacheAble {
+private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent.Partial {
 
   val indexOffset: Int
   val nextIndexOffset: Int
@@ -1366,58 +1391,160 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble {
 
 private[core] object Persistent {
 
-  sealed trait Preview {
+  sealed trait Partial {
+    def key: Slice[Byte]
+    def isPrefixCompressed: Boolean
     def indexOffset: Int
     def nextIndexOffset: Int
     def nextIndexSize: Int
+    def accessPosition: Int
 
     def toPersistent: IO[Error.Segment, Persistent]
-
-    def toPersistent(indexBytes: Slice[Byte],
-                     sortedIndexBlock: SortedIndexBlock,
-                     valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                     previous: Option[Persistent]): IO[Error.Segment, Persistent] = {
-      val valueCache = //create value cache reader given the value offset. todo pass in blockIO config when read values.
-        valuesReader map {
-          valuesReader =>
-            Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](synchronised = false, stored = false, initial = None) {
-              offset =>
-                if (offset.size == 0)
-                  ValuesBlock.emptyUnblockedIO
-                else
-                  IO(UnblockedReader.moveTo(offset, valuesReader))
-            }
-        }
-
-      EntryReader.read(
-        //take only the bytes required for this in entry and submit it for parsing/reading.
-        indexEntry = indexBytes,
-        mightBeCompressed = sortedIndexBlock.hasPrefixCompression,
-        valueCache = valueCache,
-        indexOffset = indexOffset,
-        nextIndexOffset = nextIndexOffset,
-        nextIndexSize = nextIndexSize,
-        isNormalised = !sortedIndexBlock.isPreNormalised && sortedIndexBlock.normaliseForBinarySearch,
-        hasAccessPositionIndex = sortedIndexBlock.enableAccessPositionIndex,
-        previous = previous
-      )
-    }
   }
 
-  object Preview {
-    class Fixed(val key: Slice[Byte],
-                val indexOffset: Int,
-                val nextIndexOffset: Int,
-                val nextIndexSize: Int,
-                indexBytes: Slice[Byte],
-                sortedIndexBlock: SortedIndexBlock,
-                valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent]) extends Persistent.Preview {
-      override def toPersistent: IO[Error.Segment, Persistent] =
-        super.toPersistent(
-          indexBytes = indexBytes,
-          sortedIndexBlock = sortedIndexBlock,
+  object Partial {
+    sealed trait Key
+    object Key {
+      class Fixed(val key: Slice[Byte]) extends Key
+      class Range(val minKey: Slice[Byte], val maxKey: Slice[Byte]) extends Key
+      class Group(val minKey: Slice[Byte], val maxKey: MaxKey[Slice[Byte]]) extends Key
+    }
+
+    sealed trait Fixed extends Persistent.Partial {
+      def toPersistent: IO[Error.Segment, Persistent.Fixed]
+    }
+
+    class Remove(val key: Slice[Byte],
+                 val indexOffset: Int,
+                 val nextIndexOffset: Int,
+                 val nextIndexSize: Int,
+                 val accessPosition: Int,
+                 indexBytes: Slice[Byte],
+                 block: SortedIndexBlock,
+                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                 previous: Option[Persistent]) extends Partial.Fixed {
+
+      def isPrefixCompressed: Boolean = block.hasPrefixCompression
+
+      override def toPersistent: IO[Error.Segment, Persistent.Remove] =
+        SortedIndexEntryReader.completePartialRead(
+          indexEntry = indexBytes,
+          key = new Persistent.Partial.Key.Fixed(key),
+          accessPosition = accessPosition,
+          block = block,
+          indexOffset = indexOffset,
+          nextIndexOffset = nextIndexOffset,
+          nextIndexSize = nextIndexSize,
           valuesReader = valuesReader,
+          entryReader = RemoveReader,
+          previous = previous
+        )
+    }
+
+    class Put(val key: Slice[Byte],
+              val indexOffset: Int,
+              val nextIndexOffset: Int,
+              val nextIndexSize: Int,
+              val accessPosition: Int,
+              indexBytes: Slice[Byte],
+              block: SortedIndexBlock,
+              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              previous: Option[Persistent]) extends Partial.Fixed {
+
+      def isPrefixCompressed: Boolean = block.hasPrefixCompression
+
+      override def toPersistent: IO[Error.Segment, Persistent.Put] =
+        SortedIndexEntryReader.completePartialRead(
+          indexEntry = indexBytes,
+          key = new Persistent.Partial.Key.Fixed(key),
+          accessPosition = accessPosition,
+          block = block,
+          indexOffset = indexOffset,
+          nextIndexOffset = nextIndexOffset,
+          nextIndexSize = nextIndexSize,
+          valuesReader = valuesReader,
+          entryReader = PutReader,
+          previous = previous
+        )
+    }
+
+    class Update(val key: Slice[Byte],
+                 val indexOffset: Int,
+                 val nextIndexOffset: Int,
+                 val nextIndexSize: Int,
+                 val accessPosition: Int,
+                 indexBytes: Slice[Byte],
+                 block: SortedIndexBlock,
+                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                 previous: Option[Persistent]) extends Partial.Fixed {
+
+      def isPrefixCompressed: Boolean = block.hasPrefixCompression
+
+      override def toPersistent: IO[Error.Segment, Persistent.Update] =
+        SortedIndexEntryReader.completePartialRead(
+          indexEntry = indexBytes,
+          key = new Persistent.Partial.Key.Fixed(key),
+          accessPosition = accessPosition,
+          block = block,
+          indexOffset = indexOffset,
+          nextIndexOffset = nextIndexOffset,
+          nextIndexSize = nextIndexSize,
+          valuesReader = valuesReader,
+          entryReader = UpdateReader,
+          previous = previous
+        )
+    }
+
+    class Function(val key: Slice[Byte],
+                   val indexOffset: Int,
+                   val nextIndexOffset: Int,
+                   val nextIndexSize: Int,
+                   val accessPosition: Int,
+                   indexBytes: Slice[Byte],
+                   block: SortedIndexBlock,
+                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                   previous: Option[Persistent]) extends Partial.Fixed {
+
+      def isPrefixCompressed: Boolean = block.hasPrefixCompression
+
+      override def toPersistent: IO[Error.Segment, Persistent.Function] =
+        SortedIndexEntryReader.completePartialRead(
+          indexEntry = indexBytes,
+          key = new Persistent.Partial.Key.Fixed(key),
+          accessPosition = accessPosition,
+          block = block,
+          indexOffset = indexOffset,
+          nextIndexOffset = nextIndexOffset,
+          nextIndexSize = nextIndexSize,
+          valuesReader = valuesReader,
+          entryReader = FunctionReader,
+          previous = previous
+        )
+    }
+
+    class PendingApply(val key: Slice[Byte],
+                       val indexOffset: Int,
+                       val nextIndexOffset: Int,
+                       val nextIndexSize: Int,
+                       val accessPosition: Int,
+                       indexBytes: Slice[Byte],
+                       block: SortedIndexBlock,
+                       valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                       previous: Option[Persistent]) extends Partial.Fixed {
+
+      def isPrefixCompressed: Boolean = block.hasPrefixCompression
+
+      override def toPersistent: IO[Error.Segment, Persistent.PendingApply] =
+        SortedIndexEntryReader.completePartialRead(
+          indexEntry = indexBytes,
+          key = new Persistent.Partial.Key.Fixed(key),
+          accessPosition = accessPosition,
+          block = block,
+          indexOffset = indexOffset,
+          nextIndexOffset = nextIndexOffset,
+          nextIndexSize = nextIndexSize,
+          valuesReader = valuesReader,
+          entryReader = PendingApplyReader,
           previous = previous
         )
     }
@@ -1428,19 +1555,21 @@ private[core] object Persistent {
                 indexOffset: Int,
                 nextIndexOffset: Int,
                 nextIndexSize: Int,
-                sortedIndexBlock: SortedIndexBlock,
+                accessPosition: Int,
+                block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent]): IO[Error.IO, Preview.Range] =
+                previous: Option[Persistent]): IO[Error.IO, Partial.Range] =
         Bytes.decompressJoin(key) map {
           case (fromKey, toKey) =>
             new Range(
               fromKey = fromKey,
               toKey = toKey,
-              indexBytes = indexBytes,
               indexOffset = indexOffset,
               nextIndexOffset = nextIndexOffset,
               nextIndexSize = nextIndexSize,
-              sortedIndexBlock = sortedIndexBlock,
+              accessPosition = accessPosition,
+              indexBytes = indexBytes,
+              block = block,
               valuesReader = valuesReader,
               previous = previous
             )
@@ -1452,15 +1581,27 @@ private[core] object Persistent {
                 val indexOffset: Int,
                 val nextIndexOffset: Int,
                 val nextIndexSize: Int,
+                val accessPosition: Int,
                 indexBytes: Slice[Byte],
-                sortedIndexBlock: SortedIndexBlock,
+                block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent]) extends Persistent.Preview {
-      override def toPersistent: IO[Error.Segment, Persistent] =
-        super.toPersistent(
-          indexBytes = indexBytes,
-          sortedIndexBlock = sortedIndexBlock,
+                previous: Option[Persistent]) extends Persistent.Partial {
+
+      def key = fromKey
+
+      def isPrefixCompressed: Boolean = block.hasPrefixCompression
+
+      override def toPersistent: IO[Error.Segment, Persistent.Range] =
+        SortedIndexEntryReader.completePartialRead(
+          indexEntry = indexBytes,
+          key = new Persistent.Partial.Key.Range(fromKey, toKey),
+          accessPosition = accessPosition,
+          block = block,
+          indexOffset = indexOffset,
+          nextIndexOffset = nextIndexOffset,
+          nextIndexSize = nextIndexSize,
           valuesReader = valuesReader,
+          entryReader = RangeReader,
           previous = previous
         )
     }
@@ -1471,19 +1612,21 @@ private[core] object Persistent {
                 indexOffset: Int,
                 nextIndexOffset: Int,
                 nextIndexSize: Int,
-                sortedIndexBlock: SortedIndexBlock,
+                accessPosition: Int,
+                block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent]): IO[Error.Segment, Preview.Group] =
+                previous: Option[Persistent]): IO[Error.Segment, Partial.Group] =
         GroupKeyCompressor.decompress(key) map {
           case (minKey, maxKey) =>
             new Group(
               minKey = minKey,
               maxKey = maxKey,
-              indexBytes = indexBytes,
               indexOffset = indexOffset,
               nextIndexOffset = nextIndexOffset,
               nextIndexSize = nextIndexSize,
-              sortedIndexBlock = sortedIndexBlock,
+              accessPosition = accessPosition,
+              indexBytes = indexBytes,
+              block = block,
               valuesReader = valuesReader,
               previous = previous
             )
@@ -1495,15 +1638,26 @@ private[core] object Persistent {
                 val indexOffset: Int,
                 val nextIndexOffset: Int,
                 val nextIndexSize: Int,
+                val accessPosition: Int,
                 indexBytes: Slice[Byte],
-                sortedIndexBlock: SortedIndexBlock,
+                block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent]) extends Persistent.Preview {
-      override def toPersistent: IO[Error.Segment, Persistent] =
-        super.toPersistent(
-          indexBytes = indexBytes,
-          sortedIndexBlock = sortedIndexBlock,
+                previous: Option[Persistent]) extends Persistent.Partial {
+      def key = minKey
+
+      def isPrefixCompressed: Boolean = block.hasPrefixCompression
+
+      override def toPersistent: IO[Error.Segment, Persistent.Group] =
+        SortedIndexEntryReader.completePartialRead(
+          indexEntry = indexBytes,
+          key = new Persistent.Partial.Key.Group(minKey, maxKey),
+          accessPosition = accessPosition,
+          block = block,
+          indexOffset = indexOffset,
+          nextIndexOffset = nextIndexOffset,
+          nextIndexSize = nextIndexSize,
           valuesReader = valuesReader,
+          entryReader = GroupReader,
           previous = previous
         )
     }
@@ -1517,6 +1671,7 @@ private[core] object Persistent {
     def toMemoryResponseOption(): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
       toMemory() map (Some(_))
   }
+
   sealed trait Fixed extends Persistent.SegmentResponse with KeyValue.ReadOnly.Fixed
 
   case class Remove(private var _key: Slice[Byte],
@@ -1526,7 +1681,7 @@ private[core] object Persistent {
                     nextIndexOffset: Int,
                     nextIndexSize: Int,
                     accessPosition: Int,
-                    isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Remove with Persistent.Preview {
+                    isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Remove {
     override val valueLength: Int = 0
     override val isValueCached: Boolean = true
     override val valueOffset: Int = -1
@@ -1617,7 +1772,7 @@ private[core] object Persistent {
                  valueOffset: Int,
                  valueLength: Int,
                  accessPosition: Int,
-                 isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Put with Persistent.Preview {
+                 isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Put with Partial.Fixed {
     override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
@@ -1670,7 +1825,7 @@ private[core] object Persistent {
     override def copyWithTime(time: Time): Put =
       copy(_time = time)
 
-    override def toPersistent: IO[Error.Segment, Persistent] =
+    override def toPersistent: IO[Error.Segment, Persistent.Put] =
       IO.Right(this)
   }
 
@@ -1718,7 +1873,7 @@ private[core] object Persistent {
                     valueOffset: Int,
                     valueLength: Int,
                     accessPosition: Int,
-                    isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Update with Persistent.Preview {
+                    isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Update {
     override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
@@ -1804,7 +1959,7 @@ private[core] object Persistent {
         isPrefixCompressed = isPrefixCompressed
       )
 
-    override def toPersistent: IO[Error.Segment, Persistent] =
+    override def toPersistent: IO[Error.Segment, Persistent.Update] =
       IO.Right(this)
   }
 
@@ -1849,7 +2004,7 @@ private[core] object Persistent {
                       valueOffset: Int,
                       valueLength: Int,
                       accessPosition: Int,
-                      isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Function with Persistent.Preview {
+                      isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Function {
     override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
@@ -1891,7 +2046,7 @@ private[core] object Persistent {
     override def copyWithTime(time: Time): Function =
       copy(_time = time)
 
-    override def toPersistent: IO[Error.Segment, Persistent] =
+    override def toPersistent: IO[Error.Segment, Persistent.Function] =
       IO.Right(this)
   }
 
@@ -1944,7 +2099,7 @@ private[core] object Persistent {
                           valueOffset: Int,
                           valueLength: Int,
                           accessPosition: Int,
-                          isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.PendingApply with Persistent.Preview {
+                          isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.PendingApply {
     override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
@@ -1981,7 +2136,7 @@ private[core] object Persistent {
           )
       }
 
-    override def toPersistent: IO[Error.Segment, Persistent] =
+    override def toPersistent: IO[Error.Segment, Persistent.PendingApply] =
       IO.Right(this)
   }
 
@@ -2032,7 +2187,7 @@ private[core] object Persistent {
                    valueOffset: Int,
                    valueLength: Int,
                    accessPosition: Int,
-                   isPrefixCompressed: Boolean) extends Persistent.SegmentResponse with KeyValue.ReadOnly.Range with Persistent.Preview {
+                   isPrefixCompressed: Boolean) extends Persistent.SegmentResponse with KeyValue.ReadOnly.Range {
 
     def fromKey = _fromKey
 
@@ -2071,7 +2226,7 @@ private[core] object Persistent {
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    override def toPersistent: IO[Error.Segment, Persistent] =
+    override def toPersistent: IO[Error.Segment, Persistent.Range] =
       IO.Right(this)
   }
 
@@ -2141,7 +2296,7 @@ private[core] object Persistent {
                    valueLength: Int,
                    accessPosition: Int,
                    deadline: Option[Deadline],
-                   isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group with Persistent.Preview {
+                   isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group {
 
     def areAllCachesEmpty: Boolean =
       segmentCache.get() forall (_.areAllCachesEmpty)
@@ -2181,7 +2336,7 @@ private[core] object Persistent {
         segmentCache.value(keyOrder, memorySweeper, config)
       }
 
-    override def toPersistent: IO[Error.Segment, Persistent] =
+    override def toPersistent: IO[Error.Segment, Persistent.Group] =
       IO.Right(this)
   }
 }

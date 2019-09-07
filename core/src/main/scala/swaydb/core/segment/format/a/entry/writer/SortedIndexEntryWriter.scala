@@ -24,12 +24,13 @@ import swaydb.core.segment.format.a.entry.id.BaseEntryId.BaseEntryIdFormat
 import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, TransientToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.core.util.Bytes._
+import swaydb.core.util.Options._
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 import scala.beans.BeanProperty
 
-private[core] object KeyValueWriter {
+private[core] object SortedIndexEntryWriter {
 
   case class WriteResult(@BeanProperty var indexBytes: Slice[Byte],
                          valueBytes: Slice[Slice[Byte]],
@@ -62,19 +63,16 @@ private[core] object KeyValueWriter {
                             currentTime: Time,
                             normaliseToSize: Option[Int],
                             compressDuplicateValues: Boolean,
-                            enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.WriteResult =
-    current.previous flatMap {
+                            enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): SortedIndexEntryWriter.WriteResult =
+    when(enablePrefixCompression && !current.sortedIndexConfig.disableKeyPrefixCompression && !current.sortedIndexConfig.enablePartialRead)(current.previous) flatMap {
       previous =>
-        if (enablePrefixCompression)
-          writeCompressed(
-            current = current,
-            previous = previous,
-            normaliseToSize = normaliseToSize,
-            currentTime = currentTime,
-            compressDuplicateValues = compressDuplicateValues
-          )
-        else
-          None
+        writeCompressed(
+          current = current,
+          previous = previous,
+          normaliseToSize = normaliseToSize,
+          currentTime = currentTime,
+          compressDuplicateValues = compressDuplicateValues
+        )
     } getOrElse {
       writeUncompressed(
         current = current,
@@ -93,6 +91,9 @@ private[core] object KeyValueWriter {
     compress(key = current.mergedKey, previous = previous, minimumCommonBytes = 2) map {
       case (commonBytes, remainingBytes) =>
 
+        val commonByteSize = sizeOf(commonBytes)
+        val keySize = commonByteSize + remainingBytes.size
+
         val writeResult =
           TimeWriter.write(
             current = current,
@@ -102,22 +103,22 @@ private[core] object KeyValueWriter {
             enablePrefixCompression = true,
             isKeyCompressed = true,
             hasPrefixCompressed = true,
-            plusSize = sizeOf(commonBytes) + remainingBytes.size + (ByteSizeOf.varInt * 2) //write the size of keys compressed and also the uncompressed Bytes
+            adjustBaseIdToKeyValueId = !current.sortedIndexConfig.enablePartialRead,
+            plusSize = keySize + ByteSizeOf.varInt //write the size of keys compressed.
           )
 
-        writeAccessIndexPosition(
-          current = current,
-          writeResult = writeResult
-        )
+        assert(!current.sortedIndexConfig.enablePartialRead)
 
         writeResult
           .indexBytes
           .addIntUnsigned(commonBytes)
           .addAll(remainingBytes)
 
-        normaliseAndClose(
+        close(
           normaliseToSize = normaliseToSize,
-          writeResult = writeResult
+          writeResult = writeResult,
+          keySize = keySize,
+          current = current
         )
 
         writeResult
@@ -128,7 +129,13 @@ private[core] object KeyValueWriter {
                                                 normaliseToSize: Option[Int],
                                                 compressDuplicateValues: Boolean,
                                                 enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): WriteResult = {
-    //no common prefixes or no previous write without compression
+    val bytesRequired =
+      if (current.sortedIndexConfig.enablePartialRead)
+      //id bytes + write key bytes & normalised bytes
+        0
+      else
+        current.mergedKey.size
+
     val writeResult =
       TimeWriter.write(
         current = current,
@@ -138,55 +145,93 @@ private[core] object KeyValueWriter {
         enablePrefixCompression = enablePrefixCompression,
         isKeyCompressed = false,
         hasPrefixCompressed = false,
-        plusSize = current.mergedKey.size + (ByteSizeOf.varInt * 2) //write key bytes.
+        adjustBaseIdToKeyValueId = !current.sortedIndexConfig.enablePartialRead,
+        plusSize = bytesRequired
       )
 
-    writeAccessIndexPosition(
-      current = current,
-      writeResult = writeResult
-    )
+    if (!current.sortedIndexConfig.enablePartialRead)
+      writeResult
+        .indexBytes
+        .addAll(current.mergedKey)
 
-    writeResult
-      .indexBytes
-      .addAll(current.mergedKey)
-
-    normaliseAndClose(
+    close(
       normaliseToSize = normaliseToSize,
-      writeResult = writeResult
+      writeResult = writeResult,
+      keySize = current.mergedKey.size,
+      current = current
     )
 
     writeResult
   }
 
-  def normaliseAndClose[T <: Transient](normaliseToSize: Option[Int], writeResult: WriteResult): Unit = {
+  //compressedFormat  - indexSize|accessIndex?|keySize?(if norm) |keyValueId|valueOffset|valueLength|deadline|key|normalisedBytes?
+  //partialReadFormat - indexSize|accessIndex?|keySize|key|typeId|baseId    |valueOffset|valueLength|deadline|    normalisedBytes?
 
-    val normalisedBytes =
-      normaliseToSize map {
-        toSize =>
-          Bytes.normalise(
-            appendHeader = Slice.writeIntUnsigned(toSize - Bytes.sizeOf(toSize)),
-            bytes = writeResult.indexBytes,
-            toSize = toSize
-          )
-      } getOrElse {
-        Slice.writeIntUnsigned(writeResult.indexBytes.size) ++ writeResult.indexBytes
+  def close[T <: Transient](normaliseToSize: Option[Int],
+                            writeResult: WriteResult,
+                            keySize: Int,
+                            current: Transient): Unit = {
+
+    val accessPosition = getAccessIndexPosition(current, writeResult.isPrefixCompressed)
+
+    val closedBytes =
+      normaliseToSize match {
+        case Some(toSize) =>
+          val indexSize = toSize - Bytes.sizeOf(toSize)
+          val bytes = Slice.create[Byte](toSize)
+
+          val normalisedBytes =
+            if (current.sortedIndexConfig.enablePartialRead) {
+              bytes addIntUnsigned indexSize
+              accessPosition foreach bytes.addIntUnsigned
+              bytes addIntUnsigned keySize
+              bytes addAll current.mergedKey
+              bytes addIntUnsigned current.id
+              bytes addAll writeResult.indexBytes
+              bytes
+            } else {
+              bytes addIntUnsigned indexSize
+              accessPosition foreach bytes.addIntUnsigned
+              bytes addIntUnsigned keySize
+              bytes addAll writeResult.indexBytes
+              bytes
+            }
+
+          normalisedBytes moveWritePosition toSize
+          normalisedBytes
+
+        case None =>
+          if (current.sortedIndexConfig.enablePartialRead) {
+            val indexSize = writeResult.indexBytes.size + accessPosition.map(Bytes.sizeOf).getOrElse(0) + Bytes.sizeOf(keySize) + ByteSizeOf.byte
+            val bytes = Slice.create[Byte](Bytes.sizeOf(indexSize) + indexSize)
+            bytes addIntUnsigned indexSize
+            accessPosition foreach bytes.addIntUnsigned
+            bytes addIntUnsigned keySize
+            bytes addAll current.mergedKey
+            bytes addIntUnsigned current.id
+            bytes addAll writeResult.indexBytes
+          } else {
+            val indexSize = writeResult.indexBytes.size + accessPosition.map(Bytes.sizeOf).getOrElse(0) + Bytes.sizeOf(keySize)
+            val bytes = Slice.create[Byte](Bytes.sizeOf(indexSize) + indexSize)
+            bytes addIntUnsigned indexSize
+            accessPosition foreach bytes.addIntUnsigned
+            bytes addAll writeResult.indexBytes
+          }
       }
 
-    writeResult setIndexBytes normalisedBytes
+    writeResult setIndexBytes closedBytes
   }
 
-  def writeAccessIndexPosition[T <: Transient](current: T, writeResult: WriteResult) =
+  def getAccessIndexPosition[T <: Transient](current: T, isPrefixCompressed: Boolean): Option[Int] =
     if (current.sortedIndexConfig.enableAccessPositionIndex) {
       val accessPosition =
-        if (writeResult.isPrefixCompressed)
+        if (isPrefixCompressed)
           current.previous.map(_.thisKeyValueAccessIndexPosition) getOrElse 1
         else
           current.previous.map(_.thisKeyValueAccessIndexPosition + 1) getOrElse 1
 
-      writeResult setThisKeyValueAccessIndexPosition accessPosition
-
-      writeResult
-        .indexBytes
-        .addIntUnsigned(accessPosition)
+      Some(accessPosition)
+    } else {
+      None
     }
 }

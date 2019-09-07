@@ -42,6 +42,8 @@ class GroupPerformanceSpec extends TestBase {
             ioStrategy = _ => IOStrategy.SynchronisedIO(cacheOnAccess = false),
             prefixCompressionResetCount = 0,
             enableAccessPositionIndex = true,
+            enablePartialRead = true,
+            disableKeyPrefixCompression = false,
             normaliseIndex = false,
             compressions = _ => Seq.empty
           ),
@@ -90,6 +92,8 @@ class GroupPerformanceSpec extends TestBase {
             ioStrategy = _ => IOStrategy.SynchronisedIO(cacheOnAccess = false),
             prefixCompressionResetCount = 0,
             enableAccessPositionIndex = true,
+            enablePartialRead = true,
+            disableKeyPrefixCompression = true,
             normaliseIndex = true,
             compressions = _ => Seq.empty
           ),

@@ -36,6 +36,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
+import scala.reflect.ClassTag
 import scala.util.Random
 
 class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
@@ -104,7 +105,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   val keyValuesCount = 1000000
 
-  //    override def deleteFiles = false
+  //  override def deleteFiles = false
 
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
   implicit val memorySweeper: Option[MemorySweeper.KeyValue] = None
@@ -236,6 +237,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
           prefixCompressionResetCount = 0,
           enableAccessPositionIndex = true,
+          enablePartialRead = false,
+          disableKeyPrefixCompression = false,
           normaliseIndex = false,
           compressions = _ => Seq.empty
         ),
@@ -243,7 +246,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         BinarySearchIndexBlock.Config(
           enabled = true,
           minimumNumberOfKeys = 1,
-          searchSortedIndexDirectlyIfPossible = true,
+          searchSortedIndexDirectlyIfPossible = false,
           fullIndex = true,
           blockIO = strategy,
           compressions = _ => Seq.empty
@@ -255,17 +258,17 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           blockIO = strategy,
           compressions = _ => Seq.empty
         ),
-      hashIndexConfig =
-        HashIndexBlock.Config(
-          maxProbe = 2,
-          copyIndex = false,
-          minimumNumberOfKeys = 5,
-          minimumNumberOfHits = 5,
-          allocateSpace = _.requiredSpace * 2,
-          blockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-          compressions = _ => Seq.empty
-        ),
-      //      hashIndexConfig = HashIndexBlock.Config.disabled,
+      //      hashIndexConfig =
+      //        HashIndexBlock.Config(
+      //          maxProbe = 5,
+      //          copyIndex = true,
+      //          minimumNumberOfKeys = 5,
+      //          minimumNumberOfHits = 5,
+      //          allocateSpace = _.requiredSpace,
+      //          blockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+      //          compressions = _ => Seq.empty
+      //        ),
+      hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig =
         BloomFilterBlock.Config.disabled
       //        BloomFilterBlock.Config(
@@ -325,11 +328,11 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   def keyValues = if (testGroupedKeyValues) groupedKeyValues else unGroupedKeyValues
 
-  val shuffledUnGroupedKeyValues = Random.shuffle(unGroupedKeyValues)
-//  val unGroupedKeyValuesZipped = unGroupedKeyValues.zipWithIndex
+//  val shuffledUnGroupedKeyValues = Random.shuffle(unGroupedKeyValues)
+  //  val unGroupedKeyValuesZipped = unGroupedKeyValues.zipWithIndex
 
   def assertGet(segment: Segment) = {
-    shuffledUnGroupedKeyValues foreach {
+    unGroupedKeyValues foreach {
       keyValue =>
         //        if (index % 1000 == 0)
         //          segment.get(shuffledUnGroupedKeyValues.head.key)

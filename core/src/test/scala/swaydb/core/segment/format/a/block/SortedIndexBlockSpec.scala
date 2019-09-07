@@ -119,6 +119,8 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             ioStrategy = _ => randomIOStrategy(),
             //prefix compression is enabled, so normaliseIndex even though true will set to false in the Config.
             prefixCompressionResetCount = prefixCompression.resetCount,
+            enablePartialRead = randomBoolean(),
+            disableKeyPrefixCompression = randomBoolean(),
             enableAccessPositionIndex = randomBoolean(),
             normaliseIndex = true,
             compressions = _ => randomCompressions()
@@ -131,7 +133,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
     "normalise if prefix compression is disabled" in {
       runThis(100.times) {
-        val prefixCompression = PrefixCompression.Disable(true)
+        val prefixCompression = PrefixCompression.Disable(true, randomBoolean())
 
         //use created config
         val configFromUserConfig =
@@ -154,6 +156,8 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             //prefix compression is disabled, normaliseIndex will always return true.
             prefixCompressionResetCount = 0 - randomIntMax(10),
             enableAccessPositionIndex = randomBoolean(),
+            enablePartialRead = randomBoolean(),
+            disableKeyPrefixCompression = randomBoolean(),
             normaliseIndex = true,
             compressions = _ => randomCompressions()
           )
@@ -228,7 +232,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       val searchedKeyValues = ListBuffer.empty[Persistent]
       keyValues.foldLeft(Option.empty[Persistent]) {
         case (previous, keyValue) =>
-          val searchedKeyValue = SortedIndexBlock.search(keyValue.key, previous, sortedIndexReader, valuesBlockReader).get.get
+          val searchedKeyValue = SortedIndexBlock.search(keyValue.key, previous, sortedIndexReader, valuesBlockReader).get.get.toPersistent.get
           searchedKeyValue.key shouldBe keyValue.key
           searchedKeyValues += searchedKeyValue
           //randomly set previous

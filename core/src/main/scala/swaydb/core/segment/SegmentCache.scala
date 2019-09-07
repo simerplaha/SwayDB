@@ -151,6 +151,27 @@ private[core] class SegmentCache(id: String,
               hasRange = hasRange,
               threadState = Some(threadState)
             ) flatMap {
+              case Some(fixed: Persistent.Partial.Fixed) =>
+                fixed.toPersistent map {
+                  fixed =>
+                    addToCache(fixed)
+                    Some(fixed)
+                }
+
+              case Some(response: Persistent.Partial.Range) =>
+                response.toPersistent map {
+                  range =>
+                    addToCache(range)
+                    Some(range)
+                }
+
+              case Some(response: Persistent.Partial.Group) =>
+                response.toPersistent flatMap {
+                  group =>
+                    addToCache(group)
+                    group.segment.get(key)
+                }
+
               case Some(response: Persistent.SegmentResponse) =>
                 addToCache(response)
                 IO.Right(Some(response))
@@ -204,6 +225,27 @@ private[core] class SegmentCache(id: String,
                         sortedIndexReader = sortedIndexReader,
                         valuesReader = valuesReader
                       ) flatMap {
+                        case Some(fixed: Persistent.Partial.Fixed) =>
+                          fixed.toPersistent map {
+                            persistent =>
+                              addToCache(persistent)
+                              Some(persistent)
+                          }
+
+                        case Some(fixed: Persistent.Partial.Range) =>
+                          fixed.toPersistent map {
+                            range =>
+                              addToCache(range)
+                              Some(range)
+                          }
+
+                        case Some(fixed: Persistent.Partial.Group) =>
+                          fixed.toPersistent flatMap {
+                            group =>
+                              addToCache(group)
+                              group.segment.get(key)
+                          }
+
                         case Some(response: Persistent.SegmentResponse) =>
                           addToCache(response)
                           IO.Right(Some(response))

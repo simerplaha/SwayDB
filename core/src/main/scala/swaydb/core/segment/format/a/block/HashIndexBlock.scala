@@ -662,7 +662,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   def search(key: Slice[Byte],
              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent]] = {
+             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] = {
     val matcher =
       if (sortedIndexReader.block.hasPrefixCompression)
         KeyMatcher.Get.WhilePrefixCompressed(key)
@@ -699,6 +699,8 @@ private[core] object HashIndexBlock extends LazyLogging {
                         hasPrefixCompression = false,
                         normaliseForBinarySearch = sortedIndexReader.block.normaliseForBinarySearch,
                         isPreNormalised = sortedIndexReader.block.isPreNormalised,
+                        enablePartialRead = sortedIndexReader.block.enablePartialRead,
+                        disableKeyPrefixCompression = sortedIndexReader.block.disableKeyPrefixCompression,
                         headerSize = 0,
                         segmentMaxIndexEntrySize = sortedIndexReader.block.segmentMaxIndexEntrySize,
                         compressionInfo = None

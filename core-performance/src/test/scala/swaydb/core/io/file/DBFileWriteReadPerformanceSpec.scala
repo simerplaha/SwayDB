@@ -21,17 +21,21 @@ package swaydb.core.io.file
 
 import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption
+import java.util.concurrent.ConcurrentHashMap
 
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.io.reader.Reader
+import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.config.IOStrategy
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+
+import scala.util.Random
 
 class DBFileWriteReadPerformanceSpec extends TestBase {
 
@@ -53,16 +57,18 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
 
     val channelFile = DBFile.channelRead(mmapFile.path, randomIOStrategy(cacheOnAccess = true), true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).get
 
-    //    val reader = BlockRefReader(channelFile).get
-    val reader = Reader(channelFile)
+    val reader = BlockRefReader(channelFile).get
+    //    val reader = Reader(channelFile)
 
-    val bytesToRead = 100
+    val bytesToRead = 15
 
     Benchmark("") {
-      (1 to 10000000) foreach {
+      (1 to 1000000) foreach {
         i =>
-          val index = randomIntMax(bytes.size - bytesToRead + 1)
-          reader.moveTo(index).read(bytesToRead).get
+          val index = Random.nextInt(bytes.size - bytesToRead + 1)
+//          println(index)
+          val readBytes = reader.moveTo(index).read(bytesToRead).get
+//          println(readBytes)
         //                  channelFile.read(index, bytesToRead).get
 
         //                                  mmapFile.read(index, bytesToRead).get
@@ -74,6 +80,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
     //    println("reader.totalMiss: " + reader.totalMissed)
     //    println("reader.totalHit: " + reader.totalHit)
   }
+
 
   //  "hash test" in {
   //    val bytes = (1 to 10000000) map {

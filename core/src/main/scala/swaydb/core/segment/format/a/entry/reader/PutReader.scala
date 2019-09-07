@@ -28,15 +28,17 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.data.slice.ReaderBase
 
-object PutReader extends EntryReader[Persistent.Put] {
+object PutReader extends SortedIndexEntryReader[Persistent.Put] {
+
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
+                              accessPosition: Int,
+                              keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
                               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              hasAccessPositionIndex: Boolean,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -48,41 +50,40 @@ object PutReader extends EntryReader[Persistent.Put] {
           valueOffsetAndLength =>
             timeReader.read(indexReader, previous) flatMap {
               time =>
+                //ensure that key-size is dropped from indexReader's tail before reading
                 KeyReader.read(
                   keyValueIdInt = keyValueId,
                   indexReader = indexReader,
                   hasAccessPositionIndex = hasAccessPositionIndex,
                   previous = previous,
                   keyValueId = KeyValueId.Put
-                ) flatMap {
+                ) map {
                   case (accessPosition, key, isKeyPrefixCompressed) =>
-                    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                    //                    if (valueLength > 0 && valueCache.isEmpty)
+                    //                      ValuesBlock.valuesBlockNotInitialised
+                    //                    else
                     val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
 
-                    if (valueLength > 0 && valueCache.isEmpty)
-                      ValuesBlock.valuesBlockNotInitialised
-                    else
-                      IO {
-                        Persistent.Put.fromCache(
-                          key = key,
-                          deadline = deadline,
-                          valueCache = valueCache getOrElse Cache.emptyValuesBlock,
-                          time = time,
-                          nextIndexOffset = nextIndexOffset,
-                          nextIndexSize = nextIndexSize,
-                          indexOffset = indexOffset,
-                          valueOffset = valueOffset,
-                          valueLength = valueLength,
-                          accessPosition = accessPosition,
-                          isPrefixCompressed =
-                            isKeyPrefixCompressed ||
-                              timeReader.isPrefixCompressed ||
-                              deadlineReader.isPrefixCompressed ||
-                              valueOffsetReader.isPrefixCompressed ||
-                              valueLengthReader.isPrefixCompressed ||
-                              valueBytesReader.isPrefixCompressed
-                        )
-                      }
+                    Persistent.Put.fromCache(
+                      key = key,
+                      deadline = deadline,
+                      valueCache = valueCache getOrElse Cache.emptyValuesBlock,
+                      time = time,
+                      nextIndexOffset = nextIndexOffset,
+                      nextIndexSize = nextIndexSize,
+                      indexOffset = indexOffset,
+                      valueOffset = valueOffset,
+                      valueLength = valueLength,
+                      accessPosition = accessPosition,
+                      isPrefixCompressed =
+                        isKeyPrefixCompressed ||
+                          timeReader.isPrefixCompressed ||
+                          deadlineReader.isPrefixCompressed ||
+                          valueOffsetReader.isPrefixCompressed ||
+                          valueLengthReader.isPrefixCompressed ||
+                          valueBytesReader.isPrefixCompressed
+                    )
                 }
             }
         }

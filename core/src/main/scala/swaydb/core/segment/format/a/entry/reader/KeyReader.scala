@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
+import swaydb.{Error, IO}
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
@@ -29,42 +29,41 @@ import swaydb.data.slice.{ReaderBase, Slice}
 object KeyReader {
 
   private def uncompressed(indexReader: ReaderBase[swaydb.Error.Segment],
-                           hasAccessPositionIndex: Boolean,
-                           previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, (Int, Slice[Byte])] = {
-    val accessPosition =
-      if (hasAccessPositionIndex)
-        indexReader.readIntUnsigned()
-      else
-        IO.zero
+                           keySize: Option[Int],
+                           previous: Option[KeyValue.ReadOnly]): IO[Error.Segment, Slice[Byte]] =
+    keySize match {
+      case Some(keySize) =>
+        indexReader.read(keySize)
 
-    accessPosition flatMap {
-      accessPosition =>
-        indexReader.readRemaining() map {
-          normalisedKey =>
-            (accessPosition, normalisedKey)
-        }
+      case None =>
+        indexReader.readRemaining()
     }
-  }
 
-  //compressed keys cannot be normalised
   private def compressed(indexReader: ReaderBase[swaydb.Error.Segment],
-                         hasAccessPositionIndex: Boolean,
-                         previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, (Int, Slice[Byte])] =
+                         keySize: Option[Int],
+                         previous: Option[KeyValue.ReadOnly]): IO[Error.Segment, Slice[Byte]] =
     previous map {
       previous =>
-        val accessPosition =
-          if (hasAccessPositionIndex)
-            indexReader.readIntUnsigned()
-          else
-            IO.zero
+        keySize match {
+          case Some(keySize) =>
+            indexReader.read(keySize) flatMap {
+              key =>
+                val keyReader = key.createReaderSafe()
+                keyReader.readIntUnsigned() flatMap {
+                  commonBytes =>
+                    keyReader.readRemaining() map {
+                      rightBytes =>
+                        Bytes.decompress(previous.key, rightBytes, commonBytes)
+                    }
+                }
+            }
 
-        accessPosition flatMap {
-          accessPosition =>
+          case None =>
             indexReader.readIntUnsigned() flatMap {
               commonBytes =>
                 indexReader.readRemaining() map {
                   rightBytes =>
-                    (accessPosition, Bytes.decompress(previous.key, rightBytes, commonBytes))
+                    Bytes.decompress(previous.key, rightBytes, commonBytes)
                 }
             }
         }
@@ -73,27 +72,27 @@ object KeyReader {
     }
 
   def read(keyValueIdInt: Int,
-           hasAccessPositionIndex: Boolean,
+           keySize: Option[Int],
            indexReader: ReaderBase[swaydb.Error.Segment],
            previous: Option[KeyValue.ReadOnly],
-           keyValueId: KeyValueId): IO[swaydb.Error.Segment, (Int, Slice[Byte], Boolean)] =
+           keyValueId: KeyValueId): IO[swaydb.Error.Segment, (Slice[Byte], Boolean)] =
     if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt))
       KeyReader.compressed(
         indexReader = indexReader,
-        hasAccessPositionIndex = hasAccessPositionIndex,
+        keySize = keySize,
         previous = previous
       ) map {
-        case (accessPosition, key) =>
-          (accessPosition, key, true)
+        key =>
+          (key, true)
       }
     else if (keyValueId.isKeyValueId_UncompressedKey(keyValueIdInt))
       KeyReader.uncompressed(
         indexReader = indexReader,
-        hasAccessPositionIndex = hasAccessPositionIndex,
+        keySize = keySize,
         previous = previous
       ) map {
-        case (accessPosition, key) =>
-          (accessPosition, key, false)
+        key =>
+          (key, false)
       }
     else
       IO.Left(swaydb.Error.Fatal(new Exception(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")))

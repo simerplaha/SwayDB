@@ -36,7 +36,6 @@ private[core] object Stats {
             isPut: Boolean,
             isPrefixCompressed: Boolean,
             previousKeyValueAccessIndexPosition: Option[Int],
-            thisKeyValueAccessIndexPosition: Int,
             thisKeyValuesNumberOfRanges: Int,
             thisKeyValuesUniqueKeys: Int,
             sortedIndex: SortedIndexBlock.Config,

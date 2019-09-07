@@ -1256,7 +1256,13 @@ object CommonAssertions {
             binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
             sortedIndexReader = blocks.sortedIndexReader,
             valuesReader = blocks.valuesReader
-          )
+          ) flatMap {
+            case Some(partial) =>
+              partial.toPersistent.map(Some(_))
+
+            case None =>
+              IO.none
+          }
     )
   }
 

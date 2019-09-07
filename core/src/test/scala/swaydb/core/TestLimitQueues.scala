@@ -39,11 +39,11 @@ object TestLimitQueues {
       .map(_.asInstanceOf[MemorySweeper.Both])
 
   val memorySweeperBlock: Option[MemorySweeper.BlockSweeper] =
-    MemorySweeper(MemoryCache.EnableBlockCache(4098, 10.mb, ActorConfig.Basic(level0PushDownPool)))
+    MemorySweeper(MemoryCache.EnableBlockCache(4098, 200.mb, ActorConfig.Basic(level0PushDownPool)))
       .map(_.asInstanceOf[MemorySweeper.BlockSweeper])
 
   val keyValueSweeperBlock: Option[MemorySweeper.KeyValueSweeper] =
-    MemorySweeper(MemoryCache.EnableKeyValueCache(10.mb, ActorConfig.Basic(level0PushDownPool)))
+    MemorySweeper(MemoryCache.EnableKeyValueCache(200.mb, ActorConfig.Basic(level0PushDownPool)))
       .map(_.asInstanceOf[MemorySweeper.KeyValueSweeper])
 
   val someMemorySweeper = memorySweeper
@@ -61,5 +61,5 @@ object TestLimitQueues {
     orNone(blockCache)
 
   val fileSweeper: FileSweeper.Enabled =
-    FileSweeper(1000, ActorConfig.Basic(level0PushDownPool))
+    FileSweeper(1000, ActorConfig.TimeLoop(10.seconds, level0PushDownPool))
 }

@@ -504,6 +504,8 @@ object TestData {
         prefixCompressionResetCount = randomIntMax(10),
         enableAccessPositionIndex = randomBoolean(),
         normaliseIndex = randomBoolean(),
+        enablePartialRead = randomBoolean(),
+        disableKeyPrefixCompression = randomBoolean(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -2649,7 +2651,6 @@ object TestData {
                   isPrefixCompressed: Boolean = randomBoolean(),
                   numberOfRanges: Int = randomIntMax(10000000),
                   thisKeyValuesUniqueKeys: Int = randomIntMax(10000000),
-                  thisKeyValueAccessIndexPosition: Int = randomIntMax(100000),
                   sortedIndex: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                   bloomFilter: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                   hashIndex: HashIndexBlock.Config = HashIndexBlock.Config.random,
@@ -2666,7 +2667,6 @@ object TestData {
       isGroup = isGroup,
       isPut = isPut,
       isPrefixCompressed = isPrefixCompressed,
-      thisKeyValueAccessIndexPosition = thisKeyValueAccessIndexPosition,
       previousKeyValueAccessIndexPosition = None,
       thisKeyValuesNumberOfRanges = numberOfRanges,
       thisKeyValuesUniqueKeys = thisKeyValuesUniqueKeys,

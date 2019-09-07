@@ -33,7 +33,8 @@ private[writer] object TimeWriter {
                                enablePrefixCompression: Boolean,
                                plusSize: Int,
                                isKeyCompressed: Boolean,
-                               hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
+                               hasPrefixCompressed: Boolean,
+                               adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
     if (currentTime.time.nonEmpty)
       when(enablePrefixCompression)(current.previous.map(getTime)) flatMap {
         previousTime =>
@@ -46,7 +47,8 @@ private[writer] object TimeWriter {
             entryId = entryId,
             plusSize = plusSize,
             enablePrefixCompression = enablePrefixCompression,
-            isKeyUncompressed = isKeyCompressed
+            isKeyUncompressed = isKeyCompressed,
+            adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
           )
       } getOrElse {
         //no common prefixes or no previous write without compression
@@ -58,7 +60,8 @@ private[writer] object TimeWriter {
           plusSize = plusSize,
           enablePrefixCompression = enablePrefixCompression,
           isKeyUncompressed = isKeyCompressed,
-          hasPrefixCompressed = hasPrefixCompressed
+          hasPrefixCompressed = hasPrefixCompressed,
+          adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
         )
       }
     else
@@ -69,7 +72,8 @@ private[writer] object TimeWriter {
         plusSize = plusSize,
         enablePrefixCompression = enablePrefixCompression,
         isKeyUncompressed = isKeyCompressed,
-        hasPrefixCompressed = hasPrefixCompressed
+        hasPrefixCompressed = hasPrefixCompressed,
+        adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
       )
 
   private[writer] def getTime(keyValue: Transient): Time =
@@ -105,7 +109,8 @@ private[writer] object TimeWriter {
                                        entryId: BaseEntryId.Key,
                                        plusSize: Int,
                                        enablePrefixCompression: Boolean,
-                                       isKeyUncompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[KeyValueWriter.WriteResult] =
+                                       isKeyUncompressed: Boolean,
+                                       adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[SortedIndexEntryWriter.WriteResult] =
     compress(
       previous = previousTime.time,
       next = currentTime.time,
@@ -120,7 +125,8 @@ private[writer] object TimeWriter {
             plusSize = plusSize + sizeOf(commonBytes) + sizeOf(remainingBytes.size) + remainingBytes.size,
             enablePrefixCompression = enablePrefixCompression,
             isKeyUncompressed = isKeyUncompressed,
-            hasPrefixCompressed = true
+            hasPrefixCompressed = true,
+            adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
           )
 
         writeResult
@@ -139,7 +145,8 @@ private[writer] object TimeWriter {
                                 plusSize: Int,
                                 enablePrefixCompression: Boolean,
                                 isKeyUncompressed: Boolean,
-                                hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) = {
+                                hasPrefixCompressed: Boolean,
+                                adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) = {
     //no common prefixes or no previous write without compression
     val writeResult =
       ValueWriter.write(
@@ -149,7 +156,8 @@ private[writer] object TimeWriter {
         plusSize = plusSize + sizeOf(currentTime.time.size) + currentTime.time.size,
         enablePrefixCompression = enablePrefixCompression,
         isKeyUncompressed = isKeyUncompressed,
-        hasPrefixCompressed = hasPrefixCompressed
+        hasPrefixCompressed = hasPrefixCompressed,
+        adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
       )
 
     writeResult
@@ -166,7 +174,8 @@ private[writer] object TimeWriter {
                      plusSize: Int,
                      enablePrefixCompression: Boolean,
                      isKeyUncompressed: Boolean,
-                     hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) =
+                     hasPrefixCompressed: Boolean,
+                     adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) =
     ValueWriter.write(
       current = current,
       compressDuplicateValues = compressDuplicateValues,
@@ -174,6 +183,7 @@ private[writer] object TimeWriter {
       plusSize = plusSize,
       enablePrefixCompression = enablePrefixCompression,
       isKeyUncompressed = isKeyUncompressed,
-      hasPrefixCompressed = hasPrefixCompressed
+      hasPrefixCompressed = hasPrefixCompressed,
+      adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
     )
 }
