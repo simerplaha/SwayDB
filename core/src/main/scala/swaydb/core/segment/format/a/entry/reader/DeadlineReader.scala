@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.core.data.KeyValue
+import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.core.util.Times._
@@ -36,7 +36,7 @@ sealed trait DeadlineReader[-T] {
   def isPrefixCompressed: Boolean
 
   def read(indexReader: ReaderBase[swaydb.Error.Segment],
-           previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]]
+           previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Option[duration.Deadline]]
 }
 
 object DeadlineReader {
@@ -44,7 +44,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
       IO.none
   }
 
@@ -52,13 +52,16 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
       previous map {
-        previous =>
+        case previous: Persistent =>
           previous.indexEntryDeadline map {
             deadline =>
               IO.Right(Some(deadline))
           } getOrElse IO.failed(EntryReaderFailure.NoPreviousDeadline)
+
+        case _ =>
+          IO.failed("Expected Persistent. Received Partial")
       } getOrElse {
         IO.failed(EntryReaderFailure.NoPreviousKeyValue)
       }
@@ -66,9 +69,9 @@ object DeadlineReader {
 
   private def decompressDeadline(indexReader: ReaderBase[swaydb.Error.Segment],
                                  commonBytes: Int,
-                                 previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
+                                 previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
     previous map {
-      previous =>
+      case previous: Persistent =>
         previous.indexEntryDeadline map {
           previousDeadline =>
             val previousDeadlineBytes = previousDeadline.toBytes
@@ -89,6 +92,9 @@ object DeadlineReader {
         } getOrElse {
           IO.failed(EntryReaderFailure.NoPreviousDeadline)
         }
+
+      case _ =>
+        IO.failed("Expected Persistent. Received Partial")
     } getOrElse {
       IO.failed(EntryReaderFailure.NoPreviousKeyValue)
     }
@@ -97,7 +103,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 1, previous = previous)
   }
 
@@ -105,7 +111,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 2, previous = previous)
   }
 
@@ -113,7 +119,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 3, previous = previous)
   }
 
@@ -121,7 +127,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 4, previous = previous)
   }
 
@@ -129,7 +135,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 5, previous = previous)
   }
 
@@ -137,7 +143,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 6, previous = previous)
   }
 
@@ -145,7 +151,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 7, previous = previous)
   }
 
@@ -153,7 +159,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
       indexReader.readLongUnsigned() map (_.toDeadlineOption)
   }
 }

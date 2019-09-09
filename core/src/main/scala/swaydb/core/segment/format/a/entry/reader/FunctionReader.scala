@@ -40,11 +40,11 @@ object FunctionReader extends SortedIndexEntryReader[Persistent.Function] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              previous: Option[Persistent])(implicit timeReader: TimeReader[T],
-                                                            deadlineReader: DeadlineReader[T],
-                                                            valueOffsetReader: ValueOffsetReader[T],
-                                                            valueLengthReader: ValueLengthReader[T],
-                                                            valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Function] =
+                              previous: Option[Persistent.Partial])(implicit timeReader: TimeReader[T],
+                                                                    deadlineReader: DeadlineReader[T],
+                                                                    valueOffsetReader: ValueOffsetReader[T],
+                                                                    valueLengthReader: ValueLengthReader[T],
+                                                                    valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Function] =
     valueBytesReader.read(indexReader, previous) flatMap {
       valueOffsetAndLength =>
         timeReader.read(indexReader, previous) flatMap {

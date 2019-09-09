@@ -42,11 +42,11 @@ trait SortedIndexEntryReader[E] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              previous: Option[Persistent])(implicit timeReader: TimeReader[T],
-                                                            deadlineReader: DeadlineReader[T],
-                                                            valueOffsetReader: ValueOffsetReader[T],
-                                                            valueLengthReader: ValueLengthReader[T],
-                                                            valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, E]
+                              previous: Option[Persistent.Partial])(implicit timeReader: TimeReader[T],
+                                                                    deadlineReader: DeadlineReader[T],
+                                                                    valueOffsetReader: ValueOffsetReader[T],
+                                                                    valueLengthReader: ValueLengthReader[T],
+                                                                    valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, E]
 }
 
 object SortedIndexEntryReader {
@@ -84,7 +84,7 @@ object SortedIndexEntryReader {
                        indexOffset: Int,
                        nextIndexOffset: Int,
                        nextIndexSize: Int,
-                       previous: Option[Persistent],
+                       previous: Option[Persistent.Partial],
                        entryReader: SortedIndexEntryReader[T]): IO[swaydb.Error.Segment, T] =
     findReader(baseId = baseId, mightBeCompressed = mightBeCompressed) flatMap {
       entry =>
@@ -109,7 +109,7 @@ object SortedIndexEntryReader {
                   nextIndexOffset: Int,
                   nextIndexSize: Int,
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                  previous: Option[Persistent]): IO[swaydb.Error.Segment, Persistent.Partial] = {
+                  previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Persistent.Partial] = {
 
     val reader = Reader[swaydb.Error.Segment](indexEntry)
 
@@ -241,7 +241,7 @@ object SortedIndexEntryReader {
                              nextIndexSize: Int,
                              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                              entryReader: SortedIndexEntryReader[T],
-                             previous: Option[Persistent]): IO[swaydb.Error.Segment, T] = {
+                             previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, T] = {
     val reader = Reader[swaydb.Error.Segment](indexEntry)
 
     reader.readIntUnsigned() flatMap {
@@ -272,7 +272,7 @@ object SortedIndexEntryReader {
                hasAccessPositionIndex: Boolean,
                isNormalised: Boolean,
                isPartialReadEnabled: Boolean,
-               previous: Option[Persistent]): IO[swaydb.Error.Segment, Persistent] = {
+               previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Persistent.Partial] = {
     //check if de-normalising is required.
     val reader = Reader[swaydb.Error.Segment](indexEntry)
 
@@ -418,7 +418,7 @@ object SortedIndexEntryReader {
                           hasAccessPositionIndex: Boolean,
                           isNormalised: Boolean,
                           isPartialReadEnabled: Boolean,
-                          previous: Option[Persistent]): IO[swaydb.Error.Segment, Persistent] = {
+                          previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Persistent.Partial] = {
     //check if de-normalising is required.
     val reader = Reader[swaydb.Error.Segment](indexEntry)
 

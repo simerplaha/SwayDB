@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a.entry.reader
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.Persistent
+import swaydb.core.data.Persistent.Partial
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice}
@@ -34,20 +35,22 @@ sealed trait ValueLengthReader[-T] {
   def isPrefixCompressed: Boolean
 
   def read(indexReader: ReaderBase[swaydb.Error.Segment],
-           previous: Option[Persistent]): IO[swaydb.Error.Segment, Int]
+           previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int]
 }
 
 object ValueLengthReader {
 
   private def readLength(indexReader: ReaderBase[swaydb.Error.Segment],
-                         previous: Option[Persistent],
+                         previous: Option[Persistent.Partial],
                          commonBytes: Int): IO[swaydb.Error.Segment, Int] =
-    previous.map(_.valueLength) map {
-      previousValueLength =>
+    previous map {
+      case previous: Persistent =>
         indexReader.read(ByteSizeOf.int - commonBytes) map {
           valueLengthBytes =>
-            Bytes.decompress(Slice.writeInt(previousValueLength), valueLengthBytes, commonBytes).readInt()
+            Bytes.decompress(Slice.writeInt(previous.valueLength), valueLengthBytes, commonBytes).readInt()
         }
+      case _ =>
+        IO.failed("Expected Persistent. Received Partial.")
     } getOrElse {
       IO.failed(EntryReaderFailure.NoPreviousKeyValue)
     }
@@ -56,7 +59,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[Persistent]): IO[swaydb.Error.Segment, Int] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
       readLength(indexReader, previous, 1)
   }
 
@@ -64,7 +67,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[Persistent]): IO[swaydb.Error.Segment, Int] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
       readLength(indexReader, previous, 2)
   }
 
@@ -72,7 +75,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[Persistent]): IO[swaydb.Error.Segment, Int] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
       readLength(indexReader, previous, 3)
   }
 
@@ -80,18 +83,23 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[Persistent]): IO[swaydb.Error.Segment, Int] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
       previous map {
-        previous =>
+        case previous: Persistent =>
           IO.Right(previous.valueLength)
-      } getOrElse IO.failed(EntryReaderFailure.NoPreviousKeyValue)
+
+        case _ =>
+          IO.failed("Expected Persistent. Received Partial.")
+      } getOrElse {
+        IO.failed(EntryReaderFailure.NoPreviousKeyValue)
+      }
   }
 
   implicit object ValueLengthUncompressed extends ValueLengthReader[BaseEntryId.ValueLength.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[Persistent]): IO[swaydb.Error.Segment, Int] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
       indexReader.readIntUnsigned()
   }
 
@@ -99,7 +107,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[Persistent]): IO[swaydb.Error.Segment, Int] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
       IO.zero
   }
 }

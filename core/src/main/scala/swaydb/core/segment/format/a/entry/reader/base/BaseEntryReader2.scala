@@ -40,7 +40,7 @@ private[core] object BaseEntryReader2 extends BaseEntryReader {
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
-              previous: Option[Persistent],
+              previous: Option[Persistent.Partial],
               reader: SortedIndexEntryReader[T]): Option[IO[swaydb.Error.Segment, T]] =
   //GENERATED CONDITIONS
     if (baseId == 517)

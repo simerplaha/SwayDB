@@ -40,11 +40,11 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              previous: Option[Persistent])(implicit timeReader: TimeReader[T],
-                                                            deadlineReader: DeadlineReader[T],
-                                                            valueOffsetReader: ValueOffsetReader[T],
-                                                            valueLengthReader: ValueLengthReader[T],
-                                                            valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Group] =
+                              previous: Option[Persistent.Partial])(implicit timeReader: TimeReader[T],
+                                                                    deadlineReader: DeadlineReader[T],
+                                                                    valueOffsetReader: ValueOffsetReader[T],
+                                                                    valueLengthReader: ValueLengthReader[T],
+                                                                    valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Group] =
     deadlineReader.read(indexReader, previous) flatMap {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {

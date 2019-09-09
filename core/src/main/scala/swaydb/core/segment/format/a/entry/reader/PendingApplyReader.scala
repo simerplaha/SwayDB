@@ -40,11 +40,11 @@ object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              previous: Option[Persistent])(implicit timeReader: TimeReader[T],
-                                                            deadlineReader: DeadlineReader[T],
-                                                            valueOffsetReader: ValueOffsetReader[T],
-                                                            valueLengthReader: ValueLengthReader[T],
-                                                            valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.PendingApply] =
+                              previous: Option[Persistent.Partial])(implicit timeReader: TimeReader[T],
+                                                                    deadlineReader: DeadlineReader[T],
+                                                                    valueOffsetReader: ValueOffsetReader[T],
+                                                                    valueLengthReader: ValueLengthReader[T],
+                                                                    valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.PendingApply] =
     deadlineReader.read(indexReader, previous) flatMap {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {

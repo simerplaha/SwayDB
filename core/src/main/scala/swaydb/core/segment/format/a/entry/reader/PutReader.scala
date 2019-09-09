@@ -40,11 +40,11 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              previous: Option[Persistent])(implicit timeReader: TimeReader[T],
-                                                            deadlineReader: DeadlineReader[T],
-                                                            valueOffsetReader: ValueOffsetReader[T],
-                                                            valueLengthReader: ValueLengthReader[T],
-                                                            valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Put] =
+                              previous: Option[Persistent.Partial])(implicit timeReader: TimeReader[T],
+                                                                    deadlineReader: DeadlineReader[T],
+                                                                    valueOffsetReader: ValueOffsetReader[T],
+                                                                    valueLengthReader: ValueLengthReader[T],
+                                                                    valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Put] =
     deadlineReader.read(indexReader, previous) flatMap {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {

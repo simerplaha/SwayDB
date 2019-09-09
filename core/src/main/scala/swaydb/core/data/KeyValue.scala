@@ -1434,7 +1434,7 @@ private[core] object Persistent {
                  indexBytes: Slice[Byte],
                  block: SortedIndexBlock,
                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                 previous: Option[Persistent]) extends Partial.Fixed {
+                 previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
       def isPrefixCompressed: Boolean = block.hasPrefixCompression
 
@@ -1461,7 +1461,7 @@ private[core] object Persistent {
               indexBytes: Slice[Byte],
               block: SortedIndexBlock,
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-              previous: Option[Persistent]) extends Partial.Fixed {
+              previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
       def isPrefixCompressed: Boolean = block.hasPrefixCompression
 
@@ -1488,7 +1488,7 @@ private[core] object Persistent {
                  indexBytes: Slice[Byte],
                  block: SortedIndexBlock,
                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                 previous: Option[Persistent]) extends Partial.Fixed {
+                 previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
       def isPrefixCompressed: Boolean = block.hasPrefixCompression
 
@@ -1515,7 +1515,7 @@ private[core] object Persistent {
                    indexBytes: Slice[Byte],
                    block: SortedIndexBlock,
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                   previous: Option[Persistent]) extends Partial.Fixed {
+                   previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
       def isPrefixCompressed: Boolean = block.hasPrefixCompression
 
@@ -1542,7 +1542,7 @@ private[core] object Persistent {
                        indexBytes: Slice[Byte],
                        block: SortedIndexBlock,
                        valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                       previous: Option[Persistent]) extends Partial.Fixed {
+                       previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
       def isPrefixCompressed: Boolean = block.hasPrefixCompression
 
@@ -1570,7 +1570,7 @@ private[core] object Persistent {
                 accessPosition: Int,
                 block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent]): IO[Error.IO, Partial.Range] =
+                previous: Option[Persistent.Partial]): IO[Error.IO, Partial.Range] =
         Bytes.decompressJoin(key) map {
           case (fromKey, toKey) =>
             new Range(
@@ -1597,7 +1597,7 @@ private[core] object Persistent {
                 indexBytes: Slice[Byte],
                 block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent]) extends Partial.RangeT {
+                previous: Option[Persistent.Partial]) extends Partial.RangeT {
 
       def key = fromKey
 
@@ -1627,7 +1627,7 @@ private[core] object Persistent {
                 accessPosition: Int,
                 block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent]): IO[Error.Segment, Partial.Group] =
+                previous: Option[Persistent.Partial]): IO[Error.Segment, Partial.Group] =
         GroupKeyCompressor.decompress(key) map {
           case (minKey, maxKey) =>
             new Group(
@@ -1654,7 +1654,7 @@ private[core] object Persistent {
                 indexBytes: Slice[Byte],
                 block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent]) extends Partial.GroupT {
+                previous: Option[Persistent.Partial]) extends Partial.GroupT {
       def key = minKey
 
       def isPrefixCompressed: Boolean = block.hasPrefixCompression

@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.core.data.{KeyValue, Time}
+import swaydb.core.data.{Persistent, Time}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.data.slice.ReaderBase
@@ -33,7 +33,7 @@ sealed trait TimeReader[-T] {
   def isPrefixCompressed: Boolean
 
   def read(indexReader: ReaderBase[swaydb.Error.Segment],
-           previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Time]
+           previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Time]
 }
 
 /**
@@ -46,7 +46,7 @@ object TimeReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Time] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Time] =
       Time.successEmpty
   }
 
@@ -54,7 +54,7 @@ object TimeReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Time] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Time] =
       indexReader.readIntUnsigned() flatMap {
         timeSize =>
           indexReader.read(timeSize) map {
@@ -83,25 +83,28 @@ object TimeReader {
       }
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
-                      previous: Option[KeyValue.ReadOnly]): IO[swaydb.Error.Segment, Time] =
+                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Time] =
       previous map {
-        case previous: KeyValue.ReadOnly.Put =>
+        case previous: Persistent.Put =>
           readTime(indexReader, previous.time)
 
-        case previous: KeyValue.ReadOnly.Remove =>
+        case previous: Persistent.Remove =>
           readTime(indexReader, previous.time)
 
-        case previous: KeyValue.ReadOnly.Function =>
+        case previous: Persistent.Function =>
           readTime(indexReader, previous.time)
 
-        case previous: KeyValue.ReadOnly.PendingApply =>
+        case previous: Persistent.PendingApply =>
           readTime(indexReader, previous.time)
 
-        case previous: KeyValue.ReadOnly.Update =>
+        case previous: Persistent.Update =>
           readTime(indexReader, previous.time)
 
-        case _: KeyValue.ReadOnly.Range | _: KeyValue.ReadOnly.Group =>
+        case _: Persistent.Range | _: Persistent.Group =>
           IO.failed(EntryReaderFailure.PreviousIsNotFixedKeyValue)
+
+        case _: Persistent.Partial =>
+          IO.failed("Expected Persistent. Received Partial.")
       } getOrElse {
         IO.failed(EntryReaderFailure.NoPreviousKeyValue)
       }

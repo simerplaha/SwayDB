@@ -20,17 +20,17 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{Error, IO}
-import swaydb.core.data.KeyValue
+import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.{Error, IO}
 
 object KeyReader {
 
   private def uncompressed(indexReader: ReaderBase[swaydb.Error.Segment],
                            keySize: Option[Int],
-                           previous: Option[KeyValue.ReadOnly]): IO[Error.Segment, Slice[Byte]] =
+                           previous: Option[Persistent.Partial]): IO[Error.Segment, Slice[Byte]] =
     keySize match {
       case Some(keySize) =>
         indexReader.read(keySize)
@@ -41,7 +41,7 @@ object KeyReader {
 
   private def compressed(indexReader: ReaderBase[swaydb.Error.Segment],
                          keySize: Option[Int],
-                         previous: Option[KeyValue.ReadOnly]): IO[Error.Segment, Slice[Byte]] =
+                         previous: Option[Persistent.Partial]): IO[Error.Segment, Slice[Byte]] =
     previous map {
       previous =>
         keySize match {
@@ -74,7 +74,7 @@ object KeyReader {
   def read(keyValueIdInt: Int,
            keySize: Option[Int],
            indexReader: ReaderBase[swaydb.Error.Segment],
-           previous: Option[KeyValue.ReadOnly],
+           previous: Option[Persistent.Partial],
            keyValueId: KeyValueId): IO[swaydb.Error.Segment, (Slice[Byte], Boolean)] =
     if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt))
       KeyReader.compressed(

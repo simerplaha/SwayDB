@@ -328,7 +328,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   def keyValues = if (testGroupedKeyValues) groupedKeyValues else unGroupedKeyValues
 
-//  val shuffledUnGroupedKeyValues = Random.shuffle(unGroupedKeyValues)
+  //  val shuffledUnGroupedKeyValues = Random.shuffle(unGroupedKeyValues)
   //  val unGroupedKeyValuesZipped = unGroupedKeyValues.zipWithIndex
 
   def assertGet(segment: Segment) = {
@@ -343,8 +343,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         //          println(key)
         //        val found = segment.get(keyValue.key).get.get
         //        found.getOrFetchValue
-        //        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
-        segment.get(keyValue.key).get
+        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
+      //        segment.get(keyValue.key).get
     }
   }
 

@@ -285,7 +285,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       )
     }
 
-  private def readNextKeyValue(previous: Persistent,
+  private def readNextKeyValue(previous: Persistent.Partial,
                                fullRead: Boolean,
                                indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, Persistent.Partial] =
@@ -326,7 +326,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                                fullRead: Boolean,
                                indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                               previous: Option[Persistent]): IO[swaydb.Error.Segment, Persistent.Partial] =
+                               previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Persistent.Partial] =
     try {
       val positionBeforeRead = indexReader.getPosition
       //size of the index entry to read
@@ -685,30 +685,25 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       case KeyMatcher.Result.BehindFetchNext(previousKeyValue) =>
         //        assert(previous.key.readInt() <= previousKeyValue.key.readInt())
-        (next getOrElse previousKeyValue).toPersistent match {
-          case IO.Right(readFrom) =>
-            readNextKeyValue(
+        val readFrom = next getOrElse previousKeyValue
+        readNextKeyValue(
+          previous = readFrom,
+          fullRead = fullRead,
+          indexReader = indexReader,
+          valuesReader = valuesReader
+        ) match {
+          case IO.Right(nextNextKeyValue) =>
+            matchOrNext(
               previous = readFrom,
+              next = Some(nextNextKeyValue),
+              matcher = matcher,
               fullRead = fullRead,
               indexReader = indexReader,
               valuesReader = valuesReader
-            ) match {
-              case IO.Right(nextNextKeyValue) =>
-                matchOrNext(
-                  previous = readFrom,
-                  next = Some(nextNextKeyValue),
-                  matcher = matcher,
-                  fullRead = fullRead,
-                  indexReader = indexReader,
-                  valuesReader = valuesReader
-                )
+            )
 
-              case IO.Left(error) =>
-                IO.Left(error)
-            }
-
-          case IO.Left(value) =>
-            IO.Left(value)
+          case IO.Left(error) =>
+            IO.Left(error)
         }
     }
 
