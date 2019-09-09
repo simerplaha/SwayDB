@@ -40,7 +40,6 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
-              hasAccessPositionIndex: Boolean,
               previous: Option[Persistent],
               reader: SortedIndexEntryReader[T]): Option[IO[swaydb.Error.Segment, T]] =
   //GENERATED CONDITIONS

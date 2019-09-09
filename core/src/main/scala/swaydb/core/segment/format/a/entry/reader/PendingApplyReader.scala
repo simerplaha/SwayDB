@@ -23,11 +23,11 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
+import swaydb.core.data.Persistent.Partial.Key
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
-import swaydb.data.MaxKey
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.data.slice.ReaderBase
 
 object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply] {
 
@@ -51,42 +51,126 @@ object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply
           valueOffsetAndLength =>
             timeReader.read(indexReader, previous) flatMap {
               time =>
-                KeyReader.read(
-                  keyValueIdInt = keyValueId,
-                  indexReader = indexReader,
-                  hasAccessPositionIndex = hasAccessPositionIndex,
-                  previous = previous,
-                  keyValueId = KeyValueId.PendingApply
-                ) flatMap {
-                  case (accessPosition, key, isKeyPrefixCompressed) =>
-                    valueCache map {
-                      valueCache =>
-                        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                keyInfo match {
+                  case Some(keyInfo) =>
+                    keyInfo match {
+                      case Left(keySize) =>
+                        KeyReader.read(
+                          keyValueIdInt = keyValueId,
+                          indexReader = indexReader,
+                          keySize = Some(keySize),
+                          previous = previous,
+                          keyValueId = KeyValueId.PendingApply
+                        ) flatMap {
+                          case (key, isKeyPrefixCompressed) =>
+                            valueCache match {
+                              case Some(valueCache) =>
+                                val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                                val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                        IO {
-                          Persistent.PendingApply.fromCache(
-                            key = key,
-                            time = time,
-                            deadline = deadline,
-                            valueCache = valueCache,
-                            nextIndexOffset = nextIndexOffset,
-                            nextIndexSize = nextIndexSize,
-                            indexOffset = indexOffset,
-                            valueOffset = valueOffset,
-                            valueLength = valueLength,
-                            accessPosition = accessPosition,
-                            isPrefixCompressed =
-                              isKeyPrefixCompressed ||
-                                timeReader.isPrefixCompressed ||
-                                deadlineReader.isPrefixCompressed ||
-                                valueOffsetReader.isPrefixCompressed ||
-                                valueLengthReader.isPrefixCompressed ||
-                                valueBytesReader.isPrefixCompressed
-                          )
+                                IO.Right {
+                                  Persistent.PendingApply.fromCache(
+                                    key = key,
+                                    time = time,
+                                    deadline = deadline,
+                                    valueCache = valueCache,
+                                    nextIndexOffset = nextIndexOffset,
+                                    nextIndexSize = nextIndexSize,
+                                    indexOffset = indexOffset,
+                                    valueOffset = valueOffset,
+                                    valueLength = valueLength,
+                                    accessPosition = accessPosition,
+                                    isPrefixCompressed =
+                                      isKeyPrefixCompressed ||
+                                        timeReader.isPrefixCompressed ||
+                                        deadlineReader.isPrefixCompressed ||
+                                        valueOffsetReader.isPrefixCompressed ||
+                                        valueLengthReader.isPrefixCompressed ||
+                                        valueBytesReader.isPrefixCompressed
+                                  )
+                                }
+                              case None =>
+                                ValuesBlock.valuesBlockNotInitialised
+                            }
                         }
-                    } getOrElse {
-                      ValuesBlock.valuesBlockNotInitialised
+
+                      case Right(key) =>
+                        key match {
+                          case key: Key.Fixed =>
+                            valueCache match {
+                              case Some(valueCache) =>
+                                val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                                val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+
+                                IO.Right {
+                                  Persistent.PendingApply.fromCache(
+                                    key = key.key,
+                                    time = time,
+                                    deadline = deadline,
+                                    valueCache = valueCache,
+                                    nextIndexOffset = nextIndexOffset,
+                                    nextIndexSize = nextIndexSize,
+                                    indexOffset = indexOffset,
+                                    valueOffset = valueOffset,
+                                    valueLength = valueLength,
+                                    accessPosition = accessPosition,
+                                    isPrefixCompressed =
+                                      timeReader.isPrefixCompressed ||
+                                        deadlineReader.isPrefixCompressed ||
+                                        valueOffsetReader.isPrefixCompressed ||
+                                        valueLengthReader.isPrefixCompressed ||
+                                        valueBytesReader.isPrefixCompressed
+                                  )
+                                }
+
+                              case None =>
+                                ValuesBlock.valuesBlockNotInitialised
+                            }
+
+                          case key @ (_: Key.Range | _: Key.Group) =>
+                            IO.failed(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
+                        }
+                    }
+
+                  case None =>
+                    KeyReader.read(
+                      keyValueIdInt = keyValueId,
+                      indexReader = indexReader,
+                      keySize = None,
+                      previous = previous,
+                      keyValueId = KeyValueId.PendingApply
+                    ) flatMap {
+                      case (key, isKeyPrefixCompressed) =>
+                        valueCache match {
+                          case Some(valueCache) =>
+                            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+
+                            IO.Right {
+                              Persistent.PendingApply.fromCache(
+                                key = key,
+                                time = time,
+                                deadline = deadline,
+                                valueCache = valueCache,
+                                nextIndexOffset = nextIndexOffset,
+                                nextIndexSize = nextIndexSize,
+                                indexOffset = indexOffset,
+                                valueOffset = valueOffset,
+                                valueLength = valueLength,
+                                accessPosition = accessPosition,
+                                isPrefixCompressed =
+                                  isKeyPrefixCompressed ||
+                                    timeReader.isPrefixCompressed ||
+                                    deadlineReader.isPrefixCompressed ||
+                                    valueOffsetReader.isPrefixCompressed ||
+                                    valueLengthReader.isPrefixCompressed ||
+                                    valueBytesReader.isPrefixCompressed
+                              )
+                            }
+
+                          case None =>
+                            ValuesBlock.valuesBlockNotInitialised
+                        }
                     }
                 }
             }

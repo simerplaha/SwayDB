@@ -1406,7 +1406,7 @@ private[core] object Persistent {
     sealed trait Key
     object Key {
       class Fixed(val key: Slice[Byte]) extends Key
-      class Range(val minKey: Slice[Byte], val maxKey: Slice[Byte]) extends Key
+      class Range(val fromKey: Slice[Byte], val toKey: Slice[Byte]) extends Key
       class Group(val minKey: Slice[Byte], val maxKey: MaxKey[Slice[Byte]]) extends Key
     }
 
@@ -2152,21 +2152,10 @@ private[core] object Persistent {
               isPrefixCompressed: Boolean): IO[swaydb.Error.Segment, Persistent.Range] =
       Bytes.decompressJoin(key) map {
         case (fromKey, toKey) =>
-          Range(
-            _fromKey = fromKey,
-            _toKey = toKey,
-            valueCache =
-              valueCache mapConcurrentStored {
-                rangeReader =>
-                  rangeReader
-                    .copy()
-                    .readFullBlock()
-                    .flatMap(RangeValueSerializer.read)
-                    .map {
-                      case (from, range) =>
-                        (from.map(_.unslice), range.unslice)
-                    }
-              },
+          Range.parsedKey(
+            fromKey = fromKey,
+            toKey = toKey,
+            valueCache = valueCache,
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
             indexOffset = indexOffset,
@@ -2176,18 +2165,52 @@ private[core] object Persistent {
             isPrefixCompressed = isPrefixCompressed
           )
       }
+
+    def parsedKey(fromKey: Slice[Byte],
+                  toKey: Slice[Byte],
+                  valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  nextIndexOffset: Int,
+                  nextIndexSize: Int,
+                  indexOffset: Int,
+                  valueOffset: Int,
+                  valueLength: Int,
+                  accessPosition: Int,
+                  isPrefixCompressed: Boolean): Persistent.Range =
+      Range(
+        _fromKey = fromKey,
+        _toKey = toKey,
+        valueCache =
+          valueCache mapConcurrentStored {
+            rangeReader =>
+              rangeReader
+                .copy()
+                .readFullBlock()
+                .flatMap(RangeValueSerializer.read)
+                .map {
+                  case (from, range) =>
+                    (from.map(_.unslice), range.unslice)
+                }
+          },
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        indexOffset = indexOffset,
+        valueOffset = valueOffset,
+        valueLength = valueLength,
+        accessPosition = accessPosition,
+        isPrefixCompressed = isPrefixCompressed
+      )
   }
 
-  case class Range(private var _fromKey: Slice[Byte],
-                   private var _toKey: Slice[Byte],
-                   valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)],
-                   nextIndexOffset: Int,
-                   nextIndexSize: Int,
-                   indexOffset: Int,
-                   valueOffset: Int,
-                   valueLength: Int,
-                   accessPosition: Int,
-                   isPrefixCompressed: Boolean) extends Persistent.SegmentResponse with KeyValue.ReadOnly.Range {
+  case class Range private(private var _fromKey: Slice[Byte],
+                           private var _toKey: Slice[Byte],
+                           valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)],
+                           nextIndexOffset: Int,
+                           nextIndexSize: Int,
+                           indexOffset: Int,
+                           valueOffset: Int,
+                           valueLength: Int,
+                           accessPosition: Int,
+                           isPrefixCompressed: Boolean) extends Persistent.SegmentResponse with KeyValue.ReadOnly.Range {
 
     def fromKey = _fromKey
 
@@ -2243,46 +2266,71 @@ private[core] object Persistent {
               isPrefixCompressed: Boolean): IO[swaydb.Error.Segment, Group] =
       GroupKeyCompressor.decompress(key) flatMap {
         case (minKey, maxKey) =>
-          valueCache.value(ValuesBlock.Offset(valueOffset, valueLength)) map {
-            reader =>
-              val segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[MemorySweeper.KeyValue], SegmentIO), SegmentCache] =
-                Cache.noIO(synchronised = true, stored = true, initial = None) {
-                  case (keyOrder: KeyOrder[Slice[Byte]], memorySweeper: Option[MemorySweeper.KeyValue], groupIO: SegmentIO) =>
-                    val blockRef: BlockRefReader[SegmentBlock.Offset] =
-                      BlockRefReader.moveTo(
-                        //cache will return a reader with the offset pointing to this Group's offset, here simply reset to return as an BlockRef within the parent Segment's values block.
-                        start = 0,
-                        size = valueLength,
-                        reader = reader.copy()
-                      )
+          Group(
+            minKey = minKey,
+            maxKey = maxKey,
+            valueCache = valueCache,
+            nextIndexOffset = nextIndexOffset,
+            nextIndexSize = nextIndexSize,
+            indexOffset = indexOffset,
+            valueLength = valueLength,
+            valueOffset = valueOffset,
+            accessPosition = accessPosition,
+            deadline = deadline,
+            isPrefixCompressed = isPrefixCompressed
+          )
+      }
 
-                    SegmentCache(
-                      id = "Persistent.Group - BinarySegment",
-                      maxKey = maxKey,
-                      minKey = minKey,
-                      //persistent key-value's key do not have be sliced either because the decompressed bytes are still in memory.
-                      //slicing will just use more memory. On memory overflow the Group itself will find dropped and hence all the
-                      //key-values inside the group's SegmentCache will also be GC'd.
-                      unsliceKey = false,
-                      blockRef = blockRef,
-                      segmentIO = groupIO
-                    )(keyOrder, memorySweeper)
-                }
+    def apply(minKey: Slice[Byte],
+              maxKey: MaxKey[Slice[Byte]],
+              valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              nextIndexOffset: Int,
+              nextIndexSize: Int,
+              indexOffset: Int,
+              valueLength: Int,
+              valueOffset: Int,
+              accessPosition: Int,
+              deadline: Option[Deadline],
+              isPrefixCompressed: Boolean): IO[swaydb.Error.Segment, Group] =
+      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength)) map {
+        reader =>
+          val segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[MemorySweeper.KeyValue], SegmentIO), SegmentCache] =
+            Cache.noIO(synchronised = true, stored = true, initial = None) {
+              case (keyOrder: KeyOrder[Slice[Byte]], memorySweeper: Option[MemorySweeper.KeyValue], groupIO: SegmentIO) =>
+                val blockRef: BlockRefReader[SegmentBlock.Offset] =
+                  BlockRefReader.moveTo(
+                    //cache will return a reader with the offset pointing to this Group's offset, here simply reset to return as an BlockRef within the parent Segment's values block.
+                    start = 0,
+                    size = valueLength,
+                    reader = reader.copy()
+                  )
 
-              Group(
-                _minKey = minKey,
-                _maxKey = maxKey,
-                segmentCache = segmentCache,
-                nextIndexOffset = nextIndexOffset,
-                nextIndexSize = nextIndexSize,
-                indexOffset = indexOffset,
-                valueOffset = valueOffset,
-                valueLength = valueLength,
-                accessPosition = accessPosition,
-                deadline = deadline,
-                isPrefixCompressed = isPrefixCompressed
-              )
-          }
+                SegmentCache(
+                  id = "Persistent.Group - BinarySegment",
+                  maxKey = maxKey,
+                  minKey = minKey,
+                  //persistent key-value's key do not have be sliced either because the decompressed bytes are still in memory.
+                  //slicing will just use more memory. On memory overflow the Group itself will find dropped and hence all the
+                  //key-values inside the group's SegmentCache will also be GC'd.
+                  unsliceKey = false,
+                  blockRef = blockRef,
+                  segmentIO = groupIO
+                )(keyOrder, memorySweeper)
+            }
+
+          Group(
+            _minKey = minKey,
+            _maxKey = maxKey,
+            segmentCache = segmentCache,
+            nextIndexOffset = nextIndexOffset,
+            nextIndexSize = nextIndexSize,
+            indexOffset = indexOffset,
+            valueOffset = valueOffset,
+            valueLength = valueLength,
+            accessPosition = accessPosition,
+            deadline = deadline,
+            isPrefixCompressed = isPrefixCompressed
+          )
       }
   }
 

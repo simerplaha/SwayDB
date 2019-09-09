@@ -23,11 +23,11 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
+import swaydb.core.data.Persistent.Partial.Key
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
-import swaydb.data.MaxKey
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.data.slice.ReaderBase
 
 object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
 
@@ -49,30 +49,86 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
       deadline =>
         timeReader.read(indexReader, previous) flatMap {
           time =>
-            KeyReader.read(
-              keyValueIdInt = keyValueId,
-              indexReader = indexReader,
-              hasAccessPositionIndex = hasAccessPositionIndex,
-              previous = previous,
-              keyValueId = KeyValueId.Remove
-            ) map {
-              case (accessPosition, key, isKeyPrefixCompressed) =>
-                Persistent.Remove(
-                  _key = key,
-                  indexOffset = indexOffset,
-                  nextIndexOffset = nextIndexOffset,
-                  nextIndexSize = nextIndexSize,
-                  deadline = deadline,
-                  accessPosition = accessPosition,
-                  _time = time,
-                  isPrefixCompressed =
-                    isKeyPrefixCompressed ||
-                      timeReader.isPrefixCompressed ||
-                      deadlineReader.isPrefixCompressed ||
-                      valueOffsetReader.isPrefixCompressed ||
-                      valueLengthReader.isPrefixCompressed ||
-                      valueBytesReader.isPrefixCompressed
-                )
+            keyInfo match {
+              case Some(keyInfo) =>
+                keyInfo match {
+                  case Left(keySize) =>
+                    KeyReader.read(
+                      keyValueIdInt = keyValueId,
+                      indexReader = indexReader,
+                      keySize = Some(keySize),
+                      previous = previous,
+                      keyValueId = KeyValueId.Remove
+                    ) map {
+                      case (key, isKeyPrefixCompressed) =>
+                        Persistent.Remove(
+                          _key = key,
+                          indexOffset = indexOffset,
+                          nextIndexOffset = nextIndexOffset,
+                          nextIndexSize = nextIndexSize,
+                          deadline = deadline,
+                          accessPosition = accessPosition,
+                          _time = time,
+                          isPrefixCompressed =
+                            isKeyPrefixCompressed ||
+                              timeReader.isPrefixCompressed ||
+                              deadlineReader.isPrefixCompressed ||
+                              valueOffsetReader.isPrefixCompressed ||
+                              valueLengthReader.isPrefixCompressed ||
+                              valueBytesReader.isPrefixCompressed
+                        )
+                    }
+
+                  case Right(key) =>
+                    key match {
+                      case fixed: Key.Fixed =>
+                        IO.Right {
+                          Persistent.Remove(
+                            _key = fixed.key,
+                            indexOffset = indexOffset,
+                            nextIndexOffset = nextIndexOffset,
+                            nextIndexSize = nextIndexSize,
+                            deadline = deadline,
+                            accessPosition = accessPosition,
+                            _time = time,
+                            isPrefixCompressed =
+                              timeReader.isPrefixCompressed ||
+                                deadlineReader.isPrefixCompressed ||
+                                valueOffsetReader.isPrefixCompressed ||
+                                valueLengthReader.isPrefixCompressed ||
+                                valueBytesReader.isPrefixCompressed
+                          )
+                        }
+                      case key @ (_: Key.Range | _: Key.Group) =>
+                        IO.failed(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
+                    }
+                }
+              case None =>
+                KeyReader.read(
+                  keyValueIdInt = keyValueId,
+                  indexReader = indexReader,
+                  keySize = None,
+                  previous = previous,
+                  keyValueId = KeyValueId.Remove
+                ) map {
+                  case (key, isKeyPrefixCompressed) =>
+                    Persistent.Remove(
+                      _key = key,
+                      indexOffset = indexOffset,
+                      nextIndexOffset = nextIndexOffset,
+                      nextIndexSize = nextIndexSize,
+                      deadline = deadline,
+                      accessPosition = accessPosition,
+                      _time = time,
+                      isPrefixCompressed =
+                        isKeyPrefixCompressed ||
+                          timeReader.isPrefixCompressed ||
+                          deadlineReader.isPrefixCompressed ||
+                          valueOffsetReader.isPrefixCompressed ||
+                          valueLengthReader.isPrefixCompressed ||
+                          valueBytesReader.isPrefixCompressed
+                    )
+                }
             }
         }
     }

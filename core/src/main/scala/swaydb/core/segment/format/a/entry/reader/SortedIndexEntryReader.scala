@@ -72,18 +72,18 @@ object SortedIndexEntryReader {
         }
     }
 
-  def parse[T](baseId: Int,
-               keyValueId: Int,
-               accessPosition: Int,
-               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
-               mightBeCompressed: Boolean,
-               indexReader: ReaderBase[swaydb.Error.Segment],
-               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-               indexOffset: Int,
-               nextIndexOffset: Int,
-               nextIndexSize: Int,
-               previous: Option[Persistent],
-               entryReader: SortedIndexEntryReader[T]): IO[swaydb.Error.Segment, T] =
+  private def parse[T](baseId: Int,
+                       keyValueId: Int,
+                       accessPosition: Int,
+                       keyInfo: Option[Either[Int, Persistent.Partial.Key]],
+                       mightBeCompressed: Boolean,
+                       indexReader: ReaderBase[swaydb.Error.Segment],
+                       valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                       indexOffset: Int,
+                       nextIndexOffset: Int,
+                       nextIndexSize: Int,
+                       previous: Option[Persistent],
+                       entryReader: SortedIndexEntryReader[T]): IO[swaydb.Error.Segment, T] =
     findReader(baseId = baseId, mightBeCompressed = mightBeCompressed) flatMap {
       entry =>
         entry.read(

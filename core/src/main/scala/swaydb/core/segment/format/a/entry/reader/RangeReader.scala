@@ -23,6 +23,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
+import swaydb.core.data.Persistent.Partial.Key
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
@@ -46,37 +47,112 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
                                                             valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Range] =
     valueBytesReader.read(indexReader, previous) flatMap {
       valueOffsetAndLength =>
-        KeyReader.read(
-          keyValueIdInt = keyValueId,
-          indexReader = indexReader,
-          hasAccessPositionIndex = hasAccessPositionIndex,
-          previous = previous,
-          keyValueId = KeyValueId.Range
-        ) flatMap {
-          case (accessPosition, key, isKeyPrefixCompressed) =>
-            valueCache map {
-              valueCache =>
-                val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+        keyInfo match {
+          case Some(keyInfo) =>
+            keyInfo match {
+              case Left(keySize) =>
+                KeyReader.read(
+                  keyValueIdInt = keyValueId,
+                  indexReader = indexReader,
+                  keySize = Some(keySize),
+                  previous = previous,
+                  keyValueId = KeyValueId.Range
+                ) flatMap {
+                  case (key, isKeyPrefixCompressed) =>
+                    valueCache map {
+                      valueCache =>
+                        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                Persistent.Range(
-                  key = key,
-                  valueCache = valueCache,
-                  nextIndexOffset = nextIndexOffset,
-                  nextIndexSize = nextIndexSize,
-                  indexOffset = indexOffset,
-                  valueOffset = valueOffset,
-                  valueLength = valueLength,
-                  accessPosition = accessPosition,
-                  isPrefixCompressed =
-                    isKeyPrefixCompressed ||
-                      timeReader.isPrefixCompressed ||
-                      deadlineReader.isPrefixCompressed ||
-                      valueOffsetReader.isPrefixCompressed ||
-                      valueLengthReader.isPrefixCompressed ||
-                      valueBytesReader.isPrefixCompressed
-                )
-            } getOrElse ValuesBlock.valuesBlockNotInitialised
+                        Persistent.Range(
+                          key = key,
+                          valueCache = valueCache,
+                          nextIndexOffset = nextIndexOffset,
+                          nextIndexSize = nextIndexSize,
+                          indexOffset = indexOffset,
+                          valueOffset = valueOffset,
+                          valueLength = valueLength,
+                          accessPosition = accessPosition,
+                          isPrefixCompressed =
+                            isKeyPrefixCompressed ||
+                              timeReader.isPrefixCompressed ||
+                              deadlineReader.isPrefixCompressed ||
+                              valueOffsetReader.isPrefixCompressed ||
+                              valueLengthReader.isPrefixCompressed ||
+                              valueBytesReader.isPrefixCompressed
+                        )
+                    } getOrElse ValuesBlock.valuesBlockNotInitialised
+                }
+              case Right(value) =>
+                value match {
+                  case range: Key.Range =>
+                    valueCache match {
+                      case Some(valueCache) =>
+                        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+
+                        IO.Right {
+                          Persistent.Range.parsedKey(
+                            fromKey = range.fromKey,
+                            toKey = range.toKey,
+                            valueCache = valueCache,
+                            nextIndexOffset = nextIndexOffset,
+                            nextIndexSize = nextIndexSize,
+                            indexOffset = indexOffset,
+                            valueOffset = valueOffset,
+                            valueLength = valueLength,
+                            accessPosition = accessPosition,
+                            isPrefixCompressed =
+                              timeReader.isPrefixCompressed ||
+                                deadlineReader.isPrefixCompressed ||
+                                valueOffsetReader.isPrefixCompressed ||
+                                valueLengthReader.isPrefixCompressed ||
+                                valueBytesReader.isPrefixCompressed
+                          )
+                        }
+                      case None =>
+                        ValuesBlock.valuesBlockNotInitialised
+                    }
+
+                  case key @ (_: Key.Fixed | _: Key.Group) =>
+                    IO.failed(s"Expected Range key. Actual: ${key.getClass.getSimpleName}")
+                }
+            }
+
+
+          case None =>
+            KeyReader.read(
+              keyValueIdInt = keyValueId,
+              indexReader = indexReader,
+              keySize = None,
+              previous = previous,
+              keyValueId = KeyValueId.Range
+            ) flatMap {
+              case (key, isKeyPrefixCompressed) =>
+                valueCache map {
+                  valueCache =>
+                    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                    val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+
+                    Persistent.Range(
+                      key = key,
+                      valueCache = valueCache,
+                      nextIndexOffset = nextIndexOffset,
+                      nextIndexSize = nextIndexSize,
+                      indexOffset = indexOffset,
+                      valueOffset = valueOffset,
+                      valueLength = valueLength,
+                      accessPosition = accessPosition,
+                      isPrefixCompressed =
+                        isKeyPrefixCompressed ||
+                          timeReader.isPrefixCompressed ||
+                          deadlineReader.isPrefixCompressed ||
+                          valueOffsetReader.isPrefixCompressed ||
+                          valueLengthReader.isPrefixCompressed ||
+                          valueBytesReader.isPrefixCompressed
+                    )
+                } getOrElse ValuesBlock.valuesBlockNotInitialised
+            }
         }
     }
 }

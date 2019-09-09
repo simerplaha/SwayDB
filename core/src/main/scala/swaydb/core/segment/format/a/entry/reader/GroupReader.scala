@@ -23,11 +23,11 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
+import swaydb.core.data.Persistent.Partial.Key
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
-import swaydb.data.MaxKey
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.data.slice.ReaderBase
 
 object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
 
@@ -51,37 +51,110 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
           valueOffsetAndLength =>
             valueOffsetAndLength map {
               case (valueOffset, valueLength) =>
-//                KeyReader.read(
-//                  keyValueIdInt = keyValueId,
-//                  indexReader = indexReader,
-//                  hasAccessPositionIndex = hasAccessPositionIndex,
-//                  previous = previous,
-//                  keyValueId = KeyValueId.Group
-//                ) flatMap {
-//                  case (accessPosition, key, isKeyPrefixCompressed) =>
-//                    valueCache map {
-//                      valueCache =>
-//                        Persistent.Group(
-//                          key = key,
-//                          deadline = deadline,
-//                          valueCache = valueCache,
-//                          nextIndexOffset = nextIndexOffset,
-//                          nextIndexSize = nextIndexSize,
-//                          indexOffset = indexOffset,
-//                          valueOffset = valueOffset,
-//                          valueLength = valueLength,
-//                          accessPosition = accessPosition,
-//                          isPrefixCompressed =
-//                            isKeyPrefixCompressed ||
-//                              timeReader.isPrefixCompressed ||
-//                              deadlineReader.isPrefixCompressed ||
-//                              valueOffsetReader.isPrefixCompressed ||
-//                              valueLengthReader.isPrefixCompressed ||
-//                              valueBytesReader.isPrefixCompressed
-//                        )
-//                    } getOrElse ValuesBlock.valuesBlockNotInitialised
-//                }
-              ???
+                keyInfo match {
+                  case Some(keyInfo) =>
+                    keyInfo match {
+                      case Left(keySize) =>
+                        KeyReader.read(
+                          keyValueIdInt = keyValueId,
+                          indexReader = indexReader,
+                          keySize = Some(keySize),
+                          previous = previous,
+                          keyValueId = KeyValueId.Group
+                        ) flatMap {
+                          case (key, isKeyPrefixCompressed) =>
+                            valueCache match {
+                              case Some(valueCache) =>
+                                Persistent.Group(
+                                  key = key,
+                                  deadline = deadline,
+                                  valueCache = valueCache,
+                                  nextIndexOffset = nextIndexOffset,
+                                  nextIndexSize = nextIndexSize,
+                                  indexOffset = indexOffset,
+                                  valueOffset = valueOffset,
+                                  valueLength = valueLength,
+                                  accessPosition = accessPosition,
+                                  isPrefixCompressed =
+                                    isKeyPrefixCompressed ||
+                                      timeReader.isPrefixCompressed ||
+                                      deadlineReader.isPrefixCompressed ||
+                                      valueOffsetReader.isPrefixCompressed ||
+                                      valueLengthReader.isPrefixCompressed ||
+                                      valueBytesReader.isPrefixCompressed
+                                )
+
+                              case None =>
+                                ValuesBlock.valuesBlockNotInitialised
+                            }
+                        }
+
+                      case Right(key) =>
+                        valueCache match {
+                          case Some(valueCache) =>
+                            key match {
+                              case group: Key.Group =>
+                                Persistent.Group(
+                                  minKey = group.minKey,
+                                  maxKey = group.maxKey,
+                                  deadline = deadline,
+                                  valueCache = valueCache,
+                                  nextIndexOffset = nextIndexOffset,
+                                  nextIndexSize = nextIndexSize,
+                                  indexOffset = indexOffset,
+                                  valueOffset = valueOffset,
+                                  valueLength = valueLength,
+                                  accessPosition = accessPosition,
+                                  isPrefixCompressed =
+                                    timeReader.isPrefixCompressed ||
+                                      deadlineReader.isPrefixCompressed ||
+                                      valueOffsetReader.isPrefixCompressed ||
+                                      valueLengthReader.isPrefixCompressed ||
+                                      valueBytesReader.isPrefixCompressed
+                                )
+
+                              case key @ (_: Key.Fixed | _: Key.Range) =>
+                                IO.failed(s"Expected Group key. Actual: ${key.getClass.getSimpleName}")
+                            }
+                          case None =>
+                            ValuesBlock.valuesBlockNotInitialised
+                        }
+                    }
+
+                  case None =>
+                    KeyReader.read(
+                      keyValueIdInt = keyValueId,
+                      indexReader = indexReader,
+                      keySize = None,
+                      previous = previous,
+                      keyValueId = KeyValueId.Group
+                    ) flatMap {
+                      case (key, isKeyPrefixCompressed) =>
+                        valueCache match {
+                          case Some(valueCache) =>
+                            Persistent.Group(
+                              key = key,
+                              deadline = deadline,
+                              valueCache = valueCache,
+                              nextIndexOffset = nextIndexOffset,
+                              nextIndexSize = nextIndexSize,
+                              indexOffset = indexOffset,
+                              valueOffset = valueOffset,
+                              valueLength = valueLength,
+                              accessPosition = accessPosition,
+                              isPrefixCompressed =
+                                isKeyPrefixCompressed ||
+                                  timeReader.isPrefixCompressed ||
+                                  deadlineReader.isPrefixCompressed ||
+                                  valueOffsetReader.isPrefixCompressed ||
+                                  valueLengthReader.isPrefixCompressed ||
+                                  valueBytesReader.isPrefixCompressed
+                            )
+                          case None =>
+                            ValuesBlock.valuesBlockNotInitialised
+                        }
+                    }
+                }
             } getOrElse ValuesBlock.valuesBlockNotInitialised
         }
     }
