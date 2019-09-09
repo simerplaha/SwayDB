@@ -286,11 +286,13 @@ private[core] object SortedIndexBlock extends LazyLogging {
     }
 
   private def readNextKeyValue(previous: Persistent,
+                               fullRead: Boolean,
                                indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, Persistent.Partial] =
     readNextKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
       overwriteNextIndexOffset = None,
+      fullRead = fullRead,
       indexReader = indexReader moveTo previous.nextIndexOffset,
       valuesReader = valuesReader,
       previous = Some(previous)
@@ -298,10 +300,12 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   private def readNextKeyValue(fromPosition: Int,
                                overwriteNextIndexOffset: Option[Int],
+                               fullRead: Boolean,
                                indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, Persistent.Partial] =
     readNextKeyValue(
       indexEntrySizeMayBe = None,
+      fullRead = fullRead,
       overwriteNextIndexOffset = overwriteNextIndexOffset,
       indexReader = indexReader moveTo fromPosition,
       valuesReader = valuesReader,
@@ -319,6 +323,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
    */
   private def readNextKeyValue(indexEntrySizeMayBe: Option[Int],
                                overwriteNextIndexOffset: Option[Int],
+                               fullRead: Boolean,
                                indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                                previous: Option[Persistent]): IO[swaydb.Error.Segment, Persistent.Partial] =
@@ -366,15 +371,29 @@ private[core] object SortedIndexBlock extends LazyLogging {
       val indexEntry = indexEntryBytesAndNextIndexEntrySize take indexSize
 
       if (indexReader.block.enablePartialRead)
-        SortedIndexEntryReader.partialRead(
-          indexEntry = indexEntry,
-          block = indexReader.block,
-          indexOffset = positionBeforeRead,
-          nextIndexOffset = nextIndexOffset,
-          nextIndexSize = nextIndexSize,
-          valuesReader = valuesReader,
-          previous = previous
-        )
+        if (fullRead)
+          SortedIndexEntryReader.fullReadFromPartial(
+            indexEntry = indexEntry,
+            mightBeCompressed = indexReader.block.hasPrefixCompression,
+            valuesReader = valuesReader,
+            indexOffset = positionBeforeRead,
+            nextIndexOffset = nextIndexOffset,
+            nextIndexSize = nextIndexSize,
+            hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
+            isNormalised = indexReader.block.hasNormalisedBytes,
+            isPartialReadEnabled = indexReader.block.enablePartialRead,
+            previous = previous
+          )
+        else
+          SortedIndexEntryReader.partialRead(
+            indexEntry = indexEntry,
+            block = indexReader.block,
+            indexOffset = positionBeforeRead,
+            nextIndexOffset = nextIndexOffset,
+            nextIndexSize = nextIndexSize,
+            valuesReader = valuesReader,
+            previous = previous
+          )
       else
         SortedIndexEntryReader.fullRead(
           indexEntry = indexEntry,
@@ -384,10 +403,26 @@ private[core] object SortedIndexBlock extends LazyLogging {
           nextIndexOffset = nextIndexOffset,
           nextIndexSize = nextIndexSize,
           hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
-          isNormalised = !indexReader.block.isPreNormalised && indexReader.block.normaliseForBinarySearch,
+          isNormalised = indexReader.block.hasNormalisedBytes,
           isPartialReadEnabled = indexReader.block.enablePartialRead,
           previous = previous
         )
+
+      //      IO.Right {
+      //        Persistent.Put(
+      //          _key = indexEntry.take(indexSize).takeRight(4),
+      //          deadline = None,
+      //          valueCache = null,
+      //          _time = Time.empty,
+      //          nextIndexOffset = nextIndexOffset,
+      //          nextIndexSize = nextIndexSize,
+      //          indexOffset = positionBeforeRead,
+      //          valueOffset = 0,
+      //          valueLength = 0,
+      //          accessPosition = 0,
+      //          isPrefixCompressed = false
+      //        )
+      //      }
     } catch {
       case exception: Exception =>
         IO.failed(exception)
@@ -417,6 +452,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
             indexEntrySizeMayBe = nextIndexSize,
             indexReader = readSortedIndexReader,
             overwriteNextIndexOffset = None,
+            fullRead = true,
             valuesReader = valuesReader,
             previous = previousMayBe
           ) flatMap {
@@ -435,6 +471,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   def search(key: Slice[Byte],
              startFrom: Option[Persistent.Partial],
+             fullRead: Boolean,
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
   //    if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
@@ -443,12 +480,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
     search(
       matcher = KeyMatcher.Get(key),
       startFrom = startFrom,
+      fullRead = fullRead,
       indexReader = sortedIndexReader,
       valuesReader = valuesReader
     )
 
   def searchSeekOne(key: Slice[Byte],
                     start: Persistent.Partial,
+                    fullRead: Boolean,
                     indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                     valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
   //    if (order.gt(start.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
@@ -457,12 +496,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
     search(
       matcher = KeyMatcher.Get.SeekOne(key),
       startFrom = Some(start),
+      fullRead = fullRead,
       indexReader = indexReader,
       valuesReader = valuesReader
     )
 
   def searchHigher(key: Slice[Byte],
                    startFrom: Option[Persistent.Partial],
+                   fullRead: Boolean,
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
   //    if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
@@ -471,12 +512,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
     search(
       matcher = KeyMatcher.Higher(key),
       startFrom = startFrom,
+      fullRead = fullRead,
       indexReader = sortedIndexReader,
       valuesReader = valuesReader
     )
 
   def searchHigherSeekOne(key: Slice[Byte],
                           startFrom: Persistent.Partial,
+                          fullRead: Boolean,
                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                           valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
   //    if (order.gt(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
@@ -485,12 +528,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
     search(
       matcher = KeyMatcher.Higher.SeekOne(key),
       startFrom = Some(startFrom),
+      fullRead = fullRead,
       indexReader = sortedIndexReader,
       valuesReader = valuesReader
     )
 
   def searchLower(key: Slice[Byte],
                   startFrom: Option[Persistent.Partial],
+                  fullRead: Boolean,
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
   //    if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
@@ -499,12 +544,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
     search(
       matcher = KeyMatcher.Lower(key),
       startFrom = startFrom,
+      fullRead = fullRead,
       indexReader = sortedIndexReader,
       valuesReader = valuesReader
     )
 
   private def search(matcher: KeyMatcher,
                      startFrom: Option[Persistent.Partial],
+                     fullRead: Boolean,
                      indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                      valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
     startFrom match {
@@ -512,6 +559,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         matchOrNextAndPersistent(
           previous = startFrom,
           next = None,
+          fullRead = fullRead,
           matcher = matcher,
           indexReader = indexReader,
           valuesReader = valuesReader
@@ -522,6 +570,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         readNextKeyValue(
           fromPosition = 0,
           indexReader = indexReader,
+          fullRead = fullRead,
           overwriteNextIndexOffset = None,
           valuesReader = valuesReader
         ) flatMap {
@@ -529,6 +578,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
             matchOrNextAndPersistent(
               previous = keyValue,
               next = None,
+              fullRead = fullRead,
               matcher = matcher,
               indexReader = indexReader,
               valuesReader = valuesReader
@@ -538,11 +588,13 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   def findAndMatchOrNextPersistent(matcher: KeyMatcher,
                                    fromOffset: Int,
+                                   fullRead: Boolean,
                                    indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
     readNextKeyValue(
       fromPosition = fromOffset,
       indexReader = indexReader,
+      fullRead = fullRead,
       overwriteNextIndexOffset = None,
       valuesReader = valuesReader
     ) flatMap {
@@ -551,6 +603,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         matchOrNextAndPersistent(
           previous = persistent,
           next = None,
+          fullRead = fullRead,
           matcher = matcher,
           indexReader = indexReader,
           valuesReader = valuesReader
@@ -567,12 +620,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
    */
   def parseAndMatch(matcher: KeyMatcher,
                     fromOffset: Int,
+                    fullRead: Boolean,
                     overwriteNextIndexOffset: Option[Int],
                     indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                     valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
     readNextKeyValue(
       fromPosition = fromOffset,
       indexReader = indexReader,
+      fullRead = fullRead,
       overwriteNextIndexOffset = overwriteNextIndexOffset,
       valuesReader = valuesReader
     ) map {
@@ -592,11 +647,13 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   def findAndMatchOrNextMatch(matcher: KeyMatcher,
                               fromOffset: Int,
+                              fullRead: Boolean,
                               sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, KeyMatcher.Result] =
     readNextKeyValue(
       fromPosition = fromOffset,
       indexReader = sortedIndex,
+      fullRead = fullRead,
       overwriteNextIndexOffset = None,
       valuesReader = valuesReader
     ) flatMap {
@@ -604,6 +661,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         matchOrNext(
           previous = persistent,
           next = None,
+          fullRead = fullRead,
           matcher = matcher,
           indexReader = sortedIndex,
           valuesReader = valuesReader
@@ -613,6 +671,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   @tailrec
   def matchOrNext(previous: Persistent.Partial,
                   next: Option[Persistent.Partial],
+                  fullRead: Boolean,
                   matcher: KeyMatcher,
                   indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, KeyMatcher.Result.Complete] =
@@ -630,6 +689,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           case IO.Right(readFrom) =>
             readNextKeyValue(
               previous = readFrom,
+              fullRead = fullRead,
               indexReader = indexReader,
               valuesReader = valuesReader
             ) match {
@@ -638,6 +698,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                   previous = readFrom,
                   next = Some(nextNextKeyValue),
                   matcher = matcher,
+                  fullRead = fullRead,
                   indexReader = indexReader,
                   valuesReader = valuesReader
                 )
@@ -654,12 +715,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def matchOrNextAndPersistent(previous: Persistent.Partial,
                                next: Option[Persistent.Partial],
                                matcher: KeyMatcher,
+                               fullRead: Boolean,
                                indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
     matchOrNext(
       previous = previous,
       next = next,
       matcher = matcher,
+      fullRead = fullRead,
       indexReader = indexReader,
       valuesReader = valuesReader
     ) map {
@@ -690,4 +753,7 @@ private[core] case class SortedIndexBlock(offset: SortedIndexBlock.Offset,
                                           compressionInfo: Option[Block.CompressionInfo]) extends Block[SortedIndexBlock.Offset] {
   val isBinarySearchable =
     !hasPrefixCompression && (normaliseForBinarySearch || isPreNormalised)
+
+  val hasNormalisedBytes =
+    !isPreNormalised && normaliseForBinarySearch
 }

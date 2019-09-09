@@ -46,6 +46,7 @@ private[core] object SegmentSearcher extends LazyLogging {
           key = key,
           start = startFrom,
           indexReader = sortedIndexReader,
+          fullRead = true,
           valuesReader = valuesReader
         ) flatMap {
           found =>
@@ -157,6 +158,7 @@ private[core] object SegmentSearcher extends LazyLogging {
               SortedIndexBlock.search(
                 key = key,
                 startFrom = lower orElse start,
+                fullRead = false,
                 sortedIndexReader = sortedIndexReader,
                 valuesReader = valuesReader
               )
@@ -176,6 +178,7 @@ private[core] object SegmentSearcher extends LazyLogging {
           key = key,
           startFrom = start,
           sortedIndexReader = sortedIndexReader,
+          fullRead = false,
           valuesReader = valuesReader
         ) flatMap {
           found =>
@@ -239,6 +242,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                   SortedIndexBlock.searchHigher(
                     key = key,
                     startFrom = lower orElse start,
+                    fullRead = false,
                     sortedIndexReader = sortedIndexReader,
                     valuesReader = valuesReader
                   )
@@ -252,6 +256,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                     SortedIndexBlock.searchHigher(
                       key = key,
                       startFrom = lower orElse start,
+                      fullRead = false,
                       sortedIndexReader = sortedIndexReader,
                       valuesReader = valuesReader
                     )
@@ -285,6 +290,7 @@ private[core] object SegmentSearcher extends LazyLogging {
               SortedIndexBlock.searchLower(
                 key = key,
                 startFrom = Some(lower),
+                fullRead = false,
                 sortedIndexReader = sortedIndexReader,
                 valuesReader = valuesReader
               )
@@ -297,6 +303,7 @@ private[core] object SegmentSearcher extends LazyLogging {
               SortedIndexBlock.searchLower(
                 key = key,
                 startFrom = start,
+                fullRead = false,
                 sortedIndexReader = sortedIndexReader,
                 valuesReader = valuesReader
               )

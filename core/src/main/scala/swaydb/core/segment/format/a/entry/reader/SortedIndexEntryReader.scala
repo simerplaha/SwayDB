@@ -23,11 +23,13 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.cache.Cache
 import swaydb.core.data.{Persistent, Transient}
+import swaydb.core.group.compression.GroupKeyCompressor
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
+import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice}
 
 trait SortedIndexEntryReader[E] {
@@ -222,7 +224,7 @@ object SortedIndexEntryReader {
                             previous = previous
                           )
                         else
-                          IO.failed(s"Invalid preview search entryId: $id")
+                          IO.failed(s"Invalid partialRead entryId: $id")
                     }
                 }
             }
@@ -402,6 +404,155 @@ object SortedIndexEntryReader {
                   )
                 else
                   IO.failed(swaydb.Exception.InvalidKeyValueId(keyValueId))
+            }
+        }
+    }
+  }
+
+  def fullReadFromPartial(indexEntry: Slice[Byte],
+                          mightBeCompressed: Boolean,
+                          valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                          indexOffset: Int,
+                          nextIndexOffset: Int,
+                          nextIndexSize: Int,
+                          hasAccessPositionIndex: Boolean,
+                          isNormalised: Boolean,
+                          isPartialReadEnabled: Boolean,
+                          previous: Option[Persistent]): IO[swaydb.Error.Segment, Persistent] = {
+    //check if de-normalising is required.
+    val reader = Reader[swaydb.Error.Segment](indexEntry)
+
+    val accessPosition =
+      if (hasAccessPositionIndex)
+        reader.readIntUnsigned()
+      else
+        IO.zero
+
+    accessPosition flatMap {
+      accessPosition =>
+        reader.readIntUnsigned() flatMap {
+          keySize =>
+            reader.read(keySize) flatMap {
+              key =>
+                reader.get() flatMap {
+                  id =>
+                    reader.readIntUnsigned() flatMap {
+                      baseId =>
+                        if (id == Transient.Put.id)
+                          SortedIndexEntryReader.parse(
+                            baseId = baseId,
+                            keyValueId = baseId,
+                            accessPosition = accessPosition,
+                            keyInfo = Some(Right(new Persistent.Partial.Key.Fixed(key))),
+                            mightBeCompressed = mightBeCompressed,
+                            indexReader = reader,
+                            valuesReader = valuesReader,
+                            indexOffset = indexOffset,
+                            nextIndexOffset = nextIndexOffset,
+                            nextIndexSize = nextIndexSize,
+                            previous = previous,
+                            entryReader = PutReader
+                          )
+                        else if (id == Transient.Remove.id)
+                          SortedIndexEntryReader.parse(
+                            baseId = baseId,
+                            keyValueId = baseId,
+                            accessPosition = accessPosition,
+                            keyInfo = Some(Right(new Persistent.Partial.Key.Fixed(key))),
+                            mightBeCompressed = mightBeCompressed,
+                            indexReader = reader,
+                            valuesReader = valuesReader,
+                            indexOffset = indexOffset,
+                            nextIndexOffset = nextIndexOffset,
+                            nextIndexSize = nextIndexSize,
+                            previous = previous,
+                            entryReader = RemoveReader
+                          )
+                        else if (id == Transient.Update.id)
+                          SortedIndexEntryReader.parse(
+                            baseId = baseId,
+                            keyValueId = baseId,
+                            accessPosition = accessPosition,
+                            keyInfo = Some(Right(new Persistent.Partial.Key.Fixed(key))),
+                            mightBeCompressed = mightBeCompressed,
+                            indexReader = reader,
+                            valuesReader = valuesReader,
+                            indexOffset = indexOffset,
+                            nextIndexOffset = nextIndexOffset,
+                            nextIndexSize = nextIndexSize,
+                            previous = previous,
+                            entryReader = UpdateReader
+                          )
+                        else if (id == Transient.PendingApply.id)
+                          SortedIndexEntryReader.parse(
+                            baseId = baseId,
+                            keyValueId = baseId,
+                            accessPosition = accessPosition,
+                            keyInfo = Some(Right(new Persistent.Partial.Key.Fixed(key))),
+                            mightBeCompressed = mightBeCompressed,
+                            indexReader = reader,
+                            valuesReader = valuesReader,
+                            indexOffset = indexOffset,
+                            nextIndexOffset = nextIndexOffset,
+                            nextIndexSize = nextIndexSize,
+                            previous = previous,
+                            entryReader = PendingApplyReader
+                          )
+                        else if (id == Transient.Function.id)
+                          SortedIndexEntryReader.parse(
+                            baseId = baseId,
+                            keyValueId = baseId,
+                            accessPosition = accessPosition,
+                            keyInfo = Some(Right(new Persistent.Partial.Key.Fixed(key))),
+                            mightBeCompressed = mightBeCompressed,
+                            indexReader = reader,
+                            valuesReader = valuesReader,
+                            indexOffset = indexOffset,
+                            nextIndexOffset = nextIndexOffset,
+                            nextIndexSize = nextIndexSize,
+                            previous = previous,
+                            entryReader = FunctionReader
+                          )
+                        else if (id == Transient.Range.id)
+                          Bytes.decompressJoin(key) flatMap {
+                            case (fromKey, toKey) =>
+                              SortedIndexEntryReader.parse(
+                                baseId = baseId,
+                                keyValueId = baseId,
+                                accessPosition = accessPosition,
+                                keyInfo = Some(Right(new Persistent.Partial.Key.Range(fromKey, toKey))),
+                                mightBeCompressed = mightBeCompressed,
+                                indexReader = reader,
+                                valuesReader = valuesReader,
+                                indexOffset = indexOffset,
+                                nextIndexOffset = nextIndexOffset,
+                                nextIndexSize = nextIndexSize,
+                                previous = previous,
+                                entryReader = RangeReader
+                              )
+                          }
+                        else if (id == Transient.Group.id)
+                          GroupKeyCompressor.decompress(key) flatMap {
+                            case (minKey, maxKey) =>
+                              SortedIndexEntryReader.parse(
+                                baseId = baseId,
+                                keyValueId = baseId,
+                                accessPosition = accessPosition,
+                                keyInfo = Some(Right(new Persistent.Partial.Key.Group(minKey, maxKey))),
+                                mightBeCompressed = mightBeCompressed,
+                                indexReader = reader,
+                                valuesReader = valuesReader,
+                                indexOffset = indexOffset,
+                                nextIndexOffset = nextIndexOffset,
+                                nextIndexSize = nextIndexSize,
+                                previous = previous,
+                                entryReader = GroupReader
+                              )
+                          }
+                        else
+                          IO.failed(s"Invalid fullReadFromPartial entryId: $id")
+                    }
+                }
             }
         }
     }

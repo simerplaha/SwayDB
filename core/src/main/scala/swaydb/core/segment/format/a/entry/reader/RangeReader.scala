@@ -59,8 +59,8 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
                   keyValueId = KeyValueId.Range
                 ) flatMap {
                   case (key, isKeyPrefixCompressed) =>
-                    valueCache map {
-                      valueCache =>
+                    valueCache match {
+                      case Some(valueCache) =>
                         val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                         val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
@@ -81,7 +81,9 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
                               valueLengthReader.isPrefixCompressed ||
                               valueBytesReader.isPrefixCompressed
                         )
-                    } getOrElse ValuesBlock.valuesBlockNotInitialised
+                      case None =>
+                        ValuesBlock.valuesBlockNotInitialised
+                    }
                 }
               case Right(value) =>
                 value match {
@@ -129,8 +131,8 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
               keyValueId = KeyValueId.Range
             ) flatMap {
               case (key, isKeyPrefixCompressed) =>
-                valueCache map {
-                  valueCache =>
+                valueCache match {
+                  case Some(valueCache) =>
                     val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                     val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
@@ -151,7 +153,9 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
                           valueLengthReader.isPrefixCompressed ||
                           valueBytesReader.isPrefixCompressed
                     )
-                } getOrElse ValuesBlock.valuesBlockNotInitialised
+                  case None =>
+                    ValuesBlock.valuesBlockNotInitialised
+                }
             }
         }
     }

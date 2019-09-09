@@ -223,6 +223,7 @@ private[core] class SegmentCache(id: String,
                       SortedIndexBlock.search(
                         key = key,
                         startFrom = None,
+                        fullRead = true,
                         sortedIndexReader = sortedIndexReader,
                         valuesReader = valuesReader
                       ) flatMap {

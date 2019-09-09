@@ -84,6 +84,7 @@ private[block] object BinarySearchContext {
             sortedIndexOffsetValue =>
               SortedIndexBlock.findAndMatchOrNextMatch(
                 matcher = matcher,
+                fullRead = false,
                 fromOffset = sortedIndexOffsetValue,
                 sortedIndex = sortedIndex,
                 valuesReader = values
@@ -126,6 +127,7 @@ private[block] object BinarySearchContext {
       override def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result] =
         SortedIndexBlock.findAndMatchOrNextMatch(
           matcher = matcher,
+          fullRead = false,
           fromOffset = offset,
           sortedIndex = sortedIndex,
           valuesReader = values
