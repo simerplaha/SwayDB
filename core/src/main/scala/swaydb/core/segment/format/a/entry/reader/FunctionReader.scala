@@ -66,7 +66,7 @@ object FunctionReader extends SortedIndexEntryReader[Persistent.Function] {
 
                         valueCache match {
                           case Some(valueCache) =>
-                            IO {
+                            IO.Right {
                               Persistent.Function.fromCache(
                                 key = key,
                                 valueCache = valueCache,
@@ -99,7 +99,7 @@ object FunctionReader extends SortedIndexEntryReader[Persistent.Function] {
 
                         valueCache match {
                           case Some(valueCache) =>
-                            IO {
+                            IO.Right {
                               Persistent.Function.fromCache(
                                 key = fixed.key,
                                 valueCache = valueCache,
@@ -144,7 +144,7 @@ object FunctionReader extends SortedIndexEntryReader[Persistent.Function] {
 
                     valueCache match {
                       case Some(valueCache) =>
-                        IO {
+                        IO.Right {
                           Persistent.Function.fromCache(
                             key = key,
                             valueCache = valueCache,
