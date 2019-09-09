@@ -636,6 +636,11 @@ object CommonAssertions {
       actual.toMemory shouldBe expected.toMemory
   }
 
+  implicit class PersistentPartialReadOnlyImplicits(actual: Persistent.Partial) {
+    def shouldBe(expected: KeyValue) =
+      actual.toPersistent.get.toMemory shouldBe expected.toMemory
+  }
+
   implicit class SegmentImplicits(actual: Segment) {
 
     def shouldBe(expected: Segment): Unit = {
@@ -776,7 +781,7 @@ object CommonAssertions {
           valuesReader = blocks.valuesReader,
           hasRange = blocks.footer.hasRange,
           threadState = None
-        ).runRandomIO.right.value.value shouldBe keyValue
+        ).runRandomIO.right.value.value.toPersistent.get shouldBe keyValue
     }
   }
 
@@ -1180,7 +1185,7 @@ object CommonAssertions {
                   binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
                   sortedIndexReader = blocks.sortedIndexReader,
                   valuesReader = blocks.valuesReader
-                ).runRandomIO.right.value shouldBe range
+                ).runRandomIO.right.value.value shouldBe range
             }
 
           case _ =>
@@ -1219,7 +1224,7 @@ object CommonAssertions {
                   binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
                   sortedIndexReader = blocks.sortedIndexReader,
                   valuesReader = blocks.valuesReader
-                ).runRandomIO.right.value shouldBe range
+                ).runRandomIO.right.value.value shouldBe range
             }
 
           case _ =>

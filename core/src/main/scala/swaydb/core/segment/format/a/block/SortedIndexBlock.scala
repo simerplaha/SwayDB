@@ -363,7 +363,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       }
 
       //take only the bytes required for this in entry and submit it for parsing/reading.
-      val indexEntry = indexEntryBytesAndNextIndexEntrySize.take(indexSize)
+      val indexEntry = indexEntryBytesAndNextIndexEntrySize take indexSize
 
       if (indexReader.block.enablePartialRead)
         SortedIndexEntryReader.partialRead(
@@ -388,22 +388,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
           isPartialReadEnabled = indexReader.block.enablePartialRead,
           previous = previous
         )
-
-      //      IO {
-      //        Persistent.Put(
-      //          _key = indexEntryBytesAndNextIndexEntrySize.take(indexSize).takeRight(4),
-      //          deadline = None,
-      //          valueCache = null,
-      //          _time = Time.empty,
-      //          nextIndexOffset = nextIndexOffset,
-      //          nextIndexSize = nextIndexSize,
-      //          indexOffset = positionBeforeRead,
-      //          valueOffset = 0,
-      //          valueLength = 0,
-      //          accessPosition = 0,
-      //          isPrefixCompressed = false
-      //        )
-      //      }
     } catch {
       case exception: Exception =>
         IO.failed(exception)

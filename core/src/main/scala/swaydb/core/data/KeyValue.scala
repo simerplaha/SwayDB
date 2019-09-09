@@ -1414,6 +1414,18 @@ private[core] object Persistent {
       def toPersistent: IO[Error.Segment, Persistent.Fixed]
     }
 
+    sealed trait RangeT extends Persistent.Partial {
+      def fromKey: Slice[Byte]
+      def toKey: Slice[Byte]
+      def toPersistent: IO[Error.Segment, Persistent.Range]
+    }
+
+    sealed trait GroupT extends Persistent.Partial {
+      def minKey: Slice[Byte]
+      def maxKey: MaxKey[Slice[Byte]]
+      def toPersistent: IO[Error.Segment, Persistent.Group]
+    }
+
     class Remove(val key: Slice[Byte],
                  val indexOffset: Int,
                  val nextIndexOffset: Int,
@@ -1585,7 +1597,7 @@ private[core] object Persistent {
                 indexBytes: Slice[Byte],
                 block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent]) extends Persistent.Partial {
+                previous: Option[Persistent]) extends Partial.RangeT {
 
       def key = fromKey
 
@@ -1642,7 +1654,7 @@ private[core] object Persistent {
                 indexBytes: Slice[Byte],
                 block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent]) extends Persistent.Partial {
+                previous: Option[Persistent]) extends Partial.GroupT {
       def key = minKey
 
       def isPrefixCompressed: Boolean = block.hasPrefixCompression
@@ -1672,7 +1684,7 @@ private[core] object Persistent {
       toMemory() map (Some(_))
   }
 
-  sealed trait Fixed extends Persistent.SegmentResponse with KeyValue.ReadOnly.Fixed
+  sealed trait Fixed extends Persistent.SegmentResponse with KeyValue.ReadOnly.Fixed with Partial.Fixed
 
   case class Remove(private var _key: Slice[Byte],
                     deadline: Option[Deadline],
@@ -1724,7 +1736,7 @@ private[core] object Persistent {
     override def toRemoveValue(): Value.Remove =
       Value.Remove(deadline, time)
 
-    override def toPersistent: IO[Error.Segment, Persistent] =
+    override def toPersistent: IO[Error.Segment, Persistent.Remove] =
       IO.Right(this)
   }
 
@@ -1772,7 +1784,7 @@ private[core] object Persistent {
                  valueOffset: Int,
                  valueLength: Int,
                  accessPosition: Int,
-                 isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Put with Partial.Fixed {
+                 isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Put {
     override def unsliceKeys: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
@@ -2210,7 +2222,7 @@ private[core] object Persistent {
                            valueOffset: Int,
                            valueLength: Int,
                            accessPosition: Int,
-                           isPrefixCompressed: Boolean) extends Persistent.SegmentResponse with KeyValue.ReadOnly.Range {
+                           isPrefixCompressed: Boolean) extends Persistent.SegmentResponse with KeyValue.ReadOnly.Range with Partial.RangeT {
 
     def fromKey = _fromKey
 
@@ -2344,7 +2356,7 @@ private[core] object Persistent {
                    valueLength: Int,
                    accessPosition: Int,
                    deadline: Option[Deadline],
-                   isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group {
+                   isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group with Partial.GroupT {
 
     def areAllCachesEmpty: Boolean =
       segmentCache.get() forall (_.areAllCachesEmpty)

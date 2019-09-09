@@ -164,8 +164,8 @@ private[core] object SortedIndexEntryWriter {
     writeResult
   }
 
-  //compressedFormat  - indexSize|accessIndex?|keySize?(if norm) |keyValueId|valueOffset|valueLength|deadline|key|normalisedBytes?
-  //partialReadFormat - indexSize|accessIndex?|keySize|key|typeId|baseId    |valueOffset|valueLength|deadline|    normalisedBytes?
+  //default format - indexSize|accessIndex?|keySize?(if norm) |keyValueId|valueOffset|valueLength|deadline|key|normalisedBytes?
+  //partial format - indexSize|accessIndex?|keySize|key|typeId|baseId    |valueOffset|valueLength|deadline|    normalisedBytes?
 
   def close[T <: Transient](normaliseToSize: Option[Int],
                             writeResult: WriteResult,
@@ -186,15 +186,13 @@ private[core] object SortedIndexEntryWriter {
               accessPosition foreach bytes.addIntUnsigned
               bytes addIntUnsigned keySize
               bytes addAll current.mergedKey
-              bytes addIntUnsigned current.id
+              bytes add current.id
               bytes addAll writeResult.indexBytes
-              bytes
             } else {
               bytes addIntUnsigned indexSize
               accessPosition foreach bytes.addIntUnsigned
               bytes addIntUnsigned keySize
               bytes addAll writeResult.indexBytes
-              bytes
             }
 
           normalisedBytes moveWritePosition toSize
@@ -202,16 +200,16 @@ private[core] object SortedIndexEntryWriter {
 
         case None =>
           if (current.sortedIndexConfig.enablePartialRead) {
-            val indexSize = writeResult.indexBytes.size + accessPosition.map(Bytes.sizeOf).getOrElse(0) + Bytes.sizeOf(keySize) + ByteSizeOf.byte
+            val indexSize = accessPosition.map(Bytes.sizeOf).getOrElse(0) + Bytes.sizeOf(keySize) + current.mergedKey.size + ByteSizeOf.byte + writeResult.indexBytes.size
             val bytes = Slice.create[Byte](Bytes.sizeOf(indexSize) + indexSize)
             bytes addIntUnsigned indexSize
             accessPosition foreach bytes.addIntUnsigned
-            bytes addIntUnsigned keySize
+            bytes addIntUnsigned current.mergedKey.size
             bytes addAll current.mergedKey
-            bytes addIntUnsigned current.id
+            bytes add current.id
             bytes addAll writeResult.indexBytes
           } else {
-            val indexSize = writeResult.indexBytes.size + accessPosition.map(Bytes.sizeOf).getOrElse(0) + Bytes.sizeOf(keySize)
+            val indexSize = writeResult.indexBytes.size + accessPosition.map(Bytes.sizeOf).getOrElse(0)
             val bytes = Slice.create[Byte](Bytes.sizeOf(indexSize) + indexSize)
             bytes addIntUnsigned indexSize
             accessPosition foreach bytes.addIntUnsigned
@@ -219,6 +217,7 @@ private[core] object SortedIndexEntryWriter {
           }
       }
 
+    assert(closedBytes.isOriginalFullSlice)
     writeResult setIndexBytes closedBytes
   }
 

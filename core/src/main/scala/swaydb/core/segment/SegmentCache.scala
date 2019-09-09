@@ -151,6 +151,15 @@ private[core] class SegmentCache(id: String,
               hasRange = hasRange,
               threadState = Some(threadState)
             ) flatMap {
+
+              case Some(response: Persistent.SegmentResponse) =>
+                addToCache(response)
+                IO.Right(Some(response))
+
+              case Some(group: Persistent.Group) =>
+                addToCache(group)
+                group.segment.get(key)
+
               case Some(fixed: Persistent.Partial.Fixed) =>
                 fixed.toPersistent map {
                   fixed =>
@@ -171,14 +180,6 @@ private[core] class SegmentCache(id: String,
                     addToCache(group)
                     group.segment.get(key)
                 }
-
-              case Some(response: Persistent.SegmentResponse) =>
-                addToCache(response)
-                IO.Right(Some(response))
-
-              case Some(group: Persistent.Group) =>
-                addToCache(group)
-                group.segment.get(key)
 
               case None =>
                 IO.none
@@ -225,6 +226,14 @@ private[core] class SegmentCache(id: String,
                         sortedIndexReader = sortedIndexReader,
                         valuesReader = valuesReader
                       ) flatMap {
+                        case Some(response: Persistent.SegmentResponse) =>
+                          addToCache(response)
+                          IO.Right(Some(response))
+
+                        case Some(group: Persistent.Group) =>
+                          addToCache(group)
+                          group.segment.get(key)
+
                         case Some(fixed: Persistent.Partial.Fixed) =>
                           fixed.toPersistent map {
                             persistent =>
@@ -245,14 +254,6 @@ private[core] class SegmentCache(id: String,
                               addToCache(group)
                               group.segment.get(key)
                           }
-
-                        case Some(response: Persistent.SegmentResponse) =>
-                          addToCache(response)
-                          IO.Right(Some(response))
-
-                        case Some(group: Persistent.Group) =>
-                          addToCache(group)
-                          group.segment.get(key)
 
                         case None =>
                           IO.none
@@ -314,6 +315,27 @@ private[core] class SegmentCache(id: String,
               case Some(group: Persistent.Group) =>
                 addToCache(group)
                 group.segment.lower(key)
+
+              case Some(fixed: Persistent.Partial.Fixed) =>
+                fixed.toPersistent map {
+                  persistent =>
+                    addToCache(persistent)
+                    Some(persistent)
+                }
+
+              case Some(fixed: Persistent.Partial.Range) =>
+                fixed.toPersistent map {
+                  range =>
+                    addToCache(range)
+                    Some(range)
+                }
+
+              case Some(fixed: Persistent.Partial.Group) =>
+                fixed.toPersistent flatMap {
+                  group =>
+                    addToCache(group)
+                    group.segment.lower(key)
+                }
 
               case None =>
                 IO.none
@@ -476,6 +498,27 @@ private[core] class SegmentCache(id: String,
                       case Some(group: Persistent.Group) =>
                         addToCache(group)
                         group.segment.higher(key)
+
+                      case Some(fixed: Persistent.Partial.Fixed) =>
+                        fixed.toPersistent map {
+                          persistent =>
+                            addToCache(persistent)
+                            Some(persistent)
+                        }
+
+                      case Some(fixed: Persistent.Partial.Range) =>
+                        fixed.toPersistent map {
+                          range =>
+                            addToCache(range)
+                            Some(range)
+                        }
+
+                      case Some(fixed: Persistent.Partial.Group) =>
+                        fixed.toPersistent flatMap {
+                          group =>
+                            addToCache(group)
+                            group.segment.higher(key)
+                        }
 
                       case None =>
                         IO.none

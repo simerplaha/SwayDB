@@ -63,7 +63,7 @@ object TestTimer {
       IO.unit
   }
 
-  case class Decremental(startTime: Long = 100) extends TestTimer {
+  case class Decremental(startTime: Long = Int.MaxValue) extends TestTimer {
     val timer = new AtomicLong(startTime)
 
     override def next: Time =
@@ -74,7 +74,7 @@ object TestTimer {
   }
 
   object DecrementalRandom extends TestTimer {
-    val startTime: Long = 100
+    val startTime: Long = Int.MaxValue
     private val timer = new AtomicLong(startTime)
 
     override def next: Time =

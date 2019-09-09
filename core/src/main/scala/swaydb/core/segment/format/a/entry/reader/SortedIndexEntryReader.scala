@@ -401,7 +401,7 @@ object SortedIndexEntryReader {
                     entryReader = PendingApplyReader
                   )
                 else
-                  IO.failed[swaydb.Error.Segment, Persistent](swaydb.Exception.InvalidKeyValueId(keyValueId))
+                  IO.failed(swaydb.Exception.InvalidKeyValueId(keyValueId))
             }
         }
     }

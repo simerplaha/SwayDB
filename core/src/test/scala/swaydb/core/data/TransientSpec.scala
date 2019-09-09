@@ -19,6 +19,7 @@
 
 package swaydb.core.data
 
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.segment.format.a.block.SortedIndexBlock
@@ -26,8 +27,6 @@ import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
 
 class TransientSpec extends TestBase {
 
@@ -45,21 +44,26 @@ class TransientSpec extends TestBase {
     five.reverseIterator.toList should contain inOrderOnly(five, four, three, two, one)
   }
 
-  "has same value" should {
+  "hasSameValue" should {
     "return false for groups" in {
-      runThis(10.times) {
-        Transient.hasSameValue(
-          left = randomGroup(),
-          right = randomTransientKeyValue(randomString, randomStringOption)
-        ) shouldBe false
+      //      runThis(1.times) {
+      //        Transient.hasSameValue(
+      //          left = randomGroup(),
+      //          right = randomTransientKeyValue(randomString, randomStringOption)
+      //        ) shouldBe false
+      //      }
+
+      runThis(100.times, log = true) {
+        //        randomGroup()
+        //        randomTransientKeyValue(randomString, None, deadline = None, includeGroups = false)
       }
 
-      runThis(10.times) {
-        Transient.hasSameValue(
-          left = randomTransientKeyValue(randomString, randomStringOption),
-          right = randomGroup()
-        ) shouldBe false
-      }
+      //      runThis(10.times) {
+      //        Transient.hasSameValue(
+      //          left = randomTransientKeyValue(randomString, randomStringOption),
+      //          right = randomGroup()
+      //        ) shouldBe false
+      //      }
     }
 
     "return false for put" in {
@@ -93,7 +97,7 @@ class TransientSpec extends TestBase {
     }
 
     "return true for every 2nd key-value" in {
-      runThis(100.times) {
+      runThis(100.times, log = true) {
         val keyValues =
           Slice(
             randomFixedKeyValue(1),
