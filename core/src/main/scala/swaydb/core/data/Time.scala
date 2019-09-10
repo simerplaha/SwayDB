@@ -19,11 +19,10 @@
 
 package swaydb.core.data
 
-import java.util.concurrent.atomic.AtomicLong
-
+import swaydb.IO
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
-import swaydb.IO
+import swaydb.data.util.{ByteSizeOf, ByteUtil}
 
 private[core] object Time {
 
@@ -31,13 +30,11 @@ private[core] object Time {
   val someEmpty = Some(empty)
   val successEmpty = IO.Right[Nothing, Time](empty)(IO.ExceptionHandler.Nothing)
 
-  val long = new AtomicLong(System.nanoTime())
-
-  def localNano: Time =
-    Time(Slice.writeLong(long.incrementAndGet()))
-
-  def apply(time: Long): Time =
-    new Time(Slice.writeLongUnsigned(time))
+  def apply(time: Long): Time = {
+    val slice = Slice.create[Byte](ByteSizeOf.varLong)
+    ByteUtil.writeUnsignedLongRightAligned(time, slice)
+    new Time(slice)
+  }
 
   def >(upperTime: Time, lowerTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean = {
     import timeOrder._

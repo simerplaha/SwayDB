@@ -21,14 +21,13 @@ package swaydb.core.util
 
 import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteUtil
 import swaydb.data.util.StorageUnits._
+import swaydb.data.util.{ByteSizeOf, ByteUtil}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -280,6 +279,30 @@ class BytesSpec extends WordSpec with Matchers {
       reader.readIntUnsigned().get shouldBe Int.MaxValue
       val deNormalisedBytes = Bytes.deNormalise(reader.readRemaining().get)
       deNormalisedBytes shouldBe bytes
+    }
+  }
+
+  "writeUnsignedIntRightAligned & readUnsignedIntRightAligned" in {
+    runThis(100.times) {
+      val from = randomIntMax(10000000)
+      (from to from + 100000) foreach {
+        int =>
+          val slice = Slice.create[Byte](ByteSizeOf.varInt)
+          ByteUtil.writeUnsignedIntRightAligned(int, slice)
+          ByteUtil.readUnsignedIntRightAligned(slice).get shouldBe int
+      }
+    }
+  }
+
+  "writeUnsignedLongRightAligned & readUnsignedLongRightAligned" in {
+    runThis(100.times) {
+      val from: Long = (Long.MaxValue - randomIntMax()) max 0
+      (from to from + 100000) foreach {
+        long =>
+          val slice = Slice.create[Byte](ByteSizeOf.varLong)
+          ByteUtil.writeUnsignedLongRightAligned(long, slice)
+          ByteUtil.readUnsignedLongRightAligned(slice).get shouldBe long
+      }
     }
   }
 }

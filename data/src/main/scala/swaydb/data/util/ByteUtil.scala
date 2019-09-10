@@ -316,4 +316,57 @@ object ByteUtil {
     size += 1
     size
   }
+
+  def writeUnsignedIntRightAligned[E >: swaydb.Error.IO : IO.ExceptionHandler](int: Int, slice: Slice[Byte]): Unit = {
+    if (int > 0x0FFFFFFF || int < 0) slice.add((0x80 | int >>> 28).asInstanceOf[Byte])
+    if (int > 0x1FFFFF || int < 0) slice.add((0x80 | ((int >>> 21) & 0x7F)).asInstanceOf[Byte])
+    if (int > 0x3FFF || int < 0) slice.add((0x80 | ((int >>> 14) & 0x7F)).asInstanceOf[Byte])
+    if (int > 0x7F || int < 0) slice.add((0x80 | ((int >>> 7) & 0x7F)).asInstanceOf[Byte])
+
+    slice.add((int & 0x7F).asInstanceOf[Byte])
+  }
+
+  def readUnsignedIntRightAligned[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, Int] =
+    IO[E, Int] {
+      var i = 0
+      var byte = slice(i)
+      var int: Int = byte & 0x7F
+      while ((byte & 0x80) != 0) {
+        i += 1
+        byte = slice(i)
+
+        int <<= 7
+        int |= (byte & 0x7F)
+      }
+      int
+    }
+
+  def writeUnsignedLongRightAligned[E >: swaydb.Error.IO : IO.ExceptionHandler](long: Long, slice: Slice[Byte]): Unit = {
+    if (long < 0) slice.add(0x81.toByte)
+    if (long > 0xFFFFFFFFFFFFFFL || long < 0) slice.add((0x80 | ((long >>> 56) & 0x7FL)).asInstanceOf[Byte])
+    if (long > 0x1FFFFFFFFFFFFL || long < 0) slice.add((0x80 | ((long >>> 49) & 0x7FL)).asInstanceOf[Byte])
+    if (long > 0x3FFFFFFFFFFL || long < 0) slice.add((0x80 | ((long >>> 42) & 0x7FL)).asInstanceOf[Byte])
+    if (long > 0x7FFFFFFFFL || long < 0) slice.add((0x80 | ((long >>> 35) & 0x7FL)).asInstanceOf[Byte])
+    if (long > 0xFFFFFFFL || long < 0) slice.add((0x80 | ((long >>> 28) & 0x7FL)).asInstanceOf[Byte])
+    if (long > 0x1FFFFFL || long < 0) slice.add((0x80 | ((long >>> 21) & 0x7FL)).asInstanceOf[Byte])
+    if (long > 0x3FFFL || long < 0) slice.add((0x80 | ((long >>> 14) & 0x7FL)).asInstanceOf[Byte])
+    if (long > 0x7FL || long < 0) slice.add((0x80 | ((long >>> 7) & 0x7FL)).asInstanceOf[Byte])
+
+    slice.add((long & 0x7FL).asInstanceOf[Byte])
+  }
+
+  def readUnsignedLongRightAligned[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, Long] =
+    IO[E, Long] {
+      var i = 0
+      var byte = slice(i)
+      var long: Long = byte & 0x7F
+      while ((byte & 0x80) != 0) {
+        i += 1
+        byte = slice(i)
+
+        long <<= 7
+        long |= (byte & 0x7F)
+      }
+      long
+    }
 }

@@ -43,10 +43,7 @@ object Slice {
 
   val someEmptyBytes = Some(emptyBytes)
 
-  val emptyEmptyBytes: Slice[Slice[Byte]] = Slice.empty[Slice[Byte]]
-
-  def bytes(range: Iterable[Int]): Slice[Byte] =
-    range.map(_.toByte)(collection.breakOut)
+  private[swaydb] val emptyEmptyBytes: Slice[Slice[Byte]] = Slice.empty[Slice[Byte]]
 
   @inline final def empty[T: ClassTag] =
     Slice.create[T](0)
@@ -248,7 +245,7 @@ object Slice {
     def dropIntUnsigned(): IO[Error.IO, Slice[Byte]] =
       readIntUnsignedWithByteSize() map {
         case (_, byteSize) =>
-          slice.drop(byteSize)
+          slice drop byteSize
       }
 
     def addIntSigned(int: Int): Slice[Byte] = {

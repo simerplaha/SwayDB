@@ -20,6 +20,7 @@
 package swaydb.data.order
 
 import swaydb.data.slice.Slice
+import swaydb.data.util.ByteUtil
 
 private[swaydb] object TimeOrder {
   val long = new TimeOrder[Slice[Byte]] {
@@ -27,7 +28,7 @@ private[swaydb] object TimeOrder {
       if (left.isEmpty || right.isEmpty)
         1 //if either of them are empty then favour left to be the largest.
       else
-        left.readLongUnsigned().get compare right.readLongUnsigned().get
+        ByteUtil.readUnsignedLongRightAligned(left).get compare ByteUtil.readUnsignedLongRightAligned(right).get
   }
 }
 
